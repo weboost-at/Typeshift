@@ -129,7 +129,7 @@ public sealed class AgentGenerator : IIncrementalGenerator
 
         if (calls.IsEmpty) return;
 
-        var own = module is null ? [] : new[] { $"global::Agentic.Generated.{module}" };
+        var own = module is null ? [] : new[] { Names.Module(module) };
         var modules = own.Concat(references.Modules.Select(reference => reference.Module)).ToList();
 
         output.AddSource("Interceptors.g.cs", InterceptorEmitter.Emit(calls, modules));

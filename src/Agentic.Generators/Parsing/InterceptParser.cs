@@ -12,7 +12,7 @@ internal static class InterceptParser
     public static bool IsCandidate(SyntaxNode node, CancellationToken ct) =>
         node is InvocationExpressionSyntax
         {
-            Expression: MemberAccessExpressionSyntax { Name.Identifier.ValueText: "AddAgentic" }
+            Expression: MemberAccessExpressionSyntax { Name.Identifier.ValueText: KnownTypes.RegistrationMethod }
         };
 
     public static InterceptModel? Parse(GeneratorSyntaxContext context, CancellationToken ct)

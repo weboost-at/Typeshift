@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Agentic.Generators.Models;
+using Agentic.Generators.Parsing;
 
 namespace Agentic.Generators.Emitting;
 
@@ -13,16 +14,16 @@ internal static class InterceptorEmitter
 
         writer.Line(SourceWriter.Header);
 
-        using (writer.Block("namespace Agentic.Generated"))
+        using (writer.Block($"namespace {Names.GeneratedNamespace}"))
         {
-            using (writer.Block("file static class AddAgenticInterceptor"))
+            using (writer.Block($"file static class {KnownTypes.RegistrationMethod}Interceptor"))
             {
                 foreach (var call in calls)
                 {
                     writer.Line(call.Attribute);
                 }
 
-                writer.Line($"public static {Services} AddAgentic(");
+                writer.Line($"public static {Services} {KnownTypes.RegistrationMethod}(");
 
                 using (writer.Indent())
                 {

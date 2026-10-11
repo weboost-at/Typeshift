@@ -12,6 +12,8 @@ internal static class KnownTypes
     public const string ServiceCollectionExtensions =
         "Microsoft.Extensions.DependencyInjection.AgenticServiceCollectionExtensions";
 
+    public const string RegistrationMethod = "AddAgentic";
+
     public const string GeneratedModuleAttribute = "Agentic.Modules.GeneratedModuleAttribute";
 
     public const string ModuleToolsetAttribute = "Agentic.Modules.ModuleToolsetAttribute";

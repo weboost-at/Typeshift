@@ -16,9 +16,9 @@ internal static class ModuleEmitter
         var module = model.Name;
 
         writer.Line(SourceWriter.Header);
-        writer.Line($"[assembly: global::Agentic.Modules.GeneratedModule(typeof(global::Agentic.Generated.{module}))]");
+        writer.Line($"[assembly: global::Agentic.Modules.GeneratedModule(typeof({Names.Module(module)}))]");
         writer.Line();
-        writer.Line("namespace Agentic.Generated;");
+        writer.Line($"namespace {Names.GeneratedNamespace};");
         writer.Line();
         writer.Line("/// <summary>");
         writer.Line($"/// Registers the toolsets and agents of {model.AssemblyName}.");
