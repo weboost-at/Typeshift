@@ -1,0 +1,24 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- The generator compiles against the oldest supported compiler so it loads into older SDKs. The generator tests
+         compile C# 14 and set RoslynVersion to a newer compiler in their project file. -->
+    <RoslynVersion Condition="'$(RoslynVersion)' == ''">4.14.0</RoslynVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="Bogus" Version="35.6.5" />
+    <!-- Pinned: version 8 changed its license. -->
+    <PackageVersion Include="FluentAssertions" Version="[7.2.0]" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.10.0" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.10.0" />
+    <PackageVersion Include="MinVer" Version="7.0.0" />
+    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+  </ItemGroup>
+
+</Project>
