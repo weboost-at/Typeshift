@@ -1,0 +1,12 @@
+<Project>
+
+  <!-- Projects in this repository that declare toolsets or agents, or call AddAgentic(), import this file. It does
+       what the package does for a consumer: the generator as an analyzer plus the package's buildTransitive props. -->
+  <Import Project="$(MSBuildThisFileDirectory)../src/Agentic/buildTransitive/Agentic.props" />
+
+  <ItemGroup>
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../src/Agentic/Agentic.csproj" />
+    <ProjectReference Include="$(MSBuildThisFileDirectory)../src/Agentic.Generators/Agentic.Generators.csproj" ReferenceOutputAssembly="false" OutputItemType="Analyzer" />
+  </ItemGroup>
+
+</Project>

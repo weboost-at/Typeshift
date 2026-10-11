@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Agentic/Agentic.csproj" />
+    <Project Path="src/Agentic.Generators/Agentic.Generators.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Agentic.Samples.Console/Agentic.Samples.Console.csproj" />
+  </Folder>
+</Solution>
