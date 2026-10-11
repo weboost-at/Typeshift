@@ -45,8 +45,8 @@ ticked as they land, open items and blockers are recorded here, never as TODOs i
 
 ### Milestone 7: AOT, packaging, docs (behavior 49)
 
-- [ ] The sample, the AOT CI job, the packaging smoke test
-- [ ] `docs/architecture.md`, `docs/diagnostics.md`, `docs/decisions.md`, `docs/renaming.md`, README
+- [x] The sample, the AOT CI job, the packaging smoke test
+- [x] `docs/architecture.md`, `docs/diagnostics.md`, `docs/decisions.md`, `docs/renaming.md`, README
 - [ ] Final review pass, clean re-verification, pull request, tag `v0.1.0-alpha.1`
 
 ## Behavior coverage
@@ -104,3 +104,63 @@ rule.
 | 46 | `TrackedChatClientStreamingTests.Given_A_Consumed_Stream_It_Stores_The_Response_Of_Every_Update`, `..._Given_A_Consumer_That_Stops_Early_It_Stores_What_Arrived`, `..._Given_A_Cancelled_Stream_It_Stores_What_Arrived` |
 | 47 | `RealtimeTrackedConversationSessionTests.Given_A_Notable_Update_It_Is_Published_Before_The_Consumer_Sees_It`, `..._Given_Text_Within_The_Interval_It_Is_Not_Published_Yet`, `..._Given_Text_After_The_Interval_The_Next_Delta_Is_Published_Before_The_Consumer_Sees_It` |
 | 48 | `SubscriberTests.Given_Throwing_Subscribers_The_Stream_Completes`, `..._Given_A_Subscriber_That_Never_Finishes_The_Call_Goes_On_At_The_Limit`, `..._Given_A_Session_Subscriber_That_Never_Finishes_The_Stream_Goes_On_At_The_Limit`, `..._Given_A_Subscriber_Its_Token_Is_Cancelled_At_The_Limit` |
+| 49 | CI, `.github/workflows/ci.yml`: "Publish the sample as Native AOT, failing on any trim or AOT warning" and "Run the AOT sample" |
+
+Beyond the behaviors, `ReadmeTests` keeps the README quickstart identical to the sample's files, and CI builds and runs
+`samples/Agentic.Samples.PackageConsumer` against the packed `.nupkg`.
+
+## Environment notes
+
+- The run had the .NET 10 SDK and `clang`, so the AOT publish and the package consumer ran locally as well as in CI.
+
+## Known gaps
+
+- **Recursive parameter types:** each parameter's schema is created on its own and nested under the function's
+  `properties`, so a `$ref` that `AIJsonUtilities.CreateJsonSchema` emits for a recursive type is relative to the
+  parameter, not to the function schema. Untested; non-recursive types are unaffected.
+- **Private nested classes:** a toolset or agent nested as `private` or `protected` fails with CS0122 in the
+  generated module instead of a diagnostic. Nested classes the assembly can reach work.
+- **Agent inheritance:** an agent deriving from another concrete agent is not supported: the generator reads only the
+  agent's own constructor, so the derived agent gets AGT006 for the name its base sets.
+- **`WithToolSettings` order:** it applies to the tools added before it, so it must follow the `UseToolset` calls it
+  configures (AGT012 and an `ArgumentException` say so when it does not).
+- **AGT014 reads types:** to find a reference that declares toolsets or agents without a stamp, the generator looks
+  at the types of every reference that uses the library but carries no stamp. Stamped references, the normal case,
+  are read from their stamps only.
+- **No JSON-context analyzer:** a tool whose parameter or result type is missing from every `JsonSerializerContext`
+  compiles, then fails at runtime under Native AOT. The stretch-goal analyzer that reports it is not built.
+- **The tracked conversation id:** a call without `ChatOptions.ConversationId` starts a conversation under a new id
+  that only `ConversationTracker` shows while the call runs; the response does not carry it.
+- **Fixed tracking limits:** the publish interval (100 ms) and the subscriber limits (250 ms per session, 5 s for the
+  tracker) are constants, as in the owner's code.
+- **Generated line length:** generated code is `global::`-qualified and some declarations exceed 120 columns.
+- **Not published:** the package is packed and tested in CI, not pushed to NuGet.org.
+
+## Next steps
+
+1. The JSON-context analyzer: report tool parameter and result types that no registered context covers.
+2. Return the conversation id on the tracked response, and make the tracking limits options.
+3. A diagnostic for toolsets and agents the module cannot reach.
+4. Rewrite `$ref`s of recursive parameter types, with a test against `AIFunctionFactory`.
+5. Instance-method tools, if the owner wants them (out of the alpha's scope).
+6. A sample provider behind an environment variable, once provider SDKs are in scope.
+7. On the first release: move the rules to `AnalyzerReleases.Shipped.md` and publish the package.
+
+## Decisions to review first
+
+From `docs/decisions.md`, the ones that shape the API the most:
+
+1. **D1, D4:** `AddAgentic()` exists only as an intercepted call, and the generated `ConfigureAsync` is a C# 14
+   extension block.
+2. **D3:** `ToolRef<TSettings, TConfiguration>` carries the generated view type, so tool defaults are configured as
+   `ToolDefaults.ConfigureAsync(CompanyToolset.Tools.FindCompanies, view => view.Limit = 2)`.
+3. **D2:** the generated names (`Tools`, `{Tool}Configuration`, `Configuration`, `Name`, `ToolNames`, the module
+   and interceptor names).
+4. **D16, D17:** the store interfaces (optional, singletons, tool defaults loaded in batches) and
+   `IChatClientProvider`.
+5. **D14, D15:** stored agents are named `stored-{guid}`; code agents list their unique name as display name and
+   export under it.
+6. **D9:** every project that declares toolsets or agents references the package; AGT014 catches a miss.
+7. **D18:** the changes in the conversation port (`ConversationTracker`, `ConversationStart`, the model as a string,
+   subscribers awaited on their limit token).
+8. **D22:** the package metadata points at `weboost-at/agentic-dotnet`, the spec's repository name.
