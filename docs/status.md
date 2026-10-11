@@ -7,11 +7,11 @@ ticked as they land, open items and blockers are recorded here, never as TODOs i
 
 ### Milestone 1: skeleton
 
-- [ ] Repository infrastructure: `global.json`, `Directory.Build.props`, `Directory.Packages.props`, `.editorconfig`,
+- [x] Repository infrastructure: `global.json`, `Directory.Build.props`, `Directory.Packages.props`, `.editorconfig`,
       `.gitignore`, `LICENSE`, `README.md`, `CHANGELOG.md`, `AGENTS.md`, `CLAUDE.md`, `Agentic.slnx`, local tools
-- [ ] Empty projects wired together: runtime, generator, the three test projects, the sample
-- [ ] CI running build, tests and slopwatch
-- [ ] Convention tests from the test-formatting skill, test bases and the test-data catalog
+- [x] Empty projects wired together: runtime, generator, the three test projects, the sample
+- [x] CI running build, tests and slopwatch
+- [x] Convention tests from the test-formatting skill, test bases and the test-data catalog
 
 ### Milestone 2: tools (behaviors 1-9)
 
