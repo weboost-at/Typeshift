@@ -40,7 +40,8 @@ ticked as they land, open items and blockers are recorded here, never as TODOs i
 
 ### Milestone 6: conversations (behaviors 41-48)
 
-- [ ] The port of the conversation tracking behind `IConversationStore`, on `TimeProvider`
+- [x] The port of the conversation tracking behind `IConversationStore`, on `TimeProvider`
+- [x] `AgentRuntime` chat clients track their conversations under the agent's unique name
 
 ### Milestone 7: AOT, packaging, docs (behavior 49)
 
@@ -95,3 +96,11 @@ rule.
 | 38 | `StoredAgentTests.Given_A_Code_Agent_Its_Exported_Record_Round_Trips_Through_Json`, `..._Given_An_Exported_Code_Agent_Restored_From_Json_It_Offers_The_Same_Tools`, `..._Given_An_Exported_Code_Agent_Restored_From_Json_Its_Tools_Run_With_The_Same_Settings` |
 | 39 | `StoredAgentTests.Given_A_Stored_Agent_Naming_An_Unknown_Tool_Creating_Its_Runtime_Throws_Which_Tool` |
 | 40 | `StoredAgentTests.Given_A_New_Stored_Agent_Its_Generated_Name_Can_Never_Be_A_Code_Agents_Name`, `..._Given_A_Stored_Agent_Named_Like_A_Code_Agent_Saving_It_Throws` |
+| 41 | `TrackedChatClientTests.Given_A_Completed_Session_It_Stores_The_Input_And_Every_Message_The_Model_Produced` |
+| 42 | `TrackedChatClientTests.Given_A_Failing_Inner_Client_The_Exception_Surfaces`, `..._Given_A_Failing_Inner_Client_The_Session_Is_Stored_With_An_Error`, `..._Given_A_Failing_Inner_Client_No_Session_Stays_Tracked` |
+| 43 | `TrackedChatClientTests.Given_A_Cancelled_Request_The_Stored_Error_Says_It_Was_Cancelled` |
+| 44 | `TrackedChatClientTests.Given_An_Id_That_Is_Not_Stored_A_New_Conversation_Starts_Under_It` |
+| 45 | `TrackedChatClientTests.Given_A_Stored_Conversation_The_Model_Receives_The_Earlier_Messages_And_The_New_Input`, `..._Given_A_Resumed_Conversation_Its_Usage_Is_Aggregated_Over_Its_Sessions`, `..._Given_A_Stored_Call_Without_A_Result_The_Resumed_Conversation_Leaves_It_Out`, `StoredConversationTests.Given_A_Stored_Conversation_It_Round_Trips_Through_Json`, `AgentRuntimeTests.Given_A_Model_Its_Chat_Client_Stores_The_Conversation_Under_The_Agent` |
+| 46 | `TrackedChatClientStreamingTests.Given_A_Consumed_Stream_It_Stores_The_Response_Of_Every_Update`, `..._Given_A_Consumer_That_Stops_Early_It_Stores_What_Arrived`, `..._Given_A_Cancelled_Stream_It_Stores_What_Arrived` |
+| 47 | `RealtimeTrackedConversationSessionTests.Given_A_Notable_Update_It_Is_Published_Before_The_Consumer_Sees_It`, `..._Given_Text_Within_The_Interval_It_Is_Not_Published_Yet`, `..._Given_Text_After_The_Interval_The_Next_Delta_Is_Published_Before_The_Consumer_Sees_It` |
+| 48 | `SubscriberTests.Given_Throwing_Subscribers_The_Stream_Completes`, `..._Given_A_Subscriber_That_Never_Finishes_The_Call_Goes_On_At_The_Limit`, `..._Given_A_Session_Subscriber_That_Never_Finishes_The_Stream_Goes_On_At_The_Limit`, `..._Given_A_Subscriber_Its_Token_Is_Cancelled_At_The_Limit` |
