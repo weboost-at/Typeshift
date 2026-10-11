@@ -29,10 +29,10 @@ ticked as they land, open items and blockers are recorded here, never as TODOs i
 
 ### Milestone 4: agents and settings (behaviors 11-29, 36-37)
 
-- [ ] `AgentDefinition`, the typed configuration facades, the settings layering, `AgentRuntime<TAgent>`
-- [ ] Store interfaces with in-memory implementations
-- [ ] Agent diagnostics (AGT006, AGT007, AGT010, AGT012)
-- [ ] Tests: agent snapshot, behaviors 11-29, 36-37
+- [x] `AgentDefinition`, the typed configuration facades, the settings layering, `AgentRuntime<TAgent>`
+- [x] Store interfaces with in-memory implementations
+- [x] Agent diagnostics (AGT006, AGT007, AGT010, AGT012)
+- [x] Tests: agent snapshot, behaviors 11-29, 36-37
 
 ### Milestone 5: stored agents (behaviors 38-40)
 
@@ -65,9 +65,30 @@ rule.
 | 8 | `ToolSchemaTests.Given_The_Same_Method_The_Schema_Matches_AIFunctionFactory_Without_Descriptions` |
 | 9 | `ToolSchemaTests.Given_Param_Docs_They_Become_The_Parameter_Descriptions`, `..._Given_No_WithDescription_The_Summary_Is_The_Tool_Description` |
 | 10 | `DiagnosticTests.Given_Two_Own_Tools_Sharing_A_Name_AGT008_Is_Reported_On_The_First`, `..._Given_A_Tool_Named_Like_One_Of_A_Reference_AGT008_Is_Reported_On_The_Own_One` (generator tests) |
+| 11 | `AgentDefinitionTests.Given_Selected_Tools_And_A_Whole_Toolset_The_Agent_Offers_Exactly_Those_In_Order` |
+| 12 | `AgentDefinitionTests.Given_A_Method_Of_Another_Toolset_Selecting_It_Throws_An_ArgumentException`, `DiagnosticTests.Given_A_Method_Of_Another_Toolset_AGT007_Is_Reported_On_It`, `..._Given_A_Toolset_Not_Compiled_With_The_Generator_AGT007_Is_Reported_On_UseToolset` |
+| 13 | `AgentDefinitionTests.Given_A_Tool_The_Agent_Already_Offers_Adding_It_Again_Throws_An_InvalidOperationException` |
+| 14 | `AgentRuntimeTests.Given_Run_Chat_Options_Only_The_Allowlisted_Ones_Change` |
+| 15 | `AgentRuntimeTests.Given_An_Unset_Allowlisted_Run_Option_The_Agents_Default_Stays` |
+| 16 | `AgentRuntimeTests.Given_Run_Chat_Options_With_A_Conversation_The_Conversation_Id_Is_Kept` |
+| 17 | `AgentRuntimeTests.Given_Run_Chat_Options_Of_Another_Execution_Context_The_Agent_Runs_In_Its_Own` |
+| 18 | `AgentRuntimeTests.Given_The_Agents_Tool_Settings_Its_Tools_Run_With_All_Of_Them` |
+| 19 | `AgentRuntimeTests.Given_Run_Tool_Settings_Only_Their_Allowlisted_Members_Change` |
+| 20 | `AgentRuntimeTests.Given_Run_Tool_Settings_The_Next_Run_Uses_The_Agents_Own` |
+| 21 | `AgentDefinitionTests.Given_Settings_No_Tool_Of_The_Agent_Reads_WithToolSettings_Throws_An_ArgumentException`, `DiagnosticTests.Given_Tool_Settings_No_Tool_Of_The_Agent_Reads_AGT012_Is_Reported_On_Them` |
+| 22 | `AgentDefinitionTests.Given_A_Name_That_Is_Not_Lower_Snake_Case_WithUniqueName_Throws_An_ArgumentException`, `DiagnosticTests.Given_A_Unique_Name_That_Is_Not_Lower_Snake_Case_AGT006_Is_Reported_On_It` |
+| 23 | `DiagnosticTests.Given_An_Agent_Without_WithUniqueName_AGT006_Is_Reported_On_Its_Name`, `..._Given_Two_Agents_Sharing_A_Unique_Name_AGT010_Is_Reported_On_The_First`, `AgentCatalogTests.Given_Two_Agents_With_One_Unique_Name_It_Throws_An_InvalidOperationException` |
+| 24 | `AgentConfigurationViewTests.Exposes_Only_The_Allowlisted_Chat_Options_And_The_Configurable_Tools`, `..._Given_Values_Written_Through_The_View_The_Run_Resolves_With_Them` |
+| 25 | `SettingsLayeringTests.Given_Stored_Tool_Defaults_And_No_Code_Settings_The_Defaults_Apply` |
+| 26 | `SettingsLayeringTests.Given_Stored_Tool_Defaults_And_Code_Settings_Of_The_Agent_The_Defaults_Do_Not_Apply` |
+| 27 | `SettingsLayeringTests.Given_Stored_Agent_Overrides_They_Beat_The_Code_Settings_For_Allowlisted_Members_Only` |
+| 28 | `SettingsLayeringTests.Given_Run_Overrides_They_Beat_The_Stored_Overrides_For_Allowlisted_Members_Only` |
+| 29 | `SettingsLayeringTests.Given_A_Stored_Value_Set_Back_To_Null_The_Layer_Below_Applies_Again` |
 | 30 | `AddAgenticTests.Registers_The_Toolsets_Of_The_Calling_Assembly`, `..._Registers_The_Toolsets_Of_A_Referenced_Assembly`, `..._Registers_The_Agents_Of_The_Calling_Assembly`, `..._Registers_The_Agents_Of_A_Referenced_Assembly` |
 | 31 | `AddAgenticTests.Given_ValidateOnBuild_And_ValidateScopes_The_Container_Builds` |
 | 32 | `InterceptorGenerationTests.Given_InternalsVisibleTo_A_Generated_Project_The_Tests_Compile_Their_AddAgentic_Call` (generator tests) |
 | 33 | `AddAgenticTests.Given_A_Call_That_Is_Not_Intercepted_It_Throws_What_To_Do` |
 | 34 | `ToolCatalogTests.Given_The_Name_Of_A_Tool_Of_A_Referenced_Assembly_It_Creates_That_Tool`, `..._Given_Stored_Settings_The_Created_Tool_Runs_With_Them` |
 | 35 | `AgentCatalogTests.Lists_Every_Code_Agent_By_Unique_Name` |
+| 36 | `NoStoreTests.Given_No_Store_Resolving_A_Runs_Options_Works_From_The_Code_Alone` |
+| 37 | `NoStoreTests.Given_No_Store_Updating_A_Configuration_Throws_What_To_Register` |
