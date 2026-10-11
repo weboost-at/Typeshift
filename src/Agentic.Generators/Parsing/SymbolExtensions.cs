@@ -12,57 +12,66 @@ internal static class SymbolExtensions
     public static readonly SymbolDisplayFormat FullyQualified = SymbolDisplayFormat.FullyQualifiedFormat
         .AddMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
 
-    public static bool Is(this ITypeSymbol? type, string metadataName) =>
-        type is INamedTypeSymbol named && GetMetadataName(named.OriginalDefinition) == metadataName;
-
-    public static bool DerivesFrom(this INamedTypeSymbol type, string metadataName)
+    extension(ITypeSymbol? type)
     {
-        for (var current = type.BaseType; current is not null; current = current.BaseType)
-        {
-            if (current.Is(metadataName)) return true;
-        }
-
-        return false;
+        public bool Is(string metadataName) =>
+            type is INamedTypeSymbol named && GetMetadataName(named.OriginalDefinition) == metadataName;
     }
 
-    public static string ToFullyQualified(this ITypeSymbol type) => type.ToDisplayString(FullyQualified);
-
-    // The type of a stored value: null means "inherit", so even a value type becomes nullable
-    public static string ToNullableFullyQualified(this ITypeSymbol type) =>
-        type switch
-        {
-            { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } => type.ToFullyQualified(),
-            { IsValueType: true } => type.ToFullyQualified() + "?",
-            _ => type.WithNullableAnnotation(NullableAnnotation.Annotated).ToFullyQualified()
-        };
-
-    // typeof() and generic definitions take no nullable reference annotation
-    public static string ToTypeOf(this ITypeSymbol type) =>
-        type.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
-            .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-
-    public static bool IsPartial(this INamedTypeSymbol type, CancellationToken ct) =>
-        type.DeclaringSyntaxReferences
-            .Select(reference => reference.GetSyntax(ct))
-            .OfType<TypeDeclarationSyntax>()
-            .Any(declaration => declaration.Modifiers.Any(SyntaxKind.PartialKeyword))
-        && (type.ContainingType is not { } container || container.IsPartial(ct));
-
-    public static IEnumerable<IPropertySymbol> GetSettableProperties(this ITypeSymbol type)
+    extension(ITypeSymbol type)
     {
-        var hierarchy = new List<ITypeSymbol>();
+        public string ToFullyQualified() => type.ToDisplayString(FullyQualified);
 
-        for (var current = type; current is { SpecialType: not SpecialType.System_Object }; current = current.BaseType)
+        // The type of a stored value: null means "inherit", so even a value type becomes nullable
+        public string ToNullableFullyQualified() =>
+            type switch
+            {
+                { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } => type.ToFullyQualified(),
+                { IsValueType: true } => type.ToFullyQualified() + "?",
+                _ => type.WithNullableAnnotation(NullableAnnotation.Annotated).ToFullyQualified()
+            };
+
+        // typeof() and generic definitions take no nullable reference annotation
+        public string ToTypeOf() =>
+            type.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
+                .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+
+        public IEnumerable<IPropertySymbol> GetSettableProperties()
         {
-            hierarchy.Insert(0, current);
+            var hierarchy = new List<ITypeSymbol>();
+
+            for (var level = type; level is { SpecialType: not SpecialType.System_Object }; level = level.BaseType)
+            {
+                hierarchy.Insert(0, level);
+            }
+
+            // Base records first; a redeclared property counts once, as its most derived declaration
+            return hierarchy
+                .SelectMany(level => level.GetMembers().OfType<IPropertySymbol>())
+                .Where(IsSettable)
+                .GroupBy(property => property.Name)
+                .Select(group => group.Last());
+        }
+    }
+
+    extension(INamedTypeSymbol type)
+    {
+        public bool DerivesFrom(string metadataName)
+        {
+            for (var current = type.BaseType; current is not null; current = current.BaseType)
+            {
+                if (current.Is(metadataName)) return true;
+            }
+
+            return false;
         }
 
-        // Base records first; a redeclared property counts once, as its most derived declaration
-        return hierarchy
-            .SelectMany(level => level.GetMembers().OfType<IPropertySymbol>())
-            .Where(IsSettable)
-            .GroupBy(property => property.Name)
-            .Select(group => group.Last());
+        public bool IsPartial(CancellationToken ct) =>
+            type.DeclaringSyntaxReferences
+                .Select(reference => reference.GetSyntax(ct))
+                .OfType<TypeDeclarationSyntax>()
+                .Any(declaration => declaration.Modifiers.Any(SyntaxKind.PartialKeyword))
+            && (type.ContainingType is not { } container || container.IsPartial(ct));
     }
 
     private static bool IsSettable(IPropertySymbol property) =>
