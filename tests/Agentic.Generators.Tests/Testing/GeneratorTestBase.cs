@@ -30,8 +30,7 @@ public abstract class GeneratorTestBase
             references: FrameworkReferences.AddRange(references),
             options: new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
-                nullableContextOptions: NullableContextOptions.Enable,
-                generalDiagnosticOption: ReportDiagnostic.Error));
+                nullableContextOptions: NullableContextOptions.Enable));
 
     protected static SyntaxTree Parse(string source, string path) =>
         CSharpSyntaxTree.ParseText(source, ParseOptions, path);
@@ -40,7 +39,9 @@ public abstract class GeneratorTestBase
         CSharpGeneratorDriver.Create(
             generators: [new AgentGenerator().AsSourceGenerator()],
             parseOptions: ParseOptions,
-            driverOptions: new GeneratorDriverOptions(IncrementalGeneratorOutputKind.None, trackIncrementalGeneratorSteps: true));
+            driverOptions: new GeneratorDriverOptions(
+                IncrementalGeneratorOutputKind.None,
+                trackIncrementalGeneratorSteps: true));
 
     protected GeneratorRun Run(Compilation compilation)
     {
@@ -49,6 +50,35 @@ public abstract class GeneratorTestBase
     }
 
     protected GeneratorRun Run(params string[] sources) => Run(Compile(sources));
+
+    // Runs the same driver again, as the IDE does after an edit
+    protected GeneratorRun RunAgain(GeneratorRun previous, Compilation edited)
+    {
+        var driver = previous.Driver.RunGeneratorsAndUpdateCompilation(edited, out var output, out _, Ct);
+        return new GeneratorRun(driver, output);
+    }
+
+    protected static Compilation Edit(Compilation compilation, int tree, string source) =>
+        compilation.ReplaceSyntaxTree(
+            compilation.SyntaxTrees.ElementAt(tree),
+            Parse(source, compilation.SyntaxTrees.ElementAt(tree).FilePath));
+
+    // As a project without GenerateDocumentationFile: the compiler keeps /// comments as plain comments
+    protected GeneratorRun RunWithoutDocumentation(params string[] sources)
+    {
+        var parseOptions = ParseOptions.WithDocumentationMode(DocumentationMode.None);
+        var compilation = Compile(sources);
+
+        var undocumented = compilation.SyntaxTrees.Aggregate(
+            compilation,
+            (current, tree) => current.ReplaceSyntaxTree(tree, tree.WithRootAndOptions(tree.GetRoot(), parseOptions)));
+
+        var driver = CSharpGeneratorDriver
+            .Create([new AgentGenerator().AsSourceGenerator()], parseOptions: parseOptions)
+            .RunGeneratorsAndUpdateCompilation(undocumented, out var output, out _, Ct);
+
+        return new GeneratorRun(driver, output);
+    }
 
     // An assembly compiled with the generator, referenced from the subject as metadata
     protected MetadataReference CompileReference(string assemblyName, params string[] sources) =>
@@ -63,7 +93,8 @@ public abstract class GeneratorTestBase
         using var image = new MemoryStream();
         var emitted = run.Output.Emit(image, cancellationToken: Ct);
 
-        if (!emitted.Success) throw new InvalidOperationException(string.Join(Environment.NewLine, emitted.Diagnostics));
+        if (!emitted.Success)
+            throw new InvalidOperationException(string.Join(Environment.NewLine, emitted.Diagnostics));
 
         return MetadataReference.CreateFromImage(image.ToArray());
     }

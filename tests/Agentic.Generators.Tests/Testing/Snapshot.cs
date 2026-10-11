@@ -78,5 +78,6 @@ public static class Snapshot
         return Normalize(builder.ToString());
     }
 
-    private static string Normalize(string text) => text.Replace("\r\n", "\n", StringComparison.Ordinal).TrimEnd() + "\n";
+    private static string Normalize(string text) =>
+        text.Replace("\r\n", "\n", StringComparison.Ordinal).TrimEnd() + "\n";
 }
