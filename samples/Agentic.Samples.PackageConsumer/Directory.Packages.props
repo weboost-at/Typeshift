@@ -1,0 +1,8 @@
+<Project>
+
+  <!-- Stops the repository's central package management: this project pins its own versions. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+</Project>
