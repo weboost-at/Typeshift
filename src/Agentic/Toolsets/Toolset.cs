@@ -32,6 +32,12 @@ public abstract class Toolset
     internal AIFunction CreateTool(ToolDefinition tool, ToolSettingsLayers layers, AgentJson json) =>
         GetBinding(tool).CreateFunction(tool, layers, json);
 
+    internal object? ImportSettings(ToolDefinition tool, StoredSettings stored, AgentJson json) =>
+        GetBinding(tool).ImportSettings(stored, json);
+
+    internal StoredSettings ExportSettings(ToolDefinition tool, object settings, AgentJson json) =>
+        GetBinding(tool).ExportSettings(settings, json);
+
     /// <summary>
     /// Declares a tool backed by a public static method; the generator reads the same chain at compile time.
     /// </summary>

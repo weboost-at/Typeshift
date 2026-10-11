@@ -32,7 +32,11 @@ public static class ModuleRegistration
             provider.GetServices<Toolset>(),
             provider.GetRequiredService<AgentJson>()));
 
-        services.TryAddSingleton(provider => new AgentCatalog(provider.GetServices<AgentDefinition>()));
+        services.TryAddSingleton(provider => new AgentCatalog(
+            provider.GetServices<AgentDefinition>(),
+            provider.GetRequiredService<ToolCatalog>(),
+            provider.GetRequiredService<AgentRuntimeServices>(),
+            provider.GetService<IAgentDefinitionStore>()));
 
         services.TryAddSingleton(provider => new ToolDefaultsManager(
             provider.GetService<IToolDefaultsStore>(),

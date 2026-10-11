@@ -24,10 +24,14 @@ public class AgentCatalogTests : HostTestBase
     public void Given_Two_Agents_With_One_Unique_Name_It_Throws_An_InvalidOperationException()
     {
         // Arrange
-        AgentDefinition[] agents = [new NamedAgent<string>("twin_agent"), new NamedAgent<int>("twin_agent")];
+        using var services = new ServiceCollection()
+            .AddAgentic()
+            .AddSingleton<AgentDefinition>(new NamedAgent<string>("twin_agent"))
+            .AddSingleton<AgentDefinition>(new NamedAgent<int>("twin_agent"))
+            .BuildServiceProvider();
 
         // Act
-        var index = () => new AgentCatalog(agents);
+        var index = () => services.GetRequiredService<AgentCatalog>();
 
         // Assert
         index.Should().Throw<InvalidOperationException>();

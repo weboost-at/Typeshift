@@ -1,4 +1,5 @@
 using Agentic.Agents;
+using Agentic.Catalogs;
 using Agentic.Persistence;
 using Agentic.Persistence.InMemory;
 using Agentic.Settings;
@@ -18,10 +19,13 @@ public abstract class AgentTestBase : HostTestBase
 
     protected ToolDefaultsManager ToolDefaults => Services.GetRequiredService<ToolDefaultsManager>();
 
+    protected AgentCatalog Catalog => Services.GetRequiredService<AgentCatalog>();
+
     protected override void ConfigureServices(IServiceCollection services)
     {
         services.AddSingleton<IAgentConfigurationStore, InMemoryAgentConfigurationStore>();
         services.AddSingleton<IToolDefaultsStore, InMemoryToolDefaultsStore>();
+        services.AddSingleton<IAgentDefinitionStore, InMemoryAgentDefinitionStore>();
     }
 
     protected async Task<ProbeSettings> ProbeAsync(ChatOptions options)

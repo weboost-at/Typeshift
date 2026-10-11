@@ -45,7 +45,9 @@ public sealed class ToolCatalog
     /// The tool with the given name.
     /// </summary>
     public ToolDefinition GetDefinition(ToolName name) =>
-        _tools.GetValueOrDefault(name) ?? throw new ArgumentException($"No tool is named '{name}'.", nameof(name));
+        FindDefinition(name) ?? throw new ArgumentException($"No tool is named '{name}'.", nameof(name));
+
+    internal ToolDefinition? FindDefinition(ToolName name) => _tools.GetValueOrDefault(name);
 
     /// <summary>
     /// Creates the tool with the given name; stored settings change its allowlisted members.

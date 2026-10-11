@@ -26,6 +26,8 @@ public abstract class SettingsProperty<TSettings>
     internal abstract TSettings Apply(TSettings settings, JsonElement stored, JsonSerializerOptions options);
 
     internal abstract TSettings Override(TSettings settings, TSettings overrides);
+
+    internal abstract JsonElement Export(TSettings settings, JsonSerializerOptions options);
 }
 
 /// <summary>

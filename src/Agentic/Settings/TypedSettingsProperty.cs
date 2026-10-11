@@ -16,6 +16,9 @@ internal sealed class TypedSettingsProperty<TSettings, TValue>(
     internal override TSettings Override(TSettings settings, TSettings overrides) =>
         get(overrides) is { } value ? with(settings, value) : settings;
 
+    internal override JsonElement Export(TSettings settings, JsonSerializerOptions options) =>
+        JsonSerializer.SerializeToElement(get(settings), GetTypeInfo(options));
+
     private static JsonTypeInfo<TValue> GetTypeInfo(JsonSerializerOptions options) =>
         (JsonTypeInfo<TValue>)options.GetTypeInfo(typeof(TValue));
 }

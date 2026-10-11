@@ -30,4 +30,8 @@ public abstract class ToolBinding
         new SettingsToolBinding<TSettings>(settings, createFunction);
 
     internal abstract AIFunction CreateFunction(ToolDefinition tool, ToolSettingsLayers layers, AgentJson json);
+
+    internal abstract object? ImportSettings(StoredSettings stored, AgentJson json);
+
+    internal abstract StoredSettings ExportSettings(object settings, AgentJson json);
 }

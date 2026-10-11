@@ -1,12 +1,17 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
+using Agentic.Agents;
 using Agentic.Settings;
+using Agentic.StoredAgents;
 
 namespace Agentic.Json;
 
 [JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]
 [JsonSerializable(typeof(StoredSettings))]
+[JsonSerializable(typeof(AgentConfiguration))]
+[JsonSerializable(typeof(ToolDefaults))]
+[JsonSerializable(typeof(StoredAgent))]
 [JsonSerializable(typeof(JsonObject))]
 [JsonSerializable(typeof(bool?))]
 [JsonSerializable(typeof(int?))]

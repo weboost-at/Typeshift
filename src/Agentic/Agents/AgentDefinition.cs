@@ -1,5 +1,6 @@
 using Agentic.Json;
 using Agentic.Settings;
+using Agentic.StoredAgents;
 using Agentic.Tools;
 using Agentic.Toolsets;
 using Microsoft.Extensions.AI;
@@ -111,6 +112,26 @@ public abstract class AgentDefinition
         return this;
     }
 
+    internal StoredAgent ToStoredAgent(AgentJson json) =>
+        new()
+        {
+            UniqueName = UniqueName,
+            DisplayName = UniqueName,
+            Description = Description,
+            Options = StoredAgentOptions.From(_options),
+            Tools = [.. _tools.Select(tool => tool.Name)],
+            ToolSettings = _toolSettings.ToDictionary(
+                settings => settings.Key,
+                settings => ExportSettings(settings.Key, settings.Value, json))
+        };
+
+    // A stored agent's name comes from storage, generated names are not lower_snake_case by design
+    internal void SetUniqueName(string uniqueName) => _uniqueName = uniqueName;
+
+    internal void Offer(IEnumerable<ToolDefinition> tools) => AddTools(tools);
+
+    internal void SetToolSettings(ToolDefinition tool, object settings) => _toolSettings[tool.Name] = settings;
+
     // The one resolve path of code and stored agents: definition, then stored overrides, then the run
     internal ChatOptions CreateChatOptions(
         AgentConfiguration configuration,
@@ -151,6 +172,12 @@ public abstract class AgentDefinition
         };
 
         return tool.Toolset.CreateTool(tool, layers, json);
+    }
+
+    private StoredSettings ExportSettings(ToolName name, object settings, AgentJson json)
+    {
+        var tool = _tools.First(offered => offered.Name == name);
+        return tool.Toolset.ExportSettings(tool, settings, json);
     }
 
     // Delegates are equal when they point at the same method, no MethodInfo needed

@@ -6,6 +6,8 @@ public class AgentTestData(Faker faker)
 {
     private static readonly string[] Models = ["gpt-5-mini", "claude-sonnet-5-5", "mistral-large", "llama-4-scout"];
 
+    private static readonly string[] DisplayNames = ["Lead qualifier", "Inbox triage", "Market scout", "Deal desk"];
+
     private static readonly string[] Contexts = ["ProfileCompanyInformation", "SummarizeInbox", "DraftOutreach"];
 
     // The probe agent's code temperature is 0.2; Default and Updated stay clear of it and of each other
@@ -22,4 +24,8 @@ public class AgentTestData(Faker faker)
     public string OtherContext { get; } = faker.PickRandom(Contexts);
 
     public string Model { get; } = faker.PickRandom(Models);
+
+    public string DisplayName { get; } = faker.PickRandom(DisplayNames);
+
+    public string UnknownTool { get; } = $"retired_tool_{faker.Random.AlphaNumeric(6).ToLowerInvariant()}";
 }
