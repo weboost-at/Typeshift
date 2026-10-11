@@ -36,7 +36,7 @@ ticked as they land, open items and blockers are recorded here, never as TODOs i
 
 ### Milestone 5: stored agents (behaviors 38-40)
 
-- [ ] The stored-agent record, the export from code agents, catalog integration
+- [x] The stored-agent record, the export from code agents, catalog integration
 
 ### Milestone 6: conversations (behaviors 41-48)
 
@@ -92,3 +92,6 @@ rule.
 | 35 | `AgentCatalogTests.Lists_Every_Code_Agent_By_Unique_Name` |
 | 36 | `NoStoreTests.Given_No_Store_Resolving_A_Runs_Options_Works_From_The_Code_Alone` |
 | 37 | `NoStoreTests.Given_No_Store_Updating_A_Configuration_Throws_What_To_Register` |
+| 38 | `StoredAgentTests.Given_A_Code_Agent_Its_Exported_Record_Round_Trips_Through_Json`, `..._Given_An_Exported_Code_Agent_Restored_From_Json_It_Offers_The_Same_Tools`, `..._Given_An_Exported_Code_Agent_Restored_From_Json_Its_Tools_Run_With_The_Same_Settings` |
+| 39 | `StoredAgentTests.Given_A_Stored_Agent_Naming_An_Unknown_Tool_Creating_Its_Runtime_Throws_Which_Tool` |
+| 40 | `StoredAgentTests.Given_A_New_Stored_Agent_Its_Generated_Name_Can_Never_Be_A_Code_Agents_Name`, `..._Given_A_Stored_Agent_Named_Like_A_Code_Agent_Saving_It_Throws` |
