@@ -22,10 +22,10 @@ ticked as they land, open items and blockers are recorded here, never as TODOs i
 
 ### Milestone 3: registration (behaviors 10, 30-35)
 
-- [ ] Assembly modules and stamps, the `AddAgentic()` interceptor
-- [ ] Tool and agent catalogs, cross-assembly registration
-- [ ] AGT008, AGT014
-- [ ] Tests: module and interceptor snapshots, cross-assembly stamps, `InternalsVisibleTo`, behaviors 10, 30-35
+- [x] Assembly modules and stamps, the `AddAgentic()` interceptor
+- [x] Tool and agent catalogs, cross-assembly registration
+- [x] AGT008, AGT014
+- [x] Tests: module and interceptor snapshots, cross-assembly stamps, `InternalsVisibleTo`, behaviors 10, 30-35
 
 ### Milestone 4: agents and settings (behaviors 11-29, 36-37)
 
@@ -64,3 +64,10 @@ rule.
 | 7 | `ToolSchemaTests.Given_A_Nullable_Reference_Parameter_It_Is_Typed_As_Nullable` |
 | 8 | `ToolSchemaTests.Given_The_Same_Method_The_Schema_Matches_AIFunctionFactory_Without_Descriptions` |
 | 9 | `ToolSchemaTests.Given_Param_Docs_They_Become_The_Parameter_Descriptions`, `..._Given_No_WithDescription_The_Summary_Is_The_Tool_Description` |
+| 10 | `DiagnosticTests.Given_Two_Own_Tools_Sharing_A_Name_AGT008_Is_Reported_On_The_First`, `..._Given_A_Tool_Named_Like_One_Of_A_Reference_AGT008_Is_Reported_On_The_Own_One` (generator tests) |
+| 30 | `AddAgenticTests.Registers_The_Toolsets_Of_The_Calling_Assembly`, `..._Registers_The_Toolsets_Of_A_Referenced_Assembly`, `..._Registers_The_Agents_Of_The_Calling_Assembly`, `..._Registers_The_Agents_Of_A_Referenced_Assembly` |
+| 31 | `AddAgenticTests.Given_ValidateOnBuild_And_ValidateScopes_The_Container_Builds` |
+| 32 | `InterceptorGenerationTests.Given_InternalsVisibleTo_A_Generated_Project_The_Tests_Compile_Their_AddAgentic_Call` (generator tests) |
+| 33 | `AddAgenticTests.Given_A_Call_That_Is_Not_Intercepted_It_Throws_What_To_Do` |
+| 34 | `ToolCatalogTests.Given_The_Name_Of_A_Tool_Of_A_Referenced_Assembly_It_Creates_That_Tool`, `..._Given_Stored_Settings_The_Created_Tool_Runs_With_Them` |
+| 35 | `AgentCatalogTests.Lists_Every_Code_Agent_By_Unique_Name` |
