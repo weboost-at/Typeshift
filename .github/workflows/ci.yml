@@ -1,0 +1,41 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - run: dotnet tool restore
+      - run: dotnet build -c Release -warnaserror
+      - run: dotnet test -c Release --no-build
+      - run: dotnet slopwatch analyze --fail-on warning
+
+      - name: Publish the sample as Native AOT, failing on any trim or AOT warning
+        run: |
+          set -o pipefail
+          mkdir -p artifacts
+          dotnet publish samples/Agentic.Samples.Console -c Release -r linux-x64 -o artifacts/sample | tee artifacts/publish.log
+          ! grep -E "warning IL[23][0-9]{3}" artifacts/publish.log
+
+      - name: Run the AOT sample
+        run: ./artifacts/sample/Agentic.Samples.Console
+
+      - name: Pack
+        run: dotnet pack src/Agentic -c Release --no-build -o artifacts/packages
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: artifacts/packages/*.nupkg
