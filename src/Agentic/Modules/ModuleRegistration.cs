@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Agentic.Agents;
 using Agentic.Catalogs;
+using Agentic.Conversations;
 using Agentic.Json;
 using Agentic.Persistence;
 using Agentic.Settings;
@@ -37,6 +38,10 @@ public static class ModuleRegistration
             provider.GetRequiredService<ToolCatalog>(),
             provider.GetRequiredService<AgentRuntimeServices>(),
             provider.GetService<IAgentDefinitionStore>()));
+
+        services.TryAddSingleton(provider => new ConversationTracker(
+            provider.GetService<IConversationStore>(),
+            provider.GetRequiredService<TimeProvider>()));
 
         services.TryAddSingleton(provider => new ToolDefaultsManager(
             provider.GetService<IToolDefaultsStore>(),

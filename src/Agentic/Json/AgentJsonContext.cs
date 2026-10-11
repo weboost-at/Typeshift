@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Agentic.Agents;
+using Agentic.Conversations;
 using Agentic.Settings;
 using Agentic.StoredAgents;
 
@@ -12,6 +13,7 @@ namespace Agentic.Json;
 [JsonSerializable(typeof(AgentConfiguration))]
 [JsonSerializable(typeof(ToolDefaults))]
 [JsonSerializable(typeof(StoredAgent))]
+[JsonSerializable(typeof(StoredConversation))]
 [JsonSerializable(typeof(JsonObject))]
 [JsonSerializable(typeof(bool?))]
 [JsonSerializable(typeof(int?))]

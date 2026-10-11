@@ -7,10 +7,13 @@ namespace Agentic.Tests.Testing.Fakes;
 public sealed class ScriptedChatClient : IChatClient
 {
     private readonly Queue<object[]> _replies = new();
+    private readonly TaskCompletionSource _requested = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public List<IReadOnlyList<ChatMessage>> Requests { get; } = [];
 
     public List<ChatOptions?> Options { get; } = [];
+
+    public Task Requested => _requested.Task;
 
     public ScriptedChatClient Reply(params object[] steps)
     {
@@ -25,6 +28,7 @@ public sealed class ScriptedChatClient : IChatClient
     {
         Requests.Add([.. messages]);
         Options.Add(options);
+        _requested.TrySetResult();
 
         foreach (var step in _replies.Dequeue())
         {

@@ -1,4 +1,5 @@
 using Agentic.Tests.Agents.Support;
+using Agentic.Tests.Conversations.Support;
 using Agentic.Tests.Tools.Support;
 using Bogus;
 
@@ -10,4 +11,6 @@ public class TestDataCollection(Faker faker)
     public ToolTestData Tool { get; } = new(faker);
 
     public AgentTestData Agent { get; } = new(faker);
+
+    public ConversationTestData Conversation { get; } = new(faker);
 }
