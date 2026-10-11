@@ -44,9 +44,4 @@ public sealed class ToolDefinition
     /// The settings record the tool reads, if it has settings.
     /// </summary>
     public Type? SettingsType { get; internal set; }
-
-    /// <summary>
-    /// The settings members that may change at runtime.
-    /// </summary>
-    public IReadOnlySet<string> ConfigurableSettings { get; internal set; } = new HashSet<string>();
 }

@@ -34,16 +34,13 @@ public sealed class ToolBuilder
     }
 
     /// <summary>
-    /// Gives the tool a settings record, read with <c>GetToolSettings</c>, and picks its configurable members.
+    /// Gives the tool a settings record, read with <c>GetToolSettings</c>; <paramref name="configure"/> picks the
+    /// members that may change at runtime, for the generator to read.
     /// </summary>
     public ToolBuilder WithSettings<TSettings>(Action<ConfigurableSettingsPicker<TSettings>>? configure = null)
         where TSettings : class, new()
     {
-        var picker = new ConfigurableSettingsPicker<TSettings>();
-        configure?.Invoke(picker);
-
         _definition.SettingsType = typeof(TSettings);
-        _definition.ConfigurableSettings = picker.Picked;
         return this;
     }
 }

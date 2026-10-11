@@ -1,4 +1,8 @@
+using Agentic.Json;
+using Agentic.Settings;
+using Agentic.Tools;
 using Agentic.Toolsets;
+using Microsoft.Extensions.AI;
 
 namespace Agentic.Agents;
 
@@ -8,6 +12,8 @@ namespace Agentic.Agents;
 public abstract class AgentDefinition
 {
     private readonly List<ToolDefinition> _tools = [];
+    private readonly Dictionary<ToolName, object> _toolSettings = [];
+    private ChatOptions _options = new();
     private string? _uniqueName;
 
     /// <summary>
@@ -25,6 +31,11 @@ public abstract class AgentDefinition
     /// The tools this agent offers, in declaration order.
     /// </summary>
     public IReadOnlyList<ToolDefinition> Tools => _tools;
+
+    /// <summary>
+    /// The chat options that may change at runtime, as the generator lists them from the picks.
+    /// </summary>
+    protected virtual IReadOnlyList<ChatOptionProperty> ConfigurableChatOptions => [];
 
     /// <summary>
     /// Names the agent with a lower_snake_case constant, unique across everything the host can see.
@@ -48,6 +59,18 @@ public abstract class AgentDefinition
     }
 
     /// <summary>
+    /// Sets the chat options the agent runs with; <paramref name="configure"/> picks the options that may change at
+    /// runtime, for the generator to read.
+    /// </summary>
+    protected AgentDefinition WithChatOptions(
+        ChatOptions options,
+        Action<ConfigurableSettingsPicker<ChatOptions>>? configure = null)
+    {
+        _options = options;
+        return this;
+    }
+
+    /// <summary>
     /// Offers every tool of the toolset.
     /// </summary>
     protected AgentDefinition UseToolset<TToolset>() where TToolset : Toolset, new()
@@ -65,6 +88,69 @@ public abstract class AgentDefinition
 
         AddTools(tools.Select(tool => GetDefinition<TToolset>(available, tool)));
         return this;
+    }
+
+    /// <summary>
+    /// Sets the settings of every tool added so far that reads their type; they apply as a whole object, including
+    /// members that are not allowlisted.
+    /// </summary>
+    protected AgentDefinition WithToolSettings(object settings)
+    {
+        var readers = _tools.Where(tool => tool.SettingsType == settings.GetType()).ToList();
+
+        if (readers.Count == 0)
+            throw new ArgumentException(
+                $"No tool of {GetType().Name} reads {settings.GetType().Name}.",
+                nameof(settings));
+
+        foreach (var reader in readers)
+        {
+            _toolSettings[reader.Name] = settings;
+        }
+
+        return this;
+    }
+
+    // The one resolve path of code and stored agents: definition, then stored overrides, then the run
+    internal ChatOptions CreateChatOptions(
+        AgentConfiguration configuration,
+        IReadOnlyDictionary<ToolName, ToolDefaults> toolDefaults,
+        RunOverrides run,
+        AgentJson json)
+    {
+        var options = _options.Clone();
+
+        foreach (var property in ConfigurableChatOptions)
+        {
+            if (configuration.ChatOptions.Values.TryGetValue(property.Name, out var stored))
+                property.Apply(options, stored, json.SerializerOptions);
+
+            if (run.ChatOptions is { } overrides) property.Override(options, overrides);
+        }
+
+        options.ConversationId = run.ChatOptions?.ConversationId ?? options.ConversationId;
+        options.AdditionalProperties = (options.AdditionalProperties ?? []).WithExecutionContext(new(UniqueName));
+        options.Tools = [.. _tools.Select(tool => CreateTool(tool, configuration, toolDefaults, run, json))];
+
+        return options;
+    }
+
+    private AITool CreateTool(
+        ToolDefinition tool,
+        AgentConfiguration configuration,
+        IReadOnlyDictionary<ToolName, ToolDefaults> toolDefaults,
+        RunOverrides run,
+        AgentJson json)
+    {
+        var layers = new ToolSettingsLayers
+        {
+            Defaults = toolDefaults.GetValueOrDefault(tool.Name)?.Settings,
+            Agent = _toolSettings.GetValueOrDefault(tool.Name),
+            AgentOverrides = configuration.ToolSettings.GetValueOrDefault(tool.Name),
+            Run = run.ToolSettings.FirstOrDefault(settings => settings.GetType() == tool.SettingsType)
+        };
+
+        return tool.Toolset.CreateTool(tool, layers, json);
     }
 
     // Delegates are equal when they point at the same method, no MethodInfo needed

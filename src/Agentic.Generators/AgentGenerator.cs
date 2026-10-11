@@ -55,7 +55,13 @@ public sealed class AgentGenerator : IIncrementalGenerator
             .Collect()
             .WithTrackingName(TrackingNames.Calls);
 
+        var resolvedAgents = agents
+            .Combine(toolsetSummaries.Combine(references))
+            .Select(static (input, _) => AgentResolver.Resolve(input.Left, input.Right.Left, input.Right.Right))
+            .WithTrackingName(TrackingNames.ResolvedAgents);
+
         context.RegisterSourceOutput(toolsets, static (output, toolset) => EmitToolset(output, toolset));
+        context.RegisterSourceOutput(resolvedAgents, static (output, agent) => EmitAgent(output, agent));
         context.RegisterSourceOutput(module, static (output, module) => EmitModule(output, module));
 
         context.RegisterSourceOutput(
@@ -63,8 +69,13 @@ public sealed class AgentGenerator : IIncrementalGenerator
             static (output, input) => EmitInterceptor(output, input.Left.Left, input.Left.Right, input.Right));
 
         context.RegisterSourceOutput(
-            toolsetSummaries.Combine(references).Combine(calls),
-            static (output, input) => ReportDuplicateTools(output, input.Left.Left, input.Left.Right, input.Right));
+            toolsetSummaries.Combine(agentSummaries).Combine(references).Combine(calls),
+            static (output, input) => ReportDuplicates(
+                output,
+                input.Left.Left.Left,
+                input.Left.Left.Right,
+                input.Left.Right,
+                input.Right));
     }
 
     private static ModuleModel? GetModule(
@@ -87,6 +98,17 @@ public sealed class AgentGenerator : IIncrementalGenerator
         }
 
         if (toolset.IsPartial) output.AddSource(Names.HintName(toolset.Type.FullName), ToolsetEmitter.Emit(toolset));
+    }
+
+    private static void EmitAgent(SourceProductionContext output, AgentOutput agent)
+    {
+        foreach (var diagnostic in agent.Agent.Diagnostics.Concat(agent.Diagnostics))
+        {
+            output.ReportDiagnostic(diagnostic.ToDiagnostic());
+        }
+
+        if (agent.Agent is { IsPartial: true, UniqueName: not null })
+            output.AddSource(Names.HintName(agent.Agent.Type.FullName), AgentEmitter.Emit(agent));
     }
 
     private static void EmitModule(SourceProductionContext output, ModuleModel? module)
@@ -113,13 +135,17 @@ public sealed class AgentGenerator : IIncrementalGenerator
         output.AddSource("Interceptors.g.cs", InterceptorEmitter.Emit(calls, modules));
     }
 
-    private static void ReportDuplicateTools(
+    private static void ReportDuplicates(
         SourceProductionContext output,
-        ImmutableArray<ToolsetSummary> own,
+        ImmutableArray<ToolsetSummary> toolsets,
+        ImmutableArray<AgentSummary> agents,
         ReferenceModel references,
         ImmutableArray<InterceptModel> calls)
     {
-        foreach (var diagnostic in RegistrationDiagnostics.GetDuplicateTools(own, references, calls))
+        var duplicates = RegistrationDiagnostics.GetDuplicateTools(toolsets, references, calls)
+            .Concat(RegistrationDiagnostics.GetDuplicateAgents(agents, references, calls));
+
+        foreach (var diagnostic in duplicates)
         {
             output.ReportDiagnostic(diagnostic);
         }

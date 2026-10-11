@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 
 namespace Agentic.Settings;
 
@@ -20,7 +21,19 @@ public sealed record StoredSettings
         ImmutableDictionary<string, JsonElement>.Empty;
 
     /// <summary>
+    /// The stored value of the property, or null when it inherits.
+    /// </summary>
+    public T? GetValue<T>(string property, JsonSerializerOptions options) =>
+        Values.TryGetValue(property, out var value) ? value.Deserialize(GetTypeInfo<T>(options)) : default;
+
+    /// <summary>
     /// Stores a value for the property, or removes it when the value is null so the property inherits again.
+    /// </summary>
+    public StoredSettings WithValue<T>(string property, T? value, JsonSerializerOptions options) =>
+        With(property, value is null ? null : JsonSerializer.SerializeToElement(value, GetTypeInfo<T>(options)));
+
+    /// <summary>
+    /// Stores a JSON value for the property, or removes it when the value is null so the property inherits again.
     /// </summary>
     public StoredSettings With(string property, JsonElement? value) =>
         this with
@@ -29,4 +42,7 @@ public sealed record StoredSettings
                 ? Values.ToImmutableDictionary().SetItem(property, stored)
                 : Values.ToImmutableDictionary().Remove(property)
         };
+
+    private static JsonTypeInfo<T> GetTypeInfo<T>(JsonSerializerOptions options) =>
+        (JsonTypeInfo<T>)options.GetTypeInfo(typeof(T));
 }

@@ -2,6 +2,8 @@ using System.ComponentModel;
 using Agentic.Agents;
 using Agentic.Catalogs;
 using Agentic.Json;
+using Agentic.Persistence;
+using Agentic.Settings;
 using Agentic.Tools;
 using Agentic.Toolsets;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,6 +33,19 @@ public static class ModuleRegistration
             provider.GetRequiredService<AgentJson>()));
 
         services.TryAddSingleton(provider => new AgentCatalog(provider.GetServices<AgentDefinition>()));
+
+        services.TryAddSingleton(provider => new ToolDefaultsManager(
+            provider.GetService<IToolDefaultsStore>(),
+            provider.GetRequiredService<AgentJson>(),
+            provider.GetRequiredService<TimeProvider>()));
+
+        services.TryAddSingleton(provider => new AgentRuntimeServices(
+            Services: provider,
+            Json: provider.GetRequiredService<AgentJson>(),
+            ToolDefaults: provider.GetRequiredService<ToolDefaultsManager>(),
+            Time: provider.GetRequiredService<TimeProvider>(),
+            Configurations: provider.GetService<IAgentConfigurationStore>(),
+            ChatClients: provider.GetService<IChatClientProvider>()));
     }
 
     /// <summary>
@@ -56,12 +71,16 @@ public static class ModuleRegistration
     }
 
     /// <summary>
-    /// Registers an agent as itself and as an <see cref="AgentDefinition"/>.
+    /// Registers an agent as itself, as an <see cref="AgentDefinition"/> and with its runtime.
     /// </summary>
     public static void AddAgent<TAgent>(IServiceCollection services, Func<TAgent> create)
         where TAgent : AgentDefinition
     {
         services.AddSingleton(_ => create());
         services.AddSingleton<AgentDefinition>(provider => provider.GetRequiredService<TAgent>());
+
+        services.AddSingleton(provider => new AgentRuntime<TAgent>(
+            provider.GetRequiredService<TAgent>(),
+            provider.GetRequiredService<AgentRuntimeServices>()));
     }
 }

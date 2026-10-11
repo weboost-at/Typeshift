@@ -167,20 +167,12 @@ internal static class ToolsetParser
             .Select(property => new SettingsPropertyModel(
                 Name: property.Name,
                 Type: property.Type.ToFullyQualified(),
-                NullableType: GetNullableType(property.Type),
+                NullableType: property.Type.ToNullableFullyQualified(),
                 IsConfigurable: picked.Contains(property.Name)))
             .ToEquatableArray();
 
         return new SettingsModel(type.ToTypeOf(), properties);
     }
-
-    private static string GetNullableType(ITypeSymbol type) =>
-        type switch
-        {
-            { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } => type.ToFullyQualified(),
-            { IsValueType: true } => type.ToFullyQualified() + "?",
-            _ => type.WithNullableAnnotation(NullableAnnotation.Annotated).ToFullyQualified()
-        };
 
     private static ParameterModel ParseParameter(IParameterSymbol parameter, XmlDocs docs)
     {

@@ -47,9 +47,12 @@ internal static class ConstructorChains
 
     // x.WithSettings<T>(..) reports at WithSettings<T>, not at the whole chain the invocation spans
     public static SyntaxNode GetCalledName(IInvocationOperation invocation) =>
-        invocation.Syntax is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax access }
-            ? access.Name
-            : invocation.Syntax;
+        invocation.Syntax switch
+        {
+            InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax access } => access.Name,
+            InvocationExpressionSyntax { Expression: SimpleNameSyntax name } => name,
+            _ => invocation.Syntax
+        };
 
     public static IOperation Unwrap(IOperation operation) =>
         operation is IConversionOperation conversion ? Unwrap(conversion.Operand) : operation;
@@ -66,6 +69,7 @@ internal static class ConstructorChains
             .SelectMany(pick => pick.Arguments.SelectMany(argument => argument.Value.DescendantsAndSelf()))
             .OfType<IPropertyReferenceOperation>()
             .Where(reference => reference.Instance is IParameterReferenceOperation)
+            .OrderBy(reference => reference.Syntax.SpanStart)
             .Select(reference => reference.Property.Name)
             .Distinct();
 }

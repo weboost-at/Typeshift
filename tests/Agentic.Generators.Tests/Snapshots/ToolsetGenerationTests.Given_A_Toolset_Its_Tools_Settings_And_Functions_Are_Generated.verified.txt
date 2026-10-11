@@ -17,7 +17,7 @@ partial class WebResearchToolset
         /// <summary>
         /// The <c>search_web</c> tool.
         /// </summary>
-        public static global::Agentic.Tools.ToolRef<global::Demo.SearchWebSettings> SearchWeb { get; } = new("search_web");
+        public static global::Agentic.Tools.ToolRef<global::Demo.SearchWebSettings, SearchWebConfiguration> SearchWeb { get; } = new("search_web");
 
         /// <summary>
         /// The <c>read_web_page</c> tool.
@@ -28,6 +28,48 @@ partial class WebResearchToolset
         /// The <c>forget</c> tool.
         /// </summary>
         public static global::Agentic.Tools.ToolRef Forget { get; } = new("forget");
+    }
+
+    /// <summary>
+    /// The stored settings of the <c>search_web</c> tool, limited to what may change at runtime.
+    /// </summary>
+    public sealed class SearchWebConfiguration :
+        global::Agentic.Settings.StoredSettingsView,
+        global::Agentic.Settings.IStoredSettingsView<SearchWebConfiguration>
+    {
+        private SearchWebConfiguration(
+            global::Agentic.Settings.StoredSettings stored,
+            global::System.Text.Json.JsonSerializerOptions options)
+            : base(stored, options)
+        {
+        }
+
+        /// <inheritdoc />
+        public static global::Agentic.Tools.ToolName Tool { get; } = new("search_web");
+
+        /// <summary>
+        /// The stored <c>Limit</c>; null inherits it from the layer below.
+        /// </summary>
+        public int? Limit
+        {
+            get => Get<int?>("Limit");
+            set => Set("Limit", value);
+        }
+
+        /// <summary>
+        /// The stored <c>Region</c>; null inherits it from the layer below.
+        /// </summary>
+        public string? Region
+        {
+            get => Get<string?>("Region");
+            set => Set("Region", value);
+        }
+
+        /// <inheritdoc />
+        public static SearchWebConfiguration Create(
+            global::Agentic.Settings.StoredSettings stored,
+            global::System.Text.Json.JsonSerializerOptions options) =>
+            new(stored, options);
     }
 
     /// <inheritdoc />

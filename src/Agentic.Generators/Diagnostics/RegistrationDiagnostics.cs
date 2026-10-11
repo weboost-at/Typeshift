@@ -15,30 +15,24 @@ internal static class RegistrationDiagnostics
         ReferenceModel references,
         ImmutableArray<InterceptModel> calls)
     {
-        var visible = own.Concat(references.Modules.SelectMany(module => module.Toolsets));
+        var declarations = own
+            .Concat(references.Modules.SelectMany(module => module.Toolsets))
+            .SelectMany(toolset => toolset.Tools.Select(tool =>
+                new Declaration(tool.Name, $"{ShortName(toolset.Type)}.{tool.Method}", tool.Location)));
 
-        var duplicates = visible
-            .SelectMany(toolset => toolset.Tools.Select(tool => (Toolset: toolset.Type, Tool: tool)))
-            .GroupBy(declaration => declaration.Tool.Name)
-            .Where(group => group.Count() > 1);
+        return GetDuplicates(Descriptors.DuplicateToolName, declarations, calls);
+    }
 
-        foreach (var duplicate in duplicates)
-        {
-            var location = duplicate
-                .Select(declaration => declaration.Tool.Location)
-                .FirstOrDefault(found => found is not null) ?? calls.FirstOrDefault()?.Location;
+    public static IEnumerable<Diagnostic> GetDuplicateAgents(
+        ImmutableArray<AgentSummary> own,
+        ReferenceModel references,
+        ImmutableArray<InterceptModel> calls)
+    {
+        var declarations = own
+            .Concat(references.Modules.SelectMany(module => module.Agents))
+            .Select(agent => new Declaration(agent.UniqueName, ShortName(agent.Type), agent.Location));
 
-            if (location is null) continue;
-
-            var declarations = duplicate.Select(declaration =>
-                $"{declaration.Toolset.Replace("global::", "")}.{declaration.Tool.Method}");
-
-            yield return Diagnostic.Create(
-                Descriptors.DuplicateToolName,
-                location.ToLocation(),
-                duplicate.Key,
-                string.Join(" and ", declarations));
-        }
+        return GetDuplicates(Descriptors.DuplicateAgentName, declarations, calls);
     }
 
     // Only the host, the project that calls AddAgentic(), misses what an ungenerated reference declares
@@ -49,4 +43,30 @@ internal static class RegistrationDiagnostics
             ? []
             : references.UngeneratedAssemblies.Select(assembly =>
                 Diagnostic.Create(Descriptors.UngeneratedReference, calls[0].Location?.ToLocation(), assembly));
+
+    private static IEnumerable<Diagnostic> GetDuplicates(
+        DiagnosticDescriptor descriptor,
+        IEnumerable<Declaration> declarations,
+        ImmutableArray<InterceptModel> calls)
+    {
+        var duplicates = declarations
+            .GroupBy(declaration => declaration.Name)
+            .Where(group => group.Count() > 1);
+
+        foreach (var duplicate in duplicates)
+        {
+            var location = duplicate
+                .Select(declaration => declaration.Location)
+                .FirstOrDefault(found => found is not null) ?? calls.FirstOrDefault()?.Location;
+
+            if (location is null) continue;
+
+            var declaredBy = string.Join(" and ", duplicate.Select(declaration => declaration.DeclaredBy));
+            yield return Diagnostic.Create(descriptor, location.ToLocation(), duplicate.Key, declaredBy);
+        }
+    }
+
+    private static string ShortName(string type) => type.Replace("global::", "");
+
+    private sealed record Declaration(string Name, string DeclaredBy, LocationInfo? Location);
 }

@@ -13,10 +13,19 @@ internal static class ToolsetEmitter
 
     private const string ToolDefinition = "global::Agentic.Toolsets.ToolDefinition";
 
+    private const string ToolName = "global::Agentic.Tools.ToolName";
+
     public static string Emit(ToolsetModel toolset) =>
         TypeEmitter.EmitPartial(toolset.Type, toolset.Tools.Select(GetStamp), writer =>
         {
             WriteToolReferences(writer, toolset);
+
+            foreach (var tool in toolset.Tools.Where(tool => tool.Settings is not null))
+            {
+                writer.Line();
+                WriteConfiguration(writer, tool, tool.Settings!);
+            }
+
             writer.Line();
             WriteGetBinding(writer, toolset);
 
@@ -46,29 +55,65 @@ internal static class ToolsetEmitter
 
     private static void WriteToolReferences(SourceWriter writer, ToolsetModel toolset)
     {
-        WriteSummary(writer, "Typed references to the tools of this toolset.");
+        Docs.WriteSummary(writer, "Typed references to the tools of this toolset.");
 
         using (writer.Block("public static class Tools"))
         {
             foreach (var tool in toolset.Tools)
             {
                 var type = tool.Settings is { } settings
-                    ? $"global::Agentic.Tools.ToolRef<{settings.Type}>"
+                    ? $"global::Agentic.Tools.ToolRef<{settings.Type}, {GetConfigurationName(tool)}>"
                     : "global::Agentic.Tools.ToolRef";
 
                 if (tool != toolset.Tools[0]) writer.Line();
 
                 var property = Names.ToPascalCase(tool.Name);
 
-                WriteSummary(writer, $"The <c>{tool.Name}</c> tool.");
+                Docs.WriteSummary(writer, $"The <c>{tool.Name}</c> tool.");
                 writer.Line($"public static {type} {property} {{ get; }} = new({Names.Literal(tool.Name)});");
             }
         }
     }
 
+    public static string GetConfigurationName(ToolModel tool) => GetConfigurationName(tool.Name);
+
+    public static string GetConfigurationName(string tool) => $"{Names.ToPascalCase(tool)}Configuration";
+
+    private static void WriteConfiguration(SourceWriter writer, ToolModel tool, SettingsModel settings)
+    {
+        var view = GetConfigurationName(tool);
+        var stored = "global::Agentic.Settings.StoredSettings";
+
+        Docs.WriteSummary(
+            writer,
+            $"The stored settings of the <c>{tool.Name}</c> tool, limited to what may change at runtime.");
+        ViewEmitter.WriteDeclaration(
+            writer,
+            view,
+            "global::Agentic.Settings.StoredSettingsView",
+            "global::Agentic.Settings.IStoredSettingsView");
+
+        using (writer.Block())
+        {
+            ViewEmitter.WriteConstructor(writer, view, stored, "stored");
+            writer.Line();
+            Docs.WriteInheritDoc(writer);
+            writer.Line($"public static {ToolName} Tool {{ get; }} = new({Names.Literal(tool.Name)});");
+
+            foreach (var property in settings.Properties.Where(property => property.IsConfigurable))
+            {
+                writer.Line();
+                ViewEmitter.WriteValue(writer, property.Name, property.NullableType, "Get", "Set");
+            }
+
+            writer.Line();
+            ViewEmitter.WriteCreate(writer, view, stored, "stored");
+        }
+    }
+
     private static void WriteGetBinding(SourceWriter writer, ToolsetModel toolset)
     {
-        writer.Line("/// <inheritdoc />");
+        Docs.WriteInheritDoc(writer);
         writer.Line($"protected override {ToolBinding} GetBinding({ToolDefinition} tool) =>");
 
         using (writer.Indent())
@@ -282,11 +327,4 @@ internal static class ToolsetEmitter
                 $"GetArgument<{parameter.Type}>(arguments, {Names.Literal(parameter.Name)}, {parameter.DefaultValue})",
             _ => $"GetArgument<{parameter.Type}>(arguments, {Names.Literal(parameter.Name)})"
         };
-
-    private static void WriteSummary(SourceWriter writer, string text)
-    {
-        writer.Line("/// <summary>");
-        writer.Line($"/// {text}");
-        writer.Line("/// </summary>");
-    }
 }

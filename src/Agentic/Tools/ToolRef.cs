@@ -1,3 +1,5 @@
+using Agentic.Settings;
+
 namespace Agentic.Tools;
 
 /// <summary>
@@ -14,9 +16,11 @@ public record ToolRef(ToolName Name)
 }
 
 /// <summary>
-/// A handle on a tool that carries the type of the settings it reads.
+/// A handle on a tool with settings: it carries the settings record and the view over its stored settings.
 /// </summary>
-public sealed record ToolRef<TSettings>(ToolName Name) : ToolRef(Name) where TSettings : class, new()
+public sealed record ToolRef<TSettings, TConfiguration>(ToolName Name) : ToolRef(Name)
+    where TSettings : class, new()
+    where TConfiguration : StoredSettingsView, IStoredSettingsView<TConfiguration>
 {
     /// <summary>
     /// A handle on the tool with the given name.

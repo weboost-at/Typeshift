@@ -7,7 +7,11 @@ namespace Agentic.Generators.Emitting;
 // Reopens a partial class, inside its namespace and any containing types
 internal static class TypeEmitter
 {
-    public static string EmitPartial(TypeModel type, IEnumerable<string> attributes, Action<SourceWriter> writeMembers)
+    public static string EmitPartial(
+        TypeModel type,
+        IEnumerable<string> attributes,
+        Action<SourceWriter> writeMembers,
+        Action<SourceWriter>? writeAfter = null)
     {
         var writer = new SourceWriter();
         writer.Line(SourceWriter.Header);
@@ -36,6 +40,7 @@ internal static class TypeEmitter
             blocks.Pop().Dispose();
         }
 
+        writeAfter?.Invoke(writer);
         return writer.ToString();
     }
 }

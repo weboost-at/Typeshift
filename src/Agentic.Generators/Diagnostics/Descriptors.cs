@@ -33,6 +33,16 @@ internal static class Descriptors
         "Settings type is not a record",
         "The settings type '{0}' must be a record, so stored values apply to a 'with' copy");
 
+    public static readonly DiagnosticDescriptor InvalidUniqueName = Error(
+        "AGT006",
+        "Agent has no valid unique name",
+        "'{0}' needs WithUniqueName(...) with a lower_snake_case constant");
+
+    public static readonly DiagnosticDescriptor UnknownTool = Error(
+        "AGT007",
+        "Selected tool cannot be resolved",
+        "{0}");
+
     public static readonly DiagnosticDescriptor DuplicateToolName = Error(
         "AGT008",
         "Tool name is not unique",
@@ -43,10 +53,20 @@ internal static class Descriptors
         "Tool has no description",
         "The tool '{0}' has no description: add WithDescription(...) or an XML <summary> to its method");
 
+    public static readonly DiagnosticDescriptor DuplicateAgentName = Error(
+        "AGT010",
+        "Agent unique name is not unique",
+        "The agent name '{0}' is declared by {1}");
+
     public static readonly DiagnosticDescriptor SettingsAsParameter = Error(
         "AGT011",
         "Tool takes its settings as a parameter",
         "The parameter '{0}' of the tool '{1}' has the settings type '{2}': read settings with GetToolSettings<T>()");
+
+    public static readonly DiagnosticDescriptor UnreadToolSettings = Error(
+        "AGT012",
+        "Tool settings are read by no tool",
+        "WithToolSettings gets {0}, which no tool added before it reads");
 
     public static readonly DiagnosticDescriptor DocumentationOff = Warning(
         "AGT013",
@@ -67,8 +87,9 @@ internal static class Descriptors
     private static readonly Dictionary<string, DiagnosticDescriptor> All =
         new[]
         {
-            NotPartial, NotConstant, MissingToolName, NotStaticMethodGroup, SettingsNotRecord, DuplicateToolName,
-            MissingDescription, SettingsAsParameter, DocumentationOff, UngeneratedReference, NotLowerSnakeCase
+            NotPartial, NotConstant, MissingToolName, NotStaticMethodGroup, SettingsNotRecord, InvalidUniqueName,
+            UnknownTool, DuplicateToolName, MissingDescription, DuplicateAgentName, SettingsAsParameter,
+            UnreadToolSettings, DocumentationOff, UngeneratedReference, NotLowerSnakeCase
         }.ToDictionary(descriptor => descriptor.Id);
 
     public static DiagnosticDescriptor ById(string id) => All[id];

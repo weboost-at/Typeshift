@@ -20,6 +20,8 @@ internal static class KnownTypes
 
     public const string GeneratedToolAttribute = "Agentic.Modules.GeneratedToolAttribute";
 
+    public const string ChatOptions = "Microsoft.Extensions.AI.ChatOptions";
+
     public const string ConfigurableSettingsPicker = "Agentic.Settings.ConfigurableSettingsPicker`1";
 
     public const string ServiceProvider = "System.IServiceProvider";

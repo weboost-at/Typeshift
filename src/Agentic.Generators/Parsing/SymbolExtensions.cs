@@ -27,6 +27,15 @@ internal static class SymbolExtensions
 
     public static string ToFullyQualified(this ITypeSymbol type) => type.ToDisplayString(FullyQualified);
 
+    // The type of a stored value: null means "inherit", so even a value type becomes nullable
+    public static string ToNullableFullyQualified(this ITypeSymbol type) =>
+        type switch
+        {
+            { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } => type.ToFullyQualified(),
+            { IsValueType: true } => type.ToFullyQualified() + "?",
+            _ => type.WithNullableAnnotation(NullableAnnotation.Annotated).ToFullyQualified()
+        };
+
     // typeof() and generic definitions take no nullable reference annotation
     public static string ToTypeOf(this ITypeSymbol type) =>
         type.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
