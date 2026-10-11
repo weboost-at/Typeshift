@@ -1,3 +1,4 @@
+using Agentic.Conversations;
 using Microsoft.Extensions.AI;
 
 namespace Agentic.Agents;
@@ -74,7 +75,7 @@ public class AgentRuntime
     }
 
     /// <summary>
-    /// A chat client for the configured model, invoking the agent's tools.
+    /// A chat client for the configured model that tracks its conversations and invokes the agent's tools.
     /// </summary>
     public async Task<IChatClient> CreateChatClientAsync(CancellationToken ct = default)
     {
@@ -91,6 +92,7 @@ public class AgentRuntime
 
         return client
             .AsBuilder()
+            .UseConversationTracking(model)
             .UseFunctionInvocation()
             .Build(_services.Services);
     }

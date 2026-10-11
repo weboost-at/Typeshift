@@ -143,4 +143,27 @@ public class AgentRuntimeTests : AgentTestBase
         // Assert
         await create.Should().ThrowAsync<ConfigurationRequiredException>();
     }
+
+    [Fact]
+    public async Task Given_A_Model_Its_Chat_Client_Stores_The_Conversation_Under_The_Agent()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Agent.Instructions));
+        await Runtime.UpdateConfigurationAsync(configuration => configuration with { Model = Agent.Model }, Ct);
+
+        var run = new RunOverrides
+        {
+            ChatOptions = new ChatOptions { ConversationId = Agent.ConversationId }
+        };
+
+        var options = await Runtime.ResolveChatOptionsAsync(run, Ct);
+        var client = await Runtime.CreateChatClientAsync(Ct);
+
+        // Act
+        await client.GetResponseAsync(Data.Tool.Query, options, Ct);
+        var stored = await Conversations.LoadAsync(Guid.Parse(Agent.ConversationId), Ct);
+
+        // Assert
+        stored!.ExecutionContext.Should().Be(new ChatExecutionContext(ProbeAgent.Name));
+    }
 }

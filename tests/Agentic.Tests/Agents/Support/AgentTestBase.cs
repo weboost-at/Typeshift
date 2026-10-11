@@ -3,6 +3,7 @@ using Agentic.Catalogs;
 using Agentic.Persistence;
 using Agentic.Persistence.InMemory;
 using Agentic.Settings;
+using Agentic.Tests.Testing.Fakes;
 using Agentic.Tests.Toolsets.Companies;
 using Agentic.Tests.Toolsets.Support;
 using Microsoft.Extensions.AI;
@@ -21,11 +22,15 @@ public abstract class AgentTestBase : HostTestBase
 
     protected AgentCatalog Catalog => Services.GetRequiredService<AgentCatalog>();
 
+    protected IConversationStore Conversations => Services.GetRequiredService<IConversationStore>();
+
     protected override void ConfigureServices(IServiceCollection services)
     {
         services.AddSingleton<IAgentConfigurationStore, InMemoryAgentConfigurationStore>();
         services.AddSingleton<IToolDefaultsStore, InMemoryToolDefaultsStore>();
         services.AddSingleton<IAgentDefinitionStore, InMemoryAgentDefinitionStore>();
+        services.AddSingleton<IConversationStore, InMemoryConversationStore>();
+        services.AddSingleton<IChatClientProvider>(new ScriptedChatClientProvider(ChatClient));
     }
 
     protected async Task<ProbeSettings> ProbeAsync(ChatOptions options)
