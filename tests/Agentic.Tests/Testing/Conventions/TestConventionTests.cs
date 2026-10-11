@@ -83,6 +83,16 @@ public class TestConventionTests
         stale.Should().BeEmpty(Listing(stale));
     }
 
+    [Fact]
+    public void Every_Test_Project_Has_Tests_The_Conventions_Read()
+    {
+        // Act
+        var projects = TestSources.TestMethods.Select(method => TestSources.ProjectOf(method.File)).Distinct();
+
+        // Assert
+        projects.Should().BeEquivalentTo("Agentic.Tests", "Agentic.Generators.Tests");
+    }
+
     private static string Listing(IEnumerable<string> entries) =>
         $"every entry breaks the convention or is a stale exemption:{Environment.NewLine}"
         + string.Join(Environment.NewLine, entries);

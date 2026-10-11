@@ -79,7 +79,9 @@ public static partial class ConventionViolations
     private static string ExpectedFile(TestMethod method)
     {
         var project = TestSources.ProjectOf(method.File);
-        var folder = method.Namespace == project ? "" : method.Namespace[(project.Length + 1)..].Replace('.', '/') + "/";
+        var folder = method.Namespace == project
+            ? ""
+            : method.Namespace[(project.Length + 1)..].Replace('.', '/') + "/";
 
         return $"{project}/{folder}{method.Class}.cs";
     }

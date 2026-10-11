@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Using Include="Agentic.Tests.Testing.Assertions" />
     <Using Include="Agentic.Tests.Testing.Bases" />
     <Using Include="Agentic.Tests.Testing.Data" />
     <!-- Deterministic CI builds map [CallerFilePath] to /_/..., so the convention tests read the directory from here. -->
