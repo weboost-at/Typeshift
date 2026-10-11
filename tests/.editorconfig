@@ -1,0 +1,5 @@
+# The test projects turn on GenerateDocumentationFile, because the generator reads tool descriptions from XML docs.
+# Test classes and fixture members are not public API, so CS1591 (missing XML comment) is noise here and is turned
+# off for the test projects only.
+[*.cs]
+dotnet_diagnostic.CS1591.severity = none

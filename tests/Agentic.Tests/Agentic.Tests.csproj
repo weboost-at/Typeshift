@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="../../build/UseGenerator.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="Agentic.Tests.Testing.Bases" />
+    <Using Include="Agentic.Tests.Testing.Data" />
+    <!-- Deterministic CI builds map [CallerFilePath] to /_/..., so the convention tests read the directory from here. -->
+    <AssemblyMetadata Include="TestsDirectory" Value="$(MSBuildProjectDirectory)/.." />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Bogus" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Agentic.Tests.Toolsets/Agentic.Tests.Toolsets.csproj" />
+  </ItemGroup>
+
+</Project>
