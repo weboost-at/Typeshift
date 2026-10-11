@@ -1,8 +1,14 @@
 <Project>
 
-  <!-- Stops the repository's central package management: this project pins its own versions. -->
+  <!-- Replaces the repository's central versions: Agentic floats to whatever CI just packed into the local feed. -->
   <PropertyGroup>
-    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="Agentic" Version="0.1.0-*" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
+  </ItemGroup>
 
 </Project>

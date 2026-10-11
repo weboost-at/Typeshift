@@ -60,7 +60,7 @@ Rename in this order, then run the checks at the end.
 | `src/Agentic.Generators/Diagnostics/Descriptors.cs` | `Category`. |
 | `src/Agentic/Agentic.csproj` | `InternalsVisibleTo Agentic.Tests`. |
 | `tests/` | The project names `Agentic.Tests` and `Agentic.Tests.Toolsets`, their folders, namespaces and `<Using>` items, the generator test sources and the snapshots. |
-| `samples/` | The project names, `RootNamespace`, namespaces, and the package consumer's `PackageReference`, `NuGet.config` source mapping and `Version`. |
+| `samples/` | The project names, `RootNamespace`, namespaces, and the package consumer's `PackageReference`, `PackageVersion` and `NuGet.config` source mapping. |
 | `build/UseGenerator.props` | The project reference and the props import. |
 | `.github/workflows/ci.yml` | The pack and run paths. |
 | Repository files | `Agentic.slnx`, `Directory.Build.props` (`PackageProjectUrl`, `RepositoryUrl`, which also carry the repository name `agentic-dotnet`), `README.md`, `AGENTS.md`, `CHANGELOG.md`, `docs/`. |
