@@ -1,4 +1,5 @@
 using Agentic.Generators.Tests.Incremental.Support;
+using Agentic.Generators.Tests.Registration.Support;
 using Agentic.Generators.Tests.Toolsets.Support;
 
 namespace Agentic.Generators.Tests.Incremental;
@@ -9,21 +10,39 @@ public class IncrementalTests : GeneratorTestBase
     public void Given_An_Unrelated_Edit_Every_Step_Is_Cached()
     {
         // Arrange
-        var compilation = Compile(ToolsetSources.WebResearch, IncrementalSources.Unrelated);
+        var compilation = Compile(
+            ToolsetSources.WebResearch,
+            IncrementalSources.Unrelated,
+            RegistrationSources.EchoToolset,
+            RegistrationSources.EchoAgent,
+            RegistrationSources.Host);
+
         var first = Run(compilation);
 
         // Act
         var second = RunAgain(first, Edit(compilation, 1, IncrementalSources.UnrelatedEdited));
 
         // Assert
-        second.Assert.Cached(TrackingNames.Classes, TrackingNames.Toolsets);
+        second.Assert.Cached(
+            TrackingNames.Classes,
+            TrackingNames.Toolsets,
+            TrackingNames.Agents,
+            TrackingNames.Module,
+            TrackingNames.References,
+            TrackingNames.Calls);
     }
 
     [Fact]
     public void Given_An_Unrelated_Edit_Every_Output_Is_Cached()
     {
         // Arrange
-        var compilation = Compile(ToolsetSources.WebResearch, IncrementalSources.Unrelated);
+        var compilation = Compile(
+            ToolsetSources.WebResearch,
+            IncrementalSources.Unrelated,
+            RegistrationSources.EchoToolset,
+            RegistrationSources.EchoAgent,
+            RegistrationSources.Host);
+
         var first = Run(compilation);
 
         // Act

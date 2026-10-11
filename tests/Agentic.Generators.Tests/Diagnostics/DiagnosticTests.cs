@@ -1,4 +1,5 @@
 using Agentic.Generators.Tests.Diagnostics.Support;
+using Agentic.Generators.Tests.Registration.Support;
 using Microsoft.CodeAnalysis;
 
 namespace Agentic.Generators.Tests.Diagnostics;
@@ -56,6 +57,29 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_Two_Own_Tools_Sharing_A_Name_AGT008_Is_Reported_On_The_First()
+    {
+        // Act
+        var run = Run(RegistrationSources.EchoToolset, RegistrationSources.ShoutToolset);
+
+        // Assert
+        run.Assert.Reports("AGT008", DiagnosticSeverity.Error, "AddTool(Echo)");
+    }
+
+    [Fact]
+    public void Given_A_Tool_Named_Like_One_Of_A_Reference_AGT008_Is_Reported_On_The_Own_One()
+    {
+        // Arrange
+        var tools = CompileReference("Tools", RegistrationSources.EchoToolset);
+
+        // Act
+        var run = Run(Compile("App", [tools], RegistrationSources.ShoutToolset));
+
+        // Assert
+        run.Assert.Reports("AGT008", DiagnosticSeverity.Error, "AddTool(Shout)");
+    }
+
+    [Fact]
     public void Given_A_Tool_Without_Any_Description_AGT009_Is_Reported_On_AddTool()
     {
         // Act
@@ -83,6 +107,19 @@ public class DiagnosticTests : GeneratorTestBase
 
         // Assert
         run.Assert.Reports("AGT013", DiagnosticSeverity.Warning, "AddTool(Echo)");
+    }
+
+    [Fact]
+    public void Given_A_Reference_Not_Compiled_With_The_Generator_AGT014_Is_Reported_On_AddAgentic()
+    {
+        // Arrange
+        var tools = CompileReferenceWithoutGenerator("Tools", RegistrationSources.EchoToolset);
+
+        // Act
+        var run = Run(Compile("App", [tools], RegistrationSources.Host));
+
+        // Assert
+        run.Assert.Reports("AGT014", DiagnosticSeverity.Warning, "services.AddAgentic()");
     }
 
     [Fact]

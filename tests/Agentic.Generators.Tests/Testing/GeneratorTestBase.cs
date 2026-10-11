@@ -99,6 +99,18 @@ public abstract class GeneratorTestBase
         return MetadataReference.CreateFromImage(image.ToArray());
     }
 
+    // An assembly whose project does not run the generator, as one without the package reference
+    protected MetadataReference CompileReferenceWithoutGenerator(string assemblyName, params string[] sources)
+    {
+        using var image = new MemoryStream();
+        var emitted = Compile(assemblyName, [], sources).Emit(image, cancellationToken: Ct);
+
+        if (!emitted.Success)
+            throw new InvalidOperationException(string.Join(Environment.NewLine, emitted.Diagnostics));
+
+        return MetadataReference.CreateFromImage(image.ToArray());
+    }
+
     private static ImmutableArray<MetadataReference> CreateFrameworkReferences()
     {
         var trusted = (string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!;
