@@ -1,0 +1,8 @@
+.context/
+bin/
+obj/
+*.received.*
+.vs/
+.idea/
+*.user
+artifacts/
