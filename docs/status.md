@@ -15,10 +15,10 @@ ticked as they land, open items and blockers are recorded here, never as TODOs i
 
 ### Milestone 2: tools (behaviors 1-9)
 
-- [ ] Runtime: `Toolset`, the tool builder, `ToolName`, the settings accessor, the generated-function base, JSON
+- [x] Runtime: `Toolset`, the tool builder, `ToolName`, the settings accessor, the generated-function base, JSON
       options through DI
-- [ ] Generator: toolset parsing and emitting, toolset diagnostics (AGT001-AGT005, AGT009, AGT011, AGT013)
-- [ ] Tests: toolset snapshot, one test per diagnostic, behaviors 1-9
+- [x] Generator: toolset parsing and emitting, toolset diagnostics (AGT001-AGT005, AGT009, AGT011, AGT013)
+- [x] Tests: toolset snapshot, one test per diagnostic, behaviors 1-9
 
 ### Milestone 3: registration (behaviors 10, 30-35)
 
@@ -47,3 +47,20 @@ ticked as they land, open items and blockers are recorded here, never as TODOs i
 - [ ] The sample, the AOT CI job, the packaging smoke test
 - [ ] `docs/architecture.md`, `docs/diagnostics.md`, `docs/decisions.md`, `docs/renaming.md`, README
 - [ ] Final review pass, clean re-verification, pull request, tag `v0.1.0-alpha.1`
+
+## Behavior coverage
+
+Every rule of `spec/behaviors.md` maps to one test or more; a behavior that bundles several rules has one test per
+rule.
+
+| # | Test |
+|---|---|
+| 1 | `ToolsetTests.Given_A_Tool_With_Settings_Its_Schema_Holds_Only_The_Model_Facing_Parameters` |
+| 2 | `ToolsetTests.Given_No_Settings_The_Tool_Runs_With_Its_Code_Defaults` |
+| 3 | `ToolsetTests.Given_Passed_Settings_Only_Their_Allowlisted_Members_Apply` |
+| 4 | `ToolInvocationTests.Given_A_Scripted_Call_The_Tool_Receives_Its_Arguments`, `..._Given_Two_Scripted_Calls_Each_Runs_In_A_Scope_Of_Its_Own`, `..._Given_A_Scripted_Call_The_Tool_Runs_With_Its_Resolved_Settings`, `..._Given_A_Scripted_Call_The_Result_Reaches_The_Model_As_Json` |
+| 5 | `ToolInvocationTests.Given_A_Missing_Required_Argument_The_Call_Fails_With_An_ArgumentException`, `..._Given_An_Absent_Optional_Argument_The_Tool_Takes_Its_Default` |
+| 6 | `ToolInvocationTests.Given_A_Struct_Parameter_Defaulting_To_Default_The_Tool_Runs_Without_It`, `ToolSchemaTests.Given_A_Struct_Parameter_Defaulting_To_Default_Its_Schema_Carries_The_Default` |
+| 7 | `ToolSchemaTests.Given_A_Nullable_Reference_Parameter_It_Is_Typed_As_Nullable` |
+| 8 | `ToolSchemaTests.Given_The_Same_Method_The_Schema_Matches_AIFunctionFactory_Without_Descriptions` |
+| 9 | `ToolSchemaTests.Given_Param_Docs_They_Become_The_Parameter_Descriptions`, `..._Given_No_WithDescription_The_Summary_Is_The_Tool_Description` |
