@@ -27,6 +27,7 @@ public class IncrementalTests : GeneratorTestBase
             TrackingNames.Classes,
             TrackingNames.Toolsets,
             TrackingNames.Agents,
+            TrackingNames.ResolvedAgents,
             TrackingNames.Module,
             TrackingNames.References,
             TrackingNames.Calls);
@@ -65,5 +66,20 @@ public class IncrementalTests : GeneratorTestBase
 
         // Assert
         second.Assert.OutputsModified();
+    }
+
+    [Fact]
+    public void Given_An_Edit_To_A_Tool_Name_The_Dependent_Agent_Is_Regenerated()
+    {
+        // Arrange
+        var compilation = Compile(RegistrationSources.EchoToolset, RegistrationSources.EchoAgent);
+        var first = Run(compilation);
+        var renamed = RegistrationSources.EchoToolset.Replace("WithName(\"echo\")", "WithName(\"repeat\")");
+
+        // Act
+        var second = RunAgain(first, Edit(compilation, 0, renamed));
+
+        // Assert
+        second.Assert.Modified(TrackingNames.ResolvedAgents);
     }
 }

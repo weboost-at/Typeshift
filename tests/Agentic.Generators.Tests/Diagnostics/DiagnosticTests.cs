@@ -17,6 +17,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_An_Agent_That_Is_Not_Partial_AGT001_Is_Reported_On_Its_Name()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentNotPartial);
+
+        // Assert
+        run.Assert.Reports("AGT001", DiagnosticSeverity.Error, "EchoAgent");
+    }
+
+    [Fact]
     public void Given_A_Tool_Name_That_Is_Not_A_Constant_AGT002_Is_Reported_On_It()
     {
         // Act
@@ -57,6 +67,49 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_An_Agent_Without_WithUniqueName_AGT006_Is_Reported_On_Its_Name()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentWithoutName);
+
+        // Assert
+        run.Assert.Reports("AGT006", DiagnosticSeverity.Error, "EchoAgent");
+    }
+
+    [Fact]
+    public void Given_A_Unique_Name_That_Is_Not_Lower_Snake_Case_AGT006_Is_Reported_On_It()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentNotLowerSnakeCase);
+
+        // Assert
+        run.Assert.Reports("AGT006", DiagnosticSeverity.Error, "\"Echo Agent\"");
+    }
+
+    [Fact]
+    public void Given_A_Method_Of_Another_Toolset_AGT007_Is_Reported_On_It()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ForeignTool);
+
+        // Assert
+        run.Assert.Reports("AGT007", DiagnosticSeverity.Error, "ShoutToolset.Shout");
+    }
+
+    [Fact]
+    public void Given_A_Toolset_Not_Compiled_With_The_Generator_AGT007_Is_Reported_On_UseToolset()
+    {
+        // Arrange
+        var tools = CompileReferenceWithoutGenerator("Tools", DiagnosticSources.UngeneratedToolset);
+
+        // Act
+        var run = Run(Compile("App", [tools], DiagnosticSources.AgentOfUngeneratedToolset));
+
+        // Assert
+        run.Assert.Reports("AGT007", DiagnosticSeverity.Error, "UseToolset<EchoToolset>");
+    }
+
+    [Fact]
     public void Given_Two_Own_Tools_Sharing_A_Name_AGT008_Is_Reported_On_The_First()
     {
         // Act
@@ -90,6 +143,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_Two_Agents_Sharing_A_Unique_Name_AGT010_Is_Reported_On_The_First()
+    {
+        // Act
+        var run = Run(DiagnosticSources.TwinAgents);
+
+        // Assert
+        run.Assert.Reports("AGT010", DiagnosticSeverity.Error, "EchoAgent");
+    }
+
+    [Fact]
     public void Given_A_Tool_Taking_Its_Settings_As_A_Parameter_AGT011_Is_Reported_On_The_Parameter()
     {
         // Act
@@ -97,6 +160,16 @@ public class DiagnosticTests : GeneratorTestBase
 
         // Assert
         run.Assert.Reports("AGT011", DiagnosticSeverity.Error, "settings");
+    }
+
+    [Fact]
+    public void Given_Tool_Settings_No_Tool_Of_The_Agent_Reads_AGT012_Is_Reported_On_Them()
+    {
+        // Act
+        var run = Run(DiagnosticSources.UnreadToolSettings);
+
+        // Assert
+        run.Assert.Reports("AGT012", DiagnosticSeverity.Error, "new EchoSettings()");
     }
 
     [Fact]
