@@ -1,6 +1,6 @@
 using System.Text.Json;
-using Agentic.DependencyInjection;
 using Agentic.Json;
+using Agentic.Settings;
 using Agentic.Tests.Testing.Fakes;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -40,6 +40,9 @@ public abstract class HostTestBase : UnitTestBase, IAsyncDisposable
             Services = Services
         };
 
+    protected StoredSettings Stored(params (string Property, object? Value)[] values) =>
+        values.Aggregate(StoredSettings.Empty, (stored, value) => stored.With(value.Property, AsJson(value.Value)));
+
     protected T ReadResult<T>(object? result) => ((JsonElement)result!).Deserialize(Json.GetTypeInfo<T>())!;
 
     // A fresh content per scripted call, the function loop never invokes a call whose result it already has
@@ -53,15 +56,15 @@ public abstract class HostTestBase : UnitTestBase, IAsyncDisposable
 
     // Arguments arrive as JSON, as a provider client delivers them
     private Dictionary<string, object?> AsJson((string Name, object? Value)[] arguments) =>
-        arguments.ToDictionary(
-            argument => argument.Name,
-            argument => (object?)JsonSerializer.SerializeToElement(argument.Value, Json.SerializerOptions));
+        arguments.ToDictionary(argument => argument.Name, argument => (object?)AsJson(argument.Value));
+
+    private JsonElement AsJson(object? value) => JsonSerializer.SerializeToElement(value, Json.SerializerOptions);
 
     private ServiceProvider BuildServices()
     {
         var services = new ServiceCollection();
 
-        ModuleRegistration.AddCoreServices(services);
+        services.AddAgentic();
         services.AddSingleton<TimeProvider>(Time);
         ConfigureServices(services);
 

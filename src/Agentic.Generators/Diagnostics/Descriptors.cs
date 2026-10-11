@@ -33,6 +33,11 @@ internal static class Descriptors
         "Settings type is not a record",
         "The settings type '{0}' must be a record, so stored values apply to a 'with' copy");
 
+    public static readonly DiagnosticDescriptor DuplicateToolName = Error(
+        "AGT008",
+        "Tool name is not unique",
+        "The tool name '{0}' is declared by {1}");
+
     public static readonly DiagnosticDescriptor MissingDescription = Warning(
         "AGT009",
         "Tool has no description",
@@ -48,6 +53,12 @@ internal static class Descriptors
         "Tool relies on XML docs that are not generated",
         "The tool '{0}' relies on XML documentation, but GenerateDocumentationFile is off");
 
+    public static readonly DiagnosticDescriptor UngeneratedReference = Warning(
+        "AGT014",
+        "Referenced assembly was not compiled with the generator",
+        "'{0}' declares toolsets or agents but was not compiled with the generator, so AddAgentic() cannot "
+        + "register them: reference the Agentic package in its project");
+
     public static readonly DiagnosticDescriptor NotLowerSnakeCase = Error(
         "AGT015",
         "Tool name is not lower_snake_case",
@@ -56,8 +67,8 @@ internal static class Descriptors
     private static readonly Dictionary<string, DiagnosticDescriptor> All =
         new[]
         {
-            NotPartial, NotConstant, MissingToolName, NotStaticMethodGroup, SettingsNotRecord, MissingDescription,
-            SettingsAsParameter, DocumentationOff, NotLowerSnakeCase
+            NotPartial, NotConstant, MissingToolName, NotStaticMethodGroup, SettingsNotRecord, DuplicateToolName,
+            MissingDescription, SettingsAsParameter, DocumentationOff, UngeneratedReference, NotLowerSnakeCase
         }.ToDictionary(descriptor => descriptor.Id);
 
     public static DiagnosticDescriptor ById(string id) => All[id];

@@ -3,7 +3,22 @@ namespace Agentic.Generators.Parsing;
 // Metadata names of the library types the generator recognizes by base type and by call target
 internal static class KnownTypes
 {
+    public const string LibraryAssembly = "Agentic";
+
     public const string Toolset = "Agentic.Toolsets.Toolset";
+
+    public const string AgentDefinition = "Agentic.Agents.AgentDefinition";
+
+    public const string ServiceCollectionExtensions =
+        "Microsoft.Extensions.DependencyInjection.AgenticServiceCollectionExtensions";
+
+    public const string GeneratedModuleAttribute = "Agentic.Modules.GeneratedModuleAttribute";
+
+    public const string ModuleToolsetAttribute = "Agentic.Modules.ModuleToolsetAttribute";
+
+    public const string ModuleAgentAttribute = "Agentic.Modules.ModuleAgentAttribute";
+
+    public const string GeneratedToolAttribute = "Agentic.Modules.GeneratedToolAttribute";
 
     public const string ConfigurableSettingsPicker = "Agentic.Settings.ConfigurableSettingsPicker`1";
 

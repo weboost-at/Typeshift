@@ -14,7 +14,7 @@ internal static class ToolsetEmitter
     private const string ToolDefinition = "global::Agentic.Toolsets.ToolDefinition";
 
     public static string Emit(ToolsetModel toolset) =>
-        TypeEmitter.EmitPartial(toolset.Type, writer =>
+        TypeEmitter.EmitPartial(toolset.Type, toolset.Tools.Select(GetStamp), writer =>
         {
             WriteToolReferences(writer, toolset);
             writer.Line();
@@ -28,6 +28,21 @@ internal static class ToolsetEmitter
                 WriteFunction(writer, toolset, tool);
             }
         });
+
+    // Other compilations read the tools of this toolset from these stamps
+    private static string GetStamp(ToolModel tool)
+    {
+        var settings = tool.Settings is { } model ? $"typeof({model.Type})" : "null";
+
+        var configurable = tool.Settings?.Properties
+            .Where(property => property.IsConfigurable)
+            .Select(property => $", {Names.Literal(property.Name)}") ?? [];
+
+        var name = Names.Literal(tool.Name);
+        var method = Names.Literal(tool.Method);
+
+        return $"global::Agentic.Modules.GeneratedTool({name}, {method}, {settings}{string.Concat(configurable)})";
+    }
 
     private static void WriteToolReferences(SourceWriter writer, ToolsetModel toolset)
     {

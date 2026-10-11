@@ -25,8 +25,13 @@ internal static class Discovery
 
         var documented = declaration.SyntaxTree.Options.DocumentationMode != DocumentationMode.None;
 
-        return type.DerivesFrom(KnownTypes.Toolset)
-            ? new ClassModel(ToolsetParser.Parse(type, context.SemanticModel.Compilation, documented, ct))
+        var compilation = context.SemanticModel.Compilation;
+
+        if (type.DerivesFrom(KnownTypes.Toolset))
+            return new ClassModel(ToolsetParser.Parse(type, compilation, documented, ct), null);
+
+        return type.DerivesFrom(KnownTypes.AgentDefinition)
+            ? new ClassModel(null, AgentParser.Parse(type, compilation, ct))
             : null;
     }
 

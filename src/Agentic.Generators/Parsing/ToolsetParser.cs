@@ -135,7 +135,8 @@ internal static class ToolsetParser
             Description: description,
             Settings: settings,
             Parameters: parameters,
-            Return: ParseReturn(tool.Method.ReturnType));
+            Return: ParseReturn(tool.Method.ReturnType),
+            Location: LocationInfo.From(tool.AddTool.Syntax.GetLocation()));
     }
 
     private static string? ReadConstant(IInvocationOperation call, string what, DiagnosticBag diagnostics)

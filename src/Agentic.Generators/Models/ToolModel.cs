@@ -8,4 +8,5 @@ internal sealed record ToolModel(
     string? Description,
     SettingsModel? Settings,
     EquatableArray<ParameterModel> Parameters,
-    ReturnModel Return);
+    ReturnModel Return,
+    LocationInfo? Location);
