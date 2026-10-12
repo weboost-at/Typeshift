@@ -8,7 +8,6 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace Agentic.Generators.Parsing;
 
-// Reads AddTool(M).WithName(..).WithDescription(..).WithSettings<T>(..) chains from a toolset's constructors
 internal static class ToolsetParser
 {
     public static ToolsetModel Parse(
@@ -218,14 +217,13 @@ internal static class ToolsetParser
             Description: docs.Parameters.TryGetValue(parameter.Name, out var description) ? description : null);
     }
 
-    private static ReturnModel ParseReturn(ITypeSymbol type) =>
+    private static ReturnKind ParseReturn(ITypeSymbol type) =>
         type switch
         {
-            { SpecialType: SpecialType.System_Void } => new(ReturnKind.Void, null),
-            _ when type.Is(KnownTypes.Task) || type.Is(KnownTypes.ValueTask) => new(ReturnKind.Awaitable, null),
-            INamedTypeSymbol awaitable when type.Is(KnownTypes.TaskOfT) || type.Is(KnownTypes.ValueTaskOfT) =>
-                new(ReturnKind.AwaitableValue, awaitable.TypeArguments[0].ToFullyQualified()),
-            _ => new(ReturnKind.Value, type.ToFullyQualified())
+            { SpecialType: SpecialType.System_Void } => ReturnKind.Void,
+            _ when type.Is(KnownTypes.Task) || type.Is(KnownTypes.ValueTask) => ReturnKind.Awaitable,
+            _ when type.Is(KnownTypes.TaskOfT) || type.Is(KnownTypes.ValueTaskOfT) => ReturnKind.AwaitableValue,
+            _ => ReturnKind.Value
         };
 
     // What one AddTool chain declares, before it is checked against the toolset's other tools

@@ -41,61 +41,48 @@ public abstract class AgentDefinition
     /// <summary>
     /// Names the agent with a lower_snake_case constant, unique across everything the host can see.
     /// </summary>
-    protected AgentDefinition WithUniqueName(string uniqueName)
+    protected void WithUniqueName(string uniqueName)
     {
         if (!LowerSnakeCase.Matches(uniqueName))
             throw new ArgumentException($"'{uniqueName}' is not a lower_snake_case name.", nameof(uniqueName));
 
         _uniqueName = uniqueName;
-        return this;
     }
 
     /// <summary>
     /// Describes what the agent does.
     /// </summary>
-    protected AgentDefinition WithDescription(string description)
-    {
-        Description = description;
-        return this;
-    }
+    protected void WithDescription(string description) => Description = description;
 
     /// <summary>
     /// Sets the chat options the agent runs with; <paramref name="configure"/> picks the options that may change at
     /// runtime, for the generator to read.
     /// </summary>
-    protected AgentDefinition WithChatOptions(
+    protected void WithChatOptions(
         ChatOptions options,
-        Action<ConfigurableSettingsPicker<ChatOptions>>? configure = null)
-    {
+        Action<ConfigurableSettingsPicker<ChatOptions>>? configure = null) =>
         _options = options;
-        return this;
-    }
 
     /// <summary>
     /// Offers every tool of the toolset.
     /// </summary>
-    protected AgentDefinition UseToolset<TToolset>() where TToolset : Toolset, new()
-    {
-        AddTools(new TToolset().Definitions);
-        return this;
-    }
+    protected void UseToolset<TToolset>() where TToolset : Toolset, new() => AddTools(new TToolset().Definitions);
 
     /// <summary>
     /// Offers the selected tools of the toolset, given as its static methods.
     /// </summary>
-    protected AgentDefinition UseToolset<TToolset>(params Delegate[] tools) where TToolset : Toolset, new()
+    protected void UseToolset<TToolset>(params Delegate[] tools) where TToolset : Toolset, new()
     {
         var available = new TToolset().Definitions;
 
         AddTools(tools.Select(tool => GetDefinition<TToolset>(available, tool)));
-        return this;
     }
 
     /// <summary>
     /// Sets the settings of every tool added so far that reads their type; they apply as a whole object, including
     /// members that are not allowlisted.
     /// </summary>
-    protected AgentDefinition WithToolSettings(object settings)
+    protected void WithToolSettings(object settings)
     {
         var readers = _tools.Where(tool => tool.SettingsType == settings.GetType()).ToList();
 
@@ -108,8 +95,6 @@ public abstract class AgentDefinition
         {
             _toolSettings[reader.Name] = settings;
         }
-
-        return this;
     }
 
     internal StoredAgent ToStoredAgent(AgentJson json) =>

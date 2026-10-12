@@ -5,7 +5,6 @@ internal static class ViewEmitter
 {
     public const string SerializerOptions = "global::System.Text.Json.JsonSerializerOptions";
 
-    // The view class with its base list, one base per line
     public static void WriteDeclaration(SourceWriter writer, string view, string baseView, string viewInterface)
     {
         writer.Line($"public sealed class {view} :");

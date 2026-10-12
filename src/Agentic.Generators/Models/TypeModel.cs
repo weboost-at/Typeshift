@@ -2,8 +2,7 @@ using System.Linq;
 
 namespace Agentic.Generators.Models;
 
-// Where a partial class lives, so the emitter can reopen it; FullName is global::-qualified, ContainingTypes
-// holds "class Outer" declarations and Accessibility the effective one
+// ContainingTypes hold declarations such as "class Outer", so the emitter can reopen them around the partial
 internal sealed record TypeModel(
     string? Namespace,
     string Name,

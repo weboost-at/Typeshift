@@ -34,7 +34,7 @@ internal static class ToolsetEmitter
                 writer.Line();
                 WriteBinding(writer, tool);
                 writer.Line();
-                WriteFunction(writer, toolset, tool);
+                WriteFunction(writer, tool);
             }
         });
 
@@ -189,7 +189,7 @@ internal static class ToolsetEmitter
         }
     }
 
-    private static void WriteFunction(SourceWriter writer, ToolsetModel toolset, ToolModel tool)
+    private static void WriteFunction(SourceWriter writer, ToolModel tool)
     {
         var name = Names.ToPascalCase(tool.Name);
         var settings = tool.Settings is { } model ? $"{model.Type} settings" : null;
@@ -272,7 +272,7 @@ internal static class ToolsetEmitter
 
     private static void WriteInvoke(SourceWriter writer, ToolModel tool)
     {
-        var kind = tool.Return.Kind;
+        var kind = tool.Return;
         var isAsync = kind is ReturnKind.Awaitable or ReturnKind.AwaitableValue;
         var isExpression = kind is ReturnKind.Value or ReturnKind.AwaitableValue;
         var call = $"{tool.Target}.{Names.Identifier(tool.Method)}";
@@ -302,7 +302,6 @@ internal static class ToolsetEmitter
         }
     }
 
-    // One argument per line once there are several, closing on the last one
     private static void WriteCall(
         SourceWriter writer,
         string prefix,

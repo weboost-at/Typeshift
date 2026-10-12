@@ -3,7 +3,6 @@ using System.Text;
 
 namespace Agentic.Generators.Emitting;
 
-// Writes indented source; Block() opens a brace and closes it when disposed
 internal sealed class SourceWriter
 {
     private readonly StringBuilder _builder = new();

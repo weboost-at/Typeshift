@@ -65,11 +65,17 @@ public sealed class AgentGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(module, static (output, module) => EmitModule(output, module));
 
         context.RegisterSourceOutput(
-            module.Select(static (module, _) => module?.Name).Combine(references).Combine(calls),
+            module
+                .Select(static (module, _) => module?.Name)
+                .Combine(references)
+                .Combine(calls),
             static (output, input) => EmitInterceptor(output, input.Left.Left, input.Left.Right, input.Right));
 
         context.RegisterSourceOutput(
-            toolsetSummaries.Combine(agentSummaries).Combine(references).Combine(calls),
+            toolsetSummaries
+                .Combine(agentSummaries)
+                .Combine(references)
+                .Combine(calls),
             static (output, input) => ReportDuplicates(
                 output,
                 input.Left.Left.Left,

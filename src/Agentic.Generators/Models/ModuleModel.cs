@@ -1,7 +1,6 @@
 namespace Agentic.Generators.Models;
 
-// The assembly's own toolsets and agents, without locations so moved code leaves the module cached; Name is the
-// generated module class in Agentic.Generated
+// Without locations, so code that only moves leaves the module cached
 internal sealed record ModuleModel(
     string Name,
     string AssemblyName,

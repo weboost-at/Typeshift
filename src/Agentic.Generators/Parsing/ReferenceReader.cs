@@ -6,8 +6,7 @@ using Microsoft.CodeAnalysis;
 
 namespace Agentic.Generators.Parsing;
 
-// Reads the stamps of referenced assemblies; only an assembly that uses the library but carries no module stamp
-// has its types looked at, to report that it was not compiled with the generator
+// Only an assembly that uses the library but carries no module stamp has its types read, to report AGT014
 internal static class ReferenceReader
 {
     public static ReferenceModel Read(Compilation compilation, CancellationToken ct)

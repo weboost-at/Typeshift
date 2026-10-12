@@ -2,8 +2,7 @@ namespace Agentic.Conversations;
 
 internal static class Subscribers
 {
-    // A subscriber gets a token cancelled at the limit, and the chat call waits for that token whatever the
-    // subscriber does; what a subscriber throws stays with it
+    // Subscribers get a token cancelled at the limit and the call waits no longer; what they throw stays theirs
     public static async Task RaiseAsync(Func<CancellationToken, Task>? handlers, TimeSpan limit, TimeProvider time)
     {
         if (handlers is null) return;

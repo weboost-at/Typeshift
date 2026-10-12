@@ -8,8 +8,7 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace Agentic.Generators.Parsing;
 
-// Reads WithUniqueName, WithChatOptions, UseToolset and WithToolSettings from an agent's constructors; the selected
-// toolsets stay names here and are resolved against every visible toolset in a later step
+// Toolsets stay names here and a later step resolves them, so a toolset edit reaches the agents using it
 internal static class AgentParser
 {
     public static AgentModel Parse(INamedTypeSymbol agent, Compilation compilation, CancellationToken ct)

@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.Operations;
 
 namespace Agentic.Generators.Parsing;
 
-// Reads the fluent calls in a class's constructors, in source order
+// Statement by statement; within a chain the outer call comes first, GetChainedCalls walks it from the start
 internal static class ConstructorChains
 {
     public static IEnumerable<IInvocationOperation> GetInvocations(

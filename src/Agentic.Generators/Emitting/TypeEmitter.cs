@@ -4,7 +4,6 @@ using Agentic.Generators.Models;
 
 namespace Agentic.Generators.Emitting;
 
-// Reopens a partial class, inside its namespace and any containing types
 internal static class TypeEmitter
 {
     public static string EmitPartial(

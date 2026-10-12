@@ -6,7 +6,6 @@ using Agentic.Generators.Models;
 
 namespace Agentic.Generators;
 
-// Resolves an agent's toolset selections against the own toolsets and the stamped ones of its references
 internal static class AgentResolver
 {
     public static AgentOutput Resolve(AgentModel agent, ImmutableArray<ToolsetSummary> own, ReferenceModel references)
