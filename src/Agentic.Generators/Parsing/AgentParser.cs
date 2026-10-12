@@ -69,8 +69,8 @@ internal static class AgentParser
         }
     }
 
-    // The selection methods are generated, so in the generator's own view a selection does not bind: the call is read
-    // from its syntax, and its target from the overload candidates
+    // D29: the selection methods are generated, so in the generator's own view a selection does not bind: the call is
+    // read from its syntax, and its target from the overload candidates
     private static IEnumerable<ToolsetUseModel> ReadUses(
         INamedTypeSymbol agent,
         Compilation compilation,

@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis;
 
 namespace Agentic.Generators.Parsing;
 
-// Only an assembly that uses the library but carries no module stamp has its types read, to report AGT011
+// D9: only an assembly that uses the library but carries no module stamp has its types read, to report AGT011
 internal static class ReferenceReader
 {
     public static ReferenceModel Read(Compilation compilation, CancellationToken ct)

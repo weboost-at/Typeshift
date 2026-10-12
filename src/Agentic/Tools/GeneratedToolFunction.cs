@@ -58,7 +58,7 @@ public abstract class GeneratedToolFunction : AIFunction
         AIFunctionArguments arguments,
         CancellationToken ct)
     {
-        // FunctionInvokingChatClient hands every tool the root provider, scoped services need a scope per call
+        // D11: FunctionInvokingChatClient hands every tool the root provider, scoped services need a scope per call
         if (arguments.Services?.GetService<IServiceScopeFactory>() is not { } scopes)
             throw new InvalidOperationException(
                 $"The tool '{Name}' needs the services of a container built with AddAgentic().");

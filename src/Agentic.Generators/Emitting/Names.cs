@@ -29,6 +29,7 @@ internal static class Names
     }
 
     // A generated member named like a member it sits next to gets a suffix instead of clashing with it
+    // D2: a generated member named like a member next to it gets a suffix
     public static string Unreserved(string name, string suffix, ICollection<string> reserved) =>
         reserved.Contains(name) ? name + suffix : name;
 

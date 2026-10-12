@@ -20,6 +20,7 @@ internal static class Discovery
 
         var symbol = context.SemanticModel.GetDeclaredSymbol(declaration, ct);
 
+        // D6: a generic class's tools depend on type arguments only the closing site knows
         if (symbol is not { IsAbstract: false, IsGenericType: false } type) return null;
         if (!IsFirstDeclarationWithBaseList(type, declaration, ct)) return null;
 

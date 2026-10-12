@@ -59,7 +59,7 @@ internal sealed class TrackedChatClient(IChatClient innerClient, ConversationTra
             ExecutionContext: options?.AdditionalProperties?.GetExecutionContext() ?? ChatExecutionContext.Unknown,
             Input: messages as ChatMessage[] ?? [.. messages]);
 
-    // The tracker resends the conversation itself, a provider would take the id for state of its own
+    // D18: the tracker resends the conversation itself, a provider would take the id for state of its own
     private static ChatOptions? ForProvider(ChatOptions? options)
     {
         if (options?.ConversationId is null) return options;

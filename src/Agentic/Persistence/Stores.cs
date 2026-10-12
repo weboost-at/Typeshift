@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Agentic.Persistence;
 
+// D26: the store is the persistence feature flag; without one, whatever loads or saves throws and says what to add
 internal static class Stores
 {
     public static IAgenticStore<TId> Get<TId>(IServiceProvider services) where TId : notnull =>

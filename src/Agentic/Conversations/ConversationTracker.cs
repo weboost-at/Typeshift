@@ -80,11 +80,11 @@ public sealed class ConversationTracker
         return (id, await store.LoadAsync(id, ct));
     }
 
-    // Only an id the registered store's id type can parse is stored, the library never invents ids
+    // D33: only an id the registered store's id type can parse is stored, the library never invents ids
     private ConversationStore? StoreOf(string? conversationId) =>
         conversationId is not null && _store?.Accepts(conversationId) is true ? _store : null;
 
-    // Read at the end, so overlapping first sessions both land; a resumed conversation deleted meanwhile stays deleted
+    // D18: read at the end, so overlapping first sessions both land; a conversation deleted meanwhile stays deleted
     private static async Task StoreAsync(
         ConversationStore store,
         TrackedConversationSession tracked,

@@ -61,6 +61,7 @@ public class AgentRuntime
             .Build(_services.Services);
     }
 
+    // D35: the Core members are public for the generated typed members in other assemblies, hidden from editors
     /// <summary>
     /// Loads the agent's settings; the generated <c>LoadSettingsAsync</c> calls it.
     /// </summary>

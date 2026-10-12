@@ -18,6 +18,7 @@ public sealed class ToolSelection<TToolset> where TToolset : Toolset
 
     internal IReadOnlyList<ToolName> Selected => _selected;
 
+    // D35: public for the generated selection methods in other assemblies, hidden from editors
     /// <summary>
     /// Selects a tool by name; the generated methods call it.
     /// </summary>

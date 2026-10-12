@@ -10,6 +10,7 @@ namespace Agentic.Persistence;
 /// Writes and reads the JSON of generated <see cref="IStorable{TSelf}"/> data, member by member and without
 /// reflection. Generated code calls it; a null member is left out, and a missing or mistyped one reads as null.
 /// </summary>
+// D27: source generators do not see each other's output, so no JsonSerializerContext can cover generated settings
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class StorableJson
 {

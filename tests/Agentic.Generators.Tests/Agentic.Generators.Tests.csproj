@@ -13,6 +13,7 @@
     <Using Include="Agentic.Generators.Tests.Testing" />
     <!-- Deterministic CI builds map [CallerFilePath] to /_/..., so the snapshot helper reads the directory from here. -->
     <AssemblyMetadata Include="SnapshotsDirectory" Value="$(MSBuildProjectDirectory)/Snapshots" />
+    <AssemblyMetadata Include="RepositoryDirectory" Value="$(MSBuildProjectDirectory)/../.." />
   </ItemGroup>
 
   <ItemGroup>

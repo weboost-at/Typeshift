@@ -104,7 +104,7 @@ public sealed class AgentJson
         return parameter.IsNullable ? AsNullable(schema) : schema;
     }
 
-    // A nullable reference is typed [type, "null"], as the reflection path types it
+    // D12: a nullable reference is typed [type, "null"], as the reflection path types it
     private static JsonObject AsNullable(JsonObject schema)
     {
         if (schema["type"] is JsonValue type && type.GetValue<string>() is not "null" and var name)

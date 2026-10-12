@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using Agentic.Conversations;
 using Agentic.Persistence;
 
-// The Microsoft.Extensions.DependencyInjection namespace makes AddAgentic() available without a using
+// D1: the Microsoft.Extensions.DependencyInjection namespace makes AddAgentic() available without a using
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
