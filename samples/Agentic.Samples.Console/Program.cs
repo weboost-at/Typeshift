@@ -63,10 +63,11 @@ var conversation = await conversations.LoadAsync(conversationId, CancellationTok
     ?? throw new InvalidOperationException("The conversation was not stored.");
 
 var document = JsonSerializer.Serialize(conversation, json.GetTypeInfo<StoredConversation>());
+var restored = JsonSerializer.Deserialize(document, json.GetTypeInfo<StoredConversation>())!;
 
 Console.WriteLine(
-    $"Stored {conversation.AggregatedMessages.Count} messages of {conversation.ExecutionContext.Value}, " +
-    $"{conversation.AggregatedUsage.TotalTokenCount} tokens, {document.Length} characters of JSON");
+    $"Stored {restored.AggregatedMessages.Count} messages of {restored.ExecutionContext.Value}, " +
+    $"{restored.AggregatedUsage.TotalTokenCount} tokens, read back from JSON");
 
 // A stored agent: defined as data, it runs through the same path as a code agent
 var catalog = provider.GetRequiredService<AgentCatalog>();
