@@ -19,15 +19,18 @@ Everything runs under Native AOT.
 - **Tools from static methods.** Each tool becomes a generated `AIFunction` with a JSON schema from its parameters and
   XML docs; arguments bind and results serialize without reflection.
 - **Typed, layered settings.** A tool's settings resolve from code defaults, stored defaults, the agent's code, the
-  agent's stored settings and the run. Only members the code marks configurable can change.
+  agent's stored settings and the run, and reach the tool as a parameter the model never sees. Only members the code
+  marks configurable can change.
 - **A settings contract per agent.** The generator writes a `Settings` record per agent holding exactly what may
   change at runtime, model included: store it per customer, pass it per run, or bind a UI to it.
 - **One store, your ids.** Implement `IAgenticStore<TId>` once for your database, with the id type you already use.
   Without a store, agents run from code.
 - **Conversation tracking.** Every exchange with the model is tracked live and stored as a session of its
   conversation, streaming included.
-- **Mistakes fail the build.** Selecting a tool of the wrong toolset or passing settings no tool reads does not
-  compile, and fourteen diagnostics cover the rest.
+- **Plain fluent C#.** Tools, agents, chat options and tool settings are each declared in one chain, with
+  instructions in an overridable `GetInstructions()`.
+- **Mistakes fail the build.** Selecting a tool of the wrong toolset or setting the settings of a tool the agent does
+  not offer does not compile, and fourteen diagnostics cover the rest.
 
 ## Install
 
@@ -78,7 +81,8 @@ internal partial class CompanyToolset : Toolset
 <sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Console/Companies/CompanyToolset.cs#L5-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-toolset' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-An agent picks its chat options, tools and tool settings. `tools.FindCompanies()` is generated per tool.
+An agent picks its chat options, tools and tool settings. `.FindCompanies()` after `UseToolset<CompanyToolset>()` and
+after `WithToolSettings()` are generated per tool.
 
 <!-- snippet: quickstart-agent -->
 <a id='snippet-quickstart-agent'></a>
