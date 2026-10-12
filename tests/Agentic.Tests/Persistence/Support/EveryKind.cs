@@ -40,11 +40,11 @@ public sealed record EveryKind : IStorable<EveryKind>
         {
             StorableJson.Write(writer, "text", Text);
             StorableJson.Write(writer, "flag", Flag);
-            StorableJson.Write(writer, "count", Count);
-            StorableJson.Write(writer, "big", Big);
-            StorableJson.Write(writer, "ratio", Ratio);
-            StorableJson.Write(writer, "precise", Precise);
-            StorableJson.Write(writer, "money", Money);
+            StorableJson.WriteNumber(writer, "count", Count);
+            StorableJson.WriteNumber(writer, "big", Big);
+            StorableJson.WriteNumber(writer, "ratio", Ratio);
+            StorableJson.WriteNumber(writer, "precise", Precise);
+            StorableJson.WriteNumber(writer, "money", Money);
             StorableJson.Write(writer, "key", Key);
             StorableJson.Write(writer, "at", At);
             StorableJson.Write(writer, "span", Span);
@@ -57,11 +57,11 @@ public sealed record EveryKind : IStorable<EveryKind>
         {
             Text = StorableJson.ReadString(data, "text"),
             Flag = StorableJson.ReadBoolean(data, "flag"),
-            Count = StorableJson.ReadInt32(data, "count"),
-            Big = StorableJson.ReadInt64(data, "big"),
-            Ratio = StorableJson.ReadSingle(data, "ratio"),
-            Precise = StorableJson.ReadDouble(data, "precise"),
-            Money = StorableJson.ReadDecimal(data, "money"),
+            Count = StorableJson.ReadNumber<int>(data, "count"),
+            Big = StorableJson.ReadNumber<long>(data, "big"),
+            Ratio = StorableJson.ReadNumber<float>(data, "ratio"),
+            Precise = StorableJson.ReadNumber<double>(data, "precise"),
+            Money = StorableJson.ReadNumber<decimal>(data, "money"),
             Key = StorableJson.ReadGuid(data, "key"),
             At = StorableJson.ReadDateTimeOffset(data, "at"),
             Span = StorableJson.ReadTimeSpan(data, "span"),

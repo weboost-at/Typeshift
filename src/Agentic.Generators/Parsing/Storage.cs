@@ -19,17 +19,13 @@ internal static class Storage
 
         if (IsStringList(underlying)) return new StorageModel("Write", "ReadStrings");
 
+        if (IsNumber(underlying))
+            return new StorageModel("WriteNumber", $"ReadNumber<{underlying.ToTypeOf()}>");
+
         var read = underlying.SpecialType switch
         {
             SpecialType.System_String => "ReadString",
             SpecialType.System_Boolean => "ReadBoolean",
-            SpecialType.System_Byte => "ReadByte",
-            SpecialType.System_Int16 => "ReadInt16",
-            SpecialType.System_Int32 => "ReadInt32",
-            SpecialType.System_Int64 => "ReadInt64",
-            SpecialType.System_Single => "ReadSingle",
-            SpecialType.System_Double => "ReadDouble",
-            SpecialType.System_Decimal => "ReadDecimal",
             SpecialType.System_DateTime => "ReadDateTime",
             _ when underlying.Is("System.Guid") => "ReadGuid",
             _ when underlying.Is("System.DateTimeOffset") => "ReadDateTimeOffset",
@@ -39,6 +35,11 @@ internal static class Storage
 
         return read is null ? null : new StorageModel("Write", read);
     }
+
+    private static bool IsNumber(ITypeSymbol type) =>
+        type.SpecialType is SpecialType.System_Byte or SpecialType.System_Int16 or SpecialType.System_Int32
+            or SpecialType.System_Int64 or SpecialType.System_Single or SpecialType.System_Double
+            or SpecialType.System_Decimal;
 
     // ReadStrings returns a string[], which every one of these accepts
     private static bool IsStringList(ITypeSymbol type) =>

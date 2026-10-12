@@ -23,8 +23,10 @@ data, and stored documents carry no version (see the known gaps in `docs/contrib
 ## Supporting a new member type
 
 1. `src/Agentic/Persistence/StorableJson.cs`: a `Write` overload and a `Read...` method. A null value is left out; a
-   missing or mistyped value reads as null and never throws.
-2. `src/Agentic.Generators/Parsing/Storage.cs`: map the type (and its nullable form) to the two methods.
+   missing or mistyped value reads as null and never throws. A numeric type needs none: `WriteNumber<T>` and
+   `ReadNumber<T>` take any `INumber<T>`.
+2. `src/Agentic.Generators/Parsing/Storage.cs`: map the type (and its nullable form) to the two methods; a numeric
+   type goes into `IsNumber`.
 3. `tests/Agentic.Tests/Persistence/Support/EveryKind.cs` and `StorableTestData.cs`: add a member of the type;
    `StorableJsonTests` then round-trips it.
 4. Update the type list in the AGT014 message (`Descriptors.cs`), in `docs/guide/diagnostics.md` (AGT014) and in

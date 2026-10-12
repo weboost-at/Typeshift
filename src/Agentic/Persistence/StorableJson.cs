@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.ComponentModel;
 using System.Globalization;
+using System.Numerics;
 using System.Text;
 using System.Text.Json;
 
@@ -76,48 +77,17 @@ public static class StorableJson
     /// <summary>
     /// Writes a number member.
     /// </summary>
+    /// <typeparam name="TNumber">The number type.</typeparam>
     /// <param name="writer">The writer of the enclosing object.</param>
     /// <param name="name">The member's JSON name.</param>
     /// <param name="value">The value; null leaves the member out.</param>
-    public static void Write(Utf8JsonWriter writer, string name, byte? value)
+    public static void WriteNumber<TNumber>(Utf8JsonWriter writer, string name, TNumber? value)
+        where TNumber : struct, INumber<TNumber>
     {
-        if (value is { } number) writer.WriteNumber(name, number);
-    }
+        if (value is not { } number) return;
 
-    /// <inheritdoc cref="Write(Utf8JsonWriter, string, byte?)"/>
-    public static void Write(Utf8JsonWriter writer, string name, short? value)
-    {
-        if (value is { } number) writer.WriteNumber(name, number);
-    }
-
-    /// <inheritdoc cref="Write(Utf8JsonWriter, string, byte?)"/>
-    public static void Write(Utf8JsonWriter writer, string name, int? value)
-    {
-        if (value is { } number) writer.WriteNumber(name, number);
-    }
-
-    /// <inheritdoc cref="Write(Utf8JsonWriter, string, byte?)"/>
-    public static void Write(Utf8JsonWriter writer, string name, long? value)
-    {
-        if (value is { } number) writer.WriteNumber(name, number);
-    }
-
-    /// <inheritdoc cref="Write(Utf8JsonWriter, string, byte?)"/>
-    public static void Write(Utf8JsonWriter writer, string name, float? value)
-    {
-        if (value is { } number) writer.WriteNumber(name, number);
-    }
-
-    /// <inheritdoc cref="Write(Utf8JsonWriter, string, byte?)"/>
-    public static void Write(Utf8JsonWriter writer, string name, double? value)
-    {
-        if (value is { } number) writer.WriteNumber(name, number);
-    }
-
-    /// <inheritdoc cref="Write(Utf8JsonWriter, string, byte?)"/>
-    public static void Write(Utf8JsonWriter writer, string name, decimal? value)
-    {
-        if (value is { } number) writer.WriteNumber(name, number);
+        writer.WritePropertyName(name);
+        writer.WriteRawValue(number.ToString(null, CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -246,35 +216,16 @@ public static class StorableJson
     /// <summary>
     /// Reads a number member.
     /// </summary>
+    /// <typeparam name="TNumber">The number type.</typeparam>
     /// <param name="data">The enclosing object.</param>
     /// <param name="name">The member's JSON name.</param>
     /// <returns>The value, or null when the member is missing or not a number of that type.</returns>
-    public static byte? ReadByte(JsonElement data, string name) =>
-        Number(data, name) is { } value && value.TryGetByte(out var number) ? number : null;
-
-    /// <inheritdoc cref="ReadByte"/>
-    public static short? ReadInt16(JsonElement data, string name) =>
-        Number(data, name) is { } value && value.TryGetInt16(out var number) ? number : null;
-
-    /// <inheritdoc cref="ReadByte"/>
-    public static int? ReadInt32(JsonElement data, string name) =>
-        Number(data, name) is { } value && value.TryGetInt32(out var number) ? number : null;
-
-    /// <inheritdoc cref="ReadByte"/>
-    public static long? ReadInt64(JsonElement data, string name) =>
-        Number(data, name) is { } value && value.TryGetInt64(out var number) ? number : null;
-
-    /// <inheritdoc cref="ReadByte"/>
-    public static float? ReadSingle(JsonElement data, string name) =>
-        Number(data, name) is { } value && value.TryGetSingle(out var number) ? number : null;
-
-    /// <inheritdoc cref="ReadByte"/>
-    public static double? ReadDouble(JsonElement data, string name) =>
-        Number(data, name) is { } value && value.TryGetDouble(out var number) ? number : null;
-
-    /// <inheritdoc cref="ReadByte"/>
-    public static decimal? ReadDecimal(JsonElement data, string name) =>
-        Number(data, name) is { } value && value.TryGetDecimal(out var number) ? number : null;
+    public static TNumber? ReadNumber<TNumber>(JsonElement data, string name)
+        where TNumber : struct, INumber<TNumber> =>
+        Find(data, name) is { ValueKind: JsonValueKind.Number } value
+        && TNumber.TryParse(value.GetRawText(), CultureInfo.InvariantCulture, out var number)
+            ? number
+            : null;
 
     /// <summary>
     /// Reads a <see cref="Guid"/> member.
@@ -363,9 +314,6 @@ public static class StorableJson
 
     private static JsonElement? Find(JsonElement data, string name) =>
         data.ValueKind is JsonValueKind.Object && data.TryGetProperty(name, out var value) ? value : null;
-
-    private static JsonElement? Number(JsonElement data, string name) =>
-        Find(data, name) is { ValueKind: JsonValueKind.Number } value ? value : null;
 
     private static JsonElement? Text(JsonElement data, string name) =>
         Find(data, name) is { ValueKind: JsonValueKind.String } value ? value : null;

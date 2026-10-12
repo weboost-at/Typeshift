@@ -54,7 +54,7 @@ partial class WebResearchToolset
         public string Serialize() =>
             global::Agentic.Persistence.StorableJson.Write(writer =>
             {
-                global::Agentic.Persistence.StorableJson.Write(writer, "limit", Limit);
+                global::Agentic.Persistence.StorableJson.WriteNumber(writer, "limit", Limit);
                 global::Agentic.Persistence.StorableJson.Write(writer, "region", Region);
             });
 
@@ -62,7 +62,7 @@ partial class WebResearchToolset
         public static SearchWebOverrides Deserialize(string json) =>
             global::Agentic.Persistence.StorableJson.Read(json, static data => new SearchWebOverrides
             {
-                Limit = global::Agentic.Persistence.StorableJson.ReadInt32(data, "limit"),
+                Limit = global::Agentic.Persistence.StorableJson.ReadNumber<int>(data, "limit"),
                 Region = global::Agentic.Persistence.StorableJson.ReadString(data, "region")
             });
 

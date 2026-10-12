@@ -114,8 +114,8 @@ partial class ProfilingAgent
             global::Agentic.Persistence.StorableJson.Write(writer =>
             {
                 global::Agentic.Persistence.StorableJson.Write(writer, "model", Model);
-                global::Agentic.Persistence.StorableJson.Write(writer, "temperature", Temperature);
-                global::Agentic.Persistence.StorableJson.Write(writer, "maxOutputTokens", MaxOutputTokens);
+                global::Agentic.Persistence.StorableJson.WriteNumber(writer, "temperature", Temperature);
+                global::Agentic.Persistence.StorableJson.WriteNumber(writer, "maxOutputTokens", MaxOutputTokens);
                 global::Agentic.Persistence.StorableJson.Write(writer, "instructions", Instructions);
                 global::Agentic.Persistence.StorableJson.WriteObject(writer, "tools", tools =>
                 {
@@ -132,8 +132,8 @@ partial class ProfilingAgent
                 return new Settings
                 {
                     Model = global::Agentic.Persistence.StorableJson.ReadString(data, "model"),
-                    Temperature = global::Agentic.Persistence.StorableJson.ReadSingle(data, "temperature"),
-                    MaxOutputTokens = global::Agentic.Persistence.StorableJson.ReadInt32(data, "maxOutputTokens"),
+                    Temperature = global::Agentic.Persistence.StorableJson.ReadNumber<float>(data, "temperature"),
+                    MaxOutputTokens = global::Agentic.Persistence.StorableJson.ReadNumber<int>(data, "maxOutputTokens"),
                     Instructions = global::Agentic.Persistence.StorableJson.ReadString(data, "instructions"),
                     SearchWeb = global::Agentic.Persistence.StorableJson.ReadStorable<global::Demo.WebResearchToolset.SearchWebOverrides>(tools, "search_web") ?? new()
                 };
@@ -307,7 +307,7 @@ partial class WebResearchToolset
         public string Serialize() =>
             global::Agentic.Persistence.StorableJson.Write(writer =>
             {
-                global::Agentic.Persistence.StorableJson.Write(writer, "limit", Limit);
+                global::Agentic.Persistence.StorableJson.WriteNumber(writer, "limit", Limit);
                 global::Agentic.Persistence.StorableJson.Write(writer, "region", Region);
             });
 
@@ -315,7 +315,7 @@ partial class WebResearchToolset
         public static SearchWebOverrides Deserialize(string json) =>
             global::Agentic.Persistence.StorableJson.Read(json, static data => new SearchWebOverrides
             {
-                Limit = global::Agentic.Persistence.StorableJson.ReadInt32(data, "limit"),
+                Limit = global::Agentic.Persistence.StorableJson.ReadNumber<int>(data, "limit"),
                 Region = global::Agentic.Persistence.StorableJson.ReadString(data, "region")
             });
 
