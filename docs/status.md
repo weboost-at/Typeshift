@@ -47,7 +47,8 @@ ticked as they land, open items and blockers are recorded here, never as TODOs i
 
 - [x] The sample, the AOT CI job, the packaging smoke test
 - [x] `docs/architecture.md`, `docs/diagnostics.md`, `docs/decisions.md`, `docs/renaming.md`, README
-- [x] Final review pass, clean re-verification, pull request, tag `v0.1.0-alpha.1`
+- [x] Final review pass, clean re-verification, pull request
+- [ ] Tag `v0.1.0-alpha.1` pushed: blocked, see the environment notes
 
 ## Behavior coverage
 
@@ -116,6 +117,10 @@ cached).
 ## Environment notes
 
 - The run had the .NET 10 SDK and `clang`, so the AOT publish and the package consumer ran locally as well as in CI.
+- **Blocker:** the session's git proxy answers HTTP 403 to every tag push and allows pushes to the work branch only,
+  and no other tool here can create a tag. `v0.1.0-alpha.1` exists only in the run's local clone, on the head of the
+  work branch. To publish it, tag that commit and push the tag: `git tag -a v0.1.0-alpha.1 <head> -m "Agentic
+  0.1.0-alpha.1"`, then `git push origin v0.1.0-alpha.1`. MinVer then versions the package `0.1.0-alpha.1`.
 
 ## Known gaps
 
