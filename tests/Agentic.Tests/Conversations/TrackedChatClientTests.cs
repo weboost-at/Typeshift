@@ -36,10 +36,11 @@ public class TrackedChatClientTests : ConversationTestBase
         ChatClient.Reply(failure);
 
         // Act
-        var ask = () => Tracked().GetResponseAsync(Conversation.Question, Options(Conversation.ConversationId), Ct);
+        var thrown = await Record.ExceptionAsync(
+            () => Tracked().GetResponseAsync(Conversation.Question, Options(Conversation.ConversationId), Ct));
 
         // Assert
-        (await ask.Should().ThrowAsync<InvalidOperationException>()).Which.Should().BeSameAs(failure);
+        thrown.Should().BeSameAs(failure);
     }
 
     [Fact]

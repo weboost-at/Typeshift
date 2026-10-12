@@ -85,6 +85,13 @@ public abstract class ConversationTestBase : HostTestBase
         return received;
     }
 
+    // A subscriber that signals it was entered, then never finishes
+    protected static Task Hang(SemaphoreSlim entered)
+    {
+        entered.Release();
+        return new TaskCompletionSource().Task;
+    }
+
     protected async Task<StoredConversation> StoredAsync(Guid id) =>
         await Store.LoadAsync(id, Ct) ?? throw new InvalidOperationException($"No conversation {id} is stored.");
 

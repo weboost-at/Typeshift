@@ -113,11 +113,4 @@ public class SubscriberTests : ConversationTestBase
         // Assert
         tokens.Select(token => token.IsCancellationRequested).Should().Equal(true, true);
     }
-
-    // Signals it was entered, then never finishes
-    private static Task Hang(SemaphoreSlim entered)
-    {
-        entered.Release();
-        return new TaskCompletionSource().Task;
-    }
 }

@@ -13,7 +13,8 @@ public static partial class ConventionViolations
         ["raw cancellation token"] = new(@"TestContext\.Current\.CancellationToken"),
         ["numeric wait timeout"] = new(@"\b(WaitAsync|Timeout)\([^;]*(TimeSpan\.From\w+\(|\d+\.(Seconds|Minutes)\(\))"),
         ["wall clock"] = new(@"\bDateTime(Offset)?\.(Now|UtcNow|Today)\b"),
-        ["real time"] = new(@"\b(Stopwatch|Environment\.TickCount|TimeProvider\.System)\b")
+        ["real time"] = new(@"\b(Stopwatch|Environment\.TickCount|TimeProvider\.System)\b"),
+        ["chained assertion"] = new(@"\)\s*\.(And|Which|Subject)\b")
     };
 
     // Class.Method of every test whose name is neither Given_<state>_<outcome> nor the outcome alone

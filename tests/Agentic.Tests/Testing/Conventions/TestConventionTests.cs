@@ -64,6 +64,7 @@ public class TestConventionTests
     [InlineData("numeric wait timeout")]
     [InlineData("wall clock")]
     [InlineData("real time")]
+    [InlineData("chained assertion")]
     public void A_Banned_Call_Stays_Out_Of_The_Tests(string call)
     {
         // Act
