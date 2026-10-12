@@ -335,7 +335,7 @@ public static class DiagnosticSources
         }
         """;
 
-    public const string UnsupportedSettingOfAllConfigurable =
+    public const string UnsupportedConfigurableSetting =
         """
         using System.Collections.Generic;
         using Agentic.Toolsets;
@@ -355,8 +355,7 @@ public static class DiagnosticSources
                 AddTool(Echo)
                     .WithName("echo")
                     .WithDescription("Echoes.")
-                    .WithSettings<EchoSettings>()
-                    .AllConfigurable();
+                    .WithConfigurableSettings<EchoSettings>();
 
             public static string Echo(string text, EchoSettings settings) => text;
         }
@@ -382,8 +381,7 @@ public static class DiagnosticSources
                 AddTool(Echo)
                     .WithName("echo")
                     .WithDescription("Echoes.")
-                    .WithSettings<EchoSettings>()
-                    .AllConfigurable()
+                    .WithConfigurableSettings<EchoSettings>()
                     .NotConfigurable(s => s.Weights);
 
             public static string Echo(string text, EchoSettings settings) => text;

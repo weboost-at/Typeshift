@@ -58,9 +58,9 @@ internal partial class TicketToolset : Toolset
 - **The description** comes from `WithDescription(...)`, or else from the method's `<summary>`. A tool without
   either is reported as [AGT008](./diagnostics.md#agt008); summaries need `GenerateDocumentationFile`
   ([AGT010](./diagnostics.md#agt010)).
-- **`WithSettings<T>()`** gives the tool a settings record, and `Configurable(...)` or `AllConfigurable()` after it
-  mark what may change at runtime; without them nothing may. See [tool settings](./tool-settings.md). It comes last in
-  the chain.
+- **`WithSettings<T>()`** gives the tool a settings record whose members stay in code unless `Configurable(...)` names
+  them; **`WithConfigurableSettings<T>()`** one whose members may all change unless `NotConfigurable(...)` names them.
+  See [tool settings](./tool-settings.md). Either comes last in the chain.
 - **`DisplayName`** is an optional name for people, in a tool picker for example.
 
 ## Parameters

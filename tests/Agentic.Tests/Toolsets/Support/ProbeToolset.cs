@@ -20,8 +20,7 @@ public partial class ProbeToolset : Toolset
         AddTool(Probe)
             .WithName("probe")
             .WithDescription("Returns what it was called with and the settings it runs with.")
-            .WithSettings<ProbeSettings>()
-            .AllConfigurable()
+            .WithConfigurableSettings<ProbeSettings>()
             .NotConfigurable(s => s.Mode);
     }
 

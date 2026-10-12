@@ -401,7 +401,8 @@ Replaced by D29: tools are selected through generated methods and matched by nam
   `UseToolset<T>(tools => tools.A())` each opened a second builder inside a lambda, and chat options needed a
   `ChatOptions` instance built by hand.
 - **Decision:** every declaration is one flat chain. `WithSettings<T>()` returns `ToolBuilder<TSettings>`, whose
-  `Configurable` and `AllConfigurable` are typed by the settings (D43); it comes last in the tool's chain.
+  `Configurable` is typed by the settings, and `WithConfigurableSettings<T>()` its counterpart with `NotConfigurable`
+  (D43); either comes last in the tool's chain.
   `WithChatOptions()` returns a `ChatOptionsBuilder` with a `With...` per chat option worth setting in code and
   `Configurable`. `UseToolset<T>()` returns the use itself, chained with `Include` or `Exclude` (D29); nothing
   chained offers the whole toolset, so the duplicate check runs when the agent's tools are first read. Plain generics
@@ -423,15 +424,18 @@ Replaced by D29: tools are selected through generated methods and matched by nam
   base constructor, before the derived constructor has run.
 - **Where:** `Agents/AgentDefinition.cs` (`CreateChatOptions`).
 
-### D43. Configurable members are an allow list unless `AllConfigurable` says otherwise
+### D43. Configurable members are an allow list unless `WithConfigurableSettings` says otherwise
 
 - **Context:** a settings record whose members should almost all change at runtime needed one `Configurable` per
   member.
-- **Decision:** without a call no member may change; `Configurable(s => s.X)` allows the members it names.
-  `AllConfigurable()` allows every settable member but the obsolete ones and those `NotConfigurable(s => s.X)`
-  names. Each returns a chain that only continues in its own way, so the two styles never mix. There is no
-  `NoneConfigurable`: none is the default. With `AllConfigurable`, a member whose type settings cannot store is
-  reported as AGT014 on `AllConfigurable` until it is kept out, so a new member never silently stays code-only.
+- **Decision:** `WithSettings<T>()` keeps every member in code; `Configurable(s => s.X)` allows the members it names.
+  `WithConfigurableSettings<T>()` allows every settable member but the obsolete ones and those
+  `NotConfigurable(s => s.X)` names. Each returns a builder that only continues in its own way, so the two styles
+  never mix. There is no "none configurable" call: plain `WithSettings<T>()` is that. Under
+  `WithConfigurableSettings<T>()`, a member whose type settings cannot store is reported as AGT014 on that call until
+  it is kept out, so it never silently stays code-only. The mode is part of the entry call, not a call of its own,
+  so the chain reads from the longest line down, as the owner orders it.
 - **Alternatives:** an opt-out default, which would put every new member into stored contracts unasked; skipping
-  unstorable members silently under `AllConfigurable`.
+  unstorable members silently; a separate `AllConfigurable()` call after `WithSettings<T>()`, a short line above
+  the longer exclusions; an enum argument on `WithSettings<T>`; exclusions before a closing `AllConfigurable()`.
 - **Where:** `Toolsets/ToolBuilder.cs`, `Parsing/ToolsetParser.cs` (`ParseSettings`).

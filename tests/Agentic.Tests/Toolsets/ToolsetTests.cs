@@ -16,7 +16,7 @@ public class ToolsetTests : HostTestBase
     }
 
     [Fact]
-    public void Given_AllConfigurable_The_Overrides_Hold_Every_Member_But_The_Excluded()
+    public void Given_Configurable_Settings_The_Overrides_Hold_Every_Member_But_The_Excluded()
     {
         // Act
         var members = typeof(ProbeToolset.ProbeOverrides).GetProperties().Select(property => property.Name);

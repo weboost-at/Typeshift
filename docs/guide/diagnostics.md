@@ -154,7 +154,7 @@ internal partial class EchoToolset : Toolset    // fixed, or make EchoSettings p
 ## AGT014
 
 **Configurable member has a type settings cannot store.** Reported on the `Configurable(...)` call that picks it, for a
-tool setting or a chat option, or on `AllConfigurable()`.
+tool setting or a chat option, or on `WithConfigurableSettings<T>`.
 
 Configurable members end up in the generated `Settings` and `{Tool}Overrides` records, which serialize themselves
 without reflection. They support:
@@ -166,5 +166,6 @@ without reflection. They support:
   `ICollection<string>` and `IList<string>`;
 - the nullable forms of all of these.
 
-Keep other members out of `Configurable(...)`, or name them in `NotConfigurable(...)` after `AllConfigurable()`; their
+Keep other members out of `Configurable(...)`, or name them in `NotConfigurable(...)` after
+`WithConfigurableSettings<T>()`; their
 value then comes from code alone.

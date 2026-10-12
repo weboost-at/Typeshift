@@ -206,17 +206,17 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_AllConfigurable_And_An_Unstorable_Setting_AGT014_Is_Reported_On_AllConfigurable()
+    public void Given_Configurable_Settings_With_An_Unstorable_Member_AGT014_Is_Reported_On_Them()
     {
         // Act
-        var run = Run(DiagnosticSources.UnsupportedSettingOfAllConfigurable);
+        var run = Run(DiagnosticSources.UnsupportedConfigurableSetting);
 
         // Assert
-        run.Assert.Reports("AGT014", DiagnosticSeverity.Error, "AllConfigurable");
+        run.Assert.Reports("AGT014", DiagnosticSeverity.Error, "WithConfigurableSettings<EchoSettings>");
     }
 
     [Fact]
-    public void Given_AllConfigurable_And_An_Unstorable_Setting_Kept_Out_AGT014_Is_Not_Reported()
+    public void Given_Configurable_Settings_Keeping_The_Unstorable_Member_AGT014_Is_Not_Reported()
     {
         // Act
         var run = Run(DiagnosticSources.UnsupportedSettingNotConfigurable);

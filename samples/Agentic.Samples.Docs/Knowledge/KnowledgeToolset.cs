@@ -15,8 +15,7 @@ internal partial class KnowledgeToolset : Toolset
         // begin-snippet: settings-all-configurable
         AddTool(SearchArticles)
             .WithName("search_articles")
-            .WithSettings<SearchArticlesSettings>()
-            .AllConfigurable()
+            .WithConfigurableSettings<SearchArticlesSettings>()
             .NotConfigurable(s => s.Limit);
         // end-snippet
     }

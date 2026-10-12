@@ -43,8 +43,8 @@ an unrelated edit leaves every output cached.
    base list that is not abstract; the transform checks semantically whether it derives from `Toolset` or
    `AgentDefinition`. Generic classes are left alone (D6).
 2. **Parsing** turns symbols into models. `ConstructorChains` reads the constructor through `IOperation`: every
-   `AddTool(...).WithName(...).WithDescription(...).WithSettings<T>()` chain with its `Configurable`, or
-   `AllConfigurable` and `NotConfigurable`, calls (D43), and in agents the `Configurable(...)` calls of the
+   `AddTool(...).WithName(...).WithDescription(...).WithSettings<T>().Configurable(...)` chain, or its
+   `WithConfigurableSettings<T>().NotConfigurable(...)` form (D43), and in agents the `Configurable(...)` calls of the
    `WithChatOptions()` chain. The `Include(t => t.X)` and `Exclude(t => t.X)` calls after `UseToolset<T>()` do not
    bind in the generator's own compilation, because the tool list properties are what it generates, so `AgentParser`
    reads them from syntax (D29). `Storage` decides per configurable member how the records write and read it, or reports

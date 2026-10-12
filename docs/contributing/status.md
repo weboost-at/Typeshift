@@ -77,7 +77,7 @@ live here, never as TODOs in code.
 - [x] Settings arrive as a tool parameter the model never sees; `GetToolSettings<T>()` removed
 - [x] `GetInstructions()`; the generated `Configure{Tool}()` builder per tool of an agent
 - [x] `UseToolset<T>().Include(t => t.X)` and `.Exclude(t => t.X)` over a generated tool list (D29)
-- [x] `AllConfigurable()` with `NotConfigurable(...)` next to the default allow list (D43)
+- [x] `WithConfigurableSettings<T>().NotConfigurable(...)` next to the default allow list (D43)
 
 ## Behavior coverage
 

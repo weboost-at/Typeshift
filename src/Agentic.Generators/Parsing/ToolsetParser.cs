@@ -64,17 +64,14 @@ internal static class ToolsetParser
                     tool.Description = ReadConstant(call, "description", diagnostics);
                     break;
 
-                case "WithSettings":
+                case "WithSettings" or "WithConfigurableSettings":
                     tool.SettingsType = call.TargetMethod.TypeArguments[0];
                     tool.SettingsCall = call;
+                    tool.AllConfigurable = call.TargetMethod.Name == "WithConfigurableSettings";
                     break;
 
                 case "Configurable":
                     tool.Picks.Add(call);
-                    break;
-
-                case "AllConfigurable":
-                    tool.AllConfigurableCall = call;
                     break;
 
                 case "NotConfigurable":
@@ -193,9 +190,9 @@ internal static class ToolsetParser
 
         // D43: allowed one by one, or all but the excluded and the obsolete ones
         var configurable = type.GetSettableProperties()
-            .Where(property => tool.AllConfigurableCall is null
-                ? picks.Any(pick => pick.Property == property.Name)
-                : !tool.Exclusions.Contains(property.Name) && !IsObsolete(property))
+            .Where(property => tool.AllConfigurable
+                ? !tool.Exclusions.Contains(property.Name) && !IsObsolete(property)
+                : picks.Any(pick => pick.Property == property.Name))
             .ToList();
 
         // A public toolset exposes its settings through Tools and the generated overrides
@@ -212,7 +209,7 @@ internal static class ToolsetParser
             diagnostics.Report(
                 Descriptors.UnsupportedConfigurableType,
                 ConstructorChains.GetCalledName(
-                    picks.FirstOrDefault(pick => pick.Property == unsupported.Name).Call ?? tool.AllConfigurableCall!),
+                    picks.FirstOrDefault(pick => pick.Property == unsupported.Name).Call ?? tool.SettingsCall!),
                 unsupported.Name,
                 unsupported.Type.ToDisplayString());
 
@@ -276,7 +273,7 @@ internal static class ToolsetParser
 
         public List<IInvocationOperation> Picks { get; } = [];
 
-        public IInvocationOperation? AllConfigurableCall { get; set; }
+        public bool AllConfigurable { get; set; }
 
         public List<string?> Exclusions { get; } = [];
     }

@@ -13,7 +13,7 @@ The first alpha. The API will change.
   XML docs, reflection-free argument binding, and a DI scope per call.
 - Tool settings: settings records passed to the tool as a parameter the model never sees, with configurable members
   marked in the tool's chain (`WithSettings<T>().Configurable(s => s.Limit)`, or
-  `.AllConfigurable().NotConfigurable(s => s.Timeout)`) and five layers (code defaults, stored
+  `WithConfigurableSettings<T>().NotConfigurable(s => s.Timeout)`) and five layers (code defaults, stored
   tool defaults, agent code settings, agent stored settings, run settings).
 - Agents: `AgentDefinition` with chat options set through `WithChatOptions().WithModel(...).WithTemperature(...)`,
   instructions from an overridable `GetInstructions()`, tools included or excluded from a generated list
