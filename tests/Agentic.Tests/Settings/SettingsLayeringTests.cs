@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Agentic.Tests.Agents.Support;
 using Agentic.Tests.Toolsets.Companies;
 using Agentic.Tests.Toolsets.Support;
@@ -97,6 +98,30 @@ public class SettingsLayeringTests : AgentTestBase
         await Runtime.ConfigureAsync(configuration => configuration.Probe.Limit = Data.Tool.Limit.Default, Ct);
         await Runtime.ConfigureAsync(configuration => configuration.Probe.Limit = null, Ct);
 
+        var options = await Runtime.ResolveChatOptionsAsync(ct: Ct);
+
+        // Act
+        var settings = await ProbeAsync(options);
+
+        // Assert
+        settings.Limit.Should().Be(5);
+    }
+
+    [Fact]
+    public async Task Given_A_Stored_Json_Null_The_Layer_Below_Applies()
+    {
+        // Arrange
+        var values = new Dictionary<string, JsonElement>
+        {
+            [nameof(ProbeSettings.Limit)] = JsonElement.Parse("null")
+        };
+
+        var stored = new Dictionary<ToolName, StoredSettings>
+        {
+            [ProbeToolset.Tools.Probe.Name] = new() { Values = values }
+        };
+
+        await Runtime.UpdateConfigurationAsync(configuration => configuration with { ToolSettings = stored }, Ct);
         var options = await Runtime.ResolveChatOptionsAsync(ct: Ct);
 
         // Act

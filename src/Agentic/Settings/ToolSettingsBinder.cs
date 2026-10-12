@@ -20,7 +20,7 @@ public sealed class ToolSettingsBinder<TSettings>(IReadOnlyList<SettingsProperty
     internal TSettings Import(StoredSettings stored, JsonSerializerOptions options) =>
         properties.Aggregate(
             new TSettings(),
-            (settings, property) => stored.Values.TryGetValue(property.Name, out var value)
+            (settings, property) => stored.TryGetValue(property.Name, out var value)
                 ? property.Apply(settings, value, options)
                 : settings);
 
@@ -36,7 +36,7 @@ public sealed class ToolSettingsBinder<TSettings>(IReadOnlyList<SettingsProperty
 
         foreach (var property in Configurable)
         {
-            if (stored.Values.TryGetValue(property.Name, out var value))
+            if (stored.TryGetValue(property.Name, out var value))
                 settings = property.Apply(settings, value, options);
         }
 

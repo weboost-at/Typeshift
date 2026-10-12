@@ -143,7 +143,7 @@ public abstract class AgentDefinition
 
         foreach (var property in ConfigurableChatOptions)
         {
-            if (configuration.ChatOptions.Values.TryGetValue(property.Name, out var stored))
+            if (configuration.ChatOptions.TryGetValue(property.Name, out var stored))
                 property.Apply(options, stored, json.SerializerOptions);
 
             if (run.ChatOptions is { } overrides) property.Override(options, overrides);
