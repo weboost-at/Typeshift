@@ -58,11 +58,7 @@ public sealed class ConversationTracker
         if (!_sessions.TryRemove(sessionId, out var tracked)) return;
 
         var completed = await tracked.CompleteAsync(response);
-
-        if (_store is not null && tracked.Resumed)
-            await _store.AppendAsync(tracked.ConversationId, completed, CancellationToken.None);
-        else if (_store is not null)
-            await _store.CreateAsync(NewConversation(tracked, completed), CancellationToken.None);
+        if (_store is { } store) await StoreAsync(store, tracked, completed);
 
         await Subscribers.RaiseAsync(OnConversationsChanged, SubscriberLimit, _time);
     }
@@ -83,6 +79,18 @@ public sealed class ConversationTracker
 
         var stored = _store is null ? null : await _store.LoadAsync(id, ct);
         return (id, stored);
+    }
+
+    // Two first sessions of one new conversation may overlap: the one that ends second appends to the first
+    private static async Task StoreAsync(
+        IConversationStore store,
+        TrackedConversationSession tracked,
+        ConversationSession completed)
+    {
+        if (tracked.Resumed || await store.LoadAsync(tracked.ConversationId, CancellationToken.None) is not null)
+            await store.AppendAsync(tracked.ConversationId, completed, CancellationToken.None);
+        else
+            await store.CreateAsync(NewConversation(tracked, completed), CancellationToken.None);
     }
 
     private static StoredConversation NewConversation(

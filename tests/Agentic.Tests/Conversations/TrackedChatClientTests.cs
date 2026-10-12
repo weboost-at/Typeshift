@@ -164,4 +164,44 @@ public class TrackedChatClientTests : ConversationTestBase
         // Assert
         ChatClient.Requests[1].Assert.Texts(Conversation.Question, Conversation.FollowUp);
     }
+
+    [Fact]
+    public async Task Given_A_Conversation_Id_The_Provider_Does_Not_Receive_It()
+    {
+        // Arrange
+        ChatClient.Reply([.. AnswerUpdates()]);
+
+        // Act
+        await Tracked().GetResponseAsync(Conversation.Question, Options(Conversation.ConversationId), Ct);
+
+        // Assert
+        ChatClient.Options[0]!.ConversationId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Given_Two_Overlapping_First_Sessions_Of_A_Conversation_Both_Are_Stored()
+    {
+        // Arrange
+        var first = new TaskCompletionSource();
+        var second = new TaskCompletionSource();
+
+        ChatClient
+            .Reply([first, .. AnswerUpdates()])
+            .Reply([second, .. AnswerUpdates()]);
+
+        var client = Tracked();
+        var asking = client.GetResponseAsync(Conversation.Question, Options(Conversation.ConversationId), Ct);
+        var askingAgain = client.GetResponseAsync(Conversation.FollowUp, Options(Conversation.ConversationId), Ct);
+
+        // Act
+        first.SetResult();
+        await asking;
+        second.SetResult();
+        await askingAgain;
+
+        var stored = await StoredAsync(Conversation.ConversationId);
+
+        // Assert
+        stored.Sessions.Should().HaveCount(2);
+    }
 }

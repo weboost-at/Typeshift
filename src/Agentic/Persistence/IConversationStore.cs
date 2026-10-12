@@ -18,7 +18,8 @@ public interface IConversationStore
     Task CreateAsync(StoredConversation conversation, CancellationToken ct);
 
     /// <summary>
-    /// Appends a finished session to a stored conversation and moves its last activity to the session's end.
+    /// Appends a finished session to a stored conversation and moves its last activity to the session's end; a
+    /// conversation deleted meanwhile stays deleted.
     /// </summary>
     Task AppendAsync(Guid id, ConversationSession session, CancellationToken ct);
 }

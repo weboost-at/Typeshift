@@ -24,14 +24,16 @@ public sealed class InMemoryConversationStore : IConversationStore
     /// <inheritdoc />
     public Task AppendAsync(Guid id, ConversationSession session, CancellationToken ct)
     {
-        _conversations.AddOrUpdate(
-            id,
-            _ => throw new InvalidOperationException($"No conversation {id} is stored."),
-            (_, stored) => stored with
+        while (_conversations.TryGetValue(id, out var stored))
+        {
+            var appended = stored with
             {
                 Sessions = [.. stored.Sessions, session],
                 LastActivity = session.FinishedAt
-            });
+            };
+
+            if (_conversations.TryUpdate(id, appended, stored)) break;
+        }
 
         return Task.CompletedTask;
     }
