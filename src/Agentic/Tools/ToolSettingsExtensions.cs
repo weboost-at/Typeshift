@@ -10,7 +10,7 @@ public static class ToolSettingsExtensions
     extension(IServiceProvider services)
     {
         /// <summary>
-        /// The resolved settings of the running tool call, or the code defaults outside a tool call.
+        /// The resolved settings of the running tool call, or the code defaults in any other scope.
         /// </summary>
         public TSettings GetToolSettings<TSettings>() where TSettings : class, new() =>
             services.GetService<ToolSettingsAccessor>()?.Settings as TSettings ?? new TSettings();

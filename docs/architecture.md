@@ -50,7 +50,8 @@ an unrelated edit leaves every output cached.
    `DiagnosticInfo`, both value types. An agent model holds the toolset's type name and the selected method names,
    never the toolset's syntax.
 4. **Resolution** combines each agent with the summaries of all toolsets (own and referenced) in a separate step, so
-   editing a toolset regenerates the agents that use it and nothing else.
+   a change to a toolset's tools regenerates the agents that use them. The resolved agents and the module carry no
+   locations, so code that only moves leaves them cached.
 5. **References** are read from metadata stamps only: `[assembly: GeneratedModule(typeof(...))]` names a referenced
    assembly's module, `[ModuleToolset]` and `[ModuleAgent]` on the module list its toolsets and agents, and
    `[GeneratedTool]` on a toolset lists its tools with their method, settings type and configurable members.
@@ -119,7 +120,8 @@ with typed properties, so a member that is not allowlisted has no property: sett
 - `LoadConfigurationAsync` and `UpdateConfigurationAsync` read and write its `AgentConfiguration`
   (`IAgentConfigurationStore`); the generated `ConfigureAsync` does the same through the typed view.
 - `ResolveChatOptionsAsync(run)` loads the configuration and the tool defaults in one batch and builds the
-  `ChatOptions` of a run, tools included. Code agents and stored agents share this one path.
+  `ChatOptions` of a run: the tools of the agent's own chat options first (a hosted web search, say), then those of
+  its toolsets. Code agents and stored agents share this one path.
 - `CreateChatClientAsync` asks the `IChatClientProvider` for the configured model's client and wraps it in
   conversation tracking around a `FunctionInvokingChatClient`.
 
@@ -136,10 +138,12 @@ register.
 
 - `ChatOptions.ConversationId` names the conversation. A stored one is resumed: its earlier messages are sent ahead
   of the new input, minus function calls that never got a result. An id that is not stored starts a new conversation
-  under that id.
+  under that id. The provider never receives the id, since the tracker resends the conversation itself.
 - When the call ends, successfully or not, the session is stored: the new input and every message the model produced,
-  its usage and finish reason. A failure is stored as an `ErrorContent` and rethrown. Storing does not observe the
-  call's cancellation, so a cancelled call is stored as well.
+  its usage and finish reason. A failed call is stored with an `ErrorContent` and rethrown; a stream that fails, is
+  cancelled or is left early is stored with the updates that arrived. Storing does not observe the call's
+  cancellation, so a cancelled call is stored as well. When two first sessions of a new conversation overlap, the one
+  that ends second appends to the conversation the first created.
 - `ConversationTracker` lists the running sessions and raises `OnConversationsChanged`. A streaming session
   (`RealtimeTrackedConversationSession`) also publishes its updates: anything but text, reasoning or usage at once,
   text at most every 100 ms. Every subscriber gets a token cancelled at its time limit, the call waits no longer, and

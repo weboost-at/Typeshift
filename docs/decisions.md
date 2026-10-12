@@ -24,7 +24,9 @@ review first are listed at the end of `docs/status.md`. "Spec" means the alpha's
     `{Agent}ConfigurationExtensions` class with `ConfigureAsync` on `AgentRuntime<TAgent>`;
   - per assembly: `Agentic.Generated.{Assembly}Module`, with every character of the assembly name that is not a letter
     or digit replaced by `_` (`Agentic.Samples.Console` gives `Agentic_Samples_ConsoleModule`);
-  - the interceptor: a `file static class AddAgenticInterceptor` in `Agentic.Generated`.
+  - the interceptor: a `file static class AddAgenticInterceptor` in `Agentic.Generated`;
+  - a generated member named like a member next to it gets a suffix: a tool `create` is `CreateTool` in an agent's
+    view, a settings member `Tool` is `ToolValue` in a tool's view.
 - **Alternatives:** a `Settings` suffix for the views, which collides with the settings records' names.
 
 ### D3. `ToolRef<TSettings, TConfiguration>` carries the view type as well
@@ -116,7 +118,7 @@ review first are listed at the end of `docs/status.md`. "Spec" means the alpha's
   the same `CreateChatOptions` as code agents. `StoredAgentOptions` holds the chat options a person sets on a stored
   agent (instructions, sampling, penalties, seed, stop sequences, `AllowMultipleToolCalls`), all of them allowlisted.
 - **Alternatives:** storing a full `ChatOptions`, most of which (tools, response format, raw factories) cannot be
-  data.
+  data. Tools a code agent sets in its own `ChatOptions.Tools` are therefore not exported.
 
 ### D14. Stored agents get generated names that cannot clash with code agents
 
@@ -152,7 +154,13 @@ review first are listed at the end of `docs/status.md`. "Spec" means the alpha's
 - **Decision:**
   - `TrackedConversationManager` became `ConversationTracker`; the initialize and resume option classes became one
     internal `ConversationStart` record; `ProviderModel` became the plain model name the provider maps.
-  - Options reach the inner client unchanged, as in the owner's code.
+  - The provider receives the options without `ConversationId`. The owner's code passed them unchanged; but the
+    tracker resends the conversation itself, and a provider that reads the id as server-side state (the OpenAI
+    Responses API, say) would reject it or double the history.
+  - A failed stream is stored with the updates that arrived and no `ErrorContent`, as in the owner's code; a failed
+    unary call gets the `ErrorContent`.
+  - A session that started a new conversation decides at its end whether to create it or append to it, so two
+    overlapping first sessions both land; appending to a conversation deleted meanwhile leaves it deleted.
   - Storing a finished session does not observe the call's token, so cancelled calls are stored too.
   - Resuming drops function calls that never got a result (a call cancelled mid-tool), which providers reject.
   - Subscribers are awaited until their limit token fires instead of on a second timer. The behavior is the same, and
@@ -182,3 +190,20 @@ review first are listed at the end of `docs/status.md`. "Spec" means the alpha's
 - **Context:** the spec names the repository `agentic-dotnet`; the work happened in `weboost-at/Agentic`.
 - **Decision:** `Directory.Build.props` keeps `https://github.com/weboost-at/agentic-dotnet`, the spec's name, and
   `docs/renaming.md` lists it.
+
+## Runtime, decided in the review pass
+
+### D23. Run tool settings are settings objects
+
+- **Context:** the spec's behavior 19 keeps the owner's API: `RunOverrides.ToolSettings` holds settings records.
+- **Decision:** as in the owner's code, every allowlisted member whose run value is not null overrides. A
+  non-nullable member therefore always overrides, with the record's default when the caller did not set it; run
+  settings types that should override one member at a time make their members nullable.
+- **Alternatives:** run overrides as `StoredSettings` or as the generated views, which apply only the members set.
+
+### D24. Selected tools are matched by their method
+
+- **Context:** `UseToolset<T>(T.Method)` receives a delegate. A method with optional parameters gets a delegate type
+  made by the compiler per assembly, so delegates of one method from two assemblies are not equal.
+- **Decision:** the runtime compares `Delegate.Method`, which Native AOT supports for delegate targets.
+- **Alternatives:** generated selection tables, which would need the generator to rewrite the agent's calls.

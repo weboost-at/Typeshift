@@ -107,7 +107,11 @@ rule.
 | 49 | CI, `.github/workflows/ci.yml`: "Publish the sample as Native AOT, failing on any trim or AOT warning" and "Run the AOT sample" |
 
 Beyond the behaviors, `ReadmeTests` keeps the README quickstart identical to the sample's files, and CI builds and runs
-`samples/Agentic.Samples.PackageConsumer` against the packed `.nupkg`.
+`samples/Agentic.Samples.PackageConsumer` against the packed `.nupkg`. The final review pass added regression tests
+for what it found: selecting a referenced tool with optional parameters, tools in an agent's own chat options, stored
+JSON nulls, the conversation id kept from the provider, overlapping first sessions, and generator cases (a parameter
+documented twice, AGT013 with a description, AGT016, nested and internal agents, reserved names, moved code staying
+cached).
 
 ## Environment notes
 
@@ -162,5 +166,6 @@ From `docs/decisions.md`, the ones that shape the API the most:
    export under it.
 6. **D9:** every project that declares toolsets or agents references the package; AGT014 catches a miss.
 7. **D18:** the changes in the conversation port (`ConversationTracker`, `ConversationStart`, the model as a string,
-   subscribers awaited on their limit token).
-8. **D22:** the package metadata points at `weboost-at/agentic-dotnet`, the spec's repository name.
+   the provider no longer receiving the conversation id, subscribers awaited on their limit token).
+8. **D23:** run tool settings are records, as in the owner's code, so their non-nullable members always override.
+9. **D22:** the package metadata points at `weboost-at/agentic-dotnet`, the spec's repository name.
