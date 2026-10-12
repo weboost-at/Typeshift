@@ -37,7 +37,8 @@ internal sealed class XmlDocs
                 root.Element("summary") is { } summary ? GetText(summary) : null,
                 root.Elements("param")
                     .Where(param => param.Attribute("name") is not null)
-                    .ToDictionary(param => param.Attribute("name")!.Value, GetText));
+                    .GroupBy(param => param.Attribute("name")!.Value)
+                    .ToDictionary(group => group.Key, group => GetText(group.First())));
         }
         catch (XmlException)
         {
@@ -46,10 +47,11 @@ internal sealed class XmlDocs
     }
 
     // With DocumentationMode.None the compiler keeps /// comments as plain comments and returns no XML
-    public static bool HasComment(ISymbol symbol, CancellationToken ct) =>
-        symbol.DeclaringSyntaxReferences
+    public static string ReadUnparsed(ISymbol symbol, CancellationToken ct) =>
+        string.Concat(symbol.DeclaringSyntaxReferences
             .SelectMany(reference => reference.GetSyntax(ct).GetLeadingTrivia())
-            .Any(IsDocumentation);
+            .Where(IsDocumentation)
+            .Select(trivia => trivia.ToString()));
 
     private static bool IsDocumentation(SyntaxTrivia trivia) =>
         trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia)

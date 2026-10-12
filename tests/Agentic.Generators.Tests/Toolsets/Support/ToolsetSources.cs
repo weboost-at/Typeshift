@@ -147,4 +147,98 @@ public static class ToolsetSources
             }
         }
         """;
+
+    public const string DocumentedTwice =
+        """
+        using Agentic.Toolsets;
+
+        namespace Demo;
+
+        /// <summary>
+        /// Echoes text.
+        /// </summary>
+        public partial class EchoToolset : Toolset
+        {
+            /// <summary>
+            /// Declares the tool.
+            /// </summary>
+            public EchoToolset() => AddTool(Echo).WithName("echo");
+
+            /// <summary>
+            /// Echoes the text.
+            /// </summary>
+            /// <param name="text">The text to echo.</param>
+            /// <param name="text">The text, again.</param>
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string ReservedNames =
+        """
+        using System;
+        using Agentic.Toolsets;
+
+        namespace Demo;
+
+        /// <summary>
+        /// Settings whose members are named like the members of a configuration view.
+        /// </summary>
+        public record ViewLikeSettings
+        {
+            /// <summary>
+            /// A member named like the view's tool.
+            /// </summary>
+            public int Tool { get; init; }
+
+            /// <summary>
+            /// A member named like the view's factory.
+            /// </summary>
+            public int Create { get; init; }
+
+            /// <summary>
+            /// A member named like the view's reader.
+            /// </summary>
+            public int Get { get; init; }
+
+            /// <summary>
+            /// A member named like the view's writer.
+            /// </summary>
+            public int Set { get; init; }
+
+            /// <summary>
+            /// A member named like the view's stored values.
+            /// </summary>
+            public int Stored { get; init; }
+
+            /// <summary>
+            /// A member named like the view itself.
+            /// </summary>
+            public int ToolsConfiguration { get; init; }
+        }
+
+        /// <summary>
+        /// A toolset with a tool named like its Tools class.
+        /// </summary>
+        public partial class ViewLikeToolset : Toolset
+        {
+            /// <summary>
+            /// Declares the tool.
+            /// </summary>
+            public ViewLikeToolset()
+            {
+                AddTool(ListTools)
+                    .WithName("tools")
+                    .WithDescription("Lists the tools.")
+                    .WithSettings<ViewLikeSettings>(settings => settings
+                        .Configurable(s => s.Tool, s => s.Create, s => s.Get, s => s.Set, s => s.Stored)
+                        .Configurable(s => s.ToolsConfiguration));
+            }
+
+            /// <summary>
+            /// Lists the tools.
+            /// </summary>
+            /// <param name="services">The services of the call.</param>
+            public static string ListTools(IServiceProvider services) => "";
+        }
+        """;
 }

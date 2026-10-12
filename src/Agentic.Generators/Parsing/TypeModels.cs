@@ -19,7 +19,7 @@ internal static class TypeModels
             Namespace: type.ContainingNamespace.IsGlobalNamespace ? null : type.ContainingNamespace.ToDisplayString(),
             Name: type.Name,
             FullName: type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-            Accessibility: type.DeclaredAccessibility == Accessibility.Public ? "public" : "internal",
+            Accessibility: type.IsEffectivelyPublic() ? "public" : "internal",
             ContainingTypes: containing.ToEquatableArray());
     }
 

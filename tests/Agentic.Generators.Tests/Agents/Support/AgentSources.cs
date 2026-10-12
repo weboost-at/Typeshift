@@ -63,4 +63,132 @@ public static class AgentSources
             }
         }
         """;
+
+    // Settings and toolset for the agents below; internal, so they need no docs
+    public const string Lookup =
+        """
+        using System;
+        using Agentic.Toolsets;
+
+        namespace Demo;
+
+        internal record LookupSettings
+        {
+            public int Limit { get; init; } = 10;
+        }
+
+        internal partial class LookupToolset : Toolset
+        {
+            public LookupToolset()
+            {
+                AddTool(Create)
+                    .WithName("create")
+                    .WithDescription("Creates an entry.")
+                    .WithSettings<LookupSettings>(settings => settings.Configurable(s => s.Limit));
+
+                AddTool(Configure)
+                    .WithName("configuration")
+                    .WithDescription("Reads the configuration.")
+                    .WithSettings<LookupSettings>(settings => settings.Configurable(s => s.Limit));
+            }
+
+            public static string Create(string name, IServiceProvider services) => name;
+
+            public static string Configure(IServiceProvider services) => "";
+        }
+        """;
+
+    public const string ReservedToolNames =
+        """
+        using Agentic.Agents;
+
+        namespace Demo;
+
+        internal partial class LookupAgent : AgentDefinition
+        {
+            public LookupAgent()
+            {
+                WithUniqueName("lookup_agent");
+                UseToolset<LookupToolset>();
+            }
+        }
+        """;
+
+    public const string PublicAgentOfInternalToolset =
+        """
+        using Agentic.Agents;
+
+        namespace Demo;
+
+        /// <summary>
+        /// A public agent offering the tools of an internal toolset.
+        /// </summary>
+        public partial class LookupAgent : AgentDefinition
+        {
+            /// <summary>
+            /// Declares the agent.
+            /// </summary>
+            public LookupAgent()
+            {
+                WithUniqueName("lookup_agent");
+                UseToolset<LookupToolset>();
+            }
+        }
+        """;
+
+    public const string PublicAgentInInternalClass =
+        """
+        using Agentic.Agents;
+
+        namespace Demo;
+
+        internal static partial class Holder
+        {
+            /// <summary>
+            /// A public agent that only its assembly can see.
+            /// </summary>
+            public partial class LookupAgent : AgentDefinition
+            {
+                /// <summary>
+                /// Declares the agent.
+                /// </summary>
+                public LookupAgent()
+                {
+                    WithUniqueName("lookup_agent");
+                    UseToolset<LookupToolset>();
+                }
+            }
+        }
+        """;
+
+    public const string NestedTwins =
+        """
+        using Agentic.Agents;
+
+        namespace Demo;
+
+        internal static partial class First
+        {
+            internal partial class LookupAgent : AgentDefinition
+            {
+                public LookupAgent()
+                {
+                    WithUniqueName("first_lookup_agent");
+                    UseToolset<LookupToolset>();
+                }
+            }
+        }
+
+        internal static partial class Second
+        {
+            internal partial class LookupAgent : AgentDefinition
+            {
+                public LookupAgent()
+                {
+                    WithUniqueName("second_lookup_agent");
+                    UseToolset<LookupToolset>();
+                }
+            }
+        }
+        """;
 }

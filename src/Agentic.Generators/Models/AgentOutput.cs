@@ -6,4 +6,5 @@ internal sealed record AgentOutput(
     EquatableArray<ResolvedTool> Tools,
     EquatableArray<DiagnosticInfo> Diagnostics);
 
-internal sealed record ResolvedTool(string Toolset, ToolSummary Tool);
+// Without the tool's location, so a toolset edit that moves code leaves the agent's output cached
+internal sealed record ResolvedTool(string Toolset, bool IsPublic, string Name, string? Settings);

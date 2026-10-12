@@ -82,4 +82,18 @@ public class IncrementalTests : GeneratorTestBase
         // Assert
         second.Assert.Modified(TrackingNames.ResolvedAgents);
     }
+
+    [Fact]
+    public void Given_A_Toolset_Moved_Down_Its_File_The_Module_And_The_Agents_Stay_Cached()
+    {
+        // Arrange
+        var compilation = Compile(RegistrationSources.EchoToolset, RegistrationSources.EchoAgent);
+        var first = Run(compilation);
+
+        // Act
+        var second = RunAgain(first, Edit(compilation, 0, IncrementalSources.Moved(RegistrationSources.EchoToolset)));
+
+        // Assert
+        second.Assert.Cached(TrackingNames.Module, TrackingNames.ResolvedAgents);
+    }
 }

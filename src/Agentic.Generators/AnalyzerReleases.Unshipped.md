@@ -20,3 +20,4 @@ AGT012 | Agentic | Error | Tool settings are read by no tool
 AGT013 | Agentic | Warning | Tool relies on XML docs that are not generated
 AGT014 | Agentic | Warning | Referenced assembly was not compiled with the generator
 AGT015 | Agentic | Error | Tool name is not lower_snake_case
+AGT016 | Agentic | Error | Settings type is less accessible than its toolset

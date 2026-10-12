@@ -290,4 +290,47 @@ public static class DiagnosticSources
             }
         }
         """;
+
+    public const string DescribedWithDocumentationOff =
+        """
+        using Agentic.Toolsets;
+
+        namespace Demo;
+
+        public partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes the text.");
+
+            /// <summary>
+            /// Echoes the text.
+            /// </summary>
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string InternalSettingsOfPublicToolset =
+        """
+        using System;
+        using Agentic.Toolsets;
+
+        namespace Demo;
+
+        internal record EchoSettings
+        {
+            public int Repeat { get; init; } = 1;
+        }
+
+        public partial class EchoToolset : Toolset
+        {
+            public EchoToolset()
+            {
+                AddTool(Echo)
+                    .WithName("echo")
+                    .WithDescription("Echoes the text.")
+                    .WithSettings<EchoSettings>(settings => settings.Configurable(s => s.Repeat));
+            }
+
+            public static string Echo(string text, IServiceProvider services) => text;
+        }
+        """;
 }

@@ -18,4 +18,7 @@ public static class IncrementalSources
             public int Count { get; set; }
         }
         """;
+
+    // The same declarations, two lines further down their file
+    public static string Moved(string source) => "// Moved\n// down\n" + source;
 }

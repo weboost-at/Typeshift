@@ -67,7 +67,8 @@ internal static class ToolsetEmitter
 
                 if (tool != toolset.Tools[0]) writer.Line();
 
-                var property = Names.ToPascalCase(tool.Name);
+                // A member never shares the name of its class
+                var property = Names.Unreserved(Names.ToPascalCase(tool.Name), "Tool", ["Tools"]);
 
                 Docs.WriteSummary(writer, $"The <c>{tool.Name}</c> tool.");
                 writer.Line($"public static {type} {property} {{ get; }} = new({Names.Literal(tool.Name)});");
@@ -100,10 +101,19 @@ internal static class ToolsetEmitter
             Docs.WriteInheritDoc(writer);
             writer.Line($"public static {ToolName} Tool {{ get; }} = new({Names.Literal(tool.Name)});");
 
+            // A value never hides a member of the view
+            string[] reserved = ["Create", "Get", "Set", "Stored", "Tool", view];
+
             foreach (var property in settings.Properties.Where(property => property.IsConfigurable))
             {
                 writer.Line();
-                ViewEmitter.WriteValue(writer, property.Name, property.NullableType, "Get", "Set");
+                ViewEmitter.WriteValue(
+                    writer,
+                    property.Name,
+                    Names.Unreserved(property.Name, "Value", reserved),
+                    property.NullableType,
+                    "Get",
+                    "Set");
             }
 
             writer.Line();

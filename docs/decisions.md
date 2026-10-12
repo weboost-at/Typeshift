@@ -70,6 +70,8 @@ review first are listed at the end of `docs/status.md`. "Spec" means the alpha's
 
 - **Decision:**
   - AGT015 reports a tool name that is not lower_snake_case; the spec's AGT006 only covered agent names.
+  - AGT016 reports settings less accessible than their public toolset, whose generated API exposes them; generating
+    narrower members instead would cascade into every agent view that uses the tool.
   - AGT007 uses a free-form message, because it covers two causes (a method of another toolset, a toolset not
     compiled with the generator) whose fixes differ.
   - AGT008 and AGT010 are reported on the first own declaration, or on `AddAgentic()` when the clash is only among

@@ -5,10 +5,12 @@ namespace Agentic.Generators.Tests.Testing;
 
 public sealed class GeneratorRunAssertions(GeneratorRun run)
 {
-    // The subject plus the generated code, held to TreatWarningsAsErrors with documentation on
+    // The subject plus the generated code, held to TreatWarningsAsErrors with documentation on, and a generator
+    // that neither warns nor fails
     public GeneratorRun CompilesCleanly()
     {
         run.CompilationDiagnostics
+            .Concat(run.Diagnostics)
             .Where(diagnostic => diagnostic.Severity >= DiagnosticSeverity.Warning)
             .Select(diagnostic => diagnostic.ToString())
             .Should()
@@ -25,6 +27,12 @@ public sealed class GeneratorRunAssertions(GeneratorRun run)
         reported[0].Severity.Should().Be(severity);
         SourceAt(reported[0].Location).Should().Be(offendingSyntax);
         return reported[0];
+    }
+
+    public GeneratorRun DoesNotReport(string id)
+    {
+        run.Diagnostics.Select(diagnostic => diagnostic.Id).Should().NotContain(id);
+        return run;
     }
 
     public GeneratorRun Cached(params string[] steps)

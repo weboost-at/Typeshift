@@ -23,5 +23,5 @@ The first alpha. The API will change.
 - Store interfaces with in-memory implementations, all optional.
 - `services.AddAgentic()`, intercepted per project, registering the toolsets and agents of the project and its
   references.
-- Diagnostics AGT001 to AGT015.
+- Diagnostics AGT001 to AGT016.
 - Native AOT support, proven by the console sample.

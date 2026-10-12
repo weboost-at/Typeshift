@@ -41,7 +41,7 @@ internal static class AgentEmitter
         WriteList(
             writer,
             $"public static {ReadOnlyList}<global::Agentic.Tools.ToolName> ToolNames {{ get; }}",
-            tools.Select(tool => $"new({Names.Literal(tool.Tool.Name)})").ToList());
+            tools.Select(tool => $"new({Names.Literal(tool.Name)})").ToList());
     }
 
     private static void WriteConfigurableChatOptions(SourceWriter writer, IReadOnlyList<ChatOptionModel> options)
@@ -64,10 +64,15 @@ internal static class AgentEmitter
     private static void WriteConfiguration(SourceWriter writer, AgentModel agent, IReadOnlyList<ResolvedTool> tools)
     {
         var stored = "global::Agentic.Agents.AgentConfiguration";
-        // A tool property never hides a member of the base view or shares a name with a chat option
+        // A tool property never hides a member of the view or shares a name with a chat option
         var reserved = new HashSet<string>(agent.ConfigurableOptions.Select(option => option.Name))
         {
+            "Configuration",
+            "Create",
+            "GetChatOption",
+            "GetToolSettings",
             "Model",
+            "SetChatOption",
             "Stored"
         };
 
@@ -85,17 +90,26 @@ internal static class AgentEmitter
             foreach (var option in agent.ConfigurableOptions)
             {
                 writer.Line();
-                ViewEmitter.WriteValue(writer, option.Name, option.NullableType, "GetChatOption", "SetChatOption");
+                ViewEmitter.WriteValue(
+                    writer,
+                    option.Name,
+                    option.Name,
+                    option.NullableType,
+                    "GetChatOption",
+                    "SetChatOption");
             }
 
-            foreach (var tool in tools.Where(tool => tool.Tool.Settings is not null))
+            foreach (var tool in tools.Where(tool => tool.Settings is not null))
             {
-                var view = $"{tool.Toolset}.{ToolsetEmitter.GetConfigurationName(tool.Tool.Name)}";
-                var property = Names.ToPascalCase(tool.Tool.Name);
+                var view = $"{tool.Toolset}.{ToolsetEmitter.GetConfigurationName(tool.Name)}";
+                var property = Names.Unreserved(Names.ToPascalCase(tool.Name), "Tool", reserved);
+
+                // The view of an internal toolset cannot be part of a public agent's API
+                var accessibility = tool.IsPublic ? "public" : "internal";
 
                 writer.Line();
-                Docs.WriteSummary(writer, $"The stored settings of the <c>{tool.Tool.Name}</c> tool for this agent.");
-                writer.Line($"public {view} {(reserved.Contains(property) ? property + "Tool" : property)} =>");
+                Docs.WriteSummary(writer, $"The stored settings of the <c>{tool.Name}</c> tool for this agent.");
+                writer.Line($"{accessibility} {view} {property} =>");
 
                 using (writer.Indent())
                 {
@@ -116,7 +130,7 @@ internal static class AgentEmitter
 
         Docs.WriteSummary(writer, $"Configures <see cref=\"{name}\"/> through its typed view.");
 
-        using (writer.Block($"{agent.Type.Accessibility} static class {agent.Type.Name}ConfigurationExtensions"))
+        using (writer.Block($"{agent.Type.Accessibility} static class {agent.Type.FlatName}ConfigurationExtensions"))
         {
             using (writer.Block($"extension(global::Agentic.Agents.AgentRuntime<{agent.Type.FullName}> runtime)"))
             {

@@ -37,7 +37,7 @@ internal static class AgentResolver
         {
             var addedBefore = settings.UsesBefore == 0 ? [] : tools.Take(toolCountAfterUse[settings.UsesBefore - 1]);
 
-            if (!addedBefore.Any(tool => tool.Tool.Settings == settings.Type))
+            if (!addedBefore.Any(tool => tool.Settings == settings.Type))
                 diagnostics.Add(
                     DiagnosticInfo.Create(Descriptors.UnreadToolSettings, settings.Location, ShortName(settings.Type)));
         }
@@ -47,21 +47,21 @@ internal static class AgentResolver
 
     // A tool selected twice is offered once; the runtime rejects the duplicate as it runs the constructor
     private static bool Offers(IEnumerable<ResolvedTool> tools, ResolvedTool tool) =>
-        tools.Any(offered => offered.Tool.Name == tool.Tool.Name);
+        tools.Any(offered => offered.Name == tool.Name);
 
     private static IEnumerable<ResolvedTool> Select(
         ToolsetUseModel use,
         ToolsetSummary toolset,
         List<DiagnosticInfo> diagnostics)
     {
-        if (use.All) return toolset.Tools.Select(tool => new ResolvedTool(toolset.Type, tool));
+        if (use.All) return toolset.Tools.Select(tool => Resolved(use, tool));
 
         var selected = new List<ResolvedTool>();
 
         foreach (var method in use.Methods)
         {
             if (toolset.Tools.FirstOrDefault(tool => tool.Method == method.Name) is { } tool)
-                selected.Add(new ResolvedTool(toolset.Type, tool));
+                selected.Add(Resolved(use, tool));
             else
                 diagnostics.Add(DiagnosticInfo.Create(
                     Descriptors.UnknownTool,
@@ -71,6 +71,9 @@ internal static class AgentResolver
 
         return selected;
     }
+
+    private static ResolvedTool Resolved(ToolsetUseModel use, ToolSummary tool) =>
+        new(use.Toolset, use.IsPublic, tool.Name, tool.Settings);
 
     private static string ShortName(string type) => type.Substring(type.LastIndexOf('.') + 1);
 }

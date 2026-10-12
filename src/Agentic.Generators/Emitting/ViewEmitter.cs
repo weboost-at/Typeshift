@@ -46,12 +46,18 @@ internal static class ViewEmitter
         }
     }
 
-    // A stored value: null means the member inherits from the layer below
-    public static void WriteValue(SourceWriter writer, string name, string type, string get, string set)
+    // A stored value under its member's name: null means the member inherits from the layer below
+    public static void WriteValue(
+        SourceWriter writer,
+        string name,
+        string property,
+        string type,
+        string get,
+        string set)
     {
         Docs.WriteSummary(writer, $"The stored <c>{name}</c>; null inherits it from the layer below.");
 
-        using (writer.Block($"public {type} {Names.Identifier(name)}"))
+        using (writer.Block($"public {type} {Names.Identifier(property)}"))
         {
             writer.Line($"get => {get}<{type}>({Names.Literal(name)});");
             writer.Line($"set => {set}({Names.Literal(name)}, value);");

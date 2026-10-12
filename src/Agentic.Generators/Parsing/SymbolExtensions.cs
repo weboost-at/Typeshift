@@ -22,6 +22,17 @@ internal static class SymbolExtensions
     {
         public string ToFullyQualified() => type.ToDisplayString(FullyQualified);
 
+        // Public along its containing types and type arguments, so other assemblies can name it
+        public bool IsEffectivelyPublic() =>
+            type switch
+            {
+                IArrayTypeSymbol array => array.ElementType.IsEffectivelyPublic(),
+                INamedTypeSymbol named => named.DeclaredAccessibility == Accessibility.Public
+                    && (named.ContainingType?.IsEffectivelyPublic() ?? true)
+                    && named.TypeArguments.All(argument => argument.IsEffectivelyPublic()),
+                _ => true
+            };
+
         // The type of a stored value: null means "inherit", so even a value type becomes nullable
         public string ToNullableFullyQualified() =>
             type switch

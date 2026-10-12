@@ -13,9 +13,11 @@ internal sealed record AgentModel(
 // Type is the declared type of the ChatOptions property, NullableType the same type made nullable
 internal sealed record ChatOptionModel(string Name, string Type, string NullableType);
 
-// UseToolset<Toolset>() when All, else UseToolset<Toolset>(Toolset.M1, Toolset.M2)
+// UseToolset<Toolset>() when All, else UseToolset<Toolset>(Toolset.M1, Toolset.M2); IsPublic when other
+// assemblies can name the toolset
 internal sealed record ToolsetUseModel(
     string Toolset,
+    bool IsPublic,
     bool All,
     EquatableArray<SelectedMethodModel> Methods,
     LocationInfo? Location);

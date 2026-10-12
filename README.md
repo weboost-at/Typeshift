@@ -19,7 +19,7 @@ registration. Everything works under Native AOT.
 - **Conversation tracking:** every model exchange is stored as a session of a conversation, behind
   `IConversationStore`, streaming included.
 - **One registration call:** `services.AddAgentic()` registers the toolsets and agents of the calling project and of
-  every project it references, checked at compile time by fifteen diagnostics (`docs/diagnostics.md`).
+  every project it references, checked at compile time by sixteen diagnostics (`docs/diagnostics.md`).
 
 ## Quickstart
 
@@ -294,7 +294,7 @@ settings, so its tool runs with the code defaults.
 | Document | Holds |
 |---|---|
 | [docs/architecture.md](docs/architecture.md) | How the generator, the runtime and the stores fit together. |
-| [docs/diagnostics.md](docs/diagnostics.md) | Every diagnostic, AGT001 to AGT015, with its cause and fix. |
+| [docs/diagnostics.md](docs/diagnostics.md) | Every diagnostic, AGT001 to AGT016, with its cause and fix. |
 | [docs/decisions.md](docs/decisions.md) | Why the library is shaped the way it is, with the alternatives. |
 | [docs/renaming.md](docs/renaming.md) | Where each placeholder name lives and how to rename it. |
 | [docs/status.md](docs/status.md) | What is done, which test covers which behavior, the known gaps and next steps. |

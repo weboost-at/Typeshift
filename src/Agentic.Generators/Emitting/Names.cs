@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -11,6 +12,10 @@ internal static class Names
     // search_web reads as SearchWeb in generated member names
     public static string ToPascalCase(string snakeCase) =>
         string.Concat(snakeCase.Split('_').Select(part => char.ToUpperInvariant(part[0]) + part.Substring(1)));
+
+    // A generated member named like a member it sits next to gets a suffix instead of clashing with it
+    public static string Unreserved(string name, string suffix, ICollection<string> reserved) =>
+        reserved.Contains(name) ? name + suffix : name;
 
     public static string Identifier(string name) =>
         SyntaxFacts.GetKeywordKind(name) == SyntaxKind.None ? name : "@" + name;

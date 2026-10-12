@@ -33,4 +33,24 @@ public class ToolsetGenerationTests : GeneratorTestBase
         // Assert
         run.Assert.CompilesCleanly();
     }
+
+    [Fact]
+    public void Given_A_Parameter_Documented_Twice_The_Generator_Does_Not_Fail()
+    {
+        // Act
+        var run = Run(ToolsetSources.DocumentedTwice);
+
+        // Assert
+        run.Assert.DoesNotReport("CS8785");
+    }
+
+    [Fact]
+    public void Given_Names_Of_Members_Of_The_Generated_Types_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(ToolsetSources.ReservedNames);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
 }

@@ -183,6 +183,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Description_And_A_Summary_Without_GenerateDocumentationFile_AGT013_Is_Not_Reported()
+    {
+        // Act
+        var run = RunWithoutDocumentation(DiagnosticSources.DescribedWithDocumentationOff);
+
+        // Assert
+        run.Assert.DoesNotReport("AGT013");
+    }
+
+    [Fact]
     public void Given_A_Reference_Not_Compiled_With_The_Generator_AGT014_Is_Reported_On_AddAgentic()
     {
         // Arrange
@@ -203,5 +213,15 @@ public class DiagnosticTests : GeneratorTestBase
 
         // Assert
         run.Assert.Reports("AGT015", DiagnosticSeverity.Error, "\"EchoText\"");
+    }
+
+    [Fact]
+    public void Given_Internal_Settings_Of_A_Public_Toolset_AGT016_Is_Reported_On_WithSettings()
+    {
+        // Act
+        var run = Run(DiagnosticSources.InternalSettingsOfPublicToolset);
+
+        // Assert
+        run.Assert.Reports("AGT016", DiagnosticSeverity.Error, "WithSettings<EchoSettings>");
     }
 }

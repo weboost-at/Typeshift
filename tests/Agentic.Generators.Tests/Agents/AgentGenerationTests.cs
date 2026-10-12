@@ -37,4 +37,44 @@ public class AgentGenerationTests : GeneratorTestBase
         // Assert
         run.Assert.CompilesCleanly();
     }
+
+    [Fact]
+    public void Given_Tools_Named_Like_Members_Of_The_View_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(AgentSources.Lookup, AgentSources.ReservedToolNames);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
+    public void Given_A_Public_Agent_Of_An_Internal_Toolset_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(AgentSources.Lookup, AgentSources.PublicAgentOfInternalToolset);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
+    public void Given_A_Public_Agent_In_An_Internal_Class_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(AgentSources.Lookup, AgentSources.PublicAgentInInternalClass);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
+    public void Given_Nested_Agents_Sharing_A_Name_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(AgentSources.Lookup, AgentSources.NestedTwins);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
 }

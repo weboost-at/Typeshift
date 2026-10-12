@@ -110,6 +110,7 @@ internal static class AgentParser
 
         return new ToolsetUseModel(
             Toolset: toolset.ToTypeOf(),
+            IsPublic: toolset.IsEffectivelyPublic(),
             All: call.Arguments.Length == 0,
             Methods: selected.ToEquatableArray(),
             Location: LocationInfo.From(ConstructorChains.GetCalledName(call).GetLocation()));

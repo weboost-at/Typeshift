@@ -27,7 +27,7 @@ internal static class ModuleEmitter
 
         foreach (var toolset in model.Toolsets)
         {
-            writer.Line($"[global::Agentic.Modules.ModuleToolset(typeof({toolset.Type}))]");
+            writer.Line($"[global::Agentic.Modules.ModuleToolset(typeof({toolset}))]");
         }
 
         foreach (var agent in model.Agents)
@@ -56,7 +56,7 @@ internal static class ModuleEmitter
 
                 foreach (var toolset in model.Toolsets)
                 {
-                    writer.Line($"{Registration}.AddToolset(services, static () => new {toolset.Type}());");
+                    writer.Line($"{Registration}.AddToolset(services, static () => new {toolset}());");
                 }
 
                 foreach (var agent in model.Agents)

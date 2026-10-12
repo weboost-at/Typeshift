@@ -87,8 +87,8 @@ public sealed class AgentGenerator : IIncrementalGenerator
             : new ModuleModel(
                 ModuleEmitter.GetName(assemblyName),
                 assemblyName,
-                toolsets.ToEquatableArray(),
-                agents.ToEquatableArray());
+                toolsets.Select(toolset => toolset.Type).ToEquatableArray(),
+                agents.Select(agent => new ModuleAgentModel(agent.Type, agent.UniqueName)).ToEquatableArray());
 
     private static void EmitToolset(SourceProductionContext output, ToolsetModel toolset)
     {

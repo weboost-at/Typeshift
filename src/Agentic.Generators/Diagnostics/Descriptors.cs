@@ -84,12 +84,17 @@ internal static class Descriptors
         "Tool name is not lower_snake_case",
         "The tool name '{0}' is not lower_snake_case");
 
+    public static readonly DiagnosticDescriptor SettingsLessAccessible = Error(
+        "AGT016",
+        "Settings type is less accessible than its toolset",
+        "The settings type '{0}' and the types of its configurable members must be public, as '{1}' is");
+
     private static readonly Dictionary<string, DiagnosticDescriptor> All =
         new[]
         {
             NotPartial, NotConstant, MissingToolName, NotStaticMethodGroup, SettingsNotRecord, InvalidUniqueName,
             UnknownTool, DuplicateToolName, MissingDescription, DuplicateAgentName, SettingsAsParameter,
-            UnreadToolSettings, DocumentationOff, UngeneratedReference, NotLowerSnakeCase
+            UnreadToolSettings, DocumentationOff, UngeneratedReference, NotLowerSnakeCase, SettingsLessAccessible
         }.ToDictionary(descriptor => descriptor.Id);
 
     public static DiagnosticDescriptor ById(string id) => All[id];

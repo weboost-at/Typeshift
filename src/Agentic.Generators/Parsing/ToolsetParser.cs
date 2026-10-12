@@ -34,7 +34,7 @@ internal static class ToolsetParser
             .ToList();
 
         var tools = declared
-            .Select(tool => ParseTool(tool, settingsTypes, documented, diagnostics, ct))
+            .Select(tool => ParseTool(tool, toolset, settingsTypes, documented, diagnostics, ct))
             .OfType<ToolModel>()
             .ToEquatableArray();
 
@@ -87,6 +87,7 @@ internal static class ToolsetParser
 
     private static ToolModel? ParseTool(
         DeclaredTool tool,
+        INamedTypeSymbol toolset,
         IReadOnlyList<ITypeSymbol> settingsTypes,
         bool documented,
         DiagnosticBag diagnostics,
@@ -100,13 +101,18 @@ internal static class ToolsetParser
             return null;
         }
 
-        var settings = tool.SettingsCall is { } call ? ParseSettings(call, tool.SettingsType!, diagnostics) : null;
+        var settings = tool.SettingsCall is { } call
+            ? ParseSettings(call, tool.SettingsType!, toolset, diagnostics)
+            : null;
         if (tool.SettingsCall is not null && settings is null) return null;
 
         var docs = XmlDocs.Read(tool.Method, ct);
         var description = tool.Description ?? docs.Summary;
 
-        if (!documented && XmlDocs.HasComment(tool.Method, ct))
+        // Without generated docs a summary is lost unless WithDescription replaces it, a <param> always is
+        var unread = documented ? "" : XmlDocs.ReadUnparsed(tool.Method, ct);
+
+        if (unread.Contains("<param ") || (tool.Description is null && unread.Length > 0))
             diagnostics.Report(Descriptors.DocumentationOff, tool.AddTool.Syntax, name);
         else if (description is null)
             diagnostics.Report(Descriptors.MissingDescription, tool.AddTool.Syntax, name);
@@ -153,6 +159,7 @@ internal static class ToolsetParser
     private static SettingsModel? ParseSettings(
         IInvocationOperation call,
         ITypeSymbol type,
+        INamedTypeSymbol toolset,
         DiagnosticBag diagnostics)
     {
         if (!type.IsRecord)
@@ -163,7 +170,23 @@ internal static class ToolsetParser
 
         var picked = ConstructorChains.GetPickedProperties(call, KnownTypes.ConfigurableSettingsPicker).ToList();
 
-        var properties = type.GetSettableProperties()
+        var settable = type.GetSettableProperties().ToList();
+
+        // A public toolset exposes its settings through Tools and the configuration views
+        var exposed = settable.Where(property => picked.Contains(property.Name)).Select(property => property.Type);
+
+        if (toolset.IsEffectivelyPublic() && !exposed.Prepend(type).All(member => member.IsEffectivelyPublic()))
+        {
+            diagnostics.Report(
+                Descriptors.SettingsLessAccessible,
+                ConstructorChains.GetCalledName(call),
+                type.Name,
+                toolset.Name);
+
+            return null;
+        }
+
+        var properties = settable
             .Select(property => new SettingsPropertyModel(
                 Name: property.Name,
                 Type: property.Type.ToFullyQualified(),

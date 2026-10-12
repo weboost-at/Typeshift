@@ -25,6 +25,7 @@ through a delegate. Each guard throws an exception whose message says what to ch
 | [AGT013](#agt013) | Warning | Tool relies on XML docs that are not generated |
 | [AGT014](#agt014) | Warning | Referenced assembly was not compiled with the generator |
 | [AGT015](#agt015) | Error | Tool name is not lower_snake_case |
+| [AGT016](#agt016) | Error | Settings type is less accessible than its toolset |
 
 ## AGT001
 
@@ -144,9 +145,10 @@ settings would never apply. At runtime the same call throws an `ArgumentExceptio
 
 **Tool relies on XML docs that are not generated.** A warning, reported on the `AddTool(...)` call.
 
-A tool without `WithDescription(...)`, or with documented parameters, takes its descriptions from XML docs, which the
-compiler only reads with `<GenerateDocumentationFile>true</GenerateDocumentationFile>`. Turn it on, or describe the
-tool with `WithDescription(...)`.
+A tool takes its description from its method's `<summary>` when it has no `WithDescription(...)`, and its parameter
+descriptions from `<param>` docs. The compiler only reads them with
+`<GenerateDocumentationFile>true</GenerateDocumentationFile>`, so without it they are lost. Turn it on; or, when only
+the summary is at stake, describe the tool with `WithDescription(...)`.
 
 ## AGT014
 
@@ -162,3 +164,17 @@ package in that assembly's project too.
 
 Tool names follow the convention of the model providers' function names, `find_companies`. At runtime `WithName`
 throws an `ArgumentException` for any other name.
+
+## AGT016
+
+**Settings type is less accessible than its toolset.** Reported on `WithSettings<T>`.
+
+A public toolset exposes its settings through `Tools.{Tool}` (a `ToolRef<TSettings, TConfiguration>`) and through
+the configuration views, whose properties have the types of the configurable members. Make the settings record and
+those member types public, or make the toolset internal.
+
+```csharp
+internal record EchoSettings { public int Repeat { get; init; } }
+public partial class EchoToolset : Toolset      // AGT016
+internal partial class EchoToolset : Toolset    // fixed, or make EchoSettings public
+```
