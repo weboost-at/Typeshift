@@ -204,7 +204,7 @@ partial class EchoToolset
     private sealed class EchoFunction(
         global::Agentic.Toolsets.ToolDefinition tool,
         global::Agentic.Json.AgentJson json)
-        : global::Agentic.Tools.GeneratedToolFunction(tool, null, json)
+        : global::Agentic.Tools.GeneratedToolFunction(tool, json)
     {
         private static readonly global::System.Collections.Generic.IReadOnlyList<global::Agentic.Tools.ToolParameter> ModelParameters =
         [

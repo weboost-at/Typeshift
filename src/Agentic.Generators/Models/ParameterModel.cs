@@ -4,6 +4,7 @@ internal enum ParameterKind
 {
     Argument,
     Services,
+    Settings,
     CancellationToken,
     Arguments
 }

@@ -35,36 +35,31 @@ internal partial class CompanyToolset : Toolset
 
         AddTool(FindCompanies)
             .WithName("find_companies")
-            .WithSettings<FindCompaniesSettings>(settings => settings
-                .Configurable(s => s.Limit));
+            .WithSettings<FindCompaniesSettings>()
+            .Configurable(s => s.Limit);
     }
 
     /// <summary>
     /// Finds the companies of a city, best matches first.
     /// </summary>
     /// <param name="city">The city the companies are based in.</param>
-    /// <param name="services">The services of the call.</param>
-    public static IReadOnlyList<Company> FindCompanies(string city, IServiceProvider services)
-    {
-        var settings = services.GetToolSettings<FindCompaniesSettings>();
-
-        return
-        [
-            .. KnownCompanies.All
-                .Where(company => company.City.Equals(city, StringComparison.OrdinalIgnoreCase))
-                .Where(company => company.Active || settings.IncludeInactive)
-                .Take(settings.Limit)
-        ];
-    }
+    /// <param name="settings">The settings the search runs with; the model never sees them.</param>
+    public static IReadOnlyList<Company> FindCompanies(string city, FindCompaniesSettings settings) =>
+    [
+        .. KnownCompanies.All
+            .Where(company => company.City.Equals(city, StringComparison.OrdinalIgnoreCase))
+            .Where(company => company.Active || settings.IncludeInactive)
+            .Take(settings.Limit)
+    ];
 }
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Console/Companies/CompanyToolset.cs#L6-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-toolset' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Console/Companies/CompanyToolset.cs#L5-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-toolset' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The method's `<summary>` becomes the tool's description and each `<param>` the description of its parameter. The
-`IServiceProvider` parameter never reaches the model: the call fills it, and `GetToolSettings<T>()` reads the tool's
-settings from it. The settings are a record; `Configurable(s => s.Limit)` marks `Limit` as changeable at runtime,
-while `IncludeInactive` stays whatever the code says.
+`FindCompaniesSettings` parameter never reaches the model: the call fills it with the tool's resolved settings. The
+settings are a record; `Configurable(s => s.Limit)` marks `Limit` as changeable at runtime, while `IncludeInactive`
+stays whatever the code says.
 
 <!-- snippet: quickstart-settings-record -->
 <a id='snippet-quickstart-settings-record'></a>
@@ -82,7 +77,7 @@ internal record FindCompaniesSettings
 ## An agent
 
 An agent is a `partial` class deriving from `AgentDefinition`. Its constructor sets its chat options, picks its tools
-and sets their settings.
+and sets their settings; `GetInstructions()` returns its instructions.
 
 <!-- snippet: quickstart-agent -->
 <a id='snippet-quickstart-agent'></a>
@@ -94,27 +89,30 @@ internal partial class ResearchAgent : AgentDefinition
         WithName("research_agent");
         WithDescription("Researches the companies of a city.");
 
-        var options = new ChatOptions
-        {
-            Instructions = "Find companies with the find_companies tool and list them.",
-            Temperature = 0.2f
-        };
-
-        WithChatOptions(options, picker => picker
+        WithChatOptions()
+            .WithTemperature(0.2f)
             .Configurable(o => o.Temperature)
-            .Configurable(o => o.Instructions));
+            .Configurable(o => o.Instructions);
 
-        UseToolset<CompanyToolset>(tools => tools.FindCompanies());
+        UseToolset<CompanyToolset>().FindCompanies();
 
-        WithToolSettings(new FindCompaniesSettings { Limit = 3 });
+        WithToolSettings()
+            .FindCompanies()
+            .WithLimit(3);
     }
+
+    protected override string GetInstructions() =>
+        """
+        Find companies with the find_companies tool and list them.
+        """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Console/Companies/ResearchAgent.cs#L6-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Console/Companies/ResearchAgent.cs#L5-L30' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`tools => tools.FindCompanies()` uses a method the generator adds for each tool of `CompanyToolset`, and
-`WithToolSettings` exists once per settings type the selected tools read. Both reject mistakes at compile time.
+`.FindCompanies()` after `UseToolset<CompanyToolset>()` is a method the generator adds for each tool of
+`CompanyToolset`, and `WithToolSettings()` offers exactly the agent's tools that have settings, each with a `With...`
+per member. Both reject mistakes at compile time.
 
 ## Registration
 

@@ -74,8 +74,9 @@ public static class ToolsetSources
                 AddTool(SearchWebAsync)
                     .WithName("search_web")
                     .WithDescription(SearchWebDescription)
-                    .WithSettings<SearchWebSettings>(settings => settings
-                        .Configurable(s => s.Limit, s => s.Region));
+                    .WithSettings<SearchWebSettings>()
+                    .Configurable(s => s.Limit)
+                    .Configurable(s => s.Region);
 
                 AddTool(ReadWebPage)
                     .WithName("read_web_page");
@@ -87,11 +88,13 @@ public static class ToolsetSources
 
             /// <param name="query">What to search for.</param>
             /// <param name="country">Two-letter ISO country code for local results, or null.</param>
+            /// <param name="settings">The settings the search runs with.</param>
             /// <param name="serviceProvider">The services of the call.</param>
             /// <param name="ct">Cancels the search.</param>
             public static Task<IReadOnlyList<WebSearchResult>> SearchWebAsync(
                 string query,
                 string? country,
+                SearchWebSettings settings,
                 IServiceProvider serviceProvider,
                 CancellationToken ct) =>
                 Task.FromResult<IReadOnlyList<WebSearchResult>>([]);
@@ -229,16 +232,20 @@ public static class ToolsetSources
                 AddTool(ListTools)
                     .WithName("tools")
                     .WithDescription("Lists the tools.")
-                    .WithSettings<ViewLikeSettings>(settings => settings
-                        .Configurable(s => s.Tool, s => s.Create, s => s.Get, s => s.Set, s => s.Stored)
-                        .Configurable(s => s.ToolsConfiguration));
+                    .WithSettings<ViewLikeSettings>()
+                    .Configurable(s => s.Tool)
+                    .Configurable(s => s.Create)
+                    .Configurable(s => s.Get)
+                    .Configurable(s => s.Set)
+                    .Configurable(s => s.Stored)
+                    .Configurable(s => s.ToolsConfiguration);
             }
 
             /// <summary>
             /// Lists the tools.
             /// </summary>
-            /// <param name="services">The services of the call.</param>
-            public static string ListTools(IServiceProvider services) => "";
+            /// <param name="settings">The settings of the call.</param>
+            public static string ListTools(ViewLikeSettings settings) => "";
         }
         """;
 }

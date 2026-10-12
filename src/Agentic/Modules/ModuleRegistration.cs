@@ -4,7 +4,6 @@ using Agentic.Catalogs;
 using Agentic.Conversations;
 using Agentic.Json;
 using Agentic.Settings;
-using Agentic.Tools;
 using Agentic.Toolsets;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -27,7 +26,6 @@ public static class ModuleRegistration
         services.AddOptions<AgentJsonOptions>();
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton(provider => new AgentJson(provider.GetRequiredService<IOptions<AgentJsonOptions>>()));
-        services.TryAddScoped(_ => new ToolSettingsAccessor());
 
         services.TryAddSingleton(provider => new ToolCatalog(
             provider.GetServices<Toolset>(),

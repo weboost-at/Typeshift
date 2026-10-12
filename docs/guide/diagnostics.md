@@ -5,10 +5,10 @@ build before a mistake can reach runtime; warnings point at something that works
 
 Two mistakes need no diagnostic, because the generated API makes them compiler errors:
 
-- selecting a tool of another toolset, `UseToolset<CompanyToolset>(tools => tools.SearchWeb())`, is CS1929: the
-  selection methods exist only on the selection of their own toolset;
-- passing settings no tool of the agent reads, `WithToolSettings(new SearchWebSettings())` in an agent without
-  `search_web`, is CS1503: `WithToolSettings` has one overload per settings type the agent's tools read.
+- selecting a tool of another toolset, `UseToolset<CompanyToolset>().SearchWeb()`, is CS1929: the selection methods
+  exist only on the selection of their own toolset;
+- setting the settings of a tool the agent does not offer, `WithToolSettings().SearchWeb()` in an agent without
+  `search_web`, does not compile either: the builder has a method only per tool the agent offers.
 
 Runtime guards stay for what the generator cannot see: generic toolsets and agents, and calls made through a
 delegate. Each guard throws an exception whose message says what to change.
@@ -23,7 +23,7 @@ delegate. Each guard throws an exception whose message says what to change.
 | [AGT006](#agt006) | Error | Toolset was not compiled with the generator |
 | [AGT007](#agt007) | Error | Tool name is not unique |
 | [AGT008](#agt008) | Warning | Tool has no description |
-| [AGT009](#agt009) | Error | Tool takes its settings as a parameter |
+| [AGT009](#agt009) | Warning | Tool does not take its settings |
 | [AGT010](#agt010) | Warning | Tool relies on XML docs that are not generated |
 | [AGT011](#agt011) | Warning | Referenced assembly was not compiled with the generator |
 | [AGT012](#agt012) | Error | Tool name is not lower_snake_case |
@@ -104,18 +104,14 @@ The model chooses tools by their descriptions. Add `WithDescription(...)` or an 
 
 ## AGT009
 
-**Tool takes its settings as a parameter.** Reported on the parameter.
+**Tool does not take its settings.** A warning, reported on `WithSettings<T>`.
 
-A parameter becomes part of the model-facing schema, so a settings parameter would let the model choose the settings.
-Read them inside the tool instead:
+A tool receives its resolved settings through a parameter of its settings type, which the model never sees. Without
+one, the settings reach nothing. Add the parameter:
 
 ```csharp
-public static Company[] Find(string city, FindCompaniesSettings settings)  // AGT009
-public static Company[] Find(string city, IServiceProvider services)       // fixed
-{
-    var settings = services.GetToolSettings<FindCompaniesSettings>();
-    ...
-}
+public static Company[] Find(string city)                                  // AGT009
+public static Company[] Find(string city, FindCompaniesSettings settings)  // fixed
 ```
 
 ## AGT010
@@ -139,8 +135,7 @@ package in that assembly's project too.
 
 **Tool name is not lower_snake_case.** Reported on the argument of `WithName(...)`.
 
-Tool names follow the convention of the model providers' function names, `find_companies`. At runtime `WithName`
-throws an `ArgumentException` for any other name.
+Tool names follow the convention of the model providers' function names, `find_companies`.
 
 ## AGT013
 
@@ -158,8 +153,8 @@ internal partial class EchoToolset : Toolset    // fixed, or make EchoSettings p
 
 ## AGT014
 
-**Configurable member has a type settings cannot store.** Reported on `WithSettings<T>`, or on `WithChatOptions` for a
-configurable chat option.
+**Configurable member has a type settings cannot store.** Reported on the `Configurable(...)` call that picks it, for a
+tool setting or a chat option.
 
 Configurable members end up in the generated `Settings` and `{Tool}Overrides` records, which serialize themselves
 without reflection. They support:

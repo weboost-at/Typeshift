@@ -36,15 +36,12 @@ internal static class AgentResolver
 
     // A name that selects no tool is a call to a selection method that does not exist, which the compiler reports
     private static IEnumerable<ResolvedTool> Select(ToolsetUseModel use, ToolsetSummary toolset) =>
-        use.All
-            ? toolset.Tools.Select(tool => Resolved(use, tool))
+        (use.Selected.Count == 0
+            ? toolset.Tools
             : use.Selected
                 .Select(name => toolset.Tools.FirstOrDefault(tool => Names.SelectorName(tool.Name) == name))
-                .OfType<ToolSummary>()
-                .Select(tool => Resolved(use, tool));
-
-    private static ResolvedTool Resolved(ToolsetUseModel use, ToolSummary tool) =>
-        new(use.Toolset, use.IsPublic, tool.Name, tool.Settings, HasOverrides: tool.Configurable.Count > 0);
+                .OfType<ToolSummary>())
+        .Select(tool => new ResolvedTool(use.Toolset, use.IsPublic, tool.Name, tool.Settings));
 
     private static string ShortName(string type) => type.Substring(type.LastIndexOf('.') + 1);
 }

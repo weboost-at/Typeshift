@@ -3,9 +3,8 @@ namespace Agentic.Generators.Tests.Agents.Support;
 public static class AgentSources
 {
     public const string Profiling =
-        """
+        """"
         using Agentic.Agents;
-        using Microsoft.Extensions.AI;
 
         namespace Demo;
 
@@ -22,25 +21,30 @@ public static class AgentSources
                 WithName("profiling_agent");
                 WithDescription("Profiles new company information.");
 
-                var options = new ChatOptions
-                {
-                    AllowMultipleToolCalls = true,
-                    Temperature = 0.2f
-                };
-
-                WithChatOptions(options, picker => picker
+                WithChatOptions()
+                    .WithAllowMultipleToolCalls(true)
+                    .WithTemperature(0.2f)
                     .Configurable(o => o.Temperature)
                     .Configurable(o => o.MaxOutputTokens)
-                    .Configurable(o => o.Instructions));
+                    .Configurable(o => o.Instructions);
 
-                UseToolset<WebResearchToolset>(tools => tools
+                UseToolset<WebResearchToolset>()
                     .SearchWeb()
-                    .ReadWebPage());
+                    .ReadWebPage();
 
-                WithToolSettings(new SearchWebSettings { Limit = 5, SafeSearch = false });
+                WithToolSettings()
+                    .SearchWeb()
+                    .WithLimit(5)
+                    .WithSafeSearch(false);
             }
+
+            /// <inheritdoc />
+            protected override string GetInstructions() =>
+                """
+                Profile the company from what the web says about it.
+                """;
         }
-        """;
+        """";
 
     public const string UsesWebResearch =
         """
@@ -60,8 +64,8 @@ public static class AgentSources
             public ResearchAgent()
             {
                 WithName("research_agent");
-                UseToolset<WebResearchToolset>(tools => tools.SearchWeb());
-                WithToolSettings(new SearchWebSettings { Limit = 3 });
+                UseToolset<WebResearchToolset>().SearchWeb();
+                WithToolSettings().SearchWeb().WithLimit(3);
             }
         }
         """;
@@ -86,17 +90,19 @@ public static class AgentSources
                 AddTool(Create)
                     .WithName("create")
                     .WithDescription("Creates an entry.")
-                    .WithSettings<LookupSettings>(settings => settings.Configurable(s => s.Limit));
+                    .WithSettings<LookupSettings>()
+                    .Configurable(s => s.Limit);
 
                 AddTool(Configure)
                     .WithName("configuration")
                     .WithDescription("Reads the configuration.")
-                    .WithSettings<LookupSettings>(settings => settings.Configurable(s => s.Limit));
+                    .WithSettings<LookupSettings>()
+                    .Configurable(s => s.Limit);
             }
 
-            public static string Create(string name, IServiceProvider services) => name;
+            public static string Create(string name, LookupSettings settings) => name;
 
-            public static string Configure(IServiceProvider services) => "";
+            public static string Configure(LookupSettings settings) => "";
         }
         """;
 

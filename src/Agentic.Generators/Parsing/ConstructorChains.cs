@@ -61,16 +61,11 @@ internal static class ConstructorChains
     public static string? GetConstantString(IInvocationOperation invocation) =>
         invocation.Arguments[0].Value.ConstantValue is { HasValue: true, Value: string text } ? text : null;
 
-    // picker => picker.Configurable(s => s.A, s => s.B): every property read on a picked lambda's parameter
-    public static IEnumerable<string> GetPickedProperties(IInvocationOperation invocation, string pickerType) =>
-        invocation.Arguments
-            .SelectMany(argument => argument.Value.DescendantsAndSelf())
-            .OfType<IInvocationOperation>()
-            .Where(pick => pick.TargetMethod.Name == "Configurable" && pick.TargetMethod.ContainingType.Is(pickerType))
-            .SelectMany(pick => pick.Arguments.SelectMany(argument => argument.Value.DescendantsAndSelf()))
+    // Configurable(s => s.Limit): the property read on the lambda's parameter
+    public static IPropertySymbol? GetPickedProperty(IInvocationOperation configurable) =>
+        configurable.Arguments[0].Value
+            .DescendantsAndSelf()
             .OfType<IPropertyReferenceOperation>()
-            .Where(reference => reference.Instance is IParameterReferenceOperation)
-            .OrderBy(reference => reference.Syntax.SpanStart)
-            .Select(reference => reference.Property.Name)
-            .Distinct();
+            .FirstOrDefault(reference => reference.Instance is IParameterReferenceOperation)
+            ?.Property;
 }

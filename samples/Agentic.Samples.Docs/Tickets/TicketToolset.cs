@@ -1,4 +1,3 @@
-using Agentic.Tools;
 using Agentic.Toolsets;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,9 +13,9 @@ internal partial class TicketToolset : Toolset
         // begin-snippet: settings-picks
         AddTool(SearchTickets)
             .WithName("search_tickets")
-            .WithSettings<SearchTicketsSettings>(settings => settings
-                .Configurable(s => s.Limit)
-                .Configurable(s => s.IncludeClosed));
+            .WithSettings<SearchTicketsSettings>()
+            .Configurable(s => s.IncludeClosed)
+            .Configurable(s => s.Limit);
         // end-snippet
 
         AddTool(GetTicketAsync)
@@ -28,16 +27,15 @@ internal partial class TicketToolset : Toolset
     /// Searches the customer's support tickets, newest first.
     /// </summary>
     /// <param name="query">Words the ticket's title contains.</param>
+    /// <param name="settings">The settings the search runs with; the model never sees them.</param>
     /// <param name="services">The services of the call.</param>
-    public static IReadOnlyList<Ticket> SearchTickets(string query, IServiceProvider services)
-    {
-        // begin-snippet: read-settings
-        var settings = services.GetToolSettings<SearchTicketsSettings>();
-        // end-snippet
-        var tickets = services.GetRequiredService<ITicketClient>();
-
-        return tickets.Search(query, settings.IncludeClosed, settings.Limit);
-    }
+    // begin-snippet: read-settings
+    public static IReadOnlyList<Ticket> SearchTickets(
+        string query,
+        SearchTicketsSettings settings,
+        IServiceProvider services) =>
+        services.GetRequiredService<ITicketClient>().Search(query, settings.IncludeClosed, settings.Limit);
+    // end-snippet
 
     /// <param name="number">The ticket's number.</param>
     /// <param name="services">The services of the call.</param>

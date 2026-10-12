@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -21,19 +22,11 @@ internal static class ToolsetParser
 
         if (!isPartial) diagnostics.Report(Descriptors.NotPartial, toolset.Locations.FirstOrDefault(), toolset.Name);
 
-        var declared = ConstructorChains.GetInvocations(toolset, compilation, ct)
+        var tools = ConstructorChains.GetInvocations(toolset, compilation, ct)
             .Where(IsAddTool)
             .Select(addTool => ReadTool(addTool, diagnostics))
             .OfType<DeclaredTool>()
-            .ToList();
-
-        var settingsTypes = declared
-            .Select(tool => tool.SettingsType)
-            .OfType<ITypeSymbol>()
-            .ToList();
-
-        var tools = declared
-            .Select(tool => ParseTool(tool, toolset, settingsTypes, documented, diagnostics, ct))
+            .Select(tool => ParseTool(tool, toolset, documented, diagnostics, ct))
             .OfType<ToolModel>()
             .ToEquatableArray();
 
@@ -75,6 +68,10 @@ internal static class ToolsetParser
                     tool.SettingsType = call.TargetMethod.TypeArguments[0];
                     tool.SettingsCall = call;
                     break;
+
+                case "Configurable":
+                    tool.Picks.Add(call);
+                    break;
             }
         }
 
@@ -87,7 +84,6 @@ internal static class ToolsetParser
     private static ToolModel? ParseTool(
         DeclaredTool tool,
         INamedTypeSymbol toolset,
-        IReadOnlyList<ITypeSymbol> settingsTypes,
         bool documented,
         DiagnosticBag diagnostics,
         CancellationToken ct)
@@ -100,9 +96,7 @@ internal static class ToolsetParser
             return null;
         }
 
-        var settings = tool.SettingsCall is { } call
-            ? ParseSettings(call, tool.SettingsType!, toolset, diagnostics, ct)
-            : null;
+        var settings = tool.SettingsCall is null ? null : ParseSettings(tool, toolset, diagnostics, ct);
         if (tool.SettingsCall is not null && settings is null) return null;
 
         var docs = XmlDocs.Read(tool.Method, ct);
@@ -117,20 +111,16 @@ internal static class ToolsetParser
             diagnostics.Report(Descriptors.MissingDescription, tool.AddTool.Syntax, name);
 
         var parameters = tool.Method.Parameters
-            .Select(parameter => ParseParameter(parameter, docs))
+            .Select(parameter => ParseParameter(parameter, tool.SettingsType, docs))
             .ToEquatableArray();
 
-        var settingsParameters = tool.Method.Parameters
-            .Where(parameter => settingsTypes.Any(type => IsSameType(type, parameter.Type)));
-
-        foreach (var parameter in settingsParameters)
+        if (settings is not null && parameters.All(parameter => parameter.Kind != ParameterKind.Settings))
         {
             diagnostics.Report(
-                Descriptors.SettingsAsParameter,
-                parameter.Locations.FirstOrDefault(),
-                parameter.Name,
+                Descriptors.UnreadSettings,
+                ConstructorChains.GetCalledName(tool.SettingsCall!),
                 name,
-                parameter.Type.Name);
+                tool.SettingsType!.Name);
         }
 
         return new ToolModel(
@@ -144,6 +134,23 @@ internal static class ToolsetParser
             Location: LocationInfo.From(tool.AddTool.Syntax.GetLocation()));
     }
 
+    // Shared with the reader of referenced toolsets, which reads no docs
+    public static SettingsModel CreateSettings(
+        ITypeSymbol type,
+        ICollection<string> configurable,
+        Func<IPropertySymbol, string?> summary) =>
+        new(
+            type.ToTypeOf(),
+            type.GetSettableProperties()
+                .Select(property => new SettingsPropertyModel(
+                    Name: property.Name,
+                    Type: property.Type.ToFullyQualified(),
+                    NullableType: property.Type.ToNullableFullyQualified(),
+                    IsConfigurable: configurable.Contains(property.Name),
+                    Storage: configurable.Contains(property.Name) ? Storage.Of(property.Type) : null,
+                    Summary: summary(property)))
+                .ToEquatableArray());
+
     private static string? ReadConstant(IInvocationOperation call, string what, DiagnosticBag diagnostics)
     {
         if (ConstructorChains.GetConstantString(call) is { } text) return text;
@@ -152,70 +159,61 @@ internal static class ToolsetParser
         return null;
     }
 
-    private static bool IsSameType(ITypeSymbol type, ITypeSymbol parameter) =>
-        SymbolEqualityComparer.Default.Equals(type, parameter.WithNullableAnnotation(NullableAnnotation.NotAnnotated));
-
     private static SettingsModel? ParseSettings(
-        IInvocationOperation call,
-        ITypeSymbol type,
+        DeclaredTool tool,
         INamedTypeSymbol toolset,
         DiagnosticBag diagnostics,
         CancellationToken ct)
     {
+        var type = tool.SettingsType!;
+        var settingsName = ConstructorChains.GetCalledName(tool.SettingsCall!);
+
         if (!type.IsRecord)
         {
-            diagnostics.Report(Descriptors.SettingsNotRecord, ConstructorChains.GetCalledName(call), type.Name);
+            diagnostics.Report(Descriptors.SettingsNotRecord, settingsName, type.Name);
             return null;
         }
 
-        var picked = ConstructorChains.GetPickedProperties(call, KnownTypes.ConfigurableSettingsPicker).ToList();
+        var picks = tool.Picks
+            .Select(pick => (Call: pick, Property: ConstructorChains.GetPickedProperty(pick)?.Name))
+            .ToList();
 
-        var settable = type.GetSettableProperties().ToList();
+        var configurable = type.GetSettableProperties()
+            .Where(property => picks.Any(pick => pick.Property == property.Name))
+            .ToList();
 
         // A public toolset exposes its settings through Tools and the generated overrides
-        var exposed = settable.Where(property => picked.Contains(property.Name)).Select(property => property.Type);
+        var exposed = configurable.Select(property => property.Type).Prepend(type);
 
-        if (toolset.IsEffectivelyPublic() && !exposed.Prepend(type).All(member => member.IsEffectivelyPublic()))
+        if (toolset.IsEffectivelyPublic() && !exposed.All(member => member.IsEffectivelyPublic()))
         {
-            diagnostics.Report(
-                Descriptors.SettingsLessAccessible,
-                ConstructorChains.GetCalledName(call),
-                type.Name,
-                toolset.Name);
-
+            diagnostics.Report(Descriptors.SettingsLessAccessible, settingsName, type.Name, toolset.Name);
             return null;
         }
 
-        var unsupported = settable.FirstOrDefault(property =>
-            picked.Contains(property.Name) && Storage.Of(property.Type) is null);
-
-        if (unsupported is not null)
+        if (configurable.FirstOrDefault(property => Storage.Of(property.Type) is null) is { } unsupported)
         {
             diagnostics.Report(
                 Descriptors.UnsupportedConfigurableType,
-                ConstructorChains.GetCalledName(call),
+                ConstructorChains.GetCalledName(picks.First(pick => pick.Property == unsupported.Name).Call),
                 unsupported.Name,
                 unsupported.Type.ToDisplayString());
 
             return null;
         }
 
-        var properties = settable
-            .Select(property => new SettingsPropertyModel(
-                Name: property.Name,
-                NullableType: property.Type.ToNullableFullyQualified(),
-                IsConfigurable: picked.Contains(property.Name),
-                Storage: picked.Contains(property.Name) ? Storage.Of(property.Type) : null,
-                Summary: XmlDocs.Read(property, ct).Summary))
-            .ToEquatableArray();
-
-        return new SettingsModel(type.ToTypeOf(), properties);
+        return CreateSettings(
+            type,
+            [.. configurable.Select(property => property.Name)],
+            property => XmlDocs.Read(property, ct).Summary);
     }
 
-    private static ParameterModel ParseParameter(IParameterSymbol parameter, XmlDocs docs)
+    private static ParameterModel ParseParameter(IParameterSymbol parameter, ITypeSymbol? settings, XmlDocs docs)
     {
         var kind = parameter.Type switch
         {
+            // D40: the settings are bound like the services, never by the model
+            var type when SymbolEqualityComparer.Default.Equals(type, settings) => ParameterKind.Settings,
             var type when type.Is(KnownTypes.ServiceProvider) => ParameterKind.Services,
             var type when type.Is(KnownTypes.CancellationToken) => ParameterKind.CancellationToken,
             var type when type.Is(KnownTypes.FunctionArguments) => ParameterKind.Arguments,
@@ -258,5 +256,7 @@ internal static class ToolsetParser
         public ITypeSymbol? SettingsType { get; set; }
 
         public IInvocationOperation? SettingsCall { get; set; }
+
+        public List<IInvocationOperation> Picks { get; } = [];
     }
 }

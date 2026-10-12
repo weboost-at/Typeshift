@@ -1,5 +1,4 @@
 using Agentic.Agents;
-using Microsoft.Extensions.AI;
 
 namespace Agentic.Samples.Companies;
 
@@ -11,19 +10,21 @@ internal partial class ResearchAgent : AgentDefinition
         WithName("research_agent");
         WithDescription("Researches the companies of a city.");
 
-        var options = new ChatOptions
-        {
-            Instructions = "Find companies with the find_companies tool and list them.",
-            Temperature = 0.2f
-        };
-
-        WithChatOptions(options, picker => picker
+        WithChatOptions()
+            .WithTemperature(0.2f)
             .Configurable(o => o.Temperature)
-            .Configurable(o => o.Instructions));
+            .Configurable(o => o.Instructions);
 
-        UseToolset<CompanyToolset>(tools => tools.FindCompanies());
+        UseToolset<CompanyToolset>().FindCompanies();
 
-        WithToolSettings(new FindCompaniesSettings { Limit = 3 });
+        WithToolSettings()
+            .FindCompanies()
+            .WithLimit(3);
     }
+
+    protected override string GetInstructions() =>
+        """
+        Find companies with the find_companies tool and list them.
+        """;
 }
 // end-snippet

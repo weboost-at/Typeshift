@@ -49,10 +49,10 @@ internal static class Descriptors
         "Tool has no description",
         "The tool '{0}' has no description: add WithDescription(...) or an XML <summary> to its method");
 
-    public static readonly DiagnosticDescriptor SettingsAsParameter = Error(
+    public static readonly DiagnosticDescriptor UnreadSettings = Warning(
         "AGT009",
-        "Tool takes its settings as a parameter",
-        "The parameter '{0}' of the tool '{1}' has the settings type '{2}': read settings with GetToolSettings<T>()");
+        "Tool does not take its settings",
+        "The tool '{0}' has the settings '{1}', but its method has no parameter of that type to receive them");
 
     public static readonly DiagnosticDescriptor DocumentationOff = Warning(
         "AGT010",
@@ -85,7 +85,7 @@ internal static class Descriptors
         new[]
         {
             NotPartial, NotConstant, MissingToolName, NotStaticMethodGroup, SettingsNotRecord, UngeneratedToolset,
-            DuplicateToolName, MissingDescription, SettingsAsParameter, DocumentationOff, UngeneratedReference,
+            DuplicateToolName, MissingDescription, UnreadSettings, DocumentationOff, UngeneratedReference,
             NotLowerSnakeCase, SettingsLessAccessible, UnsupportedConfigurableType
         }.ToDictionary(descriptor => descriptor.Id);
 

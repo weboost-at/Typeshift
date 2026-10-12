@@ -93,7 +93,7 @@ partial class WebResearchToolset
         global::Agentic.Toolsets.ToolDefinition tool,
         global::Demo.SearchWebSettings settings,
         global::Agentic.Json.AgentJson json)
-        : global::Agentic.Tools.GeneratedToolFunction(tool, settings, json)
+        : global::Agentic.Tools.GeneratedToolFunction(tool, json)
     {
         private static readonly global::System.Collections.Generic.IReadOnlyList<global::Agentic.Tools.ToolParameter> ModelParameters =
         [
@@ -119,6 +119,7 @@ partial class WebResearchToolset
             GetResult(await global::Demo.WebResearchToolset.SearchWebAsync(
                 GetArgument<string>(arguments, "query"),
                 GetArgument<string?>(arguments, "country"),
+                settings,
                 services,
                 ct));
     }
@@ -130,7 +131,7 @@ partial class WebResearchToolset
     private sealed class ReadWebPageFunction(
         global::Agentic.Toolsets.ToolDefinition tool,
         global::Agentic.Json.AgentJson json)
-        : global::Agentic.Tools.GeneratedToolFunction(tool, null, json)
+        : global::Agentic.Tools.GeneratedToolFunction(tool, json)
     {
         private static readonly global::System.Collections.Generic.IReadOnlyList<global::Agentic.Tools.ToolParameter> ModelParameters =
         [
@@ -173,7 +174,7 @@ partial class WebResearchToolset
     private sealed class ForgetFunction(
         global::Agentic.Toolsets.ToolDefinition tool,
         global::Agentic.Json.AgentJson json)
-        : global::Agentic.Tools.GeneratedToolFunction(tool, null, json)
+        : global::Agentic.Tools.GeneratedToolFunction(tool, json)
     {
         private static readonly global::System.Collections.Generic.IReadOnlyList<global::Agentic.Tools.ToolParameter> ModelParameters = [];
 

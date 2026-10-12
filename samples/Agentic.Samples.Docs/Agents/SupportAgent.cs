@@ -1,7 +1,6 @@
 using Agentic.Agents;
 using Agentic.Samples.Docs.Knowledge;
 using Agentic.Samples.Docs.Tickets;
-using Microsoft.Extensions.AI;
 
 namespace Agentic.Samples.Docs.Agents;
 
@@ -13,25 +12,27 @@ internal partial class SupportAgent : AgentDefinition
         WithName("support_agent");
         WithDescription("Answers customers from their tickets and the help center.");
 
-        var options = new ChatOptions
-        {
-            ModelId = "fast-model",
-            Instructions = "Answer from the customer's tickets and cite help center articles.",
-            Temperature = 0.3f
-        };
-
-        WithChatOptions(options, picker => picker
+        WithChatOptions()
+            .WithModel("fast-model")
+            .WithTemperature(0.3f)
             .Configurable(o => o.Instructions)
             .Configurable(o => o.Temperature)
-            .Configurable(o => o.MaxOutputTokens));
+            .Configurable(o => o.MaxOutputTokens);
 
-        UseToolset<TicketToolset>(tools => tools
+        UseToolset<TicketToolset>()
             .SearchTickets()
-            .GetTicket());
+            .GetTicket();
 
         UseToolset<KnowledgeToolset>();
 
-        WithToolSettings(new SearchTicketsSettings { Limit = 5 });
+        WithToolSettings()
+            .SearchTickets()
+            .WithLimit(5);
     }
+
+    protected override string GetInstructions() =>
+        """
+        Answer from the customer's tickets and cite help center articles.
+        """;
 }
 // end-snippet

@@ -73,7 +73,7 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.ForeignTool);
 
         // Assert
-        run.Assert.DoesNotCompile("CS1929", "tools");
+        run.Assert.DoesNotCompile("CS1929", "UseToolset<EchoToolset>()");
     }
 
     [Fact]
@@ -123,23 +123,23 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_A_Tool_Taking_Its_Settings_As_A_Parameter_AGT009_Is_Reported_On_The_Parameter()
+    public void Given_A_Tool_Without_A_Parameter_For_Its_Settings_AGT009_Is_Reported_On_WithSettings()
     {
         // Act
-        var run = Run(DiagnosticSources.SettingsAsParameter);
+        var run = Run(DiagnosticSources.UnreadSettings);
 
         // Assert
-        run.Assert.Reports("AGT009", DiagnosticSeverity.Error, "settings");
+        run.Assert.Reports("AGT009", DiagnosticSeverity.Warning, "WithSettings<EchoSettings>");
     }
 
     [Fact]
-    public void Given_Tool_Settings_No_Tool_Of_The_Agent_Reads_WithToolSettings_Does_Not_Compile()
+    public void Given_Settings_Of_A_Tool_The_Agent_Does_Not_Offer_WithToolSettings_Does_Not_Compile()
     {
         // Act
-        var run = Run(DiagnosticSources.UnreadToolSettings);
+        var run = Run(DiagnosticSources.SettingsOfAnUnofferedTool);
 
         // Assert
-        run.Assert.DoesNotCompile("CS1503", "new EchoSettings()");
+        run.Assert.DoesNotCompile("CS1929", "WithToolSettings()");
     }
 
     [Fact]
@@ -196,22 +196,22 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_An_Unstorable_Configurable_Setting_AGT014_Is_Reported_On_WithSettings()
+    public void Given_An_Unstorable_Configurable_Setting_AGT014_Is_Reported_On_Configurable()
     {
         // Act
         var run = Run(DiagnosticSources.UnsupportedSetting);
 
         // Assert
-        run.Assert.Reports("AGT014", DiagnosticSeverity.Error, "WithSettings<EchoSettings>");
+        run.Assert.Reports("AGT014", DiagnosticSeverity.Error, "Configurable");
     }
 
     [Fact]
-    public void Given_An_Unstorable_Configurable_Chat_Option_AGT014_Is_Reported_On_WithChatOptions()
+    public void Given_An_Unstorable_Configurable_Chat_Option_AGT014_Is_Reported_On_Configurable()
     {
         // Act
         var run = Run(DiagnosticSources.UnsupportedChatOption);
 
         // Assert
-        run.Assert.Reports("AGT014", DiagnosticSeverity.Error, "WithChatOptions");
+        run.Assert.Reports("AGT014", DiagnosticSeverity.Error, "Configurable");
     }
 }

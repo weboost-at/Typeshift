@@ -28,9 +28,10 @@ commit, or add a new one and withdraw the old.
   - per toolset: `{Toolset}.Tools.{Tool}`, a `ToolRef` or `ToolRef<TSettings, TOverrides>`; per tool with
     configurable settings a nested `{Tool}Overrides` record; a `{Toolset}Selection` class whose extension block adds
     one selection method per tool to `ToolSelection<TToolset>`;
-  - per agent: the nested `Settings` record, private `WithToolSettings` overloads, and a `{Agent}RuntimeExtensions`
-    class with the typed members of `AgentRuntime<TAgent>`; a nested agent's class name joins its containers'
-    names, so twins in two classes do not clash;
+  - per agent: the nested `Settings` record; a private `WithToolSettings()` returning a nested `ToolSettingsBuilder`,
+    with one method per tool and a nested `{Tool}SettingsBuilder` per tool; a `{Agent}RuntimeExtensions` class with
+    the typed members of `AgentRuntime<TAgent>`; a nested agent's class name joins its containers' names, so twins
+    in two classes do not clash;
   - per assembly: `Agentic.Generated.{Assembly}Module`, with every character of the assembly name that is not a letter
     or digit replaced by `_` (`Agentic.Samples.Console` gives `Agentic_Samples_ConsoleModule`);
   - the interceptor: a `file static class AddAgenticInterceptor` in `Agentic.Generated`;
@@ -63,13 +64,15 @@ commit, or add a new one and withdraw the old.
 
 ### D5. Settings picks and chat-option picks are read only by the generator
 
-- **Context:** `WithSettings<T>(s => s.Configurable(x => x.Limit))` and `WithChatOptions(o, p => p.Configurable(...))`
+- **Context:** `WithSettings<T>().Configurable(s => s.Limit)` and `WithChatOptions().Configurable(o => o.Temperature)`
   name the configurable members.
-- **Decision:** the generator reads the lambdas from the constructor and emits the `Overrides` and `Settings`
-  records; at runtime the pickers are never invoked. The configurable set exists once, in generated types, without
-  expression trees. Tool selection is different: its lambda runs (D29).
+- **Decision:** the generator reads the `Configurable` calls from the constructor and emits the `Overrides` and
+  `Settings` records; at runtime `Configurable` returns its builder and its lambda never runs. The lambdas are
+  `Func<T, object?>`, not expression trees, so nothing is built for them at runtime. The configurable set exists
+  once, in generated types. Tool selection is different: its calls run (D29).
 - **Alternatives:** recording the picks at runtime, which duplicates the set and needs expression trees under AOT.
-- **Where:** `Parsing/ConstructorChains.cs`, `Settings/ConfigurableSettingsPicker.cs`.
+- **Where:** `Parsing/ConstructorChains.cs` (`GetPickedProperty`), `Toolsets/ToolBuilder.cs`,
+  `Agents/ChatOptionsBuilder.cs`.
 
 ### D6. Generic toolsets and agents are not generated
 
@@ -120,11 +123,10 @@ commit, or add a new one and withdraw the old.
 ### D11. Each tool call runs in a DI scope of its own
 
 - **Context:** `FunctionInvokingChatClient` hands tools the root provider.
-- **Decision:** `GeneratedToolFunction` creates a scope per call and puts the resolved settings in the scope's
-  accessor, so `GetToolSettings<T>()` and scoped services work per call. A container without
-  `IServiceScopeFactory` throws, naming `AddAgentic()`.
-- **Alternatives:** an `AsyncLocal` for the settings, which is static mutable state.
-- **Where:** `Tools/GeneratedToolFunction.cs`, `Tools/ToolSettingsAccessor.cs`.
+- **Decision:** `GeneratedToolFunction` creates a scope per call, so scoped services work per call. A container
+  without `IServiceScopeFactory` throws, naming `AddAgentic()`. Settings no longer travel through the scope (D40).
+- **Alternatives:** the root provider, which makes every scoped service a singleton.
+- **Where:** `Tools/GeneratedToolFunction.cs`.
 
 ### D12. Nullable parameters are nullable at the schema root only
 
@@ -275,22 +277,30 @@ Replaced by D29: tools are selected through generated methods and matched by nam
 ### D29. Tools are selected through generated methods
 
 - **Context:** `UseToolset<T>(params Delegate[])` accepted any delegate and checked it at runtime and in AGT007.
-- **Decision:** `UseToolset<T>(tools => tools.FindCompanies().CreateCompanyProfile())`. The generator adds one
-  method per tool to `ToolSelection<T>` through an extension block, each calling the hidden `Select(name)`. A tool of
-  another toolset has no method on this selection, so selecting it is CS1929. The lambda runs at runtime; in the
-  generator's own compilation it does not bind (the methods do not exist yet), so the parser reads the call from
-  syntax and the overload's candidate symbols.
-- **Alternatives:** method groups (`T.Method`), matched by `Delegate.Method`; a generated builder interface per agent.
+- **Decision:** `UseToolset<T>().FindCompanies().CreateCompanyProfile()`; `UseToolset<T>()` with nothing chained
+  offers every tool (D41). The generator adds one method per tool to `ToolSelection<T>` through an extension block,
+  each calling the hidden `Select(name)`. A tool of another toolset has no method on this selection, so selecting it
+  is CS1929. The calls run at runtime; in the generator's own compilation they do not bind (the methods do not exist
+  yet), so the parser reads the names chained after `UseToolset<T>()` from syntax.
+- **Alternatives:** method groups (`T.Method`), matched by `Delegate.Method`; a generated builder interface per agent;
+  a selection lambda, `UseToolset<T>(tools => tools.A())`, replaced by D41.
 - **Where:** `Tools/ToolSelection.cs`, `Parsing/AgentParser.cs` (`GetUseToolset`), `Emitting/ToolsetEmitter.cs`.
 
-### D30. `WithToolSettings` has one generated overload per settings type
+### D30. `WithToolSettings()` is a generated builder per agent
 
-- **Context:** the alpha's `WithToolSettings(object)` accepted anything and checked at runtime and in AGT012.
-- **Decision:** the generator emits a private `WithToolSettings(TSettings)` per settings type the agent's selected
-  tools read, backed by a field, and overrides the hidden `GetToolSettings(ToolName)` to return it. Settings no tool
-  reads have no overload: CS1503. The fields are read when options are resolved, so the call may come before or
-  after `UseToolset`.
-- **Where:** `Emitting/AgentEmitter.cs`, `Agents/AgentDefinition.cs`.
+- **Context:** the alpha's `WithToolSettings(object)` accepted anything and checked at runtime and in AGT012. Its
+  successor, one `WithToolSettings(TSettings)` overload per settings type, made the agent build a whole settings
+  object, and the owner asked for builder chains throughout (D41).
+- **Decision:** the generator emits a private `WithToolSettings()` returning a nested builder with one method per
+  offered tool that has settings, `WithToolSettings().SearchTickets().WithLimit(5)`. Each tool's builder has one
+  `With{Member}` per settable member of its settings record and writes `(field ?? new()) with { Member = value }`
+  into a field per tool; the hidden `GetToolSettings(ToolName)` override returns it. The agent's values still act as
+  a whole object over the code defaults, so the layering is unchanged. A tool the agent does not offer has no method:
+  a compiler error. The fields are read when options are resolved, so the call may come before or after
+  `UseToolset`. Referenced toolsets' settings members are read from the settings type in metadata.
+- **Alternatives:** one overload per settings type, which applied one object to every tool reading the type; a
+  lambda over the settings record, which is the nested builder D41 rules out.
+- **Where:** `Emitting/AgentEmitter.cs`, `Agents/AgentDefinition.cs`, `Parsing/ReferenceReader.cs`.
 
 ### D31. Agent names are optional and need not be unique
 
@@ -363,3 +373,43 @@ Replaced by D29: tools are selected through generated methods and matched by nam
   snippet links nuget.org would show as raw HTML.
 - **Where:** `src/Agentic/PACKAGE.md`.
 
+## API shape, decided with the owner
+
+### D40. A tool receives its settings as a parameter
+
+- **Context:** tools read their settings with `services.GetToolSettings<T>()` from a scoped accessor the generated
+  function filled, and AGT009 forbade a settings parameter. The owner asked for the settings to arrive as a parameter
+  the model cannot set.
+- **Decision:** a parameter of the type given to `WithSettings<T>()` is bound like `IServiceProvider`: the generated
+  function passes the settings it was created with and leaves the parameter out of the schema, so the model never
+  sees or sets it. `GetToolSettings<T>()` and the accessor are gone; AGT009 now warns about a tool with settings but
+  no such parameter, whose settings would reach nothing.
+- **Alternatives:** keeping `GetToolSettings<T>()` next to the parameter, two ways to do one thing.
+- **Where:** `Parsing/ToolsetParser.cs` (`ParameterKind.Settings`), `Emitting/ToolsetEmitter.cs`.
+
+### D41. One builder chain, never a builder inside a lambda
+
+- **Context:** `WithSettings<T>(s => s.Configurable(...))`, `WithChatOptions(options, p => p.Configurable(...))` and
+  `UseToolset<T>(tools => tools.A())` each opened a second builder inside a lambda, and chat options needed a
+  `ChatOptions` instance built by hand.
+- **Decision:** every declaration is one flat chain. `WithSettings<T>()` returns `ToolBuilder<TSettings>`, whose
+  `Configurable` is typed by the settings; it comes last in the tool's chain. `WithChatOptions()` returns a
+  `ChatOptionsBuilder` with a `With...` per chat option worth setting in code and `Configurable`. `UseToolset<T>()`
+  returns the selection itself; nothing chained offers the whole toolset, so the duplicate check runs when the
+  agent's tools are first read. Plain generics carry the chains where the library knows the types; the generator
+  writes only what it alone knows, the tool selection and `WithToolSettings()` (D29, D30).
+- **Alternatives:** generating the `Configurable` methods per settings type, which a generic builder gives for free
+  and before the generator runs; `WithName` and `WithDescription` on `ToolBuilder<TSettings>` too, flexibility no
+  chain needs.
+- **Where:** `Toolsets/ToolBuilder.cs`, `Agents/ChatOptionsBuilder.cs`, `Agents/AgentDefinition.cs`,
+  `Tools/ToolSelection.cs`.
+
+### D42. Instructions come from a virtual method
+
+- **Decision:** `AgentDefinition.GetInstructions()` returns the agent's instructions, null by default; the
+  `ChatOptionsBuilder` has no `WithInstructions`, so there is one place for them. It is called whenever a run's
+  options are resolved, never from the constructor, so an override may read anything the derived constructor set and
+  may compute the text.
+- **Alternatives:** a `WithInstructions` call, which puts long prompts into the constructor; calling it once in the
+  base constructor, before the derived constructor has run.
+- **Where:** `Agents/AgentDefinition.cs` (`CreateChatOptions`).

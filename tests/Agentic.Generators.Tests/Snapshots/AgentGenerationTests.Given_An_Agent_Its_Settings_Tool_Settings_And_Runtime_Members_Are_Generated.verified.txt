@@ -9,12 +9,11 @@ partial class ProfilingAgent
     private global::Demo.SearchWebSettings? _searchWebSettings;
 
     /// <summary>
-    /// Sets the settings the agent's tools reading them run with, <c>search_web</c>, as a whole object. Stored settings
-    /// and run settings then change only their configurable members.
+    /// Sets the settings of the agent's tools in code: pick a tool, then set its values. A tool the agent sets ignores
+    /// its stored defaults; the agent's stored settings and run settings still change its configurable values.
     /// </summary>
-    /// <param name="settings">The settings.</param>
-    private void WithToolSettings(global::Demo.SearchWebSettings settings) =>
-        _searchWebSettings = settings;
+    /// <returns>A builder with a method per tool of the agent that has settings.</returns>
+    private ToolSettingsBuilder WithToolSettings() => new(this);
 
     /// <inheritdoc />
     protected override object? GetToolSettings(global::Agentic.Tools.ToolName tool) =>
@@ -23,6 +22,57 @@ partial class ProfilingAgent
             "search_web" => _searchWebSettings,
             _ => null
         };
+
+    /// <summary>
+    /// Picks the tool whose settings the agent sets.
+    /// </summary>
+    private sealed class ToolSettingsBuilder(global::Demo.ProfilingAgent agent)
+    {
+        /// <summary>
+        /// Sets the settings of the <c>search_web</c> tool, over its code defaults.
+        /// </summary>
+        /// <returns>A builder of the tool's settings.</returns>
+        public SearchWebSettingsBuilder SearchWeb() => new(agent);
+
+        /// <summary>
+        /// Sets the settings of the <c>search_web</c> tool.
+        /// </summary>
+        public sealed class SearchWebSettingsBuilder(global::Demo.ProfilingAgent agent)
+        {
+            /// <summary>
+            /// Sets <c>Limit</c>: The most results to return.
+            /// </summary>
+            /// <param name="value">The value.</param>
+            /// <returns>The same builder, to set further values.</returns>
+            public SearchWebSettingsBuilder WithLimit(int value)
+            {
+                agent._searchWebSettings = (agent._searchWebSettings ?? new()) with { Limit = value };
+                return this;
+            }
+
+            /// <summary>
+            /// Sets <c>SafeSearch</c>: Whether explicit results are filtered.
+            /// </summary>
+            /// <param name="value">The value.</param>
+            /// <returns>The same builder, to set further values.</returns>
+            public SearchWebSettingsBuilder WithSafeSearch(bool value)
+            {
+                agent._searchWebSettings = (agent._searchWebSettings ?? new()) with { SafeSearch = value };
+                return this;
+            }
+
+            /// <summary>
+            /// Sets <c>Region</c>: The region results are ranked for.
+            /// </summary>
+            /// <param name="value">The value.</param>
+            /// <returns>The same builder, to set further values.</returns>
+            public SearchWebSettingsBuilder WithRegion(string? value)
+            {
+                agent._searchWebSettings = (agent._searchWebSettings ?? new()) with { Region = value };
+                return this;
+            }
+        }
+    }
 
     /// <summary>
     /// The settings of <see cref="Demo.ProfilingAgent"/> that may change at runtime: its model, its configurable chat
@@ -296,7 +346,7 @@ partial class WebResearchToolset
         global::Agentic.Toolsets.ToolDefinition tool,
         global::Demo.SearchWebSettings settings,
         global::Agentic.Json.AgentJson json)
-        : global::Agentic.Tools.GeneratedToolFunction(tool, settings, json)
+        : global::Agentic.Tools.GeneratedToolFunction(tool, json)
     {
         private static readonly global::System.Collections.Generic.IReadOnlyList<global::Agentic.Tools.ToolParameter> ModelParameters =
         [
@@ -322,6 +372,7 @@ partial class WebResearchToolset
             GetResult(await global::Demo.WebResearchToolset.SearchWebAsync(
                 GetArgument<string>(arguments, "query"),
                 GetArgument<string?>(arguments, "country"),
+                settings,
                 services,
                 ct));
     }
@@ -333,7 +384,7 @@ partial class WebResearchToolset
     private sealed class ReadWebPageFunction(
         global::Agentic.Toolsets.ToolDefinition tool,
         global::Agentic.Json.AgentJson json)
-        : global::Agentic.Tools.GeneratedToolFunction(tool, null, json)
+        : global::Agentic.Tools.GeneratedToolFunction(tool, json)
     {
         private static readonly global::System.Collections.Generic.IReadOnlyList<global::Agentic.Tools.ToolParameter> ModelParameters =
         [
@@ -376,7 +427,7 @@ partial class WebResearchToolset
     private sealed class ForgetFunction(
         global::Agentic.Toolsets.ToolDefinition tool,
         global::Agentic.Json.AgentJson json)
-        : global::Agentic.Tools.GeneratedToolFunction(tool, null, json)
+        : global::Agentic.Tools.GeneratedToolFunction(tool, json)
     {
         private static readonly global::System.Collections.Generic.IReadOnlyList<global::Agentic.Tools.ToolParameter> ModelParameters = [];
 

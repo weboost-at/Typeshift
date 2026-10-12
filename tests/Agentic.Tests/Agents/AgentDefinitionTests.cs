@@ -30,7 +30,7 @@ public class AgentDefinitionTests : UnitTestBase
     public void Given_A_Tool_The_Agent_Already_Offers_Adding_It_Again_Throws_An_InvalidOperationException()
     {
         // Act
-        var define = () => new DuplicatingAgent<ProbeToolset>();
+        var define = () => new DuplicatingAgent<ProbeToolset>().Tools;
 
         // Assert
         define.Should().Throw<InvalidOperationException>();

@@ -30,7 +30,11 @@ public sealed class AgentGenerator : IIncrementalGenerator
 
         var toolsetSummaries = toolsets
             .Where(static toolset => toolset.IsPartial)
-            .Select(static (toolset, _) => Summaries.From(toolset))
+            .Select(static (toolset, _) => new ToolsetSummary(
+                toolset.Type.FullName,
+                toolset.Tools
+                    .Select(tool => new ToolSummary(tool.Name, tool.Settings, tool.Location))
+                    .ToEquatableArray()))
             .Collect();
 
         var agentTypes = agents

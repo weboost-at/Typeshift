@@ -9,13 +9,14 @@ namespace Agentic.Agents;
 
 /// <summary>
 /// The base of a partial class that declares an agent in its constructor: its chat options, the tools it offers
-/// and the settings those tools run with. The generator adds the agent's typed <c>Settings</c> and a
-/// <c>WithToolSettings</c> overload per settings type its tools read.
+/// and the settings those tools run with. The generator adds the agent's typed <c>Settings</c> and
+/// <c>WithToolSettings()</c>, a builder over the settings of its tools.
 /// </summary>
 public abstract class AgentDefinition
 {
-    private readonly List<ToolDefinition> _tools = [];
-    private ChatOptions _options = new();
+    private readonly List<Func<IReadOnlyList<ToolDefinition>>> _uses = [];
+    private readonly ChatOptions _options = new();
+    private IReadOnlyList<ToolDefinition>? _tools;
     private string? _name;
 
     /// <summary>
@@ -32,7 +33,15 @@ public abstract class AgentDefinition
     /// <summary>
     /// The tools this agent offers, in the order its constructor adds them.
     /// </summary>
-    public IReadOnlyList<ToolDefinition> Tools => _tools;
+    /// <exception cref="InvalidOperationException">The agent offers two tools of the same name.</exception>
+    public IReadOnlyList<ToolDefinition> Tools => _tools ??= GetTools();
+
+    /// <summary>
+    /// The agent's instructions, its system prompt. Override it to define them, in a raw string literal say; the
+    /// agent's settings may override them where <c>Configurable(o => o.Instructions)</c> allows it.
+    /// </summary>
+    /// <returns>The instructions, or null for none; called whenever a run's options are resolved.</returns>
+    protected virtual string? GetInstructions() => null;
 
     /// <summary>
     /// Names the agent; without a name it goes by its class name.
@@ -47,42 +56,23 @@ public abstract class AgentDefinition
     protected void WithDescription(string description) => Description = description;
 
     /// <summary>
-    /// Sets the chat options the agent runs with.
+    /// Sets the chat options the agent runs with: <c>WithChatOptions().WithModel("fast-model").WithTemperature(0.3f)
+    /// .Configurable(o => o.Temperature)</c>.
     /// </summary>
-    /// <param name="options">
-    /// The options; set <see cref="ChatOptions.ModelId"/> for a model to run on by default.
-    /// </param>
-    /// <param name="configure">
-    /// Picks the options that may change at runtime, <c>picker => picker.Configurable(o => o.Temperature)</c>. The
-    /// generator reads the picks into the agent's <c>Settings</c>; at runtime the picker is never called.
-    /// </param>
-    protected void WithChatOptions(
-        ChatOptions options,
-        Action<ConfigurableSettingsPicker<ChatOptions>>? configure = null) =>
-        _options = options;
+    /// <returns>A builder that sets the options and marks those that may change at runtime.</returns>
+    protected ChatOptionsBuilder WithChatOptions() => new(_options);
 
     /// <summary>
-    /// Offers every tool of a toolset.
+    /// Offers the tools of a toolset: every tool, or only those chained after the call,
+    /// <c>UseToolset&lt;CompanyToolset&gt;().FindCompanies()</c>.
     /// </summary>
     /// <typeparam name="TToolset">The toolset.</typeparam>
-    /// <exception cref="InvalidOperationException">The agent already offers a tool of the same name.</exception>
-    protected void UseToolset<TToolset>() where TToolset : Toolset, new() => AddTools(new TToolset().Definitions);
-
-    /// <summary>
-    /// Offers the selected tools of a toolset, <c>UseToolset&lt;CompanyToolset&gt;(tools => tools.FindCompanies())</c>.
-    /// </summary>
-    /// <typeparam name="TToolset">The toolset.</typeparam>
-    /// <param name="select">Selects the tools through the methods the generator adds per tool.</param>
-    /// <exception cref="ArgumentException">A selected tool is not a tool of the toolset.</exception>
-    /// <exception cref="InvalidOperationException">The agent already offers a tool of the same name.</exception>
-    protected void UseToolset<TToolset>(Action<ToolSelection<TToolset>> select) where TToolset : Toolset, new()
+    /// <returns>A selection with one method per tool, generated.</returns>
+    protected ToolSelection<TToolset> UseToolset<TToolset>() where TToolset : Toolset, new()
     {
-        var available = new TToolset().Definitions;
-        var selection = new ToolSelection<TToolset>();
-        select(selection);
-
-        AddTools(selection.Selected.Select(tool => available.FirstOrDefault(definition => definition.Name == tool)
-            ?? throw new ArgumentException($"'{tool}' is no tool of {typeof(TToolset).Name}.", nameof(select))));
+        var selection = new ToolSelection<TToolset>(new TToolset());
+        _uses.Add(() => selection.Tools);
+        return selection;
     }
 
     /// <summary>
@@ -103,6 +93,8 @@ public abstract class AgentDefinition
         AgentJson json)
     {
         var options = _options.Clone();
+        // D42: called per resolve, never from the constructor
+        options.Instructions = GetInstructions();
         stored?.ApplyTo(options);
         run?.ApplyTo(options);
 
@@ -112,7 +104,7 @@ public abstract class AgentDefinition
         options.Tools =
         [
             .. options.Tools ?? [],
-            .. _tools.Select(tool => CreateTool(tool, stored, toolDefaults, run, json))
+            .. Tools.Select(tool => CreateTool(tool, stored, toolDefaults, run, json))
         ];
 
         return options;
@@ -136,14 +128,18 @@ public abstract class AgentDefinition
         return tool.Toolset.CreateTool(tool, layers, json);
     }
 
-    private void AddTools(IEnumerable<ToolDefinition> tools)
+    private List<ToolDefinition> GetTools()
     {
-        foreach (var tool in tools)
-        {
-            if (_tools.Any(offered => offered.Name == tool.Name))
-                throw new InvalidOperationException($"{GetType().Name} already offers a tool named '{tool.Name}'.");
+        var tools = new List<ToolDefinition>();
 
-            _tools.Add(tool);
+        foreach (var tool in _uses.SelectMany(use => use()))
+        {
+            if (tools.Any(offered => offered.Name == tool.Name))
+                throw new InvalidOperationException($"{GetType().Name} offers two tools named '{tool.Name}'.");
+
+            tools.Add(tool);
         }
+
+        return tools;
     }
 }

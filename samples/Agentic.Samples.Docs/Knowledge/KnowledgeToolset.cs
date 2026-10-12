@@ -1,4 +1,3 @@
-using Agentic.Tools;
 using Agentic.Toolsets;
 
 namespace Agentic.Samples.Docs.Knowledge;
@@ -14,18 +13,14 @@ internal partial class KnowledgeToolset : Toolset
     public KnowledgeToolset() =>
         AddTool(SearchArticles)
             .WithName("search_articles")
-            .WithSettings<SearchArticlesSettings>(settings => settings
-                .Configurable(s => s.Language));
+            .WithSettings<SearchArticlesSettings>()
+            .Configurable(s => s.Language);
 
     /// <summary>
     /// Searches the help center's articles.
     /// </summary>
     /// <param name="question">The customer's question.</param>
-    /// <param name="services">The services of the call.</param>
-    public static IReadOnlyList<Article> SearchArticles(string question, IServiceProvider services)
-    {
-        var settings = services.GetToolSettings<SearchArticlesSettings>();
-
-        return [.. Articles.Where(article => article.Language == settings.Language).Take(settings.Limit)];
-    }
+    /// <param name="settings">The settings the search runs with.</param>
+    public static IReadOnlyList<Article> SearchArticles(string question, SearchArticlesSettings settings) =>
+        [.. Articles.Where(article => article.Language == settings.Language).Take(settings.Limit)];
 }

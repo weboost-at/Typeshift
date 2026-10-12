@@ -4,8 +4,4 @@ namespace Agentic.Generators.Models;
 internal sealed record ToolsetSummary(string Type, EquatableArray<ToolSummary> Tools);
 
 // Location is null for a tool of a referenced assembly
-internal sealed record ToolSummary(
-    string Name,
-    string? Settings,
-    EquatableArray<string> Configurable,
-    LocationInfo? Location);
+internal sealed record ToolSummary(string Name, SettingsModel? Settings, LocationInfo? Location);

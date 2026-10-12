@@ -14,15 +14,13 @@ public abstract class GeneratedToolFunction : AIFunction
     private readonly AgentJson _json;
 
     /// <summary>
-    /// Creates the function of a tool, running with the given resolved settings.
+    /// Creates the function of a tool.
     /// </summary>
     /// <param name="definition">The tool as its toolset declares it.</param>
-    /// <param name="settings">The settings every call runs with, or null for a tool without settings.</param>
     /// <param name="json">The options arguments and results are bound with.</param>
-    protected GeneratedToolFunction(ToolDefinition definition, object? settings, AgentJson json)
+    protected GeneratedToolFunction(ToolDefinition definition, AgentJson json)
     {
         Definition = definition;
-        Settings = settings;
         _json = json;
     }
 
@@ -30,11 +28,6 @@ public abstract class GeneratedToolFunction : AIFunction
     /// The tool as its toolset declares it.
     /// </summary>
     public ToolDefinition Definition { get; }
-
-    /// <summary>
-    /// The resolved settings every call of this function runs with.
-    /// </summary>
-    public object? Settings { get; }
 
     /// <inheritdoc />
     public override string Name => Definition.Name.Value;
@@ -64,13 +57,11 @@ public abstract class GeneratedToolFunction : AIFunction
                 $"The tool '{Name}' needs the services of a container built with AddAgentic().");
 
         await using var scope = scopes.CreateAsyncScope();
-        scope.ServiceProvider.GetRequiredService<ToolSettingsAccessor>().Settings = Settings;
-
         return await InvokeToolAsync(arguments, scope.ServiceProvider, ct);
     }
 
     /// <summary>
-    /// Binds the arguments and calls the tool method with the call's scoped services.
+    /// Binds the arguments and calls the tool method with the call's scoped services and the tool's settings.
     /// </summary>
     /// <param name="arguments">The model's arguments.</param>
     /// <param name="services">The services of the call's own scope.</param>

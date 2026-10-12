@@ -23,10 +23,10 @@ A namespace follows its folder.
 
 | Folder | Holds |
 |---|---|
-| `Tools/` | `ToolName`, `ToolRef` and `ToolRef<TSettings, TOverrides>`, `ToolSelection<T>`, `ToolParameter`, the `GeneratedToolFunction` base every generated tool derives from, the bindings, and `GetToolSettings<T>()`. |
-| `Toolsets/` | `Toolset`, `ToolDefinition` and the `AddTool(...)` builder. |
-| `Settings/` | `IToolOverrides`, the layering (`ToolSettingsLayers`), `ToolDefaults` and the settings picker. |
-| `Agents/` | `AgentDefinition`, `AgentRuntime` and `AgentRuntime<TAgent>`, `IAgentSettings`, `ChatExecutionContext`, `IChatClientProvider`. |
+| `Tools/` | `ToolName`, `ToolRef` and `ToolRef<TSettings, TOverrides>`, `ToolSelection<T>`, `ToolParameter`, the `GeneratedToolFunction` base every generated tool derives from, and the bindings. |
+| `Toolsets/` | `Toolset`, `ToolDefinition` and the `AddTool(...)` builders, `ToolBuilder` and `ToolBuilder<TSettings>`. |
+| `Settings/` | `IToolOverrides`, the layering (`ToolSettingsLayers`) and `ToolDefaults`. |
+| `Agents/` | `AgentDefinition`, `ChatOptionsBuilder`, `AgentRuntime` and `AgentRuntime<TAgent>`, `IAgentSettings`, `ChatExecutionContext`, `IChatClientProvider`. |
 | `Catalogs/` | `ToolCatalog`, every tool the host can see, created by name. |
 | `Conversations/` | The conversation tracking: `TrackedChatClient`, `ConversationTracker`, the sessions, `StoredConversation`, and the bridge that parses conversation ids into the store's id type. |
 | `Persistence/` | `IAgenticStore<TId>`, `IStorable<TSelf>`, the `StorableJson` helpers generated code serializes with, and `InMemoryAgenticStore<TId>`. |
@@ -43,11 +43,11 @@ an unrelated edit leaves every output cached.
    base list that is not abstract; the transform checks semantically whether it derives from `Toolset` or
    `AgentDefinition`. Generic classes are left alone (D6).
 2. **Parsing** turns symbols into models. `ConstructorChains` reads the constructor through `IOperation`: every
-   `AddTool(...).WithName(...).WithDescription(...).WithSettings<T>(...)` chain, and in agents `WithChatOptions`
-   and the configurable picks. `UseToolset<T>(tools => tools.A().B())` does not bind in the generator's own
-   compilation, because the selection methods are what it generates, so `AgentParser` reads it from syntax and the
-   overload's candidate symbols (D29). `Storage` decides per configurable member how the records write and read it,
-   or reports AGT014.
+   `AddTool(...).WithName(...).WithDescription(...).WithSettings<T>().Configurable(...)` chain, and in agents the
+   `Configurable(...)` calls of the `WithChatOptions()` chain. The calls chained after `UseToolset<T>()` do not bind
+   in the generator's own compilation, because the selection methods are what it generates, so `AgentParser` reads
+   them from syntax (D29). `Storage` decides per configurable member how the records write and read it, or reports
+   AGT014.
 3. **Models** hold only strings, bools and `EquatableArray<T>`; locations are `LocationInfo` and diagnostics
    `DiagnosticInfo`, both value types. An agent model holds the toolset's type name and the selected tool names,
    never the toolset's syntax.
@@ -65,7 +65,7 @@ What it writes:
 | For | Generated |
 |---|---|
 | each toolset | The stamps; a `Tools` class of typed `ToolRef`s; per tool with configurable settings a `{Tool}Overrides` record; the `GetBinding` switch; per tool a binding and a sealed `AIFunction` subclass; a `{Toolset}Selection` extension block with one selection method per tool. |
-| each agent | Per settings type its tools read a private `WithToolSettings` overload and field, the `GetToolSettings` override, the nested `Settings` record, and a `{Agent}RuntimeExtensions` extension block on `AgentRuntime<TAgent>`. |
+| each agent | Per tool with settings a field, set through a private `WithToolSettings()` builder (nested `ToolSettingsBuilder` with one `{Tool}SettingsBuilder` per tool); the `GetToolSettings` override; the nested `Settings` record; and a `{Agent}RuntimeExtensions` extension block on `AgentRuntime<TAgent>`. |
 | each assembly | `Agentic.Generated.{Assembly}Module`, which registers the assembly's toolsets and agents with factory lambdas, plus its assembly stamp. |
 | each `AddAgentic()` call | One interceptor that registers the core services, the own module and every referenced module. |
 
@@ -88,12 +88,12 @@ registered as `AgentRuntime` too, so a host can list them.
 The generated function derives from `GeneratedToolFunction`, which derives from `AIFunction`.
 
 1. `FunctionInvokingChatClient` calls `InvokeAsync` with the model's arguments and the root service provider.
-2. `GeneratedToolFunction.InvokeCoreAsync` creates a DI scope for the call and puts the tool's resolved settings in the
-   scope's settings accessor, so `services.GetToolSettings<T>()` returns them and scoped services are per call (D11).
+2. `GeneratedToolFunction.InvokeCoreAsync` creates a DI scope for the call, so scoped services are per call (D11).
 3. The generated `InvokeToolAsync` binds each parameter with `GetArgument<T>`: values that are already `T`, JSON
    elements and JSON text are converted through `JsonTypeInfo<T>`; a missing required argument throws an
-   `ArgumentException`, an absent optional one takes its default. Services, the token and the raw arguments are
-   passed through.
+   `ArgumentException`, an absent optional one takes its default. The resolved settings, which the function received
+   when it was created, the services, the token and the raw arguments are passed through and are not in the schema
+   (D40).
 4. The result is serialized through `JsonTypeInfo` into a `JsonElement`, which reaches the model as JSON.
 
 The schema of each function type is built once and cached in `AgentJson`: one `AIJsonUtilities.CreateJsonSchema` per
@@ -107,14 +107,15 @@ A tool with settings resolves them per run from five layers, lowest first:
 1. the code defaults, the settings record's parameterless constructor;
 2. the stored tool defaults, the tool's `{Tool}Overrides` stored under the run's id, skipped when the agent sets the
    tool's settings in code;
-3. the agent's code settings (`WithToolSettings`), applied as a whole object;
+3. the agent's code settings (`WithToolSettings()`), the code defaults with the values the agent's code set, applied
+   as a whole object;
 4. the agent's stored settings, its `Settings` stored under the id, through their `{Tool}Overrides` property;
 5. the run's `Settings`.
 
 Layers 2, 4 and 5 are `IToolOverrides<TSettings>`: their `ApplyTo` returns a `with` copy in which every non-null
 member replaces the one below. Only configurable members exist on them, so a member that is not configurable cannot
-be set at all. Chat options layer the same way through `IAgentSettings.ApplyTo`: the agent's code options, its stored
-`Settings`, then the run's; `Model` sets `ModelId` (D34). The conversation id comes from the run; the execution
+be set at all. Chat options layer the same way through `IAgentSettings.ApplyTo`: the agent's code options with the
+instructions of `GetInstructions()`, its stored `Settings`, then the run's; `Model` sets `ModelId` (D34). The conversation id comes from the run; the execution
 context is always the agent's name.
 
 ## Agents at runtime

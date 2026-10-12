@@ -12,28 +12,35 @@ snippet: agent
 - **`WithName`** is optional; without it the agent goes by its class name. The name labels the execution context of
   the agent's conversations. It need not be unique, since nothing is stored by name.
 - **`WithDescription`** says what the agent does, for people choosing among agents.
-- **`WithChatOptions`** sets the `ChatOptions` every run starts from. `ModelId` is the model the agent runs on unless
-  its settings say otherwise. Tools set here, a hosted web search for example, are offered before the toolsets'
-  tools.
+- **`WithChatOptions()`** starts a chain that sets the chat options every run starts from: `WithModel`,
+  `WithTemperature`, `WithMaxOutputTokens` and one `With...` per other option. `WithModel` names the model the agent
+  runs on unless its settings say otherwise. Tools added with `WithTools`, a hosted web search for example, are
+  offered before the toolsets' tools.
+- **`GetInstructions()`** is a virtual method returning the agent's instructions, its system prompt. Override it,
+  with a raw string literal for anything longer than a line. It runs whenever a run's options are resolved, so the
+  instructions may also be computed.
 
 ## Selecting tools
 
-`UseToolset<T>()` offers every tool of a toolset. `UseToolset<T>(tools => ...)` offers the tools the lambda selects,
-through one method per tool that the generator adds to the selection, named after the tool:
+`UseToolset<T>()` offers every tool of a toolset. Chain tools after it, `UseToolset<T>().SearchTickets().GetTicket()`,
+to offer only those: the generator adds one method per tool to the selection, named after the tool, so
 `search_tickets` is `SearchTickets()`. A tool of another toolset has no method there, so selecting it does not
-compile. Offering one tool twice throws an `InvalidOperationException` when the agent is created.
+compile. Keep the chain in one expression; the generator reads it from the syntax. Offering one tool twice throws an
+`InvalidOperationException` when the agent's tools are first read.
 
 ## Configurable chat options
 
-The picker of `WithChatOptions` marks the chat options that may change at runtime. Like the settings picks, it is
-read by the generator only. Configurable options must have a type the settings can store
-([AGT014](./diagnostics.md#agt014)).
+`Configurable(o => o.Temperature)` in the `WithChatOptions()` chain marks a chat option that may change at runtime,
+whether the code sets it or not. Like the settings picks, it is read by the generator only. Configurable options must
+have a type the settings can store ([AGT014](./diagnostics.md#agt014)).
 
 ## Tool settings
 
-`WithToolSettings(...)` sets the settings the agent's tools run with, as a whole object, over the tool's code
-defaults. The generator writes one overload per settings type the agent's selected tools read, so passing settings
-no tool of the agent reads does not compile. The settings apply to every tool of the agent that reads that type.
+`WithToolSettings()` sets the settings the agent's tools run with, over the tool's code defaults:
+`WithToolSettings().SearchTickets().WithLimit(5)`. The generator writes it per agent, with one method per offered
+tool that has settings and one `With...` per settable member of the tool's settings record, configurable or not. A
+tool the agent does not offer has no method, so setting its settings does not compile. A tool the agent sets this way
+no longer takes its stored defaults; see [the layers](./tool-settings.md#the-layers).
 
 ## The generated settings
 

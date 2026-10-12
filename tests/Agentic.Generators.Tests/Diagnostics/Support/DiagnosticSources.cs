@@ -95,7 +95,7 @@ public static class DiagnosticSources
         }
         """;
 
-    public const string SettingsAsParameter =
+    public const string UnreadSettings =
         """
         using Agentic.Toolsets;
 
@@ -111,7 +111,7 @@ public static class DiagnosticSources
             public EchoToolset() =>
                 AddTool(Echo).WithName("echo").WithDescription("Echoes.").WithSettings<EchoSettings>();
 
-            public static string Echo(string text, EchoSettings settings) => text;
+            public static string Echo(string text) => text;
         }
         """;
 
@@ -184,7 +184,7 @@ public static class DiagnosticSources
             public EchoAgent()
             {
                 WithName("echo_agent");
-                UseToolset<EchoToolset>(tools => tools.Shout());
+                UseToolset<EchoToolset>().Shout();
             }
         }
         """;
@@ -220,18 +220,12 @@ public static class DiagnosticSources
         }
         """;
 
-    public const string UnreadToolSettings =
+    public const string SettingsOfAnUnofferedTool =
         """
-        using System;
         using Agentic.Agents;
         using Agentic.Toolsets;
 
         namespace Demo;
-
-        public record EchoSettings
-        {
-            public int Repeat { get; init; } = 1;
-        }
 
         public record ToneSettings
         {
@@ -240,18 +234,23 @@ public static class DiagnosticSources
 
         public partial class EchoToolset : Toolset
         {
-            public EchoToolset() =>
+            public EchoToolset()
+            {
                 AddTool(Echo).WithName("echo").WithDescription("Echoes.").WithSettings<ToneSettings>();
+                AddTool(Shout).WithName("shout").WithDescription("Shouts.").WithSettings<ToneSettings>();
+            }
 
-            public static string Echo(string text, IServiceProvider services) => text;
+            public static string Echo(string text, ToneSettings settings) => text;
+
+            public static string Shout(string text, ToneSettings settings) => text;
         }
 
         public partial class EchoAgent : AgentDefinition
         {
             public EchoAgent()
             {
-                UseToolset<EchoToolset>();
-                WithToolSettings(new EchoSettings());
+                UseToolset<EchoToolset>().Echo();
+                WithToolSettings().Shout().WithLoud(true);
             }
         }
         """;
@@ -275,7 +274,6 @@ public static class DiagnosticSources
 
     public const string InternalSettingsOfPublicToolset =
         """
-        using System;
         using Agentic.Toolsets;
 
         namespace Demo;
@@ -292,16 +290,16 @@ public static class DiagnosticSources
                 AddTool(Echo)
                     .WithName("echo")
                     .WithDescription("Echoes the text.")
-                    .WithSettings<EchoSettings>(settings => settings.Configurable(s => s.Repeat));
+                    .WithSettings<EchoSettings>()
+                    .Configurable(s => s.Repeat);
             }
 
-            public static string Echo(string text, IServiceProvider services) => text;
+            public static string Echo(string text, EchoSettings settings) => text;
         }
         """;
 
     public const string UnsupportedSetting =
         """
-        using System;
         using System.Collections.Generic;
         using Agentic.Toolsets;
 
@@ -318,23 +316,22 @@ public static class DiagnosticSources
                 AddTool(Echo)
                     .WithName("echo")
                     .WithDescription("Echoes.")
-                    .WithSettings<EchoSettings>(settings => settings.Configurable(s => s.Weights));
+                    .WithSettings<EchoSettings>()
+                    .Configurable(s => s.Weights);
 
-            public static string Echo(string text, IServiceProvider services) => text;
+            public static string Echo(string text, EchoSettings settings) => text;
         }
         """;
 
     public const string UnsupportedChatOption =
         """
         using Agentic.Agents;
-        using Microsoft.Extensions.AI;
 
         namespace Demo;
 
         public partial class EchoAgent : AgentDefinition
         {
-            public EchoAgent() =>
-                WithChatOptions(new ChatOptions(), picker => picker.Configurable(o => o.ResponseFormat));
+            public EchoAgent() => WithChatOptions().Configurable(o => o.ResponseFormat);
         }
         """;
 }

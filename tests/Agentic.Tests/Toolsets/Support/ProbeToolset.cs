@@ -1,4 +1,3 @@
-using Agentic.Tools;
 using Agentic.Toolsets;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,14 +20,15 @@ public partial class ProbeToolset : Toolset
         AddTool(Probe)
             .WithName("probe")
             .WithDescription("Returns what it was called with and the settings it runs with.")
-            .WithSettings<ProbeSettings>(settings => settings
-                .Configurable(s => s.Limit));
+            .WithSettings<ProbeSettings>()
+            .Configurable(s => s.Limit);
     }
 
     public static ProbeResult Probe(
         string query,
+        ProbeSettings settings,
         IServiceProvider serviceProvider,
         AIFunctionArguments arguments,
         CancellationToken ct) =>
-        new(query, serviceProvider.GetToolSettings<ProbeSettings>(), serviceProvider.GetService<CallScope>()?.Id);
+        new(query, settings, serviceProvider.GetService<CallScope>()?.Id);
 }

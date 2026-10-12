@@ -34,6 +34,29 @@ public class AgentRuntimeTests : AgentTestBase
     }
 
     [Fact]
+    public void Given_Instructions_In_Code_The_Options_Carry_Them()
+    {
+        // Act
+        var options = Runtime.ResolveChatOptions();
+
+        // Assert
+        options.Instructions.Should().Be(ProbeAgent.CodeInstructions);
+    }
+
+    [Fact]
+    public void Given_Run_Instructions_They_Apply_Over_The_Code()
+    {
+        // Arrange
+        var run = new ProbeAgent.Settings { Instructions = Agent.Instructions };
+
+        // Act
+        var options = Runtime.ResolveChatOptions(run);
+
+        // Assert
+        options.Instructions.Should().Be(Agent.Instructions);
+    }
+
+    [Fact]
     public void Given_A_Conversation_Id_The_Options_Carry_It()
     {
         // Act

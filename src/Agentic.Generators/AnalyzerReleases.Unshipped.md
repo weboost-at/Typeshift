@@ -13,7 +13,7 @@ AGT005 | Agentic | Error | Settings type is not a record
 AGT006 | Agentic | Error | Toolset was not compiled with the generator
 AGT007 | Agentic | Error | Tool name is not unique
 AGT008 | Agentic | Warning | Tool has no description
-AGT009 | Agentic | Error | Tool takes its settings as a parameter
+AGT009 | Agentic | Warning | Tool does not take its settings
 AGT010 | Agentic | Warning | Tool relies on XML docs that are not generated
 AGT011 | Agentic | Warning | Referenced assembly was not compiled with the generator
 AGT012 | Agentic | Error | Tool name is not lower_snake_case

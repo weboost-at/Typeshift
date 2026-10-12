@@ -16,23 +16,17 @@ internal static class AgentParser
     {
         var diagnostics = new DiagnosticBag();
         var isPartial = agent.IsPartial(ct);
-        var options = new List<ChatOptionModel>();
 
         if (!isPartial) diagnostics.Report(Descriptors.NotPartial, agent.Locations.FirstOrDefault(), agent.Name);
 
-        var calls = ConstructorChains.GetInvocations(agent, compilation, ct)
-            .Where(invocation => invocation.TargetMethod.ContainingType.Is(KnownTypes.AgentDefinition));
-
-        foreach (var call in calls)
-        {
-            switch (call.TargetMethod.Name)
-            {
-                case "WithChatOptions":
-                    options.AddRange(ReadConfigurableOptions(call, compilation, diagnostics));
-                    break;
-
-            }
-        }
+        var options = ConstructorChains.GetInvocations(agent, compilation, ct)
+            .Where(call => call.TargetMethod.Name == "Configurable"
+                && call.TargetMethod.ContainingType.Is(KnownTypes.ChatOptionsBuilder))
+            .OrderBy(call => ConstructorChains.GetCalledName(call).SpanStart)
+            .Select(call => ReadConfigurableOption(call, diagnostics))
+            .OfType<ChatOptionModel>()
+            .GroupBy(option => option.Name)
+            .Select(group => group.First());
 
         return new AgentModel(
             Type: TypeModels.From(agent),
@@ -42,35 +36,24 @@ internal static class AgentParser
             Diagnostics: diagnostics.ToEquatableArray());
     }
 
-    private static IEnumerable<ChatOptionModel> ReadConfigurableOptions(
-        IInvocationOperation call,
-        Compilation compilation,
-        DiagnosticBag diagnostics)
+    private static ChatOptionModel? ReadConfigurableOption(IInvocationOperation call, DiagnosticBag diagnostics)
     {
-        var chatOptions = compilation.GetTypeByMetadataName(KnownTypes.ChatOptions);
+        if (ConstructorChains.GetPickedProperty(call) is not { } property) return null;
 
-        var picked = ConstructorChains.GetPickedProperties(call, KnownTypes.ConfigurableSettingsPicker)
-            .Select(name => chatOptions?.GetMembers(name).OfType<IPropertySymbol>().FirstOrDefault())
-            .OfType<IPropertySymbol>();
+        if (Storage.Of(property.Type) is { } storage)
+            return new ChatOptionModel(property.Name, property.Type.ToNullableFullyQualified(), storage);
 
-        foreach (var property in picked)
-        {
-            if (Storage.Of(property.Type) is { } storage)
-            {
-                yield return new ChatOptionModel(property.Name, property.Type.ToNullableFullyQualified(), storage);
-                continue;
-            }
+        diagnostics.Report(
+            Descriptors.UnsupportedConfigurableType,
+            ConstructorChains.GetCalledName(call),
+            property.Name,
+            property.Type.ToDisplayString());
 
-            diagnostics.Report(
-                Descriptors.UnsupportedConfigurableType,
-                ConstructorChains.GetCalledName(call),
-                property.Name,
-                property.Type.ToDisplayString());
-        }
+        return null;
     }
 
-    // D29: the selection methods are generated, so in the generator's own view a selection does not bind: the call is
-    // read from its syntax, and its target from the overload candidates
+    // D29: the selection methods are generated, so in the generator's own view they do not bind: the calls chained
+    // after UseToolset<T>() are read from their syntax
     private static IEnumerable<ToolsetUseModel> ReadUses(
         INamedTypeSymbol agent,
         Compilation compilation,
@@ -82,16 +65,18 @@ internal static class AgentParser
 
             foreach (var call in constructor.DescendantNodes().OfType<InvocationExpressionSyntax>())
             {
-                if (GetUseToolset(call) is not { } name || !IsUseToolset(model.GetSymbolInfo(call, ct))) continue;
-                if (model.GetTypeInfo(name.TypeArgumentList.Arguments[0], ct).Type is not { } toolset) continue;
+                if (GetUseToolset(call) is not { } name) continue;
 
-                var arguments = call.ArgumentList.Arguments;
+                if (model.GetSymbolInfo(call, ct).Symbol is not IMethodSymbol method
+                    || !method.ContainingType.Is(KnownTypes.AgentDefinition))
+                    continue;
+
+                var toolset = method.TypeArguments[0];
 
                 yield return new ToolsetUseModel(
                     Toolset: toolset.ToTypeOf(),
                     IsPublic: toolset.IsEffectivelyPublic(),
-                    All: arguments.Count == 0,
-                    Selected: arguments.Count == 0 ? [] : GetSelectionCalls(arguments[0].Expression).ToEquatableArray(),
+                    Selected: GetChainedNames(call).ToEquatableArray(),
                     Location: LocationInfo.From(name.GetLocation()));
             }
         }
@@ -105,23 +90,14 @@ internal static class AgentParser
             _ => null
         };
 
-    private static bool IsUseToolset(SymbolInfo symbol) =>
-        (symbol.Symbol is null ? symbol.CandidateSymbols : [symbol.Symbol])
-        .Any(candidate => candidate.ContainingType.Is(KnownTypes.AgentDefinition));
-
-    // tools => tools.A().B(), or a block of such statements, read in source order
-    private static IEnumerable<string> GetSelectionCalls(SyntaxNode select) =>
-        select switch
+    // UseToolset<T>().A().B(): the names called on the result, outwards
+    private static IEnumerable<string> GetChainedNames(ExpressionSyntax call)
+    {
+        for (var current = call;
+             current.Parent is MemberAccessExpressionSyntax access && access.Parent is InvocationExpressionSyntax outer;
+             current = outer)
         {
-            LambdaExpressionSyntax { ExpressionBody: { } body } => GetChainedNames(body),
-            LambdaExpressionSyntax { Block: { } block } => block.Statements
-                .OfType<ExpressionStatementSyntax>()
-                .SelectMany(statement => GetChainedNames(statement.Expression)),
-            _ => []
-        };
-
-    private static IEnumerable<string> GetChainedNames(ExpressionSyntax expression) =>
-        expression is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax access }
-            ? [.. GetChainedNames(access.Expression), access.Name.Identifier.ValueText]
-            : [];
+            yield return access.Name.Identifier.ValueText;
+        }
+    }
 }

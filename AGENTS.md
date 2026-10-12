@@ -29,8 +29,10 @@ Each of these cost a debugging session once.
 
 - The generator targets netstandard2.0 and Roslyn 4.14: no `Index`/`Range`, no list patterns, no newer Roslyn APIs.
 - Generator models must stay equatable: no `ISymbol`, `SyntaxNode` or `Location` in them, or caching breaks.
-- `UseToolset<T>(tools => tools.X())` does not bind inside the generator's own compilation, since the generator writes
-  `X()`; the parser reads it from syntax (D29).
+- `UseToolset<T>().X()` does not bind inside the generator's own compilation, since the generator writes `X()`; the
+  parser reads the chained names from syntax (D29).
+- No builder inside a lambda: every declaration is one chain (D41). Tools receive their settings as a parameter
+  (D40), never through the services.
 - Generated code compiles into the consumer and sees only public API; what only it calls is public and hidden from
   editors (D35).
 - Generated `Settings` and `Overrides` serialize member by member through `StorableJson`; no `JsonSerializerContext`

@@ -42,8 +42,11 @@ internal static class ToolsetEmitter
             },
             writer => WriteSelection(writer, toolset));
 
-    public static bool HasOverrides(ToolModel tool) =>
-        tool.Settings?.Properties.Any(property => property.IsConfigurable) is true;
+    private static bool HasOverrides(ToolModel tool) => tool.Settings?.HasConfigurable is true;
+
+    // A tool whose method takes no settings is warned about (AGT009) and created without them
+    private static bool ReadsSettings(ToolModel tool) =>
+        tool.Parameters.Any(parameter => parameter.Kind == ParameterKind.Settings);
 
     // Other compilations read the tools of this toolset from these stamps
     private static string GetStamp(ToolModel tool)
@@ -210,14 +213,18 @@ internal static class ToolsetEmitter
     private static void WriteBinding(SourceWriter writer, ToolModel tool)
     {
         var name = Names.ToPascalCase(tool.Name);
+        var settings = ReadsSettings(tool) ? "settings, " : "";
 
-        var (create, function) = tool.Settings switch
+        var create = tool.Settings switch
         {
-            null => ("Create", $"static (tool, json) => new {name}Function(tool, json)"),
-            { } settings when HasOverrides(tool) =>
-                ($"Create<{settings.Type}, {Names.OverridesName(tool.Name)}>", SettingsFunction(name)),
-            { } settings => ($"Create<{settings.Type}>", SettingsFunction(name))
+            null => "Create",
+            { } model when HasOverrides(tool) => $"Create<{model.Type}, {Names.OverridesName(tool.Name)}>",
+            { } model => $"Create<{model.Type}>"
         };
+
+        var function = tool.Settings is null
+            ? $"static (tool, json) => new {name}Function(tool, json)"
+            : $"static (tool, settings, json) => new {name}Function(tool, {settings}json)";
 
         writer.Line($"private static readonly {ToolBinding} {name}Binding =");
 
@@ -232,23 +239,18 @@ internal static class ToolsetEmitter
         }
     }
 
-    private static string SettingsFunction(string name) =>
-        $"static (tool, settings, json) => new {name}Function(tool, settings, json)";
-
     private static void WriteFunction(SourceWriter writer, ToolModel tool)
     {
         var name = Names.ToPascalCase(tool.Name);
-        var settings = tool.Settings is { } model ? $"{model.Type} settings" : null;
-        var passedSettings = settings is null ? "null" : "settings";
 
         writer.Line($"private sealed class {name}Function(");
 
         using (writer.Indent())
         {
             writer.Line($"{ToolDefinition} tool,");
-            if (settings is not null) writer.Line($"{settings},");
+            if (ReadsSettings(tool)) writer.Line($"{tool.Settings!.Type} settings,");
             writer.Line("global::Agentic.Json.AgentJson json)");
-            writer.Line($": global::Agentic.Tools.GeneratedToolFunction(tool, {passedSettings}, json)");
+            writer.Line(": global::Agentic.Tools.GeneratedToolFunction(tool, json)");
         }
 
         using (writer.Block())
@@ -376,6 +378,7 @@ internal static class ToolsetEmitter
         parameter.Kind switch
         {
             ParameterKind.Services => "services",
+            ParameterKind.Settings => "settings",
             ParameterKind.CancellationToken => "ct",
             ParameterKind.Arguments => "arguments",
             _ when parameter.HasDefaultValue =>

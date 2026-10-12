@@ -18,9 +18,9 @@ internal partial class TicketToolset : Toolset
 
         AddTool(SearchTickets)
             .WithName("search_tickets")
-            .WithSettings<SearchTicketsSettings>(settings => settings
-                .Configurable(s => s.Limit)
-                .Configurable(s => s.IncludeClosed));
+            .WithSettings<SearchTicketsSettings>()
+            .Configurable(s => s.IncludeClosed)
+            .Configurable(s => s.Limit);
 
         AddTool(GetTicketAsync)
             .WithName("get_ticket")
@@ -31,14 +31,13 @@ internal partial class TicketToolset : Toolset
     /// Searches the customer's support tickets, newest first.
     /// </summary>
     /// <param name="query">Words the ticket's title contains.</param>
+    /// <param name="settings">The settings the search runs with; the model never sees them.</param>
     /// <param name="services">The services of the call.</param>
-    public static IReadOnlyList<Ticket> SearchTickets(string query, IServiceProvider services)
-    {
-        var settings = services.GetToolSettings<SearchTicketsSettings>();
-        var tickets = services.GetRequiredService<ITicketClient>();
-
-        return tickets.Search(query, settings.IncludeClosed, settings.Limit);
-    }
+    public static IReadOnlyList<Ticket> SearchTickets(
+        string query,
+        SearchTicketsSettings settings,
+        IServiceProvider services) =>
+        services.GetRequiredService<ITicketClient>().Search(query, settings.IncludeClosed, settings.Limit);
 
     /// <param name="number">The ticket's number.</param>
     /// <param name="services">The services of the call.</param>
@@ -47,7 +46,7 @@ internal partial class TicketToolset : Toolset
         services.GetRequiredService<ITicketClient>().GetAsync(number, ct);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Tickets/TicketToolset.cs#L7-L48' title='Snippet source file'>snippet source</a> | <a href='#snippet-toolset' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Tickets/TicketToolset.cs#L6-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-toolset' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - **The method** is a static method group, `AddTool(SearchTickets)`. Lambdas and instance methods are reported as
@@ -59,7 +58,8 @@ internal partial class TicketToolset : Toolset
 - **The description** comes from `WithDescription(...)`, or else from the method's `<summary>`. A tool without
   either is reported as [AGT008](./diagnostics.md#agt008); summaries need `GenerateDocumentationFile`
   ([AGT010](./diagnostics.md#agt010)).
-- **`WithSettings<T>`** gives the tool a settings record; see [tool settings](./tool-settings.md).
+- **`WithSettings<T>()`** gives the tool a settings record, and the `Configurable(...)` calls after it mark what
+  may change at runtime; see [tool settings](./tool-settings.md). It comes last in the chain.
 - **`DisplayName`** is an optional name for people, in a tool picker for example.
 
 ## Parameters
@@ -69,7 +69,8 @@ except these, which the call fills:
 
 | Type | Receives |
 |---|---|
-| `IServiceProvider` | The services of the call: a DI scope of its own per call, holding the tool's settings. |
+| The settings record of `WithSettings<T>()` | The tool's resolved settings. |
+| `IServiceProvider` | The services of the call: a DI scope of its own per call. |
 | `CancellationToken` | The call's token. |
 | `AIFunctionArguments` | The raw arguments the model sent. |
 

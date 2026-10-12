@@ -21,48 +21,33 @@ internal static class AgentEmitter
 
     private static void WriteMembers(SourceWriter writer, AgentOutput output)
     {
-        var settingsTypes = output.Tools
-            .Where(tool => tool.Settings is not null)
-            .GroupBy(tool => tool.Settings!)
-            .ToList();
+        var tools = output.Tools.Where(tool => tool.Settings?.Properties.Count > 0).ToList();
 
-        if (settingsTypes.Count > 0)
+        if (tools.Count > 0)
         {
-            WriteToolSettings(writer, settingsTypes);
+            WriteToolSettings(writer, output.Agent, tools);
             writer.Line();
         }
 
         WriteSettings(writer, output.Agent, output.Tools);
     }
 
-    // A field and a WithToolSettings overload per settings type the agent's tools read, nothing for any other type
-    private static void WriteToolSettings(SourceWriter writer, IReadOnlyList<IGrouping<string, ResolvedTool>> types)
+    // D30: a field per tool with settings, set through the WithToolSettings() builder; nothing for any other tool
+    private static void WriteToolSettings(SourceWriter writer, AgentModel agent, IReadOnlyList<ResolvedTool> tools)
     {
-        var fields = GetFieldNames(types.Select(type => type.Key).ToList());
-
-        foreach (var type in types)
+        foreach (var tool in tools)
         {
-            writer.Line($"private {type.Key}? {fields[type.Key]};");
+            writer.Line($"private {tool.Settings!.Type}? {Field(tool)};");
         }
 
-        foreach (var type in types)
-        {
-            var tools = string.Join(", ", type.Select(tool => $"<c>{tool.Name}</c>"));
-
-            writer.Line();
-            Docs.WriteSummary(
-                writer,
-                $"Sets the settings the agent's tools reading them run with, {tools}, as a whole object. Stored "
-                + "settings and run settings then change only their configurable members.");
-            Docs.WriteParam(writer, "settings", "The settings.");
-            writer.Line($"private void WithToolSettings({type.Key} settings) =>");
-
-            using (writer.Indent())
-            {
-                writer.Line($"{fields[type.Key]} = settings;");
-            }
-        }
-
+        writer.Line();
+        Docs.WriteSummary(
+            writer,
+            "Sets the settings of the agent's tools in code: pick a tool, then set its values. A tool the agent sets "
+            + "ignores its stored defaults; the agent's stored settings and run settings still change its "
+            + "configurable values.");
+        Docs.WriteReturns(writer, "A builder with a method per tool of the agent that has settings.");
+        writer.Line("private ToolSettingsBuilder WithToolSettings() => new(this);");
         writer.Line();
         Docs.WriteInheritDoc(writer);
         writer.Line("protected override object? GetToolSettings(global::Agentic.Tools.ToolName tool) =>");
@@ -73,31 +58,74 @@ internal static class AgentEmitter
 
             using (writer.Block(close: "};"))
             {
-                foreach (var tool in types.SelectMany(type => type))
+                foreach (var tool in tools)
                 {
-                    writer.Line($"{Names.Literal(tool.Name)} => {fields[tool.Settings!]},");
+                    writer.Line($"{Names.Literal(tool.Name)} => {Field(tool)},");
                 }
 
                 writer.Line("_ => null");
             }
         }
+
+        var selectors = tools.ToDictionary(
+            tool => tool,
+            tool => Names.Unreserved(Names.SelectorName(tool.Name), "Tool", ["ToolSettingsBuilder"]));
+
+        writer.Line();
+        Docs.WriteSummary(writer, "Picks the tool whose settings the agent sets.");
+
+        using (writer.Block($"private sealed class ToolSettingsBuilder({agent.Type.FullName} agent)"))
+        {
+            foreach (var tool in tools)
+            {
+                var builder = Names.Unreserved(
+                    $"{Names.ToPascalCase(tool.Name)}SettingsBuilder",
+                    "Type",
+                    [.. selectors.Values]);
+
+                Docs.WriteSummary(writer, $"Sets the settings of the <c>{tool.Name}</c> tool, over its code defaults.");
+                Docs.WriteReturns(writer, "A builder of the tool's settings.");
+                writer.Line($"public {builder} {selectors[tool]}() => new(agent);");
+                writer.Line();
+                WriteToolSettingsBuilder(writer, agent, tool, builder);
+                if (tool != tools[tools.Count - 1]) writer.Line();
+            }
+        }
     }
 
-    // _findCompaniesSettings for FindCompaniesSettings, numbered when two namespaces share a type name
-    private static Dictionary<string, string> GetFieldNames(IReadOnlyList<string> types)
+    private static void WriteToolSettingsBuilder(SourceWriter writer, AgentModel agent, ResolvedTool tool, string type)
     {
-        var fields = new Dictionary<string, string>();
+        var field = $"agent.{Field(tool)}";
 
-        foreach (var type in types)
+        Docs.WriteSummary(writer, $"Sets the settings of the <c>{tool.Name}</c> tool.");
+
+        using (writer.Block($"public sealed class {type}({agent.Type.FullName} agent)"))
         {
-            var name = type.Substring(type.LastIndexOf('.') + 1);
-            var field = "_" + char.ToLowerInvariant(name[0]) + name.Substring(1);
-            var taken = fields.Values.Count(existing => existing == field || existing.StartsWith(field + "_"));
+            foreach (var property in tool.Settings!.Properties)
+            {
+                if (property != tool.Settings.Properties[0]) writer.Line();
 
-            fields[type] = taken == 0 ? field : $"{field}_{taken + 1}";
+                Docs.WriteSummary(
+                    writer,
+                    $"Sets <c>{property.Name}</c>{(property.Summary is { } summary ? $": {summary}" : ".")}");
+                Docs.WriteParam(writer, "value", "The value.");
+                Docs.WriteReturns(writer, "The same builder, to set further values.");
+                writer.Line($"public {type} With{property.Name}({property.Type} value)");
+
+                using (writer.Block())
+                {
+                    writer.Line($"{field} = ({field} ?? new()) with {{ {Names.Identifier(property.Name)} = value }};");
+                    writer.Line("return this;");
+                }
+            }
         }
+    }
 
-        return fields;
+    // _searchWebSettings for search_web; tool names are unique, so are the fields
+    private static string Field(ResolvedTool tool)
+    {
+        var name = Names.ToPascalCase(tool.Name);
+        return $"_{char.ToLowerInvariant(name[0])}{name.Substring(1)}Settings";
     }
 
     private static void WriteSettings(SourceWriter writer, AgentModel agent, IReadOnlyList<ResolvedTool> tools)

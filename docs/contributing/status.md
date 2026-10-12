@@ -69,6 +69,13 @@ live here, never as TODOs in code.
 
 - [x] Playbooks for recurring changes, decision IDs cited in code, guard tests for the repository's own rules
 
+### Milestone 12: one chain per declaration (D40-D42)
+
+- [x] `WithSettings<T>().Configurable(...)`, `WithChatOptions().With...()`, `UseToolset<T>().A()`: no builder inside a
+      lambda
+- [x] Settings arrive as a tool parameter the model never sees; `GetToolSettings<T>()` removed
+- [x] `GetInstructions()`; the generated `WithToolSettings()` builder per agent
+
 ## Behavior coverage
 
 Every rule of `spec/behaviors.md` maps to one test or more; a behavior that bundles several rules has one test per
@@ -96,7 +103,7 @@ rule. Where the owner's review changed a behavior, the row says how.
 | 18 | `AgentRuntimeTests.Given_The_Agents_Tool_Settings_Its_Tools_Run_With_All_Of_Them` |
 | 19 | `AgentRuntimeTests.Given_Run_Tool_Settings_Their_Values_Apply_Over_The_Agents_Own` |
 | 20 | `AgentRuntimeTests.Given_Run_Tool_Settings_The_Next_Run_Uses_The_Agents_Own` |
-| 21 | `DiagnosticTests.Given_Tool_Settings_No_Tool_Of_The_Agent_Reads_WithToolSettings_Does_Not_Compile` (a compiler error since D30) |
+| 21 | `DiagnosticTests.Given_Settings_Of_A_Tool_The_Agent_Does_Not_Offer_WithToolSettings_Does_Not_Compile` (a compiler error since D30) |
 | 22 | Changed by D31, names are optional and free-form: `AgentDefinitionTests.Given_WithName_The_Agent_Goes_By_That_Name`, `..._Given_No_WithName_The_Agent_Goes_By_Its_Class_Name` |
 | 23 | Dropped by D31: names need not be unique |
 | 24 | `AgentSettingsTests.Exposes_Only_The_Model_The_Configurable_Chat_Options_And_The_Configurable_Tools`, `..._Given_Values_Configured_Under_An_Id_The_Run_Resolves_With_Them`, `..._Given_Settings_Saved_Under_An_Id_They_Load_Back_Equal`, `..._Given_No_Settings_Saved_Under_An_Id_Loading_Returns_Empty_Settings`, `..._Given_Settings_Under_Two_Ids_Each_Run_Resolves_With_Its_Own` |
@@ -164,6 +171,9 @@ moved code staying cached). CI builds and runs `samples/Agentic.Samples.PackageC
 - **Fixed tracking limits:** the publish interval (100 ms) and the subscriber limits (250 ms per session, 5 s for the
   tracker) are constants, as in the owner's code.
 - **Generated line length:** generated code is `global::`-qualified and some declarations exceed 120 columns.
+- **Selection chains are read from syntax:** `UseToolset<T>().A()` must be one expression. Splitting it,
+  `var tickets = UseToolset<T>(); tickets.A();`, offers only `A` at runtime while the generator assumes every tool of
+  `T` (D29).
 
 ## Next steps
 
@@ -184,9 +194,11 @@ From the [decisions](./decisions.md), the ones that shape the API the most:
    persistent APIs throw.
 2. **D27:** the generated `Settings` and `{Tool}Overrides` records, their JSON shape and the storable member types.
 3. **D28:** tool defaults are stored under the agent's id.
-4. **D29, D30:** tool selection and `WithToolSettings` are generated, so misuse is a compiler error.
-5. **D33:** conversation ids are parsed into the store's id type; a call without one is not stored.
-6. **D1, D4:** `AddAgentic()` exists only as an intercepted call; the typed runtime members are C# 14 extension
+4. **D29, D30:** tool selection and `WithToolSettings()` are generated, so misuse is a compiler error.
+5. **D40, D41, D42:** settings arrive as a tool parameter; every declaration is one flat chain; instructions come
+   from `GetInstructions()`.
+6. **D33:** conversation ids are parsed into the store's id type; a call without one is not stored.
+7. **D1, D4:** `AddAgentic()` exists only as an intercepted call; the typed runtime members are C# 14 extension
    blocks.
-7. **D37, D38:** releases are tags published through nuget.org trusted publishing; the package ID is still to be
+8. **D37, D38:** releases are tags published through nuget.org trusted publishing; the package ID is still to be
    chosen.

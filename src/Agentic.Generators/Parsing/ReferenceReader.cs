@@ -27,15 +27,16 @@ internal static class ReferenceReader
         return new ReferenceModel(modules.ToEquatableArray(), ungenerated.ToEquatableArray());
     }
 
-    public static ToolSummary ReadTool(AttributeData stamp)
+    private static ToolSummary ReadTool(AttributeData stamp)
     {
         var arguments = stamp.ConstructorArguments;
+        var configurable = arguments[2].Values.Select(value => (string)value.Value!).ToList();
 
-        return new ToolSummary(
-            Name: (string)arguments[0].Value!,
-            Settings: (arguments[1].Value as ITypeSymbol)?.ToTypeOf(),
-            Configurable: arguments[2].Values.Select(value => (string)value.Value!).ToEquatableArray(),
-            Location: null);
+        var settings = arguments[1].Value is ITypeSymbol type
+            ? ToolsetParser.CreateSettings(type, configurable, _ => null)
+            : null;
+
+        return new ToolSummary((string)arguments[0].Value!, settings, Location: null);
     }
 
     private static bool UsesLibrary(IAssemblySymbol assembly) =>

@@ -11,7 +11,7 @@ public partial class HostedToolAgent : AgentDefinition
         WithName("hosted_tool_agent");
         WithDescription("Searches the web through its provider, then probes.");
 
-        WithChatOptions(new ChatOptions { Tools = [new HostedWebSearchTool()] });
+        WithChatOptions().WithTools(new HostedWebSearchTool());
 
         UseToolset<ProbeToolset>();
     }
