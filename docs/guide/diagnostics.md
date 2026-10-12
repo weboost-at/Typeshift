@@ -1,8 +1,7 @@
 # Diagnostics
 
-The generator reports these diagnostics while it reads toolsets, agents and the `AddAgentic()` call. They are declared
-in `src/Agentic.Generators/Diagnostics/Descriptors.cs`, tracked in `src/Agentic.Generators/AnalyzerReleases.Unshipped.md`,
-and each one has its own test in `tests/Agentic.Generators.Tests/Diagnostics/DiagnosticTests.cs`.
+The generator reports these diagnostics while it reads toolsets, agents and the `AddAgentic()` call. Errors stop the
+build before a mistake can reach runtime; warnings point at something that works but is probably not meant.
 
 Two mistakes need no diagnostic, because the generated API makes them compiler errors:
 

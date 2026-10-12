@@ -36,7 +36,7 @@ Rename in this order, then run the checks at the end.
 | `src/Agentic.Generators/Diagnostics/Descriptors.cs` | The IDs, and `Category`, which is the library's name. |
 | `src/Agentic.Generators/AnalyzerReleases.Unshipped.md` | The release-tracking table; the analyzer checks it against the descriptors. |
 | `tests/Agentic.Generators.Tests/Diagnostics/DiagnosticTests.cs` | One test per ID, named after it. |
-| Docs | `docs/diagnostics.md` (headings and anchors), `docs/status.md`, `docs/decisions.md`, `README.md`. |
+| Docs | `docs/guide/diagnostics.md` (headings and anchors), `docs/contributing/`, `README.md`. |
 
 ## 4. The generator project `Agentic.Generators`
 
@@ -48,7 +48,7 @@ Rename in this order, then run the checks at the end.
 | `tests/Agentic.Generators.Tests/` | The folder, the project file, its namespaces and its reference. |
 | `src/Agentic.Generators/Agentic.Generators.csproj` | `InternalsVisibleTo Agentic.Generators.Tests`. |
 | `tests/Agentic.Tests/Testing/Conventions/TestSources.cs`, `TestConventionTests.cs` | The test project names the conventions read. |
-| `Agentic.slnx`, `AGENTS.md`, `docs/architecture.md` | Paths and prose. |
+| `Agentic.slnx`, `AGENTS.md`, `docs/contributing/architecture.md` | Paths and prose. |
 
 ## 5. The root namespace and package `Agentic`
 
@@ -64,7 +64,7 @@ Rename in this order, then run the checks at the end.
 | `samples/` | The project names, `RootNamespace`, namespaces, and the package consumer's `PackageReference`, `PackageVersion` and `NuGet.config` source mapping. |
 | `build/UseGenerator.props` | The project reference and the props import. |
 | `.github/workflows/ci.yml` | The pack and run paths. |
-| Repository files | `Agentic.slnx`, `Directory.Build.props` (`PackageProjectUrl`, `RepositoryUrl`, which also carry the repository name `agentic-dotnet`), `README.md`, `AGENTS.md`, `CHANGELOG.md`, `docs/`. |
+| Repository files | `Agentic.slnx`, `Directory.Build.props` (`PackageProjectUrl`, `RepositoryUrl`, which also carry the repository name `agentic-dotnet`), `README.md`, `AGENTS.md`, `CHANGELOG.md`, `docs/`; the repository URL in `mdsnippets.json` (`UrlPrefix`) and `docs/.vitepress/config.mts`, whose Pages base is the repository name. |
 
 `git grep -n "Agentic"` lists every occurrence; `git ls-files | grep Agentic` every path.
 

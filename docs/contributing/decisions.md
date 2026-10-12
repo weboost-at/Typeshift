@@ -97,7 +97,7 @@ commit, or add a new one and withdraw the old.
   - AGT007 is reported on the first own declaration, or on `AddAgentic()` when the clash is only among references.
   - The spec's agent-name diagnostics went with D31; selecting a foreign tool and passing unread tool settings
     became compiler errors (D29, D30).
-- **Where:** `Diagnostics/Descriptors.cs`, `docs/diagnostics.md`.
+- **Where:** `Diagnostics/Descriptors.cs`, `docs/guide/diagnostics.md`.
 
 ### D9. Every project that declares toolsets or agents references the package
 
@@ -204,7 +204,7 @@ Replaced by D25 and D26. Tool defaults now load one document per tool, in parall
 
 - **Context:** the spec names the repository `agentic-dotnet`; the work happened in `weboost-at/Agentic`.
 - **Decision:** `Directory.Build.props` keeps `https://github.com/weboost-at/agentic-dotnet`, the spec's name, and
-  `docs/renaming.md` lists it.
+  [renaming](./renaming.md) lists it.
 
 ## Runtime, decided in the review pass
 
@@ -303,7 +303,7 @@ Replaced by D29: tools are selected through generated methods and matched by nam
 - **Context:** stored agents (`StoredAgent`, export, the agent catalog) required unique names and a schema of
   their own. The owner chose to drop them; hosts decide how to store anything beyond settings.
 - **Decision:** removed, with the spec's behaviors 38 to 40.
-- **Where:** nothing left; `docs/status.md` records the dropped behaviors.
+- **Where:** nothing left; [status](./status.md) records the dropped behaviors.
 
 ### D33. Conversation ids are parsed into the store's id type
 

@@ -1,0 +1,8 @@
+{
+  "$schema": "https://raw.githubusercontent.com/SimonCropp/MarkdownSnippets/master/schema.json",
+  "Convention": "InPlaceOverwrite",
+  "LinkFormat": "GitHub",
+  "UrlPrefix": "https://github.com/weboost-at/Agentic/blob/main",
+  "ExcludeDirectories": [ ".context", "artifacts", "node_modules", "bin", "obj" ],
+  "TreatMissingAsWarning": false
+}

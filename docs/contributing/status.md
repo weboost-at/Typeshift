@@ -57,7 +57,7 @@ live here, never as TODOs in code.
 
 ### Milestone 9: documentation site
 
-- [ ] VitePress site on GitHub Pages; snippets taken from compiled code by mdsnippets and checked in CI
+- [x] VitePress site on GitHub Pages; snippets taken from compiled code by mdsnippets and checked in CI
 - [ ] README rewritten
 
 ### Milestone 10: distribution
@@ -175,7 +175,7 @@ moved code staying cached). CI builds and runs `samples/Agentic.Samples.PackageC
 
 ## Decisions to review first
 
-From `docs/decisions.md`, the ones that shape the API the most:
+From the [decisions](./decisions.md), the ones that shape the API the most:
 
 1. **D25, D26:** one store of self-serializing documents, keyed by type and the host's id; without it the
    persistent APIs throw.

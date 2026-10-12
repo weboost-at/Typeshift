@@ -8,6 +8,13 @@
         "slopwatch"
       ],
       "rollForward": false
+    },
+    "markdownsnippets.tool": {
+      "version": "28.5.0",
+      "commands": [
+        "mdsnippets"
+      ],
+      "rollForward": false
     }
   }
 }

@@ -1,6 +1,6 @@
 namespace Agentic.Settings;
 
-// The layers a tool's settings resolve from, lowest first, see docs/architecture.md
+// The layers a tool's settings resolve from, lowest first, see docs/contributing/architecture.md
 internal sealed record ToolSettingsLayers
 {
     public IToolOverrides? Defaults { get; init; }

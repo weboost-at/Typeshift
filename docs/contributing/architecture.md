@@ -3,7 +3,7 @@
 Agentic is one package with two assemblies: the runtime library `Agentic` and the Roslyn generator
 `Agentic.Generators`, which the package ships as an analyzer. The developer writes toolsets and agents as ordinary
 classes; the generator reads them at compile time and writes everything that would otherwise need reflection. The
-decisions behind each part are in `docs/decisions.md`, cited here as D-numbers.
+decisions behind each part are in [decisions](./decisions.md), cited here as D-numbers.
 
 ```text
 developer code           generator, at compile time                   runtime
