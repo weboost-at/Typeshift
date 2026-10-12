@@ -1,0 +1,369 @@
+using System.Buffers;
+using System.ComponentModel;
+using System.Globalization;
+using System.Text;
+using System.Text.Json;
+
+namespace Agentic.Persistence;
+
+/// <summary>
+/// Writes and reads the JSON of generated <see cref="IStorable{TSelf}"/> data, member by member and without
+/// reflection. Generated code calls it; a null member is left out, and a missing or mistyped one reads as null.
+/// </summary>
+[EditorBrowsable(EditorBrowsableState.Never)]
+public static class StorableJson
+{
+    /// <summary>
+    /// Writes a JSON object.
+    /// </summary>
+    /// <param name="writeMembers">Writes the members of the object.</param>
+    /// <returns>The object as JSON text.</returns>
+    public static string Write(Action<Utf8JsonWriter> writeMembers)
+    {
+        var buffer = new ArrayBufferWriter<byte>();
+
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+            writeMembers(writer);
+            writer.WriteEndObject();
+        }
+
+        return Encoding.UTF8.GetString(buffer.WrittenSpan);
+    }
+
+    /// <summary>
+    /// Reads a JSON object.
+    /// </summary>
+    /// <typeparam name="T">The data the object holds.</typeparam>
+    /// <param name="json">The JSON text.</param>
+    /// <param name="readMembers">Reads the data from the object.</param>
+    /// <returns>The data.</returns>
+    /// <exception cref="JsonException">The text is not a JSON object.</exception>
+    public static T Read<T>(string json, Func<JsonElement, T> readMembers)
+    {
+        using var document = JsonDocument.Parse(json);
+
+        if (document.RootElement.ValueKind is not JsonValueKind.Object)
+            throw new JsonException($"Stored data must be a JSON object, not {document.RootElement.ValueKind}.");
+
+        return readMembers(document.RootElement);
+    }
+
+    /// <summary>
+    /// Writes a string member.
+    /// </summary>
+    /// <param name="writer">The writer of the enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <param name="value">The value; null leaves the member out.</param>
+    public static void Write(Utf8JsonWriter writer, string name, string? value)
+    {
+        if (value is not null) writer.WriteString(name, value);
+    }
+
+    /// <summary>
+    /// Writes a Boolean member.
+    /// </summary>
+    /// <param name="writer">The writer of the enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <param name="value">The value; null leaves the member out.</param>
+    public static void Write(Utf8JsonWriter writer, string name, bool? value)
+    {
+        if (value is { } boolean) writer.WriteBoolean(name, boolean);
+    }
+
+    /// <summary>
+    /// Writes a number member.
+    /// </summary>
+    /// <param name="writer">The writer of the enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <param name="value">The value; null leaves the member out.</param>
+    public static void Write(Utf8JsonWriter writer, string name, byte? value)
+    {
+        if (value is { } number) writer.WriteNumber(name, number);
+    }
+
+    /// <inheritdoc cref="Write(Utf8JsonWriter, string, byte?)"/>
+    public static void Write(Utf8JsonWriter writer, string name, short? value)
+    {
+        if (value is { } number) writer.WriteNumber(name, number);
+    }
+
+    /// <inheritdoc cref="Write(Utf8JsonWriter, string, byte?)"/>
+    public static void Write(Utf8JsonWriter writer, string name, int? value)
+    {
+        if (value is { } number) writer.WriteNumber(name, number);
+    }
+
+    /// <inheritdoc cref="Write(Utf8JsonWriter, string, byte?)"/>
+    public static void Write(Utf8JsonWriter writer, string name, long? value)
+    {
+        if (value is { } number) writer.WriteNumber(name, number);
+    }
+
+    /// <inheritdoc cref="Write(Utf8JsonWriter, string, byte?)"/>
+    public static void Write(Utf8JsonWriter writer, string name, float? value)
+    {
+        if (value is { } number) writer.WriteNumber(name, number);
+    }
+
+    /// <inheritdoc cref="Write(Utf8JsonWriter, string, byte?)"/>
+    public static void Write(Utf8JsonWriter writer, string name, double? value)
+    {
+        if (value is { } number) writer.WriteNumber(name, number);
+    }
+
+    /// <inheritdoc cref="Write(Utf8JsonWriter, string, byte?)"/>
+    public static void Write(Utf8JsonWriter writer, string name, decimal? value)
+    {
+        if (value is { } number) writer.WriteNumber(name, number);
+    }
+
+    /// <summary>
+    /// Writes a <see cref="Guid"/> member as a string.
+    /// </summary>
+    /// <param name="writer">The writer of the enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <param name="value">The value; null leaves the member out.</param>
+    public static void Write(Utf8JsonWriter writer, string name, Guid? value)
+    {
+        if (value is { } guid) writer.WriteString(name, guid);
+    }
+
+    /// <summary>
+    /// Writes a <see cref="DateTime"/> member as an ISO 8601 string.
+    /// </summary>
+    /// <param name="writer">The writer of the enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <param name="value">The value; null leaves the member out.</param>
+    public static void Write(Utf8JsonWriter writer, string name, DateTime? value)
+    {
+        if (value is { } time) writer.WriteString(name, time);
+    }
+
+    /// <summary>
+    /// Writes a <see cref="DateTimeOffset"/> member as an ISO 8601 string.
+    /// </summary>
+    /// <param name="writer">The writer of the enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <param name="value">The value; null leaves the member out.</param>
+    public static void Write(Utf8JsonWriter writer, string name, DateTimeOffset? value)
+    {
+        if (value is { } time) writer.WriteString(name, time);
+    }
+
+    /// <summary>
+    /// Writes a <see cref="TimeSpan"/> member as a constant-format string, <c>1.02:03:04</c>.
+    /// </summary>
+    /// <param name="writer">The writer of the enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <param name="value">The value; null leaves the member out.</param>
+    public static void Write(Utf8JsonWriter writer, string name, TimeSpan? value)
+    {
+        if (value is { } span) writer.WriteString(name, span.ToString("c", CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// Writes a string list member as an array.
+    /// </summary>
+    /// <param name="writer">The writer of the enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <param name="values">The values; null leaves the member out.</param>
+    public static void Write(Utf8JsonWriter writer, string name, IEnumerable<string>? values)
+    {
+        if (values is null) return;
+
+        writer.WriteStartArray(name);
+
+        foreach (var value in values)
+        {
+            writer.WriteStringValue(value);
+        }
+
+        writer.WriteEndArray();
+    }
+
+    /// <summary>
+    /// Writes an enum member by its name, so reordering the enum keeps stored values.
+    /// </summary>
+    /// <typeparam name="TEnum">The enum type.</typeparam>
+    /// <param name="writer">The writer of the enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <param name="value">The value; null leaves the member out.</param>
+    public static void WriteEnum<TEnum>(Utf8JsonWriter writer, string name, TEnum? value) where TEnum : struct, Enum
+    {
+        if (value is { } member) writer.WriteString(name, member.ToString());
+    }
+
+    /// <summary>
+    /// Writes nested storable data as an object member.
+    /// </summary>
+    /// <typeparam name="TData">The type of the nested data.</typeparam>
+    /// <param name="writer">The writer of the enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <param name="value">The data; null leaves the member out.</param>
+    public static void WriteStorable<TData>(Utf8JsonWriter writer, string name, TData? value)
+        where TData : class, IStorable<TData>
+    {
+        if (value is null) return;
+
+        writer.WritePropertyName(name);
+        writer.WriteRawValue(value.Serialize());
+    }
+
+    /// <summary>
+    /// Writes an object member.
+    /// </summary>
+    /// <param name="writer">The writer of the enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <param name="writeMembers">Writes the members of the nested object.</param>
+    public static void WriteObject(Utf8JsonWriter writer, string name, Action<Utf8JsonWriter> writeMembers)
+    {
+        writer.WriteStartObject(name);
+        writeMembers(writer);
+        writer.WriteEndObject();
+    }
+
+    /// <summary>
+    /// Reads a string member.
+    /// </summary>
+    /// <param name="data">The enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <returns>The value, or null when the member is missing or not a string.</returns>
+    public static string? ReadString(JsonElement data, string name) =>
+        Find(data, name) is { ValueKind: JsonValueKind.String } value ? value.GetString() : null;
+
+    /// <summary>
+    /// Reads a Boolean member.
+    /// </summary>
+    /// <param name="data">The enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <returns>The value, or null when the member is missing or not a Boolean.</returns>
+    public static bool? ReadBoolean(JsonElement data, string name) =>
+        Find(data, name) switch
+        {
+            { ValueKind: JsonValueKind.True } => true,
+            { ValueKind: JsonValueKind.False } => false,
+            _ => null
+        };
+
+    /// <summary>
+    /// Reads a number member.
+    /// </summary>
+    /// <param name="data">The enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <returns>The value, or null when the member is missing or not a number of that type.</returns>
+    public static byte? ReadByte(JsonElement data, string name) =>
+        Number(data, name) is { } value && value.TryGetByte(out var number) ? number : null;
+
+    /// <inheritdoc cref="ReadByte"/>
+    public static short? ReadInt16(JsonElement data, string name) =>
+        Number(data, name) is { } value && value.TryGetInt16(out var number) ? number : null;
+
+    /// <inheritdoc cref="ReadByte"/>
+    public static int? ReadInt32(JsonElement data, string name) =>
+        Number(data, name) is { } value && value.TryGetInt32(out var number) ? number : null;
+
+    /// <inheritdoc cref="ReadByte"/>
+    public static long? ReadInt64(JsonElement data, string name) =>
+        Number(data, name) is { } value && value.TryGetInt64(out var number) ? number : null;
+
+    /// <inheritdoc cref="ReadByte"/>
+    public static float? ReadSingle(JsonElement data, string name) =>
+        Number(data, name) is { } value && value.TryGetSingle(out var number) ? number : null;
+
+    /// <inheritdoc cref="ReadByte"/>
+    public static double? ReadDouble(JsonElement data, string name) =>
+        Number(data, name) is { } value && value.TryGetDouble(out var number) ? number : null;
+
+    /// <inheritdoc cref="ReadByte"/>
+    public static decimal? ReadDecimal(JsonElement data, string name) =>
+        Number(data, name) is { } value && value.TryGetDecimal(out var number) ? number : null;
+
+    /// <summary>
+    /// Reads a <see cref="Guid"/> member.
+    /// </summary>
+    /// <param name="data">The enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <returns>The value, or null when the member is missing or not a GUID string.</returns>
+    public static Guid? ReadGuid(JsonElement data, string name) =>
+        Text(data, name) is { } value && value.TryGetGuid(out var guid) ? guid : null;
+
+    /// <summary>
+    /// Reads a <see cref="DateTime"/> member.
+    /// </summary>
+    /// <param name="data">The enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <returns>The value, or null when the member is missing or not an ISO 8601 string.</returns>
+    public static DateTime? ReadDateTime(JsonElement data, string name) =>
+        Text(data, name) is { } value && value.TryGetDateTime(out var time) ? time : null;
+
+    /// <summary>
+    /// Reads a <see cref="DateTimeOffset"/> member.
+    /// </summary>
+    /// <param name="data">The enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <returns>The value, or null when the member is missing or not an ISO 8601 string.</returns>
+    public static DateTimeOffset? ReadDateTimeOffset(JsonElement data, string name) =>
+        Text(data, name) is { } value && value.TryGetDateTimeOffset(out var time) ? time : null;
+
+    /// <summary>
+    /// Reads a <see cref="TimeSpan"/> member.
+    /// </summary>
+    /// <param name="data">The enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <returns>The value, or null when the member is missing or not a time span string.</returns>
+    public static TimeSpan? ReadTimeSpan(JsonElement data, string name) =>
+        TimeSpan.TryParse(ReadString(data, name), CultureInfo.InvariantCulture, out var span) ? span : null;
+
+    /// <summary>
+    /// Reads a string list member.
+    /// </summary>
+    /// <param name="data">The enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <returns>The values, or null when the member is missing or not an array.</returns>
+    public static string[]? ReadStrings(JsonElement data, string name) =>
+        Find(data, name) is { ValueKind: JsonValueKind.Array } values
+            ? [.. values.EnumerateArray().Where(IsString).Select(value => value.GetString()!)]
+            : null;
+
+    /// <summary>
+    /// Reads an enum member by its name.
+    /// </summary>
+    /// <typeparam name="TEnum">The enum type.</typeparam>
+    /// <param name="data">The enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <returns>The value, or null when the member is missing or names no member of the enum.</returns>
+    public static TEnum? ReadEnum<TEnum>(JsonElement data, string name) where TEnum : struct, Enum =>
+        Enum.TryParse<TEnum>(ReadString(data, name), out var member) ? member : null;
+
+    /// <summary>
+    /// Reads nested storable data.
+    /// </summary>
+    /// <typeparam name="TData">The type of the nested data.</typeparam>
+    /// <param name="data">The enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <returns>The data, or null when the member is missing or not an object.</returns>
+    public static TData? ReadStorable<TData>(JsonElement data, string name) where TData : class, IStorable<TData> =>
+        Find(data, name) is { ValueKind: JsonValueKind.Object } value ? TData.Deserialize(value.GetRawText()) : null;
+
+    /// <summary>
+    /// Reads an object member, to read its own members from.
+    /// </summary>
+    /// <param name="data">The enclosing object.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <returns>The object; a missing member reads as an element every read on returns null for.</returns>
+    public static JsonElement ReadObject(JsonElement data, string name) =>
+        Find(data, name) is { ValueKind: JsonValueKind.Object } value ? value : default;
+
+    private static JsonElement? Find(JsonElement data, string name) =>
+        data.ValueKind is JsonValueKind.Object && data.TryGetProperty(name, out var value) ? value : null;
+
+    private static JsonElement? Number(JsonElement data, string name) =>
+        Find(data, name) is { ValueKind: JsonValueKind.Number } value ? value : null;
+
+    private static JsonElement? Text(JsonElement data, string name) =>
+        Find(data, name) is { ValueKind: JsonValueKind.String } value ? value : null;
+
+    private static bool IsString(JsonElement value) => value.ValueKind is JsonValueKind.String;
+}

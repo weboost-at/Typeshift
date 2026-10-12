@@ -1,6 +1,4 @@
-using System.Text.Json;
 using Agentic.Agents;
-using Agentic.Catalogs;
 using Agentic.Conversations;
 using Agentic.Json;
 using Agentic.Persistence;
@@ -8,7 +6,6 @@ using Agentic.Persistence.InMemory;
 using Agentic.Samples;
 using Agentic.Samples.Chat;
 using Agentic.Samples.Companies;
-using Agentic.StoredAgents;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -16,79 +13,56 @@ using Microsoft.Extensions.DependencyInjection;
 var services = new ServiceCollection();
 
 services.AddAgentic();
+services.AddAgenticStore<InMemoryAgenticStore<Guid>, Guid>();
+services.AddSingleton<IChatClientProvider, ScriptedChatClientProvider>();
 services.Configure<AgentJsonOptions>(options => options.TypeInfoResolverChain.Add(AppJsonContext.Default));
 
-services.AddSingleton<IChatClientProvider, ScriptedChatClientProvider>();
-services.AddSingleton<IAgentConfigurationStore, InMemoryAgentConfigurationStore>();
-services.AddSingleton<IToolDefaultsStore, InMemoryToolDefaultsStore>();
-services.AddSingleton<IAgentDefinitionStore, InMemoryAgentDefinitionStore>();
-services.AddSingleton<IConversationStore, InMemoryConversationStore>();
-
-await using var provider = services.BuildServiceProvider(new ServiceProviderOptions
-{
-    ValidateOnBuild = true,
-    ValidateScopes = true
-});
+await using var provider = services.BuildServiceProvider();
 
 var time = provider.GetRequiredService<TimeProvider>();
-var conversations = provider.GetRequiredService<IConversationStore>();
-var json = provider.GetRequiredService<AgentJson>();
-
-// Typed settings: only what the agent's code marks configurable can be stored
 var research = provider.GetRequiredService<AgentRuntime<ResearchAgent>>();
 
-await research.ConfigureAsync(configuration =>
+// Typed settings: ResearchAgent.Settings holds only what the agent's code marks configurable, stored per id
+var customer = Guid.CreateVersion7(time.GetUtcNow());
+
+await research.ConfigureAsync(customer, settings => settings with
 {
-    configuration.Model = "scripted-model";
-    configuration.Temperature = 0.4f;
-    configuration.FindCompanies.Limit = 2;
+    Model = "scripted-model",
+    Temperature = 0.4f,
+    FindCompanies = settings.FindCompanies with { Limit = 2 }
 });
 
-// A tool loop: the model calls find_companies, which runs with the resolved settings
+// A tool loop: the model calls find_companies, which runs with the settings stored for the customer
 var conversationId = Guid.CreateVersion7(time.GetUtcNow());
-
-var run = new RunOverrides
-{
-    ChatOptions = new ChatOptions { ConversationId = conversationId.ToString() }
-};
-
-var client = await research.CreateChatClientAsync();
-var options = await research.ResolveChatOptionsAsync(run);
+var options = await research.ResolveChatOptionsAsync(customer, conversationId: conversationId.ToString());
+var client = await research.CreateChatClientAsync(options);
 var answer = await client.GetResponseAsync("Vienna", options);
 
-Console.WriteLine($"{ResearchAgent.Name}: {answer.Text}");
+Console.WriteLine($"{research.Definition.Name}: {answer.Text}");
 
-// A tracked conversation: every exchange is stored under the agent that ran it, as a document a store can persist
-var conversation = await conversations.LoadAsync(conversationId, CancellationToken.None)
+// A tracked conversation: stored under its id through the same store, as JSON
+var store = provider.GetRequiredService<IAgenticStore<Guid>>();
+
+var conversation = await store.LoadAsync<StoredConversation>(conversationId, CancellationToken.None)
     ?? throw new InvalidOperationException("The conversation was not stored.");
 
-var document = JsonSerializer.Serialize(conversation, json.GetTypeInfo<StoredConversation>());
-var restored = JsonSerializer.Deserialize(document, json.GetTypeInfo<StoredConversation>())!;
-
 Console.WriteLine(
-    $"Stored {restored.AggregatedMessages.Count} messages of {restored.ExecutionContext.Value}, " +
-    $"{restored.AggregatedUsage.TotalTokenCount} tokens, read back from JSON");
+    $"Stored {conversation.AggregatedMessages.Count} messages of {conversation.ExecutionContext.Value}, " +
+    $"{conversation.AggregatedUsage.TotalTokenCount} tokens");
 
-// A stored agent: defined as data, it runs through the same path as a code agent
-var catalog = provider.GetRequiredService<AgentCatalog>();
-
-var scout = StoredAgent.Create("Market scout", time) with
+// Run settings: one run overrides configurable values from the code alone, without storing them
+var run = new ResearchAgent.Settings
 {
-    Description = "Scouts the active companies of a city.",
-    Tools = [CompanyToolset.Tools.FindCompanies.Name]
+    Model = "scripted-model",
+    FindCompanies = new CompanyToolset.FindCompaniesOverrides { Limit = 1 }
 };
 
-await catalog.SaveAsync(scout);
+var runOptions = research.ResolveChatOptions(run);
+var runClient = await research.CreateChatClientAsync(runOptions);
 
-var scoutRuntime = await catalog.GetRuntimeAsync(scout.UniqueName);
-await scoutRuntime.UpdateConfigurationAsync(configuration => configuration with { Model = "scripted-model" });
+Console.Write($"{research.Definition.Name}, one run: ");
 
-var scoutClient = await scoutRuntime.CreateChatClientAsync();
-var scoutOptions = await scoutRuntime.ResolveChatOptionsAsync();
-
-Console.Write($"{scout.DisplayName}: ");
-
-await foreach (var update in scoutClient.GetStreamingResponseAsync("Graz", scoutOptions))
+await foreach (var update in runClient.GetStreamingResponseAsync("Vienna", runOptions))
     Console.Write(update.Text);
 
 Console.WriteLine();

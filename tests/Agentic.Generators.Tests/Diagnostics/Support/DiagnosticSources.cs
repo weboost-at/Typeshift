@@ -154,31 +154,7 @@ public static class DiagnosticSources
 
         public class EchoAgent : AgentDefinition
         {
-            public EchoAgent() => WithUniqueName("echo_agent");
-        }
-        """;
-
-    public const string AgentWithoutName =
-        """
-        using Agentic.Agents;
-
-        namespace Demo;
-
-        public partial class EchoAgent : AgentDefinition
-        {
-            public EchoAgent() => WithDescription("Echoes.");
-        }
-        """;
-
-    public const string AgentNotLowerSnakeCase =
-        """
-        using Agentic.Agents;
-
-        namespace Demo;
-
-        public partial class EchoAgent : AgentDefinition
-        {
-            public EchoAgent() => WithUniqueName("Echo Agent");
+            public EchoAgent() => WithName("echo_agent");
         }
         """;
 
@@ -207,8 +183,8 @@ public static class DiagnosticSources
         {
             public EchoAgent()
             {
-                WithUniqueName("echo_agent");
-                UseToolset<EchoToolset>(ShoutToolset.Shout);
+                WithName("echo_agent");
+                UseToolset<EchoToolset>(tools => tools.Shout());
             }
         }
         """;
@@ -238,31 +214,15 @@ public static class DiagnosticSources
         {
             public EchoAgent()
             {
-                WithUniqueName("echo_agent");
+                WithName("echo_agent");
                 UseToolset<EchoToolset>();
             }
         }
         """;
 
-    public const string TwinAgents =
-        """
-        using Agentic.Agents;
-
-        namespace Demo;
-
-        public partial class EchoAgent : AgentDefinition
-        {
-            public EchoAgent() => WithUniqueName("echo_agent");
-        }
-
-        public partial class OtherEchoAgent : AgentDefinition
-        {
-            public OtherEchoAgent() => WithUniqueName("echo_agent");
-        }
-        """;
-
     public const string UnreadToolSettings =
         """
+        using System;
         using Agentic.Agents;
         using Agentic.Toolsets;
 
@@ -273,18 +233,23 @@ public static class DiagnosticSources
             public int Repeat { get; init; } = 1;
         }
 
+        public record ToneSettings
+        {
+            public bool Loud { get; init; }
+        }
+
         public partial class EchoToolset : Toolset
         {
-            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes.");
+            public EchoToolset() =>
+                AddTool(Echo).WithName("echo").WithDescription("Echoes.").WithSettings<ToneSettings>();
 
-            public static string Echo(string text) => text;
+            public static string Echo(string text, IServiceProvider services) => text;
         }
 
         public partial class EchoAgent : AgentDefinition
         {
             public EchoAgent()
             {
-                WithUniqueName("echo_agent");
                 UseToolset<EchoToolset>();
                 WithToolSettings(new EchoSettings());
             }
@@ -331,6 +296,45 @@ public static class DiagnosticSources
             }
 
             public static string Echo(string text, IServiceProvider services) => text;
+        }
+        """;
+
+    public const string UnsupportedSetting =
+        """
+        using System;
+        using System.Collections.Generic;
+        using Agentic.Toolsets;
+
+        namespace Demo;
+
+        public record EchoSettings
+        {
+            public IReadOnlyDictionary<string, int> Weights { get; init; } = new Dictionary<string, int>();
+        }
+
+        public partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo)
+                    .WithName("echo")
+                    .WithDescription("Echoes.")
+                    .WithSettings<EchoSettings>(settings => settings.Configurable(s => s.Weights));
+
+            public static string Echo(string text, IServiceProvider services) => text;
+        }
+        """;
+
+    public const string UnsupportedChatOption =
+        """
+        using Agentic.Agents;
+        using Microsoft.Extensions.AI;
+
+        namespace Demo;
+
+        public partial class EchoAgent : AgentDefinition
+        {
+            public EchoAgent() =>
+                WithChatOptions(new ChatOptions(), picker => picker.Configurable(o => o.ResponseFormat));
         }
         """;
 }

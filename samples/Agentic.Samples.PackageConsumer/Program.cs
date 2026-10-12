@@ -8,18 +8,14 @@ var services = new ServiceCollection();
 
 services.AddAgentic();
 
-await using var provider = services.BuildServiceProvider(new ServiceProviderOptions
-{
-    ValidateOnBuild = true,
-    ValidateScopes = true
-});
+await using var provider = services.BuildServiceProvider();
 
-var options = await provider.GetRequiredService<AgentRuntime<GreeterAgent>>().ResolveChatOptionsAsync();
-var greet = options.Tools!.OfType<AIFunction>().Single();
+var greeter = provider.GetRequiredService<AgentRuntime<GreeterAgent>>();
+var greet = greeter.ResolveChatOptions().Tools!.OfType<AIFunction>().Single();
 
 var greeting = await greet.InvokeAsync(new AIFunctionArguments(new Dictionary<string, object?> { ["name"] = "package" })
 {
     Services = provider
 });
 
-Console.WriteLine($"{GreeterAgent.Name} offers {greet.Name}: {greeting}");
+Console.WriteLine($"{greeter.Definition.Name} offers {greet.Name}: {greeting}");

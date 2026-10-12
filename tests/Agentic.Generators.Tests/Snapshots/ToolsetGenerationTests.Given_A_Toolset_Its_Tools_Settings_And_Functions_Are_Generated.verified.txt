@@ -4,9 +4,9 @@
 
 namespace Demo;
 
-[global::Agentic.Modules.GeneratedTool("search_web", "SearchWebAsync", typeof(global::Demo.SearchWebSettings), "Limit", "Region")]
-[global::Agentic.Modules.GeneratedTool("read_web_page", "ReadWebPage", null)]
-[global::Agentic.Modules.GeneratedTool("forget", "Forget", null)]
+[global::Agentic.Modules.GeneratedTool("search_web", typeof(global::Demo.SearchWebSettings), "Limit", "Region")]
+[global::Agentic.Modules.GeneratedTool("read_web_page", null)]
+[global::Agentic.Modules.GeneratedTool("forget", null)]
 partial class WebResearchToolset
 {
     /// <summary>
@@ -17,7 +17,7 @@ partial class WebResearchToolset
         /// <summary>
         /// The <c>search_web</c> tool.
         /// </summary>
-        public static global::Agentic.Tools.ToolRef<global::Demo.SearchWebSettings, SearchWebConfiguration> SearchWeb { get; } = new("search_web");
+        public static global::Agentic.Tools.ToolRef<global::Demo.SearchWebSettings, SearchWebOverrides> SearchWeb { get; } = new("search_web");
 
         /// <summary>
         /// The <c>read_web_page</c> tool.
@@ -31,45 +31,48 @@ partial class WebResearchToolset
     }
 
     /// <summary>
-    /// The stored settings of the <c>search_web</c> tool, limited to what may change at runtime.
+    /// Overrides the configurable settings of the <c>search_web</c> tool, as stored tool defaults, as an agent's stored
+    /// settings or for a single run. A null value keeps what the layer below sets.
     /// </summary>
-    public sealed class SearchWebConfiguration :
-        global::Agentic.Settings.StoredSettingsView,
-        global::Agentic.Settings.IStoredSettingsView<SearchWebConfiguration>
+    public sealed record SearchWebOverrides :
+        global::Agentic.Settings.IToolOverrides<global::Demo.SearchWebSettings>,
+        global::Agentic.Persistence.IStorable<SearchWebOverrides>
     {
-        private SearchWebConfiguration(
-            global::Agentic.Settings.StoredSettings stored,
-            global::System.Text.Json.JsonSerializerOptions options)
-            : base(stored, options)
-        {
-        }
-
-        /// <inheritdoc />
-        public static global::Agentic.Tools.ToolName Tool { get; } = new("search_web");
+        /// <summary>
+        /// The most results to return. Null keeps the value of the layer below.
+        /// </summary>
+        public int? Limit { get; init; }
 
         /// <summary>
-        /// The stored <c>Limit</c>; null inherits it from the layer below.
+        /// The region results are ranked for. Null keeps the value of the layer below.
         /// </summary>
-        public int? Limit
-        {
-            get => Get<int?>("Limit");
-            set => Set("Limit", value);
-        }
+        public string? Region { get; init; }
 
-        /// <summary>
-        /// The stored <c>Region</c>; null inherits it from the layer below.
-        /// </summary>
-        public string? Region
-        {
-            get => Get<string?>("Region");
-            set => Set("Region", value);
-        }
+        global::Agentic.Tools.ToolName global::Agentic.Settings.IToolOverrides.Tool => new("search_web");
 
         /// <inheritdoc />
-        public static SearchWebConfiguration Create(
-            global::Agentic.Settings.StoredSettings stored,
-            global::System.Text.Json.JsonSerializerOptions options) =>
-            new(stored, options);
+        public string Serialize() =>
+            global::Agentic.Persistence.StorableJson.Write(writer =>
+            {
+                global::Agentic.Persistence.StorableJson.Write(writer, "limit", Limit);
+                global::Agentic.Persistence.StorableJson.Write(writer, "region", Region);
+            });
+
+        /// <inheritdoc />
+        public static SearchWebOverrides Deserialize(string json) =>
+            global::Agentic.Persistence.StorableJson.Read(json, static data => new SearchWebOverrides
+            {
+                Limit = global::Agentic.Persistence.StorableJson.ReadInt32(data, "limit"),
+                Region = global::Agentic.Persistence.StorableJson.ReadString(data, "region")
+            });
+
+        global::Demo.SearchWebSettings global::Agentic.Settings.IToolOverrides<global::Demo.SearchWebSettings>.ApplyTo(
+            global::Demo.SearchWebSettings settings) =>
+            settings with
+            {
+                Limit = Limit ?? settings.Limit,
+                Region = Region ?? settings.Region
+            };
     }
 
     /// <inheritdoc />
@@ -83,25 +86,7 @@ partial class WebResearchToolset
         };
 
     private static readonly global::Agentic.Tools.ToolBinding SearchWebBinding =
-        global::Agentic.Tools.ToolBinding.Create(
-            new global::Agentic.Settings.ToolSettingsBinder<global::Demo.SearchWebSettings>(
-            [
-                global::Agentic.Settings.SettingsProperty.Create<global::Demo.SearchWebSettings, int>(
-                    "Limit",
-                    isConfigurable: true,
-                    static settings => settings.Limit,
-                    static (settings, value) => settings with { Limit = value }),
-                global::Agentic.Settings.SettingsProperty.Create<global::Demo.SearchWebSettings, bool>(
-                    "SafeSearch",
-                    isConfigurable: false,
-                    static settings => settings.SafeSearch,
-                    static (settings, value) => settings with { SafeSearch = value }),
-                global::Agentic.Settings.SettingsProperty.Create<global::Demo.SearchWebSettings, string?>(
-                    "Region",
-                    isConfigurable: true,
-                    static settings => settings.Region,
-                    static (settings, value) => settings with { Region = value })
-            ]),
+        global::Agentic.Tools.ToolBinding.Create<global::Demo.SearchWebSettings, SearchWebOverrides>(
             static (tool, settings, json) => new SearchWebFunction(tool, settings, json));
 
     private sealed class SearchWebFunction(
@@ -139,7 +124,8 @@ partial class WebResearchToolset
     }
 
     private static readonly global::Agentic.Tools.ToolBinding ReadWebPageBinding =
-        global::Agentic.Tools.ToolBinding.Create(static (tool, json) => new ReadWebPageFunction(tool, json));
+        global::Agentic.Tools.ToolBinding.Create(
+            static (tool, json) => new ReadWebPageFunction(tool, json));
 
     private sealed class ReadWebPageFunction(
         global::Agentic.Toolsets.ToolDefinition tool,
@@ -181,7 +167,8 @@ partial class WebResearchToolset
     }
 
     private static readonly global::Agentic.Tools.ToolBinding ForgetBinding =
-        global::Agentic.Tools.ToolBinding.Create(static (tool, json) => new ForgetFunction(tool, json));
+        global::Agentic.Tools.ToolBinding.Create(
+            static (tool, json) => new ForgetFunction(tool, json));
 
     private sealed class ForgetFunction(
         global::Agentic.Toolsets.ToolDefinition tool,
@@ -202,6 +189,37 @@ partial class WebResearchToolset
             await global::Demo.WebResearchToolset.Forget(arguments);
             return null;
         }
+    }
+}
+
+/// <summary>
+/// Selects the tools of <see cref="Demo.WebResearchToolset"/> an agent offers, in
+/// <c>UseToolset&lt;WebResearchToolset&gt;(tools => ...)</c>.
+/// </summary>
+public static class WebResearchToolsetSelection
+{
+    extension(global::Agentic.Tools.ToolSelection<global::Demo.WebResearchToolset> tools)
+    {
+        /// <summary>
+        /// Selects the <c>search_web</c> tool: Search the public web. Returns the most relevant results first.
+        /// </summary>
+        /// <returns>This selection, to select further tools.</returns>
+        public global::Agentic.Tools.ToolSelection<global::Demo.WebResearchToolset> SearchWeb() =>
+            tools.Select("search_web");
+
+        /// <summary>
+        /// Selects the <c>read_web_page</c> tool: Reads the main content of a web page as markdown.
+        /// </summary>
+        /// <returns>This selection, to select further tools.</returns>
+        public global::Agentic.Tools.ToolSelection<global::Demo.WebResearchToolset> ReadWebPage() =>
+            tools.Select("read_web_page");
+
+        /// <summary>
+        /// Selects the <c>forget</c> tool: Forgets what was read.
+        /// </summary>
+        /// <returns>This selection, to select further tools.</returns>
+        public global::Agentic.Tools.ToolSelection<global::Demo.WebResearchToolset> Forget() =>
+            tools.Select("forget");
     }
 }
 

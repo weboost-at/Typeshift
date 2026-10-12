@@ -17,7 +17,7 @@ public sealed class RealtimeTrackedConversationSession : TrackedConversationSess
     private long _published;
 
     internal RealtimeTrackedConversationSession(
-        Guid conversationId,
+        string? conversationId,
         ConversationStart start,
         StoredConversation? resumed,
         TimeProvider time) : base(conversationId, start, resumed, time) => _published = time.GetTimestamp();

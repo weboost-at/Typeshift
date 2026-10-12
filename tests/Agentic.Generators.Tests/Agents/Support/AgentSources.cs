@@ -19,7 +19,7 @@ public static class AgentSources
             /// </summary>
             public ProfilingAgent()
             {
-                WithUniqueName("profiling_agent");
+                WithName("profiling_agent");
                 WithDescription("Profiles new company information.");
 
                 var options = new ChatOptions
@@ -33,7 +33,9 @@ public static class AgentSources
                     .Configurable(o => o.MaxOutputTokens)
                     .Configurable(o => o.Instructions));
 
-                UseToolset<WebResearchToolset>(WebResearchToolset.SearchWebAsync, WebResearchToolset.ReadWebPage);
+                UseToolset<WebResearchToolset>(tools => tools
+                    .SearchWeb()
+                    .ReadWebPage());
 
                 WithToolSettings(new SearchWebSettings { Limit = 5, SafeSearch = false });
             }
@@ -57,8 +59,8 @@ public static class AgentSources
             /// </summary>
             public ResearchAgent()
             {
-                WithUniqueName("research_agent");
-                UseToolset<WebResearchToolset>();
+                WithName("research_agent");
+                UseToolset<WebResearchToolset>(tools => tools.SearchWeb());
                 WithToolSettings(new SearchWebSettings { Limit = 3 });
             }
         }
@@ -108,7 +110,7 @@ public static class AgentSources
         {
             public LookupAgent()
             {
-                WithUniqueName("lookup_agent");
+                WithName("lookup_agent");
                 UseToolset<LookupToolset>();
             }
         }
@@ -130,7 +132,7 @@ public static class AgentSources
             /// </summary>
             public LookupAgent()
             {
-                WithUniqueName("lookup_agent");
+                WithName("lookup_agent");
                 UseToolset<LookupToolset>();
             }
         }
@@ -154,7 +156,7 @@ public static class AgentSources
                 /// </summary>
                 public LookupAgent()
                 {
-                    WithUniqueName("lookup_agent");
+                    WithName("lookup_agent");
                     UseToolset<LookupToolset>();
                 }
             }
@@ -173,7 +175,7 @@ public static class AgentSources
             {
                 public LookupAgent()
                 {
-                    WithUniqueName("first_lookup_agent");
+                    WithName("first_lookup_agent");
                     UseToolset<LookupToolset>();
                 }
             }
@@ -185,7 +187,7 @@ public static class AgentSources
             {
                 public LookupAgent()
                 {
-                    WithUniqueName("second_lookup_agent");
+                    WithName("second_lookup_agent");
                     UseToolset<LookupToolset>();
                 }
             }

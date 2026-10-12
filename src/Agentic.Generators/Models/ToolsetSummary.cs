@@ -6,7 +6,6 @@ internal sealed record ToolsetSummary(string Type, EquatableArray<ToolSummary> T
 // Location is null for a tool of a referenced assembly
 internal sealed record ToolSummary(
     string Name,
-    string Method,
     string? Settings,
     EquatableArray<string> Configurable,
     LocationInfo? Location);

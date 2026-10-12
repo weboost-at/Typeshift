@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis;
 
 namespace Agentic.Generators.Parsing;
 
-// Only an assembly that uses the library but carries no module stamp has its types read, to report AGT014
+// Only an assembly that uses the library but carries no module stamp has its types read, to report AGT011
 internal static class ReferenceReader
 {
     public static ReferenceModel Read(Compilation compilation, CancellationToken ct)
@@ -33,9 +33,8 @@ internal static class ReferenceReader
 
         return new ToolSummary(
             Name: (string)arguments[0].Value!,
-            Method: (string)arguments[1].Value!,
-            Settings: (arguments[2].Value as ITypeSymbol)?.ToTypeOf(),
-            Configurable: arguments[3].Values.Select(value => (string)value.Value!).ToEquatableArray(),
+            Settings: (arguments[1].Value as ITypeSymbol)?.ToTypeOf(),
+            Configurable: arguments[2].Values.Select(value => (string)value.Value!).ToEquatableArray(),
             Location: null);
     }
 
@@ -64,10 +63,7 @@ internal static class ReferenceReader
 
         var agents = stamps
             .Where(attribute => attribute.AttributeClass.Is(KnownTypes.ModuleAgentAttribute))
-            .Select(attribute => new AgentSummary(
-                Type: ((ITypeSymbol)attribute.ConstructorArguments[0].Value!).ToTypeOf(),
-                UniqueName: (string)attribute.ConstructorArguments[1].Value!,
-                Location: null))
+            .Select(attribute => ((ITypeSymbol)attribute.ConstructorArguments[0].Value!).ToTypeOf())
             .ToEquatableArray();
 
         return new ModuleReference(module.ToTypeOf(), toolsets, agents);

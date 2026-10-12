@@ -7,7 +7,7 @@ internal partial class ResearchAgent : AgentDefinition
 {
     public ResearchAgent()
     {
-        WithUniqueName("research_agent");
+        WithName("research_agent");
         WithDescription("Researches the companies of a city.");
 
         var options = new ChatOptions
@@ -20,7 +20,7 @@ internal partial class ResearchAgent : AgentDefinition
             .Configurable(o => o.Temperature)
             .Configurable(o => o.Instructions));
 
-        UseToolset<CompanyToolset>();
+        UseToolset<CompanyToolset>(tools => tools.FindCompanies());
 
         WithToolSettings(new FindCompaniesSettings { Limit = 3 });
     }

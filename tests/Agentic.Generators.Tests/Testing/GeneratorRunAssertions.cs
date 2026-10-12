@@ -29,6 +29,16 @@ public sealed class GeneratorRunAssertions(GeneratorRun run)
         return reported[0];
     }
 
+    // A compiler error in the subject, which the generated code makes possible where a diagnostic is not needed
+    public Diagnostic DoesNotCompile(string id, string offendingSyntax)
+    {
+        var reported = run.CompilationDiagnostics.Where(diagnostic => diagnostic.Id == id).ToList();
+
+        reported.Should().ContainSingle();
+        SourceAt(reported[0].Location).Should().Be(offendingSyntax);
+        return reported[0];
+    }
+
     public GeneratorRun DoesNotReport(string id)
     {
         run.Diagnostics.Select(diagnostic => diagnostic.Id).Should().NotContain(id);

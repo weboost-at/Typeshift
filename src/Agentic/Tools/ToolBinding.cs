@@ -1,4 +1,5 @@
 using Agentic.Json;
+using Agentic.Persistence;
 using Agentic.Settings;
 using Agentic.Toolsets;
 using Microsoft.Extensions.AI;
@@ -6,7 +7,7 @@ using Microsoft.Extensions.AI;
 namespace Agentic.Tools;
 
 /// <summary>
-/// What the generator binds a tool to: the function that runs it and, if it has settings, their binder.
+/// What the generator binds a tool to: the function that runs it and, when it has settings, how they resolve.
 /// </summary>
 public abstract class ToolBinding
 {
@@ -17,21 +18,41 @@ public abstract class ToolBinding
     /// <summary>
     /// Binds a tool without settings.
     /// </summary>
+    /// <param name="createFunction">Creates the tool's function.</param>
+    /// <returns>The binding.</returns>
     public static ToolBinding Create(Func<ToolDefinition, AgentJson, AIFunction> createFunction) =>
         new PlainToolBinding(createFunction);
 
     /// <summary>
-    /// Binds a tool that reads a settings record.
+    /// Binds a tool whose settings have no configurable members, so only code sets them.
     /// </summary>
-    public static ToolBinding Create<TSettings>(
-        ToolSettingsBinder<TSettings> settings,
-        Func<ToolDefinition, TSettings, AgentJson, AIFunction> createFunction)
+    /// <typeparam name="TSettings">The settings record of the tool.</typeparam>
+    /// <param name="createFunction">Creates the tool's function, running with the resolved settings.</param>
+    /// <returns>The binding.</returns>
+    public static ToolBinding Create<TSettings>(Func<ToolDefinition, TSettings, AgentJson, AIFunction> createFunction)
         where TSettings : class, new() =>
-        new SettingsToolBinding<TSettings>(settings, createFunction);
+        new SettingsToolBinding<TSettings>(createFunction);
+
+    /// <summary>
+    /// Binds a tool whose settings have configurable members, overridden through <typeparamref name="TOverrides"/>.
+    /// </summary>
+    /// <typeparam name="TSettings">The settings record of the tool.</typeparam>
+    /// <typeparam name="TOverrides">The generated overrides of the tool's configurable members.</typeparam>
+    /// <param name="createFunction">Creates the tool's function, running with the resolved settings.</param>
+    /// <returns>The binding.</returns>
+    public static ToolBinding Create<TSettings, TOverrides>(
+        Func<ToolDefinition, TSettings, AgentJson, AIFunction> createFunction)
+        where TSettings : class, new()
+        where TOverrides : class, IToolOverrides<TSettings>, IStorable<TOverrides>, new() =>
+        new OverridableToolBinding<TSettings, TOverrides>(createFunction);
 
     internal abstract AIFunction CreateFunction(ToolDefinition tool, ToolSettingsLayers layers, AgentJson json);
 
-    internal abstract object? ImportSettings(StoredSettings stored, AgentJson json);
-
-    internal abstract StoredSettings ExportSettings(object settings, AgentJson json);
+    // Stored defaults exist only for tools with configurable members
+    internal virtual Task<IToolOverrides?> LoadDefaultsAsync<TId>(
+        IAgenticStore<TId> store,
+        TId id,
+        CancellationToken ct)
+        where TId : notnull =>
+        Task.FromResult<IToolOverrides?>(null);
 }

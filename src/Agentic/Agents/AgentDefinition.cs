@@ -1,6 +1,6 @@
+using System.ComponentModel;
 using Agentic.Json;
 using Agentic.Settings;
-using Agentic.StoredAgents;
 using Agentic.Tools;
 using Agentic.Toolsets;
 using Microsoft.Extensions.AI;
@@ -8,138 +8,111 @@ using Microsoft.Extensions.AI;
 namespace Agentic.Agents;
 
 /// <summary>
-/// The base of a partial class that declares an agent in its constructor.
+/// The base of a partial class that declares an agent in its constructor: its chat options, the tools it offers
+/// and the settings those tools run with. The generator adds the agent's typed <c>Settings</c> and a
+/// <c>WithToolSettings</c> overload per settings type its tools read.
 /// </summary>
 public abstract class AgentDefinition
 {
     private readonly List<ToolDefinition> _tools = [];
-    private readonly Dictionary<ToolName, object> _toolSettings = [];
     private ChatOptions _options = new();
-    private string? _uniqueName;
+    private string? _name;
 
     /// <summary>
-    /// The lower_snake_case name the agent is stored and found under.
+    /// The agent's name: the one given to <see cref="WithName"/>, or its class name. Conversations record it as the
+    /// execution context they ran in.
     /// </summary>
-    public string UniqueName =>
-        _uniqueName ?? throw new InvalidOperationException($"{GetType().Name} has no WithUniqueName(...).");
+    public string Name => _name ?? GetType().Name;
 
     /// <summary>
-    /// What the agent does.
+    /// What the agent does, if <see cref="WithDescription"/> said so.
     /// </summary>
     public string? Description { get; private set; }
 
     /// <summary>
-    /// The tools this agent offers, in declaration order.
+    /// The tools this agent offers, in the order its constructor adds them.
     /// </summary>
     public IReadOnlyList<ToolDefinition> Tools => _tools;
 
     /// <summary>
-    /// The chat options that may change at runtime, as the generator lists them from the picks.
+    /// Names the agent; without a name it goes by its class name.
     /// </summary>
-    protected virtual IReadOnlyList<ChatOptionProperty> ConfigurableChatOptions => [];
-
-    /// <summary>
-    /// Names the agent with a lower_snake_case constant, unique across everything the host can see.
-    /// </summary>
-    protected void WithUniqueName(string uniqueName)
-    {
-        if (!LowerSnakeCase.Matches(uniqueName))
-            throw new ArgumentException($"'{uniqueName}' is not a lower_snake_case name.", nameof(uniqueName));
-
-        _uniqueName = uniqueName;
-    }
+    /// <param name="name">Any name, a compile-time constant.</param>
+    protected void WithName(string name) => _name = name;
 
     /// <summary>
     /// Describes what the agent does.
     /// </summary>
+    /// <param name="description">The description.</param>
     protected void WithDescription(string description) => Description = description;
 
     /// <summary>
-    /// Sets the chat options the agent runs with; <paramref name="configure"/> picks the options that may change at
-    /// runtime, for the generator to read.
+    /// Sets the chat options the agent runs with.
     /// </summary>
+    /// <param name="options">
+    /// The options; set <see cref="ChatOptions.ModelId"/> for a model to run on by default.
+    /// </param>
+    /// <param name="configure">
+    /// Picks the options that may change at runtime, <c>picker => picker.Configurable(o => o.Temperature)</c>. The
+    /// generator reads the picks into the agent's <c>Settings</c>; at runtime the picker is never called.
+    /// </param>
     protected void WithChatOptions(
         ChatOptions options,
         Action<ConfigurableSettingsPicker<ChatOptions>>? configure = null) =>
         _options = options;
 
     /// <summary>
-    /// Offers every tool of the toolset.
+    /// Offers every tool of a toolset.
     /// </summary>
+    /// <typeparam name="TToolset">The toolset.</typeparam>
+    /// <exception cref="InvalidOperationException">The agent already offers a tool of the same name.</exception>
     protected void UseToolset<TToolset>() where TToolset : Toolset, new() => AddTools(new TToolset().Definitions);
 
     /// <summary>
-    /// Offers the selected tools of the toolset, given as its static methods.
+    /// Offers the selected tools of a toolset, <c>UseToolset&lt;CompanyToolset&gt;(tools => tools.FindCompanies())</c>.
     /// </summary>
-    protected void UseToolset<TToolset>(params Delegate[] tools) where TToolset : Toolset, new()
+    /// <typeparam name="TToolset">The toolset.</typeparam>
+    /// <param name="select">Selects the tools through the methods the generator adds per tool.</param>
+    /// <exception cref="ArgumentException">A selected tool is not a tool of the toolset.</exception>
+    /// <exception cref="InvalidOperationException">The agent already offers a tool of the same name.</exception>
+    protected void UseToolset<TToolset>(Action<ToolSelection<TToolset>> select) where TToolset : Toolset, new()
     {
         var available = new TToolset().Definitions;
+        var selection = new ToolSelection<TToolset>();
+        select(selection);
 
-        AddTools(tools.Select(tool => GetDefinition<TToolset>(available, tool)));
+        AddTools(selection.Selected.Select(tool => available.FirstOrDefault(definition => definition.Name == tool)
+            ?? throw new ArgumentException($"'{tool}' is no tool of {typeof(TToolset).Name}.", nameof(select))));
     }
 
     /// <summary>
-    /// Sets the settings of every tool added so far that reads their type; they apply as a whole object, including
-    /// members that are not allowlisted.
+    /// The settings the agent's code sets for a tool; the generator overrides it from the agent's
+    /// <c>WithToolSettings</c> calls.
     /// </summary>
-    protected void WithToolSettings(object settings)
-    {
-        var readers = _tools.Where(tool => tool.SettingsType == settings.GetType()).ToList();
+    /// <param name="tool">One of the agent's tools.</param>
+    /// <returns>The tool's settings record, or null when the code sets none.</returns>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    protected virtual object? GetToolSettings(ToolName tool) => null;
 
-        if (readers.Count == 0)
-            throw new ArgumentException(
-                $"No tool of {GetType().Name} reads {settings.GetType().Name}.",
-                nameof(settings));
-
-        foreach (var reader in readers)
-        {
-            _toolSettings[reader.Name] = settings;
-        }
-    }
-
-    internal StoredAgent ToStoredAgent(AgentJson json) =>
-        new()
-        {
-            UniqueName = UniqueName,
-            DisplayName = UniqueName,
-            Description = Description,
-            Options = StoredAgentOptions.From(_options),
-            Tools = [.. _tools.Select(tool => tool.Name)],
-            ToolSettings = _toolSettings.ToDictionary(
-                settings => settings.Key,
-                settings => ExportSettings(settings.Key, settings.Value, json))
-        };
-
-    // A stored agent's name comes from storage, generated names are not lower_snake_case by design
-    internal void SetUniqueName(string uniqueName) => _uniqueName = uniqueName;
-
-    internal void Offer(IEnumerable<ToolDefinition> tools) => AddTools(tools);
-
-    internal void SetToolSettings(ToolDefinition tool, object settings) => _toolSettings[tool.Name] = settings;
-
-    // The one resolve path of code and stored agents: definition, then stored overrides, then the run
+    // The one resolve path: the definition, then the stored settings, then the run's own
     internal ChatOptions CreateChatOptions(
-        AgentConfiguration configuration,
-        IReadOnlyDictionary<ToolName, ToolDefaults> toolDefaults,
-        RunOverrides run,
+        IAgentSettings? stored,
+        IReadOnlyDictionary<ToolName, IToolOverrides> toolDefaults,
+        IAgentSettings? run,
+        string? conversationId,
         AgentJson json)
     {
         var options = _options.Clone();
+        stored?.ApplyTo(options);
+        run?.ApplyTo(options);
 
-        foreach (var property in ConfigurableChatOptions)
-        {
-            if (configuration.ChatOptions.TryGetValue(property.Name, out var stored))
-                property.Apply(options, stored, json.SerializerOptions);
+        options.ConversationId = conversationId ?? options.ConversationId;
+        options.AdditionalProperties = (options.AdditionalProperties ?? []).WithExecutionContext(new(Name));
 
-            if (run.ChatOptions is { } overrides) property.Override(options, overrides);
-        }
-
-        options.ConversationId = run.ChatOptions?.ConversationId ?? options.ConversationId;
-        options.AdditionalProperties = (options.AdditionalProperties ?? []).WithExecutionContext(new(UniqueName));
         options.Tools =
         [
             .. options.Tools ?? [],
-            .. _tools.Select(tool => CreateTool(tool, configuration, toolDefaults, run, json))
+            .. _tools.Select(tool => CreateTool(tool, stored, toolDefaults, run, json))
         ];
 
         return options;
@@ -147,32 +120,21 @@ public abstract class AgentDefinition
 
     private AITool CreateTool(
         ToolDefinition tool,
-        AgentConfiguration configuration,
-        IReadOnlyDictionary<ToolName, ToolDefaults> toolDefaults,
-        RunOverrides run,
+        IAgentSettings? stored,
+        IReadOnlyDictionary<ToolName, IToolOverrides> toolDefaults,
+        IAgentSettings? run,
         AgentJson json)
     {
         var layers = new ToolSettingsLayers
         {
-            Defaults = toolDefaults.GetValueOrDefault(tool.Name)?.Settings,
-            Agent = _toolSettings.GetValueOrDefault(tool.Name),
-            AgentOverrides = configuration.ToolSettings.GetValueOrDefault(tool.Name),
-            Run = run.ToolSettings.FirstOrDefault(settings => settings.GetType() == tool.SettingsType)
+            Defaults = toolDefaults.GetValueOrDefault(tool.Name),
+            Agent = GetToolSettings(tool.Name),
+            AgentOverrides = stored?.GetToolOverrides(tool.Name),
+            Run = run?.GetToolOverrides(tool.Name)
         };
 
         return tool.Toolset.CreateTool(tool, layers, json);
     }
-
-    private StoredSettings ExportSettings(ToolName name, object settings, AgentJson json)
-    {
-        var tool = _tools.First(offered => offered.Name == name);
-        return tool.Toolset.ExportSettings(tool, settings, json);
-    }
-
-    // A method with optional parameters gets a delegate type per assembly, so the methods are compared, not delegates
-    private static ToolDefinition GetDefinition<TToolset>(IReadOnlyList<ToolDefinition> available, Delegate tool) =>
-        available.FirstOrDefault(definition => definition.Method.Method == tool.Method)
-        ?? throw new ArgumentException($"A selected method is no tool of {typeof(TToolset).Name}.", nameof(tool));
 
     private void AddTools(IEnumerable<ToolDefinition> tools)
     {

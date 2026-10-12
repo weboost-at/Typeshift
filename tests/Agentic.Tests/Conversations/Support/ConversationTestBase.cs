@@ -15,7 +15,7 @@ public abstract class ConversationTestBase : HostTestBase
 
     protected ConversationTracker Tracker => Services.GetRequiredService<ConversationTracker>();
 
-    protected IConversationStore Store => Services.GetRequiredService<IConversationStore>();
+    protected IAgenticStore<Guid> Store => Services.GetRequiredService<IAgenticStore<Guid>>();
 
     // A fresh instance per read, composing a response sums usage into the instance it is given
     protected UsageDetails Usage =>
@@ -26,7 +26,7 @@ public abstract class ConversationTestBase : HostTestBase
         };
 
     protected override void ConfigureServices(IServiceCollection services) =>
-        services.AddSingleton<IConversationStore, InMemoryConversationStore>();
+        services.AddAgenticStore<InMemoryAgenticStore<Guid>, Guid>();
 
     // Tracking outside the function loop, as AgentRuntime composes it
     protected IChatClient Tracked() =>
@@ -93,7 +93,8 @@ public abstract class ConversationTestBase : HostTestBase
     }
 
     protected async Task<StoredConversation> StoredAsync(Guid id) =>
-        await Store.LoadAsync(id, Ct) ?? throw new InvalidOperationException($"No conversation {id} is stored.");
+        await Store.LoadAsync<StoredConversation>(id, Ct)
+        ?? throw new InvalidOperationException($"No conversation {id} is stored.");
 
     private ChatResponseUpdate Update(string messageId, AIContent content, ChatFinishReason? finishReason = null) =>
         new(ChatRole.Assistant, [content])

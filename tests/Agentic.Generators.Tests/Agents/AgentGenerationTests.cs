@@ -6,7 +6,7 @@ namespace Agentic.Generators.Tests.Agents;
 public class AgentGenerationTests : GeneratorTestBase
 {
     [Fact]
-    public void Given_An_Agent_Its_Name_Tools_Allowlist_And_Configuration_View_Are_Generated()
+    public void Given_An_Agent_Its_Settings_Tool_Settings_And_Runtime_Members_Are_Generated()
     {
         // Act
         var run = Run(ToolsetSources.WebResearch, AgentSources.Profiling);

@@ -12,7 +12,7 @@ public partial class GreeterAgent : AgentDefinition
     /// </summary>
     public GreeterAgent()
     {
-        WithUniqueName("greeter_agent");
+        WithName("greeter_agent");
         UseToolset<GreetingToolset>();
     }
 }

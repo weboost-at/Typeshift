@@ -11,7 +11,6 @@ internal static class Summaries
             toolset.Tools
                 .Select(tool => new ToolSummary(
                     Name: tool.Name,
-                    Method: tool.Method,
                     Settings: tool.Settings?.Type,
                     Configurable: tool.Settings?.Properties
                         .Where(property => property.IsConfigurable)
@@ -19,6 +18,4 @@ internal static class Summaries
                         .ToEquatableArray() ?? EquatableArray<string>.Empty,
                     Location: tool.Location))
                 .ToEquatableArray());
-
-    public static AgentSummary From(AgentModel agent) => new(agent.Type.FullName, agent.UniqueName!, agent.Location);
 }

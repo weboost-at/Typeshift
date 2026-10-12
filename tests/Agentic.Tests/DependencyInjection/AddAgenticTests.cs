@@ -1,4 +1,5 @@
 using Agentic.Agents;
+using Agentic.Persistence.InMemory;
 using Agentic.Tests.Agents.Support;
 using Agentic.Tests.Toolsets.Companies;
 using Agentic.Tests.Toolsets.Support;
@@ -51,10 +52,22 @@ public class AddAgenticTests : HostTestBase
     }
 
     [Fact]
+    public void Registers_A_Runtime_For_Every_Agent()
+    {
+        // Act
+        var names = Services.GetServices<AgentRuntime>().Select(runtime => runtime.Definition.Name);
+
+        // Assert
+        names.Should().BeEquivalentTo("probe_agent", "hosted_tool_agent", nameof(UnnamedAgent), "research_agent");
+    }
+
+    [Fact]
     public void Given_ValidateOnBuild_And_ValidateScopes_The_Container_Builds()
     {
         // Arrange
-        var services = new ServiceCollection().AddAgentic();
+        var services = new ServiceCollection()
+            .AddAgentic()
+            .AddAgenticStore<InMemoryAgenticStore<Guid>, Guid>();
 
         var options = new ServiceProviderOptions
         {

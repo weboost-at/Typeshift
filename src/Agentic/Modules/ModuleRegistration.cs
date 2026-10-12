@@ -3,7 +3,6 @@ using Agentic.Agents;
 using Agentic.Catalogs;
 using Agentic.Conversations;
 using Agentic.Json;
-using Agentic.Persistence;
 using Agentic.Settings;
 using Agentic.Tools;
 using Agentic.Toolsets;
@@ -22,6 +21,7 @@ public static class ModuleRegistration
     /// <summary>
     /// Registers the library's own services once.
     /// </summary>
+    /// <param name="services">The host's services.</param>
     public static void AddCoreServices(IServiceCollection services)
     {
         services.AddOptions<AgentJsonOptions>();
@@ -33,33 +33,24 @@ public static class ModuleRegistration
             provider.GetServices<Toolset>(),
             provider.GetRequiredService<AgentJson>()));
 
-        services.TryAddSingleton(provider => new AgentCatalog(
-            provider.GetServices<AgentDefinition>(),
-            provider.GetRequiredService<ToolCatalog>(),
-            provider.GetRequiredService<AgentRuntimeServices>(),
-            provider.GetService<IAgentDefinitionStore>()));
+        services.TryAddSingleton(provider => new ToolDefaults(provider));
 
         services.TryAddSingleton(provider => new ConversationTracker(
-            provider.GetService<IConversationStore>(),
-            provider.GetRequiredService<TimeProvider>()));
-
-        services.TryAddSingleton(provider => new ToolDefaultsManager(
-            provider.GetService<IToolDefaultsStore>(),
-            provider.GetRequiredService<AgentJson>(),
+            provider.GetService<ConversationStore>(),
             provider.GetRequiredService<TimeProvider>()));
 
         services.TryAddSingleton(provider => new AgentRuntimeServices(
             Services: provider,
             Json: provider.GetRequiredService<AgentJson>(),
-            ToolDefaults: provider.GetRequiredService<ToolDefaultsManager>(),
-            Time: provider.GetRequiredService<TimeProvider>(),
-            Configurations: provider.GetService<IAgentConfigurationStore>(),
             ChatClients: provider.GetService<IChatClientProvider>()));
     }
 
     /// <summary>
-    /// Marks the module as registered, or returns false when it already is.
+    /// Marks a module as registered.
     /// </summary>
+    /// <param name="services">The host's services.</param>
+    /// <param name="module">The generated module class.</param>
+    /// <returns>True when the module was not registered yet, false when it already was.</returns>
     public static bool TryAddModule(IServiceCollection services, Type module)
     {
         var registered = new RegisteredModule(module);
@@ -72,6 +63,9 @@ public static class ModuleRegistration
     /// <summary>
     /// Registers a toolset as itself and as a <see cref="Toolset"/>.
     /// </summary>
+    /// <typeparam name="TToolset">The toolset.</typeparam>
+    /// <param name="services">The host's services.</param>
+    /// <param name="create">Creates the toolset.</param>
     public static void AddToolset<TToolset>(IServiceCollection services, Func<TToolset> create)
         where TToolset : Toolset
     {
@@ -80,8 +74,12 @@ public static class ModuleRegistration
     }
 
     /// <summary>
-    /// Registers an agent as itself, as an <see cref="AgentDefinition"/> and with its runtime.
+    /// Registers an agent as itself and as an <see cref="AgentDefinition"/>, and its runtime as itself and as an
+    /// <see cref="AgentRuntime"/>.
     /// </summary>
+    /// <typeparam name="TAgent">The agent.</typeparam>
+    /// <param name="services">The host's services.</param>
+    /// <param name="create">Creates the agent.</param>
     public static void AddAgent<TAgent>(IServiceCollection services, Func<TAgent> create)
         where TAgent : AgentDefinition
     {
@@ -91,5 +89,7 @@ public static class ModuleRegistration
         services.AddSingleton(provider => new AgentRuntime<TAgent>(
             provider.GetRequiredService<TAgent>(),
             provider.GetRequiredService<AgentRuntimeServices>()));
+
+        services.AddSingleton<AgentRuntime>(provider => provider.GetRequiredService<AgentRuntime<TAgent>>());
     }
 }

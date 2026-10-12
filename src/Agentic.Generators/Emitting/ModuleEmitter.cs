@@ -32,8 +32,7 @@ internal static class ModuleEmitter
 
         foreach (var agent in model.Agents)
         {
-            var name = Names.Literal(agent.UniqueName);
-            writer.Line($"[global::Agentic.Modules.ModuleAgent(typeof({agent.Type}), {name})]");
+            writer.Line($"[global::Agentic.Modules.ModuleAgent(typeof({agent}))]");
         }
 
         using (writer.Block($"public static class {module}"))
@@ -61,7 +60,7 @@ internal static class ModuleEmitter
 
                 foreach (var agent in model.Agents)
                 {
-                    writer.Line($"{Registration}.AddAgent(services, static () => new {agent.Type}());");
+                    writer.Line($"{Registration}.AddAgent(services, static () => new {agent}());");
                 }
             }
         }

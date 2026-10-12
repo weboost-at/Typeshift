@@ -9,7 +9,7 @@ public partial class ProbeAgent : AgentDefinition
 {
     public ProbeAgent()
     {
-        WithUniqueName("probe_agent");
+        WithName("probe_agent");
         WithDescription("Probes the options and settings it runs with.");
 
         var options = new ChatOptions
@@ -23,7 +23,10 @@ public partial class ProbeAgent : AgentDefinition
             .Configurable(o => o.MaxOutputTokens)
             .Configurable(o => o.Instructions));
 
-        UseToolset<CompanyToolset>(CompanyToolset.FindCompanies, CompanyToolset.CreateCompanyProfile);
+        UseToolset<CompanyToolset>(tools => tools
+            .FindCompanies()
+            .CreateCompanyProfile());
+
         UseToolset<ProbeToolset>();
 
         WithToolSettings(new ProbeSettings { Limit = 5, Mode = "thorough" });

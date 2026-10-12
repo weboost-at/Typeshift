@@ -6,7 +6,7 @@ public partial class ResearchAgent : AgentDefinition
 {
     public ResearchAgent()
     {
-        WithUniqueName("research_agent");
+        WithName("research_agent");
         WithDescription("Researches companies.");
 
         UseToolset<CompanyToolset>();

@@ -15,12 +15,7 @@ internal static class ConstructorChains
         Compilation compilation,
         CancellationToken ct)
     {
-        var bodies = type.InstanceConstructors
-            .Where(constructor => !constructor.IsImplicitlyDeclared)
-            .SelectMany(constructor => constructor.DeclaringSyntaxReferences)
-            .Select(reference => reference.GetSyntax(ct));
-
-        foreach (var body in bodies)
+        foreach (var body in GetConstructors(type, ct))
         {
             ct.ThrowIfCancellationRequested();
 
@@ -32,6 +27,12 @@ internal static class ConstructorChains
             }
         }
     }
+
+    public static IEnumerable<SyntaxNode> GetConstructors(INamedTypeSymbol type, CancellationToken ct) =>
+        type.InstanceConstructors
+            .Where(constructor => !constructor.IsImplicitlyDeclared)
+            .SelectMany(constructor => constructor.DeclaringSyntaxReferences)
+            .Select(reference => reference.GetSyntax(ct));
 
     // AddTool(x).WithName(..).WithDescription(..): the calls made on the result of the given one, outwards
     public static IEnumerable<IInvocationOperation> GetChainedCalls(IInvocationOperation invocation)

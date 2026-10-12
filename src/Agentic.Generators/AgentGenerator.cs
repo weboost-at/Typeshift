@@ -33,13 +33,13 @@ public sealed class AgentGenerator : IIncrementalGenerator
             .Select(static (toolset, _) => Summaries.From(toolset))
             .Collect();
 
-        var agentSummaries = agents
-            .Where(static agent => agent.UniqueName is not null)
-            .Select(static (agent, _) => Summaries.From(agent))
+        var agentTypes = agents
+            .Where(static agent => agent.IsPartial)
+            .Select(static (agent, _) => agent.Type.FullName)
             .Collect();
 
         var module = toolsetSummaries
-            .Combine(agentSummaries)
+            .Combine(agentTypes)
             .Combine(context.CompilationProvider.Select(static (compilation, _) => compilation.AssemblyName ?? ""))
             .Select(static (input, _) => GetModule(input.Left.Left, input.Left.Right, input.Right))
             .WithTrackingName(TrackingNames.Module);
@@ -73,20 +73,14 @@ public sealed class AgentGenerator : IIncrementalGenerator
 
         context.RegisterSourceOutput(
             toolsetSummaries
-                .Combine(agentSummaries)
                 .Combine(references)
                 .Combine(calls),
-            static (output, input) => ReportDuplicates(
-                output,
-                input.Left.Left.Left,
-                input.Left.Left.Right,
-                input.Left.Right,
-                input.Right));
+            static (output, input) => ReportDuplicates(output, input.Left.Left, input.Left.Right, input.Right));
     }
 
     private static ModuleModel? GetModule(
         ImmutableArray<ToolsetSummary> toolsets,
-        ImmutableArray<AgentSummary> agents,
+        ImmutableArray<string> agents,
         string assemblyName) =>
         toolsets.IsEmpty && agents.IsEmpty
             ? null
@@ -94,7 +88,7 @@ public sealed class AgentGenerator : IIncrementalGenerator
                 ModuleEmitter.GetName(assemblyName),
                 assemblyName,
                 toolsets.Select(toolset => toolset.Type).ToEquatableArray(),
-                agents.Select(agent => new ModuleAgentModel(agent.Type, agent.UniqueName)).ToEquatableArray());
+                agents.ToEquatableArray());
 
     private static void EmitToolset(SourceProductionContext output, ToolsetModel toolset)
     {
@@ -113,7 +107,7 @@ public sealed class AgentGenerator : IIncrementalGenerator
             output.ReportDiagnostic(diagnostic.ToDiagnostic());
         }
 
-        if (agent.Agent is { IsPartial: true, UniqueName: not null })
+        if (agent.Agent.IsPartial)
             output.AddSource(Names.HintName(agent.Agent.Type.FullName), AgentEmitter.Emit(agent));
     }
 
@@ -144,14 +138,10 @@ public sealed class AgentGenerator : IIncrementalGenerator
     private static void ReportDuplicates(
         SourceProductionContext output,
         ImmutableArray<ToolsetSummary> toolsets,
-        ImmutableArray<AgentSummary> agents,
         ReferenceModel references,
         ImmutableArray<InterceptModel> calls)
     {
-        var duplicates = RegistrationDiagnostics.GetDuplicateTools(toolsets, references, calls)
-            .Concat(RegistrationDiagnostics.GetDuplicateAgents(agents, references, calls));
-
-        foreach (var diagnostic in duplicates)
+        foreach (var diagnostic in RegistrationDiagnostics.GetDuplicateTools(toolsets, references, calls))
         {
             output.ReportDiagnostic(diagnostic);
         }

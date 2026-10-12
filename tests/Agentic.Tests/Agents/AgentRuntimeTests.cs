@@ -1,4 +1,5 @@
 using Agentic.Agents;
+using Agentic.Conversations;
 using Agentic.Tests.Agents.Support;
 using Agentic.Tests.Toolsets.Support;
 using FluentAssertions;
@@ -10,70 +11,43 @@ namespace Agentic.Tests.Agents;
 public class AgentRuntimeTests : AgentTestBase
 {
     [Fact]
-    public async Task Given_Run_Chat_Options_Only_The_Allowlisted_Ones_Change()
+    public void Given_Run_Settings_Their_Chat_Options_Apply_Over_The_Code()
     {
         // Arrange
-        var run = new RunOverrides
-        {
-            ChatOptions = new ChatOptions
-            {
-                Temperature = Agent.Temperature,
-                AllowMultipleToolCalls = false
-            }
-        };
+        var run = new ProbeAgent.Settings { Temperature = Agent.Temperature };
 
         // Act
-        var options = await Runtime.ResolveChatOptionsAsync(run, Ct);
+        var options = Runtime.ResolveChatOptions(run);
 
         // Assert
         options.Should().BeEquivalentTo(new { Temperature = Agent.Temperature.Default, AllowMultipleToolCalls = true });
     }
 
     [Fact]
-    public async Task Given_An_Unset_Allowlisted_Run_Option_The_Agents_Default_Stays()
+    public void Given_An_Unset_Run_Option_The_Agents_Default_Stays()
     {
-        // Arrange
-        var run = new RunOverrides
-        {
-            ChatOptions = new ChatOptions()
-        };
-
         // Act
-        var options = await Runtime.ResolveChatOptionsAsync(run, Ct);
+        var options = Runtime.ResolveChatOptions(new ProbeAgent.Settings());
 
         // Assert
         options.Temperature.Should().Be(0.2f);
     }
 
     [Fact]
-    public async Task Given_Run_Chat_Options_With_A_Conversation_The_Conversation_Id_Is_Kept()
+    public void Given_A_Conversation_Id_The_Options_Carry_It()
     {
-        // Arrange
-        var run = new RunOverrides
-        {
-            ChatOptions = new ChatOptions { ConversationId = Agent.ConversationId }
-        };
-
         // Act
-        var options = await Runtime.ResolveChatOptionsAsync(run, Ct);
+        var options = Runtime.ResolveChatOptions(conversationId: Agent.ConversationId.ToString());
 
         // Assert
-        options.ConversationId.Should().Be(Agent.ConversationId);
+        options.ConversationId.Should().Be(Agent.ConversationId.ToString());
     }
 
     [Fact]
-    public async Task Given_Run_Chat_Options_Of_Another_Execution_Context_The_Agent_Runs_In_Its_Own()
+    public void Given_A_Run_The_Agent_Runs_In_Its_Own_Execution_Context()
     {
-        // Arrange
-        var properties = new AdditionalPropertiesDictionary().WithExecutionContext(new(Agent.OtherContext));
-
-        var run = new RunOverrides
-        {
-            ChatOptions = new ChatOptions { AdditionalProperties = properties }
-        };
-
         // Act
-        var options = await Runtime.ResolveChatOptionsAsync(run, Ct);
+        var options = Runtime.ResolveChatOptions();
 
         // Assert
         options.AdditionalProperties!.GetExecutionContext().Should().Be(new ChatExecutionContext("probe_agent"));
@@ -82,64 +56,65 @@ public class AgentRuntimeTests : AgentTestBase
     [Fact]
     public async Task Given_The_Agents_Tool_Settings_Its_Tools_Run_With_All_Of_Them()
     {
-        // Arrange
-        var options = await Runtime.ResolveChatOptionsAsync(ct: Ct);
-
         // Act
-        var settings = await ProbeAsync(options);
+        var settings = await ProbeAsync(Runtime.ResolveChatOptions());
 
         // Assert
         settings.Should().Be(new ProbeSettings { Limit = 5, Mode = "thorough" });
     }
 
     [Fact]
-    public async Task Given_Run_Tool_Settings_Only_Their_Allowlisted_Members_Change()
+    public async Task Given_Run_Tool_Settings_Their_Values_Apply_Over_The_Agents_Own()
     {
         // Arrange
-        var settings = new ProbeSettings
+        var run = new ProbeAgent.Settings
         {
-            Limit = Data.Tool.Limit,
-            Mode = Data.Tool.Mode
+            Probe = new ProbeToolset.ProbeOverrides { Limit = Data.Tool.Limit }
         };
-
-        var run = new RunOverrides
-        {
-            ToolSettings = [settings]
-        };
-
-        var options = await Runtime.ResolveChatOptionsAsync(run, Ct);
 
         // Act
-        var resolved = await ProbeAsync(options);
+        var settings = await ProbeAsync(Runtime.ResolveChatOptions(run));
 
         // Assert
-        resolved.Should().Be(new ProbeSettings { Limit = Data.Tool.Limit.Default, Mode = "thorough" });
+        settings.Should().Be(new ProbeSettings { Limit = Data.Tool.Limit.Default, Mode = "thorough" });
     }
 
     [Fact]
     public async Task Given_Run_Tool_Settings_The_Next_Run_Uses_The_Agents_Own()
     {
         // Arrange
-        var run = new RunOverrides
+        var run = new ProbeAgent.Settings
         {
-            ToolSettings = [new ProbeSettings { Limit = Data.Tool.Limit }]
+            Probe = new ProbeToolset.ProbeOverrides { Limit = Data.Tool.Limit }
         };
 
-        await Runtime.ResolveChatOptionsAsync(run, Ct);
-        var next = await Runtime.ResolveChatOptionsAsync(ct: Ct);
+        Runtime.ResolveChatOptions(run);
 
         // Act
-        var settings = await ProbeAsync(next);
+        var settings = await ProbeAsync(Runtime.ResolveChatOptions());
 
         // Assert
         settings.Should().Be(new ProbeSettings { Limit = 5, Mode = "thorough" });
     }
 
     [Fact]
+    public async Task Given_Tools_In_The_Agents_Chat_Options_The_Run_Offers_Them_Before_Its_Toolsets()
+    {
+        // Arrange
+        var runtime = Services.GetRequiredService<AgentRuntime<HostedToolAgent>>();
+
+        // Act
+        var options = runtime.ResolveChatOptions();
+
+        // Assert
+        options.Tools!.Select(tool => tool.Name).Should().Equal("web_search", "probe");
+    }
+
+    [Fact]
     public async Task Given_No_Model_Creating_A_Chat_Client_Throws_A_ConfigurationRequiredException()
     {
         // Act
-        var create = () => Runtime.CreateChatClientAsync(Ct);
+        var create = () => Runtime.CreateChatClientAsync(Runtime.ResolveChatOptions(), Ct);
 
         // Assert
         await create.Should().ThrowAsync<ConfigurationRequiredException>();
@@ -150,34 +125,17 @@ public class AgentRuntimeTests : AgentTestBase
     {
         // Arrange
         ChatClient.Reply(Text(Agent.Instructions));
-        await Runtime.UpdateConfigurationAsync(configuration => configuration with { Model = Agent.Model }, Ct);
+        await Runtime.ConfigureAsync(Agent.Id.Default, settings => settings with { Model = Agent.Model }, Ct);
 
-        var run = new RunOverrides
-        {
-            ChatOptions = new ChatOptions { ConversationId = Agent.ConversationId }
-        };
-
-        var options = await Runtime.ResolveChatOptionsAsync(run, Ct);
-        var client = await Runtime.CreateChatClientAsync(Ct);
+        var conversationId = Agent.ConversationId.ToString();
+        var options = await Runtime.ResolveChatOptionsAsync(Agent.Id.Default, conversationId: conversationId, ct: Ct);
+        var client = await Runtime.CreateChatClientAsync(options, Ct);
 
         // Act
         await client.GetResponseAsync(Data.Tool.Query, options, Ct);
-        var stored = await Conversations.LoadAsync(Guid.Parse(Agent.ConversationId), Ct);
+        var stored = await Store.LoadAsync<StoredConversation>(Agent.ConversationId, Ct);
 
         // Assert
-        stored!.ExecutionContext.Should().Be(new ChatExecutionContext(ProbeAgent.Name));
-    }
-
-    [Fact]
-    public async Task Given_Tools_In_The_Agents_Chat_Options_The_Run_Offers_Them_Before_Its_Toolsets()
-    {
-        // Arrange
-        var runtime = Services.GetRequiredService<AgentRuntime<HostedToolAgent>>();
-
-        // Act
-        var options = await runtime.ResolveChatOptionsAsync(ct: Ct);
-
-        // Assert
-        options.Tools!.Select(tool => tool.Name).Should().Equal("web_search", "probe");
+        stored!.ExecutionContext.Should().Be(new ChatExecutionContext("probe_agent"));
     }
 }

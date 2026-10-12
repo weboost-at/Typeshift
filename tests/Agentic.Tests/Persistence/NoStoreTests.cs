@@ -10,22 +10,32 @@ public class NoStoreTests : HostTestBase
     private AgentRuntime<ProbeAgent> Runtime => Services.GetRequiredService<AgentRuntime<ProbeAgent>>();
 
     [Fact]
-    public async Task Given_No_Store_Resolving_A_Runs_Options_Works_From_The_Code_Alone()
+    public void Given_No_Store_Resolving_A_Runs_Options_Works_From_The_Code_Alone()
     {
         // Act
-        var options = await Runtime.ResolveChatOptionsAsync(ct: Ct);
+        var options = Runtime.ResolveChatOptions();
 
         // Assert
         options.Temperature.Should().Be(0.2f);
     }
 
     [Fact]
-    public async Task Given_No_Store_Updating_A_Configuration_Throws_What_To_Register()
+    public async Task Given_No_Store_Saving_Settings_Throws_What_To_Register()
     {
         // Act
-        var update = () => Runtime.UpdateConfigurationAsync(configuration => configuration, Ct);
+        var save = () => Runtime.SaveSettingsAsync(Data.Agent.Id.Default, new ProbeAgent.Settings(), Ct);
 
         // Assert
-        await update.Should().ThrowAsync<InvalidOperationException>().WithMessage("*IAgentConfigurationStore*");
+        await save.Should().ThrowAsync<InvalidOperationException>().WithMessage("*AddAgenticStore<TStore, Guid>()*");
+    }
+
+    [Fact]
+    public async Task Given_No_Store_Resolving_With_An_Id_Throws_What_To_Register()
+    {
+        // Act
+        var resolve = () => Runtime.ResolveChatOptionsAsync(Data.Agent.Id.Default, ct: Ct);
+
+        // Assert
+        await resolve.Should().ThrowAsync<InvalidOperationException>().WithMessage("*AddAgenticStore<TStore, Guid>()*");
     }
 }

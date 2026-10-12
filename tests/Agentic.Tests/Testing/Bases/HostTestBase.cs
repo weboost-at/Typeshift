@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Agentic.Json;
-using Agentic.Settings;
 using Agentic.Tests.Testing.Fakes;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,9 +38,6 @@ public abstract class HostTestBase : UnitTestBase, IAsyncDisposable
         {
             Services = Services
         };
-
-    protected StoredSettings Stored(params (string Property, object? Value)[] values) =>
-        values.Aggregate(StoredSettings.Empty, (stored, value) => stored.With(value.Property, AsJson(value.Value)));
 
     protected T ReadResult<T>(object? result) => ((JsonElement)result!).Deserialize(Json.GetTypeInfo<T>())!;
 

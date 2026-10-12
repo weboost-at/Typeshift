@@ -18,21 +18,9 @@ internal static class RegistrationDiagnostics
         var declarations = own
             .Concat(references.Modules.SelectMany(module => module.Toolsets))
             .SelectMany(toolset => toolset.Tools.Select(tool =>
-                new Declaration(tool.Name, $"{ShortName(toolset.Type)}.{tool.Method}", tool.Location)));
+                new Declaration(tool.Name, ShortName(toolset.Type), tool.Location)));
 
         return GetDuplicates(Descriptors.DuplicateToolName, declarations, calls);
-    }
-
-    public static IEnumerable<Diagnostic> GetDuplicateAgents(
-        ImmutableArray<AgentSummary> own,
-        ReferenceModel references,
-        ImmutableArray<InterceptModel> calls)
-    {
-        var declarations = own
-            .Concat(references.Modules.SelectMany(module => module.Agents))
-            .Select(agent => new Declaration(agent.UniqueName, ShortName(agent.Type), agent.Location));
-
-        return GetDuplicates(Descriptors.DuplicateAgentName, declarations, calls);
     }
 
     // Only the host, the project that calls AddAgentic(), misses what an ungenerated reference declares

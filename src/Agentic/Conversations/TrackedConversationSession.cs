@@ -9,7 +9,7 @@ namespace Agentic.Conversations;
 public class TrackedConversationSession
 {
     internal TrackedConversationSession(
-        Guid conversationId,
+        string? conversationId,
         ConversationStart start,
         StoredConversation? resumed,
         TimeProvider time)
@@ -37,9 +37,10 @@ public class TrackedConversationSession
     public DateTimeOffset StartedAt { get; }
 
     /// <summary>
-    /// The conversation the session belongs to.
+    /// The conversation the session belongs to, as <see cref="Microsoft.Extensions.AI.ChatOptions.ConversationId"/>
+    /// named it; null for a call outside of any conversation, which is tracked but never stored.
     /// </summary>
-    public Guid ConversationId { get; }
+    public string? ConversationId { get; }
 
     /// <summary>
     /// The model the session runs on.

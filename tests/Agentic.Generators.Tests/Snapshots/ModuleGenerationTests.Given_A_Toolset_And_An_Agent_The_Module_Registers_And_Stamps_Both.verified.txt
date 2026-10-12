@@ -7,57 +7,136 @@ namespace App;
 partial class EchoAgent
 {
     /// <summary>
-    /// The unique name of this agent.
+    /// The settings of <see cref="App.EchoAgent"/> that may change at runtime: its model, its configurable chat options
+    /// and the configurable settings of its tools. A null value keeps what the layer below sets. Store them per id
+    /// through the agent's runtime, or pass them for a single run.
     /// </summary>
-    public const string Name = "echo_agent";
-
-    /// <summary>
-    /// The names of the tools this agent offers, in declaration order.
-    /// </summary>
-    public static global::System.Collections.Generic.IReadOnlyList<global::Agentic.Tools.ToolName> ToolNames { get; } =
-    [
-        new("echo")
-    ];
-
-    /// <inheritdoc />
-    protected override global::System.Collections.Generic.IReadOnlyList<global::Agentic.Agents.ChatOptionProperty> ConfigurableChatOptions { get; } = [];
-
-    /// <summary>
-    /// The stored configuration of this agent, limited to what may change at runtime.
-    /// </summary>
-    public sealed class Configuration :
-        global::Agentic.Agents.AgentConfigurationView,
-        global::Agentic.Agents.IAgentConfigurationView<Configuration>
+    public sealed record Settings :
+        global::Agentic.Agents.IAgentSettings,
+        global::Agentic.Persistence.IStorable<Settings>
     {
-        private Configuration(
-            global::Agentic.Agents.AgentConfiguration configuration,
-            global::System.Text.Json.JsonSerializerOptions options)
-            : base(configuration, options)
-        {
-        }
+        /// <summary>
+        /// The model the agent runs on, as the registered chat client provider names it. Null keeps the <c>ModelId</c>
+        /// of the agent's chat options.
+        /// </summary>
+        public string? Model { get; init; }
 
         /// <inheritdoc />
-        public static Configuration Create(
-            global::Agentic.Agents.AgentConfiguration configuration,
-            global::System.Text.Json.JsonSerializerOptions options) =>
-            new(configuration, options);
+        public string Serialize() =>
+            global::Agentic.Persistence.StorableJson.Write(writer =>
+            {
+                global::Agentic.Persistence.StorableJson.Write(writer, "model", Model);
+            });
+
+        /// <inheritdoc />
+        public static Settings Deserialize(string json) =>
+            global::Agentic.Persistence.StorableJson.Read(json, static data => new Settings
+            {
+                Model = global::Agentic.Persistence.StorableJson.ReadString(data, "model")
+            });
+
+        void global::Agentic.Agents.IAgentSettings.ApplyTo(global::Microsoft.Extensions.AI.ChatOptions options)
+        {
+            if (Model is { } model) options.ModelId = model;
+        }
+
+        global::Agentic.Settings.IToolOverrides? global::Agentic.Agents.IAgentSettings.GetToolOverrides(
+            global::Agentic.Tools.ToolName tool) =>
+            null;
     }
 }
 
 /// <summary>
-/// Configures <see cref="App.EchoAgent"/> through its typed view.
+/// The typed members of the runtime of <see cref="App.EchoAgent"/>.
 /// </summary>
-public static class EchoAgentConfigurationExtensions
+public static class EchoAgentRuntimeExtensions
 {
     extension(global::Agentic.Agents.AgentRuntime<global::App.EchoAgent> runtime)
     {
         /// <summary>
-        /// Changes the agent's stored configuration through its typed, allowlisted view and stores it.
+        /// Loads the agent's settings stored under an id.
         /// </summary>
-        public global::System.Threading.Tasks.Task ConfigureAsync(
-            global::System.Action<global::App.EchoAgent.Configuration> configure,
-            global::System.Threading.CancellationToken ct = default) =>
-            runtime.UpdateConfigurationAsync(configure, ct);
+        /// <typeparam name="TId">The id type of the registered store.</typeparam>
+        /// <param name="id">The id the settings were saved under.</param>
+        /// <param name="ct">Cancels the load.</param>
+        /// <returns>The stored settings, or empty settings when none are stored.</returns>
+        /// <exception cref="System.InvalidOperationException">
+        /// No store with ids of <typeparamref name="TId"/> is registered.
+        /// </exception>
+        public global::System.Threading.Tasks.Task<global::App.EchoAgent.Settings> LoadSettingsAsync<TId>(
+            TId id,
+            global::System.Threading.CancellationToken ct = default)
+            where TId : notnull =>
+            runtime.LoadSettingsCoreAsync<global::App.EchoAgent.Settings, TId>(id, ct);
+
+        /// <summary>
+        /// Saves the agent's settings under an id, replacing what was stored there.
+        /// </summary>
+        /// <typeparam name="TId">The id type of the registered store.</typeparam>
+        /// <param name="id">The id to save the settings under.</param>
+        /// <param name="settings">The settings; a null value keeps what the agent's code sets.</param>
+        /// <param name="ct">Cancels the save.</param>
+        /// <exception cref="System.InvalidOperationException">
+        /// No store with ids of <typeparamref name="TId"/> is registered.
+        /// </exception>
+        public global::System.Threading.Tasks.Task SaveSettingsAsync<TId>(
+            TId id,
+            global::App.EchoAgent.Settings settings,
+            global::System.Threading.CancellationToken ct = default)
+            where TId : notnull =>
+            runtime.SaveSettingsCoreAsync(id, settings, ct);
+
+        /// <summary>
+        /// Changes the agent's settings stored under an id and saves them.
+        /// </summary>
+        /// <typeparam name="TId">The id type of the registered store.</typeparam>
+        /// <param name="id">The id the settings are stored under.</param>
+        /// <param name="configure">
+        /// Returns the changed settings, <c>settings => settings with { Temperature = 0.4f }</c>.
+        /// </param>
+        /// <param name="ct">Cancels the load and the save.</param>
+        /// <returns>The saved settings.</returns>
+        /// <exception cref="System.InvalidOperationException">
+        /// No store with ids of <typeparamref name="TId"/> is registered.
+        /// </exception>
+        public global::System.Threading.Tasks.Task<global::App.EchoAgent.Settings> ConfigureAsync<TId>(
+            TId id,
+            global::System.Func<global::App.EchoAgent.Settings, global::App.EchoAgent.Settings> configure,
+            global::System.Threading.CancellationToken ct = default)
+            where TId : notnull =>
+            runtime.ConfigureSettingsCoreAsync(id, configure, ct);
+
+        /// <summary>
+        /// Resolves the chat options of a run from the agent's code alone, without a store.
+        /// </summary>
+        /// <param name="run">Settings for this run only; a null value keeps what the code sets.</param>
+        /// <param name="conversationId">The conversation the run continues, or null.</param>
+        /// <returns>The options, with the agent's tools, to create the chat client with and call it with.</returns>
+        public global::Microsoft.Extensions.AI.ChatOptions ResolveChatOptions(
+            global::App.EchoAgent.Settings? run = null,
+            string? conversationId = null) =>
+            runtime.ResolveChatOptionsCore(run, conversationId);
+
+        /// <summary>
+        /// Resolves the chat options of a run from the agent's code, the settings stored under an id and the defaults
+        /// stored under the same id for its tools.
+        /// </summary>
+        /// <typeparam name="TId">The id type of the registered store.</typeparam>
+        /// <param name="id">The id the agent's settings and its tools' defaults are stored under.</param>
+        /// <param name="run">Settings for this run only; a null value keeps what the layers below set.</param>
+        /// <param name="conversationId">The conversation the run continues, or null.</param>
+        /// <param name="ct">Cancels the loads.</param>
+        /// <returns>The options, with the agent's tools, to create the chat client with and call it with.</returns>
+        /// <exception cref="System.InvalidOperationException">
+        /// No store with ids of <typeparamref name="TId"/> is registered.
+        /// </exception>
+        public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatOptions> ResolveChatOptionsAsync<TId>(
+            TId id,
+            global::App.EchoAgent.Settings? run = null,
+            string? conversationId = null,
+            global::System.Threading.CancellationToken ct = default)
+            where TId : notnull =>
+            runtime.ResolveChatOptionsCoreAsync<global::App.EchoAgent.Settings, TId>(id, run, conversationId, ct);
     }
 }
 
@@ -74,7 +153,7 @@ namespace Agentic.Generated;
 /// </summary>
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
 [global::Agentic.Modules.ModuleToolset(typeof(global::Tools.EchoToolset))]
-[global::Agentic.Modules.ModuleAgent(typeof(global::App.EchoAgent), "echo_agent")]
+[global::Agentic.Modules.ModuleAgent(typeof(global::App.EchoAgent))]
 public static class SubjectModule
 {
     /// <summary>
@@ -96,7 +175,7 @@ public static class SubjectModule
 
 namespace Tools;
 
-[global::Agentic.Modules.GeneratedTool("echo", "Echo", null)]
+[global::Agentic.Modules.GeneratedTool("echo", null)]
 partial class EchoToolset
 {
     /// <summary>
@@ -119,7 +198,8 @@ partial class EchoToolset
         };
 
     private static readonly global::Agentic.Tools.ToolBinding EchoBinding =
-        global::Agentic.Tools.ToolBinding.Create(static (tool, json) => new EchoFunction(tool, json));
+        global::Agentic.Tools.ToolBinding.Create(
+            static (tool, json) => new EchoFunction(tool, json));
 
     private sealed class EchoFunction(
         global::Agentic.Toolsets.ToolDefinition tool,
@@ -143,5 +223,22 @@ partial class EchoToolset
             global::System.IServiceProvider services,
             global::System.Threading.CancellationToken ct) =>
             new(GetResult(global::Tools.EchoToolset.Echo(GetArgument<string>(arguments, "text"))));
+    }
+}
+
+/// <summary>
+/// Selects the tools of <see cref="Tools.EchoToolset"/> an agent offers, in <c>UseToolset&lt;EchoToolset&gt;(tools =>
+/// ...)</c>.
+/// </summary>
+public static class EchoToolsetSelection
+{
+    extension(global::Agentic.Tools.ToolSelection<global::Tools.EchoToolset> tools)
+    {
+        /// <summary>
+        /// Selects the <c>echo</c> tool: Echoes the text.
+        /// </summary>
+        /// <returns>This selection, to select further tools.</returns>
+        public global::Agentic.Tools.ToolSelection<global::Tools.EchoToolset> Echo() =>
+            tools.Select("echo");
     }
 }

@@ -5,6 +5,4 @@ internal sealed record ModuleModel(
     string Name,
     string AssemblyName,
     EquatableArray<string> Toolsets,
-    EquatableArray<ModuleAgentModel> Agents);
-
-internal sealed record ModuleAgentModel(string Type, string UniqueName);
+    EquatableArray<string> Agents);

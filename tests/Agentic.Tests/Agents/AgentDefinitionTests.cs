@@ -17,7 +17,7 @@ public class AgentDefinitionTests : UnitTestBase
     }
 
     [Fact]
-    public void Given_A_Method_Of_Another_Toolset_Selecting_It_Throws_An_ArgumentException()
+    public void Given_A_Selected_Name_That_Is_No_Tool_Of_The_Toolset_It_Throws_An_ArgumentException()
     {
         // Act
         var define = () => new MisselectingAgent<ProbeToolset>();
@@ -37,22 +37,22 @@ public class AgentDefinitionTests : UnitTestBase
     }
 
     [Fact]
-    public void Given_Settings_No_Tool_Of_The_Agent_Reads_WithToolSettings_Throws_An_ArgumentException()
+    public void Given_WithName_The_Agent_Goes_By_That_Name()
     {
         // Act
-        var define = () => new MissettingAgent<ProbeSettings>();
+        var name = new ProbeAgent().Name;
 
         // Assert
-        define.Should().Throw<ArgumentException>();
+        name.Should().Be("probe_agent");
     }
 
     [Fact]
-    public void Given_A_Name_That_Is_Not_Lower_Snake_Case_WithUniqueName_Throws_An_ArgumentException()
+    public void Given_No_WithName_The_Agent_Goes_By_Its_Class_Name()
     {
         // Act
-        var define = () => new NamedAgent<object>("Probe Agent");
+        var name = new UnnamedAgent().Name;
 
         // Assert
-        define.Should().Throw<ArgumentException>();
+        name.Should().Be(nameof(UnnamedAgent));
     }
 }

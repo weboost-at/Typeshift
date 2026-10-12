@@ -21,21 +21,16 @@ public class ToolCatalogTests : HostTestBase
     }
 
     [Fact]
-    public async Task Given_Stored_Settings_The_Created_Tool_Runs_With_Them()
+    public async Task Given_Overrides_The_Created_Tool_Runs_With_Them()
     {
         // Arrange
-        var stored = Stored(
-            (nameof(FindCompaniesSettings.Limit), Data.Tool.Limit.Default),
-            (nameof(FindCompaniesSettings.IncludeInactive), true));
-
-        var tool = Catalog.CreateTool(new ToolName("find_companies"), stored);
+        var overrides = new CompanyToolset.FindCompaniesOverrides { Limit = Data.Tool.Limit };
+        var tool = Catalog.CreateTool(CompanyToolset.Tools.FindCompanies, overrides);
 
         // Act
         var result = await tool.InvokeAsync(Arguments(("query", Data.Tool.Query)), Ct);
 
         // Assert
-        ReadResult<FindCompaniesSettings>(result)
-            .Should()
-            .Be(new FindCompaniesSettings { Limit = Data.Tool.Limit.Default });
+        ReadResult<FindCompaniesSettings>(result).Should().Be(new FindCompaniesSettings { Limit = Data.Tool.Limit.Default });
     }
 }

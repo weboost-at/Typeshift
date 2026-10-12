@@ -29,16 +29,11 @@ public class ToolsetTests : HostTestBase
     }
 
     [Fact]
-    public async Task Given_Passed_Settings_Only_Their_Allowlisted_Members_Apply()
+    public async Task Given_Overrides_The_Tool_Runs_With_Them_Over_Its_Code_Defaults()
     {
         // Arrange
-        var settings = new ProbeSettings
-        {
-            Limit = Data.Tool.Limit,
-            Mode = Data.Tool.Mode
-        };
-
-        var probe = new ProbeToolset().CreateTools(Json, settings).Single();
+        var overrides = new ProbeToolset.ProbeOverrides { Limit = Data.Tool.Limit };
+        var probe = new ProbeToolset().CreateTools(Json, overrides).Single();
 
         // Act
         var result = await probe.InvokeAsync(Arguments(("query", Data.Tool.Query)), Ct);

@@ -1,13 +1,23 @@
+using System.Collections.Frozen;
+using System.ComponentModel;
 using Agentic.Conversations;
+using Agentic.Persistence;
+using Agentic.Settings;
+using Agentic.Tools;
 using Microsoft.Extensions.AI;
 
 namespace Agentic.Agents;
 
 /// <summary>
-/// Runs an agent: loads and stores its configuration, resolves the options of a run and creates its chat client.
+/// Runs an agent. The generator adds the typed members of each agent as extension members of
+/// <see cref="AgentRuntime{TAgent}"/>: <c>LoadSettingsAsync</c>, <c>SaveSettingsAsync</c>, <c>ConfigureAsync</c>
+/// and <c>ResolveChatOptionsAsync</c>.
 /// </summary>
 public class AgentRuntime
 {
+    private static readonly IReadOnlyDictionary<ToolName, IToolOverrides> NoDefaults =
+        FrozenDictionary<ToolName, IToolOverrides>.Empty;
+
     private readonly AgentRuntimeServices _services;
 
     internal AgentRuntime(AgentDefinition definition, AgentRuntimeServices services)
@@ -17,72 +27,26 @@ public class AgentRuntime
     }
 
     /// <summary>
-    /// The agent as its code or its stored record defines it.
+    /// The agent as its code defines it.
     /// </summary>
     public AgentDefinition Definition { get; }
 
     /// <summary>
-    /// The stored configuration, empty while nothing is stored or no store is registered.
+    /// Creates a chat client that runs the agent: it tracks its conversations and invokes the agent's tools.
     /// </summary>
-    public async Task<AgentConfiguration> LoadConfigurationAsync(CancellationToken ct = default) =>
-        _services.Configurations is { } store
-            ? await store.LoadAsync(Definition.UniqueName, ct) ?? new AgentConfiguration(Definition.UniqueName)
-            : new AgentConfiguration(Definition.UniqueName);
-
-    /// <summary>
-    /// The stored configuration through the agent's generated, allowlisted view.
-    /// </summary>
-    public async Task<TView> LoadConfigurationAsync<TView>(CancellationToken ct = default)
-        where TView : AgentConfigurationView, IAgentConfigurationView<TView> =>
-        TView.Create(await LoadConfigurationAsync(ct), _services.Json.SerializerOptions);
-
-    /// <summary>
-    /// Changes the stored configuration and stores it.
-    /// </summary>
-    public async Task UpdateConfigurationAsync(
-        Func<AgentConfiguration, AgentConfiguration> update,
-        CancellationToken ct = default)
+    /// <param name="options">
+    /// The resolved options of the run; their <see cref="ChatOptions.ModelId"/> picks the model.
+    /// </param>
+    /// <param name="ct">Cancels the creation.</param>
+    /// <returns>The client, to call with the same <paramref name="options"/>.</returns>
+    /// <exception cref="ConfigurationRequiredException">The options name no model.</exception>
+    /// <exception cref="InvalidOperationException">No <see cref="IChatClientProvider"/> is registered.</exception>
+    public async Task<IChatClient> CreateChatClientAsync(ChatOptions options, CancellationToken ct = default)
     {
-        if (_services.Configurations is not { } store)
-            throw new InvalidOperationException(
-                "No IAgentConfigurationStore is registered: register one to store the configuration of "
-                + Definition.UniqueName + ".");
-
-        var updated = update(await LoadConfigurationAsync(ct)) with
-        {
-            UpdatedAt = _services.Time.GetUtcNow()
-        };
-
-        await store.SaveAsync(updated, ct);
-    }
-
-    /// <summary>
-    /// Changes the stored configuration through the agent's generated, allowlisted view and stores it.
-    /// </summary>
-    public Task UpdateConfigurationAsync<TView>(Action<TView> configure, CancellationToken ct = default)
-        where TView : AgentConfigurationView, IAgentConfigurationView<TView> =>
-        UpdateConfigurationAsync(configuration => Configure(configuration, configure), ct);
-
-    /// <summary>
-    /// The chat options of a run: the definition, then the stored overrides, then the run's own.
-    /// </summary>
-    public async Task<ChatOptions> ResolveChatOptionsAsync(RunOverrides? run = null, CancellationToken ct = default)
-    {
-        var configuration = await LoadConfigurationAsync(ct);
-        var toolDefaults = await _services.ToolDefaults.LoadAsync([.. Definition.Tools.Select(tool => tool.Name)], ct);
-
-        return Definition.CreateChatOptions(configuration, toolDefaults, run ?? RunOverrides.None, _services.Json);
-    }
-
-    /// <summary>
-    /// A chat client for the configured model that tracks its conversations and invokes the agent's tools.
-    /// </summary>
-    public async Task<IChatClient> CreateChatClientAsync(CancellationToken ct = default)
-    {
-        var configuration = await LoadConfigurationAsync(ct);
-
-        if (configuration.Model is not { } model)
-            throw new ConfigurationRequiredException($"No model is configured for {Definition.UniqueName}.");
+        if (options.ModelId is not { } model)
+            throw new ConfigurationRequiredException(
+                $"No model is configured for {Definition.Name}: set the model in its settings or the ModelId of its "
+                + "chat options.");
 
         if (_services.ChatClients is not { } provider)
             throw new InvalidOperationException(
@@ -97,18 +61,122 @@ public class AgentRuntime
             .Build(_services.Services);
     }
 
-    private AgentConfiguration Configure<TView>(AgentConfiguration configuration, Action<TView> configure)
-        where TView : AgentConfigurationView, IAgentConfigurationView<TView>
+    /// <summary>
+    /// Loads the agent's settings; the generated <c>LoadSettingsAsync</c> calls it.
+    /// </summary>
+    /// <typeparam name="TSettings">The agent's generated settings.</typeparam>
+    /// <typeparam name="TId">The id type of the registered store.</typeparam>
+    /// <param name="id">The id the settings were saved under.</param>
+    /// <param name="ct">Cancels the load.</param>
+    /// <returns>The stored settings, or empty settings when none are stored.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// No store with ids of <typeparamref name="TId"/> is registered.
+    /// </exception>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public async Task<TSettings> LoadSettingsCoreAsync<TSettings, TId>(TId id, CancellationToken ct)
+        where TSettings : class, IAgentSettings, IStorable<TSettings>, new()
+        where TId : notnull =>
+        await Stores.Get<TId>(_services.Services).LoadAsync<TSettings>(id, ct) ?? new TSettings();
+
+    /// <summary>
+    /// Saves the agent's settings; the generated <c>SaveSettingsAsync</c> calls it.
+    /// </summary>
+    /// <typeparam name="TSettings">The agent's generated settings.</typeparam>
+    /// <typeparam name="TId">The id type of the registered store.</typeparam>
+    /// <param name="id">The id to save the settings under.</param>
+    /// <param name="settings">The settings.</param>
+    /// <param name="ct">Cancels the save.</param>
+    /// <exception cref="InvalidOperationException">
+    /// No store with ids of <typeparamref name="TId"/> is registered.
+    /// </exception>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public Task SaveSettingsCoreAsync<TSettings, TId>(TId id, TSettings settings, CancellationToken ct)
+        where TSettings : class, IAgentSettings, IStorable<TSettings>
+        where TId : notnull =>
+        Stores.Get<TId>(_services.Services).SaveAsync(id, settings, ct);
+
+    /// <summary>
+    /// Changes the agent's stored settings and saves them; the generated <c>ConfigureAsync</c> calls it.
+    /// </summary>
+    /// <typeparam name="TSettings">The agent's generated settings.</typeparam>
+    /// <typeparam name="TId">The id type of the registered store.</typeparam>
+    /// <param name="id">The id the settings are stored under.</param>
+    /// <param name="configure">Returns the changed settings.</param>
+    /// <param name="ct">Cancels the load and the save.</param>
+    /// <returns>The saved settings.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// No store with ids of <typeparamref name="TId"/> is registered.
+    /// </exception>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public async Task<TSettings> ConfigureSettingsCoreAsync<TSettings, TId>(
+        TId id,
+        Func<TSettings, TSettings> configure,
+        CancellationToken ct)
+        where TSettings : class, IAgentSettings, IStorable<TSettings>, new()
+        where TId : notnull
     {
-        var view = TView.Create(configuration, _services.Json.SerializerOptions);
-        configure(view);
-        return view.Stored;
+        var configured = configure(await LoadSettingsCoreAsync<TSettings, TId>(id, ct));
+        await SaveSettingsCoreAsync(id, configured, ct);
+        return configured;
+    }
+
+    /// <summary>
+    /// Resolves the options of a run from the code alone; the generated <c>ResolveChatOptionsAsync</c> calls it.
+    /// </summary>
+    /// <param name="run">Settings for this run only, or null.</param>
+    /// <param name="conversationId">The conversation the run continues, or null.</param>
+    /// <returns>The options, with the agent's tools.</returns>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public ChatOptions ResolveChatOptionsCore(IAgentSettings? run, string? conversationId) =>
+        Definition.CreateChatOptions(stored: null, NoDefaults, run, conversationId, _services.Json);
+
+    /// <summary>
+    /// Resolves the options of a run from the code and the settings stored under an id; the generated
+    /// <c>ResolveChatOptionsAsync</c> calls it.
+    /// </summary>
+    /// <typeparam name="TSettings">The agent's generated settings.</typeparam>
+    /// <typeparam name="TId">The id type of the registered store.</typeparam>
+    /// <param name="id">The id the agent's settings and its tools' defaults are stored under.</param>
+    /// <param name="run">Settings for this run only, or null.</param>
+    /// <param name="conversationId">The conversation the run continues, or null.</param>
+    /// <param name="ct">Cancels the loads.</param>
+    /// <returns>The options, with the agent's tools.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// No store with ids of <typeparamref name="TId"/> is registered.
+    /// </exception>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public async Task<ChatOptions> ResolveChatOptionsCoreAsync<TSettings, TId>(
+        TId id,
+        IAgentSettings? run,
+        string? conversationId,
+        CancellationToken ct)
+        where TSettings : class, IAgentSettings, IStorable<TSettings>
+        where TId : notnull
+    {
+        var store = Stores.Get<TId>(_services.Services);
+        var stored = await store.LoadAsync<TSettings>(id, ct);
+        var toolDefaults = await LoadToolDefaultsAsync(store, id, ct);
+
+        return Definition.CreateChatOptions(stored, toolDefaults, run, conversationId, _services.Json);
+    }
+
+    private async Task<IReadOnlyDictionary<ToolName, IToolOverrides>> LoadToolDefaultsAsync<TId>(
+        IAgenticStore<TId> store,
+        TId id,
+        CancellationToken ct)
+        where TId : notnull
+    {
+        var defaults = await Task.WhenAll(Definition.Tools.Select(tool =>
+            tool.Toolset.LoadDefaultsAsync(tool, store, id, ct)));
+
+        return defaults.OfType<IToolOverrides>().ToDictionary(overrides => overrides.Tool);
     }
 }
 
 /// <summary>
-/// The runtime of the code agent <typeparamref name="TAgent"/>, registered per agent.
+/// The runtime of the agent <typeparamref name="TAgent"/>, registered per agent; its typed members are generated.
 /// </summary>
+/// <typeparam name="TAgent">The agent.</typeparam>
 public sealed class AgentRuntime<TAgent> : AgentRuntime where TAgent : AgentDefinition
 {
     internal AgentRuntime(TAgent definition, AgentRuntimeServices services) : base(definition, services)

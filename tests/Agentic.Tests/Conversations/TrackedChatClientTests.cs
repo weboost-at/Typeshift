@@ -205,4 +205,44 @@ public class TrackedChatClientTests : ConversationTestBase
         // Assert
         stored.Sessions.Should().HaveCount(2);
     }
+
+    [Fact]
+    public async Task Given_No_Conversation_Id_The_Session_Is_Tracked_Without_One()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+        ChatClient.Reply([gate, .. AnswerUpdates()]);
+
+        var asking = Tracked().GetResponseAsync(Conversation.Question, Options(), Ct);
+        await ChatClient.Requested;
+
+        // Act
+        var session = Tracker.Sessions.Single();
+        gate.SetResult();
+        await asking;
+
+        // Assert
+        session.ConversationId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Given_A_Conversation_Id_The_Store_Cannot_Parse_The_Conversation_Is_Not_Resumed()
+    {
+        // Arrange
+        ChatClient
+            .Reply([.. AnswerUpdates()])
+            .Reply([.. AnswerUpdates()]);
+
+        var options = Options();
+        options.ConversationId = Conversation.Context;
+
+        var client = Tracked();
+        await client.GetResponseAsync(Conversation.Question, options, Ct);
+
+        // Act
+        await client.GetResponseAsync(Conversation.FollowUp, options, Ct);
+
+        // Assert
+        ChatClient.Requests[1].Assert.Texts(Conversation.FollowUp);
+    }
 }

@@ -64,21 +64,21 @@ public class ToolInvocationTests : HostTestBase
             .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
             .Reply(Text(Data.Tool.Answer));
 
-        var settings = new ProbeSettings
-        {
-            Limit = Data.Tool.Limit
-        };
+        var overrides = new ProbeToolset.ProbeOverrides { Limit = Data.Tool.Limit };
 
         var options = new ChatOptions
         {
-            Tools = [.. new ProbeToolset().CreateTools(Json, settings)]
+            Tools = [.. new ProbeToolset().CreateTools(Json, overrides)]
         };
 
         // Act
         var response = await FunctionLoop().GetResponseAsync(Data.Tool.Question, options, Ct);
 
         // Assert
-        response.Assert.ToolResult<ProbeResult>(Data.Tool.CallId, Json).Settings.Should().Be(settings);
+        response.Assert.ToolResult<ProbeResult>(Data.Tool.CallId, Json)
+            .Settings
+            .Should()
+            .Be(new ProbeSettings { Limit = Data.Tool.Limit.Default });
     }
 
     [Fact]

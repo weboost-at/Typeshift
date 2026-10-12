@@ -1,12 +1,18 @@
 # Diagnostics
 
-The generator reports these diagnostics while it reads toolsets, agents and the `AddAgentic()` call. They are tracked
-in `src/Agentic.Generators/AnalyzerReleases.Unshipped.md`, declared in
-`src/Agentic.Generators/Diagnostics/Descriptors.cs`, and each one has its own test in
-`tests/Agentic.Generators.Tests/Diagnostics/DiagnosticTests.cs`.
+The generator reports these diagnostics while it reads toolsets, agents and the `AddAgentic()` call. They are declared
+in `src/Agentic.Generators/Diagnostics/Descriptors.cs`, tracked in `src/Agentic.Generators/AnalyzerReleases.Unshipped.md`,
+and each one has its own test in `tests/Agentic.Generators.Tests/Diagnostics/DiagnosticTests.cs`.
 
-Runtime guards stay for what the generator cannot see: stored agents, generic toolsets and agents, and calls made
-through a delegate. Each guard throws an exception whose message says what to change.
+Two mistakes need no diagnostic, because the generated API makes them compiler errors:
+
+- selecting a tool of another toolset, `UseToolset<CompanyToolset>(tools => tools.SearchWeb())`, is CS1929: the
+  selection methods exist only on the selection of their own toolset;
+- passing settings no tool of the agent reads, `WithToolSettings(new SearchWebSettings())` in an agent without
+  `search_web`, is CS1503: `WithToolSettings` has one overload per settings type the agent's tools read.
+
+Runtime guards stay for what the generator cannot see: generic toolsets and agents, and calls made through a
+delegate. Each guard throws an exception whose message says what to change.
 
 | ID | Severity | Title |
 |---|---|---|
@@ -15,24 +21,22 @@ through a delegate. Each guard throws an exception whose message says what to ch
 | [AGT003](#agt003) | Error | Tool has no name |
 | [AGT004](#agt004) | Error | Tool is not a static method group |
 | [AGT005](#agt005) | Error | Settings type is not a record |
-| [AGT006](#agt006) | Error | Agent has no valid unique name |
-| [AGT007](#agt007) | Error | Selected tool cannot be resolved |
-| [AGT008](#agt008) | Error | Tool name is not unique |
-| [AGT009](#agt009) | Warning | Tool has no description |
-| [AGT010](#agt010) | Error | Agent unique name is not unique |
-| [AGT011](#agt011) | Error | Tool takes its settings as a parameter |
-| [AGT012](#agt012) | Error | Tool settings are read by no tool |
-| [AGT013](#agt013) | Warning | Tool relies on XML docs that are not generated |
-| [AGT014](#agt014) | Warning | Referenced assembly was not compiled with the generator |
-| [AGT015](#agt015) | Error | Tool name is not lower_snake_case |
-| [AGT016](#agt016) | Error | Settings type is less accessible than its toolset |
+| [AGT006](#agt006) | Error | Toolset was not compiled with the generator |
+| [AGT007](#agt007) | Error | Tool name is not unique |
+| [AGT008](#agt008) | Warning | Tool has no description |
+| [AGT009](#agt009) | Error | Tool takes its settings as a parameter |
+| [AGT010](#agt010) | Warning | Tool relies on XML docs that are not generated |
+| [AGT011](#agt011) | Warning | Referenced assembly was not compiled with the generator |
+| [AGT012](#agt012) | Error | Tool name is not lower_snake_case |
+| [AGT013](#agt013) | Error | Settings type is less accessible than its toolset |
+| [AGT014](#agt014) | Error | Configurable member has a type settings cannot store |
 
 ## AGT001
 
 **Toolset or agent is not partial.** Reported on the class name.
 
-The generator adds members to every toolset and agent (the tool bindings, the `Name` constant, the configuration
-view), so the class must be `partial`.
+The generator adds members to every toolset and agent (the tool bindings, the `Settings` record, the
+`WithToolSettings` overloads), so the class must be `partial`.
 
 ```csharp
 public class CompanyToolset : Toolset          // AGT001
@@ -55,8 +59,8 @@ AddTool(FindCompanies).WithName("find_companies"); // fixed
 
 **Tool has no name.** Reported on the `AddTool(...)` call.
 
-Every tool needs `WithName(...)`; the name is the tool's identity across stores, agents and assemblies, so it never
-comes from the method name.
+Every tool needs `WithName(...)`. The name is the tool's identity in stored settings, in agents and across
+assemblies, so it never comes from the method name, which a refactoring may change.
 
 ## AGT004
 
@@ -74,51 +78,32 @@ AddTool(Find);                  // fixed, Find is static
 
 **Settings type is not a record.** Reported on `WithSettings<T>`.
 
-Stored values and run overrides apply to a `with` copy of the settings, so the type must be a record. The code
-defaults come from its parameterless constructor, which it therefore needs as well.
+Stored and run overrides apply to a `with` copy of the settings, so the type must be a record. The code defaults
+come from its parameterless constructor, which it therefore needs as well.
 
 ## AGT006
 
-**Agent has no valid unique name.** Reported on the class name when `WithUniqueName(...)` is missing, or on its
-argument when that is not a lower_snake_case constant.
+**Toolset was not compiled with the generator.** Reported on the `UseToolset<T>(...)` call.
 
-The unique name keys the agent's stored configuration and its conversations' execution context. At runtime,
-`WithUniqueName` throws an `ArgumentException` for a name that is not lower_snake_case.
+The toolset comes from an assembly that carries no generator stamps, so its tools, their selection methods and their
+settings are unknown. Reference the Agentic package in the toolset's project. At runtime, such a toolset throws an
+`InvalidOperationException` when the agent asks it for a tool.
 
 ## AGT007
-
-**Selected tool cannot be resolved.** Reported on the offending argument of `UseToolset<T>(...)`, or on the call when
-`T` itself was not compiled with the generator. The message says which case applies.
-
-`UseToolset<T>(T.Method, ...)` selects single tools by their method; a method that is not a tool of `T` cannot be
-offered. At runtime the same call throws an `ArgumentException`.
-
-```csharp
-UseToolset<CompanyToolset>(WebToolset.Search);         // AGT007, Search is not a tool of CompanyToolset
-UseToolset<CompanyToolset>(CompanyToolset.FindCompanies); // fixed
-```
-
-## AGT008
 
 **Tool name is not unique.** Reported on the first own tool that uses the name, or on the `AddAgentic()` call when the
 clash is only among referenced assemblies.
 
-Tool names are global: the catalogs, the stores and the model all address a tool by name. Two tools with one name,
+Tool names are global: stored settings, agents and the model address a tool by its name. Two tools with one name,
 anywhere the host can see, are an error.
 
-## AGT009
+## AGT008
 
 **Tool has no description.** A warning, reported on the `AddTool(...)` call.
 
 The model chooses tools by their descriptions. Add `WithDescription(...)` or an XML `<summary>` on the method.
 
-## AGT010
-
-**Agent unique name is not unique.** Reported on the first agent that uses the name, or on `AddAgentic()` when the
-clash is only among referenced assemblies. The agent catalog throws an `InvalidOperationException` for a clash it
-meets at runtime.
-
-## AGT011
+## AGT009
 
 **Tool takes its settings as a parameter.** Reported on the parameter.
 
@@ -126,22 +111,15 @@ A parameter becomes part of the model-facing schema, so a settings parameter wou
 Read them inside the tool instead:
 
 ```csharp
-public static Company[] Find(string city, FindCompaniesSettings settings)          // AGT011
-public static Company[] Find(string city, IServiceProvider services)               // fixed
+public static Company[] Find(string city, FindCompaniesSettings settings)  // AGT009
+public static Company[] Find(string city, IServiceProvider services)       // fixed
 {
     var settings = services.GetToolSettings<FindCompaniesSettings>();
     ...
 }
 ```
 
-## AGT012
-
-**Tool settings are read by no tool.** Reported on the argument of `WithToolSettings(...)`.
-
-`WithToolSettings(x)` applies to the tools the agent added before it. If none of them reads the type of `x`, the
-settings would never apply. At runtime the same call throws an `ArgumentException`.
-
-## AGT013
+## AGT010
 
 **Tool relies on XML docs that are not generated.** A warning, reported on the `AddTool(...)` call.
 
@@ -150,7 +128,7 @@ descriptions from `<param>` docs. The compiler only reads them with
 `<GenerateDocumentationFile>true</GenerateDocumentationFile>`, so without it they are lost. Turn it on; or, when only
 the summary is at stake, describe the tool with `WithDescription(...)`.
 
-## AGT014
+## AGT011
 
 **Referenced assembly was not compiled with the generator.** A warning, reported on the `AddAgentic()` call.
 
@@ -158,23 +136,40 @@ A referenced assembly declares toolsets or agents but carries no module stamp, s
 them. NuGet does not pass a package's analyzers on to the projects that reference the consumer: reference the Agentic
 package in that assembly's project too.
 
-## AGT015
+## AGT012
 
 **Tool name is not lower_snake_case.** Reported on the argument of `WithName(...)`.
 
 Tool names follow the convention of the model providers' function names, `find_companies`. At runtime `WithName`
 throws an `ArgumentException` for any other name.
 
-## AGT016
+## AGT013
 
 **Settings type is less accessible than its toolset.** Reported on `WithSettings<T>`.
 
-A public toolset exposes its settings through `Tools.{Tool}` (a `ToolRef<TSettings, TConfiguration>`) and through
-the configuration views, whose properties have the types of the configurable members. Make the settings record and
-those member types public, or make the toolset internal.
+A public toolset exposes its settings through `Tools.{Tool}` (a `ToolRef<TSettings, TOverrides>`) and through the
+generated `{Tool}Overrides` record, whose properties have the types of the configurable members. Make the settings
+record and those member types public, or make the toolset internal.
 
 ```csharp
 internal record EchoSettings { public int Repeat { get; init; } }
-public partial class EchoToolset : Toolset      // AGT016
+public partial class EchoToolset : Toolset      // AGT013
 internal partial class EchoToolset : Toolset    // fixed, or make EchoSettings public
 ```
+
+## AGT014
+
+**Configurable member has a type settings cannot store.** Reported on `WithSettings<T>`, or on `WithChatOptions` for a
+configurable chat option.
+
+Configurable members end up in the generated `Settings` and `{Tool}Overrides` records, which serialize themselves
+without reflection. They support:
+
+- `bool`, `byte`, `short`, `int`, `long`, `float`, `double` and `decimal`;
+- `string`, `Guid`, `DateTime`, `DateTimeOffset` and `TimeSpan`;
+- enums, stored by name;
+- string lists: `string[]`, `IEnumerable<string>`, `IReadOnlyCollection<string>`, `IReadOnlyList<string>`,
+  `ICollection<string>` and `IList<string>`;
+- the nullable forms of all of these.
+
+Keep other members out of `Configurable(...)`; their value then comes from code alone.

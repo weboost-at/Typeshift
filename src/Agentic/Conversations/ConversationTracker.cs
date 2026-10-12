@@ -1,21 +1,21 @@
 using System.Collections.Concurrent;
-using Agentic.Persistence;
 using Microsoft.Extensions.AI;
 
 namespace Agentic.Conversations;
 
 /// <summary>
-/// Tracks the sessions of every conversation while they run and stores them when they end.
+/// Tracks the sessions of every conversation while they run and, when a store is registered, stores them when they
+/// end under the conversation's id.
 /// </summary>
 public sealed class ConversationTracker
 {
     internal static readonly TimeSpan SubscriberLimit = TimeSpan.FromSeconds(5);
 
     private readonly ConcurrentDictionary<Guid, TrackedConversationSession> _sessions = [];
-    private readonly IConversationStore? _store;
+    private readonly ConversationStore? _store;
     private readonly TimeProvider _time;
 
-    internal ConversationTracker(IConversationStore? store, TimeProvider time)
+    internal ConversationTracker(ConversationStore? store, TimeProvider time)
     {
         _store = store;
         _time = time;
@@ -58,7 +58,7 @@ public sealed class ConversationTracker
         if (!_sessions.TryRemove(sessionId, out var tracked)) return;
 
         var completed = await tracked.CompleteAsync(response);
-        if (_store is { } store) await StoreAsync(store, tracked, completed);
+        if (StoreOf(tracked.ConversationId) is { } store) await StoreAsync(store, tracked, completed);
 
         await Subscribers.RaiseAsync(OnConversationsChanged, SubscriberLimit, _time);
     }
@@ -71,33 +71,44 @@ public sealed class ConversationTracker
     }
 
     // An id that is not stored starts a new conversation under that id
-    private async Task<(Guid Id, StoredConversation? Resumed)> ResolveConversationAsync(
+    private async Task<(string? Id, StoredConversation? Resumed)> ResolveConversationAsync(
         ConversationStart start,
         CancellationToken ct)
     {
-        if (start.ConversationId is not { } id) return (Guid.CreateVersion7(_time.GetUtcNow()), null);
+        if (start.ConversationId is not { } id || StoreOf(id) is not { } store) return (start.ConversationId, null);
 
-        var stored = _store is null ? null : await _store.LoadAsync(id, ct);
-        return (id, stored);
+        return (id, await store.LoadAsync(id, ct));
     }
 
-    // Two first sessions of one new conversation may overlap: the one that ends second appends to the first
+    // Only an id the registered store's id type can parse is stored, the library never invents ids
+    private ConversationStore? StoreOf(string? conversationId) =>
+        conversationId is not null && _store?.Accepts(conversationId) is true ? _store : null;
+
+    // Read at the end, so overlapping first sessions both land; a resumed conversation deleted meanwhile stays deleted
     private static async Task StoreAsync(
-        IConversationStore store,
+        ConversationStore store,
         TrackedConversationSession tracked,
         ConversationSession completed)
     {
-        if (tracked.Resumed || await store.LoadAsync(tracked.ConversationId, CancellationToken.None) is not null)
-            await store.AppendAsync(tracked.ConversationId, completed, CancellationToken.None);
-        else
-            await store.CreateAsync(NewConversation(tracked, completed), CancellationToken.None);
+        var id = tracked.ConversationId!;
+        var latest = await store.LoadAsync(id, CancellationToken.None);
+        if (latest is null && tracked.Resumed) return;
+
+        var conversation = latest is null
+            ? NewConversation(tracked, completed)
+            : latest with
+            {
+                Sessions = [.. latest.Sessions, completed],
+                LastActivity = completed.FinishedAt
+            };
+
+        await store.SaveAsync(id, conversation, CancellationToken.None);
     }
 
     private static StoredConversation NewConversation(
         TrackedConversationSession tracked,
         ConversationSession completed) =>
         new(
-            Id: tracked.ConversationId,
             ExecutionContext: tracked.ExecutionContext,
             Sessions: [completed],
             LastActivity: completed.FinishedAt,

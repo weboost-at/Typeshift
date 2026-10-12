@@ -16,27 +16,34 @@ internal static class ToolsetEmitter
     private const string ToolName = "global::Agentic.Tools.ToolName";
 
     public static string Emit(ToolsetModel toolset) =>
-        TypeEmitter.EmitPartial(toolset.Type, toolset.Tools.Select(GetStamp), writer =>
-        {
-            WriteToolReferences(writer, toolset);
-
-            foreach (var tool in toolset.Tools.Where(tool => tool.Settings is not null))
+        TypeEmitter.EmitPartial(
+            toolset.Type,
+            toolset.Tools.Select(GetStamp),
+            writer =>
             {
-                writer.Line();
-                WriteConfiguration(writer, tool, tool.Settings!);
-            }
+                WriteToolReferences(writer, toolset);
 
-            writer.Line();
-            WriteGetBinding(writer, toolset);
+                foreach (var tool in toolset.Tools.Where(HasOverrides))
+                {
+                    writer.Line();
+                    WriteOverrides(writer, tool, tool.Settings!);
+                }
 
-            foreach (var tool in toolset.Tools)
-            {
                 writer.Line();
-                WriteBinding(writer, tool);
-                writer.Line();
-                WriteFunction(writer, tool);
-            }
-        });
+                WriteGetBinding(writer, toolset);
+
+                foreach (var tool in toolset.Tools)
+                {
+                    writer.Line();
+                    WriteBinding(writer, tool);
+                    writer.Line();
+                    WriteFunction(writer, tool);
+                }
+            },
+            writer => WriteSelection(writer, toolset));
+
+    public static bool HasOverrides(ToolModel tool) =>
+        tool.Settings?.Properties.Any(property => property.IsConfigurable) is true;
 
     // Other compilations read the tools of this toolset from these stamps
     private static string GetStamp(ToolModel tool)
@@ -47,10 +54,7 @@ internal static class ToolsetEmitter
             .Where(property => property.IsConfigurable)
             .Select(property => $", {Names.Literal(property.Name)}") ?? [];
 
-        var name = Names.Literal(tool.Name);
-        var method = Names.Literal(tool.Method);
-
-        return $"global::Agentic.Modules.GeneratedTool({name}, {method}, {settings}{string.Concat(configurable)})";
+        return $"global::Agentic.Modules.GeneratedTool({Names.Literal(tool.Name)}, {settings}{string.Concat(configurable)})";
     }
 
     private static void WriteToolReferences(SourceWriter writer, ToolsetModel toolset)
@@ -61,8 +65,8 @@ internal static class ToolsetEmitter
         {
             foreach (var tool in toolset.Tools)
             {
-                var type = tool.Settings is { } settings
-                    ? $"global::Agentic.Tools.ToolRef<{settings.Type}, {GetConfigurationName(tool)}>"
+                var type = HasOverrides(tool)
+                    ? $"global::Agentic.Tools.ToolRef<{tool.Settings!.Type}, {Names.OverridesName(tool.Name)}>"
                     : "global::Agentic.Tools.ToolRef";
 
                 if (tool != toolset.Tools[0]) writer.Line();
@@ -76,48 +80,109 @@ internal static class ToolsetEmitter
         }
     }
 
-    public static string GetConfigurationName(ToolModel tool) => GetConfigurationName(tool.Name);
-
-    public static string GetConfigurationName(string tool) => $"{Names.ToPascalCase(tool)}Configuration";
-
-    private static void WriteConfiguration(SourceWriter writer, ToolModel tool, SettingsModel settings)
+    // The tool's configurable members, nullable: what a UI edits, a store keeps and a run passes
+    private static void WriteOverrides(SourceWriter writer, ToolModel tool, SettingsModel settings)
     {
-        var view = GetConfigurationName(tool);
-        var stored = "global::Agentic.Settings.StoredSettings";
+        var type = Names.OverridesName(tool.Name);
+        var configurable = settings.Properties.Where(property => property.IsConfigurable).ToList();
+
+        // A value never clashes with a member of the record or the record itself
+        string[] reserved =
+        [
+            type, "Deserialize", "EqualityContract", "Equals", "GetHashCode", "GetType", "PrintMembers", "Serialize",
+            "ToString"
+        ];
+
+        var members = configurable
+            .Select(property => new StoredMember(
+                Names.Unreserved(property.Name, "Value", reserved),
+                Names.JsonName(property.Name),
+                property.Storage!))
+            .ToList();
 
         Docs.WriteSummary(
             writer,
-            $"The stored settings of the <c>{tool.Name}</c> tool, limited to what may change at runtime.");
-        ViewEmitter.WriteDeclaration(
-            writer,
-            view,
-            "global::Agentic.Settings.StoredSettingsView",
-            "global::Agentic.Settings.IStoredSettingsView");
+            $"Overrides the configurable settings of the <c>{tool.Name}</c> tool, as stored tool defaults, as "
+            + "an agent's stored settings or for a single run. A null value keeps what the layer below sets.");
+        writer.Line($"public sealed record {type} :");
+
+        using (writer.Indent())
+        {
+            writer.Line($"global::Agentic.Settings.IToolOverrides<{settings.Type}>,");
+            writer.Line($"global::Agentic.Persistence.IStorable<{type}>");
+        }
 
         using (writer.Block())
         {
-            ViewEmitter.WriteConstructor(writer, view, stored, "stored");
-            writer.Line();
-            Docs.WriteInheritDoc(writer);
-            writer.Line($"public static {ToolName} Tool {{ get; }} = new({Names.Literal(tool.Name)});");
-
-            // A value never hides a member of the view
-            string[] reserved = ["Create", "Get", "Set", "Stored", "Tool", view];
-
-            foreach (var property in settings.Properties.Where(property => property.IsConfigurable))
+            for (var index = 0; index < configurable.Count; index++)
             {
+                var property = configurable[index];
+                var summary = property.Summary ?? $"Overrides <c>{property.Name}</c>.";
+
+                Docs.WriteSummary(writer, $"{summary} Null keeps the value of the layer below.");
+                writer.Line($"public {property.NullableType} {Names.Identifier(members[index].Property)} {{ get; init; }}");
                 writer.Line();
-                ViewEmitter.WriteValue(
-                    writer,
-                    property.Name,
-                    Names.Unreserved(property.Name, "Value", reserved),
-                    property.NullableType,
-                    "Get",
-                    "Set");
             }
 
+            writer.Line($"{ToolName} global::Agentic.Settings.IToolOverrides.Tool => new({Names.Literal(tool.Name)});");
             writer.Line();
-            ViewEmitter.WriteCreate(writer, view, stored, "stored");
+            StorableEmitter.WriteSerialize(writer, members, []);
+            writer.Line();
+            StorableEmitter.WriteDeserialize(writer, type, members, []);
+            writer.Line();
+            writer.Line($"{settings.Type} global::Agentic.Settings.IToolOverrides<{settings.Type}>.ApplyTo(");
+
+            using (writer.Indent())
+            {
+                writer.Line($"{settings.Type} settings) =>");
+                writer.Line("settings with");
+
+                using (writer.Block(close: "};"))
+                {
+                    for (var index = 0; index < configurable.Count; index++)
+                    {
+                        var setting = Names.Identifier(configurable[index].Name);
+                        var value = Names.Identifier(members[index].Property);
+                        var separator = index < configurable.Count - 1 ? "," : "";
+
+                        writer.Line($"{setting} = {value} ?? settings.{setting}{separator}");
+                    }
+                }
+            }
+        }
+    }
+
+    // The selection methods agents call in UseToolset<T>(tools => ...), next to the toolset in its namespace
+    private static void WriteSelection(SourceWriter writer, ToolsetModel toolset)
+    {
+        var selection = $"global::Agentic.Tools.ToolSelection<{toolset.Type.FullName}>";
+
+        writer.Line();
+        Docs.WriteSummary(
+            writer,
+            $"Selects the tools of <see cref=\"{toolset.Type.FullName.Replace("global::", "")}\"/> an agent offers, in "
+            + $"<c>UseToolset&lt;{toolset.Type.Name}&gt;(tools => ...)</c>.");
+
+        using (writer.Block($"{toolset.Type.Accessibility} static class {toolset.Type.FlatName}Selection"))
+        {
+            using (writer.Block($"extension({selection} tools)"))
+            {
+                foreach (var tool in toolset.Tools)
+                {
+                    if (tool != toolset.Tools[0]) writer.Line();
+
+                    var description = tool.Description is { } text ? $": {text}" : ".";
+
+                    Docs.WriteSummary(writer, $"Selects the <c>{tool.Name}</c> tool{description}");
+                    Docs.WriteReturns(writer, "This selection, to select further tools.");
+                    writer.Line($"public {selection} {Names.SelectorName(tool.Name)}() =>");
+
+                    using (writer.Indent())
+                    {
+                        writer.Line($"tools.Select({Names.Literal(tool.Name)});");
+                    }
+                }
+            }
         }
     }
 
@@ -146,48 +211,29 @@ internal static class ToolsetEmitter
     {
         var name = Names.ToPascalCase(tool.Name);
 
+        var (create, function) = tool.Settings switch
+        {
+            null => ("Create", $"static (tool, json) => new {name}Function(tool, json)"),
+            { } settings when HasOverrides(tool) =>
+                ($"Create<{settings.Type}, {Names.OverridesName(tool.Name)}>", SettingsFunction(name)),
+            { } settings => ($"Create<{settings.Type}>", SettingsFunction(name))
+        };
+
         writer.Line($"private static readonly {ToolBinding} {name}Binding =");
 
         using (writer.Indent())
         {
-            if (tool.Settings is not { } settings)
-            {
-                writer.Line($"{ToolBinding}.Create(static (tool, json) => new {name}Function(tool, json));");
-                return;
-            }
-
-            writer.Line($"{ToolBinding}.Create(");
+            writer.Line($"{ToolBinding}.{create}(");
 
             using (writer.Indent())
             {
-                writer.Line($"new global::Agentic.Settings.ToolSettingsBinder<{settings.Type}>(");
-                WriteSettingsProperties(writer, settings);
-                writer.Line($"static (tool, settings, json) => new {name}Function(tool, settings, json));");
+                writer.Line($"{function});");
             }
         }
     }
 
-    private static void WriteSettingsProperties(SourceWriter writer, SettingsModel settings)
-    {
-        using (writer.Block(open: "[", close: "]),"))
-        {
-            foreach (var property in settings.Properties)
-            {
-                var member = Names.Identifier(property.Name);
-                var separator = property == settings.Properties[settings.Properties.Count - 1] ? "" : ",";
-
-                writer.Line($"global::Agentic.Settings.SettingsProperty.Create<{settings.Type}, {property.Type}>(");
-
-                using (writer.Indent())
-                {
-                    writer.Line($"{Names.Literal(property.Name)},");
-                    writer.Line($"isConfigurable: {(property.IsConfigurable ? "true" : "false")},");
-                    writer.Line($"static settings => settings.{member},");
-                    writer.Line($"static (settings, value) => settings with {{ {member} = value }}){separator}");
-                }
-            }
-        }
-    }
+    private static string SettingsFunction(string name) =>
+        $"static (tool, settings, json) => new {name}Function(tool, settings, json)";
 
     private static void WriteFunction(SourceWriter writer, ToolModel tool)
     {

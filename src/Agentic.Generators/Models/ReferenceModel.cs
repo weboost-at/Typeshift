@@ -8,4 +8,4 @@ internal sealed record ReferenceModel(
 internal sealed record ModuleReference(
     string Module,
     EquatableArray<ToolsetSummary> Toolsets,
-    EquatableArray<AgentSummary> Agents);
+    EquatableArray<string> Agents);

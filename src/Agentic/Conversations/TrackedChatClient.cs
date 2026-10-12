@@ -54,7 +54,7 @@ internal sealed class TrackedChatClient(IChatClient innerClient, ConversationTra
 
     private ConversationStart Start(IEnumerable<ChatMessage> messages, ChatOptions? options) =>
         new(
-            ConversationId: Guid.TryParse(options?.ConversationId, out var id) ? id : null,
+            ConversationId: options?.ConversationId,
             Model: model,
             ExecutionContext: options?.AdditionalProperties?.GetExecutionContext() ?? ChatExecutionContext.Unknown,
             Input: messages as ChatMessage[] ?? [.. messages]);

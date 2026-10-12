@@ -8,7 +8,7 @@ public partial class HostedToolAgent : AgentDefinition
 {
     public HostedToolAgent()
     {
-        WithUniqueName("hosted_tool_agent");
+        WithName("hosted_tool_agent");
         WithDescription("Searches the web through its provider, then probes.");
 
         WithChatOptions(new ChatOptions { Tools = [new HostedWebSearchTool()] });

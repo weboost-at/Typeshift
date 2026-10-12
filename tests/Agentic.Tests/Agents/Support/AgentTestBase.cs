@@ -1,5 +1,4 @@
 using Agentic.Agents;
-using Agentic.Catalogs;
 using Agentic.Persistence;
 using Agentic.Persistence.InMemory;
 using Agentic.Settings;
@@ -11,25 +10,20 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Agentic.Tests.Agents.Support;
 
-// A host with in-memory stores, running the probe agent
+// A host with an in-memory store under Guid ids, running the probe agent
 public abstract class AgentTestBase : HostTestBase
 {
     protected AgentTestData Agent => Data.Agent;
 
     protected AgentRuntime<ProbeAgent> Runtime => Services.GetRequiredService<AgentRuntime<ProbeAgent>>();
 
-    protected ToolDefaultsManager ToolDefaults => Services.GetRequiredService<ToolDefaultsManager>();
+    protected ToolDefaults ToolDefaults => Services.GetRequiredService<ToolDefaults>();
 
-    protected AgentCatalog Catalog => Services.GetRequiredService<AgentCatalog>();
-
-    protected IConversationStore Conversations => Services.GetRequiredService<IConversationStore>();
+    protected IAgenticStore<Guid> Store => Services.GetRequiredService<IAgenticStore<Guid>>();
 
     protected override void ConfigureServices(IServiceCollection services)
     {
-        services.AddSingleton<IAgentConfigurationStore, InMemoryAgentConfigurationStore>();
-        services.AddSingleton<IToolDefaultsStore, InMemoryToolDefaultsStore>();
-        services.AddSingleton<IAgentDefinitionStore, InMemoryAgentDefinitionStore>();
-        services.AddSingleton<IConversationStore, InMemoryConversationStore>();
+        services.AddAgenticStore<InMemoryAgenticStore<Guid>, Guid>();
         services.AddSingleton<IChatClientProvider>(new ScriptedChatClientProvider(ChatClient));
     }
 

@@ -5,17 +5,20 @@ using Microsoft.Extensions.AI;
 
 namespace Agentic.Tools;
 
-internal sealed class SettingsToolBinding<TSettings>(
-    ToolSettingsBinder<TSettings> binder,
-    Func<ToolDefinition, TSettings, AgentJson, AIFunction> createFunction) : ToolBinding
+internal class SettingsToolBinding<TSettings>(Func<ToolDefinition, TSettings, AgentJson, AIFunction> createFunction)
+    : ToolBinding
     where TSettings : class, new()
 {
     internal override AIFunction CreateFunction(ToolDefinition tool, ToolSettingsLayers layers, AgentJson json) =>
-        createFunction(tool, binder.Resolve(layers, json.SerializerOptions), json);
+        createFunction(tool, Resolve(layers), json);
 
-    internal override object ImportSettings(StoredSettings stored, AgentJson json) =>
-        binder.Import(stored, json.SerializerOptions);
+    // The agent's code settings act as a whole object, so stored defaults only reach a tool the agent leaves alone
+    private static TSettings Resolve(ToolSettingsLayers layers)
+    {
+        var settings = layers.Agent as TSettings ?? Apply(layers.Defaults, new TSettings());
+        return Apply(layers.Run, Apply(layers.AgentOverrides, settings));
+    }
 
-    internal override StoredSettings ExportSettings(object settings, AgentJson json) =>
-        binder.Export((TSettings)settings, json.SerializerOptions);
+    private static TSettings Apply(IToolOverrides? overrides, TSettings settings) =>
+        overrides is IToolOverrides<TSettings> typed ? typed.ApplyTo(settings) : settings;
 }

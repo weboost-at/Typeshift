@@ -43,7 +43,7 @@ public static class RegistrationSources
             /// </summary>
             public EchoAgent()
             {
-                WithUniqueName("echo_agent");
+                WithName("echo_agent");
                 UseToolset<EchoToolset>();
             }
         }

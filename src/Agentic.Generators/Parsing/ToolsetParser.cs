@@ -101,7 +101,7 @@ internal static class ToolsetParser
         }
 
         var settings = tool.SettingsCall is { } call
-            ? ParseSettings(call, tool.SettingsType!, toolset, diagnostics)
+            ? ParseSettings(call, tool.SettingsType!, toolset, diagnostics, ct)
             : null;
         if (tool.SettingsCall is not null && settings is null) return null;
 
@@ -159,7 +159,8 @@ internal static class ToolsetParser
         IInvocationOperation call,
         ITypeSymbol type,
         INamedTypeSymbol toolset,
-        DiagnosticBag diagnostics)
+        DiagnosticBag diagnostics,
+        CancellationToken ct)
     {
         if (!type.IsRecord)
         {
@@ -171,7 +172,7 @@ internal static class ToolsetParser
 
         var settable = type.GetSettableProperties().ToList();
 
-        // A public toolset exposes its settings through Tools and the configuration views
+        // A public toolset exposes its settings through Tools and the generated overrides
         var exposed = settable.Where(property => picked.Contains(property.Name)).Select(property => property.Type);
 
         if (toolset.IsEffectivelyPublic() && !exposed.Prepend(type).All(member => member.IsEffectivelyPublic()))
@@ -185,12 +186,27 @@ internal static class ToolsetParser
             return null;
         }
 
+        var unsupported = settable.FirstOrDefault(property =>
+            picked.Contains(property.Name) && Storage.Of(property.Type) is null);
+
+        if (unsupported is not null)
+        {
+            diagnostics.Report(
+                Descriptors.UnsupportedConfigurableType,
+                ConstructorChains.GetCalledName(call),
+                unsupported.Name,
+                unsupported.Type.ToDisplayString());
+
+            return null;
+        }
+
         var properties = settable
             .Select(property => new SettingsPropertyModel(
                 Name: property.Name,
-                Type: property.Type.ToFullyQualified(),
                 NullableType: property.Type.ToNullableFullyQualified(),
-                IsConfigurable: picked.Contains(property.Name)))
+                IsConfigurable: picked.Contains(property.Name),
+                Storage: picked.Contains(property.Name) ? Storage.Of(property.Type) : null,
+                Summary: XmlDocs.Read(property, ct).Summary))
             .ToEquatableArray();
 
         return new SettingsModel(type.ToTypeOf(), properties);
