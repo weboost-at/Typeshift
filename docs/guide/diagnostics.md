@@ -34,8 +34,8 @@ delegate. Each guard throws an exception whose message says what to change.
 
 **Toolset or agent is not partial.** Reported on the class name.
 
-The generator adds members to every toolset and agent (the tool bindings, the `Settings` record, the
-`WithToolSettings` overloads), so the class must be `partial`.
+The generator adds members to every toolset and agent (the tool bindings, the `Settings` record,
+`WithToolSettings()`), so the class must be `partial`.
 
 ```csharp
 public class CompanyToolset : Toolset          // AGT001

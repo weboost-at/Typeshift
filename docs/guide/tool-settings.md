@@ -63,7 +63,8 @@ public static IReadOnlyList<Ticket> SearchTickets(
 <sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Tickets/TicketToolset.cs#L32-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-read-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Each call runs in a DI scope of its own, so two calls with different settings never see each other's values.
+Each function is created with the settings of its run, so two runs with different settings never see each other's
+values.
 
 ## The generated overrides
 

@@ -5,9 +5,9 @@ description: Add or change a generator diagnostic (AGTxxx) in Agentic. Use when 
 
 # Add a diagnostic
 
-First ask whether the generated API can make the mistake a compiler error instead: foreign tool selection and unread
-tool settings need no diagnostic, because no generated member accepts them (D29, D30 in
-`docs/contributing/decisions.md`). A diagnostic is for what the types cannot express.
+First ask whether the generated API can make the mistake a compiler error instead: selecting a foreign tool and setting
+the settings of a tool the agent does not offer need no diagnostic, because no generated member accepts them (D29,
+D30 in `docs/contributing/decisions.md`). A diagnostic is for what the types cannot express.
 
 ## Steps
 

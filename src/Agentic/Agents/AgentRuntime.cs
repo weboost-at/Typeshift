@@ -42,8 +42,8 @@ public class AgentRuntime
     {
         if (options.ModelId is not { } model)
             throw new ConfigurationRequiredException(
-                $"No model is configured for {Definition.Name}: set the model in its settings or the ModelId of its "
-                + "chat options.");
+                $"No model is configured for {Definition.Name}: set the model in its settings or with "
+                + "WithChatOptions().WithModel(...).");
 
         if (_services.ChatClients is not { } provider)
             throw new InvalidOperationException(

@@ -52,6 +52,7 @@ live here, never as TODOs in code.
       persistence feature flag
 - [x] Generated, typed `Settings` per agent and `{Tool}Overrides` per tool, serialized without reflection
 - [x] Generated tool selection and `WithToolSettings` overloads; foreign tools and unread settings do not compile
+      (the overloads became the `WithToolSettings()` builder in milestone 12)
 - [x] Optional agent names; stored agents and the agent catalog removed; conversation ids parsed into the store's ids
 - [x] Full XML docs on the public API: parameters, returns, exceptions
 

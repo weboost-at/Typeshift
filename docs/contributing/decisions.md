@@ -93,7 +93,8 @@ commit, or add a new one and withdraw the old.
 ### D8. Diagnostics beyond the spec's list
 
 - **Decision:**
-  - AGT012 reports a tool name that is not lower_snake_case.
+  - AGT012 reports a tool name that is not lower_snake_case. The runtime does not check it again: only generated
+    toolsets have bindings, and the generator has already reported the name.
   - AGT013 reports settings less accessible than their public toolset, whose generated API exposes them; generating
     narrower members instead would cascade into every agent that uses the tool.
   - AGT014 reports a configurable member whose type the generated records cannot store (D27).
