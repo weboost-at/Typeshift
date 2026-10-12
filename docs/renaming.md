@@ -22,8 +22,9 @@ Rename in this order, then run the checks at the end.
 |---|---|
 | `src/Agentic/DependencyInjection/AgenticServiceCollectionExtensions.cs` | The method, its class name and its exception message. |
 | `src/Agentic.Generators/Parsing/KnownTypes.cs` | `ServiceCollectionExtensions` (the class's metadata name) and `RegistrationMethod`, which the parser matches and the interceptor emits. |
-| `src/Agentic.Generators/Diagnostics/Descriptors.cs` | The AGT014 message. |
+| `src/Agentic.Generators/Diagnostics/Descriptors.cs` | The AGT011 message. |
 | `src/Agentic/Tools/GeneratedToolFunction.cs` | The exception message for a container without scopes. |
+| `src/Agentic/Persistence/Stores.cs` | The exception message that names `AddAgenticStore<TStore, TId>()`, which section 5 renames with the root name. |
 | Comments | `git grep -n AddAgentic -- src` lists them. |
 | Callers | The samples, `tests/Agentic.Tests/Testing/Bases/HostTestBase.cs`, the registration tests and their generator sources, the interceptor snapshot (its file name too). |
 | Docs | `README.md`, `AGENTS.md`, `docs/`, the package description in `src/Agentic/Agentic.csproj`. |
