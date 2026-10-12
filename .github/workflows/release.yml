@@ -28,10 +28,10 @@ jobs:
       - run: dotnet test -c Release --no-build
 
       - name: Pack, validating the package against its rules
-        run: dotnet pack src/Agentic -c Release --no-build -o artifacts/packages
+        run: dotnet pack src/Typeshift -c Release --no-build -o artifacts/packages
 
       - name: Build and run a consumer of the package
-        run: dotnet run --project samples/Agentic.Samples.PackageConsumer -c Release
+        run: dotnet run --project samples/Typeshift.Samples.PackageConsumer -c Release
 
       - uses: actions/upload-artifact@v4
         with:

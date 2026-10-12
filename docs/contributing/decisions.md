@@ -10,17 +10,17 @@ commit, or add a new one and withdraw the old.
 
 ## Registration and the generator
 
-### D1. `AddAgentic()` exists only as an intercepted call
+### D1. `AddTypeshift()` exists only as an intercepted call
 
-- **Context:** a generated `AddAgentic()` per assembly is ambiguous (CS0121) wherever `InternalsVisibleTo` exposes
+- **Context:** a generated `AddTypeshift()` per assembly is ambiguous (CS0121) wherever `InternalsVisibleTo` exposes
   another assembly's internals, and every test project does.
-- **Decision:** the library ships one public `AddAgentic()` that throws an `InvalidOperationException` saying what to
+- **Decision:** the library ships one public `AddTypeshift()` that throws an `InvalidOperationException` saying what to
   check; the generator intercepts every call in the project that makes it. The method lives in the
   `Microsoft.Extensions.DependencyInjection` namespace, like every `Add...` method, so hosts need no extra using.
-- **Alternatives:** a generated method with a per-assembly name (`AddAgenticForMyApp()`), which leaks the assembly
+- **Alternatives:** a generated method with a per-assembly name (`AddTypeshiftForMyApp()`), which leaks the assembly
   name into every host; module initializers, which run on load and cannot see the service collection.
-- **Where:** `DependencyInjection/AgenticServiceCollectionExtensions.cs`, `Emitting/InterceptorEmitter.cs`,
-  `buildTransitive/Agentic.props`.
+- **Where:** `DependencyInjection/TypeshiftServiceCollectionExtensions.cs`, `Emitting/InterceptorEmitter.cs`,
+  `buildTransitive/Typeshift.props`.
 
 ### D2. The generated names
 
@@ -31,9 +31,9 @@ commit, or add a new one and withdraw the old.
   - per agent: the nested `Settings` record; per tool with settings a private `Configure{Tool}()` returning a nested
     `{Tool}SettingsBuilder`; a `{Agent}RuntimeExtensions` class with the typed members of `AgentRuntime<TAgent>`; a
     nested agent's class name joins its containers' names, so twins in two classes do not clash;
-  - per assembly: `Agentic.Generated.{Assembly}Module`, with every character of the assembly name that is not a letter
-    or digit replaced by `_` (`Agentic.Samples.Console` gives `Agentic_Samples_ConsoleModule`);
-  - the interceptor: a `file static class AddAgenticInterceptor` in `Agentic.Generated`;
+  - per assembly: `Typeshift.Generated.{Assembly}Module`, with every character of the assembly name that is not a letter
+    or digit replaced by `_` (`Typeshift.Samples.Console` gives `Typeshift_Samples_ConsoleModule`);
+  - the interceptor: a `file static class AddTypeshiftInterceptor` in `Typeshift.Generated`;
   - a generated member named like a member next to it gets a suffix: a tool `equals` is `Tools.EqualsTool` and
     `t => t.EqualsTool`, since `Equals` is an inherited member.
 - **Alternatives:** `{Tool}Configuration` and `Configuration` views over a JSON dictionary, the alpha's first
@@ -79,25 +79,25 @@ commit, or add a new one and withdraw the old.
 - **Decision:** discovery skips generic classes. Their misuse surfaces through the runtime guards (a toolset without
   a generated binding throws when asked for a tool), which the runtime-guard tests use on purpose.
 - **Alternatives:** generating per closed type found in `UseToolset<T>` calls.
-- **Where:** `Parsing/Discovery.cs`, `tests/Agentic.Tests/Agents/Support/RuntimeGuardAgents.cs`.
+- **Where:** `Parsing/Discovery.cs`, `tests/Typeshift.Tests/Agents/Support/RuntimeGuardAgents.cs`.
 
 ### D7. Tools are keyed by name, toolsets by nothing
 
 - **Context:** the spec asked whether toolsets need a key besides the type name.
 - **Decision:** no. Stored settings, the catalog and the selection methods address tools by their lower_snake_case
-  name, which is unique host-wide (AGT007), so a toolset can move or be renamed without touching stored data.
+  name, which is unique host-wide (TSH007), so a toolset can move or be renamed without touching stored data.
 - **Alternatives:** a `WithKey("...")` on the toolset.
 - **Where:** `Tools/ToolName.cs`.
 
 ### D8. Diagnostics beyond the spec's list
 
 - **Decision:**
-  - AGT012 reports a tool name that is not lower_snake_case. The runtime does not check it again: only generated
+  - TSH012 reports a tool name that is not lower_snake_case. The runtime does not check it again: only generated
     toolsets have bindings, and the generator has already reported the name.
-  - AGT013 reports settings less accessible than their public toolset, whose generated API exposes them; generating
+  - TSH013 reports settings less accessible than their public toolset, whose generated API exposes them; generating
     narrower members instead would cascade into every agent that uses the tool.
-  - AGT014 reports a configurable member whose type the generated records cannot store (D27).
-  - AGT007 is reported on the first own declaration, or on `AddAgentic()` when the clash is only among references.
+  - TSH014 reports a configurable member whose type the generated records cannot store (D27).
+  - TSH007 is reported on the first own declaration, or on `AddTypeshift()` when the clash is only among references.
   - The spec's agent-name diagnostics went with D31; selecting a foreign tool and passing unread tool settings
     became compiler errors (D29, D30).
 - **Where:** `Diagnostics/Descriptors.cs`, `docs/guide/diagnostics.md`.
@@ -106,7 +106,7 @@ commit, or add a new one and withdraw the old.
 
 - **Context:** NuGet does not flow analyzers to the projects that reference a consumer (`PrivateAssets` defaults
   include `analyzers`).
-- **Decision:** document it, and catch the mistake with AGT011. Flowing the analyzer through `buildTransitive` would
+- **Decision:** document it, and catch the mistake with TSH011. Flowing the analyzer through `buildTransitive` would
   load the generator twice in projects that also reference the package directly.
 - **Alternatives:** a `buildTransitive` targets file that adds the analyzer when it is missing; possible later.
 - **Where:** `Parsing/ReferenceReader.cs`, `Diagnostics/RegistrationDiagnostics.cs`.
@@ -124,7 +124,7 @@ commit, or add a new one and withdraw the old.
 
 - **Context:** `FunctionInvokingChatClient` hands tools the root provider.
 - **Decision:** `GeneratedToolFunction` creates a scope per call, so scoped services work per call. A container
-  without `IServiceScopeFactory` throws, naming `AddAgentic()`. Settings no longer travel through the scope (D40).
+  without `IServiceScopeFactory` throws, naming `AddTypeshift()`. Settings no longer travel through the scope (D40).
 - **Alternatives:** the root provider, which makes every scoped service a singleton.
 - **Where:** `Tools/GeneratedToolFunction.cs`.
 
@@ -188,7 +188,7 @@ Replaced by D25 and D26. Tool defaults now load one document per tool, in parall
 ### D19. Sealing
 
 - **Decision:** generated classes, assertion classes and classes whose inheritance would be a bug (`AgentRuntime<T>`,
-  `ToolCatalog`, `ToolDefaults`, `InMemoryAgenticStore<TId>`) are sealed; the rest stays open, as the owner's code
+  `ToolCatalog`, `ToolDefaults`, `InMemoryTypeshiftStore<TId>`) are sealed; the rest stays open, as the owner's code
   does.
 
 ### D20. CS1591 is suppressed in test projects only
@@ -204,9 +204,9 @@ Replaced by D25 and D26. Tool defaults now load one document per tool, in parall
 
 ### D22. The package metadata points at the real repository
 
-- **Context:** the spec names the repository `agentic-dotnet`; the work happens in `weboost-at/Agentic`, which now
+- **Context:** the spec names the repository `agentic-dotnet`; the work happens in `weboost-at/Typeshift`, which now
   publishes the docs site and the packages.
-- **Decision:** `RepositoryUrl` is `https://github.com/weboost-at/Agentic` and `PackageProjectUrl` the docs site, so
+- **Decision:** `RepositoryUrl` is `https://github.com/weboost-at/Typeshift` and `PackageProjectUrl` the docs site, so
   SourceLink, nuget.org and the docs agree. [Renaming](./renaming.md) lists every place the URL appears.
 
 ## Runtime, decided in the review pass
@@ -222,31 +222,31 @@ Replaced by D29: tools are selected through generated methods and matched by nam
 
 ## Persistence and typed settings, decided with the owner
 
-### D25. One store, `IAgenticStore<TId>`, of documents that serialize themselves
+### D25. One store, `ITypeshiftStore<TId>`, of documents that serialize themselves
 
 - **Context:** the alpha had four store interfaces (agent configuration, agent definitions, tool defaults,
   conversations). The owner asked for one atomic interface whose data serializes itself, with a generic load that
   returns the typed object, and an id type the host chooses.
-- **Decision:** `IAgenticStore<TId>` has `LoadAsync<TData>(id, ct)` and `SaveAsync<TData>(id, data, ct)`, where
+- **Decision:** `ITypeshiftStore<TId>` has `LoadAsync<TData>(id, ct)` and `SaveAsync<TData>(id, data, ct)`, where
   `TData : IStorable<TData>`: `Serialize()` and a static abstract `Deserialize(string)`. The store keys a document
   by its type and the id. It may keep the JSON as it is or read the typed properties into columns of its own; the
-  library never creates ids, it passes on the ones the host gives it. `InMemoryAgenticStore<TId>` keeps JSON in a
+  library never creates ids, it passes on the ones the host gives it. `InMemoryTypeshiftStore<TId>` keeps JSON in a
   dictionary.
 - **Alternatives:** a store of JSON strings keyed by a string, which hides the types a Marten or EF Core store would
   map; one interface per document kind, the alpha's design.
 - **Consequence:** the documents are a closed set of known types (each agent's `Settings`, each tool's `Overrides`,
   `StoredConversation`), so a generator for Marten or EF Core mappings can enumerate them later.
-- **Where:** `Persistence/IAgenticStore.cs`, `Persistence/IStorable.cs`, `Persistence/InMemory/`.
+- **Where:** `Persistence/ITypeshiftStore.cs`, `Persistence/IStorable.cs`, `Persistence/InMemory/`.
 
 ### D26. The store is the persistence feature flag
 
-- **Decision:** `AddAgenticStore<TStore, TId>()` registers the store as a singleton, plus an internal bridge that
+- **Decision:** `AddTypeshiftStore<TStore, TId>()` registers the store as a singleton, plus an internal bridge that
   stores conversations. Without it, everything that works from code works (`ResolveChatOptions`, tool calls,
   conversation tracking in memory), and every API that loads or saves throws an `InvalidOperationException` naming
-  `AddAgenticStore<TStore, TId>()`, also when the store's `TId` differs from the one asked for.
+  `AddTypeshiftStore<TStore, TId>()`, also when the store's `TId` differs from the one asked for.
 - **Alternatives:** a null-object store that silently stores nothing, which hides a missing registration until data
   is lost.
-- **Where:** `Persistence/Stores.cs`, `DependencyInjection/AgenticServiceCollectionExtensions.cs`.
+- **Where:** `Persistence/Stores.cs`, `DependencyInjection/TypeshiftServiceCollectionExtensions.cs`.
 
 ### D27. Settings are generated records, typed and closed
 
@@ -258,7 +258,7 @@ Replaced by D29: tools are selected through generated methods and matched by nam
   - The records serialize through hidden `StorableJson` helpers the generated code calls member by member, so no
     `JsonSerializerContext` is needed and nothing reflects. The JSON is camelCase, tools nest under `"tools"` by tool
     name, nulls are left out, and a missing or mistyped value reads as null.
-  - Configurable members are limited to types a UI can edit and the helpers can write (AGT014).
+  - Configurable members are limited to types a UI can edit and the helpers can write (TSH014).
 - **Alternatives:** a generated `JsonSerializerContext` per agent, impossible because source generators do not see
   each other's output; the alpha's `StoredSettings` dictionary with views over it, which the owner rejected as
   untyped.
@@ -276,7 +276,7 @@ Replaced by D29: tools are selected through generated methods and matched by nam
 
 ### D29. Tools are picked from a generated list, included or excluded
 
-- **Context:** `UseToolset<T>(params Delegate[])` accepted any delegate and checked it at runtime and in AGT007. Its
+- **Context:** `UseToolset<T>(params Delegate[])` accepted any delegate and checked it at runtime and in TSH007. Its
   successor chained a generated method per tool after `UseToolset<T>()`, which could only include; the owner asked
   for include and exclude, picked from a typed list of the toolset's tools, never a delegate.
 - **Decision:** `UseToolset<T>()` offers every tool; `.Include(t => t.A).Include(t => t.B)` offers only those, in
@@ -294,7 +294,7 @@ Replaced by D29: tools are selected through generated methods and matched by nam
 
 ### D30. `Configure{Tool}()` is a generated builder per tool of an agent
 
-- **Context:** the alpha's `WithToolSettings(object)` accepted anything and checked at runtime and in AGT012. Its
+- **Context:** the alpha's `WithToolSettings(object)` accepted anything and checked at runtime and in TSH012. Its
   successors, one `WithToolSettings(TSettings)` overload per settings type and then a `WithToolSettings()` picker in
   front of a builder per tool, made the agent build a whole settings object or pick the tool twice; the owner asked
   for one entry point per tool.
@@ -327,7 +327,7 @@ Replaced by D29: tools are selected through generated methods and matched by nam
 ### D33. Conversation ids are parsed into the store's id type
 
 - **Context:** `ChatOptions.ConversationId` is a string; the store's ids are `TId`.
-- **Decision:** `AddAgenticStore` requires `TId : IParsable<TId>` and the tracker parses the id with the invariant
+- **Decision:** `AddTypeshiftStore` requires `TId : IParsable<TId>` and the tracker parses the id with the invariant
   culture. A call without an id is tracked live but not stored; an id that does not parse is neither resumed nor
   stored. A `StoredConversation` is just another `IStorable` document.
 - **Alternatives:** a separate conversation id type, which every host would have to register twice.
@@ -344,12 +344,12 @@ Replaced by D29: tools are selected through generated methods and matched by nam
 - **Decision:** generated code in a consumer cannot reach internals, so what only it calls is public and
   `[EditorBrowsable(Never)]`: `AgentDefinition.GetToolSettings`, the `AgentRuntime.*Core*`
   methods, `StorableJson`, `Toolset.GetBinding` and `ModuleRegistration`. The base types generated code derives
-  from (`GeneratedToolFunction`, `ToolBinding`) and the stamps in `Agentic.Modules` stay visible.
+  from (`GeneratedToolFunction`, `ToolBinding`) and the stamps in `Typeshift.Modules` stay visible.
 - **Alternatives:** `InternalsVisibleTo` for every consumer, which is not possible.
 
 ### D36. Diagnostics renumbered before the first release
 
-- **Decision:** with nothing shipped, the IDs were renumbered to close the gaps D29 to D31 left: AGT001 to AGT014.
+- **Decision:** with nothing shipped, the IDs were renumbered to close the gaps D29 to D31 left: TSH001 to TSH014.
   After the first release IDs never change; a retired one stays unused.
 - **Where:** `AnalyzerReleases.Unshipped.md`.
 
@@ -366,31 +366,34 @@ Replaced by D29: tools are selected through generated methods and matched by nam
   file, which a release commit has to bump.
 - **Where:** `.github/workflows/release.yml`, `Directory.Build.props`, `docs/contributing/releasing.md`.
 
-### D38. The package ID is a placeholder; the props follow it
+### D38. The library is named Typeshift; the props follow the package ID
 
-- **Context:** `Agentic` is taken on nuget.org by another author. NuGet imports `buildTransitive/{PackageId}.props`
-  only, and that file opts consumers into the interceptor namespace.
-- **Decision:** the props file is packed under `$(PackageId).props`, so choosing the final ID changes one property
-  and the package consumer. The owner picks the ID before the first release.
-- **Where:** `src/Agentic/Agentic.csproj`.
+- **Context:** the working name, `Agentic`, is taken on nuget.org by another author. NuGet imports
+  `buildTransitive/{PackageId}.props` only, and that file opts consumers into the interceptor namespace.
+- **Decision:** the owner named the library Typeshift: the package ID, the root namespace, the repository,
+  `AddTypeshift()`, `AddTypeshiftStore<TStore, TId>()` and the diagnostic prefix `TSH`. The props file is packed under
+  `$(PackageId).props`, so the ID, the props and the interceptor namespace cannot disagree.
+- **Alternatives:** the candidates in [naming](./naming.md); keeping `Agentic` under an owner prefix
+  (`Weboost.Agentic`), which leaves the namespace and the search results shared with the other package.
+- **Where:** `src/Typeshift/Typeshift.csproj`, [renaming](./renaming.md).
 
 ### D39. The package has a README of its own
 
-- **Decision:** `src/Agentic/PACKAGE.md` is the package's README on nuget.org: what it is, how to install, links to
+- **Decision:** `src/Typeshift/PACKAGE.md` is the package's README on nuget.org: what it is, how to install, links to
   the docs. It has no code, so it cannot drift; the repository README carries the compiled quickstart, whose
   snippet links nuget.org would show as raw HTML.
-- **Where:** `src/Agentic/PACKAGE.md`.
+- **Where:** `src/Typeshift/PACKAGE.md`.
 
 ## API shape, decided with the owner
 
 ### D40. A tool receives its settings as a parameter
 
 - **Context:** tools read their settings with `services.GetToolSettings<T>()` from a scoped accessor the generated
-  function filled, and AGT009 forbade a settings parameter. The owner asked for the settings to arrive as a parameter
+  function filled, and TSH009 forbade a settings parameter. The owner asked for the settings to arrive as a parameter
   the model cannot set.
 - **Decision:** a parameter of the type given to `WithSettings<T>()` is bound like `IServiceProvider`: the generated
   function passes the settings it was created with and leaves the parameter out of the schema, so the model never
-  sees or sets it. `GetToolSettings<T>()` and the accessor are gone; AGT009 now warns about a tool with settings but
+  sees or sets it. `GetToolSettings<T>()` and the accessor are gone; TSH009 now warns about a tool with settings but
   no such parameter, whose settings would reach nothing.
 - **Alternatives:** keeping `GetToolSettings<T>()` next to the parameter, two ways to do one thing.
 - **Where:** `Parsing/ToolsetParser.cs` (`ParameterKind.Settings`), `Emitting/ToolsetEmitter.cs`.
@@ -432,7 +435,7 @@ Replaced by D29: tools are selected through generated methods and matched by nam
   `WithConfigurableSettings<T>()` allows every settable member but the obsolete ones and those
   `NotConfigurable(s => s.X)` names. Each returns a builder that only continues in its own way, so the two styles
   never mix. There is no "none configurable" call: plain `WithSettings<T>()` is that. Under
-  `WithConfigurableSettings<T>()`, a member whose type settings cannot store is reported as AGT014 on that call until
+  `WithConfigurableSettings<T>()`, a member whose type settings cannot store is reported as TSH014 on that call until
   it is kept out, so it never silently stays code-only. The mode is part of the entry call, not a call of its own,
   so the chain reads from the longest line down, as the owner orders it.
 - **Alternatives:** an opt-out default, which would put every new member into stored contracts unasked; skipping

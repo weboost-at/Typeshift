@@ -14,14 +14,11 @@ the packages attached.
 
 These need someone with admin rights on the repository and the nuget.org account.
 
-1. **Choose the package ID.** `Agentic` belongs to another author on nuget.org. Set `PackageId` in
-   `src/Agentic/Agentic.csproj`; the `buildTransitive` props are packed under the ID automatically. Then update the
-   package consumer (`samples/Agentic.Samples.PackageConsumer`: its `PackageReference`, `PackageVersion` and the
-   `NuGet.config` source mapping), the install sections of `README.md` and `docs/guide/getting-started.md` (back to
-   `dotnet add package <id> --prerelease`), and add a NuGet badge to `README.md`. Namespaces may keep their names;
-   [renaming](./renaming.md) lists everything for a full rename.
+1. **Point the install sections at nuget.org.** The package ID is `Typeshift` (D38). Change the install sections of
+   `README.md` and `docs/guide/getting-started.md` to `dotnet add package Typeshift --prerelease`, and add a NuGet
+   badge to `README.md`. Reserving the `Typeshift.*` prefix on nuget.org keeps later packages under the name.
 2. **Set up trusted publishing on nuget.org.** Under the account's *Trusted Publishing*, add a policy for the
-   repository owner `weboost-at`, the repository `Agentic`, the workflow file `release.yml` and the environment
+   repository owner `weboost-at`, the repository `Typeshift`, the workflow file `release.yml` and the environment
    `nuget`. Then add the repository secret `NUGET_USER` with the nuget.org user name (not the email). No API key is
    stored: each run exchanges its GitHub identity for a key that lives one hour.
 3. **Protect the `nuget` environment** under *Settings > Environments*, with required reviewers or a rule that only
@@ -33,14 +30,14 @@ These need someone with admin rights on the repository and the nuget.org account
 
 1. On `main`, with CI green: in `CHANGELOG.md`, rename `[Unreleased]` to the version and date, and open a new empty
    `[Unreleased]` above it.
-2. Move the rows of `src/Agentic.Generators/AnalyzerReleases.Unshipped.md` to `AnalyzerReleases.Shipped.md` under a
+2. Move the rows of `src/Typeshift.Generators/AnalyzerReleases.Unshipped.md` to `AnalyzerReleases.Shipped.md` under a
    `## Release <version>` heading. From then on, a shipped diagnostic ID is never reused or renumbered.
-3. After the first release, set `PackageValidationBaselineVersion` in `src/Agentic/Agentic.csproj` to the released
+3. After the first release, set `PackageValidationBaselineVersion` in `src/Typeshift/Typeshift.csproj` to the released
    version, so the next pack fails on a breaking change that was not meant. Keep it on the latest release.
 4. Commit, then tag and push the tag:
 
    ```shell
-   git tag -a v0.2.0 -m "Agentic 0.2.0"
+   git tag -a v0.2.0 -m "Typeshift 0.2.0"
    git push origin v0.2.0
    ```
 

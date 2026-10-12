@@ -1,6 +1,6 @@
 ---
 name: change-generated-code
-description: Change what the Agentic source generator reads or writes (toolset bindings, Overrides and Settings records, tool lists, Configure builders, runtime extension members, the module or the interceptor). Use for any edit under src/Agentic.Generators, and to debug what the generator emits.
+description: Change what the Typeshift source generator reads or writes (toolset bindings, Overrides and Settings records, tool lists, Configure builders, runtime extension members, the module or the interceptor). Use for any edit under src/Typeshift.Generators, and to debug what the generator emits.
 ---
 
 # Change the generated code
@@ -31,20 +31,20 @@ models, resolution of agents against toolsets, emitting. Each stage has rules th
 ## Steps
 
 1. Change the parser or model, then the emitter. Keep parsing and emitting apart: emitters read models only.
-2. Run the generator tests: `dotnet test --project tests/Agentic.Generators.Tests -c Release`.
-3. A changed output writes `*.received.txt` next to the snapshot in `tests/Agentic.Generators.Tests/Snapshots`. Read
+2. Run the generator tests: `dotnet test --project tests/Typeshift.Generators.Tests -c Release`.
+3. A changed output writes `*.received.txt` next to the snapshot in `tests/Typeshift.Generators.Tests/Snapshots`. Read
    the diff; when it is what you meant, accept with `ACCEPT_SNAPSHOTS=1` and rerun. Never accept blindly.
 4. Run the whole suite and both samples; the runtime tests exercise generated code end to end through a second
-   assembly (`tests/Agentic.Tests.Toolsets`).
+   assembly (`tests/Typeshift.Tests.Toolsets`).
 5. If the change alters what users write or see, update the guide page and the docs samples (skill `update-docs`).
 
 ## Seeing what the generator writes for a project
 
 ```shell
-dotnet build samples/Agentic.Samples.Docs -c Release -p:EmitCompilerGeneratedFiles=true
-ls samples/Agentic.Samples.Docs/obj/Release/net10.0/generated/Agentic.Generators/Agentic.Generators.AgentGenerator
+dotnet build samples/Typeshift.Samples.Docs -c Release -p:EmitCompilerGeneratedFiles=true
+ls samples/Typeshift.Samples.Docs/obj/Release/net10.0/generated/Typeshift.Generators/Typeshift.Generators.AgentGenerator
 ```
 
 For a quick experiment, add a source constant and a snapshot or `CompilesCleanly()` test in
-`tests/Agentic.Generators.Tests`; `GeneratorTestBase` compiles sources with the generator, also as references
+`tests/Typeshift.Generators.Tests`; `GeneratorTestBase` compiles sources with the generator, also as references
 (`CompileReference`, `CompileReferenceWithoutGenerator`).

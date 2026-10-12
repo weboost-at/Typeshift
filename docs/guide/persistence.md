@@ -1,11 +1,11 @@
 # Stores and settings
 
-Agentic persists three kinds of data: each agent's `Settings`, each tool's stored defaults, and conversations. All
+Typeshift persists three kinds of data: each agent's `Settings`, each tool's stored defaults, and conversations. All
 of it goes through one interface you implement once, with the id type you already use.
 
 ## The store
 
-`IAgenticStore<TId>` has two methods: `LoadAsync<TData>(id, ct)` returns the data of type `TData` stored under the
+`ITypeshiftStore<TId>` has two methods: `LoadAsync<TData>(id, ct)` returns the data of type `TData` stored under the
 id, or null; `SaveAsync<TData>(id, data, ct)` replaces it. `TData` is always an `IStorable<TData>`: it serializes
 itself with `Serialize()` and reads itself back with the static `TData.Deserialize(json)`, so a store needs no
 knowledge of the data's shape. It keys each record by the data's type and the id: under one id there is one record
@@ -22,22 +22,22 @@ as `Guid`, `string`, `int` and `long` do.
 ```cs
 var services = new ServiceCollection();
 
-services.AddAgentic();
-services.AddAgenticStore<InMemoryAgenticStore<Guid>, Guid>();
+services.AddTypeshift();
+services.AddTypeshiftStore<InMemoryTypeshiftStore<Guid>, Guid>();
 services.AddSingleton<IChatClientProvider, ScriptedChatClientProvider>();
 services.Configure<AgentJsonOptions>(options => options.TypeInfoResolverChain.Add(AppJsonContext.Default));
 
 await using var provider = services.BuildServiceProvider();
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Console/Program.cs#L13-L24' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L13-L24' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`AddAgenticStore<TStore, TId>()` registers the store as a singleton; it may depend on singletons such as an
-`IDbContextFactory`. `InMemoryAgenticStore<TId>` keeps JSON in memory, for tests and samples.
+`AddTypeshiftStore<TStore, TId>()` registers the store as a singleton; it may depend on singletons such as an
+`IDbContextFactory`. `InMemoryTypeshiftStore<TId>` keeps JSON in memory, for tests and samples.
 
 **Without a store**, agents run from their code: `ResolveChatOptions` works, tools run, conversations are tracked
 while they run. Every API that loads or saves throws an `InvalidOperationException` that names
-`AddAgenticStore<TStore, TId>()`, also when the registered store has another id type than the one asked for.
+`AddTypeshiftStore<TStore, TId>()`, also when the registered store has another id type than the one asked for.
 
 ## Writing a store
 
@@ -46,7 +46,7 @@ A store that keeps the JSON as it is fits any database. This one writes one file
 <!-- snippet: file-store -->
 <a id='snippet-file-store'></a>
 ```cs
-internal sealed class FileAgenticStore(IOptions<FileStoreOptions> options) : IAgenticStore<Guid>
+internal sealed class FileTypeshiftStore(IOptions<FileStoreOptions> options) : ITypeshiftStore<Guid>
 {
     public async Task<TData?> LoadAsync<TData>(Guid id, CancellationToken ct) where TData : class, IStorable<TData>
     {
@@ -72,16 +72,16 @@ internal sealed class FileStoreOptions
     public string Root { get; set; } = "data";
 }
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Stores/FileAgenticStore.cs#L6-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-file-store' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/FileTypeshiftStore.cs#L6-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-file-store' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 <!-- snippet: file-store-registration -->
 <a id='snippet-file-store-registration'></a>
 ```cs
 services.Configure<FileStoreOptions>(options => options.Root = root.FullName);
-services.AddAgenticStore<FileAgenticStore, Guid>();
+services.AddTypeshiftStore<FileTypeshiftStore, Guid>();
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Scenarios/FileStore.cs#L18-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-file-store-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/FileStore.cs#L18-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-file-store-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Key records by `typeof(TData).FullName`, not `Name`: every agent's settings type is called `Settings`. Moving or
@@ -142,13 +142,13 @@ internal sealed class SupportAgentSettingsRow
         };
 }
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Stores/EfCore/SupportAgentSettingsRow.cs#L7-L54' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-columns' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/SupportAgentSettingsRow.cs#L7-L54' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-columns' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 <!-- snippet: ef-core-store -->
 <a id='snippet-ef-core-store'></a>
 ```cs
-internal sealed class EfAgenticStore(IDbContextFactory<AgenticDbContext> contexts) : IAgenticStore<string>
+internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDbContext> contexts) : ITypeshiftStore<string>
 {
     public async Task<TData?> LoadAsync<TData>(string tenant, CancellationToken ct)
         where TData : class, IStorable<TData>
@@ -194,23 +194,23 @@ internal sealed class EfAgenticStore(IDbContextFactory<AgenticDbContext> context
     // The full name keeps the Settings of two agents apart
     private static string Kind<TData>() => typeof(TData).FullName!;
 
-    private static void Upsert<TRow>(AgenticDbContext db, TRow? existing, TRow row) where TRow : class
+    private static void Upsert<TRow>(TypeshiftDbContext db, TRow? existing, TRow row) where TRow : class
     {
         if (existing is null) db.Add(row);
         else db.Entry(existing).CurrentValues.SetValues(row);
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Stores/EfCore/EfAgenticStore.cs#L7-L60' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-store' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L7-L60' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-store' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 <!-- snippet: ef-core-store-registration -->
 <a id='snippet-ef-core-store-registration'></a>
 ```cs
-services.AddDbContextFactory<AgenticDbContext>(options => options.UseSqlite(connection));
-services.AddAgenticStore<EfAgenticStore, string>();
+services.AddDbContextFactory<TypeshiftDbContext>(options => options.UseSqlite(connection));
+services.AddTypeshiftStore<EfTypeshiftStore, string>();
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Scenarios/EfCoreStore.cs#L22-L25' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-store-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/EfCoreStore.cs#L22-L25' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-store-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A configurable member added later shows up as a new property on `Settings`; a column store has to map it, while a
@@ -235,7 +235,7 @@ await support.ConfigureAsync(customer, settings => settings with
 
 var options = await support.ResolveChatOptionsAsync(customer);
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Scenarios/AgentSettings.cs#L16-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-configure-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L16-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-configure-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `LoadSettingsAsync` returns empty settings when none are stored; `SaveSettingsAsync` replaces what is stored. Setting
@@ -248,13 +248,13 @@ var settings = await support.LoadSettingsAsync(customer);
 
 await support.SaveSettingsAsync(customer, settings with { Instructions = null });
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Scenarios/AgentSettings.cs#L31-L35' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-and-save-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L31-L35' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-and-save-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 What is stored is the record's JSON. Values left null are left out, and so is a tool without any value:
 
-<!-- snippet: samples/Agentic.Samples.Docs/Examples/support-agent-settings.json -->
-<a id='snippet-samples/Agentic.Samples.Docs/Examples/support-agent-settings.json'></a>
+<!-- snippet: samples/Typeshift.Samples.Docs/Examples/support-agent-settings.json -->
+<a id='snippet-samples/Typeshift.Samples.Docs/Examples/support-agent-settings.json'></a>
 ```json
 {
   "model": "reasoning-model",
@@ -265,7 +265,7 @@ What is stored is the record's JSON. Values left null are left out, and so is a 
   }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Examples/support-agent-settings.json#L1-L8' title='Snippet source file'>snippet source</a> | <a href='#snippet-samples/Agentic.Samples.Docs/Examples/support-agent-settings.json' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Examples/support-agent-settings.json#L1-L8' title='Snippet source file'>snippet source</a> | <a href='#snippet-samples/Typeshift.Samples.Docs/Examples/support-agent-settings.json' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Tool defaults
@@ -283,7 +283,7 @@ await defaults.ConfigureAsync(customer, KnowledgeToolset.Tools.SearchArticles, a
     Language = "de"
 });
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Scenarios/ToolDefaultsScenario.cs#L17-L24' title='Snippet source file'>snippet source</a> | <a href='#snippet-tool-defaults' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/ToolDefaultsScenario.cs#L17-L24' title='Snippet source file'>snippet source</a> | <a href='#snippet-tool-defaults' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Tool defaults are stored under the same id as agent settings. They apply to every agent run under that id whose code

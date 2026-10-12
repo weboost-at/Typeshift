@@ -1,7 +1,7 @@
 # Architecture
 
-Agentic is one package with two assemblies: the runtime library `Agentic` and the Roslyn generator
-`Agentic.Generators`, which the package ships as an analyzer. The developer writes toolsets and agents as ordinary
+Typeshift is one package with two assemblies: the runtime library `Typeshift` and the Roslyn generator
+`Typeshift.Generators`, which the package ships as an analyzer. The developer writes toolsets and agents as ordinary
 classes; the generator reads them at compile time and writes everything that would otherwise need reflection. The
 decisions behind each part are in [decisions](./decisions.md), cited here as D-numbers.
 
@@ -14,7 +14,7 @@ partial Agent     --->   agent model, resolved against every     ---> AgentRunti
                          toolset --> Settings, Configure{Tool},       + generated typed members
                          runtime extension members
 the assembly      --->   module class + [assembly: GeneratedModule] stamp
-AddAgentic() call --->   interceptor: core services + own module + every referenced module
+AddTypeshift() call --->   interceptor: core services + own module + every referenced module
 ```
 
 ## The runtime library
@@ -29,10 +29,10 @@ A namespace follows its folder.
 | `Agents/` | `AgentDefinition`, `ChatOptionsBuilder`, `AgentRuntime` and `AgentRuntime<TAgent>`, `IAgentSettings`, `ChatExecutionContext`, `IChatClientProvider`. |
 | `Catalogs/` | `ToolCatalog`, every tool the host can see, created by name. |
 | `Conversations/` | The conversation tracking: `TrackedChatClient`, `ConversationTracker`, the sessions, `StoredConversation`, and the bridge that parses conversation ids into the store's id type. |
-| `Persistence/` | `IAgenticStore<TId>`, `IStorable<TSelf>`, the `StorableJson` helpers generated code serializes with, and `InMemoryAgenticStore<TId>`. |
+| `Persistence/` | `ITypeshiftStore<TId>`, `IStorable<TSelf>`, the `StorableJson` helpers generated code serializes with, and `InMemoryTypeshiftStore<TId>`. |
 | `Json/` | `AgentJsonOptions`, `AgentJson` (the serializer options and schema cache), the library's `AgentJsonContext`. |
 | `Modules/` | The stamps (attributes) and `ModuleRegistration`, which generated code calls. Hidden from editors. |
-| `DependencyInjection/` | `AddAgentic()`, which throws unless the generator intercepted the call, and `AddAgenticStore()`. |
+| `DependencyInjection/` | `AddTypeshift()`, which throws unless the generator intercepted the call, and `AddTypeshiftStore()`. |
 
 ## The generator
 
@@ -48,7 +48,7 @@ an unrelated edit leaves every output cached.
    `WithChatOptions()` chain. The `Include(t => t.X)` and `Exclude(t => t.X)` calls after `UseToolset<T>()` do not
    bind in the generator's own compilation, because the tool list properties are what it generates, so `AgentParser`
    reads them from syntax (D29). `Storage` decides per configurable member how the records write and read it, or reports
-   AGT014.
+   TSH014.
 3. **Models** hold only strings, bools and `EquatableArray<T>`; locations are `LocationInfo` and diagnostics
    `DiagnosticInfo`, both value types. An agent model holds the toolset's type name and the selected tool names,
    never the toolset's syntax.
@@ -67,22 +67,22 @@ What it writes:
 |---|---|
 | each toolset | The stamps; a `Tools` class of typed `ToolRef`s; per tool with configurable settings a `{Tool}Overrides` record; the `GetBinding` switch; per tool a binding and a sealed `AIFunction` subclass; a `{Toolset}ToolList` extension block with one property per tool on `ToolList<TToolset>`. |
 | each agent | Per tool with settings a field, set through a private `Configure{Tool}()` returning a nested `{Tool}SettingsBuilder`; the `GetToolSettings` override; the nested `Settings` record; and a `{Agent}RuntimeExtensions` extension block on `AgentRuntime<TAgent>`. |
-| each assembly | `Agentic.Generated.{Assembly}Module`, which registers the assembly's toolsets and agents with factory lambdas, plus its assembly stamp. |
-| each `AddAgentic()` call | One interceptor that registers the core services, the own module and every referenced module. |
+| each assembly | `Typeshift.Generated.{Assembly}Module`, which registers the assembly's toolsets and agents with factory lambdas, plus its assembly stamp. |
+| each `AddTypeshift()` call | One interceptor that registers the core services, the own module and every referenced module. |
 
 ## Registration
 
-`services.AddAgentic()` is a library method that throws (D1). In every project that calls it, the generator emits a
-`file static class` in `Agentic.Generated` with an `[InterceptsLocation]` for each call, so the compiler binds the
+`services.AddTypeshift()` is a library method that throws (D1). In every project that calls it, the generator emits a
+`file static class` in `Typeshift.Generated` with an `[InterceptsLocation]` for each call, so the compiler binds the
 call to the generated method instead. The project opts into the namespace through the `InterceptorsNamespaces`
-property, which the package sets in `buildTransitive/Agentic.props`.
+property, which the package sets in `buildTransitive/Typeshift.props`.
 
 The interceptor calls `ModuleRegistration.AddCoreServices` and then `Register` on each module. A module registers
-itself once per service collection, so calling `AddAgentic()` twice, or from two assemblies, adds nothing twice.
+itself once per service collection, so calling `AddTypeshift()` twice, or from two assemblies, adds nothing twice.
 Toolsets and agents are singletons, created by factory lambdas; each agent also gets an `AgentRuntime<TAgent>`,
 registered as `AgentRuntime` too, so a host can list them.
 
-`services.AddAgenticStore<TStore, TId>()` registers the one store (D25, D26).
+`services.AddTypeshiftStore<TStore, TId>()` registers the one store (D25, D26).
 
 ## Tool invocation
 
@@ -137,11 +137,11 @@ context is always the agent's name.
 ## Persistence
 
 Everything the library persists is an `IStorable<TSelf>`: the generated `Settings` and `{Tool}Overrides` records, and
-`StoredConversation`. `IAgenticStore<TId>` loads and saves them by type and id (D25). The generated records serialize
+`StoredConversation`. `ITypeshiftStore<TId>` loads and saves them by type and id (D25). The generated records serialize
 member by member through `StorableJson`, without a `JsonSerializerContext` (D27); `StoredConversation` goes through
 the library's own `AgentJsonContext`.
 
-Without a store, every API that loads or saves throws, naming `AddAgenticStore<TStore, TId>()` (D26); the rest works
+Without a store, every API that loads or saves throws, naming `AddTypeshiftStore<TStore, TId>()` (D26); the rest works
 from code.
 
 ## Conversations

@@ -18,11 +18,11 @@ internal record SearchTicketsSettings
     public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(5);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Tickets/SearchTicketsSettings.cs#L3-L12' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-record' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/SearchTicketsSettings.cs#L3-L12' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-record' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The record's parameterless constructor gives the code defaults. It must be a record
-([AGT005](./diagnostics.md#agt005)), because overrides apply to a `with` copy.
+([TSH005](./diagnostics.md#tsh005)), because overrides apply to a `with` copy.
 
 ## Configurable members
 
@@ -38,7 +38,7 @@ AddTool(SearchTickets)
     .Configurable(s => s.IncludeClosed)
     .Configurable(s => s.Limit);
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Tickets/TicketToolset.cs#L13-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-picks' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketToolset.cs#L13-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-picks' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `WithConfigurableSettings<T>()` lets every settable member change unless `NotConfigurable(...)` names it:
@@ -51,7 +51,7 @@ AddTool(SearchArticles)
     .WithConfigurableSettings<SearchArticlesSettings>()
     .NotConfigurable(s => s.Limit);
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Knowledge/KnowledgeToolset.cs#L15-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-all-configurable' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Knowledge/KnowledgeToolset.cs#L15-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-all-configurable' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Obsolete members stay out on their own. One tool uses one of the two: after `WithSettings<T>()` only `Configurable`
@@ -60,7 +60,7 @@ follows, after `WithConfigurableSettings<T>()` only `NotConfigurable`. There is 
 
 The generator reads the picks at compile time; at runtime their lambdas never run. Members left out, `Timeout` in the
 first example and `Limit` in the second, only ever have their code value. Configurable members must have a type the
-generated records can store ([AGT014](./diagnostics.md#agt014)): `bool`, the numeric types, `string`, `Guid`,
+generated records can store ([TSH014](./diagnostics.md#tsh014)): `bool`, the numeric types, `string`, `Guid`,
 `DateTime`, `DateTimeOffset`, `TimeSpan`, enums, string lists, and their nullable forms. Under
 `WithConfigurableSettings<T>()`, a member of any other type is reported until `NotConfigurable(...)` keeps it out, so
 it never stays code-only unnoticed. Every other member added to the record later becomes configurable, and part of the
@@ -70,7 +70,7 @@ stored settings, on its own.
 
 The tool method takes a parameter of its settings type and receives the resolved settings there. The parameter is
 not part of the model's schema, so the model can never set it; a tool without such a parameter gets a warning
-([AGT009](./diagnostics.md#agt009)):
+([TSH009](./diagnostics.md#tsh009)):
 
 <!-- snippet: read-settings -->
 <a id='snippet-read-settings'></a>
@@ -81,7 +81,7 @@ public static IReadOnlyList<Ticket> SearchTickets(
     IServiceProvider services) =>
     services.GetRequiredService<ITicketClient>().Search(query, settings.IncludeClosed, settings.Limit);
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Tickets/TicketToolset.cs#L32-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-read-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketToolset.cs#L32-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-read-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Each function is created with the settings of its run, so two runs with different settings never see each other's

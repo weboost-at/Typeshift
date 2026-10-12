@@ -40,7 +40,7 @@ internal partial class SupportAgent : AgentDefinition
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Agents/SupportAgent.cs#L7-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - **`WithName`** is optional; without it the agent goes by its class name. The name labels the execution context of
@@ -74,7 +74,7 @@ internal partial class TriageAgent : AgentDefinition
     protected override string GetInstructions() => "Find the tickets a customer's message is about.";
 }
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Agents/TriageAgent.cs#L6-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-exclude-tools' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L6-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-exclude-tools' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 One `UseToolset` call either includes or excludes: after `Include` the chain offers only `Include`, after `Exclude`
@@ -87,7 +87,7 @@ throws an `InvalidOperationException` when the agent's tools are first read.
 
 `Configurable(o => o.Temperature)` in the `WithChatOptions()` chain marks a chat option that may change at runtime,
 whether the code sets it or not. Like the settings picks, it is read by the generator only. Configurable options must
-have a type the settings can store ([AGT014](./diagnostics.md#agt014)).
+have a type the settings can store ([TSH014](./diagnostics.md#tsh014)).
 
 ## Tool settings
 
@@ -114,6 +114,6 @@ a settings UI or an API to it. It serializes itself to JSON, so it needs no seri
 
 ## The runtime
 
-`AddAgentic()` registers each agent as a singleton together with an `AgentRuntime<TAgent>`, the object a host runs
+`AddTypeshift()` registers each agent as a singleton together with an `AgentRuntime<TAgent>`, the object a host runs
 it through; see [running agents](./running-agents.md). Every runtime is also registered as `AgentRuntime`, so a host
 can list all agents.

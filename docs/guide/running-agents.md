@@ -10,17 +10,17 @@ over the agent's code, then creates a chat client for the resolved model.
 ```cs
 var services = new ServiceCollection();
 
-services.AddAgentic();
-services.AddAgenticStore<InMemoryAgenticStore<Guid>, Guid>();
+services.AddTypeshift();
+services.AddTypeshiftStore<InMemoryTypeshiftStore<Guid>, Guid>();
 
 services.AddKeyedChatClient("fast-model", new CannedChatClient("fast-model"));
 services.AddKeyedChatClient("reasoning-model", new CannedChatClient("reasoning-model"));
 services.AddSingleton<IChatClientProvider, KeyedChatClientProvider>();
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Scenarios/Host.cs#L14-L23' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Host.cs#L14-L23' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`AddAgentic()` registers every toolset and agent the project can see, `AddAgenticStore` the
+`AddTypeshift()` registers every toolset and agent the project can see, `AddTypeshiftStore` the
 [store](./persistence.md), and `IChatClientProvider` maps model names to clients.
 
 ## Chat clients
@@ -37,7 +37,7 @@ internal sealed class KeyedChatClientProvider(IServiceProvider services) : IChat
         ValueTask.FromResult(services.GetRequiredKeyedService<IChatClient>(model));
 }
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Chat/KeyedChatClientProvider.cs#L7-L13' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client-provider' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Chat/KeyedChatClientProvider.cs#L7-L13' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client-provider' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `CreateChatClientAsync(options)` asks the provider for the client of `options.ModelId` and wraps it: conversation
@@ -57,7 +57,7 @@ var options = support.ResolveChatOptions();
 var client = await support.CreateChatClientAsync(options);
 var response = await client.GetResponseAsync("Where is my refund?", options);
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Scenarios/RunningAgents.cs#L15-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-from-code' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L15-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-from-code' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Call the client with the same options you created it with: they carry the agent's tools and its execution context.
@@ -79,7 +79,7 @@ var run = new SupportAgent.Settings
 var runOptions = support.ResolveChatOptions(run);
 var runClient = await support.CreateChatClientAsync(runOptions);
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Scenarios/RunningAgents.cs#L29-L39' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L29-L39' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The run's model, `reasoning-model`, picks a different client. Values a run leaves null keep what the layers below
@@ -95,7 +95,7 @@ The client streams like any `IChatClient`; tool calls run between the streamed u
 await foreach (var update in runClient.GetStreamingResponseAsync("Where is my refund?", runOptions))
     Console.Write(update.Text);
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Scenarios/RunningAgents.cs#L43-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L43-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## A run with stored settings

@@ -2,22 +2,22 @@
 
 This page builds a working agent: a toolset with one tool, an agent that offers it, the registration, and a run with
 stored settings. The code is the console sample in
-[`samples/Agentic.Samples.Console`](https://github.com/weboost-at/Agentic/tree/main/samples/Agentic.Samples.Console),
+[`samples/Typeshift.Samples.Console`](https://github.com/weboost-at/Typeshift/tree/main/samples/Typeshift.Samples.Console),
 which CI publishes as Native AOT and runs.
 
 ## Install
 
-Agentic targets .NET 10 and C# 14. The package is not on nuget.org yet (the `Agentic` there is another project).
-Until the first release, pack it from a clone of the repository and add the folder as a package source:
+Typeshift targets .NET 10 and C# 14. The package is not on nuget.org yet. Until the first release, pack it from a
+clone of the repository and add the folder as a package source:
 
 ```shell
-dotnet pack src/Agentic -c Release -o artifacts/packages
-dotnet nuget add source "$PWD/artifacts/packages" --name agentic-local
+dotnet pack src/Typeshift -c Release -o artifacts/packages
+dotnet nuget add source "$PWD/artifacts/packages" --name typeshift-local
 ```
 
-Add the package to **every project that declares toolsets or agents, or calls `AddAgentic()`**. The package carries
+Add the package to **every project that declares toolsets or agents, or calls `AddTypeshift()`**. The package carries
 the source generator, and NuGet does not pass a generator on to the projects that reference yours. A referenced
-project without it is reported as [AGT011](./diagnostics.md#agt011).
+project without it is reported as [TSH011](./diagnostics.md#tsh011).
 
 ## A toolset
 
@@ -53,7 +53,7 @@ internal partial class CompanyToolset : Toolset
     ];
 }
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Console/Companies/CompanyToolset.cs#L5-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-toolset' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Companies/CompanyToolset.cs#L5-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-toolset' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The method's `<summary>` becomes the tool's description and each `<param>` the description of its parameter. The
@@ -71,7 +71,7 @@ internal record FindCompaniesSettings
     public bool IncludeInactive { get; init; }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Console/Companies/FindCompaniesSettings.cs#L3-L10' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings-record' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Companies/FindCompaniesSettings.cs#L3-L10' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings-record' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## An agent
@@ -106,7 +106,7 @@ internal partial class ResearchAgent : AgentDefinition
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Console/Companies/ResearchAgent.cs#L5-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Companies/ResearchAgent.cs#L5-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `t.FindCompanies` is a property the generator adds for each tool of `CompanyToolset`, and `ConfigureFindCompanies()`
@@ -115,7 +115,7 @@ compile time.
 
 ## Registration
 
-`AddAgentic()` registers every toolset and agent of the project and of the projects it references. The store is
+`AddTypeshift()` registers every toolset and agent of the project and of the projects it references. The store is
 optional: without one, everything runs from code. The chat client provider maps model names to `IChatClient`s; the
 sample uses a scripted one, a real host [plugs in its providers](./running-agents.md#chat-clients).
 
@@ -124,14 +124,14 @@ sample uses a scripted one, a real host [plugs in its providers](./running-agent
 ```cs
 var services = new ServiceCollection();
 
-services.AddAgentic();
-services.AddAgenticStore<InMemoryAgenticStore<Guid>, Guid>();
+services.AddTypeshift();
+services.AddTypeshiftStore<InMemoryTypeshiftStore<Guid>, Guid>();
 services.AddSingleton<IChatClientProvider, ScriptedChatClientProvider>();
 services.Configure<AgentJsonOptions>(options => options.TypeInfoResolverChain.Add(AppJsonContext.Default));
 
 await using var provider = services.BuildServiceProvider();
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Console/Program.cs#L13-L24' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L13-L24' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Settings per customer
@@ -151,7 +151,7 @@ await research.ConfigureAsync(customer, settings => settings with
     FindCompanies = settings.FindCompanies with { Limit = 2 }
 });
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Console/Program.cs#L30-L39' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L30-L39' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## A run
@@ -170,7 +170,7 @@ var answer = await client.GetResponseAsync("Vienna", options);
 
 Console.WriteLine($"{research.Definition.Name}: {answer.Text}");
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Console/Program.cs#L42-L49' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L42-L49' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Because the run had a conversation id, the tracked conversation is stored under it:
@@ -178,7 +178,7 @@ Because the run had a conversation id, the tracked conversation is stored under 
 <!-- snippet: quickstart-conversation -->
 <a id='snippet-quickstart-conversation'></a>
 ```cs
-var store = provider.GetRequiredService<IAgenticStore<Guid>>();
+var store = provider.GetRequiredService<ITypeshiftStore<Guid>>();
 
 var conversation = await store.LoadAsync<StoredConversation>(conversationId, CancellationToken.None)
     ?? throw new InvalidOperationException("The conversation was not stored.");
@@ -187,7 +187,7 @@ Console.WriteLine(
     $"Stored {conversation.AggregatedMessages.Count} messages of {conversation.ExecutionContext.Value}, " +
     $"{conversation.AggregatedUsage.TotalTokenCount} tokens");
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Console/Program.cs#L52-L61' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L52-L61' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A single run can also override settings without storing them, here streamed:
@@ -211,7 +211,7 @@ await foreach (var update in runClient.GetStreamingResponseAsync("Vienna", runOp
 
 Console.WriteLine();
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Console/Program.cs#L64-L80' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L64-L80' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The sample prints:
@@ -226,5 +226,5 @@ research_agent, one run: Found Danube Robotics.
 
 - [Toolsets](./toolsets.md) and [tool settings](./tool-settings.md) in depth.
 - [Agents](./defining-agents.md) and [running them](./running-agents.md) with real providers.
-- [Stores and settings](./persistence.md): implementing `IAgenticStore` for your database.
+- [Stores and settings](./persistence.md): implementing `ITypeshiftStore` for your database.
 - [Native AOT](./native-aot.md): what a host registers to publish without warnings.
