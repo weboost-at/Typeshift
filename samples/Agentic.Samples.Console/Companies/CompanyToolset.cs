@@ -6,15 +6,6 @@ namespace Agentic.Samples.Companies;
 // begin-snippet: quickstart-toolset
 internal partial class CompanyToolset : Toolset
 {
-    private static readonly Company[] KnownCompanies =
-    [
-        new("Danube Robotics", "Vienna", Active: true),
-        new("Prater Motion", "Vienna", Active: true),
-        new("Ringstrasse Automation", "Vienna", Active: false),
-        new("Alpine Grippers", "Graz", Active: true),
-        new("Wienerwald Drives", "Vienna", Active: true)
-    ];
-
     public CompanyToolset()
     {
         DisplayName = "Companies";
@@ -36,7 +27,7 @@ internal partial class CompanyToolset : Toolset
 
         return
         [
-            .. KnownCompanies
+            .. KnownCompanies.All
                 .Where(company => company.City.Equals(city, StringComparison.OrdinalIgnoreCase))
                 .Where(company => company.Active || settings.IncludeInactive)
                 .Take(settings.Limit)

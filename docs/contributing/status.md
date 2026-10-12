@@ -58,7 +58,7 @@ live here, never as TODOs in code.
 ### Milestone 9: documentation site
 
 - [x] VitePress site on GitHub Pages; snippets taken from compiled code by mdsnippets and checked in CI
-- [ ] README rewritten
+- [x] README rewritten
 
 ### Milestone 10: distribution
 

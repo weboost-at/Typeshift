@@ -27,15 +27,6 @@ static method with a lower_snake_case name.
 ```cs
 internal partial class CompanyToolset : Toolset
 {
-    private static readonly Company[] KnownCompanies =
-    [
-        new("Danube Robotics", "Vienna", Active: true),
-        new("Prater Motion", "Vienna", Active: true),
-        new("Ringstrasse Automation", "Vienna", Active: false),
-        new("Alpine Grippers", "Graz", Active: true),
-        new("Wienerwald Drives", "Vienna", Active: true)
-    ];
-
     public CompanyToolset()
     {
         DisplayName = "Companies";
@@ -57,7 +48,7 @@ internal partial class CompanyToolset : Toolset
 
         return
         [
-            .. KnownCompanies
+            .. KnownCompanies.All
                 .Where(company => company.City.Equals(city, StringComparison.OrdinalIgnoreCase))
                 .Where(company => company.Active || settings.IncludeInactive)
                 .Take(settings.Limit)
@@ -65,7 +56,7 @@ internal partial class CompanyToolset : Toolset
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Console/Companies/CompanyToolset.cs#L6-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-toolset' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Console/Companies/CompanyToolset.cs#L6-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-toolset' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The method's `<summary>` becomes the tool's description and each `<param>` the description of its parameter. The
