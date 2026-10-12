@@ -1,0 +1,6 @@
+/* The snippets are C# at up to 120 columns; give them room on wide screens */
+@media (min-width: 1440px) {
+  .VPDoc.has-aside .content-container {
+    max-width: 860px;
+  }
+}

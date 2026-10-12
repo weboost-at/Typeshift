@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Agentic/Agentic.csproj" />
+    <Project Path="src/Agentic.Generators/Agentic.Generators.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Agentic.Generators.Tests/Agentic.Generators.Tests.csproj" />
+    <Project Path="tests/Agentic.Tests/Agentic.Tests.csproj" />
+    <Project Path="tests/Agentic.Tests.Toolsets/Agentic.Tests.Toolsets.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Agentic.Samples.Console/Agentic.Samples.Console.csproj" />
+    <Project Path="samples/Agentic.Samples.Docs/Agentic.Samples.Docs.csproj" />
+  </Folder>
+</Solution>

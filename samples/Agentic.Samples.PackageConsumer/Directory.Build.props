@@ -1,0 +1,5 @@
+<Project>
+
+  <!-- Stops the repository's props from flowing in: this project sees only what the package gives a consumer. -->
+
+</Project>

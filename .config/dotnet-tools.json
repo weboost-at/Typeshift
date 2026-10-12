@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "slopwatch.cmd": {
+      "version": "0.4.2",
+      "commands": [
+        "slopwatch"
+      ],
+      "rollForward": false
+    },
+    "markdownsnippets.tool": {
+      "version": "28.5.0",
+      "commands": [
+        "mdsnippets"
+      ],
+      "rollForward": false
+    }
+  }
+}
