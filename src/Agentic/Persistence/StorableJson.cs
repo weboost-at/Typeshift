@@ -201,14 +201,11 @@ public static class StorableJson
     /// <typeparam name="TData">The type of the nested data.</typeparam>
     /// <param name="writer">The writer of the enclosing object.</param>
     /// <param name="name">The member's JSON name.</param>
-    /// <param name="value">The data; null leaves the member out.</param>
+    /// <param name="value">The data; null or data without any value leaves the member out.</param>
     public static void WriteStorable<TData>(Utf8JsonWriter writer, string name, TData? value)
         where TData : class, IStorable<TData>
     {
-        if (value is null) return;
-
-        writer.WritePropertyName(name);
-        writer.WriteRawValue(value.Serialize());
+        if (value is not null) WriteRaw(writer, name, value.Serialize());
     }
 
     /// <summary>
@@ -216,13 +213,11 @@ public static class StorableJson
     /// </summary>
     /// <param name="writer">The writer of the enclosing object.</param>
     /// <param name="name">The member's JSON name.</param>
-    /// <param name="writeMembers">Writes the members of the nested object.</param>
-    public static void WriteObject(Utf8JsonWriter writer, string name, Action<Utf8JsonWriter> writeMembers)
-    {
-        writer.WriteStartObject(name);
-        writeMembers(writer);
-        writer.WriteEndObject();
-    }
+    /// <param name="writeMembers">
+    /// Writes the members of the nested object; when it writes none, the member is left out.
+    /// </param>
+    public static void WriteObject(Utf8JsonWriter writer, string name, Action<Utf8JsonWriter> writeMembers) =>
+        WriteRaw(writer, name, Write(writeMembers));
 
     /// <summary>
     /// Reads a string member.
@@ -355,6 +350,15 @@ public static class StorableJson
     /// <returns>The object; a missing member reads as an element every read on returns null for.</returns>
     public static JsonElement ReadObject(JsonElement data, string name) =>
         Find(data, name) is { ValueKind: JsonValueKind.Object } value ? value : default;
+
+    // An empty object says nothing a missing member does not, so it is left out like a null
+    private static void WriteRaw(Utf8JsonWriter writer, string name, string json)
+    {
+        if (json is "{}") return;
+
+        writer.WritePropertyName(name);
+        writer.WriteRawValue(json);
+    }
 
     private static JsonElement? Find(JsonElement data, string name) =>
         data.ValueKind is JsonValueKind.Object && data.TryGetProperty(name, out var value) ? value : null;

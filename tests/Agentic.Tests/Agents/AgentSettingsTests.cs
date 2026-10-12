@@ -22,6 +22,32 @@ public class AgentSettingsTests : AgentTestBase
     }
 
     [Fact]
+    public void Given_Settings_Without_Values_They_Serialize_As_An_Empty_Object()
+    {
+        // Act
+        var json = new ProbeAgent.Settings().Serialize();
+
+        // Assert
+        json.Should().Be("{}");
+    }
+
+    [Fact]
+    public void Given_A_Value_For_One_Tool_Only_That_Tool_Is_Serialized()
+    {
+        // Arrange
+        var settings = new ProbeAgent.Settings
+        {
+            FindCompanies = new CompanyToolset.FindCompaniesOverrides { Limit = Data.Tool.Limit }
+        };
+
+        // Act
+        var json = settings.Serialize();
+
+        // Assert
+        json.Should().Be($$$$"""{"tools":{"find_companies":{"limit":{{{{Data.Tool.Limit.Default}}}}}}}""");
+    }
+
+    [Fact]
     public async Task Given_Settings_Saved_Under_An_Id_They_Load_Back_Equal()
     {
         // Arrange
