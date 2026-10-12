@@ -17,7 +17,7 @@ public class AgentCatalogTests : HostTestBase
         var names = Catalog.CodeAgents.Select(agent => agent.UniqueName);
 
         // Assert
-        names.Should().BeEquivalentTo("probe_agent", "research_agent");
+        names.Should().BeEquivalentTo("probe_agent", "hosted_tool_agent", "research_agent");
     }
 
     [Fact]

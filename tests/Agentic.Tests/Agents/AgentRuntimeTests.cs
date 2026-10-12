@@ -3,6 +3,7 @@ using Agentic.Tests.Agents.Support;
 using Agentic.Tests.Toolsets.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Agentic.Tests.Agents;
 
@@ -165,5 +166,18 @@ public class AgentRuntimeTests : AgentTestBase
 
         // Assert
         stored!.ExecutionContext.Should().Be(new ChatExecutionContext(ProbeAgent.Name));
+    }
+
+    [Fact]
+    public async Task Given_Tools_In_The_Agents_Chat_Options_The_Run_Offers_Them_Before_Its_Toolsets()
+    {
+        // Arrange
+        var runtime = Services.GetRequiredService<AgentRuntime<HostedToolAgent>>();
+
+        // Act
+        var options = await runtime.ResolveChatOptionsAsync(ct: Ct);
+
+        // Assert
+        options.Tools!.Select(tool => tool.Name).Should().Equal("web_search", "probe");
     }
 }

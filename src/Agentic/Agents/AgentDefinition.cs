@@ -151,7 +151,11 @@ public abstract class AgentDefinition
 
         options.ConversationId = run.ChatOptions?.ConversationId ?? options.ConversationId;
         options.AdditionalProperties = (options.AdditionalProperties ?? []).WithExecutionContext(new(UniqueName));
-        options.Tools = [.. _tools.Select(tool => CreateTool(tool, configuration, toolDefaults, run, json))];
+        options.Tools =
+        [
+            .. options.Tools ?? [],
+            .. _tools.Select(tool => CreateTool(tool, configuration, toolDefaults, run, json))
+        ];
 
         return options;
     }
