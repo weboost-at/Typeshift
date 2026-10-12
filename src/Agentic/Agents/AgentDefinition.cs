@@ -180,9 +180,9 @@ public abstract class AgentDefinition
         return tool.Toolset.ExportSettings(tool, settings, json);
     }
 
-    // Delegates are equal when they point at the same method, no MethodInfo needed
+    // A method with optional parameters gets a delegate type per assembly, so the methods are compared, not delegates
     private static ToolDefinition GetDefinition<TToolset>(IReadOnlyList<ToolDefinition> available, Delegate tool) =>
-        available.FirstOrDefault(definition => definition.Method.Equals(tool))
+        available.FirstOrDefault(definition => definition.Method.Method == tool.Method)
         ?? throw new ArgumentException($"A selected method is no tool of {typeof(TToolset).Name}.", nameof(tool));
 
     private void AddTools(IEnumerable<ToolDefinition> tools)

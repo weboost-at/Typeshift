@@ -29,5 +29,5 @@ public partial class CompanyToolset : Toolset
 
     /// <param name="name">The company's legal name.</param>
     /// <param name="country">Two-letter ISO country code, or null when unknown.</param>
-    public static string CreateCompanyProfile(string name, string? country) => name;
+    public static string CreateCompanyProfile(string name, string? country = null) => name;
 }
