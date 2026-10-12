@@ -74,6 +74,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `tests/Agentic.Tests/Testing/Conventions/TestConventionTests` | The test rules below, for every test project. |
 | `Repository/PublicApiDocumentationTests` (generator tests) | Every documented public member has its `param`, `typeparam` and `returns` tags. |
 | `Repository/DecisionCitationTests` (generator tests) | Every `// Dnn:` in code names a decision in force. |
+| `Repository/SourceConventionTests` (generator tests) | The code style rules a pattern can check: no clock, no `== null`, no `this` parameters, no TODOs. |
 | `Diagnostics/DiagnosticCatalogTests` (generator tests) | Every released diagnostic has a docs row, a docs section and a test. |
 | RS2000 (analyzer) | Every descriptor has a row in `AnalyzerReleases.Unshipped.md` or `Shipped.md`. |
 | `IncrementalTests` (generator tests) | Unrelated edits leave the generator's output cached. |
