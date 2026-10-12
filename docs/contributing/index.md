@@ -18,6 +18,14 @@ The build is warning-free with warnings as errors. Generator snapshots live in
 `tests/Agentic.Generators.Tests/Snapshots`; a mismatch writes a `.received.txt` to review, and
 `ACCEPT_SNAPSHOTS=1` accepts it.
 
+## Working with coding agents
+
+`AGENTS.md` is written for coding agents as much as for people: a table from task to the docs to read and the
+playbook to follow, the traps that cost debugging sessions before, and the guard tests that enforce the repository's
+rules. The playbooks live in `.claude/skills/`, where Claude Code loads them as skills; other agents read them as
+Markdown. Code comments of the form `// D29: ...` cite the [decision](./decisions.md) behind code that looks odd, and
+a test fails when a cited decision is withdrawn.
+
 ## Where to read on
 
 | Page | Read it when |

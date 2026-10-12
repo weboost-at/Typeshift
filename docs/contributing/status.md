@@ -67,7 +67,7 @@ live here, never as TODOs in code.
 
 ### Milestone 11: working on the library
 
-- [ ] Playbooks for recurring changes, decision IDs cited in code, guard tests for the repository's own rules
+- [x] Playbooks for recurring changes, decision IDs cited in code, guard tests for the repository's own rules
 
 ## Behavior coverage
 
@@ -150,6 +150,8 @@ moved code staying cached). CI builds and runs `samples/Agentic.Samples.PackageC
   settings, in parallel. A store that wants one round trip has no batch API to implement yet.
 - **Concurrent updates:** `ConfigureAsync` loads, changes and saves without a version check, so of two concurrent
   updates under one id the later save wins.
+- **Document kinds:** stores key documents by type, and the library offers no stable kind name, so moving or
+  renaming an agent class orphans its settings in a store keyed by the type's full name.
 - **Renamed members:** stored documents carry no schema version. A renamed configurable member or tool reads as
   null, so its stored value silently falls back to the layer below.
 - **Configurable types:** only the types AGT014 lists; nested records, dictionaries and lists of other types stay
@@ -166,7 +168,7 @@ moved code staying cached). CI builds and runs `samples/Agentic.Samples.PackageC
 ## Next steps
 
 1. Store generators for Marten and EF Core: the stored documents are a closed set of known types (D25).
-2. Versioned documents and optimistic concurrency for stored settings.
+2. Versioned documents with stable kind names, and optimistic concurrency for stored settings.
 3. The JSON-context analyzer: report tool parameter and result types that no registered context covers.
 4. Make the tracking limits options.
 5. A diagnostic for toolsets and agents the module cannot reach.

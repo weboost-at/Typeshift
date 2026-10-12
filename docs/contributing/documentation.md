@@ -1,8 +1,9 @@
 # Documentation
 
 The documentation is a [VitePress](https://vitepress.dev) site in `docs/`, published to GitHub Pages from `main`.
-Every code block that shows C# comes from code that compiles and runs: [mdsnippets](https://github.com/SimonCropp/MarkdownSnippets)
-copies marked regions of the samples into the Markdown, and CI fails when the two disagree.
+Every code block that shows C# comes from code that compiles and runs:
+[mdsnippets](https://github.com/SimonCropp/MarkdownSnippets) copies marked regions of the samples into the Markdown,
+and CI fails when the two disagree.
 
 ## Where the code comes from
 
