@@ -6,7 +6,6 @@ them into reflection-free `AIFunction`s, a typed settings record per agent, and 
 Everything runs under Native AOT.
 
 [![ci](https://github.com/weboost-at/Agentic/actions/workflows/ci.yml/badge.svg)](https://github.com/weboost-at/Agentic/actions/workflows/ci.yml)
-[![NuGet](https://img.shields.io/nuget/vpre/Agentic)](https://www.nuget.org/packages/Agentic)
 
 **[Documentation](https://weboost-at.github.io/Agentic/)** ·
 [Getting started](https://weboost-at.github.io/Agentic/guide/getting-started) ·
@@ -32,8 +31,12 @@ Everything runs under Native AOT.
 
 ## Install
 
+The package is not on nuget.org yet (the `Agentic` there is another project). Until the first release, pack it from
+source and add the folder as a package source:
+
 ```shell
-dotnet add package Agentic --prerelease
+dotnet pack src/Agentic -c Release -o artifacts/packages
+dotnet nuget add source "$PWD/artifacts/packages" --name agentic-local
 ```
 
 Add it to every project that declares toolsets or agents, or calls `AddAgentic()`: the package carries the generator,

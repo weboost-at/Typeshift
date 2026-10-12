@@ -7,10 +7,12 @@ which CI publishes as Native AOT and runs.
 
 ## Install
 
-Agentic targets .NET 10 and C# 14.
+Agentic targets .NET 10 and C# 14. The package is not on nuget.org yet (the `Agentic` there is another project).
+Until the first release, pack it from a clone of the repository and add the folder as a package source:
 
 ```shell
-dotnet add package Agentic --prerelease
+dotnet pack src/Agentic -c Release -o artifacts/packages
+dotnet nuget add source "$PWD/artifacts/packages" --name agentic-local
 ```
 
 Add the package to **every project that declares toolsets or agents, or calls `AddAgentic()`**. The package carries

@@ -17,9 +17,9 @@ These need someone with admin rights on the repository and the nuget.org account
 1. **Choose the package ID.** `Agentic` belongs to another author on nuget.org. Set `PackageId` in
    `src/Agentic/Agentic.csproj`; the `buildTransitive` props are packed under the ID automatically. Then update the
    package consumer (`samples/Agentic.Samples.PackageConsumer`: its `PackageReference`, `PackageVersion` and the
-   `NuGet.config` source mapping), the install command in `README.md` and `docs/guide/getting-started.md`, and the
-   badge in `README.md`. Namespaces may keep their names; [renaming](./renaming.md) lists everything for a full
-   rename.
+   `NuGet.config` source mapping), the install sections of `README.md` and `docs/guide/getting-started.md` (back to
+   `dotnet add package <id> --prerelease`), and add a NuGet badge to `README.md`. Namespaces may keep their names;
+   [renaming](./renaming.md) lists everything for a full rename.
 2. **Set up trusted publishing on nuget.org.** Under the account's *Trusted Publishing*, add a policy for the
    repository owner `weboost-at`, the repository `Agentic`, the workflow file `release.yml` and the environment
    `nuget`. Then add the repository secret `NUGET_USER` with the nuget.org user name (not the email). No API key is
