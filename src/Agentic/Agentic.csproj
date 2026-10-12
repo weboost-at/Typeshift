@@ -6,12 +6,16 @@
     <IsTrimmable>true</IsTrimmable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IsPackable>true</IsPackable>
+    <!-- Taken on nuget.org by another author: choose the final ID before the first release, see
+         docs/contributing/releasing.md -->
     <PackageId>Agentic</PackageId>
-    <Description>Code-defined agents and toolsets for Microsoft.Extensions.AI. A source generator turns toolsets and agents into reflection-free AIFunctions, typed allowlisted settings and one AddAgentic() registration.</Description>
-    <PackageTags>ai;agents;tools;source-generator;microsoft.extensions.ai;llm</PackageTags>
+    <Description>Code-defined agents and toolsets for Microsoft.Extensions.AI. A source generator turns them into reflection-free AIFunctions, a typed settings record per agent and one AddAgentic() registration, ready for Native AOT.</Description>
+    <PackageTags>ai;agents;tools;source-generator;microsoft.extensions.ai;llm;aot</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReleaseNotes>https://github.com/weboost-at/Agentic/blob/main/CHANGELOG.md</PackageReleaseNotes>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EnablePackageValidation>true</EnablePackageValidation>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,8 +27,9 @@
   <ItemGroup>
     <ProjectReference Include="../Agentic.Generators/Agentic.Generators.csproj" ReferenceOutputAssembly="false" />
     <None Include="../Agentic.Generators/bin/$(Configuration)/netstandard2.0/Agentic.Generators.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
-    <None Include="buildTransitive/Agentic.props" Pack="true" PackagePath="buildTransitive" />
-    <None Include="../../README.md" Pack="true" PackagePath="/" Visible="false" />
+    <!-- NuGet imports buildTransitive/{PackageId}.props only, so the file is packed under the package's ID -->
+    <None Include="buildTransitive/Agentic.props" Pack="true" PackagePath="buildTransitive/$(PackageId).props" />
+    <None Include="PACKAGE.md" Pack="true" PackagePath="README.md" />
   </ItemGroup>
 
   <ItemGroup>

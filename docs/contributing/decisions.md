@@ -200,11 +200,12 @@ Replaced by D25 and D26. Tool defaults now load one document per tool, in parall
 - **Decision:** provider SDKs are out of scope, so the sample ships only its scripted client and shows where a real
   one plugs in (`IChatClientProvider`).
 
-### D22. The repository URL in the package metadata
+### D22. The package metadata points at the real repository
 
-- **Context:** the spec names the repository `agentic-dotnet`; the work happened in `weboost-at/Agentic`.
-- **Decision:** `Directory.Build.props` keeps `https://github.com/weboost-at/agentic-dotnet`, the spec's name, and
-  [renaming](./renaming.md) lists it.
+- **Context:** the spec names the repository `agentic-dotnet`; the work happens in `weboost-at/Agentic`, which now
+  publishes the docs site and the packages.
+- **Decision:** `RepositoryUrl` is `https://github.com/weboost-at/Agentic` and `PackageProjectUrl` the docs site, so
+  SourceLink, nuget.org and the docs agree. [Renaming](./renaming.md) lists every place the URL appears.
 
 ## Runtime, decided in the review pass
 
@@ -333,3 +334,32 @@ Replaced by D29: tools are selected through generated methods and matched by nam
 - **Decision:** with nothing shipped, the IDs were renumbered to close the gaps D29 to D31 left: AGT001 to AGT014.
   After the first release IDs never change; a retired one stays unused.
 - **Where:** `AnalyzerReleases.Unshipped.md`.
+
+## Distribution
+
+### D37. Releases are tags, published through trusted publishing
+
+- **Context:** the owner distributes the library through NuGet.
+- **Decision:** a `v*` tag runs `release.yml`: build, test, pack with package validation, run the package consumer,
+  then push to nuget.org and create the GitHub release. nuget.org trusted publishing exchanges the run's GitHub
+  identity for a key valid for an hour, so no API key is stored; the `nuget` environment gates the push. MinVer
+  versions from the tag. Symbols ship as a `.snupkg`, sources through SourceLink.
+- **Alternatives:** a stored `NUGET_API_KEY` secret, which lives until someone rotates it; versions in the project
+  file, which a release commit has to bump.
+- **Where:** `.github/workflows/release.yml`, `Directory.Build.props`, `docs/contributing/releasing.md`.
+
+### D38. The package ID is a placeholder; the props follow it
+
+- **Context:** `Agentic` is taken on nuget.org by another author. NuGet imports `buildTransitive/{PackageId}.props`
+  only, and that file opts consumers into the interceptor namespace.
+- **Decision:** the props file is packed under `$(PackageId).props`, so choosing the final ID changes one property
+  and the package consumer. The owner picks the ID before the first release.
+- **Where:** `src/Agentic/Agentic.csproj`.
+
+### D39. The package has a README of its own
+
+- **Decision:** `src/Agentic/PACKAGE.md` is the package's README on nuget.org: what it is, how to install, links to
+  the docs. It has no code, so it cannot drift; the repository README carries the compiled quickstart, whose
+  snippet links nuget.org would show as raw HTML.
+- **Where:** `src/Agentic/PACKAGE.md`.
+

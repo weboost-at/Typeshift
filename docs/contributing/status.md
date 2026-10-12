@@ -62,7 +62,8 @@ live here, never as TODOs in code.
 
 ### Milestone 10: distribution
 
-- [ ] NuGet release workflow on version tags, package validation, symbols, release docs
+- [x] NuGet release workflow on version tags, package validation, symbols, release docs
+- [ ] **Blocker:** choose a package ID; `Agentic` is taken on nuget.org (D38)
 
 ### Milestone 11: working on the library
 
@@ -133,8 +134,8 @@ moved code staying cached). CI builds and runs `samples/Agentic.Samples.PackageC
 ## Environment notes
 
 - The run had the .NET 10 SDK and `clang`, so the AOT publish and the package consumer ran locally as well as in CI.
-- **Blocker:** the session's git proxy answers HTTP 403 to every tag push and allows pushes to the work branch only.
-  The tag `v0.1.0-alpha.1` is therefore not pushed.
+- The session's git proxy answers HTTP 403 to every tag push, so no release tag exists yet. The first release follows
+  [releasing](./releasing.md) once the package ID is chosen.
 
 ## Known gaps
 
@@ -185,4 +186,5 @@ From the [decisions](./decisions.md), the ones that shape the API the most:
 5. **D33:** conversation ids are parsed into the store's id type; a call without one is not stored.
 6. **D1, D4:** `AddAgentic()` exists only as an intercepted call; the typed runtime members are C# 14 extension
    blocks.
-7. **D22:** the package metadata points at `weboost-at/agentic-dotnet`, the spec's repository name.
+7. **D37, D38:** releases are tags published through nuget.org trusted publishing; the package ID is still to be
+   chosen.

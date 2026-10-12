@@ -61,6 +61,7 @@ export default defineConfig({
             { text: 'Decisions', link: '/contributing/decisions' },
             { text: 'Status', link: '/contributing/status' },
             { text: 'Documentation', link: '/contributing/documentation' },
+            { text: 'Releasing', link: '/contributing/releasing' },
             { text: 'Renaming', link: '/contributing/renaming' }
           ]
         }

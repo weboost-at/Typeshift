@@ -54,8 +54,8 @@ Rename in this order, then run the checks at the end.
 
 | Where | What |
 |---|---|
-| `src/Agentic/` | The folder, the project file (`PackageId`), and the namespace of every file. |
-| `src/Agentic/buildTransitive/Agentic.props` | The file name must equal the package ID, or NuGet does not import it. |
+| `src/Agentic/` | The folder, the project file (`PackageId`), `PACKAGE.md`, and the namespace of every file. |
+| `src/Agentic/buildTransitive/Agentic.props` | Packed as `buildTransitive/$(PackageId).props`, whatever its name here; it holds the interceptor namespace. |
 | `src/Agentic.Generators/Parsing/KnownTypes.cs` | `LibraryAssembly` and the metadata names of every library type the generator recognizes. |
 | `src/Agentic.Generators/Emitting/` | The `global::Agentic.` prefixes in generated code. |
 | `src/Agentic.Generators/Diagnostics/Descriptors.cs` | `Category`. |
@@ -64,7 +64,7 @@ Rename in this order, then run the checks at the end.
 | `samples/` | The project names, `RootNamespace`, namespaces, and the package consumer's `PackageReference`, `PackageVersion` and `NuGet.config` source mapping. |
 | `build/UseGenerator.props` | The project reference and the props import. |
 | `.github/workflows/ci.yml` | The pack and run paths. |
-| Repository files | `Agentic.slnx`, `Directory.Build.props` (`PackageProjectUrl`, `RepositoryUrl`, which also carry the repository name `agentic-dotnet`), `README.md`, `AGENTS.md`, `CHANGELOG.md`, `docs/`; the repository URL in `mdsnippets.json` (`UrlPrefix`) and `docs/.vitepress/config.mts`, whose Pages base is the repository name. |
+| Repository files | `Agentic.slnx`, `Directory.Build.props` (`PackageProjectUrl`, `RepositoryUrl`: the repository and the docs site), `README.md`, `AGENTS.md`, `CHANGELOG.md`, `docs/`; the repository URL in `mdsnippets.json` (`UrlPrefix`) and `docs/.vitepress/config.mts`, whose Pages base is the repository name. |
 
 `git grep -n "Agentic"` lists every occurrence; `git ls-files | grep Agentic` every path.
 

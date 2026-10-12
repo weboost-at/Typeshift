@@ -26,4 +26,5 @@ The build is warning-free with warnings as errors. Generator snapshots live in
 | [Decisions](./decisions.md) | Something looks odd. It is probably deliberate, and the entry says why and what lost. |
 | [Status](./status.md) | You look for open work, known gaps, or which test covers a behavior. |
 | [Documentation](./documentation.md) | You change a guide page or the code it shows. |
+| [Releasing](./releasing.md) | You publish a version to NuGet. |
 | [Renaming](./renaming.md) | The package, its namespace or its registration call get their final names. |
