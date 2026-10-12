@@ -16,11 +16,9 @@ public sealed class RealtimeTrackedConversationSession : TrackedConversationSess
     private readonly List<ChatResponseUpdate> _updates = [];
     private long _published;
 
-    internal RealtimeTrackedConversationSession(
-        string? conversationId,
-        ConversationStart start,
-        StoredConversation? resumed,
-        TimeProvider time) : base(conversationId, start, resumed, time) => _published = time.GetTimestamp();
+    internal RealtimeTrackedConversationSession(ConversationStart start, StoredConversation? resumed, TimeProvider time)
+        : base(start, resumed, time) =>
+        _published = time.GetTimestamp();
 
     /// <summary>
     /// The updates published so far.

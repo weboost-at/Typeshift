@@ -15,9 +15,6 @@ namespace Agentic.Agents;
 /// </summary>
 public class AgentRuntime
 {
-    private static readonly IReadOnlyDictionary<ToolName, IToolOverrides> NoDefaults =
-        FrozenDictionary<ToolName, IToolOverrides>.Empty;
-
     private readonly AgentRuntimeServices _services;
 
     internal AgentRuntime(AgentDefinition definition, AgentRuntimeServices services)
@@ -129,7 +126,12 @@ public class AgentRuntime
     /// <returns>The options, with the agent's tools.</returns>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public ChatOptions ResolveChatOptionsCore(IAgentSettings? run, string? conversationId) =>
-        Definition.CreateChatOptions(stored: null, NoDefaults, run, conversationId, _services.Json);
+        Definition.CreateChatOptions(
+            stored: null,
+            FrozenDictionary<ToolName, IToolOverrides>.Empty,
+            run,
+            conversationId,
+            _services.Json);
 
     /// <summary>
     /// Resolves the options of a run from the code and the settings stored under an id; the generated

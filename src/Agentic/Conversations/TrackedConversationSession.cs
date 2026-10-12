@@ -8,16 +8,12 @@ namespace Agentic.Conversations;
 /// </summary>
 public class TrackedConversationSession
 {
-    internal TrackedConversationSession(
-        string? conversationId,
-        ConversationStart start,
-        StoredConversation? resumed,
-        TimeProvider time)
+    internal TrackedConversationSession(ConversationStart start, StoredConversation? resumed, TimeProvider time)
     {
         Time = time;
         StartedAt = time.GetUtcNow();
         SessionId = Guid.CreateVersion7(StartedAt);
-        ConversationId = conversationId;
+        ConversationId = start.ConversationId;
         Model = start.Model;
         ExecutionContext = resumed?.ExecutionContext ?? start.ExecutionContext;
         Messages = resumed is null ? [] : ResumableMessages(resumed.AggregatedMessages);

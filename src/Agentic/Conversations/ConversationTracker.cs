@@ -38,19 +38,13 @@ public sealed class ConversationTracker
     /// </summary>
     public event Func<CancellationToken, Task>? OnConversationsChanged;
 
-    internal async Task<TrackedConversationSession> TrackSessionAsync(ConversationStart start, CancellationToken ct)
-    {
-        var (id, resumed) = await ResolveConversationAsync(start, ct);
-        return await TrackAsync(new TrackedConversationSession(id, start, resumed, _time));
-    }
+    internal Task<TrackedConversationSession> TrackSessionAsync(ConversationStart start, CancellationToken ct) =>
+        TrackAsync(start, resumed => new TrackedConversationSession(start, resumed, _time), ct);
 
-    internal async Task<RealtimeTrackedConversationSession> TrackRealtimeSessionAsync(
+    internal Task<RealtimeTrackedConversationSession> TrackRealtimeSessionAsync(
         ConversationStart start,
-        CancellationToken ct)
-    {
-        var (id, resumed) = await ResolveConversationAsync(start, ct);
-        return await TrackAsync(new RealtimeTrackedConversationSession(id, start, resumed, _time));
-    }
+        CancellationToken ct) =>
+        TrackAsync(start, resumed => new RealtimeTrackedConversationSession(start, resumed, _time), ct);
 
     // Storing what happened is not cancelled with the call, a cancelled call is stored as well
     internal async Task EndSessionAsync(Guid sessionId, ChatResponse response)
@@ -63,21 +57,21 @@ public sealed class ConversationTracker
         await Subscribers.RaiseAsync(OnConversationsChanged, SubscriberLimit, _time);
     }
 
-    private async Task<TSession> TrackAsync<TSession>(TSession session) where TSession : TrackedConversationSession
+    // An id that is not stored starts a new conversation under that id
+    private async Task<TSession> TrackAsync<TSession>(
+        ConversationStart start,
+        Func<StoredConversation?, TSession> create,
+        CancellationToken ct)
+        where TSession : TrackedConversationSession
     {
+        var resumed = StoreOf(start.ConversationId) is { } store
+            ? await store.LoadAsync(start.ConversationId!, ct)
+            : null;
+
+        var session = create(resumed);
         _sessions[session.SessionId] = session;
         await Subscribers.RaiseAsync(OnConversationsChanged, SubscriberLimit, _time);
         return session;
-    }
-
-    // An id that is not stored starts a new conversation under that id
-    private async Task<(string? Id, StoredConversation? Resumed)> ResolveConversationAsync(
-        ConversationStart start,
-        CancellationToken ct)
-    {
-        if (start.ConversationId is not { } id || StoreOf(id) is not { } store) return (start.ConversationId, null);
-
-        return (id, await store.LoadAsync(id, ct));
     }
 
     // D33: only an id the registered store's id type can parse is stored, the library never invents ids
