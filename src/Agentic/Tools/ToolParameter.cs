@@ -3,6 +3,8 @@ namespace Agentic.Tools;
 /// <summary>
 /// A model-facing parameter of a generated tool, as its schema needs it.
 /// </summary>
+/// <param name="Name">The parameter's name in the schema.</param>
+/// <param name="Type">The parameter's type.</param>
 public sealed record ToolParameter(string Name, Type Type)
 {
     /// <summary>

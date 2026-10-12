@@ -19,6 +19,7 @@ public sealed class AgentJson
     /// <summary>
     /// Composes the options from the configured <see cref="AgentJsonOptions"/>.
     /// </summary>
+    /// <param name="options">The configured options; <c>AddAgentic()</c> registers them.</param>
     public AgentJson(IOptions<AgentJsonOptions> options)
     {
         SerializerOptions = new JsonSerializerOptions(AIJsonUtilities.DefaultOptions)
@@ -36,7 +37,7 @@ public sealed class AgentJson
     }
 
     /// <summary>
-    /// The options every tool argument, result and stored value is serialized with.
+    /// The options every tool argument and result is serialized with.
     /// </summary>
     public JsonSerializerOptions SerializerOptions { get; }
 
@@ -46,8 +47,14 @@ public sealed class AgentJson
     public AIJsonSchemaCreateOptions SchemaCreateOptions { get; }
 
     /// <summary>
-    /// The contract of <typeparamref name="T"/>, from the first resolver that knows it.
+    /// Finds the JSON contract of a type.
     /// </summary>
+    /// <typeparam name="T">The type to serialize.</typeparam>
+    /// <returns>The contract, from the first resolver that knows the type.</returns>
+    /// <exception cref="NotSupportedException">
+    /// No resolver knows the type: under Native AOT, add it to a context in
+    /// <see cref="AgentJsonOptions.TypeInfoResolverChain"/>.
+    /// </exception>
     public JsonTypeInfo<T> GetTypeInfo<T>() => (JsonTypeInfo<T>)SerializerOptions.GetTypeInfo(typeof(T));
 
     // Built once per function type, from the STJ contracts, so naming policies and converters match the binding

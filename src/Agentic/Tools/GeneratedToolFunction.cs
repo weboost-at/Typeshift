@@ -16,6 +16,9 @@ public abstract class GeneratedToolFunction : AIFunction
     /// <summary>
     /// Creates the function of a tool, running with the given resolved settings.
     /// </summary>
+    /// <param name="definition">The tool as its toolset declares it.</param>
+    /// <param name="settings">The settings every call runs with, or null for a tool without settings.</param>
+    /// <param name="json">The options arguments and results are bound with.</param>
     protected GeneratedToolFunction(ToolDefinition definition, object? settings, AgentJson json)
     {
         Definition = definition;
@@ -48,6 +51,9 @@ public abstract class GeneratedToolFunction : AIFunction
     protected abstract IReadOnlyList<ToolParameter> Parameters { get; }
 
     /// <inheritdoc />
+    /// <exception cref="InvalidOperationException">
+    /// The arguments carry no services of a container built with <c>AddAgentic()</c>.
+    /// </exception>
     protected sealed override async ValueTask<object?> InvokeCoreAsync(
         AIFunctionArguments arguments,
         CancellationToken ct)
@@ -66,28 +72,45 @@ public abstract class GeneratedToolFunction : AIFunction
     /// <summary>
     /// Binds the arguments and calls the tool method with the call's scoped services.
     /// </summary>
+    /// <param name="arguments">The model's arguments.</param>
+    /// <param name="services">The services of the call's own scope.</param>
+    /// <param name="ct">Cancels the call.</param>
+    /// <returns>The tool's result as JSON, or null for a tool that returns nothing.</returns>
     protected abstract ValueTask<object?> InvokeToolAsync(
         AIFunctionArguments arguments,
         IServiceProvider services,
         CancellationToken ct);
 
     /// <summary>
-    /// The value of a required argument; a missing one fails the call.
+    /// Reads a required argument.
     /// </summary>
+    /// <typeparam name="T">The parameter's type.</typeparam>
+    /// <param name="arguments">The model's arguments.</param>
+    /// <param name="name">The parameter's name.</param>
+    /// <returns>The value, bound through the type's JSON contract.</returns>
+    /// <exception cref="ArgumentException">The model did not pass the argument.</exception>
     protected T GetArgument<T>(AIFunctionArguments arguments, string name) =>
         arguments.TryGetValue(name, out var value)
             ? Bind<T>(value)
             : throw new ArgumentException($"The tool '{Name}' requires the argument '{name}'.", name);
 
     /// <summary>
-    /// The value of an optional argument, or its default when it is absent or null.
+    /// Reads an optional argument.
     /// </summary>
+    /// <typeparam name="T">The parameter's type.</typeparam>
+    /// <param name="arguments">The model's arguments.</param>
+    /// <param name="name">The parameter's name.</param>
+    /// <param name="defaultValue">The parameter's default.</param>
+    /// <returns>The value, or <paramref name="defaultValue"/> when the argument is absent or null.</returns>
     protected T GetArgument<T>(AIFunctionArguments arguments, string name, T defaultValue) =>
         arguments.TryGetValue(name, out var value) && !IsNull(value) ? Bind<T>(value) : defaultValue;
 
     /// <summary>
-    /// The result as JSON, serialized through the result type's contract.
+    /// Turns a tool's result into the JSON the model receives.
     /// </summary>
+    /// <typeparam name="T">The tool method's result type.</typeparam>
+    /// <param name="result">The result.</param>
+    /// <returns>The result as a <see cref="JsonElement"/>, serialized through its type's contract.</returns>
     protected object GetResult<T>(T result) => JsonSerializer.SerializeToElement(result, _json.GetTypeInfo<T>());
 
     private T Bind<T>(object? value) =>

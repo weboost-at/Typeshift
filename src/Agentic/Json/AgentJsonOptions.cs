@@ -4,7 +4,7 @@ using Microsoft.Extensions.AI;
 namespace Agentic.Json;
 
 /// <summary>
-/// How the library serializes tool arguments, results and stored settings, configured through the Options pattern.
+/// How the library serializes tool arguments and results, configured through the Options pattern.
 /// </summary>
 public sealed class AgentJsonOptions
 {

@@ -49,7 +49,9 @@ The code must read as if the owner wrote it: terse, intention-revealing, comment
 - Fluent chains one call per line; blank lines around multi-line statements; a statement-level object initializer
   is multi-line; no trailing commas.
 - Comments only where they earn their place: one line, saying why, never what.
-- XML docs only on public API, as a three-line `<summary>`. No docs on private or internal members.
+- XML docs on every public member and none on private or internal ones: a `<summary>` of what it is or does, plus
+  every `<typeparam>`, `<param>`, `<returns>` and the `<exception>`s a caller can act on, in plain sentences a reader
+  takes in at a glance. Anything that needs more than a few sentences goes to the docs site.
 - No guard for a state that cannot occur, no duplicated helper, no dead code, no TODOs (open items go to
   `docs/status.md`).
 - Never read the clock: inject `TimeProvider` (`GetTimestamp`, `GetElapsedTime`, `Task.Delay(span, time)`,

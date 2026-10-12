@@ -8,7 +8,11 @@ namespace Agentic.Agents;
 public interface IChatClientProvider
 {
     /// <summary>
-    /// A client for the model; throw <see cref="ConfigurationRequiredException"/> for a model it does not know.
+    /// Creates or hands out a client for a model.
     /// </summary>
+    /// <param name="model">The model, as the agent's settings or chat options name it.</param>
+    /// <param name="ct">Cancels the creation.</param>
+    /// <returns>A client for the model; the library wraps it, so it may be shared.</returns>
+    /// <exception cref="ConfigurationRequiredException">The provider does not know the model.</exception>
     ValueTask<IChatClient> GetChatClientAsync(string model, CancellationToken ct);
 }
