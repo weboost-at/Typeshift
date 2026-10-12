@@ -32,6 +32,9 @@ jobs:
       - name: Run the AOT sample
         run: ./artifacts/sample/Agentic.Samples.Console
 
+      - name: Run every scenario the documentation shows
+        run: dotnet run --project samples/Agentic.Samples.Docs -c Release --no-build
+
       - name: Pack
         run: dotnet pack src/Agentic -c Release --no-build -o artifacts/packages
 

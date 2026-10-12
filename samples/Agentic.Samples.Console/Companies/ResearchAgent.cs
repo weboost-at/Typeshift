@@ -3,6 +3,7 @@ using Microsoft.Extensions.AI;
 
 namespace Agentic.Samples.Companies;
 
+// begin-snippet: quickstart-agent
 internal partial class ResearchAgent : AgentDefinition
 {
     public ResearchAgent()
@@ -25,3 +26,4 @@ internal partial class ResearchAgent : AgentDefinition
         WithToolSettings(new FindCompaniesSettings { Limit = 3 });
     }
 }
+// end-snippet

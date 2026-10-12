@@ -10,5 +10,6 @@
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/Agentic.Samples.Console/Agentic.Samples.Console.csproj" />
+    <Project Path="samples/Agentic.Samples.Docs/Agentic.Samples.Docs.csproj" />
   </Folder>
 </Solution>

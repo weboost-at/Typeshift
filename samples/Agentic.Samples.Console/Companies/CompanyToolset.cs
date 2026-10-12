@@ -3,6 +3,7 @@ using Agentic.Toolsets;
 
 namespace Agentic.Samples.Companies;
 
+// begin-snippet: quickstart-toolset
 internal partial class CompanyToolset : Toolset
 {
     private static readonly Company[] KnownCompanies =
@@ -42,3 +43,4 @@ internal partial class CompanyToolset : Toolset
         ];
     }
 }
+// end-snippet
