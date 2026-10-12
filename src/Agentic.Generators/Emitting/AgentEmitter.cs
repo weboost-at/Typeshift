@@ -70,7 +70,7 @@ internal static class AgentEmitter
                 var builder = Names.Unreserved(
                     $"{Names.ToPascalCase(tool.Name)}SettingsBuilder",
                     "Type",
-                    [.. selectors.Values]);
+                    [.. selectors.Values, "ToolSettingsBuilder"]);
 
                 Docs.WriteSummary(writer, $"Sets the settings of the <c>{tool.Name}</c> tool, over its code defaults.");
                 Docs.WriteReturns(writer, "A builder of the tool's settings.");
@@ -96,7 +96,7 @@ internal static class AgentEmitter
 
                 Docs.WriteSummary(
                     writer,
-                    $"Sets <c>{property.Name}</c>{(property.Summary is { } summary ? $": {summary}" : ".")}");
+                    $"Sets <c>{property.Name}</c>{(property.Summary is { } summary ? $": {Docs.Escape(summary)}" : ".")}");
                 Docs.WriteParam(writer, "value", "The value.");
                 Docs.WriteReturns(writer, "The same builder, to set further values.");
                 writer.Line($"public {type} With{property.Name}({property.Type} value)");
@@ -158,7 +158,7 @@ internal static class AgentEmitter
             Docs.WriteSummary(
                 writer,
                 "The model the agent runs on, as the registered chat client provider names it. Null keeps the "
-                + "<c>ModelId</c> of the agent's chat options.");
+                + "model of the agent's chat options.");
             writer.Line("public string? Model { get; init; }");
 
             foreach (var option in agent.ConfigurableOptions)

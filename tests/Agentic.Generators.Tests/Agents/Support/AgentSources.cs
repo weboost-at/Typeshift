@@ -199,4 +199,51 @@ public static class AgentSources
             }
         }
         """;
+
+    // A tool named like the generated builder, settings with an obsolete member and summaries that need escaping
+    public const string AwkwardSettings =
+        """
+        using System;
+        using Agentic.Agents;
+        using Agentic.Toolsets;
+
+        namespace Demo;
+
+        internal record AwkwardSettings
+        {
+            /// <summary>
+            /// Fewer than 5 &amp; more &lt;tags&gt;.
+            /// </summary>
+            public int Limit { get; init; } = 3;
+
+            /// <summary>
+            /// Results &lt; limit.
+            /// </summary>
+            public bool Strict { get; init; }
+
+            [Obsolete("Use Limit.")]
+            public int Old { get; init; }
+        }
+
+        internal partial class AwkwardToolset : Toolset
+        {
+            public AwkwardToolset() =>
+                AddTool(Tool)
+                    .WithName("tool")
+                    .WithDescription("Finds &lt; things & more.")
+                    .WithSettings<AwkwardSettings>()
+                    .Configurable(s => s.Limit);
+
+            public static string Tool(string query, AwkwardSettings settings) => query;
+        }
+
+        internal partial class AwkwardAgent : AgentDefinition
+        {
+            public AwkwardAgent()
+            {
+                UseToolset<AwkwardToolset>();
+                WithToolSettings().Tool().WithStrict(true);
+            }
+        }
+        """;
 }

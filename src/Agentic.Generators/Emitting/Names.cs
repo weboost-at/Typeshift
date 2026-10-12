@@ -15,7 +15,10 @@ internal static class Names
 
     // The generated selection method of a tool; a name ToolSelection or object already uses gets a suffix
     public static string SelectorName(string tool) =>
-        Unreserved(ToPascalCase(tool), "Tool", ["Equals", "GetHashCode", "GetType", "Select", "ToString"]);
+        Unreserved(
+            ToPascalCase(tool),
+            "Tool",
+            ["Equals", "GetHashCode", "GetType", "MemberwiseClone", "Select", "ToString"]);
 
     public static string OverridesName(string tool) => $"{ToPascalCase(tool)}Overrides";
 

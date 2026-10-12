@@ -19,6 +19,9 @@ internal static class Docs
 
     public static void WriteInheritDoc(SourceWriter writer) => writer.Line("/// <inheritdoc />");
 
+    // Docs and descriptions are read as plain text; put back into XML they need escaping
+    public static string Escape(string text) => text.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+
     // A summary always on lines of its own, any other tag on one line while it fits the width the writer has left
     private static void WriteTag(SourceWriter writer, string open, string close, string text)
     {

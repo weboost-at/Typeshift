@@ -27,7 +27,7 @@ internal sealed class SourceWriter
     {
         foreach (var line in text.Split('\n'))
         {
-            Line(line);
+            Line(line.TrimEnd('\r'));
         }
 
         return this;

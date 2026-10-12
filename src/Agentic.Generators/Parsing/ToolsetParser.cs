@@ -134,7 +134,8 @@ internal static class ToolsetParser
             Location: LocationInfo.From(tool.AddTool.Syntax.GetLocation()));
     }
 
-    // Shared with the reader of referenced toolsets, which reads no docs
+    // Shared with the reader of referenced toolsets, which reads no docs. An obsolete member that is not configurable
+    // stays out, so no generated member uses it and the consumer gets no CS0618
     public static SettingsModel CreateSettings(
         ITypeSymbol type,
         ICollection<string> configurable,
@@ -142,6 +143,7 @@ internal static class ToolsetParser
         new(
             type.ToTypeOf(),
             type.GetSettableProperties()
+                .Where(property => configurable.Contains(property.Name) || !IsObsolete(property))
                 .Select(property => new SettingsPropertyModel(
                     Name: property.Name,
                     Type: property.Type.ToFullyQualified(),
@@ -158,6 +160,9 @@ internal static class ToolsetParser
         diagnostics.Report(Descriptors.NotConstant, call.Arguments[0].Syntax, what);
         return null;
     }
+
+    private static bool IsObsolete(IPropertySymbol property) =>
+        property.GetAttributes().Any(attribute => attribute.AttributeClass.Is("System.ObsoleteAttribute"));
 
     private static SettingsModel? ParseSettings(
         DeclaredTool tool,

@@ -84,8 +84,8 @@ partial class ProfilingAgent
         global::Agentic.Persistence.IStorable<Settings>
     {
         /// <summary>
-        /// The model the agent runs on, as the registered chat client provider names it. Null keeps the <c>ModelId</c>
-        /// of the agent's chat options.
+        /// The model the agent runs on, as the registered chat client provider names it. Null keeps the model of the
+        /// agent's chat options.
         /// </summary>
         public string? Model { get; init; }
 

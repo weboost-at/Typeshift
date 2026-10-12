@@ -77,4 +77,14 @@ public class AgentGenerationTests : GeneratorTestBase
         // Assert
         run.Assert.CompilesCleanly();
     }
+
+    [Fact]
+    public void Given_Awkward_Settings_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(AgentSources.AwkwardSettings);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
 }

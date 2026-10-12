@@ -119,7 +119,7 @@ internal static class ToolsetEmitter
             for (var index = 0; index < configurable.Count; index++)
             {
                 var property = configurable[index];
-                var summary = property.Summary ?? $"Overrides <c>{property.Name}</c>.";
+                var summary = property.Summary is { } text ? Docs.Escape(text) : $"Overrides <c>{property.Name}</c>.";
 
                 Docs.WriteSummary(writer, $"{summary} Null keeps the value of the layer below.");
                 writer.Line($"public {property.NullableType} {Names.Identifier(members[index].Property)} {{ get; init; }}");
@@ -157,7 +157,7 @@ internal static class ToolsetEmitter
         }
     }
 
-    // The selection methods agents call in UseToolset<T>(tools => ...), next to the toolset in its namespace
+    // The selection methods agents chain after UseToolset<T>(), next to the toolset in its namespace
     private static void WriteSelection(SourceWriter writer, ToolsetModel toolset)
     {
         var selection = $"global::Agentic.Tools.ToolSelection<{toolset.Type.FullName}>";
@@ -176,7 +176,7 @@ internal static class ToolsetEmitter
                 {
                     if (tool != toolset.Tools[0]) writer.Line();
 
-                    var description = tool.Description is { } text ? $": {text}" : ".";
+                    var description = tool.Description is { } text ? $": {Docs.Escape(text)}" : ".";
 
                     Docs.WriteSummary(writer, $"Selects the <c>{tool.Name}</c> tool{description}");
                     Docs.WriteReturns(writer, "This selection, to select further tools.");
