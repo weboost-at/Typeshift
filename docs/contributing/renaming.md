@@ -1,8 +1,8 @@
 # Renaming
 
-The alpha's names are placeholders. This page lists where each one lives and how to rename it. Each name that code
-reads at runtime or compile time is declared once; the rest are names of folders, projects and namespaces, which a
-search and replace covers.
+The alpha's names are placeholders; [naming](./naming.md) has the candidates. This page lists where each one lives and
+how to rename it. Each name that code reads at runtime or compile time is declared once; the rest are names of
+folders, projects and namespaces, which a search and replace covers.
 
 Rename in this order, then run the checks at the end.
 

@@ -35,4 +35,5 @@ a test fails when a cited decision is withdrawn.
 | [Status](./status.md) | You look for open work, known gaps, or which test covers a behavior. |
 | [Documentation](./documentation.md) | You change a guide page or the code it shows. |
 | [Releasing](./releasing.md) | You publish a version to NuGet. |
+| [Naming](./naming.md) | You help choose the package's final name: the shortlist and a brainstorming prompt. |
 | [Renaming](./renaming.md) | The package, its namespace or its registration call get their final names. |

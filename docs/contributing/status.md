@@ -63,7 +63,7 @@ live here, never as TODOs in code.
 ### Milestone 10: distribution
 
 - [x] NuGet release workflow on version tags, package validation, symbols, release docs
-- [ ] **Blocker:** choose a package ID; `Agentic` is taken on nuget.org (D38)
+- [ ] **Blocker:** choose a package ID; `Agentic` is taken on nuget.org (D38); candidates in [naming](./naming.md)
 
 ### Milestone 11: working on the library
 
