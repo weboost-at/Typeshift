@@ -223,7 +223,7 @@ public static class StorableJson
     public static TNumber? ReadNumber<TNumber>(JsonElement data, string name)
         where TNumber : struct, INumber<TNumber> =>
         Find(data, name) is { ValueKind: JsonValueKind.Number } value
-        && TNumber.TryParse(value.GetRawText(), CultureInfo.InvariantCulture, out var number)
+        && TNumber.TryParse(value.GetRawText(), NumberStyles.Float, CultureInfo.InvariantCulture, out var number)
             ? number
             : null;
 

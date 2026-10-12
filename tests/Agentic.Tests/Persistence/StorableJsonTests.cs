@@ -40,6 +40,16 @@ public class StorableJsonTests : UnitTestBase
     }
 
     [Fact]
+    public void Given_A_Number_With_An_Exponent_It_Reads_As_That_Number()
+    {
+        // Act
+        var restored = EveryKind.Deserialize("""{"money":1.5E-3}""");
+
+        // Assert
+        restored.Money.Should().Be(0.0015m);
+    }
+
+    [Fact]
     public void Given_A_Json_Null_The_Member_Reads_As_Null()
     {
         // Act
