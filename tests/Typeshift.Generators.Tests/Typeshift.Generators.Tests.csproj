@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+    <!-- The tests compile C# 14 subjects, which needs a newer compiler than the generator targets. -->
+    <RoslynVersion>5.0.0</RoslynVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="Typeshift.Generators.Tests.Testing" />
+    <!-- Deterministic CI builds map [CallerFilePath] to /_/..., so the snapshot helper reads the directory from here. -->
+    <AssemblyMetadata Include="SnapshotsDirectory" Value="$(MSBuildProjectDirectory)/Snapshots" />
+    <AssemblyMetadata Include="RepositoryDirectory" Value="$(MSBuildProjectDirectory)/../.." />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Typeshift.Generators/Typeshift.Generators.csproj" />
+    <ProjectReference Include="../../src/Typeshift/Typeshift.csproj" />
+  </ItemGroup>
+
+</Project>

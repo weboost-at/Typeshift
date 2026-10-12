@@ -8,7 +8,7 @@ live here, never as TODOs in code.
 ### Milestone 1: skeleton
 
 - [x] Repository infrastructure: `global.json`, `Directory.Build.props`, `Directory.Packages.props`, `.editorconfig`,
-      `.gitignore`, `LICENSE`, `README.md`, `CHANGELOG.md`, `AGENTS.md`, `CLAUDE.md`, `Agentic.slnx`, local tools
+      `.gitignore`, `LICENSE`, `README.md`, `CHANGELOG.md`, `AGENTS.md`, `CLAUDE.md`, `Typeshift.slnx`, local tools
 - [x] Empty projects wired together: runtime, generator, the three test projects, the sample
 - [x] CI running build, tests and slopwatch
 - [x] Convention tests from the test-formatting skill, test bases and the test-data catalog
@@ -22,7 +22,7 @@ live here, never as TODOs in code.
 
 ### Milestone 3: registration (behaviors 10, 30-35)
 
-- [x] Assembly modules and stamps, the `AddAgentic()` interceptor
+- [x] Assembly modules and stamps, the `AddTypeshift()` interceptor
 - [x] The tool catalog, cross-assembly registration
 - [x] Tests: module and interceptor snapshots, cross-assembly stamps, `InternalsVisibleTo`, behaviors 10, 30-35
 
@@ -48,7 +48,7 @@ live here, never as TODOs in code.
 
 ### Milestone 8: the owner's review (D25-D36)
 
-- [x] One store, `IAgenticStore<TId>`, of `IStorable` documents; the host picks the id type; the store is the
+- [x] One store, `ITypeshiftStore<TId>`, of `IStorable` documents; the host picks the id type; the store is the
       persistence feature flag
 - [x] Generated, typed `Settings` per agent and `{Tool}Overrides` per tool, serialized without reflection
 - [x] Generated tool selection and `WithToolSettings` overloads; foreign tools and unread settings do not compile
@@ -64,7 +64,7 @@ live here, never as TODOs in code.
 ### Milestone 10: distribution
 
 - [x] NuGet release workflow on version tags, package validation, symbols, release docs
-- [ ] **Blocker:** choose a package ID; `Agentic` is taken on nuget.org (D38); candidates in [naming](./naming.md)
+- [x] Package ID chosen: the library is renamed from `Agentic` to Typeshift (D38); see [naming](./naming.md)
 
 ### Milestone 11: working on the library
 
@@ -95,9 +95,9 @@ rule. Where the owner's review changed a behavior, the row says how.
 | 7 | `ToolSchemaTests.Given_A_Nullable_Reference_Parameter_It_Is_Typed_As_Nullable` |
 | 8 | `ToolSchemaTests.Given_The_Same_Method_The_Schema_Matches_AIFunctionFactory_Without_Descriptions` |
 | 9 | `ToolSchemaTests.Given_Param_Docs_They_Become_The_Parameter_Descriptions`, `..._Given_No_WithDescription_The_Summary_Is_The_Tool_Description` |
-| 10 | `DiagnosticTests.Given_Two_Own_Tools_Sharing_A_Name_AGT007_Is_Reported_On_The_First`, `..._Given_A_Tool_Named_Like_One_Of_A_Reference_AGT007_Is_Reported_On_The_Own_One` |
+| 10 | `DiagnosticTests.Given_Two_Own_Tools_Sharing_A_Name_TSH007_Is_Reported_On_The_First`, `..._Given_A_Tool_Named_Like_One_Of_A_Reference_TSH007_Is_Reported_On_The_Own_One` |
 | 11 | `AgentDefinitionTests.Given_Selected_Tools_And_A_Whole_Toolset_The_Agent_Offers_Exactly_Those_In_Order` |
-| 12 | `DiagnosticTests.Given_A_Tool_Of_Another_Toolset_Selecting_It_Does_Not_Compile`, `..._Given_A_Toolset_Not_Compiled_With_The_Generator_AGT006_Is_Reported_On_UseToolset`, `AgentDefinitionTests.Given_A_Selected_Name_That_Is_No_Tool_Of_The_Toolset_It_Throws_An_ArgumentException` |
+| 12 | `DiagnosticTests.Given_A_Tool_Of_Another_Toolset_Selecting_It_Does_Not_Compile`, `..._Given_A_Toolset_Not_Compiled_With_The_Generator_TSH006_Is_Reported_On_UseToolset`, `AgentDefinitionTests.Given_A_Selected_Name_That_Is_No_Tool_Of_The_Toolset_It_Throws_An_ArgumentException` |
 | 13 | `AgentDefinitionTests.Given_A_Tool_The_Agent_Already_Offers_Adding_It_Again_Throws_An_InvalidOperationException` |
 | 14 | `AgentRuntimeTests.Given_Run_Settings_Their_Chat_Options_Apply_Over_The_Code`; options that are not configurable do not exist on `Settings` (`AgentSettingsTests.Exposes_Only_The_Model_The_Configurable_Chat_Options_And_The_Configurable_Tools`) |
 | 15 | `AgentRuntimeTests.Given_An_Unset_Run_Option_The_Agents_Default_Stays` |
@@ -115,12 +115,12 @@ rule. Where the owner's review changed a behavior, the row says how.
 | 27 | `SettingsLayeringTests.Given_Stored_Agent_Settings_They_Beat_The_Code_Settings_For_Configurable_Members_Only` |
 | 28 | `SettingsLayeringTests.Given_Run_Settings_They_Beat_The_Stored_Settings` |
 | 29 | `SettingsLayeringTests.Given_A_Stored_Value_Set_Back_To_Null_The_Layer_Below_Applies_Again` |
-| 30 | `AddAgenticTests.Registers_The_Toolsets_Of_The_Calling_Assembly`, `..._Registers_The_Toolsets_Of_A_Referenced_Assembly`, `..._Registers_The_Agents_Of_The_Calling_Assembly`, `..._Registers_The_Agents_Of_A_Referenced_Assembly`, `..._Registers_A_Runtime_For_Every_Agent` |
-| 31 | `AddAgenticTests.Given_ValidateOnBuild_And_ValidateScopes_The_Container_Builds` |
-| 32 | `InterceptorGenerationTests.Given_InternalsVisibleTo_A_Generated_Project_The_Tests_Compile_Their_AddAgentic_Call` |
-| 33 | `AddAgenticTests.Given_A_Call_That_Is_Not_Intercepted_It_Throws_What_To_Do` |
+| 30 | `AddTypeshiftTests.Registers_The_Toolsets_Of_The_Calling_Assembly`, `..._Registers_The_Toolsets_Of_A_Referenced_Assembly`, `..._Registers_The_Agents_Of_The_Calling_Assembly`, `..._Registers_The_Agents_Of_A_Referenced_Assembly`, `..._Registers_A_Runtime_For_Every_Agent` |
+| 31 | `AddTypeshiftTests.Given_ValidateOnBuild_And_ValidateScopes_The_Container_Builds` |
+| 32 | `InterceptorGenerationTests.Given_InternalsVisibleTo_A_Generated_Project_The_Tests_Compile_Their_AddTypeshift_Call` |
+| 33 | `AddTypeshiftTests.Given_A_Call_That_Is_Not_Intercepted_It_Throws_What_To_Do` |
 | 34 | `ToolCatalogTests.Given_The_Name_Of_A_Tool_Of_A_Referenced_Assembly_It_Creates_That_Tool`, `..._Given_Overrides_The_Created_Tool_Runs_With_Them` |
-| 35 | Changed by D32, the agent catalog is gone: every agent's runtime is listed as `AgentRuntime` (`AddAgenticTests.Registers_A_Runtime_For_Every_Agent`) |
+| 35 | Changed by D32, the agent catalog is gone: every agent's runtime is listed as `AgentRuntime` (`AddTypeshiftTests.Registers_A_Runtime_For_Every_Agent`) |
 | 36 | `NoStoreTests.Given_No_Store_Resolving_A_Runs_Options_Works_From_The_Code_Alone` |
 | 37 | `NoStoreTests.Given_No_Store_Saving_Settings_Throws_What_To_Register`, `..._Given_No_Store_Resolving_With_An_Id_Throws_What_To_Register` |
 | 38-40 | Dropped by D32: agents as data |
@@ -135,10 +135,10 @@ rule. Where the owner's review changed a behavior, the row says how.
 | 49 | CI, `.github/workflows/ci.yml`: "Publish the sample as Native AOT, failing on any trim or AOT warning" and "Run the AOT sample" |
 
 Beyond the behaviors: `StorableJsonTests` cover every storable member kind, nulls, enums by name and malformed
-values; AGT014 has a test for settings and one for chat options; the review pass's regression tests stay
+values; TSH014 has a test for settings and one for chat options; the review pass's regression tests stay
 (referenced tools with optional parameters, tools in an agent's own chat options, the conversation id kept from the
 provider, overlapping first sessions, a parameter documented twice, nested and internal agents, reserved names,
-moved code staying cached). CI builds and runs `samples/Agentic.Samples.PackageConsumer` against the packed
+moved code staying cached). CI builds and runs `samples/Typeshift.Samples.PackageConsumer` against the packed
 `.nupkg`.
 
 ## Environment notes
@@ -164,9 +164,9 @@ moved code staying cached). CI builds and runs `samples/Agentic.Samples.PackageC
   renaming an agent class orphans its settings in a store keyed by the type's full name.
 - **Renamed members:** stored documents carry no schema version. A renamed configurable member or tool reads as
   null, so its stored value silently falls back to the layer below.
-- **Configurable types:** only the types AGT014 lists; nested records, dictionaries and lists of other types stay
+- **Configurable types:** only the types TSH014 lists; nested records, dictionaries and lists of other types stay
   code-only.
-- **AGT011 reads types:** to find a reference that declares toolsets or agents without a stamp, the generator looks
+- **TSH011 reads types:** to find a reference that declares toolsets or agents without a stamp, the generator looks
   at the types of every reference that uses the library but carries no stamp. Stamped references, the normal case,
   are read from their stamps only.
 - **No JSON-context analyzer:** a tool whose parameter or result type is missing from every `JsonSerializerContext`
@@ -201,7 +201,6 @@ From the [decisions](./decisions.md), the ones that shape the API the most:
 5. **D40, D41, D42:** settings arrive as a tool parameter; every declaration is one flat chain; instructions come
    from `GetInstructions()`.
 6. **D33:** conversation ids are parsed into the store's id type; a call without one is not stored.
-7. **D1, D4:** `AddAgentic()` exists only as an intercepted call; the typed runtime members are C# 14 extension
+7. **D1, D4:** `AddTypeshift()` exists only as an intercepted call; the typed runtime members are C# 14 extension
    blocks.
-8. **D37, D38:** releases are tags published through nuget.org trusted publishing; the package ID is still to be
-   chosen.
+8. **D37, D38:** releases are tags published through nuget.org trusted publishing, as the package `Typeshift`.

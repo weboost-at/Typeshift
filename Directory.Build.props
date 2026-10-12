@@ -13,8 +13,8 @@
     <Company>weboost.at</Company>
     <Copyright>Copyright (c) 2026 Maximilian Hollnbuchner</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://weboost-at.github.io/Agentic/</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/weboost-at/Agentic</RepositoryUrl>
+    <PackageProjectUrl>https://weboost-at.github.io/Typeshift/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/weboost-at/Typeshift</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>

@@ -1,8 +1,8 @@
 # Contributing
 
-Agentic is a runtime library, `src/Agentic`, and the Roslyn generator that powers it, `src/Agentic.Generators`,
+Typeshift is a runtime library, `src/Typeshift`, and the Roslyn generator that powers it, `src/Typeshift.Generators`,
 shipped together as one package. The rules for working on the code, its style and its tests are in
-[`AGENTS.md`](https://github.com/weboost-at/Agentic/blob/main/AGENTS.md); they apply to people and coding agents
+[`AGENTS.md`](https://github.com/weboost-at/Typeshift/blob/main/AGENTS.md); they apply to people and coding agents
 alike.
 
 ## Build and test
@@ -11,11 +11,11 @@ alike.
 dotnet tool restore
 dotnet build -c Release -warnaserror
 dotnet test -c Release --no-build
-dotnet run --project samples/Agentic.Samples.Docs -c Release --no-build
+dotnet run --project samples/Typeshift.Samples.Docs -c Release --no-build
 ```
 
 The build is warning-free with warnings as errors. Generator snapshots live in
-`tests/Agentic.Generators.Tests/Snapshots`; a mismatch writes a `.received.txt` to review, and
+`tests/Typeshift.Generators.Tests/Snapshots`; a mismatch writes a `.received.txt` to review, and
 `ACCEPT_SNAPSHOTS=1` accepts it.
 
 ## Working with coding agents
@@ -35,5 +35,5 @@ a test fails when a cited decision is withdrawn.
 | [Status](./status.md) | You look for open work, known gaps, or which test covers a behavior. |
 | [Documentation](./documentation.md) | You change a guide page or the code it shows. |
 | [Releasing](./releasing.md) | You publish a version to NuGet. |
-| [Naming](./naming.md) | You help choose the package's final name: the shortlist and a brainstorming prompt. |
-| [Renaming](./renaming.md) | The package, its namespace or its registration call get their final names. |
+| [Naming](./naming.md) | You wonder why the library is called Typeshift and which names lost. |
+| [Renaming](./renaming.md) | The package, its namespace, its registration call or its diagnostic prefix change name. |

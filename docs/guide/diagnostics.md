@@ -1,6 +1,6 @@
 # Diagnostics
 
-The generator reports these diagnostics while it reads toolsets, agents and the `AddAgentic()` call. Errors stop the
+The generator reports these diagnostics while it reads toolsets, agents and the `AddTypeshift()` call. Errors stop the
 build before a mistake can reach runtime; warnings point at something that works but is probably not meant.
 
 Two mistakes need no diagnostic, because the generated API makes them compiler errors:
@@ -15,22 +15,22 @@ delegate. Each guard throws an exception whose message says what to change.
 
 | ID | Severity | Title |
 |---|---|---|
-| [AGT001](#agt001) | Error | Toolset or agent is not partial |
-| [AGT002](#agt002) | Error | Tool name or description is not a constant |
-| [AGT003](#agt003) | Error | Tool has no name |
-| [AGT004](#agt004) | Error | Tool is not a static method group |
-| [AGT005](#agt005) | Error | Settings type is not a record |
-| [AGT006](#agt006) | Error | Toolset was not compiled with the generator |
-| [AGT007](#agt007) | Error | Tool name is not unique |
-| [AGT008](#agt008) | Warning | Tool has no description |
-| [AGT009](#agt009) | Warning | Tool does not take its settings |
-| [AGT010](#agt010) | Warning | Tool relies on XML docs that are not generated |
-| [AGT011](#agt011) | Warning | Referenced assembly was not compiled with the generator |
-| [AGT012](#agt012) | Error | Tool name is not lower_snake_case |
-| [AGT013](#agt013) | Error | Settings type is less accessible than its toolset |
-| [AGT014](#agt014) | Error | Configurable member has a type settings cannot store |
+| [TSH001](#tsh001) | Error | Toolset or agent is not partial |
+| [TSH002](#tsh002) | Error | Tool name or description is not a constant |
+| [TSH003](#tsh003) | Error | Tool has no name |
+| [TSH004](#tsh004) | Error | Tool is not a static method group |
+| [TSH005](#tsh005) | Error | Settings type is not a record |
+| [TSH006](#tsh006) | Error | Toolset was not compiled with the generator |
+| [TSH007](#tsh007) | Error | Tool name is not unique |
+| [TSH008](#tsh008) | Warning | Tool has no description |
+| [TSH009](#tsh009) | Warning | Tool does not take its settings |
+| [TSH010](#tsh010) | Warning | Tool relies on XML docs that are not generated |
+| [TSH011](#tsh011) | Warning | Referenced assembly was not compiled with the generator |
+| [TSH012](#tsh012) | Error | Tool name is not lower_snake_case |
+| [TSH013](#tsh013) | Error | Settings type is less accessible than its toolset |
+| [TSH014](#tsh014) | Error | Configurable member has a type settings cannot store |
 
-## AGT001
+## TSH001
 
 **Toolset or agent is not partial.** Reported on the class name.
 
@@ -38,11 +38,11 @@ The generator adds members to every toolset and agent (the tool bindings, the `S
 `Configure{Tool}()` methods), so the class must be `partial`.
 
 ```csharp
-public class CompanyToolset : Toolset          // AGT001
+public class CompanyToolset : Toolset          // TSH001
 public partial class CompanyToolset : Toolset  // fixed
 ```
 
-## AGT002
+## TSH002
 
 **Tool name or description is not a constant.** Reported on the argument.
 
@@ -50,18 +50,18 @@ public partial class CompanyToolset : Toolset  // fixed
 description and the metadata stamps other assemblies read. Pass a string literal or a `const`.
 
 ```csharp
-AddTool(FindCompanies).WithName(prefix + "find");  // AGT002
+AddTool(FindCompanies).WithName(prefix + "find");  // TSH002
 AddTool(FindCompanies).WithName("find_companies"); // fixed
 ```
 
-## AGT003
+## TSH003
 
 **Tool has no name.** Reported on the `AddTool(...)` call.
 
 Every tool needs `WithName(...)`. The name is the tool's identity in stored settings, in agents and across
 assemblies, so it never comes from the method name, which a refactoring may change.
 
-## AGT004
+## TSH004
 
 **Tool is not a static method group.** Reported on the argument of `AddTool`.
 
@@ -69,40 +69,40 @@ A tool is a static method, passed as a method group. Lambdas, instance methods a
 generated without reflection.
 
 ```csharp
-AddTool(query => Find(query));  // AGT004
+AddTool(query => Find(query));  // TSH004
 AddTool(Find);                  // fixed, Find is static
 ```
 
-## AGT005
+## TSH005
 
 **Settings type is not a record.** Reported on `WithSettings<T>`.
 
 Stored and run overrides apply to a `with` copy of the settings, so the type must be a record. The code defaults
 come from its parameterless constructor, which it therefore needs as well.
 
-## AGT006
+## TSH006
 
 **Toolset was not compiled with the generator.** Reported on the `UseToolset<T>(...)` call.
 
 The toolset comes from an assembly that carries no generator stamps, so its tools, their tool list and their
-settings are unknown. Reference the Agentic package in the toolset's project. At runtime, such a toolset throws an
+settings are unknown. Reference the Typeshift package in the toolset's project. At runtime, such a toolset throws an
 `InvalidOperationException` when the agent asks it for a tool.
 
-## AGT007
+## TSH007
 
-**Tool name is not unique.** Reported on the first own tool that uses the name, or on the `AddAgentic()` call when the
+**Tool name is not unique.** Reported on the first own tool that uses the name, or on the `AddTypeshift()` call when the
 clash is only among referenced assemblies.
 
 Tool names are global: stored settings, agents and the model address a tool by its name. Two tools with one name,
 anywhere the host can see, are an error.
 
-## AGT008
+## TSH008
 
 **Tool has no description.** A warning, reported on the `AddTool(...)` call.
 
 The model chooses tools by their descriptions. Add `WithDescription(...)` or an XML `<summary>` on the method.
 
-## AGT009
+## TSH009
 
 **Tool does not take its settings.** A warning, reported on `WithSettings<T>`.
 
@@ -110,11 +110,11 @@ A tool receives its resolved settings through a parameter of its settings type, 
 one, the settings reach nothing. Add the parameter:
 
 ```csharp
-public static Company[] Find(string city)                                  // AGT009
+public static Company[] Find(string city)                                  // TSH009
 public static Company[] Find(string city, FindCompaniesSettings settings)  // fixed
 ```
 
-## AGT010
+## TSH010
 
 **Tool relies on XML docs that are not generated.** A warning, reported on the `AddTool(...)` call.
 
@@ -123,21 +123,21 @@ descriptions from `<param>` docs. The compiler only reads them with
 `<GenerateDocumentationFile>true</GenerateDocumentationFile>`, so without it they are lost. Turn it on; or, when only
 the summary is at stake, describe the tool with `WithDescription(...)`.
 
-## AGT011
+## TSH011
 
-**Referenced assembly was not compiled with the generator.** A warning, reported on the `AddAgentic()` call.
+**Referenced assembly was not compiled with the generator.** A warning, reported on the `AddTypeshift()` call.
 
-A referenced assembly declares toolsets or agents but carries no module stamp, so `AddAgentic()` cannot register
-them. NuGet does not pass a package's analyzers on to the projects that reference the consumer: reference the Agentic
+A referenced assembly declares toolsets or agents but carries no module stamp, so `AddTypeshift()` cannot register
+them. NuGet does not pass a package's analyzers on to the projects that reference the consumer: reference the Typeshift
 package in that assembly's project too.
 
-## AGT012
+## TSH012
 
 **Tool name is not lower_snake_case.** Reported on the argument of `WithName(...)`.
 
 Tool names follow the convention of the model providers' function names, `find_companies`.
 
-## AGT013
+## TSH013
 
 **Settings type is less accessible than its toolset.** Reported on `WithSettings<T>`.
 
@@ -147,11 +147,11 @@ record and those member types public, or make the toolset internal.
 
 ```csharp
 internal record EchoSettings { public int Repeat { get; init; } }
-public partial class EchoToolset : Toolset      // AGT013
+public partial class EchoToolset : Toolset      // TSH013
 internal partial class EchoToolset : Toolset    // fixed, or make EchoSettings public
 ```
 
-## AGT014
+## TSH014
 
 **Configurable member has a type settings cannot store.** Reported on the `Configurable(...)` call that picks it, for a
 tool setting or a chat option, or on `WithConfigurableSettings<T>`.

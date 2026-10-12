@@ -23,12 +23,12 @@ The first alpha. The API will change.
   may change at runtime, including the model; serialized without reflection.
 - `AgentRuntime<TAgent>` with generated typed members: `ResolveChatOptions`, `ResolveChatOptionsAsync`,
   `LoadSettingsAsync`, `SaveSettingsAsync`, `ConfigureAsync` and `CreateChatClientAsync`.
-- Persistence through one store, `IAgenticStore<TId>`, of self-serializing documents under an id type the host
-  chooses, registered with `AddAgenticStore<TStore, TId>()`; `InMemoryAgenticStore<TId>`. Without a store the
+- Persistence through one store, `ITypeshiftStore<TId>`, of self-serializing documents under an id type the host
+  chooses, registered with `AddTypeshiftStore<TStore, TId>()`; `InMemoryTypeshiftStore<TId>`. Without a store the
   persistent APIs throw and agents run from code.
 - Conversation tracking: every model exchange stored as a session of a conversation, streaming included, when
   `ChatOptions.ConversationId` parses as the store's id type.
-- `services.AddAgentic()`, intercepted per project, registering the toolsets and agents of the project and its
+- `services.AddTypeshift()`, intercepted per project, registering the toolsets and agents of the project and its
   references.
-- Diagnostics AGT001 to AGT014; AGT009 warns about a tool that does not take its settings.
+- Diagnostics TSH001 to TSH014; TSH009 warns about a tool that does not take its settings.
 - Native AOT support, proven by the console sample.

@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Typeshift/Typeshift.csproj" />
+    <Project Path="src/Typeshift.Generators/Typeshift.Generators.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Typeshift.Generators.Tests/Typeshift.Generators.Tests.csproj" />
+    <Project Path="tests/Typeshift.Tests/Typeshift.Tests.csproj" />
+    <Project Path="tests/Typeshift.Tests.Toolsets/Typeshift.Tests.Toolsets.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Typeshift.Samples.Console/Typeshift.Samples.Console.csproj" />
+    <Project Path="samples/Typeshift.Samples.Docs/Typeshift.Samples.Docs.csproj" />
+  </Folder>
+</Solution>

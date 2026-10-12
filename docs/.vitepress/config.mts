@@ -1,12 +1,12 @@
 import { defineConfig } from 'vitepress'
 
-const repository = 'https://github.com/weboost-at/Agentic'
+const repository = 'https://github.com/weboost-at/Typeshift'
 
 export default defineConfig({
-  title: 'Agentic',
+  title: 'Typeshift',
   description: 'Code-defined agents and toolsets for .NET on Microsoft.Extensions.AI',
   // GitHub Pages serves a project site under the repository's name; the Pages workflow passes the real base
-  base: process.env.DOCS_BASE ?? '/Agentic/',
+  base: process.env.DOCS_BASE ?? '/Typeshift/',
   cleanUrls: true,
   lastUpdated: true,
   markdown: {

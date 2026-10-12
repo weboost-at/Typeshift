@@ -18,7 +18,7 @@ var client = await support.CreateChatClientAsync(options);
 await client.GetResponseAsync("Where is my refund?", options);
 await client.GetResponseAsync("When will it arrive?", options);
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Scenarios/Conversations.cs#L37-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L37-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The first call starts the conversation and stores it under the id when it ends. The second call resumes it: the
@@ -36,12 +36,12 @@ the model and the tools produced, the model, the token usage and why the model s
 <!-- snippet: stored-conversation -->
 <a id='snippet-stored-conversation'></a>
 ```cs
-var store = services.GetRequiredService<IAgenticStore<Guid>>();
+var store = services.GetRequiredService<ITypeshiftStore<Guid>>();
 var stored = await store.LoadAsync<StoredConversation>(conversation, CancellationToken.None);
 
 Console.WriteLine($"{stored!.Sessions.Count} sessions, {stored.AggregatedUsage.TotalTokenCount} tokens");
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Scenarios/Conversations.cs#L47-L52' title='Snippet source file'>snippet source</a> | <a href='#snippet-stored-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L47-L52' title='Snippet source file'>snippet source</a> | <a href='#snippet-stored-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Sessions are stored whether they succeed or not:
@@ -71,7 +71,7 @@ tracker.OnConversationsChanged += ct =>
     return Task.CompletedTask;
 };
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Scenarios/Conversations.cs#L19-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-live-sessions' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L19-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-live-sessions' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Streaming sessions are listed in `RealtimeSessions`. Each publishes its updates through `OnSessionUpdated`: anything

@@ -1,6 +1,6 @@
 ---
 name: extend-settings
-description: Change how Agentic tool settings and agent settings work - storable member types, configurable chat options, the five settings layers, the generated Settings and Overrides records, or their JSON. Use when a configurable member type is rejected with AGT014 or when settings resolve differently than expected.
+description: Change how Typeshift tool settings and agent settings work - storable member types, configurable chat options, the five settings layers, the generated Settings and Overrides records, or their JSON. Use when a configurable member type is rejected with TSH014 or when settings resolve differently than expected.
 ---
 
 # Extend settings
@@ -13,7 +13,7 @@ data, and stored documents carry no version (see the known gaps in `docs/contrib
 
 1. The toolset marks members with `WithSettings<T>().Configurable(s => s.X)`; the agent marks chat options in its
    `WithChatOptions()` chain the same way. The generator reads the picks (D5) and `Parsing/Storage.cs` decides per
-   member which `StorableJson` write and read methods store it, or reports AGT014.
+   member which `StorableJson` write and read methods store it, or reports TSH014.
 2. `Emitting/ToolsetEmitter.cs` writes `{Tool}Overrides`; `Emitting/AgentEmitter.cs` writes the agent's `Settings`;
    `Emitting/StorableEmitter.cs` writes the `Serialize`/`Deserialize` members both share.
 3. At runtime `AgentDefinition.CreateChatOptions` builds `ToolSettingsLayers` per tool and the bindings
@@ -22,14 +22,14 @@ data, and stored documents carry no version (see the known gaps in `docs/contrib
 
 ## Supporting a new member type
 
-1. `src/Agentic/Persistence/StorableJson.cs`: a `Write` overload and a `Read...` method. A null value is left out; a
+1. `src/Typeshift/Persistence/StorableJson.cs`: a `Write` overload and a `Read...` method. A null value is left out; a
    missing or mistyped value reads as null and never throws. A numeric type needs none: `WriteNumber<T>` and
    `ReadNumber<T>` take any `INumber<T>`.
-2. `src/Agentic.Generators/Parsing/Storage.cs`: map the type (and its nullable form) to the two methods; a numeric
+2. `src/Typeshift.Generators/Parsing/Storage.cs`: map the type (and its nullable form) to the two methods; a numeric
    type goes into `IsNumber`.
-3. `tests/Agentic.Tests/Persistence/Support/EveryKind.cs` and `StorableTestData.cs`: add a member of the type;
+3. `tests/Typeshift.Tests/Persistence/Support/EveryKind.cs` and `StorableTestData.cs`: add a member of the type;
    `StorableJsonTests` then round-trips it.
-4. Update the type list in the AGT014 message (`Descriptors.cs`), in `docs/guide/diagnostics.md` (AGT014) and in
+4. Update the type list in the TSH014 message (`Descriptors.cs`), in `docs/guide/diagnostics.md` (TSH014) and in
    `docs/guide/tool-settings.md`.
 5. Accept the snapshots only if the generated code changed as intended (skill `change-generated-code`).
 

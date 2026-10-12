@@ -26,20 +26,20 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p artifacts
-          dotnet publish samples/Agentic.Samples.Console -c Release -r linux-x64 -o artifacts/sample | tee artifacts/publish.log
+          dotnet publish samples/Typeshift.Samples.Console -c Release -r linux-x64 -o artifacts/sample | tee artifacts/publish.log
           ! grep -E "warning IL[23][0-9]{3}" artifacts/publish.log
 
       - name: Run the AOT sample
-        run: ./artifacts/sample/Agentic.Samples.Console
+        run: ./artifacts/sample/Typeshift.Samples.Console
 
       - name: Run every scenario the documentation shows
-        run: dotnet run --project samples/Agentic.Samples.Docs -c Release --no-build
+        run: dotnet run --project samples/Typeshift.Samples.Docs -c Release --no-build
 
       - name: Pack
-        run: dotnet pack src/Agentic -c Release --no-build -o artifacts/packages
+        run: dotnet pack src/Typeshift -c Release --no-build -o artifacts/packages
 
       - name: Build and run a consumer of the package, not of the projects
-        run: dotnet run --project samples/Agentic.Samples.PackageConsumer -c Release
+        run: dotnet run --project samples/Typeshift.Samples.PackageConsumer -c Release
 
       - uses: actions/upload-artifact@v4
         with:

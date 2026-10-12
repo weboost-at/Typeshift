@@ -1,6 +1,6 @@
 ---
 name: add-runtime-feature
-description: Add or change public behavior of the Agentic runtime library (src/Agentic) - agents, the runtime, stores, conversations, JSON. Use for any change a library user can observe, to find where code, tests and docs go.
+description: Add or change public behavior of the Typeshift runtime library (src/Typeshift) - agents, the runtime, stores, conversations, JSON. Use for any change a library user can observe, to find where code, tests and docs go.
 ---
 
 # Add a runtime feature
@@ -17,12 +17,12 @@ description: Add or change public behavior of the Agentic runtime library (src/A
 
 | Concern | Place |
 |---|---|
-| Code | `src/Agentic/<Feature>/`, namespace = folder. Records for values and stored data, classes for behavior. |
+| Code | `src/Typeshift/<Feature>/`, namespace = folder. Records for values and stored data, classes for behavior. |
 | Typed per-agent API | Generated (`AgentEmitter` runtime extension block) calling a hidden `...Core` method on `AgentRuntime` (D4, D35). |
-| Persistence | Through `IAgenticStore<TId>` only, data as `IStorable<TSelf>`; without a store, throw via `Stores.Get` (D26). |
+| Persistence | Through `ITypeshiftStore<TId>` only, data as `IStorable<TSelf>`; without a store, throw via `Stores.Get` (D26). |
 | Time | Inject `TimeProvider`; never read the clock. |
-| Tests | `tests/Agentic.Tests/<Area>/`, one class per subject, bases and data in `Testing/` or `<Area>/Support/`. |
-| Docs | The guide page of the feature, its code in `samples/Agentic.Samples.Docs` (skill `update-docs`). |
+| Tests | `tests/Typeshift.Tests/<Area>/`, one class per subject, bases and data in `Testing/` or `<Area>/Support/`. |
+| Docs | The guide page of the feature, its code in `samples/Typeshift.Samples.Docs` (skill `update-docs`). |
 
 ## Public API rules
 
@@ -35,7 +35,7 @@ description: Add or change public behavior of the Agentic runtime library (src/A
 
 Read the test rules in `AGENTS.md`; the convention tests enforce them. Runtime behavior is tested through a real
 `FunctionInvokingChatClient` loop with the scripted provider of `AgentTestBase`, against toolsets of the second
-assembly (`tests/Agentic.Tests.Toolsets`) where registration matters. Data comes from `Data` (the catalog), time
+assembly (`tests/Typeshift.Tests.Toolsets`) where registration matters. Data comes from `Data` (the catalog), time
 moves only through `FakeTimeProvider.Advance`.
 
 ## Done means
@@ -43,7 +43,7 @@ moves only through `FakeTimeProvider.Advance`.
 ```shell
 dotnet build -c Release -warnaserror
 dotnet test -c Release --no-build            # three times, green every time
-dotnet run --project samples/Agentic.Samples.Docs -c Release --no-build
+dotnet run --project samples/Typeshift.Samples.Docs -c Release --no-build
 dotnet mdsnippets && git diff --exit-code     # when docs changed
 dotnet slopwatch analyze --fail-on warning
 ```

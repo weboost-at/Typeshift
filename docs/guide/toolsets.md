@@ -46,18 +46,18 @@ internal partial class TicketToolset : Toolset
         services.GetRequiredService<ITicketClient>().GetAsync(number, ct);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Tickets/TicketToolset.cs#L6-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-toolset' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketToolset.cs#L6-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-toolset' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - **The method** is a static method group, `AddTool(SearchTickets)`. Lambdas and instance methods are reported as
-  [AGT004](./diagnostics.md#agt004).
-- **`WithName`** is required ([AGT003](./diagnostics.md#agt003)), a constant ([AGT002](./diagnostics.md#agt002)),
-  lower_snake_case ([AGT012](./diagnostics.md#agt012)) and unique across everything the host can see
-  ([AGT007](./diagnostics.md#agt007)). The name, not the method, is the tool's identity: stored settings and agents
+  [TSH004](./diagnostics.md#tsh004).
+- **`WithName`** is required ([TSH003](./diagnostics.md#tsh003)), a constant ([TSH002](./diagnostics.md#tsh002)),
+  lower_snake_case ([TSH012](./diagnostics.md#tsh012)) and unique across everything the host can see
+  ([TSH007](./diagnostics.md#tsh007)). The name, not the method, is the tool's identity: stored settings and agents
   refer to it.
 - **The description** comes from `WithDescription(...)`, or else from the method's `<summary>`. A tool without
-  either is reported as [AGT008](./diagnostics.md#agt008); summaries need `GenerateDocumentationFile`
-  ([AGT010](./diagnostics.md#agt010)).
+  either is reported as [TSH008](./diagnostics.md#tsh008); summaries need `GenerateDocumentationFile`
+  ([TSH010](./diagnostics.md#tsh010)).
 - **`WithSettings<T>()`** gives the tool a settings record whose members stay in code unless `Configurable(...)` names
   them; **`WithConfigurableSettings<T>()`** one whose members may all change unless `NotConfigurable(...)` names them.
   See [tool settings](./tool-settings.md). Either comes last in the chain.

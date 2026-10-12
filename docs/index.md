@@ -2,7 +2,7 @@
 layout: home
 
 hero:
-  name: Agentic
+  name: Typeshift
   text: Agents and tools, defined in code
   tagline: A .NET 10 library on Microsoft.Extensions.AI. A source generator turns your toolsets and agents into reflection-free functions, typed settings and one registration call, ready for Native AOT.
   actions:
@@ -11,7 +11,7 @@ hero:
       link: /guide/getting-started
     - theme: alt
       text: View on GitHub
-      link: https://github.com/weboost-at/Agentic
+      link: https://github.com/weboost-at/Typeshift
 
 features:
   - title: Tools from static methods
@@ -21,7 +21,7 @@ features:
   - title: A settings contract per agent
     details: Every agent gets a generated Settings record with exactly its configurable values, ready to back a settings UI or an API.
   - title: One store, your ids
-    details: Implement IAgenticStore once, with the id type you already use. Without a store everything runs from code.
+    details: Implement ITypeshiftStore once, with the id type you already use. Without a store everything runs from code.
   - title: Conversation tracking
     details: Every exchange with the model is tracked live and stored as a session of its conversation, streaming included.
   - title: Mistakes are compile errors

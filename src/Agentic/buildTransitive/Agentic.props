@@ -1,8 +1,0 @@
-<Project>
-
-  <PropertyGroup>
-    <!-- The generator intercepts services.AddAgentic() from this namespace. -->
-    <InterceptorsNamespaces>$(InterceptorsNamespaces);Agentic.Generated</InterceptorsNamespaces>
-  </PropertyGroup>
-
-</Project>
