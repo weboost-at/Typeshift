@@ -227,8 +227,8 @@ partial class EchoToolset
 }
 
 /// <summary>
-/// Selects the tools of <see cref="Tools.EchoToolset"/> an agent offers, in <c>UseToolset&lt;EchoToolset&gt;(tools =>
-/// ...)</c>.
+/// Selects the tools of <see cref="Tools.EchoToolset"/> an agent offers, chained after
+/// <c>UseToolset&lt;EchoToolset&gt;()</c>.
 /// </summary>
 public static class EchoToolsetSelection
 {

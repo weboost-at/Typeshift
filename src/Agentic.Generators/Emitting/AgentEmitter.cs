@@ -50,22 +50,11 @@ internal static class AgentEmitter
         writer.Line("private ToolSettingsBuilder WithToolSettings() => new(this);");
         writer.Line();
         Docs.WriteInheritDoc(writer);
-        writer.Line("protected override object? GetToolSettings(global::Agentic.Tools.ToolName tool) =>");
-
-        using (writer.Indent())
-        {
-            writer.Line("tool.Value switch");
-
-            using (writer.Block(close: "};"))
-            {
-                foreach (var tool in tools)
-                {
-                    writer.Line($"{Names.Literal(tool.Name)} => {Field(tool)},");
-                }
-
-                writer.Line("_ => null");
-            }
-        }
+        writer.ToolSwitch(
+            "protected override object? GetToolSettings(global::Agentic.Tools.ToolName tool) =>",
+            "tool.Value",
+            [.. tools.Select(tool => (tool.Name, Field(tool)))],
+            "null");
 
         var selectors = tools.ToDictionary(
             tool => tool,
@@ -157,13 +146,12 @@ internal static class AgentEmitter
             + "its model, its configurable chat options and the configurable settings of its tools. A null value "
             + "keeps what the layer below sets. Store them per id through the agent's runtime, or pass them for a "
             + "single run.");
-        writer.Line("public sealed record Settings :");
-
-        using (writer.Indent())
-        {
-            writer.Line("global::Agentic.Agents.IAgentSettings,");
-            writer.Line("global::Agentic.Persistence.IStorable<Settings>");
-        }
+        writer.Lines(
+            """
+            public sealed record Settings :
+                global::Agentic.Agents.IAgentSettings,
+                global::Agentic.Persistence.IStorable<Settings>
+            """);
 
         using (writer.Block())
         {
@@ -225,33 +213,15 @@ internal static class AgentEmitter
         }
     }
 
-    private static void WriteGetToolOverrides(SourceWriter writer, IReadOnlyList<StoredTool> tools)
-    {
-        writer.Line("global::Agentic.Settings.IToolOverrides? global::Agentic.Agents.IAgentSettings.GetToolOverrides(");
-
-        using (writer.Indent())
-        {
-            if (tools.Count == 0)
-            {
-                writer.Line("global::Agentic.Tools.ToolName tool) =>");
-                writer.Line("null;");
-                return;
-            }
-
-            writer.Line("global::Agentic.Tools.ToolName tool) =>");
-            writer.Line("tool.Value switch");
-
-            using (writer.Block(close: "};"))
-            {
-                foreach (var tool in tools)
-                {
-                    writer.Line($"{Names.Literal(tool.Name)} => {tool.Property},");
-                }
-
-                writer.Line("_ => null");
-            }
-        }
-    }
+    private static void WriteGetToolOverrides(SourceWriter writer, IReadOnlyList<StoredTool> tools) =>
+        writer.ToolSwitch(
+            """
+            global::Agentic.Settings.IToolOverrides? global::Agentic.Agents.IAgentSettings.GetToolOverrides(
+                global::Agentic.Tools.ToolName tool) =>
+            """,
+            "tool.Value",
+            [.. tools.Select(tool => (tool.Name, tool.Property))],
+            "null");
 
     // The typed members of the agent's runtime, as an extension block so the settings type never needs naming
     private static void WriteRuntimeExtensions(SourceWriter writer, AgentModel agent)
@@ -287,15 +257,14 @@ internal static class AgentEmitter
         Docs.WriteParam(writer, "ct", "Cancels the load.");
         Docs.WriteReturns(writer, "The stored settings, or empty settings when none are stored.");
         Docs.WriteException(writer, "System.InvalidOperationException", MissingStore);
-        writer.Line($"public {Task}<{settings}> LoadSettingsAsync<TId>(");
-
-        using (writer.Indent())
-        {
-            writer.Line("TId id,");
-            writer.Line($"{CancellationToken} ct = default)");
-            writer.Line("where TId : notnull =>");
-            writer.Line($"runtime.LoadSettingsCoreAsync<{settings}, TId>(id, ct);");
-        }
+        writer.Lines(
+            $"""
+            public {Task}<{settings}> LoadSettingsAsync<TId>(
+                TId id,
+                {CancellationToken} ct = default)
+                where TId : notnull =>
+                runtime.LoadSettingsCoreAsync<{settings}, TId>(id, ct);
+            """);
     }
 
     private static void WriteSaveSettings(SourceWriter writer, string settings)
@@ -306,16 +275,15 @@ internal static class AgentEmitter
         Docs.WriteParam(writer, "settings", "The settings; a null value keeps what the agent's code sets.");
         Docs.WriteParam(writer, "ct", "Cancels the save.");
         Docs.WriteException(writer, "System.InvalidOperationException", MissingStore);
-        writer.Line($"public {Task} SaveSettingsAsync<TId>(");
-
-        using (writer.Indent())
-        {
-            writer.Line("TId id,");
-            writer.Line($"{settings} settings,");
-            writer.Line($"{CancellationToken} ct = default)");
-            writer.Line("where TId : notnull =>");
-            writer.Line("runtime.SaveSettingsCoreAsync(id, settings, ct);");
-        }
+        writer.Lines(
+            $"""
+            public {Task} SaveSettingsAsync<TId>(
+                TId id,
+                {settings} settings,
+                {CancellationToken} ct = default)
+                where TId : notnull =>
+                runtime.SaveSettingsCoreAsync(id, settings, ct);
+            """);
     }
 
     private static void WriteConfigure(SourceWriter writer, string settings)
@@ -330,16 +298,15 @@ internal static class AgentEmitter
         Docs.WriteParam(writer, "ct", "Cancels the load and the save.");
         Docs.WriteReturns(writer, "The saved settings.");
         Docs.WriteException(writer, "System.InvalidOperationException", MissingStore);
-        writer.Line($"public {Task}<{settings}> ConfigureAsync<TId>(");
-
-        using (writer.Indent())
-        {
-            writer.Line("TId id,");
-            writer.Line($"global::System.Func<{settings}, {settings}> configure,");
-            writer.Line($"{CancellationToken} ct = default)");
-            writer.Line("where TId : notnull =>");
-            writer.Line("runtime.ConfigureSettingsCoreAsync(id, configure, ct);");
-        }
+        writer.Lines(
+            $"""
+            public {Task}<{settings}> ConfigureAsync<TId>(
+                TId id,
+                global::System.Func<{settings}, {settings}> configure,
+                {CancellationToken} ct = default)
+                where TId : notnull =>
+                runtime.ConfigureSettingsCoreAsync(id, configure, ct);
+            """);
     }
 
     private static void WriteResolveChatOptions(SourceWriter writer, string settings)
@@ -350,14 +317,13 @@ internal static class AgentEmitter
         Docs.WriteParam(writer, "run", "Settings for this run only; a null value keeps what the code sets.");
         Docs.WriteParam(writer, "conversationId", "The conversation the run continues, or null.");
         Docs.WriteReturns(writer, "The options, with the agent's tools, to create the chat client with and call it with.");
-        writer.Line("public global::Microsoft.Extensions.AI.ChatOptions ResolveChatOptions(");
-
-        using (writer.Indent())
-        {
-            writer.Line($"{settings}? run = null,");
-            writer.Line("string? conversationId = null) =>");
-            writer.Line("runtime.ResolveChatOptionsCore(run, conversationId);");
-        }
+        writer.Lines(
+            $"""
+            public global::Microsoft.Extensions.AI.ChatOptions ResolveChatOptions(
+                {settings}? run = null,
+                string? conversationId = null) =>
+                runtime.ResolveChatOptionsCore(run, conversationId);
+            """);
     }
 
     private static void WriteResolveStoredChatOptions(SourceWriter writer, string settings)
@@ -373,16 +339,15 @@ internal static class AgentEmitter
         Docs.WriteParam(writer, "ct", "Cancels the loads.");
         Docs.WriteReturns(writer, "The options, with the agent's tools, to create the chat client with and call it with.");
         Docs.WriteException(writer, "System.InvalidOperationException", MissingStore);
-        writer.Line($"public {Task}<global::Microsoft.Extensions.AI.ChatOptions> ResolveChatOptionsAsync<TId>(");
-
-        using (writer.Indent())
-        {
-            writer.Line("TId id,");
-            writer.Line($"{settings}? run = null,");
-            writer.Line("string? conversationId = null,");
-            writer.Line($"{CancellationToken} ct = default)");
-            writer.Line("where TId : notnull =>");
-            writer.Line($"runtime.ResolveChatOptionsCoreAsync<{settings}, TId>(id, run, conversationId, ct);");
-        }
+        writer.Lines(
+            $"""
+            public {Task}<global::Microsoft.Extensions.AI.ChatOptions> ResolveChatOptionsAsync<TId>(
+                TId id,
+                {settings}? run = null,
+                string? conversationId = null,
+                {CancellationToken} ct = default)
+                where TId : notnull =>
+                runtime.ResolveChatOptionsCoreAsync<{settings}, TId>(id, run, conversationId, ct);
+            """);
     }
 }

@@ -21,18 +21,15 @@ internal static class AgentResolver
 
         foreach (var use in agent.Uses)
         {
+            // A tool selected twice is offered once; the runtime rejects the duplicate when it reads the agent's tools
             if (toolsets.TryGetValue(use.Toolset, out var toolset))
-                tools.AddRange(Select(use, toolset).Where(tool => !Offers(tools, tool)));
+                tools.AddRange(Select(use, toolset).Where(tool => tools.All(offered => offered.Name != tool.Name)));
             else
                 diagnostics.Add(DiagnosticInfo.Create(Descriptors.UngeneratedToolset, use.Location, ShortName(use.Toolset)));
         }
 
         return new AgentOutput(agent, tools.ToEquatableArray(), diagnostics.ToEquatableArray());
     }
-
-    // A tool selected twice is offered once; the runtime rejects the duplicate as it runs the constructor
-    private static bool Offers(IEnumerable<ResolvedTool> tools, ResolvedTool tool) =>
-        tools.Any(offered => offered.Name == tool.Name);
 
     // A name that selects no tool is a call to a selection method that does not exist, which the compiler reports
     private static IEnumerable<ResolvedTool> Select(ToolsetUseModel use, ToolsetSummary toolset) =>

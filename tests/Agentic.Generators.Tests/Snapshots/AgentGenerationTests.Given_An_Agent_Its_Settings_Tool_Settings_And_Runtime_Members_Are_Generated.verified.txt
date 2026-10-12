@@ -447,8 +447,8 @@ partial class WebResearchToolset
 }
 
 /// <summary>
-/// Selects the tools of <see cref="Demo.WebResearchToolset"/> an agent offers, in
-/// <c>UseToolset&lt;WebResearchToolset&gt;(tools => ...)</c>.
+/// Selects the tools of <see cref="Demo.WebResearchToolset"/> an agent offers, chained after
+/// <c>UseToolset&lt;WebResearchToolset&gt;()</c>.
 /// </summary>
 public static class WebResearchToolsetSelection
 {

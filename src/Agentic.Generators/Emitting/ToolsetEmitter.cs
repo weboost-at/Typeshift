@@ -107,13 +107,12 @@ internal static class ToolsetEmitter
             writer,
             $"Overrides the configurable settings of the <c>{tool.Name}</c> tool, as stored tool defaults, as "
             + "an agent's stored settings or for a single run. A null value keeps what the layer below sets.");
-        writer.Line($"public sealed record {type} :");
-
-        using (writer.Indent())
-        {
-            writer.Line($"global::Agentic.Settings.IToolOverrides<{settings.Type}>,");
-            writer.Line($"global::Agentic.Persistence.IStorable<{type}>");
-        }
+        writer.Lines(
+            $"""
+            public sealed record {type} :
+                global::Agentic.Settings.IToolOverrides<{settings.Type}>,
+                global::Agentic.Persistence.IStorable<{type}>
+            """);
 
         using (writer.Block())
         {
@@ -133,11 +132,14 @@ internal static class ToolsetEmitter
             writer.Line();
             StorableEmitter.WriteDeserialize(writer, type, members, []);
             writer.Line();
-            writer.Line($"{settings.Type} global::Agentic.Settings.IToolOverrides<{settings.Type}>.ApplyTo(");
+            writer.Lines(
+                $"""
+                {settings.Type} global::Agentic.Settings.IToolOverrides<{settings.Type}>.ApplyTo(
+                    {settings.Type} settings) =>
+                """);
 
             using (writer.Indent())
             {
-                writer.Line($"{settings.Type} settings) =>");
                 writer.Line("settings with");
 
                 using (writer.Block(close: "};"))
@@ -163,8 +165,8 @@ internal static class ToolsetEmitter
         writer.Line();
         Docs.WriteSummary(
             writer,
-            $"Selects the tools of <see cref=\"{toolset.Type.FullName.Replace("global::", "")}\"/> an agent offers, in "
-            + $"<c>UseToolset&lt;{toolset.Type.Name}&gt;(tools => ...)</c>.");
+            $"Selects the tools of <see cref=\"{toolset.Type.FullName.Replace("global::", "")}\"/> an agent offers, "
+            + $"chained after <c>UseToolset&lt;{toolset.Type.Name}&gt;()</c>.");
 
         using (writer.Block($"{toolset.Type.Accessibility} static class {toolset.Type.FlatName}Selection"))
         {
@@ -178,12 +180,11 @@ internal static class ToolsetEmitter
 
                     Docs.WriteSummary(writer, $"Selects the <c>{tool.Name}</c> tool{description}");
                     Docs.WriteReturns(writer, "This selection, to select further tools.");
-                    writer.Line($"public {selection} {Names.SelectorName(tool.Name)}() =>");
-
-                    using (writer.Indent())
-                    {
-                        writer.Line($"tools.Select({Names.Literal(tool.Name)});");
-                    }
+                    writer.Lines(
+                        $"""
+                        public {selection} {Names.SelectorName(tool.Name)}() =>
+                            tools.Select({Names.Literal(tool.Name)});
+                        """);
                 }
             }
         }
@@ -192,22 +193,11 @@ internal static class ToolsetEmitter
     private static void WriteGetBinding(SourceWriter writer, ToolsetModel toolset)
     {
         Docs.WriteInheritDoc(writer);
-        writer.Line($"protected override {ToolBinding} GetBinding({ToolDefinition} tool) =>");
-
-        using (writer.Indent())
-        {
-            writer.Line("tool.Name.Value switch");
-
-            using (writer.Block(close: "};"))
-            {
-                foreach (var tool in toolset.Tools)
-                {
-                    writer.Line($"{Names.Literal(tool.Name)} => {Names.ToPascalCase(tool.Name)}Binding,");
-                }
-
-                writer.Line("_ => base.GetBinding(tool)");
-            }
-        }
+        writer.ToolSwitch(
+            $"protected override {ToolBinding} GetBinding({ToolDefinition} tool) =>",
+            "tool.Name.Value",
+            [.. toolset.Tools.Select(tool => (tool.Name, $"{Names.ToPascalCase(tool.Name)}Binding"))],
+            "base.GetBinding(tool)");
     }
 
     private static void WriteBinding(SourceWriter writer, ToolModel tool)
@@ -226,32 +216,27 @@ internal static class ToolsetEmitter
             ? $"static (tool, json) => new {name}Function(tool, json)"
             : $"static (tool, settings, json) => new {name}Function(tool, {settings}json)";
 
-        writer.Line($"private static readonly {ToolBinding} {name}Binding =");
-
-        using (writer.Indent())
-        {
-            writer.Line($"{ToolBinding}.{create}(");
-
-            using (writer.Indent())
-            {
-                writer.Line($"{function});");
-            }
-        }
+        writer.Lines(
+            $"""
+            private static readonly {ToolBinding} {name}Binding =
+                {ToolBinding}.{create}(
+                    {function});
+            """);
     }
 
     private static void WriteFunction(SourceWriter writer, ToolModel tool)
     {
         var name = Names.ToPascalCase(tool.Name);
 
-        writer.Line($"private sealed class {name}Function(");
+        var settings = ReadsSettings(tool) ? $"\n    {tool.Settings!.Type} settings," : "";
 
-        using (writer.Indent())
-        {
-            writer.Line($"{ToolDefinition} tool,");
-            if (ReadsSettings(tool)) writer.Line($"{tool.Settings!.Type} settings,");
-            writer.Line("global::Agentic.Json.AgentJson json)");
-            writer.Line(": global::Agentic.Tools.GeneratedToolFunction(tool, json)");
-        }
+        writer.Lines(
+            $"""
+            private sealed class {name}Function(
+                {ToolDefinition} tool,{settings}
+                global::Agentic.Json.AgentJson json)
+                : global::Agentic.Tools.GeneratedToolFunction(tool, json)
+            """);
 
         using (writer.Block())
         {
@@ -328,14 +313,16 @@ internal static class ToolsetEmitter
 
         var modifiers = isAsync ? "override async" : "override";
 
-        writer.Line($"protected {modifiers} global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(");
+        writer.Lines(
+            $"""
+            protected {modifiers} global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
+                global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
+                global::System.IServiceProvider services,
+                global::System.Threading.CancellationToken ct){(isExpression ? " =>" : "")}
+            """);
 
         using (writer.Indent())
         {
-            writer.Line("global::Microsoft.Extensions.AI.AIFunctionArguments arguments,");
-            writer.Line("global::System.IServiceProvider services,");
-            writer.Line($"global::System.Threading.CancellationToken ct){(isExpression ? " =>" : "")}");
-
             if (kind == ReturnKind.Value) WriteCall(writer, "new(GetResult(", call, arguments, ")));");
             if (kind == ReturnKind.AwaitableValue) WriteCall(writer, "GetResult(await ", call, arguments, "));");
         }

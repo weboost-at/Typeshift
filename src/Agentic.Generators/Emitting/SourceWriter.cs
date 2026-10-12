@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace Agentic.Generators.Emitting;
@@ -19,6 +20,48 @@ internal sealed class SourceWriter
 
         _builder.Append('\n');
         return this;
+    }
+
+    // The lines of a raw string literal, each at the current indentation
+    public SourceWriter Lines(string text)
+    {
+        foreach (var line in text.Split('\n'))
+        {
+            Line(line);
+        }
+
+        return this;
+    }
+
+    // A member answering per tool: the signature, then a switch on the tool's name that ends in the fallback
+    public void ToolSwitch(
+        string signature,
+        string name,
+        IReadOnlyList<(string Tool, string Value)> arms,
+        string fallback)
+    {
+        Lines(signature);
+
+        using (Indent())
+        {
+            if (arms.Count == 0)
+            {
+                Line($"{fallback};");
+                return;
+            }
+
+            Line($"{name} switch");
+
+            using (Block(close: "};"))
+            {
+                foreach (var (tool, value) in arms)
+                {
+                    Line($"{Names.Literal(tool)} => {value},");
+                }
+
+                Line($"_ => {fallback}");
+            }
+        }
     }
 
     public IDisposable Block(string? header = null, string open = "{", string close = "}")

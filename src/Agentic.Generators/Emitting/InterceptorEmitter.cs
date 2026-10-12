@@ -23,12 +23,11 @@ internal static class InterceptorEmitter
                     writer.Line(call.Attribute);
                 }
 
-                writer.Line($"public static {Services} {KnownTypes.RegistrationMethod}(");
-
-                using (writer.Indent())
-                {
-                    writer.Line($"this {Services} services)");
-                }
+                writer.Lines(
+                    $"""
+                    public static {Services} {KnownTypes.RegistrationMethod}(
+                        this {Services} services)
+                    """);
 
                 using (writer.Block())
                 {
@@ -45,24 +44,22 @@ internal static class InterceptorEmitter
             }
         }
 
-        writer.Line();
-
         // Every generator that intercepts declares the attribute itself, file-local so the declarations never clash
-        using (writer.Block("namespace System.Runtime.CompilerServices"))
-        {
-            writer.Line(
-                "[global::System.AttributeUsage(global::System.AttributeTargets.Method, AllowMultiple = true)]");
+        return writer
+            .Lines(
+                """
 
-            using (writer.Block("file sealed class InterceptsLocationAttribute : global::System.Attribute"))
-            {
-                writer.Line("public InterceptsLocationAttribute(int version, string data)");
-
-                using (writer.Block())
+                namespace System.Runtime.CompilerServices
                 {
+                    [global::System.AttributeUsage(global::System.AttributeTargets.Method, AllowMultiple = true)]
+                    file sealed class InterceptsLocationAttribute : global::System.Attribute
+                    {
+                        public InterceptsLocationAttribute(int version, string data)
+                        {
+                        }
+                    }
                 }
-            }
-        }
-
-        return writer.ToString();
+                """)
+            .ToString();
     }
 }

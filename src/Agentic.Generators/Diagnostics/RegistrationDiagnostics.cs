@@ -20,7 +20,7 @@ internal static class RegistrationDiagnostics
             .SelectMany(toolset => toolset.Tools.Select(tool =>
                 new Declaration(tool.Name, ShortName(toolset.Type), tool.Location)));
 
-        return GetDuplicates(Descriptors.DuplicateToolName, declarations, calls);
+        return GetDuplicates(declarations, calls);
     }
 
     // Only the host, the project that calls AddAgentic(), misses what an ungenerated reference declares
@@ -33,7 +33,6 @@ internal static class RegistrationDiagnostics
                 Diagnostic.Create(Descriptors.UngeneratedReference, calls[0].Location?.ToLocation(), assembly));
 
     private static IEnumerable<Diagnostic> GetDuplicates(
-        DiagnosticDescriptor descriptor,
         IEnumerable<Declaration> declarations,
         ImmutableArray<InterceptModel> calls)
     {
@@ -50,7 +49,11 @@ internal static class RegistrationDiagnostics
             if (location is null) continue;
 
             var declaredBy = string.Join(" and ", duplicate.Select(declaration => declaration.DeclaredBy));
-            yield return Diagnostic.Create(descriptor, location.ToLocation(), duplicate.Key, declaredBy);
+            yield return Diagnostic.Create(
+                Descriptors.DuplicateToolName,
+                location.ToLocation(),
+                duplicate.Key,
+                declaredBy);
         }
     }
 

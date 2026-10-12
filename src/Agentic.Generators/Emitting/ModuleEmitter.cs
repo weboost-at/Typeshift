@@ -16,14 +16,17 @@ internal static class ModuleEmitter
         var module = model.Name;
 
         writer.Line(SourceWriter.Header);
-        writer.Line($"[assembly: global::Agentic.Modules.GeneratedModule(typeof({Names.Module(module)}))]");
-        writer.Line();
-        writer.Line($"namespace {Names.GeneratedNamespace};");
-        writer.Line();
-        writer.Line("/// <summary>");
-        writer.Line($"/// Registers the toolsets and agents of {model.AssemblyName}.");
-        writer.Line("/// </summary>");
-        writer.Line($"[{HiddenFromEditors}]");
+        writer.Lines(
+            $"""
+            [assembly: global::Agentic.Modules.GeneratedModule(typeof({Names.Module(module)}))]
+
+            namespace {Names.GeneratedNamespace};
+
+            /// <summary>
+            /// Registers the toolsets and agents of {model.AssemblyName}.
+            /// </summary>
+            [{HiddenFromEditors}]
+            """);
 
         foreach (var toolset in model.Toolsets)
         {
@@ -37,16 +40,14 @@ internal static class ModuleEmitter
 
         using (writer.Block($"public static class {module}"))
         {
-            writer.Line("/// <summary>");
-            writer.Line("/// Registers this assembly's toolsets and agents, once per service collection.");
-            writer.Line("/// </summary>");
-
-            writer.Line("public static void Register(");
-
-            using (writer.Indent())
-            {
-                writer.Line("global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)");
-            }
+            writer.Lines(
+                """
+                /// <summary>
+                /// Registers this assembly's toolsets and agents, once per service collection.
+                /// </summary>
+                public static void Register(
+                    global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)
+                """);
 
             using (writer.Block())
             {
