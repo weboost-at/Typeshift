@@ -52,8 +52,8 @@ internal static class AgentParser
         return null;
     }
 
-    // D29: the selection methods are generated, so in the generator's own view they do not bind: the calls chained
-    // after UseToolset<T>() are read from their syntax
+    // D29: the tool properties are generated, so in the generator's own view they do not bind: the Include and
+    // Exclude calls chained after UseToolset<T>() are read from their syntax
     private static IEnumerable<ToolsetUseModel> ReadUses(
         INamedTypeSymbol agent,
         Compilation compilation,
@@ -73,10 +73,13 @@ internal static class AgentParser
 
                 var toolset = method.TypeArguments[0];
 
+                var picks = GetPicks(call).ToList();
+
                 yield return new ToolsetUseModel(
                     Toolset: toolset.ToTypeOf(),
                     IsPublic: toolset.IsEffectivelyPublic(),
-                    Selected: GetChainedNames(call).ToEquatableArray(),
+                    Excludes: picks.Any(pick => pick.Method == "Exclude"),
+                    Picked: picks.Select(pick => pick.Tool).OfType<string>().ToEquatableArray(),
                     Location: LocationInfo.From(name.GetLocation()));
             }
         }
@@ -90,14 +93,22 @@ internal static class AgentParser
             _ => null
         };
 
-    // UseToolset<T>().A().B(): the names called on the result, outwards
-    private static IEnumerable<string> GetChainedNames(ExpressionSyntax call)
+    // UseToolset<T>().Include(t => t.A).Include(t => t.B): each method chained on the result and the property its
+    // lambda reads, outwards
+    private static IEnumerable<(string Method, string? Tool)> GetPicks(ExpressionSyntax call)
     {
         for (var current = call;
              current.Parent is MemberAccessExpressionSyntax access && access.Parent is InvocationExpressionSyntax outer;
              current = outer)
         {
-            yield return access.Name.Identifier.ValueText;
+            var tool = outer.ArgumentList.Arguments.FirstOrDefault()?.Expression is LambdaExpressionSyntax
+            {
+                ExpressionBody: MemberAccessExpressionSyntax property
+            }
+                ? property.Name.Identifier.ValueText
+                : null;
+
+            yield return (access.Name.Identifier.ValueText, tool);
         }
     }
 }

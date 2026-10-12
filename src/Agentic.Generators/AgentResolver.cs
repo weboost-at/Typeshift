@@ -31,12 +31,12 @@ internal static class AgentResolver
         return new AgentOutput(agent, tools.ToEquatableArray(), diagnostics.ToEquatableArray());
     }
 
-    // A name that selects no tool is a call to a selection method that does not exist, which the compiler reports
+    // A name that picks no tool reads a property the toolset's list does not have, which the compiler reports
     private static IEnumerable<ResolvedTool> Select(ToolsetUseModel use, ToolsetSummary toolset) =>
-        (use.Selected.Count == 0
-            ? toolset.Tools
-            : use.Selected
-                .Select(name => toolset.Tools.FirstOrDefault(tool => Names.SelectorName(tool.Name) == name))
+        (use.Excludes || use.Picked.Count == 0
+            ? toolset.Tools.Where(tool => !use.Picked.Contains(Names.ToolProperty(tool.Name)))
+            : use.Picked
+                .Select(name => toolset.Tools.FirstOrDefault(tool => Names.ToolProperty(tool.Name) == name))
                 .OfType<ToolSummary>())
         .Select(tool => new ResolvedTool(use.Toolset, use.IsPublic, tool.Name, tool.Settings));
 

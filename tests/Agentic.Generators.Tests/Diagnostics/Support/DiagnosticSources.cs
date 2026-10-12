@@ -184,7 +184,7 @@ public static class DiagnosticSources
             public EchoAgent()
             {
                 WithName("echo_agent");
-                UseToolset<EchoToolset>().Shout();
+                UseToolset<EchoToolset>().Include(t => t.Shout);
             }
         }
         """;
@@ -249,8 +249,8 @@ public static class DiagnosticSources
         {
             public EchoAgent()
             {
-                UseToolset<EchoToolset>().Echo();
-                WithToolSettings().Shout().WithLoud(true);
+                UseToolset<EchoToolset>().Include(t => t.Echo);
+                ConfigureShout().WithLoud(true);
             }
         }
         """;
@@ -332,6 +332,61 @@ public static class DiagnosticSources
         public partial class EchoAgent : AgentDefinition
         {
             public EchoAgent() => WithChatOptions().Configurable(o => o.ResponseFormat);
+        }
+        """;
+
+    public const string UnsupportedSettingOfAllConfigurable =
+        """
+        using System.Collections.Generic;
+        using Agentic.Toolsets;
+
+        namespace Demo;
+
+        public record EchoSettings
+        {
+            public int Repeat { get; init; } = 1;
+
+            public IReadOnlyDictionary<string, int> Weights { get; init; } = new Dictionary<string, int>();
+        }
+
+        public partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo)
+                    .WithName("echo")
+                    .WithDescription("Echoes.")
+                    .WithSettings<EchoSettings>()
+                    .AllConfigurable();
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string UnsupportedSettingNotConfigurable =
+        """
+        using System.Collections.Generic;
+        using Agentic.Toolsets;
+
+        namespace Demo;
+
+        public record EchoSettings
+        {
+            public int Repeat { get; init; } = 1;
+
+            public IReadOnlyDictionary<string, int> Weights { get; init; } = new Dictionary<string, int>();
+        }
+
+        public partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo)
+                    .WithName("echo")
+                    .WithDescription("Echoes.")
+                    .WithSettings<EchoSettings>()
+                    .AllConfigurable()
+                    .NotConfigurable(s => s.Weights);
+
+            public static string Echo(string text, EchoSettings settings) => text;
         }
         """;
 }

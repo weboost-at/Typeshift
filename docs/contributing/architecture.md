@@ -9,9 +9,9 @@ decisions behind each part are in [decisions](./decisions.md), cited here as D-n
 developer code           generator, at compile time                   runtime
 --------------           --------------------------                   -------
 partial Toolset   --->   toolset model --> AIFunction subclasses ---> ToolCatalog, agents
-                                       --> {Tool}Overrides, selection methods
+                                       --> {Tool}Overrides, tool list properties
 partial Agent     --->   agent model, resolved against every     ---> AgentRuntime<TAgent>
-                         toolset --> Settings, WithToolSettings,      + generated typed members
+                         toolset --> Settings, Configure{Tool},       + generated typed members
                          runtime extension members
 the assembly      --->   module class + [assembly: GeneratedModule] stamp
 AddAgentic() call --->   interceptor: core services + own module + every referenced module
@@ -23,7 +23,7 @@ A namespace follows its folder.
 
 | Folder | Holds |
 |---|---|
-| `Tools/` | `ToolName`, `ToolRef` and `ToolRef<TSettings, TOverrides>`, `ToolSelection<T>`, `ToolParameter`, the `GeneratedToolFunction` base every generated tool derives from, and the bindings. |
+| `Tools/` | `ToolName`, `ToolRef` and `ToolRef<TSettings, TOverrides>`, `ToolsetUse<T>` with its `Include` and `Exclude` chains, `ToolList<T>`, `ToolParameter`, the `GeneratedToolFunction` base every generated tool derives from, and the bindings. |
 | `Toolsets/` | `Toolset`, `ToolDefinition` and the `AddTool(...)` builders, `ToolBuilder` and `ToolBuilder<TSettings>`. |
 | `Settings/` | `IToolOverrides`, the layering (`ToolSettingsLayers`) and `ToolDefaults`. |
 | `Agents/` | `AgentDefinition`, `ChatOptionsBuilder`, `AgentRuntime` and `AgentRuntime<TAgent>`, `IAgentSettings`, `ChatExecutionContext`, `IChatClientProvider`. |
@@ -43,10 +43,11 @@ an unrelated edit leaves every output cached.
    base list that is not abstract; the transform checks semantically whether it derives from `Toolset` or
    `AgentDefinition`. Generic classes are left alone (D6).
 2. **Parsing** turns symbols into models. `ConstructorChains` reads the constructor through `IOperation`: every
-   `AddTool(...).WithName(...).WithDescription(...).WithSettings<T>().Configurable(...)` chain, and in agents the
-   `Configurable(...)` calls of the `WithChatOptions()` chain. The calls chained after `UseToolset<T>()` do not bind
-   in the generator's own compilation, because the selection methods are what it generates, so `AgentParser` reads
-   them from syntax (D29). `Storage` decides per configurable member how the records write and read it, or reports
+   `AddTool(...).WithName(...).WithDescription(...).WithSettings<T>()` chain with its `Configurable`, or
+   `AllConfigurable` and `NotConfigurable`, calls (D43), and in agents the `Configurable(...)` calls of the
+   `WithChatOptions()` chain. The `Include(t => t.X)` and `Exclude(t => t.X)` calls after `UseToolset<T>()` do not
+   bind in the generator's own compilation, because the tool list properties are what it generates, so `AgentParser`
+   reads them from syntax (D29). `Storage` decides per configurable member how the records write and read it, or reports
    AGT014.
 3. **Models** hold only strings, bools and `EquatableArray<T>`; locations are `LocationInfo` and diagnostics
    `DiagnosticInfo`, both value types. An agent model holds the toolset's type name and the selected tool names,
@@ -64,8 +65,8 @@ What it writes:
 
 | For | Generated |
 |---|---|
-| each toolset | The stamps; a `Tools` class of typed `ToolRef`s; per tool with configurable settings a `{Tool}Overrides` record; the `GetBinding` switch; per tool a binding and a sealed `AIFunction` subclass; a `{Toolset}Selection` extension block with one selection method per tool. |
-| each agent | Per tool with settings a field, set through a private `WithToolSettings()` builder (nested `ToolSettingsBuilder` with one `{Tool}SettingsBuilder` per tool); the `GetToolSettings` override; the nested `Settings` record; and a `{Agent}RuntimeExtensions` extension block on `AgentRuntime<TAgent>`. |
+| each toolset | The stamps; a `Tools` class of typed `ToolRef`s; per tool with configurable settings a `{Tool}Overrides` record; the `GetBinding` switch; per tool a binding and a sealed `AIFunction` subclass; a `{Toolset}ToolList` extension block with one property per tool on `ToolList<TToolset>`. |
+| each agent | Per tool with settings a field, set through a private `Configure{Tool}()` returning a nested `{Tool}SettingsBuilder`; the `GetToolSettings` override; the nested `Settings` record; and a `{Agent}RuntimeExtensions` extension block on `AgentRuntime<TAgent>`. |
 | each assembly | `Agentic.Generated.{Assembly}Module`, which registers the assembly's toolsets and agents with factory lambdas, plus its assembly stamp. |
 | each `AddAgentic()` call | One interceptor that registers the core services, the own module and every referenced module. |
 
@@ -107,7 +108,7 @@ A tool with settings resolves them per run from five layers, lowest first:
 1. the code defaults, the settings record's parameterless constructor;
 2. the stored tool defaults, the tool's `{Tool}Overrides` stored under the run's id, skipped when the agent sets the
    tool's settings in code;
-3. the agent's code settings (`WithToolSettings()`), the code defaults with the values the agent's code set, applied
+3. the agent's code settings (`Configure{Tool}()`), the code defaults with the values the agent's code set, applied
    as a whole object;
 4. the agent's stored settings, its `Settings` stored under the id, through their `{Tool}Overrides` property;
 5. the run's `Settings`.

@@ -81,8 +81,8 @@ internal partial class CompanyToolset : Toolset
 <sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Console/Companies/CompanyToolset.cs#L5-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-toolset' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-An agent picks its chat options, tools and tool settings. `.FindCompanies()` after `UseToolset<CompanyToolset>()` and
-after `WithToolSettings()` are generated per tool.
+An agent picks its chat options, tools and tool settings. `t.FindCompanies` and `ConfigureFindCompanies()` are generated
+per tool.
 
 <!-- snippet: quickstart-agent -->
 <a id='snippet-quickstart-agent'></a>
@@ -99,10 +99,9 @@ internal partial class ResearchAgent : AgentDefinition
             .Configurable(o => o.Temperature)
             .Configurable(o => o.Instructions);
 
-        UseToolset<CompanyToolset>().FindCompanies();
+        UseToolset<CompanyToolset>().Include(t => t.FindCompanies);
 
-        WithToolSettings()
-            .FindCompanies()
+        ConfigureFindCompanies()
             .WithLimit(3);
     }
 
@@ -112,7 +111,7 @@ internal partial class ResearchAgent : AgentDefinition
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Console/Companies/ResearchAgent.cs#L5-L30' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Console/Companies/ResearchAgent.cs#L5-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Register everything, store settings for a customer, and run. `IChatClientProvider` maps model names to your

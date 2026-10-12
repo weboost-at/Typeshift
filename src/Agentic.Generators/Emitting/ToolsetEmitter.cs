@@ -40,7 +40,7 @@ internal static class ToolsetEmitter
                     WriteFunction(writer, tool);
                 }
             },
-            writer => WriteSelection(writer, toolset));
+            writer => WriteToolList(writer, toolset));
 
     private static bool HasOverrides(ToolModel tool) => tool.Settings?.HasConfigurable is true;
 
@@ -68,20 +68,21 @@ internal static class ToolsetEmitter
         {
             foreach (var tool in toolset.Tools)
             {
-                var type = HasOverrides(tool)
-                    ? $"global::Agentic.Tools.ToolRef<{tool.Settings!.Type}, {Names.OverridesName(tool.Name)}>"
-                    : "global::Agentic.Tools.ToolRef";
-
                 if (tool != toolset.Tools[0]) writer.Line();
 
-                // A member never shares the name of its class
-                var property = Names.Unreserved(Names.ToPascalCase(tool.Name), "Tool", ["Tools"]);
-
                 Docs.WriteSummary(writer, $"The <c>{tool.Name}</c> tool.");
-                writer.Line($"public static {type} {property} {{ get; }} = new({Names.Literal(tool.Name)});");
+                writer.Line(
+                    $"public static {RefType(toolset, tool)} {Names.ToolProperty(tool.Name)} {{ get; }} = "
+                    + $"new({Names.Literal(tool.Name)});");
             }
         }
     }
+
+    private static string RefType(ToolsetModel toolset, ToolModel tool) =>
+        HasOverrides(tool)
+            ? $"global::Agentic.Tools.ToolRef<{tool.Settings!.Type}, "
+                + $"{toolset.Type.FullName}.{Names.OverridesName(tool.Name)}>"
+            : "global::Agentic.Tools.ToolRef";
 
     // The tool's configurable members, nullable: what a UI edits, a store keeps and a run passes
     private static void WriteOverrides(SourceWriter writer, ToolModel tool, SettingsModel settings)
@@ -157,34 +158,31 @@ internal static class ToolsetEmitter
         }
     }
 
-    // The selection methods agents chain after UseToolset<T>(), next to the toolset in its namespace
-    private static void WriteSelection(SourceWriter writer, ToolsetModel toolset)
+    // D29: what agents pick in UseToolset<T>().Include(t => t.X), next to the toolset in its namespace
+    private static void WriteToolList(SourceWriter writer, ToolsetModel toolset)
     {
-        var selection = $"global::Agentic.Tools.ToolSelection<{toolset.Type.FullName}>";
+        var list = $"global::Agentic.Tools.ToolList<{toolset.Type.FullName}>";
 
         writer.Line();
         Docs.WriteSummary(
             writer,
-            $"Selects the tools of <see cref=\"{toolset.Type.FullName.Replace("global::", "")}\"/> an agent offers, "
-            + $"chained after <c>UseToolset&lt;{toolset.Type.Name}&gt;()</c>.");
+            $"The tools of <see cref=\"{toolset.Type.FullName.Replace("global::", "")}\"/>, to include in or exclude "
+            + $"from an agent: <c>UseToolset&lt;{toolset.Type.Name}&gt;().Include(t => t.Name)</c>.");
 
-        using (writer.Block($"{toolset.Type.Accessibility} static class {toolset.Type.FlatName}Selection"))
+        using (writer.Block($"{toolset.Type.Accessibility} static class {toolset.Type.FlatName}ToolList"))
         {
-            using (writer.Block($"extension({selection} tools)"))
+            using (writer.Block($"extension({list} tools)"))
             {
                 foreach (var tool in toolset.Tools)
                 {
                     if (tool != toolset.Tools[0]) writer.Line();
 
                     var description = tool.Description is { } text ? $": {Docs.Escape(text)}" : ".";
+                    var property = Names.ToolProperty(tool.Name);
 
-                    Docs.WriteSummary(writer, $"Selects the <c>{tool.Name}</c> tool{description}");
-                    Docs.WriteReturns(writer, "This selection, to select further tools.");
-                    writer.Lines(
-                        $"""
-                        public {selection} {Names.SelectorName(tool.Name)}() =>
-                            tools.Select({Names.Literal(tool.Name)});
-                        """);
+                    Docs.WriteSummary(writer, $"The <c>{tool.Name}</c> tool{description}");
+                    writer.Line(
+                        $"public {RefType(toolset, tool)} {property} => {toolset.Type.FullName}.Tools.{property};");
                 }
             }
         }

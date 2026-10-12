@@ -58,7 +58,12 @@ public class AddAgenticTests : HostTestBase
         var names = Services.GetServices<AgentRuntime>().Select(runtime => runtime.Definition.Name);
 
         // Assert
-        names.Should().BeEquivalentTo("probe_agent", "hosted_tool_agent", nameof(UnnamedAgent), "research_agent");
+        names.Should().BeEquivalentTo(
+            "probe_agent",
+            "hosted_tool_agent",
+            nameof(UnnamedAgent),
+            nameof(ExcludingAgent),
+            "research_agent");
     }
 
     [Fact]

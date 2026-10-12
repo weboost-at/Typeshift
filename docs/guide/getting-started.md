@@ -94,10 +94,9 @@ internal partial class ResearchAgent : AgentDefinition
             .Configurable(o => o.Temperature)
             .Configurable(o => o.Instructions);
 
-        UseToolset<CompanyToolset>().FindCompanies();
+        UseToolset<CompanyToolset>().Include(t => t.FindCompanies);
 
-        WithToolSettings()
-            .FindCompanies()
+        ConfigureFindCompanies()
             .WithLimit(3);
     }
 
@@ -107,12 +106,12 @@ internal partial class ResearchAgent : AgentDefinition
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Console/Companies/ResearchAgent.cs#L5-L30' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Console/Companies/ResearchAgent.cs#L5-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`.FindCompanies()` after `UseToolset<CompanyToolset>()` is a method the generator adds for each tool of
-`CompanyToolset`, and `WithToolSettings()` offers exactly the agent's tools that have settings, each with a `With...`
-per member. Both reject mistakes at compile time.
+`t.FindCompanies` is a property the generator adds for each tool of `CompanyToolset`, and `ConfigureFindCompanies()`
+exists because the agent offers that tool, with a `With...` per member of its settings. Both reject mistakes at
+compile time.
 
 ## Registration
 
@@ -226,6 +225,6 @@ research_agent, one run: Found Danube Robotics.
 ## Next steps
 
 - [Toolsets](./toolsets.md) and [tool settings](./tool-settings.md) in depth.
-- [Agents](./agents.md) and [running them](./running-agents.md) with real providers.
+- [Agents](./defining-agents.md) and [running them](./running-agents.md) with real providers.
 - [Stores and settings](./persistence.md): implementing `IAgenticStore` for your database.
 - [Native AOT](./native-aot.md): what a host registers to publish without warnings.

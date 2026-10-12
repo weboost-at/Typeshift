@@ -10,10 +10,11 @@ internal sealed record AgentModel(
 // A chat option the agent's settings may override; NullableType is its type made nullable
 internal sealed record ChatOptionModel(string Name, string NullableType, StorageModel Storage);
 
-// Selected holds the selection methods chained after UseToolset<T>(), none for every tool; IsPublic when other
-// assemblies can name T
+// Picked holds the tool properties chained in Include or, when Excludes, in Exclude; none offers every tool. IsPublic
+// when other assemblies can name T
 internal sealed record ToolsetUseModel(
     string Toolset,
     bool IsPublic,
-    EquatableArray<string> Selected,
+    bool Excludes,
+    EquatableArray<string> Picked,
     LocationInfo? Location);

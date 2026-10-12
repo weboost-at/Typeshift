@@ -10,11 +10,16 @@ internal partial class KnowledgeToolset : Toolset
         new("So funktionieren Rückerstattungen", "de")
     ];
 
-    public KnowledgeToolset() =>
+    public KnowledgeToolset()
+    {
+        // begin-snippet: settings-all-configurable
         AddTool(SearchArticles)
             .WithName("search_articles")
             .WithSettings<SearchArticlesSettings>()
-            .Configurable(s => s.Language);
+            .AllConfigurable()
+            .NotConfigurable(s => s.Limit);
+        // end-snippet
+    }
 
     /// <summary>
     /// Searches the help center's articles.

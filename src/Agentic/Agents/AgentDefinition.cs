@@ -9,8 +9,8 @@ namespace Agentic.Agents;
 
 /// <summary>
 /// The base of a partial class that declares an agent in its constructor: its chat options, the tools it offers
-/// and the settings those tools run with. The generator adds the agent's typed <c>Settings</c> and
-/// <c>WithToolSettings()</c>, a builder over the settings of its tools.
+/// and the settings those tools run with. The generator adds the agent's typed <c>Settings</c> and a
+/// <c>Configure{Tool}()</c> builder per tool with settings.
 /// </summary>
 public abstract class AgentDefinition
 {
@@ -63,21 +63,21 @@ public abstract class AgentDefinition
     protected ChatOptionsBuilder WithChatOptions() => new(_options);
 
     /// <summary>
-    /// Offers the tools of a toolset: every tool, or only those chained after the call,
-    /// <c>UseToolset&lt;CompanyToolset&gt;().FindCompanies()</c>.
+    /// Offers the tools of a toolset: every tool, or those chained in <c>Include</c>, or all but those chained in
+    /// <c>Exclude</c>: <c>UseToolset&lt;CompanyToolset&gt;().Include(t => t.FindCompanies)</c>.
     /// </summary>
     /// <typeparam name="TToolset">The toolset.</typeparam>
-    /// <returns>A selection with one method per tool, generated.</returns>
-    protected ToolSelection<TToolset> UseToolset<TToolset>() where TToolset : Toolset, new()
+    /// <returns>The use, to include or exclude tools.</returns>
+    protected ToolsetUse<TToolset> UseToolset<TToolset>() where TToolset : Toolset, new()
     {
-        var selection = new ToolSelection<TToolset>(new TToolset());
-        _uses.Add(() => selection.Tools);
-        return selection;
+        var use = new ToolsetUse<TToolset>(new TToolset());
+        _uses.Add(() => use.Tools);
+        return use;
     }
 
     /// <summary>
     /// The settings the agent's code sets for a tool; the generator overrides it from the agent's
-    /// <c>WithToolSettings</c> calls.
+    /// <c>Configure{Tool}()</c> calls.
     /// </summary>
     /// <param name="tool">One of the agent's tools.</param>
     /// <returns>The tool's settings record, or null when the code sets none.</returns>

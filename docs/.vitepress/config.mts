@@ -33,7 +33,7 @@ export default defineConfig({
           items: [
             { text: 'Toolsets', link: '/guide/toolsets' },
             { text: 'Tool settings', link: '/guide/tool-settings' },
-            { text: 'Agents', link: '/guide/agents' },
+            { text: 'Agents', link: '/guide/defining-agents' },
             { text: 'Running agents', link: '/guide/running-agents' }
           ]
         },

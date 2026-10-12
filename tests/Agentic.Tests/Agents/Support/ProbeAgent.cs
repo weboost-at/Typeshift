@@ -25,13 +25,12 @@ public partial class ProbeAgent : AgentDefinition
             .Configurable(o => o.Instructions);
 
         UseToolset<CompanyToolset>()
-            .FindCompanies()
-            .CreateCompanyProfile();
+            .Include(t => t.FindCompanies)
+            .Include(t => t.CreateCompanyProfile);
 
         UseToolset<ProbeToolset>();
 
-        WithToolSettings()
-            .Probe()
+        ConfigureProbe()
             .WithLimit(5)
             .WithMode("thorough");
     }

@@ -5,10 +5,10 @@ build before a mistake can reach runtime; warnings point at something that works
 
 Two mistakes need no diagnostic, because the generated API makes them compiler errors:
 
-- selecting a tool of another toolset, `UseToolset<CompanyToolset>().SearchWeb()`, is CS1929: the selection methods
-  exist only on the selection of their own toolset;
-- setting the settings of a tool the agent does not offer, `WithToolSettings().SearchWeb()` in an agent without
-  `search_web`, does not compile either: the builder has a method only per tool the agent offers.
+- picking a tool of another toolset, `UseToolset<CompanyToolset>().Include(t => t.SearchWeb)`, is CS9286: the tool
+  list of each toolset has properties only for its own tools;
+- setting the settings of a tool the agent does not offer, `ConfigureSearchWeb()` in an agent without `search_web`,
+  is CS0103: `Configure{Tool}()` exists only per tool the agent offers.
 
 Runtime guards stay for what the generator cannot see: generic toolsets and agents, and calls made through a
 delegate. Each guard throws an exception whose message says what to change.
@@ -34,8 +34,8 @@ delegate. Each guard throws an exception whose message says what to change.
 
 **Toolset or agent is not partial.** Reported on the class name.
 
-The generator adds members to every toolset and agent (the tool bindings, the `Settings` record,
-`WithToolSettings()`), so the class must be `partial`.
+The generator adds members to every toolset and agent (the tool bindings, the `Settings` record, the
+`Configure{Tool}()` methods), so the class must be `partial`.
 
 ```csharp
 public class CompanyToolset : Toolset          // AGT001
@@ -84,7 +84,7 @@ come from its parameterless constructor, which it therefore needs as well.
 
 **Toolset was not compiled with the generator.** Reported on the `UseToolset<T>(...)` call.
 
-The toolset comes from an assembly that carries no generator stamps, so its tools, their selection methods and their
+The toolset comes from an assembly that carries no generator stamps, so its tools, their tool list and their
 settings are unknown. Reference the Agentic package in the toolset's project. At runtime, such a toolset throws an
 `InvalidOperationException` when the agent asks it for a tool.
 
@@ -154,7 +154,7 @@ internal partial class EchoToolset : Toolset    // fixed, or make EchoSettings p
 ## AGT014
 
 **Configurable member has a type settings cannot store.** Reported on the `Configurable(...)` call that picks it, for a
-tool setting or a chat option.
+tool setting or a chat option, or on `AllConfigurable()`.
 
 Configurable members end up in the generated `Settings` and `{Tool}Overrides` records, which serialize themselves
 without reflection. They support:
@@ -166,4 +166,5 @@ without reflection. They support:
   `ICollection<string>` and `IList<string>`;
 - the nullable forms of all of these.
 
-Keep other members out of `Configurable(...)`; their value then comes from code alone.
+Keep other members out of `Configurable(...)`, or name them in `NotConfigurable(...)` after `AllConfigurable()`; their
+value then comes from code alone.

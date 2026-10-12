@@ -32,7 +32,7 @@ internal static class AgentEmitter
         WriteSettings(writer, output.Agent, output.Tools);
     }
 
-    // D30: a field per tool with settings, set through the WithToolSettings() builder; nothing for any other tool
+    // D30: per tool with settings a field, set through its Configure{Tool}() builder; nothing for any other tool
     private static void WriteToolSettings(SourceWriter writer, AgentModel agent, IReadOnlyList<ResolvedTool> tools)
     {
         foreach (var tool in tools)
@@ -41,14 +41,6 @@ internal static class AgentEmitter
         }
 
         writer.Line();
-        Docs.WriteSummary(
-            writer,
-            "Sets the settings of the agent's tools in code: pick a tool, then set its values. A tool the agent sets "
-            + "ignores its stored defaults; the agent's stored settings and run settings still change its "
-            + "configurable values.");
-        Docs.WriteReturns(writer, "A builder with a method per tool of the agent that has settings.");
-        writer.Line("private ToolSettingsBuilder WithToolSettings() => new(this);");
-        writer.Line();
         Docs.WriteInheritDoc(writer);
         writer.ToolSwitch(
             "protected override object? GetToolSettings(global::Agentic.Tools.ToolName tool) =>",
@@ -56,29 +48,20 @@ internal static class AgentEmitter
             [.. tools.Select(tool => (tool.Name, Field(tool)))],
             "null");
 
-        var selectors = tools.ToDictionary(
-            tool => tool,
-            tool => Names.Unreserved(Names.SelectorName(tool.Name), "Tool", ["ToolSettingsBuilder"]));
-
-        writer.Line();
-        Docs.WriteSummary(writer, "Picks the tool whose settings the agent sets.");
-
-        using (writer.Block($"private sealed class ToolSettingsBuilder({agent.Type.FullName} agent)"))
+        foreach (var tool in tools)
         {
-            foreach (var tool in tools)
-            {
-                var builder = Names.Unreserved(
-                    $"{Names.ToPascalCase(tool.Name)}SettingsBuilder",
-                    "Type",
-                    [.. selectors.Values, "ToolSettingsBuilder"]);
+            var name = Names.ToolProperty(tool.Name);
 
-                Docs.WriteSummary(writer, $"Sets the settings of the <c>{tool.Name}</c> tool, over its code defaults.");
-                Docs.WriteReturns(writer, "A builder of the tool's settings.");
-                writer.Line($"public {builder} {selectors[tool]}() => new(agent);");
-                writer.Line();
-                WriteToolSettingsBuilder(writer, agent, tool, builder);
-                if (tool != tools[tools.Count - 1]) writer.Line();
-            }
+            writer.Line();
+            Docs.WriteSummary(
+                writer,
+                $"Sets the settings of the <c>{tool.Name}</c> tool in code, over its code defaults. The tool then "
+                + "ignores its stored defaults; the agent's stored settings and run settings still change its "
+                + "configurable values.");
+            Docs.WriteReturns(writer, "A builder of the tool's settings.");
+            writer.Line($"private {name}SettingsBuilder Configure{name}() => new(this);");
+            writer.Line();
+            WriteToolSettingsBuilder(writer, agent, tool, $"{name}SettingsBuilder");
         }
     }
 
@@ -88,7 +71,7 @@ internal static class AgentEmitter
 
         Docs.WriteSummary(writer, $"Sets the settings of the <c>{tool.Name}</c> tool.");
 
-        using (writer.Block($"public sealed class {type}({agent.Type.FullName} agent)"))
+        using (writer.Block($"private sealed class {type}({agent.Type.FullName} agent)"))
         {
             foreach (var property in tool.Settings!.Properties)
             {

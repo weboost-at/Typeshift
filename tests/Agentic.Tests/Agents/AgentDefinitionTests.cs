@@ -17,6 +17,16 @@ public class AgentDefinitionTests : UnitTestBase
     }
 
     [Fact]
+    public void Given_Excluded_Tools_The_Agent_Offers_The_Rest_Of_The_Toolset()
+    {
+        // Act
+        var tools = new ExcludingAgent().Tools.Select(tool => tool.Name.Value);
+
+        // Assert
+        tools.Should().Equal("find_companies");
+    }
+
+    [Fact]
     public void Given_A_Selected_Name_That_Is_No_Tool_Of_The_Toolset_It_Throws_An_ArgumentException()
     {
         // Act

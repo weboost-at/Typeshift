@@ -21,7 +21,8 @@ public partial class ProbeToolset : Toolset
             .WithName("probe")
             .WithDescription("Returns what it was called with and the settings it runs with.")
             .WithSettings<ProbeSettings>()
-            .Configurable(s => s.Limit);
+            .AllConfigurable()
+            .NotConfigurable(s => s.Mode);
     }
 
     public static ProbeResult Probe(

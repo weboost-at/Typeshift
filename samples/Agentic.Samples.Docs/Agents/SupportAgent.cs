@@ -20,13 +20,12 @@ internal partial class SupportAgent : AgentDefinition
             .Configurable(o => o.MaxOutputTokens);
 
         UseToolset<TicketToolset>()
-            .SearchTickets()
-            .GetTicket();
+            .Include(t => t.SearchTickets)
+            .Include(t => t.GetTicket);
 
         UseToolset<KnowledgeToolset>();
 
-        WithToolSettings()
-            .SearchTickets()
+        ConfigureSearchTickets()
             .WithLimit(5);
     }
 

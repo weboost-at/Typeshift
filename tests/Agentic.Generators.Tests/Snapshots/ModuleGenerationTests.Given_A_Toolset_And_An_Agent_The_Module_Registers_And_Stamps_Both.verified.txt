@@ -227,18 +227,16 @@ partial class EchoToolset
 }
 
 /// <summary>
-/// Selects the tools of <see cref="Tools.EchoToolset"/> an agent offers, chained after
-/// <c>UseToolset&lt;EchoToolset&gt;()</c>.
+/// The tools of <see cref="Tools.EchoToolset"/>, to include in or exclude from an agent:
+/// <c>UseToolset&lt;EchoToolset&gt;().Include(t => t.Name)</c>.
 /// </summary>
-public static class EchoToolsetSelection
+public static class EchoToolsetToolList
 {
-    extension(global::Agentic.Tools.ToolSelection<global::Tools.EchoToolset> tools)
+    extension(global::Agentic.Tools.ToolList<global::Tools.EchoToolset> tools)
     {
         /// <summary>
-        /// Selects the <c>echo</c> tool: Echoes the text.
+        /// The <c>echo</c> tool: Echoes the text.
         /// </summary>
-        /// <returns>This selection, to select further tools.</returns>
-        public global::Agentic.Tools.ToolSelection<global::Tools.EchoToolset> Echo() =>
-            tools.Select("echo");
+        public global::Agentic.Tools.ToolRef Echo => global::Tools.EchoToolset.Tools.Echo;
     }
 }

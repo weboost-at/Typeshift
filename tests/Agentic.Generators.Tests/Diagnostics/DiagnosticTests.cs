@@ -73,7 +73,7 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.ForeignTool);
 
         // Assert
-        run.Assert.DoesNotCompile("CS1929", "UseToolset<EchoToolset>()");
+        run.Assert.DoesNotCompile("CS9286", "t.Shout");
     }
 
     [Fact]
@@ -133,13 +133,13 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_Settings_Of_A_Tool_The_Agent_Does_Not_Offer_WithToolSettings_Does_Not_Compile()
+    public void Given_Settings_Of_A_Tool_The_Agent_Does_Not_Offer_Configuring_Them_Does_Not_Compile()
     {
         // Act
         var run = Run(DiagnosticSources.SettingsOfAnUnofferedTool);
 
         // Assert
-        run.Assert.DoesNotCompile("CS1929", "WithToolSettings()");
+        run.Assert.DoesNotCompile("CS0103", "ConfigureShout");
     }
 
     [Fact]
@@ -203,6 +203,26 @@ public class DiagnosticTests : GeneratorTestBase
 
         // Assert
         run.Assert.Reports("AGT014", DiagnosticSeverity.Error, "Configurable");
+    }
+
+    [Fact]
+    public void Given_AllConfigurable_And_An_Unstorable_Setting_AGT014_Is_Reported_On_AllConfigurable()
+    {
+        // Act
+        var run = Run(DiagnosticSources.UnsupportedSettingOfAllConfigurable);
+
+        // Assert
+        run.Assert.Reports("AGT014", DiagnosticSeverity.Error, "AllConfigurable");
+    }
+
+    [Fact]
+    public void Given_AllConfigurable_And_An_Unstorable_Setting_Kept_Out_AGT014_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(DiagnosticSources.UnsupportedSettingNotConfigurable);
+
+        // Assert
+        run.Assert.DoesNotReport("AGT014");
     }
 
     [Fact]

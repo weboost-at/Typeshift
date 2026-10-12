@@ -13,12 +13,12 @@ internal static class Names
     public static string ToPascalCase(string snakeCase) =>
         string.Concat(snakeCase.Split('_').Select(part => char.ToUpperInvariant(part[0]) + part.Substring(1)));
 
-    // The generated selection method of a tool; a name ToolSelection or object already uses gets a suffix
-    public static string SelectorName(string tool) =>
+    // A tool's property in Tools and in its ToolList; a name object or the Tools class already uses gets a suffix
+    public static string ToolProperty(string tool) =>
         Unreserved(
             ToPascalCase(tool),
             "Tool",
-            ["Equals", "GetHashCode", "GetType", "MemberwiseClone", "Select", "ToString"]);
+            ["Equals", "GetHashCode", "GetType", "MemberwiseClone", "ReferenceEquals", "ToString", "Tools"]);
 
     public static string OverridesName(string tool) => $"{ToPascalCase(tool)}Overrides";
 

@@ -72,6 +72,14 @@ internal static class ToolsetParser
                 case "Configurable":
                     tool.Picks.Add(call);
                     break;
+
+                case "AllConfigurable":
+                    tool.AllConfigurableCall = call;
+                    break;
+
+                case "NotConfigurable":
+                    tool.Exclusions.Add(ConstructorChains.GetPickedProperty(call)?.Name);
+                    break;
             }
         }
 
@@ -183,8 +191,11 @@ internal static class ToolsetParser
             .Select(pick => (Call: pick, Property: ConstructorChains.GetPickedProperty(pick)?.Name))
             .ToList();
 
+        // D43: allowed one by one, or all but the excluded and the obsolete ones
         var configurable = type.GetSettableProperties()
-            .Where(property => picks.Any(pick => pick.Property == property.Name))
+            .Where(property => tool.AllConfigurableCall is null
+                ? picks.Any(pick => pick.Property == property.Name)
+                : !tool.Exclusions.Contains(property.Name) && !IsObsolete(property))
             .ToList();
 
         // A public toolset exposes its settings through Tools and the generated overrides
@@ -200,7 +211,8 @@ internal static class ToolsetParser
         {
             diagnostics.Report(
                 Descriptors.UnsupportedConfigurableType,
-                ConstructorChains.GetCalledName(picks.First(pick => pick.Property == unsupported.Name).Call),
+                ConstructorChains.GetCalledName(
+                    picks.FirstOrDefault(pick => pick.Property == unsupported.Name).Call ?? tool.AllConfigurableCall!),
                 unsupported.Name,
                 unsupported.Type.ToDisplayString());
 
@@ -263,5 +275,9 @@ internal static class ToolsetParser
         public IInvocationOperation? SettingsCall { get; set; }
 
         public List<IInvocationOperation> Picks { get; } = [];
+
+        public IInvocationOperation? AllConfigurableCall { get; set; }
+
+        public List<string?> Exclusions { get; } = [];
     }
 }

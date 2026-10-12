@@ -15,10 +15,9 @@ internal partial class ResearchAgent : AgentDefinition
             .Configurable(o => o.Temperature)
             .Configurable(o => o.Instructions);
 
-        UseToolset<CompanyToolset>().FindCompanies();
+        UseToolset<CompanyToolset>().Include(t => t.FindCompanies);
 
-        WithToolSettings()
-            .FindCompanies()
+        ConfigureFindCompanies()
             .WithLimit(3);
     }
 

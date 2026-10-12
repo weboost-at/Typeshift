@@ -1,4 +1,5 @@
 using Agentic.Agents;
+using Agentic.Tools;
 using Agentic.Toolsets;
 
 namespace Agentic.Tests.Agents.Support;
@@ -7,7 +8,7 @@ namespace Agentic.Tests.Agents.Support;
 
 public class MisselectingAgent<TToolset> : AgentDefinition where TToolset : Toolset, new()
 {
-    public MisselectingAgent() => UseToolset<TToolset>().Select("find_companies");
+    public MisselectingAgent() => UseToolset<TToolset>().Include(_ => new ToolRef("find_companies"));
 }
 
 public class DuplicatingAgent<TToolset> : AgentDefinition where TToolset : Toolset, new()

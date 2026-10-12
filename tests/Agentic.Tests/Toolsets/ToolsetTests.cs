@@ -16,6 +16,16 @@ public class ToolsetTests : HostTestBase
     }
 
     [Fact]
+    public void Given_AllConfigurable_The_Overrides_Hold_Every_Member_But_The_Excluded()
+    {
+        // Act
+        var members = typeof(ProbeToolset.ProbeOverrides).GetProperties().Select(property => property.Name);
+
+        // Assert
+        members.Should().BeEquivalentTo(nameof(ProbeSettings.Limit));
+    }
+
+    [Fact]
     public async Task Given_No_Settings_The_Tool_Runs_With_Its_Code_Defaults()
     {
         // Arrange

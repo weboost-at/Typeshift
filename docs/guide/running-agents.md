@@ -79,7 +79,7 @@ var run = new SupportAgent.Settings
 var runOptions = support.ResolveChatOptions(run);
 var runClient = await support.CreateChatClientAsync(runOptions);
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Scenarios/RunningAgents.cs#L25-L35' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Scenarios/RunningAgents.cs#L29-L39' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The run's model, `reasoning-model`, picks a different client. Values a run leaves null keep what the layers below
@@ -95,7 +95,7 @@ The client streams like any `IChatClient`; tool calls run between the streamed u
 await foreach (var update in runClient.GetStreamingResponseAsync("Where is my refund?", runOptions))
     Console.Write(update.Text);
 ```
-<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Scenarios/RunningAgents.cs#L39-L42' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Agentic/blob/main/samples/Agentic.Samples.Docs/Scenarios/RunningAgents.cs#L43-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## A run with stored settings

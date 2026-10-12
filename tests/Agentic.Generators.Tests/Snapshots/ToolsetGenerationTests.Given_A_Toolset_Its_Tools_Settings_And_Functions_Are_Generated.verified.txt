@@ -17,7 +17,7 @@ partial class WebResearchToolset
         /// <summary>
         /// The <c>search_web</c> tool.
         /// </summary>
-        public static global::Agentic.Tools.ToolRef<global::Demo.SearchWebSettings, SearchWebOverrides> SearchWeb { get; } = new("search_web");
+        public static global::Agentic.Tools.ToolRef<global::Demo.SearchWebSettings, global::Demo.WebResearchToolset.SearchWebOverrides> SearchWeb { get; } = new("search_web");
 
         /// <summary>
         /// The <c>read_web_page</c> tool.
@@ -194,33 +194,27 @@ partial class WebResearchToolset
 }
 
 /// <summary>
-/// Selects the tools of <see cref="Demo.WebResearchToolset"/> an agent offers, chained after
-/// <c>UseToolset&lt;WebResearchToolset&gt;()</c>.
+/// The tools of <see cref="Demo.WebResearchToolset"/>, to include in or exclude from an agent:
+/// <c>UseToolset&lt;WebResearchToolset&gt;().Include(t => t.Name)</c>.
 /// </summary>
-public static class WebResearchToolsetSelection
+public static class WebResearchToolsetToolList
 {
-    extension(global::Agentic.Tools.ToolSelection<global::Demo.WebResearchToolset> tools)
+    extension(global::Agentic.Tools.ToolList<global::Demo.WebResearchToolset> tools)
     {
         /// <summary>
-        /// Selects the <c>search_web</c> tool: Search the public web. Returns the most relevant results first.
+        /// The <c>search_web</c> tool: Search the public web. Returns the most relevant results first.
         /// </summary>
-        /// <returns>This selection, to select further tools.</returns>
-        public global::Agentic.Tools.ToolSelection<global::Demo.WebResearchToolset> SearchWeb() =>
-            tools.Select("search_web");
+        public global::Agentic.Tools.ToolRef<global::Demo.SearchWebSettings, global::Demo.WebResearchToolset.SearchWebOverrides> SearchWeb => global::Demo.WebResearchToolset.Tools.SearchWeb;
 
         /// <summary>
-        /// Selects the <c>read_web_page</c> tool: Reads the main content of a web page as markdown.
+        /// The <c>read_web_page</c> tool: Reads the main content of a web page as markdown.
         /// </summary>
-        /// <returns>This selection, to select further tools.</returns>
-        public global::Agentic.Tools.ToolSelection<global::Demo.WebResearchToolset> ReadWebPage() =>
-            tools.Select("read_web_page");
+        public global::Agentic.Tools.ToolRef ReadWebPage => global::Demo.WebResearchToolset.Tools.ReadWebPage;
 
         /// <summary>
-        /// Selects the <c>forget</c> tool: Forgets what was read.
+        /// The <c>forget</c> tool: Forgets what was read.
         /// </summary>
-        /// <returns>This selection, to select further tools.</returns>
-        public global::Agentic.Tools.ToolSelection<global::Demo.WebResearchToolset> Forget() =>
-            tools.Select("forget");
+        public global::Agentic.Tools.ToolRef Forget => global::Demo.WebResearchToolset.Tools.Forget;
     }
 }
 

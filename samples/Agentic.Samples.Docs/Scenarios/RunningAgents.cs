@@ -22,6 +22,10 @@ internal static class RunningAgents
 
         Expect.That(response.Text == "Answered by fast-model.", "the code's model answers");
 
+        var triage = services.GetRequiredService<AgentRuntime<TriageAgent>>().ResolveChatOptions();
+
+        Expect.That(triage.Tools!.Single().Name == "search_tickets", "excluded tools are not offered");
+
         // begin-snippet: run-settings
         var run = new SupportAgent.Settings
         {

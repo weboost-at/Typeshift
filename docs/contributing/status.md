@@ -52,7 +52,7 @@ live here, never as TODOs in code.
       persistence feature flag
 - [x] Generated, typed `Settings` per agent and `{Tool}Overrides` per tool, serialized without reflection
 - [x] Generated tool selection and `WithToolSettings` overloads; foreign tools and unread settings do not compile
-      (the overloads became the `WithToolSettings()` builder in milestone 12)
+      (the overloads became generated builders in milestone 12)
 - [x] Optional agent names; stored agents and the agent catalog removed; conversation ids parsed into the store's ids
 - [x] Full XML docs on the public API: parameters, returns, exceptions
 
@@ -75,7 +75,9 @@ live here, never as TODOs in code.
 - [x] `WithSettings<T>().Configurable(...)`, `WithChatOptions().With...()`, `UseToolset<T>().A()`: no builder inside a
       lambda
 - [x] Settings arrive as a tool parameter the model never sees; `GetToolSettings<T>()` removed
-- [x] `GetInstructions()`; the generated `WithToolSettings()` builder per agent
+- [x] `GetInstructions()`; the generated `Configure{Tool}()` builder per tool of an agent
+- [x] `UseToolset<T>().Include(t => t.X)` and `.Exclude(t => t.X)` over a generated tool list (D29)
+- [x] `AllConfigurable()` with `NotConfigurable(...)` next to the default allow list (D43)
 
 ## Behavior coverage
 
@@ -104,7 +106,7 @@ rule. Where the owner's review changed a behavior, the row says how.
 | 18 | `AgentRuntimeTests.Given_The_Agents_Tool_Settings_Its_Tools_Run_With_All_Of_Them` |
 | 19 | `AgentRuntimeTests.Given_Run_Tool_Settings_Their_Values_Apply_Over_The_Agents_Own` |
 | 20 | `AgentRuntimeTests.Given_Run_Tool_Settings_The_Next_Run_Uses_The_Agents_Own` |
-| 21 | `DiagnosticTests.Given_Settings_Of_A_Tool_The_Agent_Does_Not_Offer_WithToolSettings_Does_Not_Compile` (a compiler error since D30) |
+| 21 | `DiagnosticTests.Given_Settings_Of_A_Tool_The_Agent_Does_Not_Offer_Configuring_Them_Does_Not_Compile` (a compiler error since D30) |
 | 22 | Changed by D31, names are optional and free-form: `AgentDefinitionTests.Given_WithName_The_Agent_Goes_By_That_Name`, `..._Given_No_WithName_The_Agent_Goes_By_Its_Class_Name` |
 | 23 | Dropped by D31: names need not be unique |
 | 24 | `AgentSettingsTests.Exposes_Only_The_Model_The_Configurable_Chat_Options_And_The_Configurable_Tools`, `..._Given_Values_Configured_Under_An_Id_The_Run_Resolves_With_Them`, `..._Given_Settings_Saved_Under_An_Id_They_Load_Back_Equal`, `..._Given_No_Settings_Saved_Under_An_Id_Loading_Returns_Empty_Settings`, `..._Given_Settings_Under_Two_Ids_Each_Run_Resolves_With_Its_Own` |
@@ -172,9 +174,9 @@ moved code staying cached). CI builds and runs `samples/Agentic.Samples.PackageC
 - **Fixed tracking limits:** the publish interval (100 ms) and the subscriber limits (250 ms per session, 5 s for the
   tracker) are constants, as in the owner's code.
 - **Generated line length:** generated code is `global::`-qualified and some declarations exceed 120 columns.
-- **Selection chains are read from syntax:** `UseToolset<T>().A()` must be one expression. Splitting it,
-  `var tickets = UseToolset<T>(); tickets.A();`, offers only `A` at runtime while the generator assumes every tool of
-  `T` (D29).
+- **Selection chains are read from syntax:** `UseToolset<T>().Include(t => t.A)` must be one expression, and each
+  pick a lambda reading one property. Splitting it, `var tickets = UseToolset<T>(); tickets.Include(t => t.A);`,
+  offers only `A` at runtime while the generator assumes every tool of `T` (D29).
 
 ## Next steps
 
@@ -195,7 +197,7 @@ From the [decisions](./decisions.md), the ones that shape the API the most:
    persistent APIs throw.
 2. **D27:** the generated `Settings` and `{Tool}Overrides` records, their JSON shape and the storable member types.
 3. **D28:** tool defaults are stored under the agent's id.
-4. **D29, D30:** tool selection and `WithToolSettings()` are generated, so misuse is a compiler error.
+4. **D29, D30:** the tool lists and `Configure{Tool}()` are generated, so misuse is a compiler error.
 5. **D40, D41, D42:** settings arrive as a tool parameter; every declaration is one flat chain; instructions come
    from `GetInstructions()`.
 6. **D33:** conversation ids are parsed into the store's id type; a call without one is not stored.

@@ -29,11 +29,10 @@ public static class AgentSources
                     .Configurable(o => o.Instructions);
 
                 UseToolset<WebResearchToolset>()
-                    .SearchWeb()
-                    .ReadWebPage();
+                    .Include(t => t.SearchWeb)
+                    .Include(t => t.ReadWebPage);
 
-                WithToolSettings()
-                    .SearchWeb()
+                ConfigureSearchWeb()
                     .WithLimit(5)
                     .WithSafeSearch(false);
             }
@@ -64,8 +63,8 @@ public static class AgentSources
             public ResearchAgent()
             {
                 WithName("research_agent");
-                UseToolset<WebResearchToolset>().SearchWeb();
-                WithToolSettings().SearchWeb().WithLimit(3);
+                UseToolset<WebResearchToolset>().Exclude(t => t.ReadWebPage).Exclude(t => t.Forget);
+                ConfigureSearchWeb().WithLimit(3);
             }
         }
         """;
@@ -242,7 +241,7 @@ public static class AgentSources
             public AwkwardAgent()
             {
                 UseToolset<AwkwardToolset>();
-                WithToolSettings().Tool().WithStrict(true);
+                ConfigureTool().WithStrict(true);
             }
         }
         """;
