@@ -47,7 +47,7 @@ ticked as they land, open items and blockers are recorded here, never as TODOs i
 
 - [x] The sample, the AOT CI job, the packaging smoke test
 - [x] `docs/architecture.md`, `docs/diagnostics.md`, `docs/decisions.md`, `docs/renaming.md`, README
-- [ ] Final review pass, clean re-verification, pull request, tag `v0.1.0-alpha.1`
+- [x] Final review pass, clean re-verification, pull request, tag `v0.1.0-alpha.1`
 
 ## Behavior coverage
 
