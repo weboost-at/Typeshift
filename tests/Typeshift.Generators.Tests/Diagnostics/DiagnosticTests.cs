@@ -239,14 +239,17 @@ public class DiagnosticTests : GeneratorTestBase
         run.Assert.Reports("TSH011", DiagnosticSeverity.Warning, "services.AddTypeshift()");
     }
 
-    [Fact]
-    public void Given_A_Tool_Name_That_Is_Not_Lower_Snake_Case_TSH012_Is_Reported_On_It()
+    [Theory]
+    [InlineData("EchoText")]
+    [InlineData("echo_")]
+    [InlineData("echo__text")]
+    public void Given_A_Tool_Name_That_Is_Not_Lower_Snake_Case_TSH012_Is_Reported_On_It(string name)
     {
         // Act
-        var run = Run(DiagnosticSources.NotLowerSnakeCase);
+        var run = Run(DiagnosticSources.NotLowerSnakeCase(name));
 
         // Assert
-        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, "\"EchoText\"");
+        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, $"\"{name}\"");
     }
 
     [Fact]

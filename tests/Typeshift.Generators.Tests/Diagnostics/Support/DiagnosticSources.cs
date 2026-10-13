@@ -182,20 +182,6 @@ public static class DiagnosticSources
         }
         """;
 
-    public const string NotLowerSnakeCase =
-        """
-        using Typeshift.Toolsets;
-
-        namespace Demo;
-
-        public partial class EchoToolset : Toolset
-        {
-            public EchoToolset() => AddTool(Echo).WithName("EchoText").WithDescription("Echoes.");
-
-            public static string Echo(string text) => text;
-        }
-        """;
-
     public const string AgentNotPartial =
         """
         using Typeshift.Agents;
@@ -499,6 +485,20 @@ public static class DiagnosticSources
                     .NotConfigurable(s => s.Weights);
 
             public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public static string NotLowerSnakeCase(string name) =>
+        $$"""
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        public partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithName("{{name}}").WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
         }
         """;
 }
