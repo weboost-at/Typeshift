@@ -82,28 +82,16 @@ public abstract class GeneratorTestBase
 
     // An assembly compiled with the generator, referenced from the subject as metadata
     protected MetadataReference CompileReference(string assemblyName, params string[] sources) =>
-        CompileReference(assemblyName, [], sources);
-
-    protected MetadataReference CompileReference(
-        string assemblyName,
-        IEnumerable<MetadataReference> references,
-        params string[] sources)
-    {
-        var run = Run(Compile(assemblyName, references, sources));
-        using var image = new MemoryStream();
-        var emitted = run.Output.Emit(image, cancellationToken: Ct);
-
-        if (!emitted.Success)
-            throw new InvalidOperationException(string.Join(Environment.NewLine, emitted.Diagnostics));
-
-        return MetadataReference.CreateFromImage(image.ToArray());
-    }
+        Emit(Run(Compile(assemblyName, [], sources)).Output);
 
     // An assembly whose project does not run the generator, as one without the package reference
-    protected MetadataReference CompileReferenceWithoutGenerator(string assemblyName, params string[] sources)
+    protected MetadataReference CompileReferenceWithoutGenerator(string assemblyName, params string[] sources) =>
+        Emit(Compile(assemblyName, [], sources));
+
+    private MetadataReference Emit(Compilation compilation)
     {
         using var image = new MemoryStream();
-        var emitted = Compile(assemblyName, [], sources).Emit(image, cancellationToken: Ct);
+        var emitted = compilation.Emit(image, cancellationToken: Ct);
 
         if (!emitted.Success)
             throw new InvalidOperationException(string.Join(Environment.NewLine, emitted.Diagnostics));
