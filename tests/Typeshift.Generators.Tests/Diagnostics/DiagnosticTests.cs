@@ -143,6 +143,20 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_Two_References_Sharing_A_Tool_Name_TSH007_Is_Reported_On_AddTypeshift()
+    {
+        // Arrange
+        var echo = CompileReference("Tools", RegistrationSources.EchoToolset);
+        var shout = CompileReference("Shouts", RegistrationSources.ShoutToolset);
+
+        // Act
+        var run = Run(Compile("App", [echo, shout], RegistrationSources.Host));
+
+        // Assert
+        run.Assert.Reports("TSH007", DiagnosticSeverity.Error, "services.AddTypeshift()");
+    }
+
+    [Fact]
     public void Given_A_Tool_Without_Any_Description_TSH008_Is_Reported_On_AddTool()
     {
         // Act
