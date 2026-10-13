@@ -10,9 +10,8 @@ public partial class DecisionCitationTests
     public void Every_Decision_The_Code_Cites_Is_In_Force()
     {
         // Arrange
-        var inForce = InForce().Matches(RepositoryFiles.Read("docs/contributing/decisions.md"))
-            .Select(match => match.Groups["id"].Value)
-            .ToHashSet();
+        var decisions = RepositoryFiles.Read("docs/contributing/decisions.md");
+        var inForce = Ids(Heading(), decisions).Except(Ids(WithdrawnRow(), decisions)).ToHashSet();
 
         // Act
         var stale = RepositoryFiles.Find("*.*", "src", "samples", "tests")
@@ -25,8 +24,15 @@ public partial class DecisionCitationTests
         stale.Should().BeEmpty();
     }
 
-    [GeneratedRegex(@"^### D(?<id>\d+)\. (?!Withdrawn)", RegexOptions.Multiline)]
-    private static partial Regex InForce();
+    private static IEnumerable<string> Ids(Regex pattern, string decisions) =>
+        pattern.Matches(decisions).Select(match => match.Groups["id"].Value);
+
+    [GeneratedRegex(@"^### D(?<id>\d+)\. ", RegexOptions.Multiline)]
+    private static partial Regex Heading();
+
+    // A withdrawn decision is a row of the withdrawn table, whether or not its heading is gone yet
+    [GeneratedRegex(@"^\| D(?<id>\d+) \|", RegexOptions.Multiline)]
+    private static partial Regex WithdrawnRow();
 
     [GeneratedRegex(@"(//|<!--)\s*D(?<id>\d+):")]
     private static partial Regex Citation();
