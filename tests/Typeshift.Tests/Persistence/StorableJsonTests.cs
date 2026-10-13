@@ -39,6 +39,19 @@ public class StorableJsonTests : UnitTestBase
         json.Should().Be("""{"shade":"Dark"}""");
     }
 
+    [Theory]
+    [InlineData("7")]
+    [InlineData("1")]
+    [InlineData("Light, Dark")]
+    public void Given_An_Enum_Value_That_Is_No_Member_Name_The_Member_Reads_As_Null(string value)
+    {
+        // Act
+        var restored = EveryKind.Deserialize($$"""{"shade":"{{value}}"}""");
+
+        // Assert
+        restored.Shade.Should().BeNull();
+    }
+
     [Fact]
     public void Given_A_Number_With_An_Exponent_It_Reads_As_That_Number()
     {

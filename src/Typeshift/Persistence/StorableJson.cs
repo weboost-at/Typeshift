@@ -293,7 +293,7 @@ public static class StorableJson
     /// <param name="name">The member's JSON name.</param>
     /// <returns>The value, or null when the member is missing or names no member of the enum.</returns>
     public static TEnum? ReadEnum<TEnum>(JsonElement data, string name) where TEnum : struct, Enum =>
-        Enum.TryParse<TEnum>(ReadString(data, name), out var member) ? member : null;
+        ReadString(data, name) is { } text && Enum.GetNames<TEnum>().Contains(text) ? Enum.Parse<TEnum>(text) : null;
 
     /// <summary>
     /// Reads nested storable data.
