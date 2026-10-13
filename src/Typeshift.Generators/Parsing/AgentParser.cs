@@ -15,9 +15,11 @@ internal static class AgentParser
     public static AgentModel Parse(INamedTypeSymbol agent, Compilation compilation, CancellationToken ct)
     {
         var diagnostics = new DiagnosticBag();
-        var isPartial = agent.IsPartial(ct);
+        var notPartial = agent.GetNotPartial(ct);
+        var isPartial = notPartial is null;
 
-        if (!isPartial) diagnostics.Report(Descriptors.NotPartial, agent.Locations.FirstOrDefault(), agent.Name);
+        if (notPartial is not null)
+            diagnostics.Report(Descriptors.NotPartial, notPartial.Locations.FirstOrDefault(), notPartial.Name);
 
         var invocations = ConstructorChains.GetInvocations(agent, compilation, ct).ToList();
 

@@ -18,9 +18,11 @@ internal static class ToolsetParser
         CancellationToken ct)
     {
         var diagnostics = new DiagnosticBag();
-        var isPartial = toolset.IsPartial(ct);
+        var notPartial = toolset.GetNotPartial(ct);
+        var isPartial = notPartial is null;
 
-        if (!isPartial) diagnostics.Report(Descriptors.NotPartial, toolset.Locations.FirstOrDefault(), toolset.Name);
+        if (notPartial is not null)
+            diagnostics.Report(Descriptors.NotPartial, notPartial.Locations.FirstOrDefault(), notPartial.Name);
 
         var tools = ConstructorChains.GetInvocations(toolset, compilation, ct)
             .Where(IsAddTool)

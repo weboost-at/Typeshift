@@ -32,10 +32,11 @@ delegate. Each guard throws an exception whose message says what to change.
 
 ## TSH001
 
-**Toolset or agent is not partial.** Reported on the class name.
+**Toolset or agent is not partial.** Reported on the class name, or on the name of the class it is nested in when
+that one is not partial.
 
 The generator adds members to every toolset and agent (the tool bindings, the `Settings` record, the
-`Configure{Tool}()` methods), so the class must be `partial`.
+`Configure{Tool}()` methods), so the class must be `partial`, and so must every class it is nested in.
 
 ```csharp
 public class CompanyToolset : Toolset          // TSH001

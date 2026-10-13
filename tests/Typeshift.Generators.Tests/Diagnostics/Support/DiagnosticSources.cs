@@ -17,6 +17,23 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string ContainerNotPartial =
+        """
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        public static class Outer
+        {
+            public partial class EchoToolset : Toolset
+            {
+                public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes.");
+
+                public static string Echo(string text) => text;
+            }
+        }
+        """;
+
     public const string NotConstant =
         """
         using Typeshift.Toolsets;

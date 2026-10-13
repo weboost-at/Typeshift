@@ -17,6 +17,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Toolset_In_A_Class_That_Is_Not_Partial_TSH001_Is_Reported_On_The_Class_Name()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ContainerNotPartial);
+
+        // Assert
+        run.Assert.Reports("TSH001", DiagnosticSeverity.Error, "Outer");
+    }
+
+    [Fact]
     public void Given_An_Agent_That_Is_Not_Partial_TSH001_Is_Reported_On_Its_Name()
     {
         // Act

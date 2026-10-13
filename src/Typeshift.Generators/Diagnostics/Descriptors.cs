@@ -11,7 +11,7 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor NotPartial = Error(
         "TSH001",
         "Toolset or agent is not partial",
-        "'{0}' must be declared partial so the generator can add its members");
+        "'{0}' must be declared partial so the generator can add members to it");
 
     public static readonly DiagnosticDescriptor NotConstant = Error(
         "TSH002",
