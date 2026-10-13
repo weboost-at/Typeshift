@@ -28,5 +28,8 @@ public class ConversationTestData(Faker faker)
 
     public int OutputTokens { get; } = faker.Random.Int(10, 99);
 
+    // How long a conversation rests between two sessions
+    public TimeSpan Pause { get; } = TimeSpan.FromMinutes(faker.Random.Int(1, 600));
+
     public IReadOnlyList<string> AnswerDeltas => [.. Answer.Chunk(4).Select(characters => new string(characters))];
 }

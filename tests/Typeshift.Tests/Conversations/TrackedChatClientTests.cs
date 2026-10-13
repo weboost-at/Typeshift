@@ -167,6 +167,94 @@ public class TrackedChatClientTests : ConversationTestBase
     }
 
     [Fact]
+    public async Task Given_A_Stored_Call_With_Its_Result_The_Resumed_Conversation_Keeps_Both()
+    {
+        // Arrange
+        ChatClient
+            .Reply([.. CallUpdates()])
+            .Reply([.. AnswerUpdates()])
+            .Reply([.. AnswerUpdates()]);
+
+        var client = Tracked();
+        await client.GetResponseAsync(Conversation.Question, Options(Conversation.ConversationId), Ct);
+
+        // Act
+        await client.GetResponseAsync(Conversation.FollowUp, Options(Conversation.ConversationId), Ct);
+
+        // Assert
+        ChatClient.Requests[2].Assert.Shaped(
+            (ChatRole.User, typeof(TextContent)),
+            (ChatRole.Assistant, typeof(FunctionCallContent)),
+            (ChatRole.Tool, typeof(FunctionResultContent)),
+            (ChatRole.Assistant, typeof(TextContent)),
+            (ChatRole.User, typeof(TextContent)));
+    }
+
+    [Fact]
+    public async Task Given_Options_Reused_For_A_Second_Call_The_Conversation_Resumes()
+    {
+        // Arrange
+        ChatClient
+            .Reply([.. AnswerUpdates()])
+            .Reply([.. AnswerUpdates()]);
+
+        var client = Tracked();
+        var options = Options(Conversation.ConversationId);
+        await client.GetResponseAsync(Conversation.Question, options, Ct);
+
+        // Act
+        await client.GetResponseAsync(Conversation.FollowUp, options, Ct);
+
+        // Assert
+        ChatClient.Requests[1].Assert.Texts(Conversation.Question, Conversation.Answer, Conversation.FollowUp);
+    }
+
+    [Fact]
+    public async Task Given_A_Conversation_Deleted_While_A_Resumed_Session_Runs_It_Stays_Deleted()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+
+        ChatClient
+            .Reply([.. AnswerUpdates()])
+            .Reply([gate, .. AnswerUpdates()]);
+
+        var client = Tracked();
+        await client.GetResponseAsync(Conversation.Question, Options(Conversation.ConversationId), Ct);
+        var resuming = client.GetResponseAsync(Conversation.FollowUp, Options(Conversation.ConversationId), Ct);
+
+        // Act
+        Store.Delete<StoredConversation>(Conversation.ConversationId);
+        gate.SetResult();
+        await resuming;
+
+        var stored = await Store.LoadAsync<StoredConversation>(Conversation.ConversationId, Ct);
+
+        // Assert
+        stored.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Given_A_Resumed_Conversation_Its_Last_Activity_Is_When_The_Latest_Session_Finished()
+    {
+        // Arrange
+        ChatClient
+            .Reply([.. AnswerUpdates()])
+            .Reply([.. AnswerUpdates()]);
+
+        var client = Tracked();
+        await client.GetResponseAsync(Conversation.Question, Options(Conversation.ConversationId), Ct);
+        Time.Advance(Conversation.Pause);
+
+        // Act
+        await client.GetResponseAsync(Conversation.FollowUp, Options(Conversation.ConversationId), Ct);
+        var stored = await StoredAsync(Conversation.ConversationId);
+
+        // Assert
+        stored.LastActivity.Should().Be(Time.GetUtcNow());
+    }
+
+    [Fact]
     public async Task Given_A_Conversation_Id_The_Provider_Does_Not_Receive_It()
     {
         // Arrange

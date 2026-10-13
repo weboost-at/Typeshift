@@ -3,7 +3,7 @@ using Typeshift.Persistence;
 
 namespace Typeshift.Tests.Conversations.Support;
 
-// The in-memory store, plus a hold on saves, so a test can order what sessions find when they end
+// The in-memory store, plus deleting and a hold on saves, so a test can change what sessions find when they end
 public sealed class ConversationTestStore : ITypeshiftStore<Guid>
 {
     private readonly ConcurrentDictionary<(Type Kind, Guid Id), string> _documents = [];
@@ -24,4 +24,6 @@ public sealed class ConversationTestStore : ITypeshiftStore<Guid>
         await SavesWaitFor;
         _documents[(typeof(TData), id)] = data.Serialize();
     }
+
+    public void Delete<TData>(Guid id) => _documents.TryRemove((typeof(TData), id), out _);
 }
