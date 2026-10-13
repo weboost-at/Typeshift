@@ -194,7 +194,7 @@ partial class WebResearchToolset
 }
 
 /// <summary>
-/// The tools of <see cref="Demo.WebResearchToolset"/>, to include in or exclude from an agent:
+/// The tools of <see cref="global::Demo.WebResearchToolset"/>, to include in or exclude from an agent:
 /// <c>UseToolset&lt;WebResearchToolset&gt;().Include(t => t.Name)</c>.
 /// </summary>
 public static class WebResearchToolsetToolList

@@ -167,7 +167,7 @@ internal static class ToolsetEmitter
         writer.Line();
         Docs.WriteSummary(
             writer,
-            $"The tools of <see cref=\"{toolset.Type.FullName.Replace("global::", "")}\"/>, to include in or exclude "
+            $"The tools of <see cref=\"{toolset.Type.FullName}\"/>, to include in or exclude "
             + $"from an agent: <c>UseToolset&lt;{toolset.Type.Name}&gt;().Include(t => t.Name)</c>.");
 
         using (writer.Block($"{toolset.Type.Accessibility} static class {toolset.Type.FlatName}ToolList"))

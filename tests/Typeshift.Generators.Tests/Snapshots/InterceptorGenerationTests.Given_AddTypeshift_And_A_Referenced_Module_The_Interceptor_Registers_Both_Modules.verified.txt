@@ -7,9 +7,9 @@ namespace App;
 partial class EchoAgent
 {
     /// <summary>
-    /// The settings of <see cref="App.EchoAgent"/> that may change at runtime: its model, its configurable chat options
-    /// and the configurable settings of its tools. A null value keeps what the layer below sets. Store them per id
-    /// through the agent's runtime, or pass them for a single run.
+    /// The settings of <see cref="global::App.EchoAgent"/> that may change at runtime: its model, its configurable chat
+    /// options and the configurable settings of its tools. A null value keeps what the layer below sets. Store them per
+    /// id through the agent's runtime, or pass them for a single run.
     /// </summary>
     public sealed record Settings :
         global::Typeshift.Agents.IAgentSettings,
@@ -47,7 +47,7 @@ partial class EchoAgent
 }
 
 /// <summary>
-/// The typed members of the runtime of <see cref="App.EchoAgent"/>.
+/// The typed members of the runtime of <see cref="global::App.EchoAgent"/>.
 /// </summary>
 public static class EchoAgentRuntimeExtensions
 {
@@ -60,7 +60,7 @@ public static class EchoAgentRuntimeExtensions
         /// <param name="id">The id the settings were saved under.</param>
         /// <param name="ct">Cancels the load.</param>
         /// <returns>The stored settings, or empty settings when none are stored.</returns>
-        /// <exception cref="System.InvalidOperationException">
+        /// <exception cref="global::System.InvalidOperationException">
         /// No store with ids of <typeparamref name="TId"/> is registered.
         /// </exception>
         public global::System.Threading.Tasks.Task<global::App.EchoAgent.Settings> LoadSettingsAsync<TId>(
@@ -76,7 +76,7 @@ public static class EchoAgentRuntimeExtensions
         /// <param name="id">The id to save the settings under.</param>
         /// <param name="settings">The settings; a null value keeps what the agent's code sets.</param>
         /// <param name="ct">Cancels the save.</param>
-        /// <exception cref="System.InvalidOperationException">
+        /// <exception cref="global::System.InvalidOperationException">
         /// No store with ids of <typeparamref name="TId"/> is registered.
         /// </exception>
         public global::System.Threading.Tasks.Task SaveSettingsAsync<TId>(
@@ -96,7 +96,7 @@ public static class EchoAgentRuntimeExtensions
         /// </param>
         /// <param name="ct">Cancels the load and the save.</param>
         /// <returns>The saved settings.</returns>
-        /// <exception cref="System.InvalidOperationException">
+        /// <exception cref="global::System.InvalidOperationException">
         /// No store with ids of <typeparamref name="TId"/> is registered.
         /// </exception>
         public global::System.Threading.Tasks.Task<global::App.EchoAgent.Settings> ConfigureAsync<TId>(
@@ -127,7 +127,7 @@ public static class EchoAgentRuntimeExtensions
         /// <param name="conversationId">The conversation the run continues, or null.</param>
         /// <param name="ct">Cancels the loads.</param>
         /// <returns>The options, with the agent's tools, to create the chat client with and call it with.</returns>
-        /// <exception cref="System.InvalidOperationException">
+        /// <exception cref="global::System.InvalidOperationException">
         /// No store with ids of <typeparamref name="TId"/> is registered.
         /// </exception>
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatOptions> ResolveChatOptionsAsync<TId>(

@@ -210,6 +210,48 @@ public static class AgentSources
         }
         """;
 
+    // A class named like its namespace and a namespace named System, both shadowing the start of a cref
+    public const string ShadowingNames =
+        """
+        using Typeshift.Agents;
+        using Typeshift.Toolsets;
+
+        namespace Chatbot.System;
+
+        /// <summary>
+        /// A class named like the namespace it lives in.
+        /// </summary>
+        public static class Chatbot;
+
+        /// <summary>
+        /// Echoes text.
+        /// </summary>
+        public partial class EchoToolset : Toolset
+        {
+            /// <summary>
+            /// Declares the tool.
+            /// </summary>
+            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes the text.");
+
+            /// <summary>
+            /// Echoes the text.
+            /// </summary>
+            /// <param name="text">The text to echo.</param>
+            public static string Echo(string text) => text;
+        }
+
+        /// <summary>
+        /// Echoes what it is told.
+        /// </summary>
+        public partial class EchoAgent : AgentDefinition
+        {
+            /// <summary>
+            /// Declares the agent.
+            /// </summary>
+            public EchoAgent() => UseToolset<EchoToolset>();
+        }
+        """;
+
     // A tool named like the generated builder, settings with an obsolete member and summaries that need escaping
     public const string AwkwardSettings =
         """

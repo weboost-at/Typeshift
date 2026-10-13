@@ -10,6 +10,8 @@ internal static class AgentEmitter
 
     private const string CancellationToken = "global::System.Threading.CancellationToken";
 
+    private const string InvalidOperationException = "global::System.InvalidOperationException";
+
     private const string MissingStore = "No store with ids of <typeparamref name=\"TId\"/> is registered.";
 
     public static string Emit(AgentOutput output) =>
@@ -125,7 +127,7 @@ internal static class AgentEmitter
 
         Docs.WriteSummary(
             writer,
-            $"The settings of <see cref=\"{agent.Type.FullName.Replace("global::", "")}\"/> that may change at runtime: "
+            $"The settings of <see cref=\"{agent.Type.FullName}\"/> that may change at runtime: "
             + "its model, its configurable chat options and the configurable settings of its tools. A null value "
             + "keeps what the layer below sets. Store them per id through the agent's runtime, or pass them for a "
             + "single run.");
@@ -210,11 +212,10 @@ internal static class AgentEmitter
     // The typed members of the agent's runtime, as an extension block so the settings type never needs naming
     private static void WriteRuntimeExtensions(SourceWriter writer, AgentModel agent)
     {
-        var name = agent.Type.FullName.Replace("global::", "");
         var settings = $"{agent.Type.FullName}.Settings";
 
         writer.Line();
-        Docs.WriteSummary(writer, $"The typed members of the runtime of <see cref=\"{name}\"/>.");
+        Docs.WriteSummary(writer, $"The typed members of the runtime of <see cref=\"{agent.Type.FullName}\"/>.");
 
         using (writer.Block($"{agent.Type.Accessibility} static class {agent.Type.FlatName}RuntimeExtensions"))
         {
@@ -240,7 +241,7 @@ internal static class AgentEmitter
         Docs.WriteParam(writer, "id", "The id the settings were saved under.");
         Docs.WriteParam(writer, "ct", "Cancels the load.");
         Docs.WriteReturns(writer, "The stored settings, or empty settings when none are stored.");
-        Docs.WriteException(writer, "System.InvalidOperationException", MissingStore);
+        Docs.WriteException(writer, InvalidOperationException, MissingStore);
         writer.Lines(
             $"""
             public {Task}<{settings}> LoadSettingsAsync<TId>(
@@ -258,7 +259,7 @@ internal static class AgentEmitter
         Docs.WriteParam(writer, "id", "The id to save the settings under.");
         Docs.WriteParam(writer, "settings", "The settings; a null value keeps what the agent's code sets.");
         Docs.WriteParam(writer, "ct", "Cancels the save.");
-        Docs.WriteException(writer, "System.InvalidOperationException", MissingStore);
+        Docs.WriteException(writer, InvalidOperationException, MissingStore);
         writer.Lines(
             $"""
             public {Task} SaveSettingsAsync<TId>(
@@ -281,7 +282,7 @@ internal static class AgentEmitter
             "Returns the changed settings, <c>settings => settings with { Temperature = 0.4f }</c>.");
         Docs.WriteParam(writer, "ct", "Cancels the load and the save.");
         Docs.WriteReturns(writer, "The saved settings.");
-        Docs.WriteException(writer, "System.InvalidOperationException", MissingStore);
+        Docs.WriteException(writer, InvalidOperationException, MissingStore);
         writer.Lines(
             $"""
             public {Task}<{settings}> ConfigureAsync<TId>(
@@ -322,7 +323,7 @@ internal static class AgentEmitter
         Docs.WriteParam(writer, "conversationId", "The conversation the run continues, or null.");
         Docs.WriteParam(writer, "ct", "Cancels the loads.");
         Docs.WriteReturns(writer, "The options, with the agent's tools, to create the chat client with and call it with.");
-        Docs.WriteException(writer, "System.InvalidOperationException", MissingStore);
+        Docs.WriteException(writer, InvalidOperationException, MissingStore);
         writer.Lines(
             $"""
             public {Task}<global::Microsoft.Extensions.AI.ChatOptions> ResolveChatOptionsAsync<TId>(
