@@ -4,10 +4,11 @@ using FluentAssertions;
 
 namespace Typeshift.Generators.Tests.Repository;
 
-// The code style rules of AGENTS.md a pattern can check, for the library, the generator and the samples
+// The code style rules of AGENTS.md a pattern can check, for the library, the generator, the samples and the tests;
+// the patterns are spelled so that they do not match themselves
 public partial class SourceConventionTests
 {
-    private static readonly string[] Code = ["src", "samples"];
+    private static readonly string[] Code = ["src", "samples", "tests"];
 
     [Fact]
     public void The_Code_Never_Reads_The_Clock()
@@ -56,15 +57,19 @@ public partial class SourceConventionTests
             .Where(line => rule.IsMatch(line.Text))
             .Select(line => line.Line);
 
-    [GeneratedRegex(@"\bDateTime(Offset)?\.(Utc)?Now\b|\bStopwatch\b|\bEnvironment\.TickCount")]
+    // Task.Delay waits on the real clock unless a TimeProvider is its second argument
+    [GeneratedRegex(
+        @"\bDateTime(Offset)?\.(UtcNow|Now|Today)\b|\bStop[w]atch\b|\bEnvironment\.TickCount"
+        + @"|\bTask\.Delay\([^,]*\)\s*;")]
     private static partial Regex Clock();
 
-    [GeneratedRegex(@"[!=]= null\b")]
+    [GeneratedRegex(@"[!=]= null\b|\bnull [!=]=")]
     private static partial Regex NullComparison();
 
-    [GeneratedRegex(@"\(this [\w.<>]+ \w+")]
+    // After the parenthesis or on a line of its own; the generated interceptor's this global:: matches neither
+    [GeneratedRegex(@"(\(|^\s*)this [\w.<>?\[\]]+ \w+[,)]")]
     private static partial Regex ThisParameter();
 
-    [GeneratedRegex(@"\b(TODO|FIXME|HACK)\b")]
+    [GeneratedRegex(@"(//|/\*).*\b(TO[D]O|FIX[M]E|HA[C]K)\b", RegexOptions.IgnoreCase)]
     private static partial Regex Todo();
 }
