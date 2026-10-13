@@ -45,6 +45,16 @@ public class ToolsetGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Namespace_Named_Like_A_Keyword_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(ToolsetSources.KeywordNamespace);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
     public void Given_A_Parameter_Documented_Twice_The_Generator_Does_Not_Fail()
     {
         // Act

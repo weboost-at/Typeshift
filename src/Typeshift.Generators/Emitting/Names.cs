@@ -42,5 +42,6 @@ internal static class Names
 
     public static string Module(string name) => $"global::{GeneratedNamespace}.{name}";
 
-    public static string HintName(string fullName) => $"{fullName.Replace("global::", "")}.g.cs";
+    // A hint name takes no '@', which a name spelled like a keyword carries
+    public static string HintName(string fullName) => $"{fullName.Replace("global::", "").Replace("@", "")}.g.cs";
 }

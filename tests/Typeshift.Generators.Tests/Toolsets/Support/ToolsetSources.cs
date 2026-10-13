@@ -166,6 +166,20 @@ public static class ToolsetSources
         }
         """;
 
+    public const string KeywordNamespace =
+        """
+        using Typeshift.Toolsets;
+
+        namespace Demo.@event;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes the text.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
     public const string DocumentedTwice =
         """
         using Typeshift.Toolsets;
