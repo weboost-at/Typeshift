@@ -1,4 +1,5 @@
 using Typeshift.Generators.Tests.Toolsets.Support;
+using FluentAssertions;
 
 namespace Typeshift.Generators.Tests.Toolsets;
 
@@ -82,6 +83,26 @@ public class ToolsetGenerationTests : GeneratorTestBase
 
         // Assert
         run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
+    public void Given_A_Settings_Member_Named_Like_A_Keyword_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(ToolsetSources.AwkwardSettingNames);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
+    public void Given_A_Settings_Member_Named_With_An_Acronym_It_Is_Stored_In_Camel_Case()
+    {
+        // Act
+        var run = Run(ToolsetSources.AwkwardSettingNames);
+
+        // Assert
+        run.Source("Demo.LinkToolset.g.cs").Should().Contain("StorableJson.Write(writer, \"urlPrefix\", URLPrefix);");
     }
 
     [Fact]

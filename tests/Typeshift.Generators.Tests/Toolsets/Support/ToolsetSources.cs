@@ -238,6 +238,32 @@ public static class ToolsetSources
         }
         """;
 
+    // Members whose names need care in C# and in JSON
+    public const string AwkwardSettingNames =
+        """
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        internal record LinkSettings
+        {
+            public int @event { get; init; }
+
+            public string URLPrefix { get; init; } = "";
+        }
+
+        internal partial class LinkToolset : Toolset
+        {
+            public LinkToolset() =>
+                AddTool(Link)
+                    .WithName("link")
+                    .WithDescription("Links the text.")
+                    .WithConfigurableSettings<LinkSettings>();
+
+            public static string Link(string text, LinkSettings settings) => text;
+        }
+        """;
+
     public const string DocumentedTwice =
         """
         using Typeshift.Toolsets;
