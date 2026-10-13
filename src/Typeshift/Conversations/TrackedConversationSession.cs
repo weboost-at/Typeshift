@@ -44,7 +44,7 @@ public class TrackedConversationSession
     public string Model { get; }
 
     /// <summary>
-    /// Where the conversation started: the agent's unique name, or <see cref="ChatExecutionContext.Unknown"/>.
+    /// Where the conversation started: the agent's name, or <see cref="ChatExecutionContext.Unknown"/>.
     /// </summary>
     public ChatExecutionContext ExecutionContext { get; }
 

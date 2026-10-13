@@ -12,8 +12,8 @@ namespace Typeshift.Agents;
 
 /// <summary>
 /// Runs an agent. The generator adds the typed members of each agent as extension members of
-/// <see cref="AgentRuntime{TAgent}"/>: <c>LoadSettingsAsync</c>, <c>SaveSettingsAsync</c>, <c>ConfigureAsync</c>
-/// and <c>ResolveChatOptionsAsync</c>.
+/// <see cref="AgentRuntime{TAgent}"/>: <c>LoadSettingsAsync</c>, <c>SaveSettingsAsync</c>, <c>ConfigureAsync</c>,
+/// <c>ResolveChatOptions</c> and <c>ResolveChatOptionsAsync</c>.
 /// </summary>
 public class AgentRuntime
 {
@@ -123,7 +123,7 @@ public class AgentRuntime
     }
 
     /// <summary>
-    /// Resolves the options of a run from the code alone; the generated <c>ResolveChatOptionsAsync</c> calls it.
+    /// Resolves the options of a run from the code alone; the generated <c>ResolveChatOptions</c> calls it.
     /// </summary>
     /// <param name="run">Settings for this run only, or null.</param>
     /// <param name="conversationId">The conversation the run continues, or null.</param>
