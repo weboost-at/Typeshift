@@ -9,7 +9,7 @@ public class TestConventionTests
     public void Every_Test_Is_Named_Given_State_And_Outcome_Or_The_Outcome_Alone()
     {
         // Act
-        var violations = ConventionViolations.Names().Except(Exemptions.Names).ToList();
+        var violations = ConventionViolations.Names().ToList();
 
         // Assert
         violations.Should().BeEmpty(Listing(violations));
@@ -19,7 +19,7 @@ public class TestConventionTests
     public void Every_Test_Declaration_Fits_120_Columns()
     {
         // Act
-        var violations = ConventionViolations.LongDeclarations().Except(Exemptions.LongDeclarations).ToList();
+        var violations = ConventionViolations.LongDeclarations().ToList();
 
         // Assert
         violations.Should().BeEmpty(Listing(violations));
@@ -29,7 +29,7 @@ public class TestConventionTests
     public void Every_Test_Class_Lives_In_A_File_Named_After_It_In_Its_Namespace_Folder()
     {
         // Act
-        var violations = ConventionViolations.Misplaced().Except(Exemptions.Misplaced).ToList();
+        var violations = ConventionViolations.Misplaced().ToList();
 
         // Assert
         violations.Should().BeEmpty(Listing(violations));
@@ -39,7 +39,7 @@ public class TestConventionTests
     public void Test_Bodies_Carry_No_Comments_But_Arrange_Act_And_Assert()
     {
         // Act
-        var violations = ConventionViolations.Comments().Except(Exemptions.Comments).ToList();
+        var violations = ConventionViolations.Comments().ToList();
 
         // Assert
         violations.Should().BeEmpty(Listing(violations));
@@ -49,7 +49,7 @@ public class TestConventionTests
     public void Every_Helper_Lives_In_Testing_Or_In_Its_Areas_Support_Folder()
     {
         // Act
-        var violations = ConventionViolations.SupportOutsideSupport().Except(Exemptions.SupportOutsideSupport).ToList();
+        var violations = ConventionViolations.SupportOutsideSupport().ToList();
 
         // Assert
         violations.Should().BeEmpty(Listing(violations));
@@ -68,20 +68,10 @@ public class TestConventionTests
     public void A_Banned_Call_Stays_Out_Of_The_Tests(string call)
     {
         // Act
-        var violations = ConventionViolations.Banned(call).Except(Exemptions.BannedCalls).ToList();
+        var violations = ConventionViolations.Banned(call).ToList();
 
         // Assert
         violations.Should().BeEmpty(Listing(violations));
-    }
-
-    [Fact]
-    public void Every_Exemption_Still_Applies()
-    {
-        // Act
-        var stale = Exemptions.All.Except(ConventionViolations.All()).ToList();
-
-        // Assert
-        stale.Should().BeEmpty(Listing(stale));
     }
 
     [Fact]
@@ -95,6 +85,6 @@ public class TestConventionTests
     }
 
     private static string Listing(IEnumerable<string> entries) =>
-        $"every entry breaks the convention or is a stale exemption:{Environment.NewLine}"
+        $"every entry breaks the convention:{Environment.NewLine}"
         + string.Join(Environment.NewLine, entries);
 }

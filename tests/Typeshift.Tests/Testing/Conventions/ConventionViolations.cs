@@ -60,14 +60,6 @@ public static partial class ConventionViolations
                 .Where(match => match.Success && !match.Groups["name"].Value.EndsWith("Tests"))
                 .Select(match => $"{file}: {match.Groups["name"].Value}"));
 
-    public static IEnumerable<string> All() =>
-        Names()
-            .Concat(LongDeclarations())
-            .Concat(Misplaced())
-            .Concat(Comments())
-            .Concat(SupportOutsideSupport())
-            .Concat(BannedCalls.Keys.SelectMany(Banned));
-
     private static bool IsWellNamed(TestMethod method)
     {
         var subject = method.Class.Replace("Tests", "");

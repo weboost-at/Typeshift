@@ -140,7 +140,7 @@ The code must read as if the owner wrote it: terse, intention-revealing, comment
 ## Tests
 
 The rules come from the owner's skills; the convention tests in `tests/Typeshift.Tests/Testing/Conventions` enforce
-them for every test project, and their exemption list stays empty.
+them for every test project, without exemptions.
 
 - One test class per subject, one business rule per test, named `Given_<state>_<outcome>` (or `<outcome>` for the
   base case); the declaration fits 120 columns.
