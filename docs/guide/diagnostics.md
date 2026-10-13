@@ -66,7 +66,7 @@ assemblies, so it never comes from the method name, which a refactoring may chan
 **Tool is not a static method group.** Reported on the argument of `AddTool`.
 
 A tool is a static method, passed as a method group. Lambdas, instance methods and delegate variables cannot be
-generated without reflection.
+generated without reflection, and a local function, even a static one, is out of the generated code's reach.
 
 ```csharp
 AddTool(query => Find(query));  // TSH004

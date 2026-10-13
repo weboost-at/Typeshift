@@ -40,16 +40,17 @@ internal static class ToolsetParser
     {
         var argument = addTool.Arguments[0].Value;
 
+        // A static local function is no method the generated code can call
         if (ConstructorChains.Unwrap(argument) is not IDelegateCreationOperation
             {
-                Target: IMethodReferenceOperation { Method.IsStatic: true } reference
+                Target: IMethodReferenceOperation { Method: { IsStatic: true, MethodKind: MethodKind.Ordinary } method }
             })
         {
             diagnostics.Report(Descriptors.NotStaticMethodGroup, argument.Syntax, argument.Syntax.ToString());
             return null;
         }
 
-        var tool = new DeclaredTool(reference.Method, addTool);
+        var tool = new DeclaredTool(method, addTool);
 
         foreach (var call in ConstructorChains.GetChainedCalls(addTool))
         {
@@ -81,7 +82,7 @@ internal static class ToolsetParser
         }
 
         if (tool.NameCall is null)
-            diagnostics.Report(Descriptors.MissingToolName, addTool.Syntax, reference.Method.Name);
+            diagnostics.Report(Descriptors.MissingToolName, addTool.Syntax, method.Name);
 
         return tool;
     }

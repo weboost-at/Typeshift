@@ -49,8 +49,8 @@ internal partial class TicketToolset : Toolset
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketToolset.cs#L6-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-toolset' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-- **The method** is a static method group, `AddTool(SearchTickets)`. Lambdas and instance methods are reported as
-  [TSH004](./diagnostics.md#tsh004).
+- **The method** is a static method group, `AddTool(SearchTickets)`. Lambdas, instance methods and local functions
+  are reported as [TSH004](./diagnostics.md#tsh004).
 - **`WithName`** is required ([TSH003](./diagnostics.md#tsh003)), a constant ([TSH002](./diagnostics.md#tsh002)),
   lower_snake_case ([TSH012](./diagnostics.md#tsh012)) and unique across everything the host can see
   ([TSH007](./diagnostics.md#tsh007)). The name, not the method, is the tool's identity: stored settings and agents

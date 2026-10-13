@@ -57,6 +57,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Static_Local_Function_TSH004_Is_Reported_On_It()
+    {
+        // Act
+        var run = Run(DiagnosticSources.StaticLocalFunction);
+
+        // Assert
+        run.Assert.Reports("TSH004", DiagnosticSeverity.Error, "Echo");
+    }
+
+    [Fact]
     public void Given_A_Settings_Class_That_Is_Not_A_Record_TSH005_Is_Reported_On_WithSettings()
     {
         // Act

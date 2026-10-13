@@ -61,6 +61,23 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string StaticLocalFunction =
+        """
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        public partial class EchoToolset : Toolset
+        {
+            public EchoToolset()
+            {
+                AddTool(Echo).WithName("echo").WithDescription("Echoes.");
+
+                static string Echo(string text) => text;
+            }
+        }
+        """;
+
     public const string SettingsNotRecord =
         """
         using Typeshift.Toolsets;
