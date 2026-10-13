@@ -45,6 +45,10 @@ dotnet nuget add source "$PWD/artifacts/packages" --name typeshift-local
 Add it to every project that declares toolsets or agents, or calls `AddTypeshift()`: the package carries the generator,
 and NuGet does not pass generators on to referencing projects. Requires the .NET 10 SDK and C# 14.
 
+Projects that declare toolsets also need `<GenerateDocumentationFile>true</GenerateDocumentationFile>`: tools take
+their descriptions from XML docs, which the compiler reads only then, and without it the build warns with
+[TSH010](https://weboost-at.github.io/Typeshift/guide/diagnostics#tsh010).
+
 ## Quickstart
 
 A toolset declares its tools in its constructor; a tool is a static method.

@@ -11,6 +11,10 @@ runs under Native AOT.
 Add the package to every project that declares toolsets or agents, or calls `AddTypeshift()`: it carries the source
 generator, and NuGet does not pass generators on to referencing projects. Requires the .NET 10 SDK and C# 14.
 
+Projects that declare toolsets also need `<GenerateDocumentationFile>true</GenerateDocumentationFile>`: tools take
+their descriptions from XML docs, which the compiler reads only then, and without it the build warns with
+[TSH010](https://weboost-at.github.io/Typeshift/guide/diagnostics#tsh010).
+
 ## What you get
 
 - Tools from static methods, with JSON schemas from their parameters and XML docs.

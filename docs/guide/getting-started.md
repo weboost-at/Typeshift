@@ -19,6 +19,10 @@ Add the package to **every project that declares toolsets or agents, or calls `A
 the source generator, and NuGet does not pass a generator on to the projects that reference yours. A referenced
 project without it is reported as [TSH011](./diagnostics.md#tsh011).
 
+A project that declares toolsets also needs `<GenerateDocumentationFile>true</GenerateDocumentationFile>`: tools take
+their descriptions from XML docs, which the compiler reads only then, and without it the build warns with
+[TSH010](./diagnostics.md#tsh010).
+
 ## A toolset
 
 A toolset is a `partial` class deriving from `Toolset` that declares its tools in its constructor. A tool is a public
