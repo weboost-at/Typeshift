@@ -173,6 +173,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Description_And_Param_Docs_Without_GenerateDocumentationFile_TSH010_Is_Reported_On_AddTool()
+    {
+        // Act
+        var run = RunWithoutDocumentation(DiagnosticSources.DescribedWithParamDocsAndDocumentationOff);
+
+        // Assert
+        run.Assert.Reports("TSH010", DiagnosticSeverity.Warning, "AddTool(Echo)");
+    }
+
+    [Fact]
     public void Given_A_Description_And_A_Summary_Without_GenerateDocumentationFile_TSH010_Is_Not_Reported()
     {
         // Act

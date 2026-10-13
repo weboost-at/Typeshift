@@ -306,6 +306,21 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string DescribedWithParamDocsAndDocumentationOff =
+        """
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        public partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes the text.");
+
+            /// <param name="text">The text to echo.</param>
+            public static string Echo(string text) => text;
+        }
+        """;
+
     public const string InternalSettingsOfPublicToolset =
         """
         using Typeshift.Toolsets;
