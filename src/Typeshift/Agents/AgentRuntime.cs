@@ -161,10 +161,10 @@ public class AgentRuntime
         where TId : notnull
     {
         var store = Stores.Get<TId>(_services);
-        var stored = await store.LoadAsync<TSettings>(id, ct);
-        var toolDefaults = await LoadToolDefaultsAsync(store, id, ct);
+        var stored = store.LoadAsync<TSettings>(id, ct);
+        var toolDefaults = LoadToolDefaultsAsync(store, id, ct);
 
-        return Definition.CreateChatOptions(stored, toolDefaults, run, conversationId, _json);
+        return Definition.CreateChatOptions(await stored, await toolDefaults, run, conversationId, _json);
     }
 
     private async Task<IReadOnlyDictionary<ToolName, IToolOverrides>> LoadToolDefaultsAsync<TId>(

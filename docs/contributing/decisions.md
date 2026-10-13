@@ -249,7 +249,7 @@ commit, or add a new one and withdraw the old.
 
 - **Context:** the owner chose one id for an agent's settings and for the defaults of the tools it runs.
 - **Decision:** `ResolveChatOptionsAsync(id)` loads the agent's `Settings` and each tool's `{Tool}Overrides` under the
-  same id, the tools in parallel. Stored defaults therefore apply to every agent run under that id, and two agents'
+  same id, all in parallel. Stored defaults therefore apply to every agent run under that id, and two agents'
   settings never collide, since each agent has its own `Settings` type.
 - **Alternatives:** a separate id for tool defaults, which every resolve call would have to pass.
 - **Where:** `Agents/AgentRuntime.cs` (`LoadToolDefaultsAsync`), `Tools/OverridableToolBinding.cs`.
