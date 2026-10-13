@@ -16,6 +16,7 @@ public class StorableTestData(Faker faker)
         Precise = Math.Round(faker.Random.Double(), 6),
         Money = Math.Round(faker.Random.Decimal(0m, 10_000m), 2),
         Key = faker.Random.Guid(),
+        When = faker.Date.RecentOffset(refDate: Reference).UtcDateTime,
         At = faker.Date.RecentOffset(refDate: Reference),
         Span = TimeSpan.FromMinutes(faker.Random.Int(1, 10_000)),
         Shade = faker.PickRandom<Shade>(),

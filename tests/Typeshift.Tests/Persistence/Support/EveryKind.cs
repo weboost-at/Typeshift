@@ -27,6 +27,8 @@ public sealed record EveryKind : IStorable<EveryKind>
 
     public Guid? Key { get; init; }
 
+    public DateTime? When { get; init; }
+
     public DateTimeOffset? At { get; init; }
 
     public TimeSpan? Span { get; init; }
@@ -46,6 +48,7 @@ public sealed record EveryKind : IStorable<EveryKind>
             StorableJson.WriteNumber(writer, "precise", Precise);
             StorableJson.WriteNumber(writer, "money", Money);
             StorableJson.Write(writer, "key", Key);
+            StorableJson.Write(writer, "when", When);
             StorableJson.Write(writer, "at", At);
             StorableJson.Write(writer, "span", Span);
             StorableJson.WriteEnum(writer, "shade", Shade);
@@ -63,6 +66,7 @@ public sealed record EveryKind : IStorable<EveryKind>
             Precise = StorableJson.ReadNumber<double>(data, "precise"),
             Money = StorableJson.ReadNumber<decimal>(data, "money"),
             Key = StorableJson.ReadGuid(data, "key"),
+            When = StorableJson.ReadDateTime(data, "when"),
             At = StorableJson.ReadDateTimeOffset(data, "at"),
             Span = StorableJson.ReadTimeSpan(data, "span"),
             Shade = StorableJson.ReadEnum<Shade>(data, "shade"),
