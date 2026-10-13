@@ -225,37 +225,6 @@ public static class DiagnosticSources
         }
         """;
 
-    public const string UngeneratedToolset =
-        """
-        using Typeshift.Toolsets;
-
-        namespace Tools;
-
-        public partial class EchoToolset : Toolset
-        {
-            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes.");
-
-            public static string Echo(string text) => text;
-        }
-        """;
-
-    public const string AgentOfUngeneratedToolset =
-        """
-        using Typeshift.Agents;
-        using Tools;
-
-        namespace Demo;
-
-        public partial class EchoAgent : AgentDefinition
-        {
-            public EchoAgent()
-            {
-                WithName("echo_agent");
-                UseToolset<EchoToolset>();
-            }
-        }
-        """;
-
     // Two tools with settings, for the agents below that do not offer one of them
     public const string ToneToolset =
         """

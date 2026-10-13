@@ -110,10 +110,10 @@ public class DiagnosticTests : GeneratorTestBase
     public void Given_A_Toolset_Not_Compiled_With_The_Generator_TSH006_Is_Reported_On_UseToolset()
     {
         // Arrange
-        var tools = CompileReferenceWithoutGenerator("Tools", DiagnosticSources.UngeneratedToolset);
+        var tools = CompileReferenceWithoutGenerator("Tools", RegistrationSources.EchoToolset);
 
         // Act
-        var run = Run(Compile("App", [tools], DiagnosticSources.AgentOfUngeneratedToolset));
+        var run = Run(Compile("App", [tools], RegistrationSources.EchoAgent));
 
         // Assert
         run.Assert.Reports("TSH006", DiagnosticSeverity.Error, "UseToolset<EchoToolset>");
