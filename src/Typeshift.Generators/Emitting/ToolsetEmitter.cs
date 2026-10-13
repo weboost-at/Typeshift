@@ -91,11 +91,7 @@ internal static class ToolsetEmitter
         var configurable = settings.Properties.Where(property => property.IsConfigurable).ToList();
 
         // A value never clashes with a member of the record or the record itself
-        string[] reserved =
-        [
-            type, "Deserialize", "EqualityContract", "Equals", "GetHashCode", "GetType", "PrintMembers", "Serialize",
-            "ToString"
-        ];
+        string[] reserved = [type, .. StorableEmitter.RecordMembers];
 
         var members = configurable
             .Select(property => new StoredMember(

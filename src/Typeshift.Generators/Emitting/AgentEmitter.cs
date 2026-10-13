@@ -106,12 +106,14 @@ internal static class AgentEmitter
     {
         var configurableTools = tools.Where(tool => tool.HasOverrides).ToList();
 
-        // A tool property never clashes with the model, a chat option or a member of the record
-        var reserved = new HashSet<string>(agent.ConfigurableOptions.Select(option => option.Name))
-        {
-            "Deserialize", "EqualityContract", "Equals", "GetHashCode", "GetType", "Model", "PrintMembers",
-            "Serialize", "Settings", "ToString"
-        };
+        // A tool property never clashes with the model, a chat option, a member of the record or the record itself
+        string[] reserved =
+        [
+            "Model",
+            "Settings",
+            .. agent.ConfigurableOptions.Select(option => option.Name),
+            .. StorableEmitter.RecordMembers
+        ];
 
         var members = new[] { new StoredMember("Model", "model", new StorageModel("Write", "ReadString")) }
             .Concat(agent.ConfigurableOptions.Select(option =>

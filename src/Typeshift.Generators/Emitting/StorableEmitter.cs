@@ -9,6 +9,12 @@ internal static class StorableEmitter
 {
     public const string Json = "global::Typeshift.Persistence.StorableJson";
 
+    // What a generated record has besides its values, so no value may take these names
+    public static readonly IReadOnlyList<string> RecordMembers =
+    [
+        "Deserialize", "EqualityContract", "Equals", "GetHashCode", "GetType", "PrintMembers", "Serialize", "ToString"
+    ];
+
     public static void WriteSerialize(
         SourceWriter writer,
         IReadOnlyList<StoredMember> members,
