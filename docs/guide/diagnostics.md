@@ -162,7 +162,7 @@ without reflection. They support:
 
 - `bool`, `byte`, `short`, `int`, `long`, `float`, `double` and `decimal`;
 - `string`, `Guid`, `DateTime`, `DateTimeOffset` and `TimeSpan`;
-- enums, stored by name;
+- enums, stored by name, and combinations of flags as their names;
 - string lists: `string[]`, `IEnumerable<string>`, `IReadOnlyCollection<string>`, `IReadOnlyList<string>`,
   `ICollection<string>` and `IList<string>`;
 - the nullable forms of all of these.

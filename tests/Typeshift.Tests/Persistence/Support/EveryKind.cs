@@ -8,6 +8,14 @@ public enum Shade
     Dark
 }
 
+[Flags]
+public enum Days
+{
+    None = 0,
+    Monday = 1,
+    Tuesday = 2
+}
+
 // Written by hand as the generator writes storable data, with a member of every kind settings can store
 public sealed record EveryKind : IStorable<EveryKind>
 {
@@ -35,6 +43,8 @@ public sealed record EveryKind : IStorable<EveryKind>
 
     public Shade? Shade { get; init; }
 
+    public Days? Days { get; init; }
+
     public IReadOnlyList<string>? Tags { get; init; }
 
     public string Serialize() =>
@@ -52,6 +62,7 @@ public sealed record EveryKind : IStorable<EveryKind>
             StorableJson.Write(writer, "at", At);
             StorableJson.Write(writer, "span", Span);
             StorableJson.WriteEnum(writer, "shade", Shade);
+            StorableJson.WriteEnum(writer, "days", Days);
             StorableJson.Write(writer, "tags", Tags);
         });
 
@@ -70,6 +81,7 @@ public sealed record EveryKind : IStorable<EveryKind>
             At = StorableJson.ReadDateTimeOffset(data, "at"),
             Span = StorableJson.ReadTimeSpan(data, "span"),
             Shade = StorableJson.ReadEnum<Shade>(data, "shade"),
+            Days = StorableJson.ReadEnum<Days>(data, "days"),
             Tags = StorableJson.ReadStrings(data, "tags")
         });
 }

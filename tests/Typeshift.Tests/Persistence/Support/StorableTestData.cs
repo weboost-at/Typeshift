@@ -20,6 +20,7 @@ public class StorableTestData(Faker faker)
         At = faker.Date.RecentOffset(refDate: Reference),
         Span = TimeSpan.FromMinutes(faker.Random.Int(1, 10_000)),
         Shade = faker.PickRandom<Shade>(),
+        Days = Days.Monday | Days.Tuesday,
         Tags = [.. faker.Lorem.Words(3)]
     };
 }

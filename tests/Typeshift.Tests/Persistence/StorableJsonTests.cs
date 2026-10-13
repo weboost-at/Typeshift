@@ -42,7 +42,7 @@ public class StorableJsonTests : UnitTestBase
     [Theory]
     [InlineData("7")]
     [InlineData("1")]
-    [InlineData("Light, Dark")]
+    [InlineData("Grey")]
     public void Given_An_Enum_Value_That_Is_No_Member_Name_The_Member_Reads_As_Null(string value)
     {
         // Act

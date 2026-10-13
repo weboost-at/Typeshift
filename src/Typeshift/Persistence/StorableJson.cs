@@ -286,14 +286,19 @@ public static class StorableJson
             : null;
 
     /// <summary>
-    /// Reads an enum member by its name.
+    /// Reads an enum member by its name, or a combination of flags by their names as <c>WriteEnum</c> writes it.
     /// </summary>
     /// <typeparam name="TEnum">The enum type.</typeparam>
     /// <param name="data">The enclosing object.</param>
     /// <param name="name">The member's JSON name.</param>
-    /// <returns>The value, or null when the member is missing or names no member of the enum.</returns>
+    /// <returns>
+    /// The value, or null when the member is missing or names neither a member of the enum nor, for flags, a
+    /// combination of members.
+    /// </returns>
     public static TEnum? ReadEnum<TEnum>(JsonElement data, string name) where TEnum : struct, Enum =>
-        ReadString(data, name) is { } text && Enum.GetNames<TEnum>().Contains(text) ? Enum.Parse<TEnum>(text) : null;
+        ReadString(data, name) is { } text && text.Split(", ").All(part => Enum.GetNames<TEnum>().Contains(part))
+            ? Enum.Parse<TEnum>(text)
+            : null;
 
     /// <summary>
     /// Reads nested storable data.
