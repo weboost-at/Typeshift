@@ -121,7 +121,7 @@ public class AgentRuntimeTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_Tools_In_The_Agents_Chat_Options_The_Run_Offers_Them_Before_Its_Toolsets()
+    public void Given_Tools_In_The_Agents_Chat_Options_The_Run_Offers_Them_Before_Its_Toolsets()
     {
         // Arrange
         var runtime = Services.GetRequiredService<AgentRuntime<HostedToolAgent>>();
