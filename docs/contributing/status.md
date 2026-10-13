@@ -31,7 +31,7 @@ behavior, the row says how.
 | 18 | `AgentRuntimeTests.Given_The_Agents_Tool_Settings_Its_Tools_Run_With_All_Of_Them` |
 | 19 | `AgentRuntimeTests.Given_Run_Tool_Settings_Their_Values_Apply_Over_The_Agents_Own` |
 | 20 | `AgentRuntimeTests.Given_Run_Tool_Settings_The_Next_Run_Uses_The_Agents_Own` |
-| 21 | `DiagnosticTests.Given_Settings_Of_A_Tool_The_Agent_Does_Not_Offer_Configuring_Them_Does_Not_Compile` (a compiler error since D30) |
+| 21 | `DiagnosticTests.Given_Settings_Of_A_Tool_The_Agent_Does_Not_Offer_Configuring_Them_Does_Not_Compile`, `..._Given_Settings_Of_An_Excluded_Tool_Configuring_Them_Does_Not_Compile` (a compiler error since D30) |
 | 22 | Changed by D31, names are optional and free-form: `AgentDefinitionTests.Given_WithName_The_Agent_Goes_By_That_Name`, `..._Given_No_WithName_The_Agent_Goes_By_Its_Class_Name` |
 | 23 | Dropped by D31: names need not be unique |
 | 24 | `AgentSettingsTests.Exposes_Only_The_Model_The_Configurable_Chat_Options_And_The_Configurable_Tools`, `..._Given_Values_Configured_Under_An_Id_The_Run_Resolves_With_Them`, `..._Given_Settings_Saved_Under_An_Id_They_Load_Back_Equal`, `..._Given_No_Settings_Saved_Under_An_Id_Loading_Returns_Empty_Settings`, `..._Given_Settings_Under_Two_Ids_Each_Run_Resolves_With_Its_Own` |
@@ -59,12 +59,15 @@ behavior, the row says how.
 | 48 | `SubscriberTests.Given_Throwing_Subscribers_The_Stream_Completes`, `..._Given_A_Subscriber_That_Never_Finishes_The_Call_Goes_On_At_The_Limit`, `..._Given_A_Session_Subscriber_That_Never_Finishes_The_Stream_Goes_On_At_The_Limit`, `..._Given_A_Subscriber_Its_Token_Is_Cancelled_At_The_Limit` |
 | 49 | CI, `.github/workflows/ci.yml`: "Publish the sample as Native AOT, failing on any trim or AOT warning" and "Run the AOT sample" |
 
-Beyond the behaviors: `StorableJsonTests` cover every storable member kind, nulls, enums by name and malformed
-values; TSH014 has a test for settings and one for chat options; the review pass's regression tests stay
-(referenced tools with optional parameters, tools in an agent's own chat options, the conversation id kept from the
-provider, overlapping first sessions, a parameter documented twice, nested and internal agents, reserved names,
-moved code staying cached). CI builds and runs `samples/Typeshift.Samples.PackageConsumer` against the packed
-`.nupkg`.
+Beyond the behaviors: `StorableJsonTests` cover every storable member kind, nulls, enums and flags by name, NaN and
+the infinities, and malformed values; TSH014 has a test for settings and one for chat options; the review passes'
+regression tests stay (referenced tools with optional parameters, tools in an agent's own chat options, the
+conversation id kept from the provider, overlapping first sessions and sessions of one conversation ending at once,
+a conversation deleted during a session, a parameter documented twice, nested and internal agents, reserved names,
+moved code staying cached, multi-line descriptions, keyword-named namespaces and settings members, names that shadow
+a cref, parameter defaults of every kind, static local functions, a toolset nested in a class that is not partial,
+private settings of an internal toolset, a tool name clash among references only, and a test run outside UTC). CI
+builds and runs `samples/Typeshift.Samples.PackageConsumer` against the packed `.nupkg`.
 
 ## Known gaps
 
@@ -75,6 +78,8 @@ moved code staying cached). CI builds and runs `samples/Typeshift.Samples.Packag
   generated module instead of a diagnostic. Nested classes the assembly can reach work.
 - **No parameterless constructor:** a toolset or agent without a parameterless constructor fails with CS7036 in the
   generated module instead of a diagnostic.
+- **Keyword names:** a toolset or agent named like a keyword (`@class`), or nested in such a class, is written
+  without its `@` and fails with CS1001.
 - **A toolset named `Tools`:** the generator nests a class of the same name in it, which fails with CS0542.
 - **Tool names that differ in underscores:** `get_v2` and `get_v_2` map to the same generated name, `GetV2`, which
   fails with CS0102. TSH007 compares the snake_case names, so it does not see the clash.
