@@ -54,7 +54,7 @@ public abstract class Toolset
     /// <returns>A builder that names, describes and configures the tool.</returns>
     protected ToolBuilder AddTool(Delegate method)
     {
-        var definition = new ToolDefinition(this, method);
+        var definition = new ToolDefinition(this);
         _definitions.Add(definition);
         return new ToolBuilder(definition);
     }
