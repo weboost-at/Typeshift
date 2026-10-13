@@ -207,6 +207,37 @@ public class TrackedChatClientTests : ConversationTestBase
     }
 
     [Fact]
+    public async Task Given_Two_First_Sessions_Of_A_Conversation_Ending_At_Once_Both_Are_Stored()
+    {
+        // Arrange
+        var first = new TaskCompletionSource();
+        var second = new TaskCompletionSource();
+        var saved = new TaskCompletionSource();
+
+        ChatClient
+            .Reply([first, .. AnswerUpdates()])
+            .Reply([second, .. AnswerUpdates()]);
+
+        Store.SavesWaitFor = saved.Task;
+
+        var client = Tracked();
+        var asking = client.GetResponseAsync(Conversation.Question, Options(Conversation.ConversationId), Ct);
+        var askingAgain = client.GetResponseAsync(Conversation.FollowUp, Options(Conversation.ConversationId), Ct);
+
+        // Act
+        first.SetResult();
+        await Store.Saving;
+        second.SetResult();
+        saved.SetResult();
+        await Task.WhenAll(asking, askingAgain);
+
+        var stored = await StoredAsync(Conversation.ConversationId);
+
+        // Assert
+        stored.Sessions.Should().HaveCount(2);
+    }
+
+    [Fact]
     public async Task Given_No_Conversation_Id_The_Session_Is_Tracked_Without_One()
     {
         // Arrange

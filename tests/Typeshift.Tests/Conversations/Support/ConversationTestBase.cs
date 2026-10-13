@@ -1,21 +1,21 @@
 using Typeshift.Agents;
 using Typeshift.Conversations;
 using Typeshift.Persistence;
-using Typeshift.Persistence.InMemory;
 using Typeshift.Tests.Toolsets.Support;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift.Tests.Conversations.Support;
 
-// The scripted client under conversation tracking, with an in-memory conversation store
+// The scripted client under conversation tracking, with a conversation store the test controls
 public abstract class ConversationTestBase : HostTestBase
 {
     protected ConversationTestData Conversation => Data.Conversation;
 
     protected ConversationTracker Tracker => Services.GetRequiredService<ConversationTracker>();
 
-    protected ITypeshiftStore<Guid> Store => Services.GetRequiredService<ITypeshiftStore<Guid>>();
+    protected ConversationTestStore Store =>
+        (ConversationTestStore)Services.GetRequiredService<ITypeshiftStore<Guid>>();
 
     // A fresh instance per read, composing a response sums usage into the instance it is given
     protected UsageDetails Usage =>
@@ -26,7 +26,7 @@ public abstract class ConversationTestBase : HostTestBase
         };
 
     protected override void ConfigureServices(IServiceCollection services) =>
-        services.AddTypeshiftStore<InMemoryTypeshiftStore<Guid>, Guid>();
+        services.AddTypeshiftStore<ConversationTestStore, Guid>();
 
     // Tracking outside the function loop, as AgentRuntime composes it
     protected IChatClient Tracked() =>

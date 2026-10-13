@@ -165,7 +165,8 @@ commit, or add a new one and withdraw the old.
   - A failed stream is stored with the updates that arrived and no `ErrorContent`, as in the owner's code; a failed
     unary call gets the `ErrorContent`.
   - A session that started a new conversation decides at its end whether to create it or append to it, so two
-    overlapping first sessions both land; appending to a conversation deleted meanwhile leaves it deleted.
+    overlapping first sessions both land; appending to a conversation deleted meanwhile leaves it deleted. In one
+    process the sessions of a conversation store one at a time; across processes the later save wins.
   - Storing a finished session does not observe the call's token, so cancelled calls are stored too.
   - Resuming drops function calls that never got a result (a call cancelled mid-tool), which providers reject.
   - Subscribers are awaited until their limit token fires instead of on a second timer. The behavior is the same, and
