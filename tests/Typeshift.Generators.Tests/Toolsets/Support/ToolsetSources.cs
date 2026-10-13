@@ -184,68 +184,60 @@ public static class ToolsetSources
         namespace Demo;
 
         /// <summary>
-        /// Settings whose members are named like the members of a configuration view.
+        /// Settings whose members are named like the members of the generated overrides.
         /// </summary>
-        public record ViewLikeSettings
+        public record ClashingSettings
         {
             /// <summary>
-            /// A member named like the view's tool.
+            /// A member named like the overrides' writer.
             /// </summary>
-            public int Tool { get; init; }
+            public int Serialize { get; init; }
 
             /// <summary>
-            /// A member named like the view's factory.
+            /// A member named like the overrides' reader.
             /// </summary>
-            public int Create { get; init; }
+            public int Deserialize { get; init; }
 
             /// <summary>
-            /// A member named like the view's reader.
+            /// A member named like the overrides themselves.
             /// </summary>
-            public int Get { get; init; }
-
-            /// <summary>
-            /// A member named like the view's writer.
-            /// </summary>
-            public int Set { get; init; }
-
-            /// <summary>
-            /// A member named like the view's stored values.
-            /// </summary>
-            public int Stored { get; init; }
-
-            /// <summary>
-            /// A member named like the view itself.
-            /// </summary>
-            public int ToolsConfiguration { get; init; }
+            public int ToolsOverrides { get; init; }
         }
 
         /// <summary>
-        /// A toolset with a tool named like its Tools class.
+        /// A toolset with tools named like members of its Tools class and of object.
         /// </summary>
-        public partial class ViewLikeToolset : Toolset
+        public partial class ClashingToolset : Toolset
         {
             /// <summary>
-            /// Declares the tool.
+            /// Declares the tools.
             /// </summary>
-            public ViewLikeToolset()
+            public ClashingToolset()
             {
                 AddTool(ListTools)
                     .WithName("tools")
                     .WithDescription("Lists the tools.")
-                    .WithSettings<ViewLikeSettings>()
-                    .Configurable(s => s.Tool)
-                    .Configurable(s => s.Create)
-                    .Configurable(s => s.Get)
-                    .Configurable(s => s.Set)
-                    .Configurable(s => s.Stored)
-                    .Configurable(s => s.ToolsConfiguration);
+                    .WithConfigurableSettings<ClashingSettings>();
+
+                AddTool(Describe)
+                    .WithName("equals")
+                    .WithDescription("Compares the tools.");
+
+                AddTool(Describe)
+                    .WithName("to_string")
+                    .WithDescription("Prints the tools.");
             }
 
             /// <summary>
             /// Lists the tools.
             /// </summary>
             /// <param name="settings">The settings of the call.</param>
-            public static string ListTools(ViewLikeSettings settings) => "";
+            public static string ListTools(ClashingSettings settings) => "";
+
+            /// <summary>
+            /// Describes the tools.
+            /// </summary>
+            public static string Describe() => "";
         }
         """;
 }

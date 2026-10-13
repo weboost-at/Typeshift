@@ -39,7 +39,7 @@ public class AgentGenerationTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_Tools_Named_Like_Members_Of_The_View_The_Generated_Code_Compiles_Without_Warnings()
+    public void Given_Tools_Named_Like_Settings_Members_The_Generated_Code_Compiles_Without_Warnings()
     {
         // Act
         var run = Run(AgentSources.Lookup, AgentSources.ReservedToolNames);

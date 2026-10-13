@@ -69,7 +69,8 @@ public static class AgentSources
         }
         """;
 
-    // Settings and toolset for the agents below; internal, so they need no docs
+    // Settings and toolset for the agents below, with tools named like members of the agent's Settings record;
+    // internal, so they need no docs
     public const string Lookup =
         """
         using System;
@@ -86,22 +87,32 @@ public static class AgentSources
         {
             public LookupToolset()
             {
-                AddTool(Create)
-                    .WithName("create")
-                    .WithDescription("Creates an entry.")
+                AddTool(Find)
+                    .WithName("model")
+                    .WithDescription("Finds a model.")
                     .WithSettings<LookupSettings>()
                     .Configurable(s => s.Limit);
 
-                AddTool(Configure)
-                    .WithName("configuration")
-                    .WithDescription("Reads the configuration.")
+                AddTool(Find)
+                    .WithName("settings")
+                    .WithDescription("Finds settings.")
+                    .WithSettings<LookupSettings>()
+                    .Configurable(s => s.Limit);
+
+                AddTool(Find)
+                    .WithName("serialize")
+                    .WithDescription("Finds a serializer.")
+                    .WithSettings<LookupSettings>()
+                    .Configurable(s => s.Limit);
+
+                AddTool(Find)
+                    .WithName("equals")
+                    .WithDescription("Finds equal entries.")
                     .WithSettings<LookupSettings>()
                     .Configurable(s => s.Limit);
             }
 
-            public static string Create(string name, LookupSettings settings) => name;
-
-            public static string Configure(LookupSettings settings) => "";
+            public static string Find(string name, LookupSettings settings) => name;
         }
         """;
 
