@@ -100,7 +100,9 @@ public static class ToolsetSources
                 Task.FromResult<IReadOnlyList<WebSearchResult>>([]);
 
             /// <summary>
-            /// Reads the main content of a web page as markdown.
+            /// Reads the main content of a web page as markdown, at most
+            /// <paramref name="maximumLength"/> characters of it. Pass the URL of a
+            /// <see cref="WebSearchResult"/> from the <see cref="IReadOnlyList{T}"/> the search returns.
             /// </summary>
             /// <param name="url">The page to read.</param>
             /// <param name="maximumLength">The longest text to return.</param>
