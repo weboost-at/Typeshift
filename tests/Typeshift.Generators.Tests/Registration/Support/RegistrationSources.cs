@@ -67,6 +67,23 @@ public static class RegistrationSources
         }
         """;
 
+    public const string OwnAddTypeshift =
+        """
+        using Microsoft.Extensions.DependencyInjection;
+
+        namespace App;
+
+        internal static class OwnSetup
+        {
+            extension(IServiceCollection services)
+            {
+                public IServiceCollection AddTypeshift(string name) => services;
+            }
+
+            public static IServiceCollection Register(IServiceCollection services) => services.AddTypeshift("own");
+        }
+        """;
+
     public const string ShoutToolset =
         """
         using Typeshift.Toolsets;

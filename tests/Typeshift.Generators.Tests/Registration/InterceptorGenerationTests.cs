@@ -42,6 +42,16 @@ public class InterceptorGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_An_Own_Method_Named_AddTypeshift_Its_Calls_Are_Not_Intercepted()
+    {
+        // Act
+        var run = Run(RegistrationSources.OwnAddTypeshift);
+
+        // Assert
+        run.HintNames.Should().NotContain("Interceptors.g.cs");
+    }
+
+    [Fact]
     public void Given_InternalsVisibleTo_A_Generated_Project_The_Tests_Compile_Their_AddTypeshift_Call()
     {
         // Arrange
