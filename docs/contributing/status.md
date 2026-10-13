@@ -73,21 +73,35 @@ moved code staying cached). CI builds and runs `samples/Typeshift.Samples.Packag
   parameter, not to the function schema. Untested; non-recursive types are unaffected.
 - **Private nested classes:** a toolset or agent nested as `private` or `protected` fails with CS0122 in the
   generated module instead of a diagnostic. Nested classes the assembly can reach work.
-- **Agent inheritance:** an agent deriving from another concrete agent is not supported: the generator reads only the
-  agent's own constructor, and both classes would declare a nested `Settings`.
+- **No parameterless constructor:** a toolset or agent without a parameterless constructor fails with CS7036 in the
+  generated module instead of a diagnostic.
+- **A toolset named `Tools`:** the generator nests a class of the same name in it, which fails with CS0542.
+- **Tool names that differ in underscores:** `get_v2` and `get_v_2` map to the same generated name, `GetV2`, which
+  fails with CS0102. TSH007 compares the snake_case names, so it does not see the clash.
+- **Agent and toolset inheritance:** an agent deriving from another concrete agent is not supported: the generator
+  reads only the agent's own constructor, and both classes would declare a nested `Settings`. A toolset deriving
+  from another concrete toolset hides the base's generated `Tools` class (CS0108) and registers the base's tools
+  twice.
 - **Store round trips:** resolving with an id loads the agent's settings and one document per tool with configurable
   settings, in parallel. A store that wants one round trip has no batch API to implement yet.
 - **Concurrent updates:** `ConfigureAsync` loads, changes and saves without a version check, so of two concurrent
-  updates under one id the later save wins.
+  updates under one id the later save wins. Conversation saves (D18) have no version check either: within one
+  process, the sessions of a conversation that end together are stored one after the other, but across processes
+  the later save wins and the other session is lost.
 - **Document kinds:** stores key documents by type, and the library offers no stable kind name, so moving or
   renaming an agent class orphans its settings in a store keyed by the type's full name.
 - **Renamed members:** stored documents carry no schema version. A renamed configurable member or tool reads as
   null, so its stored value silently falls back to the layer below.
 - **Configurable types:** only the types TSH014 lists; nested records, dictionaries and lists of other types stay
   code-only.
+- **Configurable members need a setter:** `Configurable(s => s.X)` on a property without a public `set` or `init`
+  accessor is ignored without a diagnostic, and `X` stays code-only.
 - **TSH011 reads types:** to find a reference that declares toolsets or agents without a stamp, the generator looks
   at the types of every reference that uses the library but carries no stamp. Stamped references, the normal case,
   are read from their stamps only.
+- **TSH diagnostics cannot be silenced in code:** `#pragma warning disable` and `.editorconfig` severities do not
+  reach them, since the generator reports them at locations without a syntax tree (its models keep paths and spans,
+  never trees). `<NoWarn>` in the project works.
 - **No JSON-context analyzer:** a tool whose parameter or result type is missing from every registered
   `JsonSerializerContext` compiles, then fails at runtime under Native AOT.
 - **JSON contexts match exactly:** a module registers a context only when its `[JsonSerializable]` names a tool type
