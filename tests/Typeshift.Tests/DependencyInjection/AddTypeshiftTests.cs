@@ -1,4 +1,6 @@
+using System.Text.Json.Serialization.Metadata;
 using Typeshift.Agents;
+using Typeshift.Json;
 using Typeshift.Persistence.InMemory;
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Toolsets.Companies;
@@ -6,6 +8,7 @@ using Typeshift.Tests.Toolsets.Support;
 using Typeshift.Toolsets;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Typeshift.Tests.DependencyInjection;
 
@@ -49,6 +52,59 @@ public class AddTypeshiftTests : HostTestBase
 
         // Assert
         agents.Should().ContainSingle(agent => agent is ResearchAgent);
+    }
+
+    [Fact]
+    public void Registers_The_Json_Contexts_Of_The_Calling_Assembly()
+    {
+        // Act
+        var typeInfo = Json.GetTypeInfo<ProbeResult>();
+
+        // Assert
+        typeInfo.OriginatingResolver.Should().BeSameAs(ProbeJsonContext.Default);
+    }
+
+    [Fact]
+    public void Registers_The_Json_Contexts_Of_A_Referenced_Assembly()
+    {
+        // Act
+        var typeInfo = Json.GetTypeInfo<FindCompaniesSettings>();
+
+        // Assert
+        typeInfo.OriginatingResolver!.GetType().Name.Should().Be("CompanyJsonContext");
+    }
+
+    [Fact]
+    public async Task Given_A_Resolver_The_Host_Configures_It_Is_Asked_Before_The_Json_Contexts()
+    {
+        // Arrange
+        var resolver = new DefaultJsonTypeInfoResolver();
+        var services = new ServiceCollection().AddTypeshift();
+
+        services.Configure<AgentJsonOptions>(options => options.TypeInfoResolverChain.Add(resolver));
+        await using var provider = services.BuildServiceProvider();
+
+        // Act
+        var typeInfo = provider.GetRequiredService<AgentJson>().GetTypeInfo<ProbeResult>();
+
+        // Assert
+        typeInfo.OriginatingResolver.Should().BeSameAs(resolver);
+    }
+
+    [Fact]
+    public async Task Given_A_Json_Context_The_Host_Adds_Itself_It_Is_Added_Once()
+    {
+        // Arrange
+        var services = new ServiceCollection().AddTypeshift();
+
+        services.Configure<AgentJsonOptions>(options => options.TypeInfoResolverChain.Add(ProbeJsonContext.Default));
+        await using var provider = services.BuildServiceProvider();
+
+        // Act
+        var chain = provider.GetRequiredService<IOptions<AgentJsonOptions>>().Value.TypeInfoResolverChain;
+
+        // Assert
+        chain.Should().ContainSingle(resolver => resolver == ProbeJsonContext.Default);
     }
 
     [Fact]

@@ -188,7 +188,8 @@ namespace Typeshift.Generated;
 public static class AppModule
 {
     /// <summary>
-    /// Registers this assembly's toolsets and agents, once per service collection.
+    /// Registers this assembly's toolsets, agents and the JSON contexts of their tools, once per service
+    /// collection.
     /// </summary>
     public static void Register(
         global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)

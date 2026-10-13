@@ -77,6 +77,12 @@ internal static class SymbolExtensions
             return false;
         }
 
+        // Internal or wider along its containing types, so generated code in the same assembly can name it
+        public bool IsVisibleInAssembly() =>
+            type.DeclaredAccessibility
+                is Accessibility.Public or Accessibility.Internal or Accessibility.ProtectedOrInternal
+            && (type.ContainingType?.IsVisibleInAssembly() ?? true);
+
         public bool IsPartial(CancellationToken ct) =>
             type.DeclaringSyntaxReferences
                 .Select(reference => reference.GetSyntax(ct))

@@ -11,6 +11,8 @@ internal static class TrackingNames
 
     public const string ResolvedAgents = nameof(ResolvedAgents);
 
+    public const string JsonContexts = nameof(JsonContexts);
+
     public const string Module = nameof(Module);
 
     public const string References = nameof(References);

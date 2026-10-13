@@ -169,8 +169,10 @@ moved code staying cached). CI builds and runs `samples/Typeshift.Samples.Packag
 - **TSH011 reads types:** to find a reference that declares toolsets or agents without a stamp, the generator looks
   at the types of every reference that uses the library but carries no stamp. Stamped references, the normal case,
   are read from their stamps only.
-- **No JSON-context analyzer:** a tool whose parameter or result type is missing from every `JsonSerializerContext`
-  compiles, then fails at runtime under Native AOT.
+- **No JSON-context analyzer:** a tool whose parameter or result type is missing from every registered
+  `JsonSerializerContext` compiles, then fails at runtime under Native AOT.
+- **JSON contexts match exactly:** a module registers a context only when its `[JsonSerializable]` names a tool type
+  as declared, so one that lists only `Company` is left out for a tool returning `IReadOnlyList<Company>` (D44).
 - **Fixed tracking limits:** the publish interval (100 ms) and the subscriber limits (250 ms per session, 5 s for the
   tracker) are constants, as in the owner's code.
 - **Generated line length:** generated code is `global::`-qualified and some declarations exceed 120 columns.
@@ -182,7 +184,8 @@ moved code staying cached). CI builds and runs `samples/Typeshift.Samples.Packag
 
 1. Store generators for Marten and EF Core: the stored documents are a closed set of known types (D25).
 2. Versioned documents with stable kind names, and optimistic concurrency for stored settings.
-3. The JSON-context analyzer: report tool parameter and result types that no registered context covers.
+3. The JSON-context analyzer: report tool parameter and result types that no context of the tool's assembly lists,
+   now that the generator reads them (D44).
 4. Make the tracking limits options.
 5. A diagnostic for toolsets and agents the module cannot reach.
 6. Rewrite `$ref`s of recursive parameter types, with a test against `AIFunctionFactory`.

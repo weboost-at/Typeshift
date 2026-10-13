@@ -136,6 +136,7 @@ internal static class ToolsetParser
             Settings: settings,
             Parameters: parameters,
             Return: ParseReturn(tool.Method.ReturnType),
+            Result: GetResultType(tool.Method.ReturnType)?.ToTypeOf(),
             Location: LocationInfo.From(tool.AddTool.Syntax.GetLocation()));
     }
 
@@ -252,6 +253,14 @@ internal static class ToolsetParser
             _ when type.Is(KnownTypes.Task) || type.Is(KnownTypes.ValueTask) => ReturnKind.Awaitable,
             _ when type.Is(KnownTypes.TaskOfT) || type.Is(KnownTypes.ValueTaskOfT) => ReturnKind.AwaitableValue,
             _ => ReturnKind.Value
+        };
+
+    private static ITypeSymbol? GetResultType(ITypeSymbol type) =>
+        ParseReturn(type) switch
+        {
+            ReturnKind.Value => type,
+            ReturnKind.AwaitableValue => ((INamedTypeSymbol)type).TypeArguments[0],
+            _ => null
         };
 
     // What one AddTool chain declares, before it is checked against the toolset's other tools

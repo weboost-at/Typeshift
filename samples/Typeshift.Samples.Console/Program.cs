@@ -1,9 +1,7 @@
 using Typeshift.Agents;
 using Typeshift.Conversations;
-using Typeshift.Json;
 using Typeshift.Persistence;
 using Typeshift.Persistence.InMemory;
-using Typeshift.Samples;
 using Typeshift.Samples.Chat;
 using Typeshift.Samples.Companies;
 using Microsoft.Extensions.AI;
@@ -16,9 +14,6 @@ var services = new ServiceCollection();
 services.AddTypeshift();
 services.AddTypeshiftStore<InMemoryTypeshiftStore<Guid>, Guid>();
 services.AddSingleton<IChatClientProvider, ScriptedChatClientProvider>();
-// begin-snippet: json-registration
-services.Configure<AgentJsonOptions>(options => options.TypeInfoResolverChain.Add(AppJsonContext.Default));
-// end-snippet
 
 await using var provider = services.BuildServiceProvider();
 // end-snippet

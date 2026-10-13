@@ -25,11 +25,10 @@ var services = new ServiceCollection();
 services.AddTypeshift();
 services.AddTypeshiftStore<InMemoryTypeshiftStore<Guid>, Guid>();
 services.AddSingleton<IChatClientProvider, ScriptedChatClientProvider>();
-services.Configure<AgentJsonOptions>(options => options.TypeInfoResolverChain.Add(AppJsonContext.Default));
 
 await using var provider = services.BuildServiceProvider();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L13-L24' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L11-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `AddTypeshiftStore<TStore, TId>()` registers the store as a singleton; it may depend on singletons such as an

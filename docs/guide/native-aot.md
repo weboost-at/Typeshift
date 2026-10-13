@@ -1,12 +1,13 @@
 # Native AOT
 
 Typeshift never reflects over your types: the generator writes the tool bindings and the settings serialization, and
-all other JSON goes through `JsonTypeInfo`. A host publishes with Native AOT once it describes its own tool types.
+all other JSON goes through `JsonTypeInfo`. A host publishes with Native AOT once its tool types are described.
 
 ## Tool parameter and result types
 
 Arguments and results of your tools are serialized with the options of `AgentJson`, so their types need
-source-generated metadata. Declare a `JsonSerializerContext` with every parameter and result type of your tools:
+source-generated metadata. Declare a `JsonSerializerContext` in the assembly of the tools, listing their parameter and
+result types:
 
 <!-- snippet: json-context -->
 <a id='snippet-json-context'></a>
@@ -18,18 +19,20 @@ internal partial class AppJsonContext : JsonSerializerContext;
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/AppJsonContext.cs#L6-L10' title='Snippet source file'>snippet source</a> | <a href='#snippet-json-context' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-and add it to the resolver chain:
+`AddTypeshift()` registers it: the generated module of each assembly adds every context that lists a parameter or
+result type of its own tools, where a tool returning `Task<T>` or `ValueTask<T>` has the result type `T`. A toolset
+library ships its contexts this way, `internal` ones included, and the host registers nothing.
 
-<!-- snippet: json-registration -->
-<a id='snippet-json-registration'></a>
-```cs
-services.Configure<AgentJsonOptions>(options => options.TypeInfoResolverChain.Add(AppJsonContext.Default));
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L19-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-json-registration' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
+- A context counts when its `[JsonSerializable]` names a tool type exactly: listing `Company` does not count for a
+  tool that returns `IReadOnlyList<Company>`. A context that names no tool type, one for an HTTP API say, is left out,
+  so its options never apply to tool JSON.
+- A `private` or `protected` nested context is left out, since the module cannot name it.
+- A context the generator does not register, one in a host without toolsets for example, goes into
+  `AgentJsonOptions.TypeInfoResolverChain` through `services.Configure<AgentJsonOptions>(...)`.
 
-Your resolvers come first, then the library's own context, then the defaults of Microsoft.Extensions.AI. A type that
-no context describes compiles, then fails at runtime under Native AOT.
+The resolvers are asked in order: those the host configures, the contexts of the host's own tools, those of
+referenced assemblies, the library's own context, then the defaults of Microsoft.Extensions.AI. A type that no
+context describes compiles, then fails at runtime under Native AOT.
 
 ## The project
 
