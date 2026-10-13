@@ -11,8 +11,9 @@ data, and stored documents carry no version (see the known gaps in `docs/contrib
 
 ## How a value flows
 
-1. The toolset marks members with `WithSettings<T>().Configurable(s => s.X)`; the agent marks chat options in its
-   `WithChatOptions()` chain the same way. The generator reads the picks (D5) and `Parsing/Storage.cs` decides per
+1. The toolset marks members with `WithSettings<T>().Configurable(s => s.X)`, or all but some with
+   `WithConfigurableSettings<T>().NotConfigurable(s => s.X)` (D43); the agent marks chat options in its
+   `WithChatOptions()` chain with `Configurable(o => o.X)`. The generator reads the picks (D5) and `Parsing/Storage.cs` decides per
    member which `StorableJson` write and read methods store it, or reports TSH014.
 2. `Emitting/ToolsetEmitter.cs` writes `{Tool}Overrides`; `Emitting/AgentEmitter.cs` writes the agent's `Settings`;
    `Emitting/StorableEmitter.cs` writes the `Serialize`/`Deserialize` members both share.

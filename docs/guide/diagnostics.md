@@ -75,14 +75,14 @@ AddTool(Find);                  // fixed, Find is static
 
 ## TSH005
 
-**Settings type is not a record.** Reported on `WithSettings<T>`.
+**Settings type is not a record.** Reported on `WithSettings<T>` or `WithConfigurableSettings<T>`.
 
 Stored and run overrides apply to a `with` copy of the settings, so the type must be a record. The code defaults
 come from its parameterless constructor, which it therefore needs as well.
 
 ## TSH006
 
-**Toolset was not compiled with the generator.** Reported on the `UseToolset<T>(...)` call.
+**Toolset was not compiled with the generator.** Reported on the `UseToolset<T>()` call.
 
 The toolset comes from an assembly that carries no generator stamps, so its tools, their tool list and their
 settings are unknown. Reference the Typeshift package in the toolset's project. At runtime, such a toolset throws an
@@ -104,7 +104,7 @@ The model chooses tools by their descriptions. Add `WithDescription(...)` or an 
 
 ## TSH009
 
-**Tool does not take its settings.** A warning, reported on `WithSettings<T>`.
+**Tool does not take its settings.** A warning, reported on `WithSettings<T>` or `WithConfigurableSettings<T>`.
 
 A tool receives its resolved settings through a parameter of its settings type, which the model never sees. Without
 one, the settings reach nothing. Add the parameter:
@@ -139,7 +139,8 @@ Tool names follow the convention of the model providers' function names, `find_c
 
 ## TSH013
 
-**Settings type is less accessible than its toolset.** Reported on `WithSettings<T>`.
+**Settings type is less accessible than its toolset.** Reported on `WithSettings<T>` or
+`WithConfigurableSettings<T>`.
 
 A public toolset exposes its settings through `Tools.{Tool}` (a `ToolRef<TSettings, TOverrides>`) and through the
 generated `{Tool}Overrides` record, whose properties have the types of the configurable members. Make the settings
@@ -167,5 +168,4 @@ without reflection. They support:
 - the nullable forms of all of these.
 
 Keep other members out of `Configurable(...)`, or name them in `NotConfigurable(...)` after
-`WithConfigurableSettings<T>()`; their
-value then comes from code alone.
+`WithConfigurableSettings<T>()`; their value then comes from code alone.

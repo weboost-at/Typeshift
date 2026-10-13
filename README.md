@@ -29,8 +29,8 @@ Everything runs under Native AOT.
   conversation, streaming included.
 - **Plain fluent C#.** Tools, agents, chat options and tool settings are each declared in one chain, with
   instructions in an overridable `GetInstructions()`.
-- **Mistakes fail the build.** Selecting a tool of the wrong toolset or setting the settings of a tool the agent does
-  not offer does not compile, and fourteen diagnostics cover the rest.
+- **Mistakes fail the build.** Including a tool of the wrong toolset or setting the settings of a tool the agent does
+  not offer does not compile, and the generator's diagnostics cover the rest.
 
 ## Install
 

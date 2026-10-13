@@ -25,7 +25,7 @@ A namespace follows its folder.
 | Folder | Holds |
 |---|---|
 | `Tools/` | `ToolName`, `ToolRef` and `ToolRef<TSettings, TOverrides>`, `ToolsetUse<T>` with its `Include` and `Exclude` chains, `ToolList<T>`, `ToolParameter`, the `GeneratedToolFunction` base every generated tool derives from, and the bindings. |
-| `Toolsets/` | `Toolset`, `ToolDefinition` and the `AddTool(...)` builders, `ToolBuilder` and `ToolBuilder<TSettings>`. |
+| `Toolsets/` | `Toolset`, `ToolDefinition` and the `AddTool(...)` builders: `ToolBuilder`, `ToolBuilder<TSettings>` and `ConfigurableSettingsBuilder<TSettings>`. |
 | `Settings/` | `IToolOverrides`, the layering (`ToolSettingsLayers`) and `ToolDefaults`. |
 | `Agents/` | `AgentDefinition`, `ChatOptionsBuilder`, `AgentRuntime` and `AgentRuntime<TAgent>`, `IAgentSettings`, `ChatExecutionContext`, `IChatClientProvider`. |
 | `Catalogs/` | `ToolCatalog`, every tool the host can see, created by name. |
@@ -49,14 +49,14 @@ an unrelated edit leaves every output cached.
    `WithChatOptions()` chain. The `Include(t => t.X)` and `Exclude(t => t.X)` calls after `UseToolset<T>()` do not
    bind in the generator's own compilation, because the tool list properties are what it generates, so `AgentParser`
    reads them from syntax (D29). Discovery also reads each `JsonSerializerContext` the module can name, with the
-   types its `[JsonSerializable]` attributes list (D44). `Storage` decides per configurable member how the records write and read it, or reports
-   TSH014.
+   types its `[JsonSerializable]` attributes list (D44). `Storage` decides per configurable member how the records
+   write and read it, or reports TSH014.
 3. **Models** hold only strings, bools and `EquatableArray<T>`; locations are `LocationInfo` and diagnostics
-   `DiagnosticInfo`, both value types. An agent model holds the toolset's type name and the selected tool names,
+   `DiagnosticInfo`, both value types. An agent model holds the toolset's type name and the picked tool names,
    never the toolset's syntax.
 4. **Resolution** (`AgentResolver`) combines each agent with the summaries of all toolsets (own and referenced) in a
-   separate step, so a change to a toolset's tools regenerates the agents that use them. The resolved agents and the
-   module carry no locations, so code that only moves leaves them cached.
+   separate step, so a change to a toolset's tools regenerates the agents that use them. The resolved tools and the
+   module carry no locations, so code that only moves within a toolset leaves the agents and the module cached.
 5. **References** are read from metadata stamps only: `[assembly: GeneratedModule(typeof(...))]` names a referenced
    assembly's module, `[ModuleToolset]` on the module lists its toolsets, and `[GeneratedTool]` on a toolset lists
    its tools with their settings type and configurable members.

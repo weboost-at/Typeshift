@@ -25,5 +25,5 @@ features:
   - title: Conversation tracking
     details: Every exchange with the model is tracked live and stored as a session of its conversation, streaming included.
   - title: Mistakes are compile errors
-    details: Selecting a tool of the wrong toolset or setting the settings of a tool the agent does not offer does not compile; fourteen diagnostics cover the rest.
+    details: Including a tool of the wrong toolset or setting the settings of a tool the agent does not offer does not compile; the generator's diagnostics cover the rest.
 ---
