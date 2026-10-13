@@ -1,6 +1,7 @@
 namespace Typeshift.Generators.Models;
 
-// One AddTool chain; Method is the method name, Target the global::-qualified type that declares it
+// One AddTool chain; Method is the method name, Target the global::-qualified type that declares it, Result the
+// typeof() name of the value it returns, awaited, or null when it returns none
 internal sealed record ToolModel(
     string Name,
     string Method,
@@ -9,4 +10,5 @@ internal sealed record ToolModel(
     SettingsModel? Settings,
     EquatableArray<ParameterModel> Parameters,
     ReturnKind Return,
+    string? Result,
     LocationInfo? Location);

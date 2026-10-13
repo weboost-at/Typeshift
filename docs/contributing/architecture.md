@@ -14,6 +14,7 @@ partial Agent     --->   agent model, resolved against every     ---> AgentRunti
                          toolset --> Settings, Configure{Tool},       + generated typed members
                          runtime extension members
 the assembly      --->   module class + [assembly: GeneratedModule] stamp
+JSON context      --->   in the module if it lists a tool type   ---> AgentJsonOptions
 AddTypeshift() call --->   interceptor: core services + own module + every referenced module
 ```
 
@@ -47,7 +48,8 @@ an unrelated edit leaves every output cached.
    `WithConfigurableSettings<T>().NotConfigurable(...)` form (D43), and in agents the `Configurable(...)` calls of the
    `WithChatOptions()` chain. The `Include(t => t.X)` and `Exclude(t => t.X)` calls after `UseToolset<T>()` do not
    bind in the generator's own compilation, because the tool list properties are what it generates, so `AgentParser`
-   reads them from syntax (D29). `Storage` decides per configurable member how the records write and read it, or reports
+   reads them from syntax (D29). Discovery also reads each `JsonSerializerContext` the module can name, with the
+   types its `[JsonSerializable]` attributes list (D44). `Storage` decides per configurable member how the records write and read it, or reports
    TSH014.
 3. **Models** hold only strings, bools and `EquatableArray<T>`; locations are `LocationInfo` and diagnostics
    `DiagnosticInfo`, both value types. An agent model holds the toolset's type name and the selected tool names,
@@ -67,7 +69,7 @@ What it writes:
 |---|---|
 | each toolset | The stamps; a `Tools` class of typed `ToolRef`s; per tool with configurable settings a `{Tool}Overrides` record; the `GetBinding` switch; per tool a binding and a sealed `AIFunction` subclass; a `{Toolset}ToolList` extension block with one property per tool on `ToolList<TToolset>`. |
 | each agent | Per tool with settings a field, set through a private `Configure{Tool}()` returning a nested `{Tool}SettingsBuilder`; the `GetToolSettings` override; the nested `Settings` record; and a `{Agent}RuntimeExtensions` extension block on `AgentRuntime<TAgent>`. |
-| each assembly | `Typeshift.Generated.{Assembly}Module`, which registers the assembly's toolsets and agents with factory lambdas, plus its assembly stamp. |
+| each assembly | `Typeshift.Generated.{Assembly}Module`, which registers the assembly's toolsets and agents with factory lambdas and the JSON contexts that list a parameter or result type of its tools, plus its assembly stamp. |
 | each `AddTypeshift()` call | One interceptor that registers the core services, the own module and every referenced module. |
 
 ## Registration
@@ -80,7 +82,8 @@ property, which the package sets in `buildTransitive/Typeshift.props`.
 The interceptor calls `ModuleRegistration.AddCoreServices` and then `Register` on each module. A module registers
 itself once per service collection, so calling `AddTypeshift()` twice, or from two assemblies, adds nothing twice.
 Toolsets and agents are singletons, created by factory lambdas; each agent also gets an `AgentRuntime<TAgent>`,
-registered as `AgentRuntime` too, so a host can list them.
+registered as `AgentRuntime` too, so a host can list them. The JSON contexts of a module's tools join
+`AgentJsonOptions` through `PostConfigure`, after the resolvers the host configures (D44).
 
 `services.AddTypeshiftStore<TStore, TId>()` registers the one store (D25, D26).
 
@@ -166,8 +169,8 @@ from code.
 ## JSON and Native AOT
 
 All serialization goes through `JsonTypeInfo` or `Utf8JsonWriter`. `AgentJson.SerializerOptions` is a copy of
-`AIJsonUtilities.DefaultOptions` whose resolver chain is: the developer's resolvers from
-`AgentJsonOptions.TypeInfoResolverChain`, then the library's `AgentJsonContext`, then the defaults of
-Microsoft.Extensions.AI. The generated code never reflects over user types, so a host that registers a
-source-generated context for its own parameter and result types publishes with zero trim and AOT warnings; CI proves
-it with the console sample.
+`AIJsonUtilities.DefaultOptions` whose resolver chain is: `AgentJsonOptions.TypeInfoResolverChain`, which holds the
+resolvers the host configures and then the contexts the modules registered (D44), then the library's
+`AgentJsonContext`, then the defaults of Microsoft.Extensions.AI. The generated code never reflects over user types,
+so an assembly that declares a source-generated context for its tools' parameter and result types publishes with zero
+trim and AOT warnings; CI proves it with the console sample.

@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Json.Serialization;
 using Typeshift.Agents;
 using Typeshift.Catalogs;
 using Typeshift.Conversations;
@@ -90,4 +91,16 @@ public static class ModuleRegistration
 
         services.AddSingleton<AgentRuntime>(provider => provider.GetRequiredService<AgentRuntime<TAgent>>());
     }
+
+    /// <summary>
+    /// Adds a JSON context that covers a module's tool types to the resolvers tool arguments and results serialize
+    /// with, after the resolvers the host configures itself.
+    /// </summary>
+    /// <param name="services">The host's services.</param>
+    /// <param name="context">The source-generated context.</param>
+    public static void AddJsonContext(IServiceCollection services, JsonSerializerContext context) =>
+        services.PostConfigure<AgentJsonOptions>(options =>
+        {
+            if (!options.TypeInfoResolverChain.Contains(context)) options.TypeInfoResolverChain.Add(context);
+        });
 }

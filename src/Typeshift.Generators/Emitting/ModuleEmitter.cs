@@ -43,7 +43,8 @@ internal static class ModuleEmitter
             writer.Lines(
                 """
                 /// <summary>
-                /// Registers this assembly's toolsets and agents, once per service collection.
+                /// Registers this assembly's toolsets, agents and the JSON contexts of their tools, once per service
+                /// collection.
                 /// </summary>
                 public static void Register(
                     global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)
@@ -62,6 +63,11 @@ internal static class ModuleEmitter
                 foreach (var agent in model.Agents)
                 {
                     writer.Line($"{Registration}.AddAgent(services, static () => new {agent}());");
+                }
+
+                foreach (var context in model.JsonContexts)
+                {
+                    writer.Line($"{Registration}.AddJsonContext(services, {context}.Default);");
                 }
             }
         }

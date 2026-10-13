@@ -5,4 +5,5 @@ internal sealed record ModuleModel(
     string Name,
     string AssemblyName,
     EquatableArray<string> Toolsets,
-    EquatableArray<string> Agents);
+    EquatableArray<string> Agents,
+    EquatableArray<string> JsonContexts);

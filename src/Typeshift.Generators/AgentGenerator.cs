@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Typeshift.Generators.Diagnostics;
@@ -42,10 +43,28 @@ public sealed class AgentGenerator : IIncrementalGenerator
             .Select(static (agent, _) => agent.Type.FullName)
             .Collect();
 
+        var toolTypes = toolsets
+            .Where(static toolset => toolset.IsPartial)
+            .SelectMany(static (toolset, _) => GetJsonTypes(toolset))
+            .Collect();
+
+        var jsonContexts = classes
+            .Where(static model => model!.JsonContext is not null)
+            .Select(static (model, _) => model!.JsonContext!)
+            .Collect()
+            .Combine(toolTypes)
+            .Select(static (input, _) => GetJsonContexts(input.Left, input.Right))
+            .WithTrackingName(TrackingNames.JsonContexts);
+
         var module = toolsetSummaries
             .Combine(agentTypes)
+            .Combine(jsonContexts)
             .Combine(context.CompilationProvider.Select(static (compilation, _) => compilation.AssemblyName ?? ""))
-            .Select(static (input, _) => GetModule(input.Left.Left, input.Left.Right, input.Right))
+            .Select(static (input, _) => GetModule(
+                input.Left.Left.Left,
+                input.Left.Left.Right,
+                input.Left.Right,
+                input.Right))
             .WithTrackingName(TrackingNames.Module);
 
         var references = context.CompilationProvider
@@ -82,9 +101,27 @@ public sealed class AgentGenerator : IIncrementalGenerator
             static (output, input) => ReportDuplicates(output, input.Left.Left, input.Left.Right, input.Right));
     }
 
+    // The types a tool's arguments and result serialize as
+    private static IEnumerable<string> GetJsonTypes(ToolsetModel toolset) =>
+        toolset.Tools.SelectMany(tool => tool.Parameters
+            .Where(parameter => parameter.Kind == ParameterKind.Argument)
+            .Select(parameter => parameter.TypeOf)
+            .Append(tool.Result)
+            .OfType<string>());
+
+    // D44: a context joins the tool JSON only when it lists a tool's type, so one for other JSON stays out
+    private static EquatableArray<string> GetJsonContexts(
+        ImmutableArray<JsonContextModel> contexts,
+        ImmutableArray<string> toolTypes) =>
+        contexts
+            .Where(context => context.Types.Any(toolTypes.Contains))
+            .Select(context => context.Type)
+            .ToEquatableArray();
+
     private static ModuleModel? GetModule(
         ImmutableArray<ToolsetSummary> toolsets,
         ImmutableArray<string> agents,
+        EquatableArray<string> jsonContexts,
         string assemblyName) =>
         toolsets.IsEmpty && agents.IsEmpty
             ? null
@@ -92,7 +129,8 @@ public sealed class AgentGenerator : IIncrementalGenerator
                 ModuleEmitter.GetName(assemblyName),
                 assemblyName,
                 toolsets.Select(toolset => toolset.Type).ToEquatableArray(),
-                agents.ToEquatableArray());
+                agents.ToEquatableArray(),
+                jsonContexts);
 
     private static void EmitToolset(SourceProductionContext output, ToolsetModel toolset)
     {

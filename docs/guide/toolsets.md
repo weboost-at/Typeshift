@@ -81,8 +81,8 @@ absent optional argument takes its default. A nullable reference parameter is ty
 ## Results
 
 A tool may return a value, `Task`, `Task<T>`, `ValueTask` or `ValueTask<T>`. The result is serialized through
-`JsonTypeInfo`, so its type must be known to a registered `JsonSerializerContext` under Native AOT; see
-[Native AOT](./native-aot.md).
+`JsonTypeInfo`, so under Native AOT a `JsonSerializerContext` of the toolset's assembly must list its type, which
+`AddTypeshift()` then registers; see [Native AOT](./native-aot.md).
 
 ## Tool references
 

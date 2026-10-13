@@ -442,3 +442,20 @@ Replaced by D29: tools are selected through generated methods and matched by nam
   unstorable members silently; a separate `AllConfigurable()` call after `WithSettings<T>()`, a short line above
   the longer exclusions; an enum argument on `WithSettings<T>`; exclusions before a closing `AllConfigurable()`.
 - **Where:** `Toolsets/ToolBuilder.cs`, `Parsing/ToolsetParser.cs` (`ParseSettings`).
+
+### D44. Each module registers the JSON contexts of its tools
+
+- **Context:** under Native AOT, the types a tool takes and returns need source-generated metadata, and every host
+  added its context by hand with `services.Configure<AgentJsonOptions>(...)`. A host cannot name an `internal`
+  context of a referenced toolset assembly at all.
+- **Decision:** the generator reads every `JsonSerializerContext` the module can name and the types its
+  `[JsonSerializable]` attributes list. A context that lists a parameter or result type (awaited) of the assembly's
+  own tools is added by the module's `Register`, so `AddTypeshift()` registers it. The module adds it with
+  `PostConfigure`, so the resolvers the host configures come first, then the contexts of the own module, then those
+  of the referenced ones, then the library's `AgentJsonContext`; a context the host added itself is not added twice.
+- **Alternatives:** registering every context of the assembly, which lets one written for other JSON, with other
+  options, take over tool types; an `AddTypeshift(params IJsonTypeInfoResolver[])` overload, explicit but still a
+  line per host and no help for referenced assemblies; a context generated per assembly, impossible because source
+  generators do not see each other's output (D27).
+- **Where:** `Parsing/Discovery.cs` (`ReadJsonContext`), `AgentGenerator.cs` (`GetJsonContexts`),
+  `Emitting/ModuleEmitter.cs`, `Modules/ModuleRegistration.cs` (`AddJsonContext`).

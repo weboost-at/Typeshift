@@ -17,7 +17,7 @@ services.AddKeyedChatClient("fast-model", new CannedChatClient("fast-model"));
 services.AddKeyedChatClient("reasoning-model", new CannedChatClient("reasoning-model"));
 services.AddSingleton<IChatClientProvider, KeyedChatClientProvider>();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Host.cs#L14-L23' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Host.cs#L13-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `AddTypeshift()` registers every toolset and agent the project can see, `AddTypeshiftStore` the

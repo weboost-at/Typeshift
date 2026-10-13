@@ -113,4 +113,77 @@ public static class RegistrationSources
         """
         [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Tests")]
         """;
+
+    public const string LookupToolset =
+        """
+        using System.Collections.Generic;
+        using System.Threading.Tasks;
+        using Typeshift.Toolsets;
+
+        namespace Tools;
+
+        /// <summary>
+        /// Looks entries up.
+        /// </summary>
+        public partial class LookupToolset : Toolset
+        {
+            /// <summary>
+            /// Declares the tool.
+            /// </summary>
+            public LookupToolset() => AddTool(Lookup).WithName("lookup").WithDescription("Looks entries up.");
+
+            /// <summary>
+            /// Looks entries up.
+            /// </summary>
+            /// <param name="query">What to look up.</param>
+            public static Task<IReadOnlyList<Entry>> Lookup(Query query) => Task.FromResult<IReadOnlyList<Entry>>([]);
+        }
+
+        /// <summary>
+        /// What to look up.
+        /// </summary>
+        /// <param name="Text">The text to look up.</param>
+        public sealed record Query(string Text);
+
+        /// <summary>
+        /// An entry found.
+        /// </summary>
+        /// <param name="Title">The entry's title.</param>
+        public sealed record Entry(string Title);
+        """;
+
+    public static readonly string QueryJsonContext = JsonContext("QueryJsonContext", "Query");
+
+    public static readonly string EntriesJsonContext =
+        JsonContext("EntriesJsonContext", "System.Collections.Generic.IReadOnlyList<Entry>");
+
+    public static readonly string UriJsonContext = JsonContext("UriJsonContext", "System.Uri");
+
+    public static readonly string PrivateJsonContext =
+        $$"""
+        namespace Tools;
+
+        internal static class Outer
+        {
+        {{DeclareJsonContext("private", "PrivateJsonContext", "Query")}}
+        }
+        """;
+
+    private static string JsonContext(string name, string type) =>
+        $"namespace Tools;\n\n{DeclareJsonContext("internal", name, type)}";
+
+    // A context with the members the System.Text.Json generator adds, which the test compilation does not run
+    private static string DeclareJsonContext(string accessibility, string name, string type) =>
+        $$"""
+        [System.Text.Json.Serialization.JsonSerializable(typeof({{type}}))]
+        {{accessibility}} partial class {{name}}() : System.Text.Json.Serialization.JsonSerializerContext(null)
+        {
+            public static {{name}} Default { get; } = new();
+
+            protected override System.Text.Json.JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type) =>
+                null;
+        }
+        """;
 }

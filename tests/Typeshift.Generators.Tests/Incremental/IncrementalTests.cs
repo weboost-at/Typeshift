@@ -28,6 +28,7 @@ public class IncrementalTests : GeneratorTestBase
             TrackingNames.Toolsets,
             TrackingNames.Agents,
             TrackingNames.ResolvedAgents,
+            TrackingNames.JsonContexts,
             TrackingNames.Module,
             TrackingNames.References,
             TrackingNames.Calls);

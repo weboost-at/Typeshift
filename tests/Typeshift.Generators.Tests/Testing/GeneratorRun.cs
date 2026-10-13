@@ -11,4 +11,7 @@ public sealed record GeneratorRun(GeneratorDriver Driver, Compilation Output)
     public IReadOnlyList<Diagnostic> CompilationDiagnostics => Output.GetDiagnostics();
 
     public IEnumerable<string> HintNames => Result.GeneratedTrees.Select(tree => Path.GetFileName(tree.FilePath));
+
+    public string Source(string hintName) =>
+        Result.GeneratedTrees.Single(tree => Path.GetFileName(tree.FilePath) == hintName).ToString();
 }

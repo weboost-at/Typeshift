@@ -29,12 +29,26 @@ internal static class Discovery
         var compilation = context.SemanticModel.Compilation;
 
         if (type.DerivesFrom(KnownTypes.Toolset))
-            return new ClassModel(ToolsetParser.Parse(type, compilation, documented, ct), null);
+            return new ClassModel(ToolsetParser.Parse(type, compilation, documented, ct), null, null);
 
-        return type.DerivesFrom(KnownTypes.AgentDefinition)
-            ? new ClassModel(null, AgentParser.Parse(type, compilation, ct))
+        if (type.DerivesFrom(KnownTypes.AgentDefinition))
+            return new ClassModel(null, AgentParser.Parse(type, compilation, ct), null);
+
+        // D44: the module registers the contexts of its tools, so it must be able to name them
+        return type.DerivesFrom(KnownTypes.JsonSerializerContext) && type.IsVisibleInAssembly()
+            ? new ClassModel(null, null, ReadJsonContext(type))
             : null;
     }
+
+    private static JsonContextModel ReadJsonContext(INamedTypeSymbol context) =>
+        new(
+            context.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            context.GetAttributes()
+                .Where(attribute => attribute.AttributeClass.Is(KnownTypes.JsonSerializableAttribute))
+                .Select(attribute => attribute.ConstructorArguments.FirstOrDefault().Value)
+                .OfType<ITypeSymbol>()
+                .Select(type => type.ToTypeOf())
+                .ToEquatableArray());
 
     // A partial class may list its base on several declarations, the model is built once
     private static bool IsFirstDeclarationWithBaseList(

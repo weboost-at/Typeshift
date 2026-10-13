@@ -1,5 +1,4 @@
 using Typeshift.Agents;
-using Typeshift.Json;
 using Typeshift.Persistence.InMemory;
 using Typeshift.Samples.Docs.Chat;
 using Typeshift.Samples.Docs.Tickets;
@@ -23,7 +22,6 @@ internal static class Host
         // end-snippet
 
         services.AddSingleton<ITicketClient, InMemoryTicketClient>();
-        services.Configure<AgentJsonOptions>(options => options.TypeInfoResolverChain.Add(SupportJsonContext.Default));
         configure?.Invoke(services);
 
         return services.BuildServiceProvider();
