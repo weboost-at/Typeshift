@@ -50,6 +50,22 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string DescriptionNotConstant =
+        """
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        public partial class EchoToolset : Toolset
+        {
+            private static readonly string Description = "Echoes.";
+
+            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription(Description);
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
     public const string MissingToolName =
         """
         using Typeshift.Toolsets;

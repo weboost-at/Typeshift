@@ -47,6 +47,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Tool_Description_That_Is_Not_A_Constant_TSH002_Is_Reported_On_It()
+    {
+        // Act
+        var run = Run(DiagnosticSources.DescriptionNotConstant);
+
+        // Assert
+        run.Assert.Reports("TSH002", DiagnosticSeverity.Error, "Description");
+    }
+
+    [Fact]
     public void Given_A_Tool_Without_WithName_TSH003_Is_Reported_On_AddTool()
     {
         // Act
