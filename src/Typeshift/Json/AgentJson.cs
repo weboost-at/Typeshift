@@ -90,7 +90,8 @@ public sealed class AgentJson
             SerializerOptions,
             SchemaCreateOptions with { TransformOptions = null });
 
-        var schema = JsonObject.Create(element)!;
+        // A type that takes any JSON gets the schema true, which {} matches
+        var schema = element.ValueKind is JsonValueKind.Object ? JsonObject.Create(element)! : new JsonObject();
         return parameter.IsNullable ? AsNullable(schema) : schema;
     }
 

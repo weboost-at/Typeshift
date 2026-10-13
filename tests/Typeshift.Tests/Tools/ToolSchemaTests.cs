@@ -17,6 +17,16 @@ public class ToolSchemaTests : HostTestBase
     }
 
     [Fact]
+    public void Given_An_Undocumented_JsonElement_Parameter_Its_Schema_Accepts_Any_Json()
+    {
+        // Act
+        var echo = new SchemaToolset().CreateTools(Json).Single(tool => tool.Name == "echo");
+
+        // Assert
+        echo.JsonSchema.Assert.ParameterSchema("value", "{}");
+    }
+
+    [Fact]
     public void Given_A_Nullable_Reference_Parameter_It_Is_Typed_As_Nullable()
     {
         // Act

@@ -27,14 +27,10 @@ public sealed class JsonSchemaAssertions(JsonElement schema)
         return schema;
     }
 
-    public JsonElement ParameterDefault(string parameter, string json)
-    {
-        var actual = JsonNode.Parse(Parameter(parameter).GetProperty("default").GetRawText());
-        var expected = JsonNode.Parse(json);
+    public JsonElement ParameterSchema(string parameter, string json) => Equivalent(Parameter(parameter), json);
 
-        JsonNode.DeepEquals(actual, expected).Should().BeTrue($"the default is {json}, not {actual?.ToJsonString()}");
-        return schema;
-    }
+    public JsonElement ParameterDefault(string parameter, string json) =>
+        Equivalent(Parameter(parameter).GetProperty("default"), json);
 
     // The generated schemas carry <param> descriptions, which the reflection path does not read
     public JsonElement MatchesWithoutDescriptions(JsonElement expected)
@@ -49,6 +45,15 @@ public sealed class JsonSchemaAssertions(JsonElement schema)
     }
 
     private JsonElement Parameter(string name) => schema.GetProperty("properties").GetProperty(name);
+
+    private JsonElement Equivalent(JsonElement element, string json)
+    {
+        var actual = JsonNode.Parse(element.GetRawText());
+        var expected = JsonNode.Parse(json);
+
+        JsonNode.DeepEquals(actual, expected).Should().BeTrue($"{json} is expected, not {actual?.ToJsonString()}");
+        return schema;
+    }
 
     private static JsonNode WithoutParameterDescriptions(JsonElement schema)
     {
