@@ -6,7 +6,7 @@ namespace Typeshift.Generators.Tests.Registration;
 public class ModuleGenerationTests : GeneratorTestBase
 {
     [Fact]
-    public void Given_A_Toolset_And_An_Agent_The_Module_Registers_And_Stamps_Both()
+    public void Given_A_Toolset_And_An_Agent_The_Module_Registers_Both()
     {
         // Act
         var run = Run(RegistrationSources.EchoToolset, RegistrationSources.EchoAgent);

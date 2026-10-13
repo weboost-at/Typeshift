@@ -33,11 +33,6 @@ internal static class ModuleEmitter
             writer.Line($"[global::Typeshift.Modules.ModuleToolset(typeof({toolset}))]");
         }
 
-        foreach (var agent in model.Agents)
-        {
-            writer.Line($"[global::Typeshift.Modules.ModuleAgent(typeof({agent}))]");
-        }
-
         using (writer.Block($"public static class {module}"))
         {
             writer.Lines(

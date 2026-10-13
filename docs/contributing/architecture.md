@@ -58,8 +58,8 @@ an unrelated edit leaves every output cached.
    separate step, so a change to a toolset's tools regenerates the agents that use them. The resolved agents and the
    module carry no locations, so code that only moves leaves them cached.
 5. **References** are read from metadata stamps only: `[assembly: GeneratedModule(typeof(...))]` names a referenced
-   assembly's module, `[ModuleToolset]` and `[ModuleAgent]` on the module list its toolsets and agents, and
-   `[GeneratedTool]` on a toolset lists its tools with their settings type and configurable members.
+   assembly's module, `[ModuleToolset]` on the module lists its toolsets, and `[GeneratedTool]` on a toolset lists
+   its tools with their settings type and configurable members.
 6. **Emitting** (`Emitting/`) writes the code from the models with a small `SourceWriter`; `StorableEmitter` writes
    the `Serialize` and `Deserialize` members both kinds of record share, `Docs` wraps the XML docs.
 

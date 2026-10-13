@@ -472,7 +472,6 @@ namespace Typeshift.Generated;
 /// </summary>
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
 [global::Typeshift.Modules.ModuleToolset(typeof(global::Demo.WebResearchToolset))]
-[global::Typeshift.Modules.ModuleAgent(typeof(global::Demo.ProfilingAgent))]
 public static class SubjectModule
 {
     /// <summary>

@@ -62,12 +62,7 @@ internal static class ReferenceReader
             .Select(ReadToolset)
             .ToEquatableArray();
 
-        var agents = stamps
-            .Where(attribute => attribute.AttributeClass.Is(KnownTypes.ModuleAgentAttribute))
-            .Select(attribute => ((ITypeSymbol)attribute.ConstructorArguments[0].Value!).ToTypeOf())
-            .ToEquatableArray();
-
-        return new ModuleReference(module.ToTypeOf(), toolsets, agents);
+        return new ModuleReference(module.ToTypeOf(), toolsets);
     }
 
     private static ToolsetSummary ReadToolset(INamedTypeSymbol toolset) =>

@@ -184,7 +184,6 @@ namespace Typeshift.Generated;
 /// Registers the toolsets and agents of App.
 /// </summary>
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-[global::Typeshift.Modules.ModuleAgent(typeof(global::App.EchoAgent))]
 public static class AppModule
 {
     /// <summary>

@@ -18,8 +18,6 @@ internal static class KnownTypes
 
     public const string ModuleToolsetAttribute = "Typeshift.Modules.ModuleToolsetAttribute";
 
-    public const string ModuleAgentAttribute = "Typeshift.Modules.ModuleAgentAttribute";
-
     public const string GeneratedToolAttribute = "Typeshift.Modules.GeneratedToolAttribute";
 
     public const string ChatOptionsBuilder = "Typeshift.Agents.ChatOptionsBuilder";
