@@ -26,6 +26,16 @@ public class ModuleGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_An_Assembly_Name_With_An_Ampersand_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(Compile("R&D.Tools", [], RegistrationSources.EchoToolset));
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
     public void Given_A_Json_Context_Of_A_Tool_Parameter_Type_The_Module_Registers_It()
     {
         // Act

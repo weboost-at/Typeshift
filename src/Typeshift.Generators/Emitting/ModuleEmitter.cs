@@ -23,7 +23,7 @@ internal static class ModuleEmitter
             namespace {Names.GeneratedNamespace};
 
             /// <summary>
-            /// Registers the toolsets and agents of {model.AssemblyName}.
+            /// Registers the toolsets and agents of {Docs.Escape(model.AssemblyName)}.
             /// </summary>
             [{HiddenFromEditors}]
             """);
