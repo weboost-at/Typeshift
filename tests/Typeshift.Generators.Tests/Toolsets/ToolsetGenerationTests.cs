@@ -25,6 +25,26 @@ public class ToolsetGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_Parameter_Defaults_Of_Every_Kind_They_Are_Generated_As_Typed_Literals()
+    {
+        // Act
+        var run = Run(ToolsetSources.Defaults);
+
+        // Assert
+        Snapshot.Verify(run.Result);
+    }
+
+    [Fact]
+    public void Given_Parameter_Defaults_Of_Every_Kind_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(ToolsetSources.Defaults);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
     public void Given_A_Nested_Toolset_Its_Containing_Class_Is_Reopened()
     {
         // Act

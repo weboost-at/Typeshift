@@ -116,6 +116,35 @@ public static class ToolsetSources
         }
         """;
 
+    // A default of each kind that needs care to come out as a literal of the parameter's own type
+    public const string Defaults =
+        """
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        internal enum Level
+        {
+            Low,
+            High
+        }
+
+        internal partial class GreetingToolset : Toolset
+        {
+            public GreetingToolset() => AddTool(Greet).WithName("greet").WithDescription("Greets.");
+
+            public static string Greet(
+                string greeting = "say \"hi\"",
+                bool loud = true,
+                long limit = 5,
+                Level level = Level.High,
+                Level unnamed = (Level)7,
+                Level negative = (Level)(-1),
+                Level? fallback = Level.Low) =>
+                greeting;
+        }
+        """;
+
     public const string Nested =
         """
         using Typeshift.Toolsets;
