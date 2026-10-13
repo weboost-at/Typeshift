@@ -201,10 +201,10 @@ internal static class ToolsetParser
                 : picks.Any(pick => pick.Property == property.Name))
             .ToList();
 
-        // A public toolset exposes its settings through Tools and the generated overrides
-        var exposed = configurable.Select(property => property.Type).Prepend(type);
+        // Tools, the tool list and the overrides name the settings wherever the toolset can be named
+        var reachable = toolset.IsEffectivelyPublic() ? type.IsEffectivelyPublic() : type.IsVisibleInAssembly();
 
-        if (toolset.IsEffectivelyPublic() && !exposed.All(member => member.IsEffectivelyPublic()))
+        if (!reachable)
         {
             diagnostics.Report(Descriptors.SettingsLessAccessible, settingsName, type.Name, toolset.Name);
             return null;

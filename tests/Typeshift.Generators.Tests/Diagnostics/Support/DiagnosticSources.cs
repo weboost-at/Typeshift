@@ -332,6 +332,32 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string PrivateSettingsOfInternalToolset =
+        """
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset()
+            {
+                AddTool(Echo)
+                    .WithName("echo")
+                    .WithDescription("Echoes the text.")
+                    .WithSettings<EchoSettings>()
+                    .Configurable(s => s.Repeat);
+            }
+
+            private static string Echo(string text, EchoSettings settings) => text;
+
+            private record EchoSettings
+            {
+                public int Repeat { get; init; } = 1;
+            }
+        }
+        """;
+
     public const string UnsupportedSetting =
         """
         using System.Collections.Generic;

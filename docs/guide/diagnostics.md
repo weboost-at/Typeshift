@@ -143,9 +143,11 @@ Tool names follow the convention of the model providers' function names, `find_c
 **Settings type is less accessible than its toolset.** Reported on `WithSettings<T>` or
 `WithConfigurableSettings<T>`.
 
-A public toolset exposes its settings through `Tools.{Tool}` (a `ToolRef<TSettings, TOverrides>`) and through the
-generated `{Tool}Overrides` record, whose properties have the types of the configurable members. Make the settings
-record and those member types public, or make the toolset internal.
+The generated code names the settings type wherever the toolset can be named: in `Tools.{Tool}` (a
+`ToolRef<TSettings, TOverrides>`), in the `{Toolset}ToolList` class next to the toolset and in the agents that use
+the tool. A public toolset therefore needs public settings, any other toolset settings its assembly can reach, never a
+`private` or `protected` nested record. Make the settings record as accessible as the toolset, or the toolset less
+accessible.
 
 ```csharp
 internal record EchoSettings { public int Repeat { get; init; } }

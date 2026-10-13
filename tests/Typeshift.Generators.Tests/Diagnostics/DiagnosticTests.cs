@@ -216,6 +216,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_Private_Settings_Of_An_Internal_Toolset_TSH013_Is_Reported_On_WithSettings()
+    {
+        // Act
+        var run = Run(DiagnosticSources.PrivateSettingsOfInternalToolset);
+
+        // Assert
+        run.Assert.Reports("TSH013", DiagnosticSeverity.Error, "WithSettings<EchoSettings>");
+    }
+
+    [Fact]
     public void Given_An_Unstorable_Configurable_Setting_TSH014_Is_Reported_On_Configurable()
     {
         // Act

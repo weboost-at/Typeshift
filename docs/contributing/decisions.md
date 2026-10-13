@@ -99,8 +99,9 @@ commit, or add a new one and withdraw the old.
 - **Decision:**
   - TSH012 reports a tool name that is not lower_snake_case. The runtime does not check it again: only generated
     toolsets have bindings, and the generator has already reported the name.
-  - TSH013 reports settings less accessible than their public toolset, whose generated API exposes them; generating
-    narrower members instead would cascade into every agent that uses the tool.
+  - TSH013 reports settings less accessible than their toolset, whose generated API exposes them: public for a
+    public toolset, internal or wider for any other; generating narrower members instead would cascade into every
+    agent that uses the tool.
   - TSH014 reports a configurable member whose type the generated records cannot store (D27).
   - TSH007 is reported on the first own declaration, or on `AddTypeshift()` when the clash is only among references.
   - The spec's agent-name diagnostics went with D31; including a foreign tool and configuring a tool the agent does

@@ -73,7 +73,7 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor SettingsLessAccessible = Error(
         "TSH013",
         "Settings type is less accessible than its toolset",
-        "The settings type '{0}' and the types of its configurable members must be public, as '{1}' is");
+        "The settings type '{0}' must be at least as accessible as its toolset '{1}'");
 
     public static readonly DiagnosticDescriptor UnsupportedConfigurableType = Error(
         "TSH014",
