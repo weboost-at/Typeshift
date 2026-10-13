@@ -50,6 +50,39 @@ public class StorableJsonTests : UnitTestBase
     }
 
     [Fact]
+    public void Given_NaN_It_Is_Stored_As_A_String()
+    {
+        // Act
+        var json = new EveryKind { Precise = double.NaN }.Serialize();
+
+        // Assert
+        json.Should().Be("""{"precise":"NaN"}""");
+    }
+
+    [Fact]
+    public void Given_An_Infinity_It_Reads_Back_As_That_Infinity()
+    {
+        // Arrange
+        var json = new EveryKind { Ratio = float.NegativeInfinity }.Serialize();
+
+        // Act
+        var restored = EveryKind.Deserialize(json);
+
+        // Assert
+        restored.Ratio.Should().Be(float.NegativeInfinity);
+    }
+
+    [Fact]
+    public void Given_A_Finite_Number_In_A_String_The_Member_Reads_As_Null()
+    {
+        // Act
+        var restored = EveryKind.Deserialize("""{"precise":"1.5"}""");
+
+        // Assert
+        restored.Precise.Should().BeNull();
+    }
+
+    [Fact]
     public void Given_A_Json_Null_The_Member_Reads_As_Null()
     {
         // Act

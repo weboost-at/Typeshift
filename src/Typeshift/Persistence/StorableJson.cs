@@ -75,7 +75,7 @@ public static class StorableJson
     }
 
     /// <summary>
-    /// Writes a number member.
+    /// Writes a number member; NaN and the infinities, which JSON numbers cannot hold, as strings.
     /// </summary>
     /// <typeparam name="TNumber">The number type.</typeparam>
     /// <param name="writer">The writer of the enclosing object.</param>
@@ -86,8 +86,16 @@ public static class StorableJson
     {
         if (value is not { } number) return;
 
+        var text = number.ToString(null, CultureInfo.InvariantCulture);
+
+        if (!TNumber.IsFinite(number))
+        {
+            writer.WriteString(name, text);
+            return;
+        }
+
         writer.WritePropertyName(name);
-        writer.WriteRawValue(number.ToString(null, CultureInfo.InvariantCulture));
+        writer.WriteRawValue(text);
     }
 
     /// <summary>
@@ -222,10 +230,13 @@ public static class StorableJson
     /// <returns>The value, or null when the member is missing or not a number of that type.</returns>
     public static TNumber? ReadNumber<TNumber>(JsonElement data, string name)
         where TNumber : struct, INumber<TNumber> =>
-        Find(data, name) is { ValueKind: JsonValueKind.Number } value
-        && TNumber.TryParse(value.GetRawText(), NumberStyles.Float, CultureInfo.InvariantCulture, out var number)
-            ? number
-            : null;
+        Find(data, name) switch
+        {
+            { ValueKind: JsonValueKind.Number } value => Parse<TNumber>(value.GetRawText()),
+            { ValueKind: JsonValueKind.String } value when Parse<TNumber>(value.GetString()!) is { } named
+                && !TNumber.IsFinite(named) => named,
+            _ => null
+        };
 
     /// <summary>
     /// Reads a <see cref="Guid"/> member.
@@ -311,6 +322,9 @@ public static class StorableJson
         writer.WritePropertyName(name);
         writer.WriteRawValue(json);
     }
+
+    private static TNumber? Parse<TNumber>(string text) where TNumber : struct, INumber<TNumber> =>
+        TNumber.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var number) ? number : null;
 
     private static JsonElement? Find(JsonElement data, string name) =>
         data.ValueKind is JsonValueKind.Object && data.TryGetProperty(name, out var value) ? value : null;
