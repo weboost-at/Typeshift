@@ -54,10 +54,15 @@ public sealed class ConversationTracker
     {
         if (!_sessions.TryRemove(sessionId, out var tracked)) return;
 
-        var completed = await tracked.CompleteAsync(response);
-        if (StoreOf(tracked.ConversationId) is { } store) await StoreAsync(store, tracked, completed);
-
-        await Subscribers.RaiseAsync(OnConversationsChanged, SubscriberLimit, _time);
+        try
+        {
+            var completed = await tracked.CompleteAsync(response);
+            if (StoreOf(tracked.ConversationId) is { } store) await StoreAsync(store, tracked, completed);
+        }
+        finally
+        {
+            await Subscribers.RaiseAsync(OnConversationsChanged, SubscriberLimit, _time);
+        }
     }
 
     // An id that is not stored starts a new conversation under that id
