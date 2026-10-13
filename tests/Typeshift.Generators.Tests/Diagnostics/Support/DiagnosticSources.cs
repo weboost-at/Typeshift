@@ -270,9 +270,9 @@ public static class DiagnosticSources
         }
         """;
 
-    public const string SettingsOfAnUnofferedTool =
+    // Two tools with settings, for the agents below that do not offer one of them
+    public const string ToneToolset =
         """
-        using Typeshift.Agents;
         using Typeshift.Toolsets;
 
         namespace Demo;
@@ -294,12 +294,35 @@ public static class DiagnosticSources
 
             public static string Shout(string text, ToneSettings settings) => text;
         }
+        """;
+
+    public const string SettingsOfAnUnofferedTool =
+        """
+        using Typeshift.Agents;
+
+        namespace Demo;
 
         public partial class EchoAgent : AgentDefinition
         {
             public EchoAgent()
             {
                 UseToolset<EchoToolset>().Include(t => t.Echo);
+                ConfigureShout().WithLoud(true);
+            }
+        }
+        """;
+
+    public const string SettingsOfAnExcludedTool =
+        """
+        using Typeshift.Agents;
+
+        namespace Demo;
+
+        public partial class EchoAgent : AgentDefinition
+        {
+            public EchoAgent()
+            {
+                UseToolset<EchoToolset>().Exclude(t => t.Shout);
                 ConfigureShout().WithLoud(true);
             }
         }

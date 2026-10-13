@@ -180,7 +180,17 @@ public class DiagnosticTests : GeneratorTestBase
     public void Given_Settings_Of_A_Tool_The_Agent_Does_Not_Offer_Configuring_Them_Does_Not_Compile()
     {
         // Act
-        var run = Run(DiagnosticSources.SettingsOfAnUnofferedTool);
+        var run = Run(DiagnosticSources.ToneToolset, DiagnosticSources.SettingsOfAnUnofferedTool);
+
+        // Assert
+        run.Assert.DoesNotCompile("CS0103", "ConfigureShout");
+    }
+
+    [Fact]
+    public void Given_Settings_Of_An_Excluded_Tool_Configuring_Them_Does_Not_Compile()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToneToolset, DiagnosticSources.SettingsOfAnExcludedTool);
 
         // Assert
         run.Assert.DoesNotCompile("CS0103", "ConfigureShout");
