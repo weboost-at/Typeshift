@@ -217,6 +217,45 @@ public static class AgentSources
         }
         """;
 
+    public const string InheritedSetting =
+        """
+        using Typeshift.Agents;
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        internal record PagedSettings
+        {
+            public int Limit { get; init; } = 10;
+        }
+
+        internal record SearchSettings : PagedSettings
+        {
+            public bool Strict { get; init; }
+        }
+
+        internal partial class SearchToolset : Toolset
+        {
+            public SearchToolset() =>
+                AddTool(Search)
+                    .WithName("search")
+                    .WithDescription("Searches.")
+                    .WithSettings<SearchSettings>()
+                    .Configurable(s => s.Limit);
+
+            public static string Search(string query, SearchSettings settings) => query;
+        }
+
+        internal partial class SearchAgent : AgentDefinition
+        {
+            public SearchAgent()
+            {
+                UseToolset<SearchToolset>();
+                ConfigureSearch().WithLimit(3);
+            }
+        }
+        """;
+
     // A class named like its namespace and a namespace named System, both shadowing the start of a cref
     public const string ShadowingNames =
         """

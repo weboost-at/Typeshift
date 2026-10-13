@@ -79,6 +79,16 @@ public class AgentGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Configurable_Setting_Of_A_Base_Record_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(AgentSources.InheritedSetting);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
     public void Given_Names_Shadowing_The_Start_Of_A_Cref_The_Generated_Code_Compiles_Without_Warnings()
     {
         // Act
