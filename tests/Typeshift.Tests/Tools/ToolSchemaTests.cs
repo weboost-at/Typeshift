@@ -1,6 +1,8 @@
+using Typeshift.Json;
 using Typeshift.Tests.Tools.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Options;
 
 namespace Typeshift.Tests.Tools;
 
@@ -60,6 +62,39 @@ public class ToolSchemaTests : HostTestBase
 
         // Assert
         search.JsonSchema.Assert.ParameterDescription("query", "What to search for.");
+    }
+
+    [Fact]
+    public void Given_Two_Tools_Each_Gets_A_Schema_Of_Its_Own()
+    {
+        // Arrange
+        var tools = new SchemaToolset().CreateTools(Json);
+        _ = tools.Single(tool => tool.Name == "locate").JsonSchema;
+
+        // Act
+        var count = tools.Single(tool => tool.Name == "count_words").JsonSchema;
+
+        // Assert
+        count.Assert.Properties("text");
+    }
+
+    [Fact]
+    public void Given_Schema_Transform_Options_The_Tool_Schema_Is_Transformed()
+    {
+        // Arrange
+        var json = new AgentJson(Options.Create(new AgentJsonOptions
+        {
+            SchemaCreateOptions = new AIJsonSchemaCreateOptions
+            {
+                TransformOptions = new AIJsonSchemaTransformOptions { DisallowAdditionalProperties = true }
+            }
+        }));
+
+        // Act
+        var count = new SchemaToolset().CreateTools(json).Single(tool => tool.Name == "count_words");
+
+        // Assert
+        count.JsonSchema.GetProperty("additionalProperties").GetBoolean().Should().BeFalse();
     }
 
     [Fact]
