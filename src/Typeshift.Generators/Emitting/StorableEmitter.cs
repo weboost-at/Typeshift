@@ -19,12 +19,6 @@ internal static class StorableEmitter
 
         using (writer.Indent())
         {
-            if (members.Count == 0 && tools.Count == 0)
-            {
-                writer.Line($"{Json}.Write(static _ => {{ }});");
-                return;
-            }
-
             writer.Line($"{Json}.Write(writer =>");
 
             using (writer.Block(close: "});"))
@@ -61,12 +55,6 @@ internal static class StorableEmitter
 
         using (writer.Indent())
         {
-            if (members.Count == 0 && tools.Count == 0)
-            {
-                writer.Line($"{Json}.Read(json, static _ => new {type}());");
-                return;
-            }
-
             var assignments = members
                 .Select(member => $"{Names.Identifier(member.Property)} = "
                     + $"{Json}.{member.Storage.Read}(data, {Names.Literal(member.JsonName)})")
@@ -77,7 +65,12 @@ internal static class StorableEmitter
             if (tools.Count == 0)
             {
                 writer.Line($"{Json}.Read(json, static data => new {type}");
-                WriteAssignments(writer, assignments, close: "});");
+
+                using (writer.Block(close: "});"))
+                {
+                    writer.List(assignments);
+                }
+
                 return;
             }
 
@@ -88,18 +81,11 @@ internal static class StorableEmitter
                 writer.Line($"var tools = {Json}.ReadObject(data, \"tools\");");
                 writer.Line();
                 writer.Line($"return new {type}");
-                WriteAssignments(writer, assignments, close: "};");
-            }
-        }
-    }
 
-    private static void WriteAssignments(SourceWriter writer, IReadOnlyList<string> assignments, string close)
-    {
-        using (writer.Block(close: close))
-        {
-            for (var index = 0; index < assignments.Count; index++)
-            {
-                writer.Line(assignments[index] + (index < assignments.Count - 1 ? "," : ""));
+                using (writer.Block(close: "};"))
+                {
+                    writer.List(assignments);
+                }
             }
         }
     }

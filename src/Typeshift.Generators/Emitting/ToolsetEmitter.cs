@@ -140,20 +140,20 @@ internal static class ToolsetEmitter
                     {settings.Type} settings) =>
                 """);
 
+            var assignments = configurable
+                .Select((property, index) => (
+                    Setting: Names.Identifier(property.Name),
+                    Value: Names.Identifier(members[index].Property)))
+                .Select(pair => $"{pair.Setting} = {pair.Value} ?? settings.{pair.Setting}")
+                .ToList();
+
             using (writer.Indent())
             {
                 writer.Line("settings with");
 
                 using (writer.Block(close: "};"))
                 {
-                    for (var index = 0; index < configurable.Count; index++)
-                    {
-                        var setting = Names.Identifier(configurable[index].Name);
-                        var value = Names.Identifier(members[index].Property);
-                        var separator = index < configurable.Count - 1 ? "," : "";
-
-                        writer.Line($"{setting} = {value} ?? settings.{setting}{separator}");
-                    }
+                    writer.List(assignments);
                 }
             }
         }
@@ -274,7 +274,7 @@ internal static class ToolsetEmitter
                 var initializers = new[]
                     {
                         parameter.Description is { } description ? $"Description = {Names.Literal(description)}" : null,
-                        parameter.HasDefaultValue ? "HasDefaultValue = true" : null,
+                        parameter.DefaultValue is null ? null : "HasDefaultValue = true",
                         parameter.DefaultValue is { } value and not "null" ? $"DefaultValue = {value}" : null,
                         parameter.IsNullable ? "IsNullable = true" : null
                     }
@@ -293,10 +293,7 @@ internal static class ToolsetEmitter
 
                 using (writer.Block(close: "}" + separator))
                 {
-                    for (var index = 0; index < initializers.Count; index++)
-                    {
-                        writer.Line(initializers[index] + (index < initializers.Count - 1 ? "," : ""));
-                    }
+                    writer.List(initializers);
                 }
             }
         }
@@ -353,10 +350,7 @@ internal static class ToolsetEmitter
 
         using (writer.Indent())
         {
-            for (var index = 0; index < arguments.Count; index++)
-            {
-                writer.Line(arguments[index] + (index < arguments.Count - 1 ? "," : suffix));
-            }
+            writer.List(arguments, end: suffix);
         }
     }
 
@@ -367,8 +361,8 @@ internal static class ToolsetEmitter
             ParameterKind.Settings => "settings",
             ParameterKind.CancellationToken => "ct",
             ParameterKind.Arguments => "arguments",
-            _ when parameter.HasDefaultValue =>
-                $"GetArgument<{parameter.Type}>(arguments, {Names.Literal(parameter.Name)}, {parameter.DefaultValue})",
+            _ when parameter.DefaultValue is { } value =>
+                $"GetArgument<{parameter.Type}>(arguments, {Names.Literal(parameter.Name)}, {value})",
             _ => $"GetArgument<{parameter.Type}>(arguments, {Names.Literal(parameter.Name)})"
         };
 }

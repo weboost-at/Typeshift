@@ -15,28 +15,10 @@ internal static class RegistrationDiagnostics
         ReferenceModel references,
         ImmutableArray<InterceptModel> calls)
     {
-        var declarations = own
+        var duplicates = own
             .Concat(references.Modules.SelectMany(module => module.Toolsets))
             .SelectMany(toolset => toolset.Tools.Select(tool =>
-                new Declaration(tool.Name, ShortName(toolset.Type), tool.Location)));
-
-        return GetDuplicates(declarations, calls);
-    }
-
-    // Only the host, the project that calls AddTypeshift(), misses what an ungenerated reference declares
-    public static IEnumerable<Diagnostic> GetUngeneratedReferences(
-        ReferenceModel references,
-        ImmutableArray<InterceptModel> calls) =>
-        calls.IsEmpty
-            ? []
-            : references.UngeneratedAssemblies.Select(assembly =>
-                Diagnostic.Create(Descriptors.UngeneratedReference, calls[0].Location?.ToLocation(), assembly));
-
-    private static IEnumerable<Diagnostic> GetDuplicates(
-        IEnumerable<Declaration> declarations,
-        ImmutableArray<InterceptModel> calls)
-    {
-        var duplicates = declarations
+                (tool.Name, DeclaredBy: toolset.Type.Replace("global::", ""), tool.Location)))
             .GroupBy(declaration => declaration.Name)
             .Where(group => group.Count() > 1);
 
@@ -57,7 +39,12 @@ internal static class RegistrationDiagnostics
         }
     }
 
-    private static string ShortName(string type) => type.Replace("global::", "");
-
-    private sealed record Declaration(string Name, string DeclaredBy, LocationInfo? Location);
+    // Only the host, the project that calls AddTypeshift(), misses what an ungenerated reference declares
+    public static IEnumerable<Diagnostic> GetUngeneratedReferences(
+        ReferenceModel references,
+        ImmutableArray<InterceptModel> calls) =>
+        calls.IsEmpty
+            ? []
+            : references.UngeneratedAssemblies.Select(assembly =>
+                Diagnostic.Create(Descriptors.UngeneratedReference, calls[0].Location?.ToLocation(), assembly));
 }

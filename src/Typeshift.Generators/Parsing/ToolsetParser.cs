@@ -67,7 +67,7 @@ internal static class ToolsetParser
                 case "WithSettings" or "WithConfigurableSettings":
                     tool.SettingsType = call.TargetMethod.TypeArguments[0];
                     tool.SettingsCall = call;
-                    tool.AllConfigurable = call.TargetMethod.Name == "WithConfigurableSettings";
+                    tool.ConfigurableByDefault = call.TargetMethod.Name == "WithConfigurableSettings";
                     break;
 
                 case "Configurable":
@@ -119,6 +119,8 @@ internal static class ToolsetParser
             .Select(parameter => ParseParameter(parameter, tool.SettingsType, docs))
             .ToEquatableArray();
 
+        var returns = ParseReturn(tool.Method.ReturnType);
+
         if (settings is not null && parameters.All(parameter => parameter.Kind != ParameterKind.Settings))
         {
             diagnostics.Report(
@@ -135,8 +137,8 @@ internal static class ToolsetParser
             Description: description,
             Settings: settings,
             Parameters: parameters,
-            Return: ParseReturn(tool.Method.ReturnType),
-            Result: GetResultType(tool.Method.ReturnType)?.ToTypeOf(),
+            Return: returns,
+            Result: GetResultType(tool.Method.ReturnType, returns)?.ToTypeOf(),
             Location: LocationInfo.From(tool.AddTool.Syntax.GetLocation()));
     }
 
@@ -191,7 +193,7 @@ internal static class ToolsetParser
 
         // D43: allowed one by one, or all but the excluded and the obsolete ones
         var configurable = type.GetSettableProperties()
-            .Where(property => tool.AllConfigurable
+            .Where(property => tool.ConfigurableByDefault
                 ? !tool.Exclusions.Contains(property.Name) && !IsObsolete(property)
                 : picks.Any(pick => pick.Property == property.Name))
             .ToList();
@@ -241,7 +243,6 @@ internal static class ToolsetParser
             Type: parameter.Type.ToFullyQualified(),
             TypeOf: parameter.Type.ToTypeOf(),
             IsNullable: parameter.Type is { IsReferenceType: true, NullableAnnotation: NullableAnnotation.Annotated },
-            HasDefaultValue: parameter.HasExplicitDefaultValue,
             DefaultValue: parameter.HasExplicitDefaultValue ? DefaultValues.Format(parameter) : null,
             Description: docs.Parameters.TryGetValue(parameter.Name, out var description) ? description : null);
     }
@@ -255,15 +256,15 @@ internal static class ToolsetParser
             _ => ReturnKind.Value
         };
 
-    private static ITypeSymbol? GetResultType(ITypeSymbol type) =>
-        ParseReturn(type) switch
+    private static ITypeSymbol? GetResultType(ITypeSymbol type, ReturnKind returns) =>
+        returns switch
         {
             ReturnKind.Value => type,
             ReturnKind.AwaitableValue => ((INamedTypeSymbol)type).TypeArguments[0],
             _ => null
         };
 
-    // What one AddTool chain declares, before it is checked against the toolset's other tools
+    // What one AddTool chain declares, before it is checked
     private sealed class DeclaredTool(IMethodSymbol method, IInvocationOperation addTool)
     {
         public IMethodSymbol Method { get; } = method;
@@ -282,7 +283,7 @@ internal static class ToolsetParser
 
         public List<IInvocationOperation> Picks { get; } = [];
 
-        public bool AllConfigurable { get; set; }
+        public bool ConfigurableByDefault { get; set; }
 
         public List<string?> Exclusions { get; } = [];
     }
