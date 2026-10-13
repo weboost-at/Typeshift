@@ -151,6 +151,21 @@ public static class ToolsetSources
         }
         """;
 
+    // A description spanning lines, as a line break or a multi-line raw string puts it
+    public const string MultiLineDescription =
+        """
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes the text.\nTwice.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
     public const string DocumentedTwice =
         """
         using Typeshift.Toolsets;

@@ -35,6 +35,16 @@ public class ToolsetGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Multi_Line_Description_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(ToolsetSources.MultiLineDescription);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
     public void Given_A_Parameter_Documented_Twice_The_Generator_Does_Not_Fail()
     {
         // Act
