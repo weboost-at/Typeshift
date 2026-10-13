@@ -2,8 +2,13 @@
 
 Why the code is shaped the way it is. Each entry gives the context, the decision, the alternatives that lost and where
 the decision lives in the code. IDs are stable: code comments cite them (`// D25: ...`), and a decision that no longer
-holds stays as a withdrawn stub pointing to what replaced it. "Spec" means the alpha's design document; "owner" means
-the maintainer, whose review shaped D25 to D36.
+holds moves to the [withdrawn](#withdrawn) table, pointing to what replaced it. "Spec" means the alpha's design
+document; "owner" means the maintainer, whose review shaped D25 to D36.
+
+The ones that shape the API the most: D25 to D27 (one store of self-serializing documents, the generated settings
+records), D29 and D30 (generated tool lists and `Configure{Tool}()`, so misuse does not compile), D40 to D42 (settings
+as a tool parameter, one flat chain per declaration), D33 (conversation ids parsed into the store's ids), D1 and D4
+(the intercepted `AddTypeshift()`, the typed runtime members) and D44 (JSON contexts registered by the modules).
 
 Before changing code an entry names, read the entry. To change the decision itself, edit the entry in the same
 commit, or add a new one and withdraw the old.
@@ -55,8 +60,8 @@ commit, or add a new one and withdraw the old.
 - **Context:** `AgentRuntime<TAgent>` is a library type; its typed members need the agent's generated `Settings`.
 - **Decision:** the generator emits `extension(AgentRuntime<TAgent> runtime) { ... }` with `LoadSettingsAsync`,
   `SaveSettingsAsync`, `ConfigureAsync`, `ResolveChatOptions` and `ResolveChatOptionsAsync`. They call hidden
-  `...CoreAsync` methods of `AgentRuntime`, so the logic lives and is tested in the library. Consumers need C# 14,
-  the default of .NET 10.
+  `...Core` and `...CoreAsync` methods of `AgentRuntime`, so the logic lives and is tested in the library. Consumers
+  need C# 14, the default of .NET 10.
 - **Alternatives:** classic `this` extension methods, which would let C# 13 consumers compile; a generated runtime
   subclass per agent, which the container would have to know.
 - **Where:** `Emitting/AgentEmitter.cs`, `Agents/AgentRuntime.cs`.
@@ -68,7 +73,7 @@ commit, or add a new one and withdraw the old.
 - **Decision:** the generator reads the `Configurable` calls from the constructor and emits the `Overrides` and
   `Settings` records; at runtime `Configurable` returns its builder and its lambda never runs. The lambdas are
   `Func<T, object?>`, not expression trees, so nothing is built for them at runtime. The configurable set exists
-  once, in generated types. Tool selection is different: its calls run (D29).
+  once, in generated types. Tool picks are different: their calls run (D29).
 - **Alternatives:** recording the picks at runtime, which duplicates the set and needs expression trees under AOT.
 - **Where:** `Parsing/ConstructorChains.cs` (`GetPickedProperty`), `Toolsets/ToolBuilder.cs`,
   `Agents/ChatOptionsBuilder.cs`.
@@ -84,8 +89,8 @@ commit, or add a new one and withdraw the old.
 ### D7. Tools are keyed by name, toolsets by nothing
 
 - **Context:** the spec asked whether toolsets need a key besides the type name.
-- **Decision:** no. Stored settings, the catalog and the selection methods address tools by their lower_snake_case
-  name, which is unique host-wide (TSH007), so a toolset can move or be renamed without touching stored data.
+- **Decision:** no. Stored settings, the catalog and the tool lists address tools by their lower_snake_case name,
+  which is unique host-wide (TSH007), so a toolset can move or be renamed without touching stored data.
 - **Alternatives:** a `WithKey("...")` on the toolset.
 - **Where:** `Tools/ToolName.cs`.
 
@@ -98,8 +103,8 @@ commit, or add a new one and withdraw the old.
     narrower members instead would cascade into every agent that uses the tool.
   - TSH014 reports a configurable member whose type the generated records cannot store (D27).
   - TSH007 is reported on the first own declaration, or on `AddTypeshift()` when the clash is only among references.
-  - The spec's agent-name diagnostics went with D31; selecting a foreign tool and passing unread tool settings
-    became compiler errors (D29, D30).
+  - The spec's agent-name diagnostics went with D31; including a foreign tool and configuring a tool the agent does
+    not offer became compiler errors (D29, D30).
 - **Where:** `Diagnostics/Descriptors.cs`, `docs/guide/diagnostics.md`.
 
 ### D9. Every project that declares toolsets or agents references the package
@@ -136,22 +141,6 @@ commit, or add a new one and withdraw the old.
   against `AIFunctionFactory` for that reason.
 - **Alternatives:** rewriting nested schemas, which diverges from what providers already accept.
 - **Where:** `Json/AgentJson.cs`.
-
-### D13. Withdrawn: agents resolve through one path, code or stored
-
-Agents as data were dropped (D32). One resolve path remains: `AgentDefinition.CreateChatOptions`.
-
-### D14. Withdrawn: stored agents get generated names
-
-Dropped with D32.
-
-### D15. Withdrawn: listing and exporting agents
-
-Dropped with D32; the agent catalog went with it.
-
-### D16. Withdrawn: optional store interfaces, tool defaults loaded in batches
-
-Replaced by D25 and D26. Tool defaults now load one document per tool, in parallel (D28).
 
 ### D17. The model provider interface
 
@@ -207,18 +196,7 @@ Replaced by D25 and D26. Tool defaults now load one document per tool, in parall
 - **Context:** the spec names the repository `agentic-dotnet`; the work happens in `weboost-at/Typeshift`, which now
   publishes the docs site and the packages.
 - **Decision:** `RepositoryUrl` is `https://github.com/weboost-at/Typeshift` and `PackageProjectUrl` the docs site, so
-  SourceLink, nuget.org and the docs agree. [Renaming](./renaming.md) lists every place the URL appears.
-
-## Runtime, decided in the review pass
-
-### D23. Withdrawn: run tool settings are settings objects
-
-Run settings are now the agent's generated `Settings`, whose members are nullable, so only the members a run sets
-override (D27). The trap this entry documented, a non-nullable member always overriding, is gone.
-
-### D24. Withdrawn: selected tools are matched by their method
-
-Replaced by D29: tools are selected through generated methods and matched by name.
+  SourceLink, nuget.org and the docs agree.
 
 ## Persistence and typed settings, decided with the owner
 
@@ -343,8 +321,8 @@ Replaced by D29: tools are selected through generated methods and matched by nam
 
 - **Decision:** generated code in a consumer cannot reach internals, so what only it calls is public and
   `[EditorBrowsable(Never)]`: `AgentDefinition.GetToolSettings`, the `AgentRuntime.*Core*`
-  methods, `StorableJson`, `Toolset.GetBinding` and `ModuleRegistration`. The base types generated code derives
-  from (`GeneratedToolFunction`, `ToolBinding`) and the stamps in `Typeshift.Modules` stay visible.
+  methods, `StorableJson`, `Toolset.GetBinding` and `ModuleRegistration`. The base type generated code derives
+  from (`GeneratedToolFunction`), the `ToolBinding` it creates and the stamps in `Typeshift.Modules` stay visible.
 - **Alternatives:** `InternalsVisibleTo` for every consumer, which is not possible.
 
 ### D36. Diagnostics renumbered before the first release
@@ -370,12 +348,15 @@ Replaced by D29: tools are selected through generated methods and matched by nam
 
 - **Context:** the working name, `Agentic`, is taken on nuget.org by another author. NuGet imports
   `buildTransitive/{PackageId}.props` only, and that file opts consumers into the interceptor namespace.
-- **Decision:** the owner named the library Typeshift: the package ID, the root namespace, the repository,
-  `AddTypeshift()`, `AddTypeshiftStore<TStore, TId>()` and the diagnostic prefix `TSH`. The props file is packed under
-  `$(PackageId).props`, so the ID, the props and the interceptor namespace cannot disagree.
-- **Alternatives:** the candidates in [naming](./naming.md); keeping `Agentic` under an owner prefix
-  (`Weboost.Agentic`), which leaves the namespace and the search results shared with the other package.
-- **Where:** `src/Typeshift/Typeshift.csproj`, [renaming](./renaming.md).
+- **Decision:** the owner named the library Typeshift, for what the generator does: plain C# toolsets and agents
+  shift into typed, reflection-free code at compile time. It names the package ID, the root namespace, the
+  repository, `AddTypeshift()`, `AddTypeshiftStore<TStore, TId>()` and the diagnostic prefix `TSH`. The props file is
+  packed under `$(PackageId).props`, so the ID, the props and the interceptor namespace cannot disagree; the package
+  consumer fails the build when they do.
+- **Alternatives:** keeping `Agentic` under an owner prefix (`Weboost.Agentic`), which leaves the namespace and the
+  search results shared with the other package; `Agentype`, taken on PyPI; `Agentric`, one letter from `Agentic`;
+  `Agentwright`, `Caddie` and other names that say nothing about types or compile time.
+- **Where:** `src/Typeshift/Typeshift.csproj`, `Emitting/Names.cs` (`GeneratedNamespace`), `Parsing/KnownTypes.cs`.
 
 ### D39. The package has a README of its own
 
@@ -459,3 +440,14 @@ Replaced by D29: tools are selected through generated methods and matched by nam
   generators do not see each other's output (D27).
 - **Where:** `Parsing/Discovery.cs` (`ReadJsonContext`), `AgentGenerator.cs` (`GetJsonContexts`),
   `Emitting/ModuleEmitter.cs`, `Modules/ModuleRegistration.cs` (`AddJsonContext`).
+
+## Withdrawn
+
+| ID | Was | Replaced by |
+|---|---|---|
+| D13 | Agents resolve through one path, code or stored. | D32: agents as data were dropped; one resolve path remains, `AgentDefinition.CreateChatOptions`. |
+| D14 | Stored agents get generated names. | D32. |
+| D15 | Listing and exporting agents. | D32; the agent catalog went with it. |
+| D16 | Optional store interfaces, tool defaults loaded in batches. | D25, D26; tool defaults load one document per tool, in parallel (D28). |
+| D23 | Run tool settings are settings objects. | D27: run settings are the agent's generated `Settings`, whose nullable members override only what a run sets. |
+| D24 | Selected tools are matched by their method. | D29: tools are picked from a generated list and matched by name. |

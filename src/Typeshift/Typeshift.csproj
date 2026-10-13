@@ -6,7 +6,7 @@
     <IsTrimmable>true</IsTrimmable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IsPackable>true</IsPackable>
-    <!-- D38: the library's name; docs/contributing/renaming.md lists everywhere it appears -->
+    <!-- D38: the library's name; the buildTransitive props are packed under it -->
     <PackageId>Typeshift</PackageId>
     <Description>Code-defined agents and toolsets for Microsoft.Extensions.AI. A source generator turns them into reflection-free AIFunctions, a typed settings record per agent and one AddTypeshift() registration, ready for Native AOT.</Description>
     <PackageTags>ai;agents;tools;source-generator;microsoft.extensions.ai;llm;aot</PackageTags>
