@@ -67,7 +67,7 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_A_Tool_Of_Another_Toolset_Selecting_It_Does_Not_Compile()
+    public void Given_A_Tool_Of_Another_Toolset_Including_It_Does_Not_Compile()
     {
         // Act
         var run = Run(DiagnosticSources.ForeignTool);

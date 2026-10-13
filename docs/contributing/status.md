@@ -96,8 +96,8 @@ rule. Where the owner's review changed a behavior, the row says how.
 | 8 | `ToolSchemaTests.Given_The_Same_Method_The_Schema_Matches_AIFunctionFactory_Without_Descriptions` |
 | 9 | `ToolSchemaTests.Given_Param_Docs_They_Become_The_Parameter_Descriptions`, `..._Given_No_WithDescription_The_Summary_Is_The_Tool_Description` |
 | 10 | `DiagnosticTests.Given_Two_Own_Tools_Sharing_A_Name_TSH007_Is_Reported_On_The_First`, `..._Given_A_Tool_Named_Like_One_Of_A_Reference_TSH007_Is_Reported_On_The_Own_One` |
-| 11 | `AgentDefinitionTests.Given_Selected_Tools_And_A_Whole_Toolset_The_Agent_Offers_Exactly_Those_In_Order` |
-| 12 | `DiagnosticTests.Given_A_Tool_Of_Another_Toolset_Selecting_It_Does_Not_Compile`, `..._Given_A_Toolset_Not_Compiled_With_The_Generator_TSH006_Is_Reported_On_UseToolset`, `AgentDefinitionTests.Given_A_Selected_Name_That_Is_No_Tool_Of_The_Toolset_It_Throws_An_ArgumentException` |
+| 11 | `AgentDefinitionTests.Given_Included_Tools_And_A_Whole_Toolset_The_Agent_Offers_Exactly_Those_In_Order` |
+| 12 | `DiagnosticTests.Given_A_Tool_Of_Another_Toolset_Including_It_Does_Not_Compile`, `..._Given_A_Toolset_Not_Compiled_With_The_Generator_TSH006_Is_Reported_On_UseToolset`, `AgentDefinitionTests.Given_An_Included_Name_That_Is_No_Tool_Of_The_Toolset_It_Throws_An_ArgumentException` |
 | 13 | `AgentDefinitionTests.Given_A_Tool_The_Agent_Already_Offers_Adding_It_Again_Throws_An_InvalidOperationException` |
 | 14 | `AgentRuntimeTests.Given_Run_Settings_Their_Chat_Options_Apply_Over_The_Code`; options that are not configurable do not exist on `Settings` (`AgentSettingsTests.Exposes_Only_The_Model_The_Configurable_Chat_Options_And_The_Configurable_Tools`) |
 | 15 | `AgentRuntimeTests.Given_An_Unset_Run_Option_The_Agents_Default_Stays` |
