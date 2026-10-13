@@ -57,6 +57,33 @@ public class ToolInvocationTests : HostTestBase
     }
 
     [Fact]
+    public async Task Given_A_Tool_Taking_Its_Arguments_Their_Services_Are_The_Calls_Scope()
+    {
+        // Arrange
+        var probe = new ProbeToolset().CreateTools(Json).Single();
+
+        // Act
+        var result = ReadResult<ProbeResult>(await probe.InvokeAsync(Arguments(("query", Data.Tool.Query)), Ct));
+
+        // Assert
+        result.ArgumentsScope.Should().Be(result.Scope);
+    }
+
+    [Fact]
+    public async Task Given_A_Call_The_Callers_Arguments_Keep_Their_Services()
+    {
+        // Arrange
+        var probe = new ProbeToolset().CreateTools(Json).Single();
+        var arguments = Arguments(("query", Data.Tool.Query));
+
+        // Act
+        await probe.InvokeAsync(arguments, Ct);
+
+        // Assert
+        arguments.Services.Should().BeSameAs(Services);
+    }
+
+    [Fact]
     public async Task Given_A_Scripted_Call_The_Tool_Runs_With_Its_Resolved_Settings()
     {
         // Arrange

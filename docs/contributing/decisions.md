@@ -128,8 +128,9 @@ commit, or add a new one and withdraw the old.
 ### D11. Each tool call runs in a DI scope of its own
 
 - **Context:** `FunctionInvokingChatClient` hands tools the root provider.
-- **Decision:** `GeneratedToolFunction` creates a scope per call, so scoped services work per call. A container
-  without `IServiceScopeFactory` throws, naming `AddTypeshift()`. Settings no longer travel through the scope (D40).
+- **Decision:** `GeneratedToolFunction` creates a scope per call, and the `AIFunctionArguments` the tool receives
+  carry it, so scoped services work per call. A container without `IServiceScopeFactory` throws, naming
+  `AddTypeshift()`. Settings no longer travel through the scope (D40).
 - **Alternatives:** the root provider, which makes every scoped service a singleton.
 - **Where:** `Tools/GeneratedToolFunction.cs`.
 

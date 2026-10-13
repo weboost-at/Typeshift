@@ -57,7 +57,14 @@ public abstract class GeneratedToolFunction : AIFunction
                 $"The tool '{Name}' needs the services of a container built with AddTypeshift().");
 
         await using var scope = scopes.CreateAsyncScope();
-        return await InvokeToolAsync(arguments, scope.ServiceProvider, ct);
+
+        var scoped = new AIFunctionArguments(arguments)
+        {
+            Services = scope.ServiceProvider,
+            Context = arguments.Context
+        };
+
+        return await InvokeToolAsync(scoped, scope.ServiceProvider, ct);
     }
 
     /// <summary>

@@ -11,7 +11,7 @@ public record ProbeSettings
     public string Mode { get; init; } = "fast";
 }
 
-public record ProbeResult(string Query, ProbeSettings Settings, Guid? Scope);
+public record ProbeResult(string Query, ProbeSettings Settings, Guid? Scope, Guid? ArgumentsScope);
 
 public partial class ProbeToolset : Toolset
 {
@@ -30,5 +30,9 @@ public partial class ProbeToolset : Toolset
         IServiceProvider serviceProvider,
         AIFunctionArguments arguments,
         CancellationToken ct) =>
-        new(query, settings, serviceProvider.GetService<CallScope>()?.Id);
+        new(
+            query,
+            settings,
+            serviceProvider.GetService<CallScope>()?.Id,
+            arguments.Services?.GetService<CallScope>()?.Id);
 }
