@@ -2,19 +2,19 @@ namespace Typeshift.Tests.Testing.Data;
 
 public class TestValue<T>(T @default)
 {
-    private readonly Dictionary<string, T> _values = [];
+    private T? _updated;
+    private bool _hasUpdated;
 
     public T Default { get; } = @default;
 
-    public T Updated => _values[TestValueConstants.Updated];
+    public T Updated => _hasUpdated ? _updated! : throw new InvalidOperationException("SetUpdated was never called.");
 
     public static implicit operator T(TestValue<T> value) => value.Default;
 
-    public static implicit operator TestValue<T>(T @default) => new(@default);
-
     public TestValue<T> SetUpdated(T value)
     {
-        _values[TestValueConstants.Updated] = value;
+        _updated = value;
+        _hasUpdated = true;
         return this;
     }
 }
