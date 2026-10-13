@@ -211,6 +211,33 @@ public static class ToolsetSources
         }
         """;
 
+    public const string ObsoleteConfigurableSetting =
+        """
+        using System;
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        internal record EchoSettings
+        {
+            public int Repeat { get; init; } = 1;
+
+            [Obsolete("Use Repeat.")]
+            public int Times { get; init; }
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo)
+                    .WithName("echo")
+                    .WithDescription("Echoes the text.")
+                    .WithConfigurableSettings<EchoSettings>();
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
     public const string DocumentedTwice =
         """
         using Typeshift.Toolsets;

@@ -75,6 +75,16 @@ public class ToolsetGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_Configurable_Settings_With_An_Obsolete_Member_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(ToolsetSources.ObsoleteConfigurableSetting);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
     public void Given_A_Parameter_Documented_Twice_The_Generator_Does_Not_Fail()
     {
         // Act
