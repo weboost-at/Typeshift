@@ -136,12 +136,14 @@ await using var provider = services.BuildServiceProvider();
 ## Settings per customer
 
 The generator gives `ResearchAgent` a nested `Settings` record holding exactly what may change: the model, the
-configurable chat options and the configurable settings of its tools. Here they are stored under a customer's id.
+configurable chat options and the configurable settings of its tools. The agent's `AgentRuntime<ResearchAgent>`,
+registered by `AddTypeshift()`, stores them here under a customer's id.
 
 <!-- snippet: quickstart-settings -->
 <a id='snippet-quickstart-settings'></a>
 ```cs
-var customer = Guid.CreateVersion7(time.GetUtcNow());
+var research = provider.GetRequiredService<AgentRuntime<ResearchAgent>>();
+var customer = Guid.NewGuid();
 
 await research.ConfigureAsync(customer, settings => settings with
 {
@@ -150,7 +152,7 @@ await research.ConfigureAsync(customer, settings => settings with
     FindCompanies = settings.FindCompanies with { Limit = 2 }
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L25-L34' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L22-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## A run
@@ -162,14 +164,14 @@ conversation tracking.
 <!-- snippet: quickstart-run -->
 <a id='snippet-quickstart-run'></a>
 ```cs
-var conversationId = Guid.CreateVersion7(time.GetUtcNow());
+var conversationId = Guid.NewGuid();
 var options = await research.ResolveChatOptionsAsync(customer, conversationId: conversationId.ToString());
 var client = await research.CreateChatClientAsync(options);
 var answer = await client.GetResponseAsync("Vienna", options);
 
 Console.WriteLine($"{research.Definition.Name}: {answer.Text}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L37-L44' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L35-L42' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Because the run had a conversation id, the tracked conversation is stored under it:
@@ -186,7 +188,7 @@ Console.WriteLine(
     $"Stored {conversation.AggregatedMessages.Count} messages of {conversation.ExecutionContext.Value}, " +
     $"{conversation.AggregatedUsage.TotalTokenCount} tokens");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L47-L56' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L45-L54' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A single run can also override settings without storing them, here streamed:
@@ -210,7 +212,7 @@ await foreach (var update in runClient.GetStreamingResponseAsync("Vienna", runOp
 
 Console.WriteLine();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L59-L75' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L57-L73' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The sample prints:

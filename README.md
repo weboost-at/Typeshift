@@ -134,7 +134,8 @@ await using var provider = services.BuildServiceProvider();
 <!-- snippet: quickstart-settings -->
 <a id='snippet-quickstart-settings'></a>
 ```cs
-var customer = Guid.CreateVersion7(time.GetUtcNow());
+var research = provider.GetRequiredService<AgentRuntime<ResearchAgent>>();
+var customer = Guid.NewGuid();
 
 await research.ConfigureAsync(customer, settings => settings with
 {
@@ -143,20 +144,20 @@ await research.ConfigureAsync(customer, settings => settings with
     FindCompanies = settings.FindCompanies with { Limit = 2 }
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L25-L34' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L22-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 <!-- snippet: quickstart-run -->
 <a id='snippet-quickstart-run'></a>
 ```cs
-var conversationId = Guid.CreateVersion7(time.GetUtcNow());
+var conversationId = Guid.NewGuid();
 var options = await research.ResolveChatOptionsAsync(customer, conversationId: conversationId.ToString());
 var client = await research.CreateChatClientAsync(options);
 var answer = await client.GetResponseAsync("Vienna", options);
 
 Console.WriteLine($"{research.Definition.Name}: {answer.Text}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L37-L44' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L35-L42' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The code above is the [console sample](samples/Typeshift.Samples.Console), which CI publishes as Native AOT and runs.
