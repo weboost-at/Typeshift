@@ -110,6 +110,12 @@ public static class AgentSources
                     .WithDescription("Finds equal entries.")
                     .WithSettings<LookupSettings>()
                     .Configurable(s => s.Limit);
+
+                AddTool(Find)
+                    .WithName("temperature")
+                    .WithDescription("Finds a temperature.")
+                    .WithSettings<LookupSettings>()
+                    .Configurable(s => s.Limit);
             }
 
             public static string Find(string name, LookupSettings settings) => name;
@@ -127,6 +133,7 @@ public static class AgentSources
             public LookupAgent()
             {
                 WithName("lookup_agent");
+                WithChatOptions().Configurable(o => o.Temperature);
                 UseToolset<LookupToolset>();
             }
         }
