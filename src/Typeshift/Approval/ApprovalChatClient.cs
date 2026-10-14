@@ -19,7 +19,7 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
         if (options is not ResolvedChatOptions { AgentRun: { } run } resolved)
             return await base.GetResponseAsync(messages, options, cancellationToken);
 
-        var call = Prepare(messages, run, out var standing);
+        var call = Prepare(messages, resolved, out var standing);
         var decided = new HashSet<string>();
         ChatResponse? merged = null;
 
@@ -59,7 +59,7 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
             yield break;
         }
 
-        var call = Prepare(messages, run, out var standing);
+        var call = Prepare(messages, resolved, out var standing);
 
         try
         {
@@ -100,6 +100,10 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
         }
     }
 
+    // D33: a sub-agent cannot ask the host
+    private const string SubAgentRejection =
+        "This agent runs as a sub-agent and cannot ask for approval; no rule or standing approval allows the call.";
+
     // The tool loop asks again with every request answered; a run with requests left ends, storing the requests and
     // the answers it gave, which the host's answers in the conversation's next run join
     private async Task<bool> ContinueAsync(
@@ -113,7 +117,7 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
 
         if (left.Count == 0) return answers.Count > 0 && Budgets(options);
 
-        if (options.ConversationRun is not { } conversation)
+        if (options.ConversationRun is not { Conversation: not null } conversation)
         {
             var tools = string.Join(", ", left.Select(request => (request.ToolCall as FunctionCallContent)?.Name));
 
@@ -145,9 +149,10 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
     // rejects it
     private static List<ChatMessage> Prepare(
         IEnumerable<ChatMessage> messages,
-        AgentRun run,
+        ResolvedChatOptions options,
         out HashSet<string> standing)
     {
+        var run = options.AgentRun!;
         var list = messages.ToList();
         var contents = list.SelectMany(message => message.Contents).ToList();
         // A store that retried an append may hold a request twice
@@ -165,6 +170,10 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
             .Select(answer => requests[answer.RequestId].ToolCall)
             .OfType<FunctionCallContent>()
             .Select(call => call.Name)];
+
+        // D33: a sub-agent's run has its caller's standing approvals too
+        if (options.Caller is { } caller) standing.UnionWith(caller.Standing);
+        run.Standing = standing;
 
         // D52: an approved plan the tool loop has not run yet switches the run's mode
         foreach (var answer in answers.Where(answer => answer.Approved))
@@ -216,7 +225,7 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
     }
 
     // Rules see every call that needs approval first; a rejection wins, then an approval, a standing approval, and
-    // auto mode
+    // auto mode; what is left goes to the host, or is rejected in a sub-agent's run (D33)
     private static async Task<IReadOnlyList<ToolApprovalResponseContent>> DecideAsync(
         IList<ChatMessage> response,
         ResolvedChatOptions options,
@@ -259,6 +268,8 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
                      || standing.Contains(call.Name)
                      || run.Mode == AgentMode.Auto)
                 answers.Add(request.CreateResponse(approved: true));
+            else if (options.Caller is not null)
+                answers.Add(request.CreateResponse(approved: false, SubAgentRejection));
         }
 
         return answers;

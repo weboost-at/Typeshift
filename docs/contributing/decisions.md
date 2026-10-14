@@ -327,6 +327,13 @@ commit, or add a new one and withdraw the old.
   the calling run as a message before a later model call, and the run does not end while sub-agents work. A
   sub-agent cannot ask the host: in the default mode its calls that need approval and that nothing approves are
   rejected (TSH024 warns). Circles are TSH026.
+- **As built:** the sub-agent's tool is a runtime `AIFunction` that resolves the agent's `AgentHost<T>` through a
+  factory `UseAgent<T>()` captured, so no generated code is needed; it finds its caller's run through
+  `FunctionInvokingChatClient.CurrentContext`. Background answers join the run through the steering queue, so
+  every run has a `ConversationRun`, which stores only with a conversation; the run's end cancels the sub-agents
+  still working. TSH023, TSH024 and TSH026 check agents of the same compilation; tool stamps carry
+  `RequiresApproval` for TSH024.
+- **Where:** `Agents/SubAgentFunction.cs`, `Conversations/ConversationRun.cs`, `Analysis/TypeshiftAnalyzer.cs`.
 - **Alternatives:** passing a sub-agent's approval requests up to the caller's host, which pauses a parent run on a
   child's call and needs the child's state stored to resume (possible later); MAF's six background-task tools
   (start, wait, results, continue, clear), where one tool and an injected answer do the job; storing each sub-agent
@@ -339,6 +346,11 @@ commit, or add a new one and withdraw the old.
   agent's loop; the target answers in the same run with the whole conversation. The conversation's last entry names
   the agent that answers its next run, if it is reachable through the host agent's handoffs. Handoff needs a
   conversation; run settings apply to the host's agent only.
+- **As built:** the conversation layer sees the declaration's call the tool loop passes out, stores its result as an
+  entry of the agent handed to, and lets that agent resume the run; a run without a conversation does not offer
+  handoffs. Tool results after which the tool loop made no model call are stored before the run ends, a handoff's
+  and a terminating tool's alike.
+- **Where:** `Conversations/ConversationChatClient.cs`.
 
 ### D35. MCP servers through a host provider
 

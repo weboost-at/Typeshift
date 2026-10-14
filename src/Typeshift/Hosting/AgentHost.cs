@@ -13,7 +13,7 @@ namespace Typeshift;
 /// <c>ResolveOptionsAsync</c>.
 /// </summary>
 /// <typeparam name="TAgent">The agent.</typeparam>
-public sealed class AgentHost<TAgent> where TAgent : Agent
+public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
 {
     // D25: the scope's services, never a scope of its own
     private readonly IServiceProvider _services;
@@ -95,7 +95,10 @@ public sealed class AgentHost<TAgent> where TAgent : Agent
 
         var tools = declaration.CreateTools(Agent, layers, _services.GetRequiredService<ToolJson>());
 
-        options.Tools = [.. tools, .. options.Tools ?? []];
+        // D33: the sub-agents after the toolsets' tools
+        var agents = Agent.SubAgents.Select(use => new SubAgentFunction(use, use.Host(_services).Agent));
+
+        options.Tools = [.. tools, .. agents, .. options.Tools ?? []];
         options.RunOptions = run;
         options.RunSetsMode = settings is not null && SetsMode(declaration, settings);
         options.SettingsId = settingsId;
@@ -148,6 +151,42 @@ public sealed class AgentHost<TAgent> where TAgent : Agent
     }
 
     internal IStoreAccess Store => _services.GetRequiredService<IStoreAccess>();
+
+    Agent IAgentHost.Agent => Agent;
+
+    async Task<ChatResponse> IAgentHost.RunAsync(
+        IEnumerable<ChatMessage> messages,
+        object? settingsId,
+        object? conversation,
+        AgentRun? caller,
+        CancellationToken ct)
+    {
+        var options = await ResolveRunAsync(settingsId, conversation, null, ct);
+
+        if (caller is not null)
+        {
+            options.RunOptions = options.RunOptions with { Mode = caller.Mode };
+            options.Caller = caller;
+        }
+
+        using var client = await CreateChatClientAsync(options, ct);
+        return await client.GetResponseAsync(messages, options, ct);
+    }
+
+    async IAsyncEnumerable<ChatResponseUpdate> IAgentHost.RunStreamingAsync(
+        IEnumerable<ChatMessage> messages,
+        object? settingsId,
+        object? conversation,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        var options = await ResolveRunAsync(settingsId, conversation, null, ct);
+        using var client = await CreateChatClientAsync(options, ct);
+
+        await foreach (var update in client.GetStreamingResponseAsync(messages, options, ct))
+        {
+            yield return update;
+        }
+    }
 
     // A layer sets the mode when it moves two different modes to the same one
     private static bool SetsMode(AgentDeclaration declaration, object settings) =>

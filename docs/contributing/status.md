@@ -15,8 +15,8 @@ the slices build it one at a time.
 | 5. Approval, rules, plan and auto modes | built |
 | 6. Middleware, context providers | built |
 | 7. Telemetry, compaction | built |
-| 8. Sub-agents, handoff | next |
-| 9. MCP, built-in toolsets | open |
+| 8. Sub-agents, handoff | built |
+| 9. MCP, built-in toolsets | next |
 | 10. Native AOT: the console sample, the package consumer | open |
 
 ## Behavior coverage
@@ -80,6 +80,11 @@ The numbers are the rules of v0's behavior table where they still hold.
 | new | A run is an `invoke_agent` span around its chat and tool spans, with usage and errors (D36) | `TelemetryTests` |
 | new | Compaction clears the oldest read results, then summarizes or drops the oldest turns, by calibrated estimate (D32) | `CompactionTests` |
 | new | A summary is stored, and later runs start from it (D32) | `CompactionTests.Given_A_Summary_Later_Runs_Start_From_It` |
+| new | A sub-agent is a tool of its description and one input, answering in a fresh context in its caller's mode (D33) | `SubAgentTests` |
+| new | A sub-agent's calls that need approval are rejected unless something approves them (D33) | `SubAgentTests.Given_A_Sub_Agent_In_The_Default_Mode_A_Call_That_Needs_Approval_Is_Rejected` |
+| new | A background sub-agent's answer joins the run, which waits for it; a lost one is reported on resume (D33) | `SubAgentTests.Given_A_Background_Sub_Agent_The_Caller_Works_On_And_Receives_Its_Answer_Before_It_Ends`, `..._Given_An_Interrupted_Run_With_A_Background_Sub_Agent_The_Model_Hears_It_Was_Lost` |
+| new | A handoff continues the run with the other agent, which answers the conversation's later runs (D34) | `HandoffTests` |
+| new | Sub-agents and handoff targets are checked at compile time (TSH023, TSH024, TSH026) | `DiagnosticTests` |
 
 ## Known gaps
 
@@ -94,8 +99,6 @@ The numbers are the rules of v0's behavior table where they still hold.
   and the call fails at runtime. Neither v0 nor the sign-off supports it.
 - **Kinds across references:** TSH022 compares the compilation's agents with each other and with those the
   references stamp, not two references' agents with each other.
-- **A tool loop a tool ends:** tool results after which the tool loop makes no model call (a function that sets
-  `Terminate`) are not stored; handoff, which ends the loop this way, stores them in slice 8.
 - **Live updates of non-streaming runs:** only streaming runs publish.
 - **Storable structs:** a user struct other than the scalars cannot be configurable (TSH012).
 - **Plan mode's other tools:** plan mode offers `ReadOnly()` toolset tools and `exit_plan_mode`; `write_todos`, MCP
@@ -105,3 +108,5 @@ The numbers are the rules of v0's behavior table where they still hold.
 - **Compaction's estimate:** about four characters to a token, corrected by the provider's report of the run's
   last call; a run's first call trusts the estimate alone. The summary model reads results cut to 2,000 characters.
 - **Compaction across steering:** a steered run's later pass compacts afresh, summarizing again if it needs to.
+- **Agents across references:** TSH023, TSH024 and TSH026 check the agents of the same compilation; a sub-agent of a
+  referenced assembly is checked when that assembly builds, not against its callers.

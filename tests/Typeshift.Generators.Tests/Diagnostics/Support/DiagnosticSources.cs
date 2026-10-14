@@ -665,6 +665,75 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string SubAgentWithoutDescription =
+        """
+        using Typeshift;
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent() => WithChatOptions().WithModel("fast-model");
+        }
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent() => UseAgent<HelpAgent>();
+        }
+        """;
+
+    public const string SubAgentNeedingApproval =
+        """
+        using Typeshift;
+
+        internal partial class TicketToolset : Toolset
+        {
+            public TicketToolset() => AddTool(Close).WithDescription("Closes a ticket.").RequiresApproval();
+
+            public static void Close(int number)
+            {
+            }
+        }
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent()
+            {
+                WithDescription("Helps.");
+
+                UseToolset<TicketToolset>();
+            }
+        }
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent() => UseAgent<HelpAgent>();
+        }
+        """;
+
+    public const string AgentCircle =
+        """
+        using Typeshift;
+
+        internal partial class AskAgent : Agent
+        {
+            public AskAgent()
+            {
+                WithDescription("Asks.");
+
+                UseAgent<TellAgent>();
+            }
+        }
+
+        internal partial class TellAgent : Agent
+        {
+            public TellAgent()
+            {
+                WithDescription("Tells.");
+
+                UseAgent<AskAgent>();
+            }
+        }
+        """;
+
     public const string OtherStoreIdType =
         """
         using Typeshift;

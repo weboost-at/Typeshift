@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Typeshift.Generators.Diagnostics;
 using Typeshift.Generators.Emitting;
+using Typeshift.Generators.Models;
 using Typeshift.Generators.Parsing;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -39,6 +40,9 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.UnstampedReference,
         Descriptors.OtherIdType,
         Descriptors.SharedKind,
+        Descriptors.NotUsableAgent,
+        Descriptors.SubAgentNeedsApproval,
+        Descriptors.AgentCircle,
         Descriptors.OfferedTwice,
         Descriptors.OtherStoreIdType
     ];
@@ -56,11 +60,12 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
         var tools = new ConcurrentBag<(string Name, INamedTypeSymbol Toolset, Location Location)>();
         var kinds = new ConcurrentBag<(string Kind, INamedTypeSymbol Agent)>();
+        var found = new Found();
 
         var property = IdTypes.Read(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
         var idType = IdTypes.Resolve(property, context.Compilation);
 
-        context.RegisterSymbolStartAction(start => StartClass(start, tools, kinds), SymbolKind.NamedType);
+        context.RegisterSymbolStartAction(start => StartClass(start, tools, kinds, found), SymbolKind.NamedType);
         context.RegisterOperationAction(call => AnalyzeCall(call, idType), OperationKind.Invocation);
 
         context.RegisterCompilationEndAction(end =>
@@ -69,13 +74,15 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             ReportUnstampedReferences(end);
             ReportOtherIdTypes(end, idType);
             ReportSharedKinds(end, kinds);
+            ReportAgentUses(end, found);
         });
     }
 
     private static void StartClass(
         SymbolStartAnalysisContext context,
         ConcurrentBag<(string Name, INamedTypeSymbol Toolset, Location Location)> tools,
-        ConcurrentBag<(string Kind, INamedTypeSymbol Agent)> kinds)
+        ConcurrentBag<(string Kind, INamedTypeSymbol Agent)> kinds,
+        Found found)
     {
         var type = (INamedTypeSymbol)context.Symbol;
         if (type.IsAbstract) return;
@@ -122,8 +129,11 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
             if (baseType == "Agent")
             {
-                if (AgentParser.Parse(type, ordered, reporter, end.CancellationToken) is { } agent)
+                if (AgentParser.Parse(type, ordered, reporter, end.CancellationToken, out var uses) is { } agent)
+                {
                     kinds.Add((agent.Kind, type));
+                    found.Agents.Add(new FoundAgent(type, agent, uses));
+                }
 
                 return;
             }
@@ -131,7 +141,9 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             var documented = type.DeclaringSyntaxReferences
                 .Any(reference => reference.SyntaxTree.Options.DocumentationMode != DocumentationMode.None);
 
-            ToolsetParser.Parse(type, ordered, documented, reporter, end.CancellationToken, out var declarations);
+            var ct = end.CancellationToken;
+            var toolset = ToolsetParser.Parse(type, ordered, documented, reporter, ct, out var declarations);
+            if (toolset is not null) found.Toolsets.Add(Catalog.Summarize(toolset));
 
             foreach (var (tool, addTool) in declarations)
             {
@@ -299,4 +311,97 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             taken[kind] = agent.ToDisplayString();
         }
     }
+
+    // D33, D34: the agents an agent uses, as far as this compilation declares them
+    private static void ReportAgentUses(CompilationAnalysisContext context, Found found)
+    {
+        var agents = found.Agents.ToDictionary(
+            agent => agent.Type,
+            agent => agent,
+            (IEqualityComparer<INamedTypeSymbol>)SymbolEqualityComparer.Default);
+
+        List<ToolsetSummary> toolsets =
+        [
+            .. found.Toolsets,
+            .. ReferenceReader.Read(context.Compilation, context.CancellationToken).Toolsets
+        ];
+
+        foreach (var (type, _, uses) in found.Agents)
+        {
+            foreach (var use in uses)
+            {
+                if (!agents.TryGetValue(use.Target, out var target)) continue;
+
+                var role = use.SubAgent ? "a sub-agent" : "a handoff target";
+
+                if (target.Model.Description is null)
+                {
+                    var reason = "it has no WithDescription";
+                    Report(context, Descriptors.NotUsableAgent, use, target.Type.Name, role, reason);
+                }
+                else if (!ToolNames.IsLowerSnakeCase(target.Model.Name))
+                {
+                    var reason = $"its name '{target.Model.Name}' is not lower_snake_case";
+                    Report(context, Descriptors.NotUsableAgent, use, target.Type.Name, role, reason);
+                }
+
+                if (!use.SubAgent) continue;
+
+                var asking = Catalog.Resolve(target.Model, toolsets).Tools
+                    .Where(offered => offered.Tool.RequiresApproval)
+                    .Select(offered => offered.Tool.Name)
+                    .ToList();
+
+                if (asking.Count > 0)
+                {
+                    var names = string.Join(", ", asking);
+                    Report(context, Descriptors.SubAgentNeedsApproval, use, target.Type.Name, names);
+                }
+
+                if (Calls(use.Target, type, agents))
+                    Report(context, Descriptors.AgentCircle, use, type.Name, target.Type.Name);
+            }
+        }
+    }
+
+    // Whether an agent reaches another through sub-agents
+    private static bool Calls(
+        INamedTypeSymbol from,
+        INamedTypeSymbol to,
+        Dictionary<INamedTypeSymbol, FoundAgent> agents)
+    {
+        var seen = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+        var next = new Stack<INamedTypeSymbol>([from]);
+
+        while (next.Count > 0)
+        {
+            var agent = next.Pop();
+            if (SymbolEqualityComparer.Default.Equals(agent, to)) return true;
+            if (!seen.Add(agent) || !agents.TryGetValue(agent, out var found)) continue;
+
+            foreach (var use in found.Uses.Where(use => use.SubAgent))
+            {
+                next.Push(use.Target);
+            }
+        }
+
+        return false;
+    }
+
+    private static void Report(
+        CompilationAnalysisContext context,
+        DiagnosticDescriptor descriptor,
+        AgentUseDeclaration use,
+        params object[] arguments) =>
+        context.ReportDiagnostic(Diagnostic.Create(descriptor, use.Syntax.GetLocation(), arguments));
+
+    // What the classes of the compilation declare, for the checks at its end
+    private sealed class Found
+    {
+        public ConcurrentBag<FoundAgent> Agents { get; } = [];
+
+        public ConcurrentBag<ToolsetSummary> Toolsets { get; } = [];
+    }
+
+    private sealed record FoundAgent(INamedTypeSymbol Type, AgentModel Model, IReadOnlyList<AgentUseDeclaration> Uses);
 }

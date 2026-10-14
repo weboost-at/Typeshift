@@ -2,6 +2,7 @@ using Typeshift.Samples.Tickets;
 
 namespace Typeshift.Samples.Agents;
 
+// begin-snippet: handoff
 internal partial class TriageAgent : Agent
 {
     public TriageAgent()
@@ -19,7 +20,12 @@ internal partial class TriageAgent : Agent
             .Configurable(r => r.Mode)
             .Configurable(r => r.MaxToolIterations);
         // end-snippet
+
+        UseHandoff<SupportAgent>();
+        UseHandoff<BillingAgent>();
     }
 
-    protected override string GetInstructions() => "Find out what the customer needs.";
+    protected override string GetInstructions() =>
+        "Find out what the customer needs, then hand off to support or billing.";
 }
+// end-snippet

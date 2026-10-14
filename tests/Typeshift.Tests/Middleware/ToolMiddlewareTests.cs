@@ -48,4 +48,28 @@ public class ToolMiddlewareTests : MiddlewareTestBase
             .Should()
             .Equal(Data.Agent.Reason);
     }
+
+    [Fact]
+    public async Task Given_Tool_Middleware_That_Ends_The_Tool_Loop_The_Result_Is_Stored()
+    {
+        // Arrange
+        ChatClient.Reply(Call(Data.Tool.CallId, "note", ("text", Data.Tool.Query)));
+
+        Script.Tools[0] = (call, next) =>
+        {
+            call.Terminate = true;
+            return next();
+        };
+
+        // Act
+        await RunAsync(Data.Tool.Question);
+
+        // Assert
+        (await EntriesAsync(Data.Agent.ConversationId))
+            .SelectMany(entry => entry.Messages)
+            .SelectMany(message => message.Contents)
+            .OfType<FunctionResultContent>()
+            .Should()
+            .ContainSingle(result => result.CallId == Data.Tool.CallId);
+    }
 }

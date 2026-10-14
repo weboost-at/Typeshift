@@ -23,7 +23,8 @@ internal static class Catalog
                         : null,
                     Members: tool.Settings?.Properties
                         .Select(property => new SettingMember(property.Name, property.Type))
-                        .ToEquatableArray() ?? default))
+                        .ToEquatableArray() ?? default,
+                    RequiresApproval: tool.RequiresApproval))
                 .ToEquatableArray());
 
     // A use of a toolset the catalog lacks is skipped (TSH019), and so is a tool already offered (TSH025, or a name

@@ -96,4 +96,9 @@ public sealed class GeneratedToolAttribute(string name, string property, string 
     /// The record of the tool's configurable settings, if it has any.
     /// </summary>
     public Type? Overrides { get; init; }
+
+    /// <summary>
+    /// Whether the tool asks the host before it runs.
+    /// </summary>
+    public bool RequiresApproval { get; init; }
 }

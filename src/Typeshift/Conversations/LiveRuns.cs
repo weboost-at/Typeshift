@@ -16,6 +16,8 @@ internal sealed class LiveRuns
     // D50: one run per conversation at a time in a process
     public void Begin(ConversationRun run)
     {
+        if (run.Conversation is null) return;
+
         if (!_runs.TryAdd(run.Conversation, run))
         {
             throw new InvalidOperationException(
@@ -24,8 +26,11 @@ internal sealed class LiveRuns
         }
     }
 
-    public void End(ConversationRun run) =>
-        _runs.TryRemove(new KeyValuePair<object, ConversationRun>(run.Conversation, run));
+    public void End(ConversationRun run)
+    {
+        if (run.Conversation is { } conversation)
+            _runs.TryRemove(new KeyValuePair<object, ConversationRun>(conversation, run));
+    }
 
     // D51
     public bool TrySteer(object conversation, string input)

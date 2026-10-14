@@ -8,12 +8,14 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Typeshift;
 
 // D46, D50: outermost, around the tool loop. It begins every run (its AgentRun, mode and invoke_agent span, D36),
-// and for a run with a conversation resumes it, marks where the run begins and ends, keeps a steered run going until
-// its input was answered, and publishes the updates of streaming runs (D47). The provider never receives the
-// conversation id
+// and for a run with a conversation resumes it, marks where the run begins and ends, and publishes the updates of
+// streaming runs (D47). A run goes on while steering input or a background sub-agent's answer waits (D33, D51), and
+// a handoff continues it with the agent handed to (D34). The provider never receives the conversation id
 internal sealed class ConversationChatClient(IChatClient inner, Agent agent, IServiceProvider services)
     : DelegatingChatClient(inner)
 {
+    private const string HandoffPrefix = "handoff_to_";
+
     public override async Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,
@@ -68,33 +70,53 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         Telemetry.Answered(activity, usage);
     }
 
+    private LiveRuns Runs => services.GetRequiredService<LiveRuns>();
+
+    private TimeProvider Time => services.GetService<TimeProvider>() ?? TimeProvider.System;
+
+    private IStoreAccess Store => services.GetRequiredService<IStoreAccess>();
+
     private async Task<ChatResponse> RunAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options,
         Activity? activity,
-        CancellationToken cancellationToken)
+        CancellationToken ct)
     {
-        var (run, call, runOptions) = await BeginAsync(messages, options, activity, cancellationToken);
+        if (await AnsweringAgentAsync(options, ct) is { } answering)
+            return await answering.RunAsync(messages, SettingsId(options), GetConversation(options!), null, ct);
 
-        if (run is null) return await base.GetResponseAsync(call, runOptions, cancellationToken);
+        var (run, call, runOptions) = await BeginAsync(messages, options, activity, ct);
+        var handedOff = false;
 
         try
         {
-            var last = await base.GetResponseAsync(call, runOptions, cancellationToken);
+            var last = await base.GetResponseAsync(call, runOptions, ct);
             var response = last;
 
-            // D51: the run does not end while steering input waits for the model
-            while (run.IsSteered)
+            while (true)
             {
+                await run.StoreResultsAsync(last.Messages);
+
+                if (HandoffIn(last.Messages) is { } handoff)
+                {
+                    handedOff = true;
+                    var (result, target) = await HandOffAsync(run, handoff);
+                    var answer = await target.RunAsync([], runOptions.SettingsId, run.Conversation, null, ct);
+
+                    return ChatResponses.Merge(ChatResponses.Merge(response, new ChatResponse(result)), answer);
+                }
+
+                if (!await run.GoesOnAsync(ct)) break;
+
                 call = [.. call, .. last.Messages];
-                last = await base.GetResponseAsync(call, runOptions, cancellationToken);
+                last = await base.GetResponseAsync(call, runOptions, ct);
                 response = ChatResponses.Merge(response, last);
             }
 
             await run.EndAsync(null);
             return response;
         }
-        catch (Exception exception)
+        catch (Exception exception) when (!handedOff)
         {
             await run.EndAsync(exception.Message);
             throw;
@@ -109,13 +131,13 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         IEnumerable<ChatMessage> messages,
         ChatOptions? options,
         Activity? activity,
-        [EnumeratorCancellation] CancellationToken cancellationToken)
+        [EnumeratorCancellation] CancellationToken ct)
     {
-        var (run, call, runOptions) = await BeginAsync(messages, options, activity, cancellationToken);
-
-        if (run is null)
+        if (await AnsweringAgentAsync(options, ct) is { } answering)
         {
-            await foreach (var update in base.GetStreamingResponseAsync(call, runOptions, cancellationToken))
+            var conversation = GetConversation(options!);
+
+            await foreach (var update in answering.RunStreamingAsync(messages, SettingsId(options), conversation, ct))
             {
                 yield return update;
             }
@@ -123,7 +145,9 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             yield break;
         }
 
-        var publisher = services.GetService<RealtimeTrackingOptions>() is { } realtime
+        var (run, call, runOptions) = await BeginAsync(messages, options, activity, ct);
+
+        var publisher = run.Conversation is not null && services.GetService<RealtimeTrackingOptions>() is { } realtime
             ? new LivePublisher(Runs, run.Conversation, realtime, Time)
             : null;
 
@@ -131,20 +155,41 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
         try
         {
-            do
+            while (true)
             {
                 var updates = new List<ChatResponseUpdate>();
 
-                await foreach (var update in base.GetStreamingResponseAsync(call, runOptions, cancellationToken))
+                await foreach (var update in base.GetStreamingResponseAsync(call, runOptions, ct))
                 {
                     updates.Add(update);
                     publisher?.Add(update);
                     yield return update;
                 }
 
-                call = [.. call, .. updates.ToChatResponse().Messages];
+                var last = updates.ToChatResponse().Messages;
+                await run.StoreResultsAsync(last);
+
+                if (HandoffIn(last) is { } handoff)
+                {
+                    ended = true;
+                    var (result, target) = await HandOffAsync(run, handoff);
+
+                    yield return new ChatResponseUpdate(ChatRole.Tool, result.Contents);
+
+                    var answer = target.RunStreamingAsync([], runOptions.SettingsId, run.Conversation, ct);
+
+                    await foreach (var update in answer)
+                    {
+                        yield return update;
+                    }
+
+                    yield break;
+                }
+
+                if (!await run.GoesOnAsync(ct)) break;
+
+                call = [.. call, .. last];
             }
-            while (run.IsSteered);
 
             ended = true;
             await run.EndAsync(null);
@@ -159,12 +204,6 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         }
     }
 
-    private LiveRuns Runs => services.GetRequiredService<LiveRuns>();
-
-    private TimeProvider Time => services.GetService<TimeProvider>() ?? TimeProvider.System;
-
-    private IStoreAccess Store => services.GetRequiredService<IStoreAccess>();
-
     // The id a typed run passes, or the raw path's ChatOptions.ConversationId in the build's id type
     private object? GetConversation(ChatOptions options) =>
         options switch
@@ -174,7 +213,64 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             _ => null
         };
 
-    private async Task<(ConversationRun? Run, List<ChatMessage> Call, ResolvedChatOptions Options)> BeginAsync(
+    private static object? SettingsId(ChatOptions? options) => (options as ResolvedChatOptions)?.SettingsId;
+
+    // D34: the agent that answered the conversation last answers its next run, if this agent's handoffs reach it
+    private async Task<IAgentHost?> AnsweringAgentAsync(ChatOptions? options, CancellationToken ct)
+    {
+        if (agent.Handoffs.Count == 0 || options is null || GetConversation(options) is not { } conversation)
+            return null;
+
+        var entries = await Store.LoadConversationAsync(conversation, ct);
+
+        return entries.Count > 0 && entries[^1].Agent != agent.Name
+            ? Reachable().GetValueOrDefault(entries[^1].Agent)
+            : null;
+    }
+
+    private Dictionary<string, IAgentHost> Reachable()
+    {
+        var reached = new Dictionary<string, IAgentHost>();
+        var next = new Queue<Agent>([agent]);
+
+        while (next.TryDequeue(out var from))
+        {
+            foreach (var host in from.Handoffs.Select(handoff => handoff(services)))
+            {
+                if (host.Agent.Name != agent.Name && reached.TryAdd(host.Agent.Name, host)) next.Enqueue(host.Agent);
+            }
+        }
+
+        return reached;
+    }
+
+    private FunctionCallContent? HandoffIn(IEnumerable<ChatMessage> messages) =>
+        agent.Handoffs.Count == 0
+            ? null
+            : messages.SelectMany(message => message.Contents)
+                .OfType<FunctionCallContent>()
+                .LastOrDefault(call => call.Name.StartsWith(HandoffPrefix, StringComparison.Ordinal));
+
+    // D34: the call's result is stored, and the run is the other agent's from here: it resumes the conversation,
+    // so this agent neither ends the run nor holds it
+    private async Task<(ChatMessage Result, IAgentHost Target)> HandOffAsync(
+        ConversationRun run,
+        FunctionCallContent call)
+    {
+        var target = agent.Handoffs.Select(handoff => handoff(services))
+            .First(host => $"{HandoffPrefix}{host.Agent.Name}" == call.Name);
+
+        var result = new ChatMessage(
+            ChatRole.Tool,
+            [new FunctionResultContent(call.CallId, $"Handed off to {target.Agent.Name}.")]);
+
+        await run.AppendHandoffAsync(result, target.Agent.Name);
+        Runs.End(run);
+
+        return (result, target);
+    }
+
+    private async Task<(ConversationRun Run, List<ChatMessage> Call, ResolvedChatOptions Options)> BeginAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options,
         Activity? activity,
@@ -183,17 +279,11 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         var input = messages.ToList();
         var runOptions = ResolvedChatOptions.From(options ?? new ChatOptions());
         var mode = runOptions.RunOptions.Mode;
-
-        if (GetConversation(runOptions) is not { } conversation)
-        {
-            runOptions.AgentRun = new AgentRun(agent, input, runOptions, services, mode) { Activity = activity };
-            return (null, input, runOptions);
-        }
-
-        var entries = await Store.LoadConversationAsync(conversation, ct);
+        var conversation = GetConversation(runOptions);
+        var entries = conversation is null ? [] : await Store.LoadConversationAsync(conversation, ct);
 
         // D50: a run without input continues the conversation's interrupted run
-        if (input.Count == 0 && (entries.Count == 0 || entries[^1].EndsRun))
+        if (conversation is not null && input.Count == 0 && (entries.Count == 0 || entries[^1].EndsRun))
         {
             throw new InvalidOperationException(
                 $"Conversation {conversation} has no interrupted run to resume: run it with input instead.");
@@ -202,6 +292,9 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         // D52: a conversation keeps its mode, unless the run's settings name one
         if (!runOptions.RunSetsMode && entries.LastOrDefault(entry => entry.Mode is not null)?.Mode is { } kept)
             mode = kept;
+
+        // D33: an interrupted run's background sub-agents are lost; the model hears so
+        if (entries.Count > 0 && !entries[^1].EndsRun) input = [.. LostBackground(entries), .. input];
 
         var history = ConversationHistory.From(entries);
         List<ChatMessage> call = [.. history, .. input];
@@ -220,11 +313,58 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         runOptions.AgentRun = agentRun;
         runOptions.ConversationRun = run;
 
+        // D34: handoffs need a conversation to continue in
+        if (conversation is not null && agent.Handoffs.Count > 0)
+        {
+            var handoffs = agent.Handoffs.Select(handoff => Declare(handoff(services)));
+            runOptions.Tools = [.. runOptions.Tools ?? [], .. handoffs];
+        }
+
         Runs.Begin(run);
         run.MarkStored(history);
 
         if (input.Count > 0) await run.AppendAsync(input);
 
         return (run, call, runOptions);
+    }
+
+    private static AIFunctionDeclaration Declare(IAgentHost target) =>
+        AIFunctionFactory.CreateDeclaration(
+            $"{HandoffPrefix}{target.Agent.Name}",
+            $"Hands the conversation to {target.Agent.Name}: {target.Agent.Description}",
+            System.Text.Json.JsonElement.Parse("""{ "type": "object", "properties": {} }"""));
+
+    // The background sub-agents that started, their call answered, and that never answered themselves
+    private IEnumerable<ChatMessage> LostBackground(IReadOnlyList<ConversationEntry> entries)
+    {
+        var background = agent.SubAgents
+            .Where(use => use.Background)
+            .Select(use => use.Host(services).Agent.Name)
+            .ToHashSet();
+
+        if (background.Count == 0) yield break;
+
+        var messages = entries.SelectMany(entry => entry.Messages).ToList();
+        var contents = messages.SelectMany(message => message.Contents).ToList();
+        var started = contents.OfType<FunctionResultContent>().Select(result => result.CallId).ToHashSet();
+
+        var answered = messages
+            .Select(message => message.AdditionalProperties?.GetValueOrDefault(ConversationRun.BackgroundCall))
+            .Select(call => call?.ToString())
+            .ToHashSet();
+
+        var lost = contents.OfType<FunctionCallContent>()
+            .Where(call => background.Contains(call.Name) && started.Contains(call.CallId))
+            .Where(call => !answered.Contains(call.CallId));
+
+        foreach (var call in lost)
+        {
+            yield return new ChatMessage(
+                ChatRole.User,
+                $"The background agent {call.Name} was lost when the run stopped; call it again if you need it.")
+            {
+                AdditionalProperties = new() { [ConversationRun.BackgroundCall] = call.CallId }
+            };
+        }
     }
 }

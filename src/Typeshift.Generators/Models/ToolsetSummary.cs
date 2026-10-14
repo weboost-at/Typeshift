@@ -11,7 +11,8 @@ internal sealed record ToolSummary(
     string Factory,
     string? Settings,
     string? Overrides,
-    EquatableArray<SettingMember> Members);
+    EquatableArray<SettingMember> Members,
+    bool RequiresApproval = false);
 
 internal sealed record SettingMember(string Name, string Type);
 

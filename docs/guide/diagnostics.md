@@ -28,7 +28,10 @@ handle has a diagnostic: generated code never fails with a compiler error of its
 | [TSH020](#tsh020) | Warning | Referenced assembly was not compiled with the generator |
 | [TSH021](#tsh021) | Error | Referenced assembly has another id type |
 | [TSH022](#tsh022) | Error | Two agents share a settings kind |
+| [TSH023](#tsh023) | Error | Agent cannot be a tool or a handoff target |
+| [TSH024](#tsh024) | Warning | Sub-agent offers tools that need approval |
 | [TSH025](#tsh025) | Error | Tool is offered twice |
+| [TSH026](#tsh026) | Error | Agents call each other in a circle |
 | [TSH028](#tsh028) | Error | Store has another id type |
 
 ## TSH001
@@ -140,10 +143,25 @@ in `Directory.Build.props`.
 `WithStorageKind` twice. Their settings would overwrite each other in the store; give one a `WithStorageKind` of its
 own.
 
+## TSH023
+
+**Agent cannot be a tool or a handoff target**: it has no `WithDescription`, which the model reads to decide when to
+call it, or its name is not lower_snake_case. Checked for agents of the same project.
+
+## TSH024
+
+**Sub-agent offers tools that need approval.** A sub-agent cannot ask the host, so in the default mode its calls of
+such tools are rejected unless a standing approval or a rule approves them. Add a rule, or hand off to the agent
+instead.
+
 ## TSH025
 
-**Tool is offered twice** by one agent: one toolset used twice, or one tool picked twice. Offer each toolset's tools in
-one use.
+**Tool is offered twice** by one agent: one toolset used twice, one tool picked twice, or one agent used twice as a
+sub-agent or as a handoff target. Offer each toolset's tools in one use.
+
+## TSH026
+
+**Agents call each other in a circle** through `UseAgent`, so a call could never end. Handoffs may form circles.
 
 ## TSH028
 

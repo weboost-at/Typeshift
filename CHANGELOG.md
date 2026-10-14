@@ -43,5 +43,8 @@ The library was rebuilt from the API its owner approved; nothing of the unreleas
   stored, and later runs start from it.
 - OpenTelemetry: the `Typeshift` source and meter trace each run as `invoke_agent`, with `chat` and `execute_tool`
   spans inside, after the GenAI semantic conventions.
+- Multiple agents: `UseAgent<T>()` offers an agent as a tool that answers in a fresh context, in the foreground or
+  `InBackground()`; `UseHandoff<T>()` hands the conversation to another agent, which answers its later runs. The
+  analyzer checks both (TSH023, TSH024, TSH026).
 - An analyzer reports every Typeshift diagnostic at real source locations, so `#pragma` and `.editorconfig` reach
   them; a suppressor drops CS1573 for tool parameters the model never sees.

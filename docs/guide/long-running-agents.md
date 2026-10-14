@@ -19,7 +19,7 @@ WithRunOptions()
     .Configurable(r => r.Mode)
     .Configurable(r => r.MaxToolIterations);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L10-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-long-running-options' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L14-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-long-running-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 | Option | Default | Does |
@@ -89,6 +89,11 @@ if (!tracker.TrySteer(conversationId, input))
 <!-- endSnippet -->
 
 To stop a run instead, cancel its token; it is stored up to where it stopped.
+
+## Sub-agents
+
+A long run keeps its context small by handing searches and side quests to [sub-agents](./multi-agent.md#sub-agents),
+which answer in a paragraph; in the background, they work while the run goes on.
 
 ## Approval without interruptions
 

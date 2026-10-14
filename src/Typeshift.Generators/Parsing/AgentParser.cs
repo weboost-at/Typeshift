@@ -20,7 +20,16 @@ internal static class AgentParser
         INamedTypeSymbol agent,
         IEnumerable<IOperation> constructors,
         Reporter reporter,
-        CancellationToken ct)
+        CancellationToken ct) =>
+        Parse(agent, constructors, reporter, ct, out _);
+
+    // The analyzer also needs the agents an agent uses, to check them against each other (D33, D34)
+    public static AgentModel? Parse(
+        INamedTypeSymbol agent,
+        IEnumerable<IOperation> constructors,
+        Reporter reporter,
+        CancellationToken ct,
+        out IReadOnlyList<AgentUseDeclaration> agents)
     {
         var notPartial = agent.GetNotPartial(ct);
 
@@ -56,6 +65,8 @@ internal static class AgentParser
 
             Read(agent, call, declarations, reporter);
         }
+
+        agents = declarations.Agents;
 
         if (notPartial is not null || clash is not null) return null;
 
@@ -126,6 +137,19 @@ internal static class AgentParser
 
             case "UseToolset":
                 if (ReadUse(agent, call, declarations.Toolsets, reporter) is { } use) declarations.Toolsets.Add(use);
+                break;
+
+            // D33, D34
+            case "UseAgent" or "UseHandoff":
+                var target = (INamedTypeSymbol)call.TargetMethod.TypeArguments[0];
+                var subAgent = call.TargetMethod.Name == "UseAgent";
+                var syntax = ConstructorChains.GetCalledName(call);
+
+                if (declarations.Agents.Any(other => other.SubAgent == subAgent && Same(other.Target, target)))
+                    reporter.Report(Descriptors.OfferedTwice, syntax, $"'{target.Name}'");
+                else
+                    declarations.Agents.Add(new AgentUseDeclaration(target, subAgent, syntax));
+
                 break;
         }
     }
@@ -260,5 +284,12 @@ internal static class AgentParser
         public List<string> RunOptions { get; } = [];
 
         public List<ToolsetUseModel> Toolsets { get; } = [];
+
+        public List<AgentUseDeclaration> Agents { get; } = [];
     }
+
+    private static bool Same(ISymbol one, ISymbol other) => SymbolEqualityComparer.Default.Equals(one, other);
 }
+
+// An agent another one offers as a sub-agent, or hands off to
+internal sealed record AgentUseDeclaration(INamedTypeSymbol Target, bool SubAgent, SyntaxNode Syntax);

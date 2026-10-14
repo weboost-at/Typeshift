@@ -39,6 +39,7 @@ export default defineConfig({
             { text: 'Plan and auto modes', link: '/guide/modes' },
             { text: 'Middleware', link: '/guide/middleware' },
             { text: 'Context providers', link: '/guide/context-providers' },
+            { text: 'Multiple agents', link: '/guide/multi-agent' },
             { text: 'Long-running agents', link: '/guide/long-running-agents' },
             { text: 'Observability', link: '/guide/observability' }
           ]

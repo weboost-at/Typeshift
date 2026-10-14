@@ -31,6 +31,10 @@ public abstract class Agent
 
     internal List<Func<IServiceProvider, IContextProvider>> ContextProviders { get; } = [];
 
+    internal List<AgentUse> SubAgents { get; } = [];
+
+    internal List<Func<IServiceProvider, IAgentHost>> Handoffs { get; } = [];
+
     // Protected members stay protected, never protected internal, which an assembly that sees the library's internals
     // would have to override as protected internal
     internal AgentDeclaration GeneratedDeclaration => Declaration;
@@ -96,6 +100,28 @@ public abstract class Agent
     /// <returns>The use, to include or exclude tools.</returns>
     protected ToolsetUse<TToolset> UseToolset<TToolset>() where TToolset : Toolset, new() =>
         ToolsetUse<TToolset>.Instance;
+
+    /// <summary>
+    /// Offers another agent as a tool named like it, described by its <c>WithDescription</c>, with one <c>input</c>
+    /// parameter. A call runs it in a fresh context, with the caller's settings id, mode, standing approvals and
+    /// rules, and returns its answer's text.
+    /// </summary>
+    /// <typeparam name="TAgent">The agent.</typeparam>
+    /// <returns>The use, to run it in the background.</returns>
+    protected AgentUse UseAgent<TAgent>() where TAgent : Agent
+    {
+        var use = new AgentUse(services => services.GetRequiredService<AgentHost<TAgent>>());
+        SubAgents.Add(use);
+        return use;
+    }
+
+    /// <summary>
+    /// Lets the model hand the conversation to another agent through a tool <c>handoff_to_{name}</c>. The other agent
+    /// answers in the same run and goes on answering the conversation's later runs.
+    /// </summary>
+    /// <typeparam name="TAgent">The agent to hand off to.</typeparam>
+    protected void UseHandoff<TAgent>() where TAgent : Agent =>
+        Handoffs.Add(services => services.GetRequiredService<AgentHost<TAgent>>());
 
     /// <summary>
     /// Adds instructions, messages or tools to every run from a provider the run's services resolve, or create when

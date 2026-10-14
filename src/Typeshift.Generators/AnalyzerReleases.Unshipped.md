@@ -27,5 +27,8 @@ TSH019 | Typeshift | Error | Toolset was not compiled with the generator
 TSH020 | Typeshift | Warning | Referenced assembly was not compiled with the generator
 TSH021 | Typeshift | Error | Referenced assembly has another id type
 TSH022 | Typeshift | Error | Two agents share a settings kind
+TSH023 | Typeshift | Error | Agent cannot be a tool or a handoff target
+TSH024 | Typeshift | Warning | Sub-agent offers tools that need approval
 TSH025 | Typeshift | Error | Tool is offered twice
+TSH026 | Typeshift | Error | Agents call each other in a circle
 TSH028 | Typeshift | Error | Store has another id type

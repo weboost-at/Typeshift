@@ -68,6 +68,8 @@ internal static class ToolsetEmitter
         if (HasOverrides(tool))
             arguments.Add($"Overrides = typeof({toolset.Type.FullName}.{Names.OverridesName(tool.Name)})");
 
+        if (tool.RequiresApproval) arguments.Add("RequiresApproval = true");
+
         return $"global::Typeshift.Generated.GeneratedTool(\n    {string.Join(",\n    ", arguments)})";
     }
 

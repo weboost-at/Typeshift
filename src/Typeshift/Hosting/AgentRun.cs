@@ -58,6 +58,9 @@ public sealed class AgentRun
     // Where the input starts in the messages, after the resumed conversation; context goes in ahead of it (D31)
     internal int InputStart { get; init; }
 
+    // The tools approved for the rest of the conversation, which a sub-agent's run inherits (D24, D33)
+    internal HashSet<string> Standing { get; set; } = [];
+
     // What compaction did so far in this run, once it did anything (D32)
     internal Compaction? Compaction { get; set; }
 

@@ -37,6 +37,11 @@ The lambda picks from a list the generator writes per toolset, one property per 
 once and pick each tool once ([TSH025](./diagnostics.md#tsh025)). A toolset of another project needs the package in
 that project ([TSH019](./diagnostics.md#tsh019)).
 
+## Other agents
+
+`UseAgent<T>()` offers another agent as a tool, `UseHandoff<T>()` lets the model hand the conversation to it. See
+[multiple agents](./multi-agent.md).
+
 ## Context providers
 
 `UseContext<T>()` adds what a provider returns to every run: instructions, messages ahead of the input, tools. See

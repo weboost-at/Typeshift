@@ -122,6 +122,22 @@ internal static class Descriptors
         "Two agents share a settings kind",
         "'{0}' stores its settings as '{1}', like '{2}': give one of them a WithStorageKind of its own");
 
+    public static readonly DiagnosticDescriptor NotUsableAgent = Error(
+        "TSH023",
+        "Agent cannot be a tool or a handoff target",
+        "'{0}' cannot be {1}: {2}");
+
+    public static readonly DiagnosticDescriptor SubAgentNeedsApproval = Warning(
+        "TSH024",
+        "Sub-agent offers tools that need approval",
+        "'{0}' offers tools that need approval ({1}), and a sub-agent cannot ask the host: in the default mode those "
+        + "calls are rejected unless a rule or a standing approval allows them; add a rule, or hand off to the agent");
+
+    public static readonly DiagnosticDescriptor AgentCircle = Error(
+        "TSH026",
+        "Agents call each other in a circle",
+        "'{0}' calls '{1}' through UseAgent, and '{1}' calls '{0}' back: sub-agents may not form a circle");
+
     public static readonly DiagnosticDescriptor OfferedTwice = Error(
         "TSH025",
         "Tool is offered twice",

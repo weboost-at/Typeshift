@@ -24,6 +24,9 @@ internal sealed class ResolvedChatOptions : ChatOptions
 
     public ConversationRun? ConversationRun { get; set; }
 
+    // D33: the run that called this one as a sub-agent
+    public AgentRun? Caller { get; set; }
+
     // A clone of the options, keeping what this type remembers
     public static ResolvedChatOptions From(ChatOptions options) =>
         options is ResolvedChatOptions resolved
@@ -38,6 +41,7 @@ internal sealed class ResolvedChatOptions : ChatOptions
             SettingsId = SettingsId,
             Conversation = Conversation,
             AgentRun = AgentRun,
-            ConversationRun = ConversationRun
+            ConversationRun = ConversationRun,
+            Caller = Caller
         };
 }

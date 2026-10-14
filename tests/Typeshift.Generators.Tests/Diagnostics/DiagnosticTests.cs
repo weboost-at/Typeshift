@@ -457,6 +457,43 @@ public class DiagnosticTests : GeneratorTestBase
         run.Assert.ReportsAmong("TSH025", DiagnosticSeverity.Error, "UseToolset<EchoToolset>");
     }
 
+    [Fact]
+    public void Given_A_Sub_Agent_Without_A_Description_TSH023_Is_Reported_On_The_Use()
+    {
+        // Act
+        var run = Run(DiagnosticSources.SubAgentWithoutDescription);
+
+        // Assert
+        run.Assert.Reports("TSH023", DiagnosticSeverity.Error, "UseAgent<HelpAgent>")
+            .GetMessage()
+            .Should()
+            .Contain("WithDescription");
+    }
+
+    [Fact]
+    public void Given_A_Sub_Agent_Offering_A_Tool_That_Needs_Approval_TSH024_Is_Reported_On_The_Use()
+    {
+        // Act
+        var run = Run(DiagnosticSources.SubAgentNeedingApproval);
+
+        // Assert
+        run.Assert.Reports("TSH024", DiagnosticSeverity.Warning, "UseAgent<HelpAgent>")
+            .GetMessage()
+            .Should()
+            .Contain("close");
+    }
+
+    [Fact]
+    public void Given_Two_Agents_Calling_Each_Other_TSH026_Is_Reported_On_Both_Uses()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentCircle);
+
+        // Assert
+        run.Assert.ReportsAmong("TSH026", DiagnosticSeverity.Error, "UseAgent<TellAgent>");
+        run.Assert.ReportsAmong("TSH026", DiagnosticSeverity.Error, "UseAgent<AskAgent>");
+    }
+
     [Theory]
     [MemberData(nameof(Mistakes))]
     public void Given_Any_Mistake_The_Generated_Code_Holds_No_Error(string mistake)

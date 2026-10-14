@@ -22,7 +22,7 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// The runs of conversations going on now.
     /// </summary>
     public IReadOnlyList<LiveRun<TId>> Runs =>
-        [.. _runs.Runs.Select(run => new LiveRun<TId>((TId)run.Conversation, run.Agent, run.Model, run.StartedAt))];
+        [.. _runs.Runs.Select(run => new LiveRun<TId>((TId)run.Conversation!, run.Agent, run.Model, run.StartedAt))];
 
     /// <summary>
     /// The updates of a conversation's streaming runs as they happen, until cancelled. A watcher that falls behind

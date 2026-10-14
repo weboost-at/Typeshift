@@ -7,6 +7,10 @@ internal partial class CodingAgent : Agent
     {
         WithChatOptions().WithModel("reasoning-model");
 
+        // begin-snippet: background-sub-agent
+        UseAgent<ExploreAgent>().InBackground();
+        // end-snippet
+
         // begin-snippet: long-running-options
         WithRunOptions()
             .WithMode(AgentMode.Plan)

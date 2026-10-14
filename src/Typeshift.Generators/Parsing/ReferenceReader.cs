@@ -94,7 +94,8 @@ internal static class ReferenceReader
             Factory: (string)arguments[2].Value!,
             Settings: settings?.ToTypeOf(),
             Overrides: overrides?.ToTypeOf(),
-            Members: settings is null ? default : GetMembers(settings));
+            Members: settings is null ? default : GetMembers(settings),
+            RequiresApproval: named.TryGetValue("RequiresApproval", out var asks) && asks is true);
     }
 
     // The tool list properties of the tools with overrides, from the stamps the generated code puts on a toolset

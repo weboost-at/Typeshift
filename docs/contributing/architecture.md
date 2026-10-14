@@ -138,3 +138,12 @@ spans.
 `CompactingChatClient` sits below the checkpoints, so every step is stored before it shrinks the call. `Compaction`
 holds one run's state: the cleared results, the summary and the message it kept from, and the estimate's
 calibration (D32, D36).
+
+## Sub-agents and handoff
+
+`UseAgent<T>()` and `UseHandoff<T>()` capture a factory of `AgentHost<T>`, seen as `IAgentHost`. `AgentHost`
+offers each sub-agent as a `SubAgentFunction`, which runs the other host with the caller's settings id, mode and
+standing approvals, or starts it on `ConversationRun`, whose answers join the run through the steering queue.
+`ConversationChatClient` declares the handoff tools when the run has a conversation, continues a run whose tool loop
+passed a handoff call out with the agent handed to, and sends a conversation's next run to the agent that answered it
+last (D33, D34).
