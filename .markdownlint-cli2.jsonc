@@ -1,0 +1,28 @@
+// Markdown rules for the docs, the README and the agents' playbooks. `npm run docs:lint` runs them.
+{
+  "config": {
+    "default": true,
+    // Prose is wrapped at 120 columns, but mdsnippets writes longer lines of HTML that no rule can exempt
+    "MD013": false,
+    // mdsnippets writes anchors and source links as HTML; pages use VitePress components
+    "MD033": false,
+    // The frontmatter title is metadata; every page still starts with its own H1
+    "MD025": { "front_matter_title": "" },
+    "MD041": false,
+    // The same heading may recur under different parents, "Registering" say
+    "MD024": { "siblings_only": true },
+    "MD003": { "style": "atx" },
+    "MD004": { "style": "dash" },
+    "MD029": { "style": "ordered" },
+    "MD046": { "style": "fenced" },
+    // mdsnippets writes its fences right after its own anchor line
+    "MD031": false,
+    // Tables keep their compact |---| rows, and cells may hold pipes inside code spans
+    "MD055": false,
+    "MD056": false,
+    "MD058": true,
+    "MD060": false
+  },
+  "globs": ["docs/**/*.md", "README.md", "AGENTS.md", ".claude/skills/**/*.md"],
+  "ignores": ["node_modules/**", "docs/.vitepress/dist/**", "docs/.vitepress/cache/**"]
+}
