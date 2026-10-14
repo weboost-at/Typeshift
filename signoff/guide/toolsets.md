@@ -67,7 +67,7 @@ internal partial class TicketToolset : Toolset
 - **`WithDisplayName`** names the toolset for people, in a tool picker say.
 
 A tool's name keys its stored settings. Renaming the method renames the tool, so pin the old name with `WithName`
-before you rename a method whose settings customers have stored.
+before you rename a method whose settings are stored.
 
 ## Parameters
 

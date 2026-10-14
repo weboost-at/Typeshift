@@ -213,7 +213,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 - **Decision:** `RunAsync` returns `ChatResponse`, `RunAsync<T>` `ChatResponse<T>`, `RunStreamingAsync`
   `ChatResponseUpdate`s; messages carry the answering agent as `AuthorName`. Inputs are a `string` or a
   `ChatMessage` (for images and approvals). The raw path (`ResolveOptionsAsync`, `CreateChatClientAsync`, the client)
-  stays; options it resolved remember their run's id, so the conversation id is the only string.
+  stays; options it resolved remember their settings id, so the conversation id is the only string.
 - **Alternatives:** an own `AgentResponse`, a type to learn for what `ChatResponse` holds.
 
 ### D27. Four settings layers
@@ -266,7 +266,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 - **Status:** proposed.
 - **Decision:** `UseAgent<T>()` offers a tool named like the agent, with its description and one `input` string. A
-  call runs it with the same id, its stored settings and no conversation, and returns its text. Its tools may not
+  call runs it with the same settings id and no conversation, and returns its text. Its tools may not
   need approval (TSH024); circles are TSH026.
 
 ### D34. Handoff continues with the agent handed to
@@ -308,7 +308,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 - **Status:** proposed; updates v0 D25.
 - **Decision:** `ITypeshiftStore<TId>` (aliased `ITypeshiftStore`): `LoadAsync` and `SaveAsync` of documents with
-  revisions, `LoadConversationAsync` and `AppendConversationAsync` of sessions keyed by owner and conversation.
+  revisions, `LoadConversationAsync` and `AppendConversationAsync` of sessions keyed by the conversation id.
   Documents stay a closed set (each agent's `Settings`, `ConversationSession`), so store generators stay possible.
 - **Alternatives:** v0's load and save only, which rewrote a whole conversation per turn; a generic append for any
   kind, a concept with one user.
@@ -337,16 +337,23 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
   when the stored one differs. `ConfigureAsync` reloads and reapplies until it wins (each conflict means another
   save won). `SaveSettingsAsync` takes the revision from `LoadSettingsAsync`.
 
-### D42. Conversations belong to their owner and grow by appending
+### D42. Settings ids and conversation ids are separate; conversations grow by appending
 
-- **Status:** proposed (audit findings 1 and 5).
-- **Decision:** a conversation is keyed by the run's id and the conversation id; a conversation id without an id
-  throws. Each run appends one session; no locks, no second read.
+- **Status:** proposed (audit findings 1 and 5, the owner's review of the naming).
+- **Context:** the first draft keyed conversations by the run's `id`, its settings id, as their owner. The owner
+  found `id: customer` confusing: one id named whose settings apply and who owns a conversation.
+- **Decision:** runs take `settingsId` (which stored `Settings` apply) and `conversationId` (which conversation
+  resumes), independent of each other; either may be left out. What a settings id stands for (a customer, a team, a
+  user, a profile) is the host's choice. A conversation is keyed by its id alone: the host authorizes it before
+  passing it, as any id from a request, and the guide says so. Each run appends one session; no locks, no second
+  read.
+- **Alternatives:** an explicit `ownerId` on conversation runs, a third id whose authorization the host still owns;
+  keying conversations by settings id, which ties two unrelated choices of the host.
 
 ### D43. The store is the persistence switch
 
-- **Status:** carried (v0 D26). Without `WithStore<T>()`, runs without an id work; everything that loads or saves
-  throws, naming `WithStore<T>()`.
+- **Status:** carried (v0 D26). Without `WithStore<T>()`, runs without a settings or conversation id work; everything
+  that loads or saves throws, naming `WithStore<T>()`.
 
 ### D44. Settings records serialize themselves
 
@@ -374,8 +381,8 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 ### D47. Live updates are a feed per conversation
 
 - **Status:** proposed (the brief: options for intervals and limits).
-- **Decision:** `WithRealtimeTracking(options)` turns publishing on; `ConversationTracker.WatchAsync(owner,
-  conversation)` reads a bounded feed that drops its oldest updates when the watcher falls behind. A run never waits
+- **Decision:** `WithRealtimeTracking(options)` turns publishing on; `ConversationTracker.WatchAsync(conversation)`
+  reads a bounded feed that drops its oldest updates when the watcher falls behind. A run never waits
   for a watcher. `PublishInterval` (100 ms) and `MaxPendingUpdates` (256) are options. `Sessions` lists the running
   conversations.
 - **Alternatives:** v0's process-wide events, awaited up to 5 s per model call.

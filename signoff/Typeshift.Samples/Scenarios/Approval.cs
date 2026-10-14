@@ -10,11 +10,10 @@ internal static class Approval
     {
         await using var scope = provider.CreateAsyncScope();
         var support = scope.ServiceProvider.GetRequiredService<AgentHost<SupportAgent>>();
-        var customer = 42;
-        var conversation = 7;
+        var conversationId = 7;
 
         // begin-snippet: approval-run
-        var answer = await support.RunAsync("Close ticket 1234.", id: customer, conversationId: conversation);
+        var answer = await support.RunAsync("Close ticket 1234.", conversationId: conversationId);
 
         foreach (var request in answer.ApprovalRequests)
             if (request.ToolCall is FunctionCallContent call)
@@ -26,7 +25,7 @@ internal static class Approval
 
         var approval = new ChatMessage(ChatRole.User, [.. approvals]);
 
-        var resumed = await support.RunAsync(approval, id: customer, conversationId: conversation);
+        var resumed = await support.RunAsync(approval, conversationId: conversationId);
         // end-snippet
     }
 }

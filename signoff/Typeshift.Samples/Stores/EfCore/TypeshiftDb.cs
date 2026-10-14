@@ -13,7 +13,7 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
     {
         model.Entity<DocumentRow>().HasKey(document => new { document.Kind, document.Id });
         model.Entity<DocumentRow>().Property(document => document.Revision).IsConcurrencyToken();
-        model.Entity<SessionRow>().HasIndex(session => new { session.Owner, session.Conversation });
+        model.Entity<SessionRow>().HasIndex(session => session.Conversation);
     }
 }
 
@@ -33,8 +33,6 @@ internal sealed class DocumentRow
 internal sealed class SessionRow
 {
     public long Sequence { get; init; }
-
-    public required int Owner { get; init; }
 
     public required int Conversation { get; init; }
 

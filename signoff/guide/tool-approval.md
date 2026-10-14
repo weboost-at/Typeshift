@@ -21,13 +21,13 @@ When the model calls such a tool, the run ends with the call unmade. The respons
 <!-- snippet: approval-run -->
 <a id='snippet-approval-run'></a>
 ```cs
-var answer = await support.RunAsync("Close ticket 1234.", id: customer, conversationId: conversation);
+var answer = await support.RunAsync("Close ticket 1234.", conversationId: conversationId);
 
 foreach (var request in answer.ApprovalRequests)
     if (request.ToolCall is FunctionCallContent call)
         Console.WriteLine($"Approve {call.Name}({string.Join(", ", call.Arguments!.Values)})?");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Scenarios/Approval.cs#L16-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-run' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Scenarios/Approval.cs#L15-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Calls in the same response that need no approval run as usual. A run that asks needs a conversation to resume: one
@@ -45,9 +45,9 @@ var approvals = answer.ApprovalRequests.Select(request => request.CreateResponse
 
 var approval = new ChatMessage(ChatRole.User, [.. approvals]);
 
-var resumed = await support.RunAsync(approval, id: customer, conversationId: conversation);
+var resumed = await support.RunAsync(approval, conversationId: conversationId);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Scenarios/Approval.cs#L24-L30' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-resume' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Scenarios/Approval.cs#L23-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-resume' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Each response is matched to the request the conversation stored, so the call that runs is the one the host saw,

@@ -6,7 +6,9 @@ namespace Typeshift;
 /// The one store Typeshift persists through. Each project sees it as <c>ITypeshiftStore</c>, an alias the generator
 /// writes for the build's id type (<c>TypeshiftIdType</c>, <see cref="Guid"/> by default).
 /// </summary>
-/// <typeparam name="TId">The id type; the library never creates ids, it passes on the host's.</typeparam>
+/// <typeparam name="TId">
+/// The id type of settings and conversations; the library never creates ids, it passes on the host's.
+/// </typeparam>
 public interface ITypeshiftStore<TId> where TId : notnull
 {
     /// <summary>
@@ -24,14 +26,14 @@ public interface ITypeshiftStore<TId> where TId : notnull
         where TData : class, IStorable<TData>;
 
     /// <summary>
-    /// Loads the sessions of a conversation, oldest first; none for a conversation of another owner.
+    /// Loads the sessions of a conversation, oldest first.
     /// </summary>
-    Task<IReadOnlyList<ConversationSession>> LoadConversationAsync(TId owner, TId conversation, CancellationToken ct);
+    Task<IReadOnlyList<ConversationSession>> LoadConversationAsync(TId conversation, CancellationToken ct);
 
     /// <summary>
     /// Appends a finished session to a conversation, creating it on the first.
     /// </summary>
-    Task AppendConversationAsync(TId owner, TId conversation, ConversationSession session, CancellationToken ct);
+    Task AppendConversationAsync(TId conversation, ConversationSession session, CancellationToken ct);
 }
 
 /// <summary>
@@ -112,17 +114,10 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId> where TId
         where TData : class, IStorable<TData> =>
         throw null!;
 
-    public Task<IReadOnlyList<ConversationSession>> LoadConversationAsync(
-        TId owner,
-        TId conversation,
-        CancellationToken ct) =>
+    public Task<IReadOnlyList<ConversationSession>> LoadConversationAsync(TId conversation, CancellationToken ct) =>
         throw null!;
 
-    public Task AppendConversationAsync(
-        TId owner,
-        TId conversation,
-        ConversationSession session,
-        CancellationToken ct) =>
+    public Task AppendConversationAsync(TId conversation, ConversationSession session, CancellationToken ct) =>
         throw null!;
 }
 
@@ -144,16 +139,11 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// The updates of a conversation's streaming runs as they happen, until cancelled; needs
     /// <c>WithRealtimeTracking()</c>.
     /// </summary>
-    public IAsyncEnumerable<ChatResponseUpdate> WatchAsync(TId owner, TId conversation, CancellationToken ct) =>
+    public IAsyncEnumerable<ChatResponseUpdate> WatchAsync(TId conversation, CancellationToken ct) =>
         throw null!;
 }
 
 /// <summary>
 /// A session running now.
 /// </summary>
-public sealed record LiveSession<TId>(
-    TId Owner,
-    TId Conversation,
-    string Agent,
-    string Model,
-    DateTimeOffset StartedAt);
+public sealed record LiveSession<TId>(TId Conversation, string Agent, string Model, DateTimeOffset StartedAt);

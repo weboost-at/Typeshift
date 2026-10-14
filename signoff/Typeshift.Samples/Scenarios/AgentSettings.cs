@@ -9,10 +9,10 @@ internal static class AgentSettings
     {
         await using var scope = provider.CreateAsyncScope();
         var support = scope.ServiceProvider.GetRequiredService<AgentHost<SupportAgent>>();
-        var customer = 42;
+        var settingsId = 42;
 
         // begin-snippet: configure-settings
-        await support.ConfigureAsync(customer, settings => settings with
+        await support.ConfigureAsync(settingsId, settings => settings with
         {
             Model = "reasoning-model",
             Instructions = "Answer in German.",
@@ -21,11 +21,11 @@ internal static class AgentSettings
         // end-snippet
 
         // begin-snippet: load-and-save-settings
-        var stored = await support.LoadSettingsAsync(customer);
+        var stored = await support.LoadSettingsAsync(settingsId);
 
         try
         {
-            await support.SaveSettingsAsync(customer, stored.Data with { Instructions = null }, stored.Revision);
+            await support.SaveSettingsAsync(settingsId, stored.Data with { Instructions = null }, stored.Revision);
         }
         catch (StoreConflictException)
         {

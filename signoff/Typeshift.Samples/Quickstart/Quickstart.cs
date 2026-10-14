@@ -20,9 +20,9 @@ internal static class Quickstart
         // begin-snippet: quickstart-settings
         await using var scope = provider.CreateAsyncScope();
         var research = scope.ServiceProvider.GetRequiredService<AgentHost<ResearchAgent>>();
-        var customer = 42;
+        var settingsId = 42;
 
-        await research.ConfigureAsync(customer, settings => settings with
+        await research.ConfigureAsync(settingsId, settings => settings with
         {
             Temperature = 0.4f,
             FindCompanies = settings.FindCompanies with { Limit = 2 }
@@ -30,7 +30,7 @@ internal static class Quickstart
         // end-snippet
 
         // begin-snippet: quickstart-run
-        var answer = await research.RunAsync("Vienna", id: customer, conversationId: 1);
+        var answer = await research.RunAsync("Vienna", settingsId, conversationId: 1);
 
         Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
         // end-snippet
@@ -41,7 +41,7 @@ internal static class Quickstart
             FindCompanies = new CompanyToolset.FindCompaniesOverrides { Limit = 1 }
         };
 
-        await foreach (var update in research.RunStreamingAsync("Vienna", id: customer, settings: run))
+        await foreach (var update in research.RunStreamingAsync("Vienna", settingsId, settings: run))
             Console.Write(update.Text);
         // end-snippet
     }

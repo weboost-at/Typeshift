@@ -9,7 +9,8 @@ concurrent runs over several processes, settings and conversations per customer.
 Runtime:
 
 1. **Any caller can resume any conversation.** A stored conversation has no owner; a leaked or guessed id resumes and
-   appends to another customer's history. Conversations are keyed by owner and id from day one.
+   appends to another customer's history. In the rewrite the host authorizes conversation ids before passing them, as
+   for any id from a request, and the guide says so (D42).
 2. **Tools and the chat client provider never learn the customer.** Each tool call gets a fresh scope from the root
    container, so a request-scoped tenant service is empty inside tools. Runs resolve everything from the scope the host
    runs in.

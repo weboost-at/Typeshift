@@ -83,8 +83,8 @@ one expression; a split chain is [TSH015](./diagnostics.md#tsh015). Offering a t
 
 ## Configurable chat options
 
-`Configurable(o => o.Temperature)` marks an option a customer's stored settings or a run may change, whether the code
-sets it or not.
+`Configurable(o => o.Temperature)` marks an option that stored settings or a run may change, whether the code sets it
+or not.
 
 ## Tool settings
 
@@ -104,5 +104,5 @@ Every agent gets a nested `Settings` record, `SupportAgent.Settings`, holding ex
 | One per offered tool with configurable settings | `SearchTickets`, `SearchArticles`: their [overrides](./tool-settings.md#the-generated-overrides). |
 
 Every value is nullable, and null keeps the layer below. The record is the agent's settings contract: store it
-[per id](./settings-and-stores.md#agent-settings), pass it [for one run](./running-agents.md#run-settings), or bind a
+[under a settings id](./settings-and-stores.md#agent-settings), pass it [for one run](./running-agents.md#run-settings), or bind a
 settings form or an API to it. Its JSON is the same through `Serialize()` and through `System.Text.Json`.

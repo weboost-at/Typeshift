@@ -1,11 +1,11 @@
 # Settings and stores
 
-Typeshift persists two things: each agent's `Settings` per id, and conversations. Both go through one interface you
-implement once, with your id type.
+Typeshift persists two things: each agent's `Settings` under a settings id, and conversations under a conversation id.
+Both go through one interface you implement once, with your id type.
 
 ## The id type
 
-The build's id type keys settings and conversations. It is `Guid` unless `Directory.Build.props` names another:
+One id type serves both kinds of id. It is `Guid` unless `Directory.Build.props` names another:
 
 <!-- snippet: id-type -->
 <a id='snippet-id-type'></a>
@@ -17,7 +17,7 @@ The build's id type keys settings and conversations. It is `Guid` unless `Direct
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Typeshift.Samples.csproj#L3-L7' title='Snippet source file'>snippet source</a> | <a href='#snippet-id-type' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Every project that uses Typeshift sees it: generated members take it (`RunAsync(..., id: 42)`), and
+Every project that uses Typeshift sees it: generated members take it (`RunAsync(input, settingsId: 42)`), and
 `ITypeshiftStore`, `InMemoryTypeshiftStore` and `ConversationTracker` are aliases the generator writes for it. A
 referenced project built with another id type is [TSH021](./diagnostics.md#tsh021). The library never creates ids.
 
@@ -28,8 +28,8 @@ referenced project built with another id type is [TSH021](./diagnostics.md#tsh02
 - `LoadAsync<TData>(id)` returns the document of kind `TData.Kind` under an id with its revision, or null;
 - `SaveAsync<TData>(id, data, revision)` saves it if the stored revision is still `revision` (0 for none), returns the
   new revision, and throws a `StoreConflictException` when another save came first;
-- `LoadConversationAsync(owner, conversation)` returns a conversation's sessions, oldest first;
-- `AppendConversationAsync(owner, conversation, session)` appends one finished session.
+- `LoadConversationAsync(conversation)` returns a conversation's sessions, oldest first;
+- `AppendConversationAsync(conversation, session)` appends one finished session.
 
 Documents serialize themselves: `Serialize()` and `TData.Deserialize(json, version)`. Next to the JSON, a store keeps:
 
@@ -39,7 +39,8 @@ Documents serialize themselves: `Serialize()` and `TData.Deserialize(json, versi
   store migrates older documents if it needs to;
 - **the revision**, for optimistic concurrency.
 
-Conversations are keyed by owner and id, so one customer's id never reaches another customer's conversation.
+What a settings id stands for is the host's choice: a customer, a team, a user, or a settings profile of its own.
+Under one settings id, each agent has its own document, since each agent's `Settings` is its own kind.
 
 ## Registering a store
 
@@ -59,8 +60,8 @@ await using var provider = services.BuildServiceProvider(validateScopes: true);
 
 `WithStore<T>()` registers the store as a singleton. `InMemoryTypeshiftStore` is for tests and samples.
 
-**Without a store**, agents run from their code: a run without an id works, tools run. Every API that loads or saves,
-a run with an id or a conversation included, throws an `InvalidOperationException` that names `WithStore<T>()`.
+**Without a store**, agents run from their code: a run without a settings id or a conversation id works, tools run.
+Every API that loads or saves throws an `InvalidOperationException` that names `WithStore<T>()`.
 
 ## An Entity Framework Core store
 
@@ -77,7 +78,7 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
     {
         model.Entity<DocumentRow>().HasKey(document => new { document.Kind, document.Id });
         model.Entity<DocumentRow>().Property(document => document.Revision).IsConcurrencyToken();
-        model.Entity<SessionRow>().HasIndex(session => new { session.Owner, session.Conversation });
+        model.Entity<SessionRow>().HasIndex(session => session.Conversation);
     }
 }
 
@@ -98,8 +99,6 @@ internal sealed class SessionRow
 {
     public long Sequence { get; init; }
 
-    public required int Owner { get; init; }
-
     public required int Conversation { get; init; }
 
     public required int Version { get; init; }
@@ -107,7 +106,7 @@ internal sealed class SessionRow
     public required string Json { get; init; }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Stores/EfCore/TypeshiftDb.cs#L5-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-db' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Stores/EfCore/TypeshiftDb.cs#L5-L43' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-db' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 <!-- snippet: ef-core-store -->
@@ -157,32 +156,24 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         }
     }
 
-    public async Task<IReadOnlyList<ConversationSession>> LoadConversationAsync(
-        int owner,
-        int conversation,
-        CancellationToken ct)
+    public async Task<IReadOnlyList<ConversationSession>> LoadConversationAsync(int conversation, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
         var rows = await db.Sessions
-            .Where(session => session.Owner == owner && session.Conversation == conversation)
+            .Where(session => session.Conversation == conversation)
             .OrderBy(session => session.Sequence)
             .ToListAsync(ct);
 
         return [.. rows.Select(row => ConversationSession.Deserialize(row.Json, row.Version))];
     }
 
-    public async Task AppendConversationAsync(
-        int owner,
-        int conversation,
-        ConversationSession session,
-        CancellationToken ct)
+    public async Task AppendConversationAsync(int conversation, ConversationSession session, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
         db.Sessions.Add(new SessionRow
         {
-            Owner = owner,
             Conversation = conversation,
             Version = ConversationSession.Version,
             Json = session.Serialize()
@@ -192,7 +183,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Stores/EfCore/EfTypeshiftStore.cs#L5-L84' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-store' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Stores/EfCore/EfTypeshiftStore.cs#L5-L76' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-store' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 <!-- snippet: ef-core-registration -->
@@ -210,7 +201,7 @@ services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite("Data Sou
 <!-- snippet: configure-settings -->
 <a id='snippet-configure-settings'></a>
 ```cs
-await support.ConfigureAsync(customer, settings => settings with
+await support.ConfigureAsync(settingsId, settings => settings with
 {
     Model = "reasoning-model",
     Instructions = "Answer in German.",
@@ -226,11 +217,11 @@ between:
 <!-- snippet: load-and-save-settings -->
 <a id='snippet-load-and-save-settings'></a>
 ```cs
-var stored = await support.LoadSettingsAsync(customer);
+var stored = await support.LoadSettingsAsync(settingsId);
 
 try
 {
-    await support.SaveSettingsAsync(customer, stored.Data with { Instructions = null }, stored.Revision);
+    await support.SaveSettingsAsync(settingsId, stored.Data with { Instructions = null }, stored.Revision);
 }
 catch (StoreConflictException)
 {

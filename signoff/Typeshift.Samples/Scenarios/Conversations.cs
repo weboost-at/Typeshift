@@ -11,16 +11,15 @@ internal static class Conversations
         var support = scope.ServiceProvider.GetRequiredService<AgentHost<SupportAgent>>();
 
         // begin-snippet: conversation
-        var customer = 42;
-        var conversation = 7;
+        var conversationId = 7;
 
-        await support.RunAsync("Where is my refund?", id: customer, conversationId: conversation);
-        await support.RunAsync("When will it arrive?", id: customer, conversationId: conversation);
+        await support.RunAsync("Where is my refund?", conversationId: conversationId);
+        await support.RunAsync("When will it arrive?", conversationId: conversationId);
         // end-snippet
 
         // begin-snippet: load-conversation
         var store = provider.GetRequiredService<ITypeshiftStore>();
-        var sessions = await store.LoadConversationAsync(customer, conversation, ct);
+        var sessions = await store.LoadConversationAsync(conversationId, ct);
 
         Console.WriteLine($"{sessions.Count} sessions, {sessions.Sum(s => s.Usage?.TotalTokenCount)} tokens");
         // end-snippet
@@ -33,7 +32,7 @@ internal static class Conversations
         // end-snippet
 
         // begin-snippet: watch-conversation
-        await foreach (var update in tracker.WatchAsync(customer, conversation, ct))
+        await foreach (var update in tracker.WatchAsync(conversationId, ct))
             Console.Write(update.Text);
         // end-snippet
     }

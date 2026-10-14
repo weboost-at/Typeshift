@@ -10,8 +10,8 @@ Typeshift targets .NET 10 and C# 14. Add the package to every project that decla
 reference yours ([TSH020](./diagnostics.md#tsh020)). Turn on `GenerateDocumentationFile` too: tools take their
 descriptions from XML docs ([TSH011](./diagnostics.md#tsh011)).
 
-Ids are yours: a customer's id keys its settings and owns its conversations. They are `Guid`s unless the build says
-otherwise, once, in `Directory.Build.props`:
+Ids are yours: a settings id names an agent's stored settings, a conversation id its conversation, and Typeshift never
+creates either. They are `Guid`s unless the build says otherwise, once, in `Directory.Build.props`:
 
 <!-- snippet: id-type -->
 <a id='snippet-id-type'></a>
@@ -131,20 +131,20 @@ await using var provider = services.BuildServiceProvider(validateScopes: true);
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Quickstart/Quickstart.cs#L10-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-## Settings per customer
+## Stored settings
 
 The generator gives `ResearchAgent` a nested `Settings` record holding exactly what may change: the model, the
 configurable chat options and the configurable settings of its tools. `AgentHost<ResearchAgent>` stores them under a
-customer's id:
+settings id. What a settings id stands for is the host's choice: one per customer, per team or per user.
 
 <!-- snippet: quickstart-settings -->
 <a id='snippet-quickstart-settings'></a>
 ```cs
 await using var scope = provider.CreateAsyncScope();
 var research = scope.ServiceProvider.GetRequiredService<AgentHost<ResearchAgent>>();
-var customer = 42;
+var settingsId = 42;
 
-await research.ConfigureAsync(customer, settings => settings with
+await research.ConfigureAsync(settingsId, settings => settings with
 {
     Temperature = 0.4f,
     FindCompanies = settings.FindCompanies with { Limit = 2 }
@@ -155,13 +155,13 @@ await research.ConfigureAsync(customer, settings => settings with
 
 ## A run
 
-`RunAsync` layers the customer's stored settings over the code, resumes the conversation, runs the tool loop and
-stores the exchange:
+`RunAsync` layers the settings stored under the settings id over the code, resumes the conversation, runs the tool
+loop and stores the exchange:
 
 <!-- snippet: quickstart-run -->
 <a id='snippet-quickstart-run'></a>
 ```cs
-var answer = await research.RunAsync("Vienna", id: customer, conversationId: 1);
+var answer = await research.RunAsync("Vienna", settingsId, conversationId: 1);
 
 Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
 ```
@@ -178,7 +178,7 @@ var run = new ResearchAgent.Settings
     FindCompanies = new CompanyToolset.FindCompaniesOverrides { Limit = 1 }
 };
 
-await foreach (var update in research.RunStreamingAsync("Vienna", id: customer, settings: run))
+await foreach (var update in research.RunStreamingAsync("Vienna", settingsId, settings: run))
     Console.Write(update.Text);
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Quickstart/Quickstart.cs#L38-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run-settings' title='Start of snippet'>anchor</a></sup>

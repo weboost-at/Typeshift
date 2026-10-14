@@ -26,15 +26,15 @@ internal partial class ReportAgent : Agent
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Agents/ReportAgent.cs#L5-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-as-tool' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-A call runs the other agent with the same id, its own stored settings and no conversation, and returns its answer's
-text. It is a run of its own, so its tool calls and tokens stay out of the caller's history.
+A call runs the other agent with the same settings id, so its own settings stored there apply, and no conversation;
+it returns its answer's text. It is a run of its own, so its tool calls and tokens stay out of the caller's history.
 
 <!-- snippet: agent-as-tool-run -->
 <a id='snippet-agent-as-tool-run'></a>
 ```cs
 var reports = scope.ServiceProvider.GetRequiredService<AgentHost<ReportAgent>>();
 
-var report = await reports.RunAsync("Compare the robotics scenes of Vienna and Graz.", id: customer);
+var report = await reports.RunAsync("Compare the robotics scenes of Vienna and Graz.", settingsId);
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Scenarios/MultiAgent.cs#L13-L17' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-as-tool-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
@@ -78,10 +78,10 @@ message carries its agent's name as `AuthorName`:
 <a id='snippet-handoff-run'></a>
 ```cs
 var triage = scope.ServiceProvider.GetRequiredService<AgentHost<TriageAgent>>();
-var conversation = 8;
+var conversationId = 8;
 
-var first = await triage.RunAsync("I was charged twice.", id: customer, conversationId: conversation);
-var second = await triage.RunAsync("It was invoice 2024-17.", id: customer, conversationId: conversation);
+var first = await triage.RunAsync("I was charged twice.", settingsId, conversationId);
+var second = await triage.RunAsync("It was invoice 2024-17.", settingsId, conversationId);
 
 Console.WriteLine($"{second.Messages[^1].AuthorName}: {second.Text}");
 ```
@@ -89,4 +89,4 @@ Console.WriteLine($"{second.Messages[^1].AuthorName}: {second.Text}");
 <!-- endSnippet -->
 
 Handoffs need a conversation. A run's own `Settings` apply to the agent it was started on; agents it hands off to run
-with their stored settings.
+with their settings stored under the same settings id.

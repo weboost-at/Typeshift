@@ -65,18 +65,18 @@ Console.WriteLine(answer.Text);
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Scenarios/RunningAgents.cs#L13-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-## Settings under an id
+## Stored settings
 
-With an id, the run layers the settings stored under it over the agent's code:
+With a settings id, the run layers the settings stored under it over the agent's code:
 
-<!-- snippet: run-with-id -->
-<a id='snippet-run-with-id'></a>
+<!-- snippet: run-with-settings-id -->
+<a id='snippet-run-with-settings-id'></a>
 ```cs
-var customer = 42;
+var settingsId = 42;
 
-var stored = await support.RunAsync("Where is my refund?", id: customer);
+var stored = await support.RunAsync("Where is my refund?", settingsId);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Scenarios/RunningAgents.cs#L22-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-with-id' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Scenarios/RunningAgents.cs#L22-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-with-settings-id' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Run settings
@@ -94,7 +94,7 @@ var run = new SupportAgent.Settings
     SearchArticles = new KnowledgeToolset.SearchArticlesOverrides { Language = "de" }
 };
 
-var thorough = await support.RunAsync("Where is my refund?", id: customer, settings: run);
+var thorough = await support.RunAsync("Where is my refund?", settingsId, settings: run);
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Scenarios/RunningAgents.cs#L28-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
@@ -108,7 +108,7 @@ Values a run leaves null keep what the layers below set; see [the layers](./tool
 <!-- snippet: structured-output -->
 <a id='snippet-structured-output'></a>
 ```cs
-var report = await support.RunAsync<RefundStatus>("Summarize the refund.", id: customer);
+var report = await support.RunAsync<RefundStatus>("Summarize the refund.", settingsId);
 
 Console.WriteLine($"{report.Result.Invoice}: {report.Result.State}");
 ```
@@ -138,7 +138,7 @@ fails, or the consumer stops early.
 <!-- snippet: streaming -->
 <a id='snippet-streaming'></a>
 ```cs
-await foreach (var update in support.RunStreamingAsync("Where is my refund?", id: customer))
+await foreach (var update in support.RunStreamingAsync("Where is my refund?", settingsId))
     Console.Write(update.Text);
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Scenarios/RunningAgents.cs#L46-L49' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
@@ -152,7 +152,7 @@ client, call it with those options. The conversation id is a string here, parsed
 <!-- snippet: raw-path -->
 <a id='snippet-raw-path'></a>
 ```cs
-var options = await support.ResolveOptionsAsync(id: customer, settings: run);
+var options = await support.ResolveOptionsAsync(settingsId, run);
 options.ConversationId = "7";
 
 var client = await support.CreateChatClientAsync(options);

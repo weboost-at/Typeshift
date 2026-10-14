@@ -125,7 +125,7 @@ A run resolves settings from four layers, lowest first:
 |---|---|---|
 | 1. The record's code defaults | Its constructor | Everything |
 | 2. The agent's code | [`Configure{Tool}()`](./defining-agents.md#tool-settings) | Any member |
-| 3. The agent's stored settings | [`ConfigureAsync`](./settings-and-stores.md#agent-settings), under an id | Configurable members |
+| 3. The agent's stored settings | [`ConfigureAsync`](./settings-and-stores.md#agent-settings), under a settings id | Configurable members |
 | 4. The run | [Run settings](./running-agents.md#run-settings) | Configurable members |
 
 Chat options layer the same way, from the agent's `WithChatOptions()` up.

@@ -47,32 +47,24 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         }
     }
 
-    public async Task<IReadOnlyList<ConversationSession>> LoadConversationAsync(
-        int owner,
-        int conversation,
-        CancellationToken ct)
+    public async Task<IReadOnlyList<ConversationSession>> LoadConversationAsync(int conversation, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
         var rows = await db.Sessions
-            .Where(session => session.Owner == owner && session.Conversation == conversation)
+            .Where(session => session.Conversation == conversation)
             .OrderBy(session => session.Sequence)
             .ToListAsync(ct);
 
         return [.. rows.Select(row => ConversationSession.Deserialize(row.Json, row.Version))];
     }
 
-    public async Task AppendConversationAsync(
-        int owner,
-        int conversation,
-        ConversationSession session,
-        CancellationToken ct)
+    public async Task AppendConversationAsync(int conversation, ConversationSession session, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
         db.Sessions.Add(new SessionRow
         {
-            Owner = owner,
             Conversation = conversation,
             Version = ConversationSession.Version,
             Json = session.Serialize()

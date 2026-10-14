@@ -19,10 +19,10 @@ internal static class RunningAgents
         Console.WriteLine(answer.Text);
         // end-snippet
 
-        // begin-snippet: run-with-id
-        var customer = 42;
+        // begin-snippet: run-with-settings-id
+        var settingsId = 42;
 
-        var stored = await support.RunAsync("Where is my refund?", id: customer);
+        var stored = await support.RunAsync("Where is my refund?", settingsId);
         // end-snippet
 
         // begin-snippet: run-settings
@@ -34,22 +34,22 @@ internal static class RunningAgents
             SearchArticles = new KnowledgeToolset.SearchArticlesOverrides { Language = "de" }
         };
 
-        var thorough = await support.RunAsync("Where is my refund?", id: customer, settings: run);
+        var thorough = await support.RunAsync("Where is my refund?", settingsId, settings: run);
         // end-snippet
 
         // begin-snippet: structured-output
-        var report = await support.RunAsync<RefundStatus>("Summarize the refund.", id: customer);
+        var report = await support.RunAsync<RefundStatus>("Summarize the refund.", settingsId);
 
         Console.WriteLine($"{report.Result.Invoice}: {report.Result.State}");
         // end-snippet
 
         // begin-snippet: streaming
-        await foreach (var update in support.RunStreamingAsync("Where is my refund?", id: customer))
+        await foreach (var update in support.RunStreamingAsync("Where is my refund?", settingsId))
             Console.Write(update.Text);
         // end-snippet
 
         // begin-snippet: raw-path
-        var options = await support.ResolveOptionsAsync(id: customer, settings: run);
+        var options = await support.ResolveOptionsAsync(settingsId, run);
         options.ConversationId = "7";
 
         var client = await support.CreateChatClientAsync(options);

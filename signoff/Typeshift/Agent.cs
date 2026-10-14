@@ -61,8 +61,8 @@ public abstract class Agent
     protected ToolsetUse<TToolset> UseToolset<TToolset>() where TToolset : Toolset, new() => new();
 
     /// <summary>
-    /// Offers another agent as a tool, named and described like the agent. A call runs it with the same id and no
-    /// conversation, and returns its answer's text.
+    /// Offers another agent as a tool, named and described like the agent. A call runs it with the same settings id and
+    /// no conversation, and returns its answer's text.
     /// </summary>
     /// <typeparam name="TAgent">The agent to call.</typeparam>
     protected void UseAgent<TAgent>() where TAgent : Agent

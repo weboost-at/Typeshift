@@ -63,9 +63,11 @@ services.AddTypeshift()
 
 var support = scope.ServiceProvider.GetRequiredService<AgentHost<SupportAgent>>();
 
-await support.ConfigureAsync(42, s => s with { SearchTickets = s.SearchTickets with { Limit = 20 } });
-var answer = await support.RunAsync("Where is my refund?", id: 42, conversationId: 7);
-var report = await support.RunAsync<RefundStatus>("Summarize the refund.", id: 42);
+var settingsId = 42;                                           // whose stored settings: the host decides
+
+await support.ConfigureAsync(settingsId, s => s with { SearchTickets = s.SearchTickets with { Limit = 20 } });
+var answer = await support.RunAsync("Where is my refund?", settingsId, conversationId: 7);
+var report = await support.RunAsync<RefundStatus>("Summarize the refund.", settingsId);
 ```
 
 ## Decided in this session
@@ -82,7 +84,8 @@ Every entry marked **proposed** in `decisions.md`. The ones with the most weight
 - **D25** runs use the scope the host was resolved from (`AgentHost` transient), replacing v0's scope per tool call.
 - **D24** approval through Microsoft.Extensions.AI's contents; no standing approvals or auto-approval rules in v1.
 - **D28** the model is always in `Settings` (the brief), though a customer-editable form then picks any model.
-- **D38 to D42** the store: four methods, stable kinds, `WithSettingsVersion`, revisions, conversations by owner.
+- **D38 to D42** the store: four methods, stable kinds, `WithSettingsVersion`, revisions, conversations by their id
+  alone (the host authorizes them).
 - **D32** compaction by message count with a stored summary, no token triggers yet.
 - **D2, D3** diagnostics from an analyzer; discovery stays attribute-free.
 - **D13** `Async` is dropped from tool names; renaming a method renames the tool.
