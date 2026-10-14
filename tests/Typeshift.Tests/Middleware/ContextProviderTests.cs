@@ -49,6 +49,41 @@ public class ContextProviderTests : MiddlewareTestBase
     }
 
     [Fact]
+    public async Task Given_Steering_And_Context_That_Grows_The_Steering_Input_Stays_After_The_Tool_Result()
+    {
+        // Arrange
+        var first = new TaskCompletionSource();
+        var second = new TaskCompletionSource();
+        Script.Context = new AgentContext { Messages = [new ChatMessage(ChatRole.User, Data.Agent.CompanyName)] };
+
+        ChatClient
+            .Reply(first, Call(Data.Tool.CallId, "note", ("text", Data.Tool.Query)))
+            .Reply(second, Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer));
+
+        var run = RunAsync(Data.Tool.Question);
+        await ChatClient.Requested;
+        Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+        first.SetResult();
+        await ChatClient.RequestedAsync(2);
+        Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.FollowUp);
+
+        Script.Context = Script.Context with
+        {
+            Messages = [.. Script.Context.Messages, new ChatMessage(ChatRole.User, Data.Agent.Reason)]
+        };
+
+        // Act
+        second.SetResult();
+        await run;
+
+        // Assert
+        var last = ChatClient.Requests[2].ToList();
+        var result = last.FindIndex(message => message.Contents.Any(content => content is FunctionResultContent));
+        last[result + 1].Text.Should().Be(Data.Agent.Steering);
+    }
+
+    [Fact]
     public async Task Given_A_Context_Provider_Its_Tools_Are_Offered_After_The_Agents()
     {
         // Arrange

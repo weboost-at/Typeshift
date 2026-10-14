@@ -56,6 +56,36 @@ public class ConversationRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Streaming_Run_Its_Responses_And_Tool_Results_Are_Stored_Step_By_Step()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ProbeAgent>()
+            .RunStreamingAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct)
+            .ToListAsync(Ct);
+
+        var entries = await EntriesAsync(Data.Agent.ConversationId);
+        var contents = entries.Select(entry => entry.Messages.SelectMany(message => message.Contents));
+
+        // Assert
+        contents.Select(entry => entry.Select(content => content.GetType()))
+            .Should()
+            .BeEquivalentTo(
+                [
+                    [typeof(TextContent)],
+                    [typeof(FunctionCallContent)],
+                    [typeof(FunctionResultContent)],
+                    [typeof(TextContent)],
+                    Array.Empty<Type>()
+                ],
+                options => options.WithStrictOrdering());
+    }
+
+    [Fact]
     public async Task Given_A_Run_Only_Its_Last_Entry_Ends_It()
     {
         // Arrange

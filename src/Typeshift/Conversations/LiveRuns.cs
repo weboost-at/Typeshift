@@ -35,10 +35,7 @@ internal sealed class LiveRuns
     // D51
     public bool TrySteer(object conversation, string input)
     {
-        if (!_runs.TryGetValue(conversation, out var run)) return false;
-
-        run.Steer(new ChatMessage(ChatRole.User, input));
-        return true;
+        return _runs.TryGetValue(conversation, out var run) && run.Steer(new ChatMessage(ChatRole.User, input));
     }
 
     // D47: a bounded feed per watcher that drops its oldest updates, so a run never waits
@@ -64,7 +61,10 @@ internal sealed class LiveRuns
         }
         finally
         {
-            _watchers.AddOrUpdate(conversation, [], (_, feeds) => feeds.Remove(feed));
+            // The last watcher to leave takes the conversation's entry with it
+            var left = _watchers.AddOrUpdate(conversation, [], (_, feeds) => feeds.Remove(feed));
+
+            if (left.IsEmpty) _watchers.TryRemove(KeyValuePair.Create(conversation, left));
         }
     }
 

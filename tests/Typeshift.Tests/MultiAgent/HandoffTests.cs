@@ -47,6 +47,22 @@ public class HandoffTests : MultiAgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Handoff_To_An_Agent_It_Does_Not_Know_The_Run_Goes_On_And_Ends()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_nobody"))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await RunAsync(Data.Tool.Question);
+
+        // Assert
+        response.Text.Should().EndWith(Data.Tool.Answer);
+        (await EntriesAsync(Data.Agent.ConversationId))[^1].EndsRun.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task Given_No_Conversation_Handoffs_Are_Not_Offered()
     {
         // Arrange

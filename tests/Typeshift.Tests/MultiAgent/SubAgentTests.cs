@@ -133,6 +133,33 @@ public class SubAgentTests : MultiAgentTestBase
         ChatClient.Requests[0][^1].Text.Should().Contain("helper_agent was lost");
     }
 
+    [Fact]
+    public async Task Given_A_Cancelled_Run_With_A_Background_Sub_Agent_The_Next_Run_Hears_It_Was_Lost()
+    {
+        // Arrange
+        var store = Services.GetRequiredService<ITypeshiftStore>();
+        var conversation = Data.Agent.ConversationId;
+
+        ChatMessage[] steps =
+        [
+            new(ChatRole.User, Data.Tool.Question),
+            new(ChatRole.Assistant, [new FunctionCallContent(Data.Tool.CallId, "helper_agent")]),
+            new(ChatRole.Tool, [new FunctionResultContent(Data.Tool.CallId, "started")])
+        ];
+
+        await store.AppendConversationAsync(conversation, new("background_lead_agent", steps, Time.GetUtcNow()), Ct);
+        var end = new ConversationEntry("background_lead_agent", [], Time.GetUtcNow()) { EndsRun = true };
+
+        await store.AppendConversationAsync(conversation, end, Ct);
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<BackgroundLeadAgent>().RunAsync(Data.Agent.FollowUp, conversationId: conversation, ct: Ct);
+
+        // Assert
+        ChatClient.Requests[0].Select(message => message.Text).Should().Contain(text => text.Contains("was lost"));
+    }
+
     private static string? Result(IEnumerable<ChatMessage> request) =>
         request.SelectMany(message => message.Contents).OfType<FunctionResultContent>().Single().Result?.ToString();
 }

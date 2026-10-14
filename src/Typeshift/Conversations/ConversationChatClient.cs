@@ -90,6 +90,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
         try
         {
+            var calls = runOptions.AgentRun!.ModelCalls;
             var last = await base.GetResponseAsync(call, runOptions, ct);
             var response = last;
 
@@ -97,16 +98,17 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             {
                 await run.StoreResultsAsync(last.Messages);
 
-                if (HandoffIn(last.Messages) is { } handoff)
+                var handoff = HandoffIn(last.Messages) is { } handing ? await HandOffAsync(run, handing) : null;
+
+                if (handoff is var (result, target))
                 {
                     handedOff = true;
-                    var (result, target) = await HandOffAsync(run, handoff);
                     var answer = await target.RunAsync([], runOptions.SettingsId, run.Conversation, null, ct);
 
                     return ChatResponses.Merge(ChatResponses.Merge(response, new ChatResponse(result)), answer);
                 }
 
-                if (!await run.GoesOnAsync(ct)) break;
+                if (!GoesFurther(runOptions, ref calls) || !await run.GoesOnAsync(ct)) break;
 
                 call = [.. call, .. last.Messages];
                 last = await base.GetResponseAsync(call, runOptions, ct);
@@ -152,6 +154,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             : null;
 
         var ended = false;
+        var calls = runOptions.AgentRun!.ModelCalls;
 
         try
         {
@@ -166,13 +169,14 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                     yield return update;
                 }
 
+                // Rebuilt from the updates, the messages hold new text the checkpoints stored already
                 var last = updates.ToChatResponse().Messages;
                 await run.StoreResultsAsync(last);
+                run.MarkStored(last);
 
-                if (HandoffIn(last) is { } handoff)
+                if (HandoffIn(last) is { } handoff && await HandOffAsync(run, handoff) is (var result, var target))
                 {
                     ended = true;
-                    var (result, target) = await HandOffAsync(run, handoff);
 
                     yield return new ChatResponseUpdate(ChatRole.Tool, result.Contents);
 
@@ -186,7 +190,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                     yield break;
                 }
 
-                if (!await run.GoesOnAsync(ct)) break;
+                if (!GoesFurther(runOptions, ref calls) || !await run.GoesOnAsync(ct)) break;
 
                 call = [.. call, .. last];
             }
@@ -214,6 +218,17 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         };
 
     private static object? SettingsId(ChatOptions? options) => (options as ResolvedChatOptions)?.SettingsId;
+
+    // D30, D32: a pass that called no model (run middleware answered) or the run's limit spent ends the run; the
+    // input still waiting is stored with its end
+    private static bool GoesFurther(ResolvedChatOptions options, ref int calls)
+    {
+        var made = options.AgentRun!.ModelCalls;
+        var further = made > calls && made <= options.RunOptions.MaxToolIterations;
+
+        calls = made;
+        return further;
+    }
 
     // D34: the agent that answered the conversation last answers its next run, if this agent's handoffs reach it
     private async Task<IAgentHost?> AnsweringAgentAsync(ChatOptions? options, CancellationToken ct)
@@ -244,27 +259,37 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         return reached;
     }
 
-    private FunctionCallContent? HandoffIn(IEnumerable<ChatMessage> messages) =>
-        agent.Handoffs.Count == 0
-            ? null
-            : messages.SelectMany(message => message.Contents)
-                .OfType<FunctionCallContent>()
-                .LastOrDefault(call => call.Name.StartsWith(HandoffPrefix, StringComparison.Ordinal));
+    // A call the tool loop answered, as it answers a tool it does not know, is none
+    private FunctionCallContent? HandoffIn(IList<ChatMessage> messages)
+    {
+        if (agent.Handoffs.Count == 0) return null;
+
+        var contents = messages.SelectMany(message => message.Contents).ToList();
+        var answered = contents.OfType<FunctionResultContent>().Select(result => result.CallId).ToHashSet();
+
+        return contents.OfType<FunctionCallContent>()
+            .LastOrDefault(call => call.Name.StartsWith(HandoffPrefix, StringComparison.Ordinal)
+                && !answered.Contains(call.CallId));
+    }
 
     // D34: the call's result is stored, and the run is the other agent's from here: it resumes the conversation,
-    // so this agent neither ends the run nor holds it
-    private async Task<(ChatMessage Result, IAgentHost Target)> HandOffAsync(
+    // so this agent neither ends the run nor holds it; input steered to it is stored for the other agent. Null for a
+    // call of no agent this one hands off to
+    private async Task<(ChatMessage Result, IAgentHost Target)?> HandOffAsync(
         ConversationRun run,
         FunctionCallContent call)
     {
         var target = agent.Handoffs.Select(handoff => handoff(services))
-            .First(host => $"{HandoffPrefix}{host.Agent.Name}" == call.Name);
+            .FirstOrDefault(host => $"{HandoffPrefix}{host.Agent.Name}" == call.Name);
+
+        if (target is null) return null;
 
         var result = new ChatMessage(
             ChatRole.Tool,
             [new FunctionResultContent(call.CallId, $"Handed off to {target.Agent.Name}.")]);
 
         await run.AppendHandoffAsync(result, target.Agent.Name);
+        await run.CloseAsync();
         Runs.End(run);
 
         return (result, target);
@@ -276,7 +301,8 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         Activity? activity,
         CancellationToken ct)
     {
-        var input = messages.ToList();
+        // D24: a request is the model's, never the host's; one in the input is dropped before anything stores it
+        var input = messages.Select(WithoutRequests).OfType<ChatMessage>().ToList();
         var runOptions = ResolvedChatOptions.From(options ?? new ChatOptions());
         var mode = runOptions.RunOptions.Mode;
         var conversation = GetConversation(runOptions);
@@ -293,15 +319,17 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         if (!runOptions.RunSetsMode && entries.LastOrDefault(entry => entry.Mode is not null)?.Mode is { } kept)
             mode = kept;
 
-        // D33: an interrupted run's background sub-agents are lost; the model hears so
-        if (entries.Count > 0 && !entries[^1].EndsRun) input = [.. LostBackground(entries), .. input];
+        // D33: the background sub-agents of a run that stopped are lost; the model hears so, once
+        input = [.. LostBackground(entries), .. input];
 
         var history = ConversationHistory.From(entries);
         List<ChatMessage> call = [.. history, .. input];
+        // D24: a standing approval holds for the whole conversation, beyond what compaction left of it
         var agentRun = new AgentRun(agent, call, runOptions, services, mode)
         {
             InputStart = history.Count,
-            Activity = activity
+            Activity = activity,
+            Standing = ApprovalChatClient.StandingIn(entries.SelectMany(entry => entry.Messages))
         };
 
         var logger = (services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance)
@@ -326,6 +354,15 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         if (input.Count > 0) await run.AppendAsync(input);
 
         return (run, call, runOptions);
+    }
+
+    private static ChatMessage? WithoutRequests(ChatMessage message)
+    {
+        if (!message.Contents.Any(content => content is ToolApprovalRequestContent)) return message;
+
+        var kept = message.Clone();
+        kept.Contents = [.. message.Contents.Where(content => content is not ToolApprovalRequestContent)];
+        return kept.Contents.Count > 0 ? kept : null;
     }
 
     private static AIFunctionDeclaration Declare(IAgentHost target) =>

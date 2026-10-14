@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
@@ -15,8 +14,10 @@ internal sealed class ConversationRun(
     TimeProvider time,
     ILogger logger)
 {
-    private readonly ConcurrentQueue<ChatMessage> _steering = new();
-    private readonly List<(int Position, ChatMessage Message)> _injected = [];
+    private readonly Queue<ChatMessage> _steering = new();
+
+    // Each steering input with the content it followed, so it goes back after it whatever moves ahead of it
+    private readonly List<(AIContent? After, ChatMessage Message)> _injected = [];
     private readonly HashSet<AIContent> _stored = new(ReferenceEqualityComparer.Instance);
 
     // What context providers and run middleware added, which the conversation never stores
@@ -26,6 +27,9 @@ internal sealed class ConversationRun(
     private readonly SemaphoreSlim _arrived = new(0);
     private readonly CancellationTokenSource _stopping = new();
     private int _background;
+
+    // D51: once the run decided to end, it takes no more steering input, which then starts a run of its own
+    private bool _closed;
 
     // A streamed response is stored as the updates make it; the tool loop builds its own messages from the same
     // updates, so the first ones it hands on next are those, already stored
@@ -41,16 +45,32 @@ internal sealed class ConversationRun(
 
     public DateTimeOffset StartedAt { get; } = time.GetUtcNow();
 
-    public bool IsSteered => !_steering.IsEmpty;
-
-    public void Steer(ChatMessage input)
+    public bool IsSteered
     {
-        _steering.Enqueue(input);
+        get
+        {
+            lock (_steering)
+            {
+                return _steering.Count > 0;
+            }
+        }
+    }
+
+    // False once the run is ending: the input then reaches no model and the host starts a run with it instead
+    public bool Steer(ChatMessage input)
+    {
+        lock (_steering)
+        {
+            if (_closed) return false;
+            _steering.Enqueue(input);
+        }
+
         _arrived.Release();
+        return true;
     }
 
     // D51, D33: whether the run goes on: steering input waits, or a background sub-agent still works, whose answer
-    // the run waits for
+    // the run waits for. A run that does not go on takes no more input
     public async Task<bool> GoesOnAsync(CancellationToken ct)
     {
         while (true)
@@ -58,11 +78,34 @@ internal sealed class ConversationRun(
             // Read before the queue: a sub-agent queues its answer before it counts itself done
             var working = Volatile.Read(ref _background);
 
-            if (IsSteered) return true;
-            if (working == 0) return false;
+            lock (_steering)
+            {
+                if (_steering.Count > 0) return true;
+
+                if (working == 0)
+                {
+                    _closed = true;
+                    return false;
+                }
+            }
 
             await _arrived.WaitAsync(ct);
         }
+    }
+
+    // The input the run took and no model received, stored as the conversation's; the run takes no more
+    public async Task CloseAsync()
+    {
+        List<ChatMessage> waiting;
+
+        lock (_steering)
+        {
+            _closed = true;
+            waiting = [.. _steering];
+            _steering.Clear();
+        }
+
+        if (waiting.Count > 0) await AppendAsync(waiting);
     }
 
     // D33: a sub-agent working while the run goes on; its answer joins the run as a message before a later model
@@ -84,7 +127,8 @@ internal sealed class ConversationRun(
                         AdditionalProperties = new() { [BackgroundCall] = callId }
                     };
 
-                    Steer(message);
+                    // A run already ending stops its sub-agents, the next run hears they were lost
+                    _ = Steer(message);
                 }
             }
             finally
@@ -122,13 +166,15 @@ internal sealed class ConversationRun(
     {
         var call = messages.ToList();
 
-        foreach (var (position, message) in _injected)
+        foreach (var (after, message) in _injected)
         {
-            call.Insert(Math.Min(position, call.Count), message);
+            var at = call.FindIndex(step => step.Contents.Any(content => ReferenceEquals(content, after)));
+            call.Insert(at < 0 ? call.Count : at + 1, message);
         }
 
+        // The tool loop's own copies of the streamed response come first, never a tool result
         var steps = call.Select(Unstored).OfType<ChatMessage>().ToList();
-        var streamed = Math.Min(_streamedUnmatched, steps.Count);
+        var streamed = steps.Take(_streamedUnmatched).TakeWhile(step => step.Role == ChatRole.Assistant).Count();
 
         MarkStored(steps.Take(streamed));
         _streamedUnmatched = 0;
@@ -137,11 +183,14 @@ internal sealed class ConversationRun(
 
         var steering = new List<ChatMessage>();
 
-        while (_steering.TryDequeue(out var input))
+        lock (_steering)
         {
-            _injected.Add((call.Count, input));
-            call.Add(input);
-            steering.Add(input);
+            while (_steering.TryDequeue(out var input))
+            {
+                _injected.Add((call.LastOrDefault()?.Contents.LastOrDefault(), input));
+                call.Add(input);
+                steering.Add(input);
+            }
         }
 
         if (steering.Count > 0) await AppendAsync(steering);
@@ -149,12 +198,13 @@ internal sealed class ConversationRun(
     }
 
     // D46: the end of a run is an entry of its own, with what went wrong and the mode it ended in (D52); background
-    // sub-agents still working stop
-    public Task EndAsync(string? error)
+    // sub-agents still working stop, and input no model received is stored ahead of it
+    public async Task EndAsync(string? error)
     {
         _stopping.Cancel();
+        await CloseAsync();
 
-        return AppendAsync(
+        await AppendAsync(
             error is null ? [] : [new ChatMessage(ChatRole.Assistant, [new ErrorContent(error)])],
             endsRun: true);
     }

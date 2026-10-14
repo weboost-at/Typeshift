@@ -207,7 +207,8 @@ commit, or add a new one and withdraw the old.
   ends the run with `ToolApprovalRequestContent`s, listed by `response.ApprovalRequests`. The host answers with
   `CreateResponse(approved)` in the next run of the conversation; the stored request is the one that runs, an answer
   to no stored request is dropped, a request keeps its first answer, and an unanswered request is left out of the
-  next run. Calls in the same response that need no approval wait with it and run once the host answered (the tool
+  next run. A request in the input is dropped before anything stores it, so a host's input cannot bring a call of
+  its own past the rules. Standing approvals are read from the whole conversation, beyond what compaction left. Calls in the same response that need no approval wait with it and run once the host answered (the tool
   loop asks for every call of a response once one needs approval; the approval layer approves the others). A run
   that asks without a conversation throws, naming the tool.
   `request.ApproveForConversation()` approves the tool for the rest of the conversation; the approval is stored with
@@ -278,7 +279,8 @@ commit, or add a new one and withdraw the old.
   change messages and options, read `run.Response` after `next`, or set it instead of calling `next`.
   `IToolMiddleware` wraps `FunctionInvocationContext`. Registered in the chain, in order, for every agent; a
   middleware filters by `run.Agent`. Changes to the messages hold for the pass; the conversation keeps what the
-  host sent. A response set without `next` is stored with the conversation. In a streaming
+  host sent. A response set without `next` is stored with the conversation, and a pass that called no model ends
+  the run, storing the steering input that waits. In a streaming
   run the middleware awaits `next` while the updates go on to the caller through a channel, which reads the model's
   stream ahead of a slow caller. A steered run passes through again for steering input that arrives after its
   answer.
@@ -312,7 +314,7 @@ commit, or add a new one and withdraw the old.
   answered after are cleared. What compaction did holds for the rest of the run: the tool loop keeps the whole
   history, so each later call gets the same cleared results and summary. The summary entry holds the summary, the
   kept todo list and copies of the kept messages, so a later run starts from that entry alone. Rounds the approval
-  layer continues share `MaxToolIterations`.
+  layer continues share `MaxToolIterations`, and so do the passes steering input or background answers start.
 - **Where:** `Compaction/`, `Approval/ApprovalChatClient.cs` for the shared limit.
 - **Alternatives:** MAF's strategy pipeline and trigger combinators, more concepts for the same two steps; a
   tokenizer dependency; message-count triggers, which ignore that one tool result may outweigh a hundred messages; a
@@ -331,8 +333,8 @@ commit, or add a new one and withdraw the old.
   factory `UseAgent<T>()` captured, so no generated code is needed; it finds its caller's run through
   `FunctionInvokingChatClient.CurrentContext`. Background answers join the run through the steering queue, so
   every run has a `ConversationRun`, which stores only with a conversation; the run's end cancels the sub-agents
-  still working. TSH023, TSH024 and TSH026 check agents of the same compilation; tool stamps carry
-  `RequiresApproval` for TSH024.
+  still working, and the next run tells the model which ones it lost, after a crash, a cancellation or a failure.
+  TSH023, TSH024 and TSH026 check agents of the same compilation; tool stamps carry `RequiresApproval` for TSH024.
 - **Where:** `Agents/SubAgentFunction.cs`, `Conversations/ConversationRun.cs`, `Analysis/TypeshiftAnalyzer.cs`.
 - **Alternatives:** passing a sub-agent's approval requests up to the caller's host, which pauses a parent run on a
   child's call and needs the child's state stored to resume (possible later); MAF's six background-task tools
@@ -348,7 +350,7 @@ commit, or add a new one and withdraw the old.
   conversation; run settings apply to the host's agent only.
 - **As built:** the conversation layer sees the declaration's call the tool loop passes out, stores its result as an
   entry of the agent handed to, and lets that agent resume the run; a run without a conversation does not offer
-  handoffs. Tool results after which the tool loop made no model call are stored before the run ends, a handoff's
+  handoffs, and a call of an agent it does not hand off to is answered by the tool loop as an unknown tool. Tool results after which the tool loop made no model call are stored before the run ends, a handoff's
   and a terminating tool's alike.
 - **Where:** `Conversations/ConversationChatClient.cs`.
 
@@ -515,8 +517,11 @@ commit, or add a new one and withdraw the old.
 - **Decision:** `ConversationTracker.TrySteer(conversation, input)` hands input to the run of the conversation going
   on in this process; the checkpoint layer injects it before the run's next model call and stores it, and the run
   does not end while steering input waits. It returns false when no run of the conversation is going on in this
-  process, and the host starts a run with the input instead. Stopping a run is cancelling its token. Steering input
-  goes in where the tool loop's messages ended when it arrived, and stays there in every later call of the run.
+  process, or once the run has decided to end, and the host starts a run with the input instead. Stopping a run is
+  cancelling its token. Steering input goes in after the message the tool loop's messages ended with when it
+  arrived, found by reference in every later call of the run, so context that grows between passes cannot move it
+  between a call and its result. Input a run took and no model received is stored with the run's end or its
+  handoff.
 - **Where:** `Conversations/LiveRuns.cs`, `Conversations/ConversationRun.cs`.
 - **Alternatives:** a steering queue in the store, which works across processes but reads the store before every
   model call; queuing input for after the run, which is just the next run.

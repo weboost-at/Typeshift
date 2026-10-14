@@ -19,6 +19,7 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
             return await base.GetResponseAsync(messages, options, cancellationToken);
 
         var call = Prepare(messages, resolved, out var standing);
+        Budget(resolved);
         var decided = new HashSet<string>();
         ChatResponse? merged = null;
 
@@ -59,6 +60,7 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
         }
 
         var call = Prepare(messages, resolved, out var standing);
+        Budget(resolved);
 
         try
         {
@@ -90,6 +92,9 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
 
                 if (!await ContinueAsync(response.Messages, answers, resolved)) yield break;
 
+                // Rebuilt from the updates, the response holds new text the checkpoints stored already
+                var rebuilt = response.Messages.Where(message => message.Role == ChatRole.Assistant);
+                resolved.ConversationRun?.MarkStored(rebuilt);
                 call = [.. call, .. response.Messages, new ChatMessage(ChatRole.User, [.. answers])];
             }
         }
@@ -131,6 +136,11 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
         return false;
     }
 
+    // D32: each pass of a run, as steering input or a background answer starts one, gets what is left of its limit
+    private void Budget(ResolvedChatOptions options) =>
+        loop.MaximumIterationsPerRequest =
+            Math.Max(1, options.RunOptions.MaxToolIterations - options.AgentRun!.ModelCalls);
+
     // D32: the rounds of a run share its limit. A round goes on from the model call that asked, so it may make the
     // calls left; past the limit the run ends without the calls the round approved, as the tool loop leaves the calls
     // past its own. shortcut: a round that runs tools before asking again may run one round of tools past the limit
@@ -154,23 +164,15 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
         var run = options.AgentRun!;
         var list = messages.ToList();
         var contents = list.SelectMany(message => message.Contents).ToList();
-        // A store that retried an append may hold a request twice
-        var requests = contents.OfType<ToolApprovalRequestContent>()
-            .DistinctBy(request => request.RequestId)
-            .ToDictionary(request => request.RequestId);
+        var requests = Requested(list.Take(run.InputStart));
         var answers = contents.OfType<ToolApprovalResponseContent>()
             .Where(answer => requests.ContainsKey(answer.RequestId))
             .DistinctBy(answer => answer.RequestId)
             .ToList();
         var results = contents.OfType<FunctionResultContent>().Select(result => result.CallId).ToHashSet();
 
-        standing = [.. answers
-            .Where(answer => answer.Approved && IsMarked(answer, ChatResponseExtensions.ForConversation))
-            .Select(answer => requests[answer.RequestId].ToolCall)
-            .OfType<FunctionCallContent>()
-            .Select(call => call.Name)];
-
-        // D33: a sub-agent's run has its caller's standing approvals too
+        // The conversation's standing approvals, this run's answers', and a sub-agent's caller's (D33)
+        standing = [.. run.Standing, .. StandingIn(list.Take(run.InputStart), answers)];
         if (options.Caller is { } caller) standing.UnionWith(caller.Standing);
         run.Standing = standing;
 
@@ -195,6 +197,40 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
         var sent = new HashSet<string>();
         return [.. list.Select(message => Bind(message, bound, sent)).OfType<ChatMessage>()];
     }
+
+    // D24: the tools approved for the conversation, by the answers to the requests the conversation stored
+    public static HashSet<string> StandingIn(IEnumerable<ChatMessage> messages)
+    {
+        var list = messages.ToList();
+        var answers = list.SelectMany(message => message.Contents).OfType<ToolApprovalResponseContent>();
+
+        // A request keeps its first answer
+        return StandingIn(list, answers.DistinctBy(answer => answer.RequestId));
+    }
+
+    private static HashSet<string> StandingIn(
+        IEnumerable<ChatMessage> stored,
+        IEnumerable<ToolApprovalResponseContent> answers)
+    {
+        var requests = Requested(stored);
+
+        return
+        [
+            .. answers
+                .Where(answer => answer.Approved && IsMarked(answer, ChatResponseExtensions.ForConversation))
+                .Select(answer => requests.GetValueOrDefault(answer.RequestId)?.ToolCall)
+                .OfType<FunctionCallContent>()
+                .Select(call => call.Name)
+        ];
+    }
+
+    // The requests the conversation stored, never one an input carries; a store that retried an append may hold one
+    // twice
+    private static Dictionary<string, ToolApprovalRequestContent> Requested(IEnumerable<ChatMessage> stored) =>
+        stored.SelectMany(message => message.Contents)
+            .OfType<ToolApprovalRequestContent>()
+            .DistinctBy(request => request.RequestId)
+            .ToDictionary(request => request.RequestId);
 
     private static ChatMessage? Bind(
         ChatMessage message,

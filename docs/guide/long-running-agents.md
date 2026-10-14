@@ -114,7 +114,8 @@ Typeshift runs one run per conversation at a time in a process; across processes
 
 A user can steer a run while it works: `TrySteer` hands input to the run of the conversation going on in this
 process. The model receives it before its next call, the run does not end before it has, and it is stored with the
-conversation like any input. With no run going on here, start a run with the input instead:
+conversation like any input. With no run going on here, or one that is already ending, start a run with the input
+instead:
 
 <!-- snippet: steering -->
 <a id='snippet-steering'></a>

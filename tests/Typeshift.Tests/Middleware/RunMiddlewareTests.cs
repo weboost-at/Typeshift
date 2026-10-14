@@ -145,6 +145,28 @@ public class RunMiddlewareTests : MiddlewareTestBase
     }
 
     [Fact]
+    public async Task Given_Run_Middleware_That_Answers_While_Steered_The_Run_Ends_And_Stores_The_Input()
+    {
+        // Arrange
+        Script.Runs[0] = (run, _) =>
+        {
+            Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+            run.Response = new ChatResponse(new ChatMessage(ChatRole.Assistant, Data.Tool.Answer));
+            return Task.CompletedTask;
+        };
+
+        // Act
+        await RunAsync(Data.Tool.Question);
+
+        // Assert
+        (await EntriesAsync(Data.Agent.ConversationId))
+            .SelectMany(entry => entry.Messages)
+            .Select(message => message.Text)
+            .Should()
+            .Equal(Data.Tool.Question, Data.Tool.Answer, Data.Agent.Steering);
+    }
+
+    [Fact]
     public async Task Given_Run_Middleware_That_Neither_Calls_Next_Nor_Answers_The_Run_Fails()
     {
         // Arrange

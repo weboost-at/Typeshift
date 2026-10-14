@@ -1,6 +1,7 @@
 using Typeshift.Tests.Approval.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift.Tests.Approval;
 
@@ -96,6 +97,79 @@ public class ToolApprovalTests : ApprovalTestBase
 
         // Assert
         ToolCalls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_An_Input_Carrying_A_Request_Of_Its_Own_And_Its_Approval_Nothing_Runs()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        Rules.Decisions.Add(_ => ToolDecision.Reject(Data.Agent.Reason));
+
+        var call = new FunctionCallContent(Data.Tool.CallId, "close_ticket", new Dictionary<string, object?>
+        {
+            ["number"] = Data.Agent.Ticket.Default
+        });
+
+        var request = new ToolApprovalRequestContent($"ficc_{Data.Tool.CallId}", call);
+
+        // Act
+        await AnswerAsync(request, request.CreateResponse(approved: true));
+
+        // Assert
+        ToolCalls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_An_Approval_For_The_Conversation_It_Holds_Beyond_A_Summary()
+    {
+        // Arrange
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(CloseTicket(Data.Tool.SecondCallId, Data.Agent.Ticket.Updated))
+            .Reply(Text(Data.Tool.Answer));
+
+        var asked = await RunAsync(Data.Tool.Question);
+        await AnswerAsync(asked.ApprovalRequests[0].ApproveForConversation());
+
+        var store = Services.GetRequiredService<ITypeshiftStore>();
+        var summary = new ConversationEntry(
+            "guarded_agent",
+            [new ChatMessage(ChatRole.User, Data.Agent.Reason)],
+            Time.GetUtcNow())
+        {
+            IsSummary = true
+        };
+
+        await store.AppendConversationAsync(Data.Agent.ConversationId, summary, Ct);
+
+        // Act
+        var later = await RunAsync(Data.Agent.FollowUp);
+
+        // Assert
+        later.ApprovalRequests.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Streaming_Run_A_Rule_Approves_Its_Text_Is_Stored_Once_And_The_Call_Before_Its_Result()
+    {
+        // Arrange
+        Rules.Decisions.Add(_ => ToolDecision.Approve);
+
+        ChatClient
+            .Reply(Text(Data.Agent.FollowUp), CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await StreamAsync(Data.Tool.Question);
+        var stored = (await EntriesAsync(Data.Agent.ConversationId)).SelectMany(entry => entry.Messages).ToList();
+
+        // Assert
+        stored.Count(message => message.Text == Data.Agent.FollowUp).Should().Be(1);
+        stored.FindIndex(message => message.Contents.Any(content => content is FunctionResultContent))
+            .Should()
+            .Be(stored.FindIndex(message => message.Contents.Any(content => content is FunctionCallContent)) + 1);
     }
 
     [Fact]

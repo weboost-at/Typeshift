@@ -47,7 +47,9 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// </summary>
     /// <param name="conversation">The conversation's id.</param>
     /// <param name="input">The user's input.</param>
-    /// <returns>False when no run of the conversation is going on here; start a run with the input instead.</returns>
+    /// <returns>
+    /// False when no run of the conversation is going on here, or it is ending; start a run with the input instead.
+    /// </returns>
     public bool TrySteer(TId conversation, string input) => _runs.TrySteer(conversation, input);
 }
 
