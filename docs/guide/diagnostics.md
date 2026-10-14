@@ -1,174 +1,184 @@
 # Diagnostics
 
-The generator reports these diagnostics while it reads toolsets, agents and the `AddTypeshift()` call. Errors stop the
-build before a mistake can reach runtime; warnings point at something that works but is probably not meant.
-
-Two mistakes need no diagnostic, because the generated API makes them compiler errors:
-
-- picking a tool of another toolset, `UseToolset<CompanyToolset>().Include(t => t.SearchWeb)`, is CS9286: the tool
-  list of each toolset has properties only for its own tools;
-- setting the settings of a tool the agent does not offer, `ConfigureSearchWeb()` in an agent without `search_web`,
-  is CS0103: `Configure{Tool}()` exists only per tool the agent offers.
-
-Runtime guards stay for what the generator cannot see: generic toolsets and agents, and calls made through a
-delegate. Each guard throws an exception whose message says what to change.
+An analyzer in the package reports these while you type; the generator only writes code. They sit at real source
+locations, so `#pragma warning disable` and `.editorconfig` severities reach them. Every shape the generator cannot
+handle has a diagnostic: generated code never fails with a compiler error of its own.
 
 | ID | Severity | Title |
 |---|---|---|
 | [TSH001](#tsh001) | Error | Toolset or agent is not partial |
-| [TSH002](#tsh002) | Error | Tool name or description is not a constant |
-| [TSH003](#tsh003) | Error | Tool has no name |
-| [TSH004](#tsh004) | Error | Tool is not a static method group |
-| [TSH005](#tsh005) | Error | Settings type is not a record |
-| [TSH006](#tsh006) | Error | Toolset was not compiled with the generator |
+| [TSH002](#tsh002) | Error | Declared value is not a constant |
+| [TSH003](#tsh003) | Error | Tool is not a static method group |
+| [TSH004](#tsh004) | Error | Tool parameter cannot be bound |
+| [TSH005](#tsh005) | Error | Settings type is not a record with a parameterless constructor |
+| [TSH006](#tsh006) | Error | Settings are less accessible than what exposes them |
 | [TSH007](#tsh007) | Error | Tool name is not unique |
-| [TSH008](#tsh008) | Warning | Tool has no description |
-| [TSH009](#tsh009) | Warning | Tool does not take its settings |
-| [TSH010](#tsh010) | Warning | Tool relies on XML docs that are not generated |
-| [TSH011](#tsh011) | Warning | Referenced assembly was not compiled with the generator |
-| [TSH012](#tsh012) | Error | Tool name is not lower_snake_case |
-| [TSH013](#tsh013) | Error | Settings type is less accessible than its toolset |
-| [TSH014](#tsh014) | Error | Configurable member has a type settings cannot store |
+| [TSH008](#tsh008) | Error | Tool name is not lower_snake_case |
+| [TSH009](#tsh009) | Warning | Tool has no description |
+| [TSH010](#tsh010) | Warning | Tool does not take its settings |
+| [TSH011](#tsh011) | Warning | Tool relies on XML docs that are not generated |
+| [TSH012](#tsh012) | Error | Configurable member has a type settings cannot store |
+| [TSH013](#tsh013) | Error | Configurable member cannot be set |
+| [TSH014](#tsh014) | Error | Declaration outside the constructor |
+| [TSH015](#tsh015) | Error | Chain the generator cannot read |
+| [TSH016](#tsh016) | Error | Toolset or agent is out of the generated code's reach |
+| [TSH017](#tsh017) | Error | Toolset or agent is generic or derives from another |
+| [TSH018](#tsh018) | Error | Member clashes with a generated member |
+| [TSH019](#tsh019) | Error | Toolset was not compiled with the generator |
+| [TSH020](#tsh020) | Warning | Referenced assembly was not compiled with the generator |
+| [TSH021](#tsh021) | Error | Referenced assembly has another id type |
+| [TSH022](#tsh022) | Error | Two agents share a settings kind |
+| [TSH023](#tsh023) | Error | Agent cannot be a tool or a handoff target |
+| [TSH024](#tsh024) | Warning | Sub-agent offers tools that need approval |
+| [TSH025](#tsh025) | Error | Tool is offered twice |
+| [TSH026](#tsh026) | Error | Agents call each other in a circle |
+| [TSH027](#tsh027) | Error | Tool type has no JSON metadata under Native AOT |
+| [TSH028](#tsh028) | Error | Store has another id type |
+| [TSH029](#tsh029) | Error | Id type cannot be found |
 
 ## TSH001
 
-**Toolset or agent is not partial.** Reported on the class name, or on the name of the class it is nested in when
-that one is not partial.
-
-The generator adds members to every toolset and agent (the tool bindings, the `Settings` record, the
-`Configure{Tool}()` methods), so the class must be `partial`, and so must every class it is nested in.
-
-```csharp
-public class CompanyToolset : Toolset          // TSH001
-public partial class CompanyToolset : Toolset  // fixed
-```
+**Toolset or agent is not partial**, or a class it is nested in is not. The generator adds members to it.
 
 ## TSH002
 
-**Tool name or description is not a constant.** Reported on the argument.
-
-`WithName(...)` and `WithDescription(...)` are read at compile time: they become the generated function's name and
-description and the metadata stamps other assemblies read. Pass a string literal or a `const`.
-
-```csharp
-AddTool(FindCompanies).WithName(prefix + "find");  // TSH002
-AddTool(FindCompanies).WithName("find_companies"); // fixed
-```
+**Declared value is not a constant.** `WithName`, `WithDescription`, `WithStorageKind` and `WithSettingsVersion`
+are read at compile time; pass a literal or a `const`.
 
 ## TSH003
 
-**Tool has no name.** Reported on the `AddTool(...)` call.
-
-Every tool needs `WithName(...)`. The name is the tool's identity in stored settings, in agents and across
-assemblies, so it never comes from the method name, which a refactoring may change.
+**Tool is not a static method group.** `AddTool(Find)` with `Find` a static method, of any accessibility. Lambdas,
+instance methods, local functions and delegate variables cannot be generated without reflection.
 
 ## TSH004
 
-**Tool is not a static method group.** Reported on the argument of `AddTool`.
-
-A tool is a static method, passed as a method group. Lambdas, instance methods and delegate variables cannot be
-generated without reflection, and a local function, even a static one, is out of the generated code's reach.
-
-```csharp
-AddTool(query => Find(query));  // TSH004
-AddTool(Find);                  // fixed, Find is static
-```
+**Tool parameter cannot be bound**: `ref`, `out`, pointers and other parameters a model's JSON cannot fill.
 
 ## TSH005
 
-**Settings type is not a record.** Reported on `WithSettings<T>` or `WithConfigurableSettings<T>`.
-
-Stored and run overrides apply to a `with` copy of the settings, so the type must be a record. The code defaults
-come from its parameterless constructor, which it therefore needs as well.
+**Settings type is not a record with a parameterless constructor.** Each layer applies to a `with` copy of the code
+defaults.
 
 ## TSH006
 
-**Toolset was not compiled with the generator.** Reported on the `UseToolset<T>()` call.
-
-The toolset comes from an assembly that carries no generator stamps, so its tools, their tool list and their
-settings are unknown. Reference the Typeshift package in the toolset's project. At runtime, such a toolset throws an
-`InvalidOperationException` when the agent asks it for a tool.
+**Settings are less accessible than what exposes them**: a settings record less accessible than its toolset, whose
+generated members name it wherever the toolset can be named, or a toolset with configurable settings less accessible
+than a public agent that offers it, whose `Settings` record names the toolset's overrides.
 
 ## TSH007
 
-**Tool name is not unique.** Reported on the first own tool that uses the name, or on the `AddTypeshift()` call when the
-clash is only among referenced assemblies.
-
-Tool names are global: stored settings, agents and the model address a tool by its name. Two tools with one name,
-anywhere the host can see, are an error.
+**Tool name is not unique** across everything the host sees, including names that differ only in their underscores
+(`get_v2`, `get_v_2`), which map to the same generated property.
 
 ## TSH008
 
-**Tool has no description.** A warning, reported on the `AddTool(...)` call.
-
-The model chooses tools by their descriptions. Add `WithDescription(...)` or an XML `<summary>` on the method.
+**Tool name is not lower_snake_case**, the convention of the providers' function names. Reported on `WithName`.
 
 ## TSH009
 
-**Tool does not take its settings.** A warning, reported on `WithSettings<T>` or `WithConfigurableSettings<T>`.
-
-A tool receives its resolved settings through a parameter of its settings type, which the model never sees. Without
-one, the settings reach nothing. Add the parameter:
-
-```csharp
-public static Company[] Find(string city)                                  // TSH009
-public static Company[] Find(string city, FindCompaniesSettings settings)  // fixed
-```
+**Tool has no description.** The model chooses tools by their descriptions: add a `<summary>` or `WithDescription`.
 
 ## TSH010
 
-**Tool relies on XML docs that are not generated.** A warning, reported on the `AddTool(...)` call.
-
-A tool takes its description from its method's `<summary>` when it has no `WithDescription(...)`, and its parameter
-descriptions from `<param>` docs. The compiler only reads them with
-`<GenerateDocumentationFile>true</GenerateDocumentationFile>`, so without it they are lost. Turn it on; or, when only
-the summary is at stake, describe the tool with `WithDescription(...)`.
+**Tool does not take its settings.** A tool with `WithSettings<T>()` but no parameter of type `T` gets settings that
+reach nothing.
 
 ## TSH011
 
-**Referenced assembly was not compiled with the generator.** A warning, reported on the `AddTypeshift()` call.
-
-A referenced assembly declares toolsets or agents but carries no module stamp, so `AddTypeshift()` cannot register
-them. NuGet does not pass a package's analyzers on to the projects that reference the consumer: reference the Typeshift
-package in that assembly's project too.
+**Tool relies on XML docs that are not generated.** Set `GenerateDocumentationFile`, or describe the tool with
+`WithDescription`.
 
 ## TSH012
 
-**Tool name is not lower_snake_case.** Reported on the argument of `WithName(...)`.
-
-Tool names follow the convention of the model providers' function names, `find_companies`.
+**Configurable member has a type settings cannot store**, or belongs to the run rather than to settings. Chat options
+that may be configurable are the model, the instructions, the sampling options, the stop sequences, multiple tool calls
+and reasoning; `Tools`, `ConversationId`, `ResponseFormat`, `ToolMode` and the additional properties are not.
 
 ## TSH013
 
-**Settings type is less accessible than its toolset.** Reported on `WithSettings<T>` or
-`WithConfigurableSettings<T>`.
-
-The generated code names the settings type wherever the toolset can be named: in `Tools.{Tool}` (a
-`ToolRef<TSettings, TOverrides>`), in the `{Toolset}ToolList` class next to the toolset and in the agents that use
-the tool. A public toolset therefore needs public settings, any other toolset settings its assembly can reach, never a
-`private` or `protected` nested record. Make the settings record as accessible as the toolset, or the toolset less
-accessible.
-
-```csharp
-internal record EchoSettings { public int Repeat { get; init; } }
-public partial class EchoToolset : Toolset      // TSH013
-internal partial class EchoToolset : Toolset    // fixed, or make EchoSettings public
-```
+**Configurable member cannot be set**: it has no public `set` or `init` accessor.
 
 ## TSH014
 
-**Configurable member has a type settings cannot store.** Reported on the `Configurable(...)` call that picks it, for a
-tool setting or a chat option, or on `WithConfigurableSettings<T>`.
+**Declaration outside the constructor.** `AddTool`, `UseToolset` and the other declarations go directly in the
+constructor, not in a helper method it calls.
 
-Configurable members end up in the generated `Settings` and `{Tool}Overrides` records, which serialize themselves
-without reflection. They support:
+## TSH015
 
-- `bool`, `byte`, `short`, `int`, `long`, `float`, `double` and `decimal`;
-- `string`, `Guid`, `DateTime`, `DateTimeOffset` and `TimeSpan`;
-- enums, stored by name, and combinations of flags as their names;
-- string lists: `string[]`, `IEnumerable<string>`, `IReadOnlyCollection<string>`, `IReadOnlyList<string>`,
-  `ICollection<string>` and `IList<string>`;
-- the nullable forms of all of these.
+**Chain the generator cannot read**: a chain split over variables (`var u = UseToolset<T>(); u.Include(...)`), or a
+pick that is not `t => t.Tool`. Keep each declaration one expression.
 
-Keep other members out of `Configurable(...)`, or name them in `NotConfigurable(...)` after
-`WithConfigurableSettings<T>()`; their value then comes from code alone.
+## TSH016
+
+**Toolset or agent is out of the generated code's reach**: `private` or `protected` nested, or without an accessible
+parameterless constructor.
+
+## TSH017
+
+**Toolset or agent is generic or derives from another.** Each derives from `Toolset` or `Agent` directly; share code
+through static methods.
+
+## TSH018
+
+**Member clashes with a generated member**, a toolset member named `Tools` or an agent member named `Settings` or
+`ConfigureSearchTickets`, say.
+
+## TSH019
+
+**Toolset was not compiled with the generator.** Reported on `UseToolset<T>()`: reference the package in the
+toolset's project.
+
+## TSH020
+
+**Referenced assembly was not compiled with the generator.** It declares toolsets or agents but carries no module of
+this Typeshift version, so `AddTypeshift()` cannot register them. Reference the package in its project, at the version
+the rest of the build uses.
+
+## TSH021
+
+**Referenced assembly has another id type.** Every project of a build shares one id type: set `TypeshiftIdType` once,
+in `Directory.Build.props`.
+
+## TSH022
+
+**Two agents share a settings kind**: two agent classes of one name in different namespaces, or one
+`WithStorageKind` twice. Their settings would overwrite each other in the store; give one a `WithStorageKind` of its
+own.
+
+## TSH023
+
+**Agent cannot be a tool or a handoff target**: it has no `WithDescription`, which the model reads to decide when to
+call it, or its name is not lower_snake_case. Checked for agents of the same project.
+
+## TSH024
+
+**Sub-agent offers tools that need approval.** A sub-agent cannot ask the host, so in the default mode its calls of
+such tools are rejected unless a standing approval or a rule approves them. Add a rule, or hand off to the agent
+instead.
+
+## TSH025
+
+**Tool is offered twice** by one agent: one toolset used twice, one tool picked twice, one agent used twice as a
+sub-agent or as a handoff target, or two toolsets with a tool of one name, a built-in toolset's included. Offer each
+toolset's tools in one use, and leave out one of two tools of a name.
+
+## TSH026
+
+**Agents call each other in a circle** through `UseAgent`, so a call could never end. Handoffs may form circles.
+
+## TSH027
+
+**Tool type has no JSON metadata under Native AOT.** In a project that publishes with Native AOT or sets
+`IsAotCompatible`, every parameter and result type of a tool needs source-generated metadata: list it in a
+`JsonSerializerContext` of the toolset's assembly; see [Native AOT](./native-aot.md). Strings, numbers, `bool`, dates,
+`TimeSpan` and JSON elements need none.
+
+## TSH028
+
+**Store has another id type.** `WithStore<T>()` takes an `ITypeshiftStore` of the build's id type, the alias the
+generator writes.
+
+## TSH029
+
+**Id type cannot be found**: `TypeshiftIdType` names a type the build does not know. Give a C# keyword (`int`,
+`long`, `string`), a type of `System` (`Guid`), or the type's full name with its namespace.

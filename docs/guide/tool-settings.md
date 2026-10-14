@@ -1,8 +1,8 @@
 # Tool settings
 
-Tool settings are values a tool needs that the model must not choose: a result limit, an endpoint, a feature flag.
-They live in a record, the tool method receives them as a parameter the model never sees, and each layer above the
-code may change only the members the tool marks configurable.
+Tool settings are values a tool needs that the model must not choose: a result limit, a language, a timeout. They
+live in a record, the tool receives them as a parameter the model never sees, and only the members the tool marks
+configurable may change at runtime.
 
 ## The settings record
 
@@ -21,8 +21,8 @@ internal record SearchTicketsSettings
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/SearchTicketsSettings.cs#L3-L12' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-record' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The record's parameterless constructor gives the code defaults. It must be a record
-([TSH005](./diagnostics.md#tsh005)), because overrides apply to a `with` copy.
+Its parameterless constructor gives the code defaults. It must be a record ([TSH005](./diagnostics.md#tsh005)),
+since each layer of settings applies to a `with` copy.
 
 ## Configurable members
 
@@ -33,12 +33,12 @@ names it:
 <a id='snippet-settings-picks'></a>
 ```cs
 AddTool(SearchTickets)
-    .WithName("search_tickets")
+    .ReadOnly()
     .WithSettings<SearchTicketsSettings>()
     .Configurable(s => s.IncludeClosed)
     .Configurable(s => s.Limit);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketToolset.cs#L13-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-picks' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketToolset.cs#L12-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-picks' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `WithConfigurableSettings<T>()` lets every settable member change unless `NotConfigurable(...)` names it:
@@ -46,65 +46,59 @@ AddTool(SearchTickets)
 <!-- snippet: settings-all-configurable -->
 <a id='snippet-settings-all-configurable'></a>
 ```cs
-AddTool(SearchArticles)
-    .WithName("search_articles")
+AddTool(SearchArticlesAsync)
     .WithConfigurableSettings<SearchArticlesSettings>()
     .NotConfigurable(s => s.Limit);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Knowledge/KnowledgeToolset.cs#L15-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-all-configurable' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Knowledge/KnowledgeToolset.cs#L11-L15' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-all-configurable' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Obsolete members stay out on their own. One tool uses one of the two: after `WithSettings<T>()` only `Configurable`
-follows, after `WithConfigurableSettings<T>()` only `NotConfigurable`. There is no "none configurable" variant: plain
-`WithSettings<T>()` is that.
+After `WithSettings<T>()` only `Configurable` follows, after `WithConfigurableSettings<T>()` only `NotConfigurable`.
+The generator reads the picks; their lambdas never run, and a pick must be `s => s.Member`
+([TSH015](./diagnostics.md#tsh015)). Obsolete members stay out on their own. A configurable member needs a public
+`set` or `init` accessor ([TSH013](./diagnostics.md#tsh013)).
 
-The generator reads the picks at compile time; at runtime their lambdas never run. Members left out, `Timeout` in the
-first example and `Limit` in the second, only ever have their code value. Configurable members must have a type the
-generated records can store ([TSH014](./diagnostics.md#tsh014)): `bool`, the numeric types, `string`, `Guid`,
-`DateTime`, `DateTimeOffset`, `TimeSpan`, enums, string lists, and their nullable forms. Under
-`WithConfigurableSettings<T>()`, a member of any other type is reported until `NotConfigurable(...)` keeps it out, so
-it never stays code-only unnoticed. Every other member added to the record later becomes configurable, and part of the
-stored settings, on its own.
+A configurable member's type is one settings can store ([TSH012](./diagnostics.md#tsh012)): strings, Booleans,
+numbers, enums (stored by name), `Guid`, `DateTime`, `DateTimeOffset`, `TimeSpan`, `DateOnly`, `TimeOnly` and `Uri`;
+records and classes with a public parameterless constructor whose settable members are storable, replaced as a whole,
+never merged; arrays, lists and sets of storable values; dictionaries keyed by `string` or an enum. A type that
+contains itself is not storable.
 
 ## Receiving settings in the tool
 
-The tool method takes a parameter of its settings type and receives the resolved settings there. The parameter is
-not part of the model's schema, so the model can never set it; a tool without such a parameter gets a warning
-([TSH009](./diagnostics.md#tsh009)):
+The tool takes a parameter of its settings type. A tool with settings but no such parameter is
+[TSH010](./diagnostics.md#tsh010):
 
 <!-- snippet: read-settings -->
 <a id='snippet-read-settings'></a>
 ```cs
+/// <summary>
+/// Searches the customer's support tickets, newest first.
+/// </summary>
+/// <param name="query">Words the ticket's title contains.</param>
 public static IReadOnlyList<Ticket> SearchTickets(
     string query,
     SearchTicketsSettings settings,
     IServiceProvider services) =>
     services.GetRequiredService<ITicketClient>().Search(query, settings.IncludeClosed, settings.Limit);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketToolset.cs#L32-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-read-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketToolset.cs#L30-L40' title='Snippet source file'>snippet source</a> | <a href='#snippet-read-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
-
-Each function is created with the settings of its run, so two runs with different settings never see each other's
-values.
 
 ## The generated overrides
 
-For a tool with configurable members, the generator writes a nested `{Tool}Overrides` record in the toolset,
-`TicketToolset.SearchTicketsOverrides`, with each configurable member as a nullable property. Overrides are how every
-layer above the code speaks about the tool: stored defaults, an agent's stored settings and a run's settings. A null
-value keeps what the layer below set.
+For a tool with configurable members, the generator writes a `{Tool}Overrides` record into the toolset,
+`TicketToolset.SearchTicketsOverrides`, with each configurable member nullable. Every layer above the code speaks
+through it, and null keeps the layer below.
 
 ## The layers
 
-Settings resolve per run from five layers, lowest first:
+A tool runs with its settings resolved in layers, each over the one below:
 
-| Layer | Set with | Changes |
-|---|---|---|
-| 1. Code defaults | The record's constructor | Everything |
-| 2. Stored tool defaults | [`ToolDefaults`](./persistence.md#tool-defaults), under an id | Configurable members |
-| 3. The agent's code | [`Configure{Tool}()`](./defining-agents.md#tool-settings) | Any member, over the code defaults |
-| 4. The agent's stored settings | [`ConfigureAsync`](./persistence.md#agent-settings), under an id | Configurable members |
-| 5. The run | [Run settings](./running-agents.md#run-settings) | Configurable members |
+1. The record's code defaults, its parameterless constructor.
+2. The agent's code: [`Configure{Tool}()`](./defining-agents.md#tool-settings), which may set any settable member.
+3. The agent's stored settings, under a [settings id](./settings-and-stores.md#agent-settings): the overrides,
+   configurable members only.
+4. The run: the overrides in the [run's settings](./running-agents.md#run-settings).
 
-Stored tool defaults apply only to agents whose code does not set the tool's settings: an agent that sets them in
-code has decided, and only its own stored settings or a run may change the configurable members.
+A layer that leaves a member null keeps the value below it.

@@ -1,39 +1,51 @@
-using Typeshift.Agents;
-using Typeshift.Tests.Toolsets.Companies;
-using Typeshift.Tests.Toolsets.Support;
+using Typeshift.Tests.Tools.Support;
+using Typeshift.Tests.Toolsets;
+using Microsoft.Extensions.AI;
 
 namespace Typeshift.Tests.Agents.Support;
 
-public partial class ProbeAgent : AgentDefinition
+// Offers the probe, which returns the settings it ran with, so a test reads back what a run resolved
+public partial class ProbeAgent : Agent
 {
-    public const string CodeInstructions =
-        """
-        Probe the options and settings you run with.
-        Report them as they are.
-        """;
+    public const string Model = "probe-model";
+
+    public const float Temperature = 0.5f;
+
+    public const string Stop = "END";
+
+    public const string Prompt = "Probe what the user asks.";
+
+    // Outside the probe's code default and the limits the test data picks
+    public const int ConfiguredLimit = 100;
+
+    public const int MaxToolIterations = 5;
 
     public ProbeAgent()
     {
-        WithName("probe_agent");
-        WithDescription("Probes the options and settings it runs with.");
+        WithDescription("Probes what a run resolves.");
 
         WithChatOptions()
-            .WithTemperature(0.2f)
-            .WithAllowMultipleToolCalls(true)
+            .WithModel(Model)
+            .WithTemperature(Temperature)
+            .WithStopSequences(Stop)
+            .WithTools(new HostedWebSearchTool())
+            .Configurable(o => o.ModelId)
             .Configurable(o => o.Temperature)
-            .Configurable(o => o.MaxOutputTokens)
-            .Configurable(o => o.Instructions);
+            .Configurable(o => o.Instructions)
+            .Configurable(o => o.StopSequences);
 
-        UseToolset<CompanyToolset>()
-            .Include(t => t.FindCompanies)
-            .Include(t => t.CreateCompanyProfile);
+        WithRunOptions()
+            .WithMaxToolIterations(MaxToolIterations)
+            .Configurable(r => r.MaxToolIterations);
 
         UseToolset<ProbeToolset>();
 
+        UseToolset<CompanyToolset>().Include(t => t.CountCompanies).Include(t => t.FindCompanies);
+
         ConfigureProbe()
-            .WithLimit(5)
-            .WithMode("thorough");
+            .WithLimit(ConfiguredLimit)
+            .WithVerbose(true);
     }
 
-    protected override string GetInstructions() => CodeInstructions;
+    protected override string GetInstructions() => Prompt;
 }

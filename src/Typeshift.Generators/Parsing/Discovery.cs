@@ -7,56 +7,80 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Typeshift.Generators.Parsing;
 
-// Attribute-free discovery: a cheap syntax check, then the base type decides
+// D3: attribute-free; the syntax check passes only classes whose base list names Toolset, Agent or
+// JsonSerializerContext, so an edit re-binds just those, and the semantic check confirms the direct base
 internal static class Discovery
 {
-    public static bool IsCandidate(SyntaxNode node, CancellationToken ct) =>
-        node is ClassDeclarationSyntax { BaseList: not null } declaration
-        && !declaration.Modifiers.Any(SyntaxKind.AbstractKeyword);
+    public static bool IsToolset(SyntaxNode node, CancellationToken ct) => HasBase(node, "Toolset");
 
-    public static ClassModel? Classify(GeneratorSyntaxContext context, CancellationToken ct)
+    public static bool IsAgent(SyntaxNode node, CancellationToken ct) => HasBase(node, "Agent");
+
+    public static bool IsJsonContext(SyntaxNode node, CancellationToken ct) => HasBase(node, "JsonSerializerContext");
+
+    public static ToolsetModel? ClassifyToolset(GeneratorSyntaxContext context, CancellationToken ct)
+    {
+        if (GetDeclared(context, KnownTypes.Toolset, ct) is not { } type) return null;
+
+        var documented = context.Node.SyntaxTree.Options.DocumentationMode != DocumentationMode.None;
+        var constructors = ConstructorChains.GetBlocks(type, context.SemanticModel.Compilation, ct);
+
+        return ToolsetParser.Parse(type, constructors, documented, Reporter.None, ct);
+    }
+
+    public static AgentModel? ClassifyAgent(GeneratorSyntaxContext context, CancellationToken ct)
+    {
+        if (GetDeclared(context, KnownTypes.Agent, ct) is not { } type) return null;
+
+        var constructors = ConstructorChains.GetBlocks(type, context.SemanticModel.Compilation, ct);
+        return AgentParser.Parse(type, constructors, Reporter.None, ct);
+    }
+
+    // D45: the module registers the assembly's JSON contexts, which tools ask before the defaults
+    public static string? ClassifyJsonContext(GeneratorSyntaxContext context, CancellationToken ct) =>
+        GetDeclared(context, KnownTypes.JsonSerializerContext, ct) is { } type && type.IsVisibleInAssembly()
+            ? type.ToTypeOf()
+            : null;
+
+    private static bool HasBase(SyntaxNode node, string baseName) =>
+        node is ClassDeclarationSyntax { BaseList: { } bases } declaration
+        && !declaration.Modifiers.Any(SyntaxKind.AbstractKeyword)
+        && bases.Types.Any(type => RightmostName(type.Type) == baseName);
+
+    // D23: generic classes and classes deriving from another are TSH017, which the analyzer reports
+    private static INamedTypeSymbol? GetDeclared(GeneratorSyntaxContext context, string baseType, CancellationToken ct)
     {
         var declaration = (ClassDeclarationSyntax)context.Node;
 
-        var symbol = context.SemanticModel.GetDeclaredSymbol(declaration, ct);
-
-        // D6: a generic class's tools depend on type arguments only the closing site knows
-        if (symbol is not { IsAbstract: false, IsGenericType: false } type) return null;
-        if (!IsFirstDeclarationWithBaseList(type, declaration, ct)) return null;
-
-        var documented = declaration.SyntaxTree.Options.DocumentationMode != DocumentationMode.None;
-
-        var compilation = context.SemanticModel.Compilation;
-
-        if (type.DerivesFrom(KnownTypes.Toolset))
-            return new ClassModel(ToolsetParser.Parse(type, compilation, documented, ct), null, null);
-
-        if (type.DerivesFrom(KnownTypes.AgentDefinition))
-            return new ClassModel(null, AgentParser.Parse(type, compilation, ct), null);
-
-        // D44: the module registers the contexts of its tools, so it must be able to name them
-        return type.DerivesFrom(KnownTypes.JsonSerializerContext) && type.IsVisibleInAssembly()
-            ? new ClassModel(null, null, ReadJsonContext(type))
-            : null;
+        return context.SemanticModel.GetDeclaredSymbol(declaration, ct) is
+            {
+                IsAbstract: false,
+                IsGenericType: false,
+                BaseType: var direct
+            } type
+            && direct.Is(baseType)
+            && IsFirstDeclarationWithBase(type, declaration, baseType.Substring(baseType.LastIndexOf('.') + 1), ct)
+                ? type
+                : null;
     }
 
-    private static JsonContextModel ReadJsonContext(INamedTypeSymbol context) =>
-        new(
-            context.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-            context.GetAttributes()
-                .Where(attribute => attribute.AttributeClass.Is(KnownTypes.JsonSerializableAttribute))
-                .Select(attribute => attribute.ConstructorArguments.FirstOrDefault().Value)
-                .OfType<ITypeSymbol>()
-                .Select(type => type.ToTypeOf())
-                .ToEquatableArray());
+    private static string? RightmostName(TypeSyntax type) =>
+        type switch
+        {
+            SimpleNameSyntax name => name.Identifier.ValueText,
+            QualifiedNameSyntax qualified => qualified.Right.Identifier.ValueText,
+            AliasQualifiedNameSyntax aliased => aliased.Name.Identifier.ValueText,
+            _ => null
+        };
 
-    // A partial class may list its base on several declarations, the model is built once
-    private static bool IsFirstDeclarationWithBaseList(
+    // A partial class may name its base on several declarations, and list interfaces on others; the model is built
+    // once, from the first that names the base
+    private static bool IsFirstDeclarationWithBase(
         INamedTypeSymbol type,
         ClassDeclarationSyntax declaration,
+        string baseName,
         CancellationToken ct) =>
         type.DeclaringSyntaxReferences
             .Select(reference => reference.GetSyntax(ct))
             .OfType<ClassDeclarationSyntax>()
-            .First(candidate => candidate.BaseList is not null) == declaration;
+            .First(candidate => HasBase(candidate, baseName)) == declaration;
 }

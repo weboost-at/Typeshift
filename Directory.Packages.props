@@ -1,9 +1,8 @@
 <Project>
 
   <PropertyGroup>
-    <!-- The generator compiles against the oldest supported compiler so it loads into older SDKs. The generator tests
-         compile C# 14 and set RoslynVersion to a newer compiler in their project file. -->
-    <RoslynVersion Condition="'$(RoslynVersion)' == ''">4.14.0</RoslynVersion>
+    <!-- D8: the compiler of the .NET 10 SDK, the oldest one that compiles the C# 14 the generated code needs -->
+    <RoslynVersion>5.0.0</RoslynVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,6 +18,8 @@
     <PackageVersion Include="Microsoft.Extensions.Options" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.10.0" />
     <PackageVersion Include="MinVer" Version="7.0.0" />
+    <PackageVersion Include="ModelContextProtocol.Core" Version="2.1.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.19.1" />
     <PackageVersion Include="xunit.v3" Version="4.0.2" />
   </ItemGroup>
 

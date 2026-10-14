@@ -2,345 +2,143 @@ namespace Typeshift.Generators.Tests.Agents.Support;
 
 public static class AgentSources
 {
-    public const string Profiling =
-        """"
-        using Typeshift.Agents;
+    public const string Tickets =
+        """
+        #pragma warning disable CS1591
+
+        using Typeshift;
 
         namespace Demo;
 
-        /// <summary>
-        /// Profiles companies.
-        /// </summary>
-        public partial class ProfilingAgent : AgentDefinition
+        public record SearchTicketsSettings
         {
-            /// <summary>
-            /// Declares the agent.
-            /// </summary>
-            public ProfilingAgent()
+            public int Limit { get; init; } = 10;
+
+            public bool IncludeClosed { get; init; }
+        }
+
+        public partial class TicketToolset : Toolset
+        {
+            public TicketToolset()
             {
-                WithName("profiling_agent");
-                WithDescription("Profiles new company information.");
+                AddTool(SearchTickets)
+                    .WithDescription("Searches tickets.")
+                    .WithSettings<SearchTicketsSettings>()
+                    .Configurable(s => s.Limit);
+
+                AddTool(CloseTicket).WithDescription("Closes a ticket.");
+
+                AddTool(DeleteTicket).WithDescription("Deletes a ticket.");
+            }
+
+            public static string SearchTickets(string query, SearchTicketsSettings settings) => query;
+
+            public static void CloseTicket(int number)
+            {
+            }
+
+            public static void DeleteTicket(int number)
+            {
+            }
+        }
+        """;
+
+    public const string Support =
+        """
+        #pragma warning disable CS1591
+
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        namespace Demo;
+
+        public partial class SupportAgent : Agent
+        {
+            public SupportAgent()
+            {
+                WithDescription("Answers customers.");
 
                 WithChatOptions()
-                    .WithAllowMultipleToolCalls(true)
-                    .WithTemperature(0.2f)
+                    .WithModel("fast-model")
+                    .WithTemperature(0.3f)
+                    .Configurable(o => o.ModelId)
                     .Configurable(o => o.Temperature)
-                    .Configurable(o => o.MaxOutputTokens)
-                    .Configurable(o => o.Instructions);
+                    .Configurable(o => o.StopSequences)
+                    .Configurable(o => o.Reasoning);
 
-                UseToolset<WebResearchToolset>()
-                    .Include(t => t.SearchWeb)
-                    .Include(t => t.ReadWebPage);
+                WithRunOptions()
+                    .WithMaxToolIterations(10)
+                    .Configurable(r => r.MaxToolIterations);
 
-                ConfigureSearchWeb()
-                    .WithLimit(5)
-                    .WithSafeSearch(false);
+                UseToolset<TicketToolset>().Exclude(t => t.DeleteTicket);
+
+                ConfigureSearchTickets()
+                    .WithLimit(5);
             }
 
-            /// <inheritdoc />
-            protected override string GetInstructions() =>
-                """
-                Profile the company from what the web says about it.
-                """;
+            protected override string GetInstructions() => "Answer.";
         }
-        """";
 
-    public const string UsesWebResearch =
-        """
-        using Typeshift.Agents;
-        using Demo;
-
-        namespace App;
-
-        /// <summary>
-        /// Researches the web.
-        /// </summary>
-        public partial class ResearchAgent : AgentDefinition
+        internal static class Startup
         {
-            /// <summary>
-            /// Declares the agent.
-            /// </summary>
-            public ResearchAgent()
-            {
-                WithName("research_agent");
-                UseToolset<WebResearchToolset>().Exclude(t => t.ReadWebPage).Exclude(t => t.Forget);
-                ConfigureSearchWeb().WithLimit(3);
-            }
+            public static void Register(IServiceCollection services) => services.AddTypeshift();
         }
         """;
 
-    // Settings and toolset for the agents below, with tools named like members of the agent's Settings record;
-    // internal, so they need no docs
-    public const string Lookup =
+    // A tool named like a configurable option, a Configure method of the user's own, an agent nested in a class
+    public const string Clashes =
         """
-        using System;
-        using Typeshift.Toolsets;
+        using Typeshift;
 
         namespace Demo;
 
-        internal record LookupSettings
+        internal record TemperatureSettings
         {
-            public int Limit { get; init; } = 10;
+            public float Value { get; init; }
         }
 
-        internal partial class LookupToolset : Toolset
+        internal partial class WeatherToolset : Toolset
         {
-            public LookupToolset()
-            {
-                AddTool(Find)
-                    .WithName("model")
-                    .WithDescription("Finds a model.")
-                    .WithSettings<LookupSettings>()
-                    .Configurable(s => s.Limit);
+            public WeatherToolset() =>
+                AddTool(Temperature)
+                    .WithDescription("Reads the temperature.")
+                    .WithSettings<TemperatureSettings>()
+                    .Configurable(s => s.Value);
 
-                AddTool(Find)
-                    .WithName("settings")
-                    .WithDescription("Finds settings.")
-                    .WithSettings<LookupSettings>()
-                    .Configurable(s => s.Limit);
-
-                AddTool(Find)
-                    .WithName("serialize")
-                    .WithDescription("Finds a serializer.")
-                    .WithSettings<LookupSettings>()
-                    .Configurable(s => s.Limit);
-
-                AddTool(Find)
-                    .WithName("equals")
-                    .WithDescription("Finds equal entries.")
-                    .WithSettings<LookupSettings>()
-                    .Configurable(s => s.Limit);
-
-                AddTool(Find)
-                    .WithName("temperature")
-                    .WithDescription("Finds a temperature.")
-                    .WithSettings<LookupSettings>()
-                    .Configurable(s => s.Limit);
-            }
-
-            public static string Find(string name, LookupSettings settings) => name;
+            public static float Temperature(TemperatureSettings settings) => settings.Value;
         }
-        """;
 
-    public const string ReservedToolNames =
-        """
-        using Typeshift.Agents;
-
-        namespace Demo;
-
-        internal partial class LookupAgent : AgentDefinition
+        internal static partial class Outer
         {
-            public LookupAgent()
+            internal partial class WeatherAgent : Agent
             {
-                WithName("lookup_agent");
-                WithChatOptions().Configurable(o => o.Temperature);
-                UseToolset<LookupToolset>();
-            }
-        }
-        """;
-
-    public const string PublicAgentOfInternalToolset =
-        """
-        using Typeshift.Agents;
-
-        namespace Demo;
-
-        /// <summary>
-        /// A public agent offering the tools of an internal toolset.
-        /// </summary>
-        public partial class LookupAgent : AgentDefinition
-        {
-            /// <summary>
-            /// Declares the agent.
-            /// </summary>
-            public LookupAgent()
-            {
-                WithName("lookup_agent");
-                UseToolset<LookupToolset>();
-            }
-        }
-        """;
-
-    public const string PublicAgentInInternalClass =
-        """
-        using Typeshift.Agents;
-
-        namespace Demo;
-
-        internal static partial class Holder
-        {
-            /// <summary>
-            /// A public agent that only its assembly can see.
-            /// </summary>
-            public partial class LookupAgent : AgentDefinition
-            {
-                /// <summary>
-                /// Declares the agent.
-                /// </summary>
-                public LookupAgent()
+                public WeatherAgent()
                 {
-                    WithName("lookup_agent");
-                    UseToolset<LookupToolset>();
+                    WithChatOptions().Configurable(o => o.Temperature);
+
+                    UseToolset<WeatherToolset>();
+
+                    ConfigureTemperature();
+                }
+
+                private void ConfigureTemperature()
+                {
                 }
             }
         }
         """;
 
-    public const string NestedTwins =
+    public const string Private =
         """
-        using Typeshift.Agents;
+        using Typeshift;
 
         namespace Demo;
 
-        internal static partial class First
+        internal partial class Outer
         {
-            internal partial class LookupAgent : AgentDefinition
+            private partial class HiddenAgent : Agent
             {
-                public LookupAgent()
-                {
-                    WithName("first_lookup_agent");
-                    UseToolset<LookupToolset>();
-                }
-            }
-        }
-
-        internal static partial class Second
-        {
-            internal partial class LookupAgent : AgentDefinition
-            {
-                public LookupAgent()
-                {
-                    WithName("second_lookup_agent");
-                    UseToolset<LookupToolset>();
-                }
-            }
-        }
-        """;
-
-    public const string InheritedSetting =
-        """
-        using Typeshift.Agents;
-        using Typeshift.Toolsets;
-
-        namespace Demo;
-
-        internal record PagedSettings
-        {
-            public int Limit { get; init; } = 10;
-        }
-
-        internal record SearchSettings : PagedSettings
-        {
-            public bool Strict { get; init; }
-        }
-
-        internal partial class SearchToolset : Toolset
-        {
-            public SearchToolset() =>
-                AddTool(Search)
-                    .WithName("search")
-                    .WithDescription("Searches.")
-                    .WithSettings<SearchSettings>()
-                    .Configurable(s => s.Limit);
-
-            public static string Search(string query, SearchSettings settings) => query;
-        }
-
-        internal partial class SearchAgent : AgentDefinition
-        {
-            public SearchAgent()
-            {
-                UseToolset<SearchToolset>();
-                ConfigureSearch().WithLimit(3);
-            }
-        }
-        """;
-
-    // A class named like its namespace and a namespace named System, both shadowing the start of a cref
-    public const string ShadowingNames =
-        """
-        using Typeshift.Agents;
-        using Typeshift.Toolsets;
-
-        namespace Chatbot.System;
-
-        /// <summary>
-        /// A class named like the namespace it lives in.
-        /// </summary>
-        public static class Chatbot;
-
-        /// <summary>
-        /// Echoes text.
-        /// </summary>
-        public partial class EchoToolset : Toolset
-        {
-            /// <summary>
-            /// Declares the tool.
-            /// </summary>
-            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes the text.");
-
-            /// <summary>
-            /// Echoes the text.
-            /// </summary>
-            /// <param name="text">The text to echo.</param>
-            public static string Echo(string text) => text;
-        }
-
-        /// <summary>
-        /// Echoes what it is told.
-        /// </summary>
-        public partial class EchoAgent : AgentDefinition
-        {
-            /// <summary>
-            /// Declares the agent.
-            /// </summary>
-            public EchoAgent() => UseToolset<EchoToolset>();
-        }
-        """;
-
-    // A tool named like the generated builder, settings with an obsolete member and summaries that need escaping
-    public const string AwkwardSettings =
-        """
-        using System;
-        using Typeshift.Agents;
-        using Typeshift.Toolsets;
-
-        namespace Demo;
-
-        internal record AwkwardSettings
-        {
-            /// <summary>
-            /// Fewer than 5 &amp; more &lt;tags&gt;.
-            /// </summary>
-            public int Limit { get; init; } = 3;
-
-            /// <summary>
-            /// Results &lt; limit.
-            /// </summary>
-            public bool Strict { get; init; }
-
-            [Obsolete("Use Limit.")]
-            public int Old { get; init; }
-        }
-
-        internal partial class AwkwardToolset : Toolset
-        {
-            public AwkwardToolset() =>
-                AddTool(Tool)
-                    .WithName("tool")
-                    .WithDescription("Finds &lt; things & more.")
-                    .WithSettings<AwkwardSettings>()
-                    .Configurable(s => s.Limit);
-
-            public static string Tool(string query, AwkwardSettings settings) => query;
-        }
-
-        internal partial class AwkwardAgent : AgentDefinition
-        {
-            public AwkwardAgent()
-            {
-                UseToolset<AwkwardToolset>();
-                ConfigureTool().WithStrict(true);
+                public HiddenAgent() => WithChatOptions().WithModel("fast-model");
             }
         }
         """;

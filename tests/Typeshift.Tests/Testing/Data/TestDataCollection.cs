@@ -1,5 +1,4 @@
 using Typeshift.Tests.Agents.Support;
-using Typeshift.Tests.Conversations.Support;
 using Typeshift.Tests.Persistence.Support;
 using Typeshift.Tests.Tools.Support;
 using Bogus;
@@ -13,7 +12,5 @@ public class TestDataCollection(Faker faker)
 
     public AgentTestData Agent { get; } = new(faker);
 
-    public ConversationTestData Conversation { get; } = new(faker);
-
-    public StorableTestData Storable { get; } = new(faker);
+    public PersistenceTestData Persistence { get; } = new(faker);
 }

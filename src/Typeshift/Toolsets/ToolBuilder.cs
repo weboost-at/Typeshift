@@ -1,90 +1,101 @@
-using Typeshift.Tools;
-
-namespace Typeshift.Toolsets;
+namespace Typeshift;
 
 /// <summary>
-/// Declares a tool's name, description and settings, in a chain the generator reads at compile time.
+/// The chain of one tool. The generator reads it at compile time; settings come last.
 /// </summary>
 public sealed class ToolBuilder
 {
-    private readonly ToolDefinition _definition;
+    internal static readonly ToolBuilder Instance = new();
 
-    internal ToolBuilder(ToolDefinition definition) => _definition = definition;
-
-    /// <summary>
-    /// Names the tool, as the model, the stores and the agents address it.
-    /// </summary>
-    /// <param name="name">A lower_snake_case constant, unique across everything the host can see.</param>
-    /// <returns>The same builder, to describe and configure the tool further.</returns>
-    public ToolBuilder WithName(string name)
+    private ToolBuilder()
     {
-        _definition.Name = new ToolName(name);
-        return this;
     }
 
     /// <summary>
-    /// Describes the tool to the model; without it the method's XML summary is used.
+    /// Overrides the name derived from the method. The name keys the tool's stored settings, so pin it here before
+    /// renaming a method whose settings are stored.
     /// </summary>
-    /// <param name="description">A compile-time constant.</param>
-    /// <returns>The same builder, to name and configure the tool further.</returns>
+    /// <param name="name">A lower_snake_case constant, unique across everything the host sees.</param>
+    /// <returns>The same chain.</returns>
+    public ToolBuilder WithName(string name) => this;
+
+    /// <summary>
+    /// Overrides the description taken from the method's <c>&lt;summary&gt;</c>.
+    /// </summary>
+    /// <param name="description">A constant.</param>
+    /// <returns>The same chain.</returns>
     public ToolBuilder WithDescription(string description) => this;
 
     /// <summary>
-    /// Gives the tool a settings record whose members stay as the code sets them, but those <c>Configurable</c>
-    /// names. The tool method receives the resolved settings through a parameter of their type, which the model never
-    /// sees.
+    /// Pauses a run that calls the tool until the host approves or rejects the call.
     /// </summary>
-    /// <typeparam name="TSettings">The settings record; its parameterless constructor sets the code defaults.</typeparam>
-    /// <returns>A builder that allows members to change at runtime.</returns>
-    public ToolBuilder<TSettings> WithSettings<TSettings>() where TSettings : class, new() => new();
+    /// <returns>The same chain.</returns>
+    public ToolBuilder RequiresApproval() => this;
 
     /// <summary>
-    /// Gives the tool a settings record whose members may all change at runtime, but obsolete ones and those
-    /// <c>NotConfigurable</c> names. Each must have a type settings can store (TSH014). The tool method receives the
-    /// resolved settings through a parameter of their type, which the model never sees.
+    /// Marks the tool as reading only, without side effects, so plan mode offers it.
     /// </summary>
-    /// <typeparam name="TSettings">The settings record; its parameterless constructor sets the code defaults.</typeparam>
-    /// <returns>A builder that keeps members as the code sets them.</returns>
+    /// <returns>The same chain.</returns>
+    public ToolBuilder ReadOnly() => this;
+
+    /// <summary>
+    /// Gives the tool a settings record whose members stay in code unless <c>Configurable</c> names them. The method
+    /// receives the resolved settings through a parameter of their type, which the model never sees.
+    /// </summary>
+    /// <typeparam name="TSettings">A record; its parameterless constructor sets the code defaults.</typeparam>
+    /// <returns>The allow list.</returns>
+    public ToolBuilder<TSettings> WithSettings<TSettings>() where TSettings : class, new() =>
+        ToolBuilder<TSettings>.Instance;
+
+    /// <summary>
+    /// Gives the tool a settings record whose settable members may all change at runtime, but those
+    /// <c>NotConfigurable</c> names.
+    /// </summary>
+    /// <typeparam name="TSettings">A record; its parameterless constructor sets the code defaults.</typeparam>
+    /// <returns>The deny list.</returns>
     public ConfigurableSettingsBuilder<TSettings> WithConfigurableSettings<TSettings>()
         where TSettings : class, new() =>
-        new();
+        ConfigurableSettingsBuilder<TSettings>.Instance;
 }
 
 /// <summary>
-/// Allows members of a tool's settings to change at runtime, in a chain the generator reads at compile time; members
-/// it does not name stay as the code sets them.
+/// The allow list of a tool's configurable settings members.
 /// </summary>
 /// <typeparam name="TSettings">The tool's settings record.</typeparam>
 public sealed class ToolBuilder<TSettings> where TSettings : class, new()
 {
-    internal ToolBuilder()
+    internal static readonly ToolBuilder<TSettings> Instance = new();
+
+    private ToolBuilder()
     {
     }
 
     /// <summary>
-    /// Allows a member to change at runtime, through stored defaults, an agent's stored settings or a run. The
-    /// generator reads the pick; the lambda never runs.
+    /// Lets a member change at runtime, through the agent's stored settings or a run. The lambda never runs.
     /// </summary>
-    /// <param name="member">The member, <c>s => s.Limit</c>; it needs a type settings can store (TSH014).</param>
-    /// <returns>The same builder, to allow further members.</returns>
-    public ToolBuilder<TSettings> Configurable(Func<TSettings, object?> member) => this;
+    /// <typeparam name="TMember">The member's type; one the generated records can store.</typeparam>
+    /// <param name="member">The member, <c>s => s.Limit</c>.</param>
+    /// <returns>The same list.</returns>
+    public ToolBuilder<TSettings> Configurable<TMember>(Func<TSettings, TMember> member) => this;
 }
 
 /// <summary>
-/// Keeps members of a tool's settings as the code sets them, in a chain the generator reads at compile time; members
-/// it does not name may change at runtime.
+/// The deny list of a tool's configurable settings members.
 /// </summary>
 /// <typeparam name="TSettings">The tool's settings record.</typeparam>
 public sealed class ConfigurableSettingsBuilder<TSettings> where TSettings : class, new()
 {
-    internal ConfigurableSettingsBuilder()
+    internal static readonly ConfigurableSettingsBuilder<TSettings> Instance = new();
+
+    private ConfigurableSettingsBuilder()
     {
     }
 
     /// <summary>
-    /// Keeps a member as the code sets it. The generator reads the pick; the lambda never runs.
+    /// Keeps a member in code. The lambda never runs.
     /// </summary>
+    /// <typeparam name="TMember">The member's type.</typeparam>
     /// <param name="member">The member, <c>s => s.Timeout</c>.</param>
-    /// <returns>The same builder, to keep further members.</returns>
-    public ConfigurableSettingsBuilder<TSettings> NotConfigurable(Func<TSettings, object?> member) => this;
+    /// <returns>The same list.</returns>
+    public ConfigurableSettingsBuilder<TSettings> NotConfigurable<TMember>(Func<TSettings, TMember> member) => this;
 }

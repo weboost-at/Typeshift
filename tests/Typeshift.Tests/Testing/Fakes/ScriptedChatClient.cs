@@ -7,13 +7,28 @@ namespace Typeshift.Tests.Testing.Fakes;
 public sealed class ScriptedChatClient : IChatClient
 {
     private readonly Queue<object[]> _replies = new();
-    private readonly TaskCompletionSource _requested = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly List<(int Count, TaskCompletionSource Reached)> _waiting = [];
 
     public List<IReadOnlyList<ChatMessage>> Requests { get; } = [];
 
     public List<ChatOptions?> Options { get; } = [];
 
-    public Task Requested => _requested.Task;
+    public bool Disposed { get; private set; }
+
+    public Task Requested => RequestedAsync(1);
+
+    // Completes once the client received that many requests
+    public Task RequestedAsync(int count)
+    {
+        lock (_waiting)
+        {
+            if (Requests.Count >= count) return Task.CompletedTask;
+
+            var reached = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            _waiting.Add((count, reached));
+            return reached.Task;
+        }
+    }
 
     public ScriptedChatClient Reply(params object[] steps)
     {
@@ -26,9 +41,17 @@ public sealed class ScriptedChatClient : IChatClient
         ChatOptions? options = null,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
-        Requests.Add([.. messages]);
-        Options.Add(options);
-        _requested.TrySetResult();
+        lock (_waiting)
+        {
+            Requests.Add([.. messages]);
+            Options.Add(options);
+
+            foreach (var waiting in _waiting.Where(waiting => waiting.Count <= Requests.Count).ToList())
+            {
+                waiting.Reached.TrySetResult();
+                _waiting.Remove(waiting);
+            }
+        }
 
         foreach (var step in _replies.Dequeue())
         {
@@ -57,7 +80,5 @@ public sealed class ScriptedChatClient : IChatClient
     public object? GetService(Type serviceType, object? serviceKey = null) =>
         serviceType.IsInstanceOfType(this) ? this : null;
 
-    public void Dispose()
-    {
-    }
+    public void Dispose() => Disposed = true;
 }

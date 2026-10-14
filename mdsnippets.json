@@ -3,6 +3,12 @@
   "Convention": "InPlaceOverwrite",
   "LinkFormat": "GitHub",
   "UrlPrefix": "https://github.com/weboost-at/Typeshift/blob/main",
-  "ExcludeDirectories": [ ".context", "artifacts", "node_modules", "bin", "obj" ],
+  "ExcludeDirectories": [
+    ".context",
+    "artifacts",
+    "node_modules",
+    "bin",
+    "obj"
+  ],
   "TreatMissingAsWarning": false
 }

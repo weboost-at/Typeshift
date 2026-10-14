@@ -1,44 +1,30 @@
-using Typeshift.Agents;
-using Typeshift.Persistence;
-using Typeshift.Persistence.InMemory;
-using Typeshift.Settings;
-using Typeshift.Tests.Testing.Fakes;
-using Typeshift.Tests.Toolsets.Companies;
-using Typeshift.Tests.Toolsets.Support;
-using Microsoft.Extensions.AI;
+using Typeshift.Tests.Tools.Support;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift.Tests.Agents.Support;
 
-// A host with an in-memory store under Guid ids, running the probe agent
+// The host's registration, with a store in memory, live updates, and every model served by the scripted client
 public abstract class AgentTestBase : HostTestBase
 {
-    protected AgentTestData Agent => Data.Agent;
+    protected ProvidedModels Models { get; } = [];
 
-    protected AgentRuntime<ProbeAgent> Runtime => Services.GetRequiredService<AgentRuntime<ProbeAgent>>();
+    protected AgentHost<TAgent> Host<TAgent>() where TAgent : Agent =>
+        Scope.GetRequiredService<AgentHost<TAgent>>();
 
-    protected ToolDefaults ToolDefaults => Services.GetRequiredService<ToolDefaults>();
+    protected ConversationTracker Tracker => Services.GetRequiredService<ConversationTracker>();
 
-    protected ITypeshiftStore<Guid> Store => Services.GetRequiredService<ITypeshiftStore<Guid>>();
+    protected Task<IReadOnlyList<ConversationEntry>> EntriesAsync(Guid conversation) =>
+        Services.GetRequiredService<ITypeshiftStore>().LoadConversationAsync(conversation, Ct);
 
     protected override void ConfigureServices(IServiceCollection services)
     {
-        services.AddTypeshiftStore<InMemoryTypeshiftStore<Guid>, Guid>();
-        services.AddSingleton<IChatClientProvider>(new ScriptedChatClientProvider(ChatClient));
-    }
+        services.AddTypeshift()
+            .WithStore<InMemoryTypeshiftStore>()
+            .WithChatClientProvider<ScriptedChatClientProvider>()
+            .WithRealtimeTracking();
 
-    protected async Task<ProbeSettings> ProbeAsync(ChatOptions options)
-    {
-        var result = await Tool(options, "probe").InvokeAsync(Arguments(("query", Data.Tool.Query)), Ct);
-        return ReadResult<ProbeResult>(result).Settings;
+        services.AddSingleton(ChatClient);
+        services.AddSingleton(Models);
+        services.AddScoped<CallScope>();
     }
-
-    protected async Task<FindCompaniesSettings> FindCompaniesAsync(ChatOptions options)
-    {
-        var result = await Tool(options, "find_companies").InvokeAsync(Arguments(("query", Data.Tool.Query)), Ct);
-        return ReadResult<FindCompaniesSettings>(result);
-    }
-
-    private static AIFunction Tool(ChatOptions options, string name) =>
-        options.Tools!.OfType<AIFunction>().Single(tool => tool.Name == name);
 }

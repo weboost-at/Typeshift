@@ -1,3 +1,3 @@
-namespace Typeshift.Samples.Docs.Tickets;
+namespace Typeshift.Samples.Tickets;
 
-internal record Ticket(int Number, string Title, bool Closed);
+internal sealed record Ticket(int Number, string Title, bool Closed, DateTimeOffset CreatedAt);

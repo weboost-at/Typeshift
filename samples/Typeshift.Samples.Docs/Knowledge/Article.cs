@@ -1,3 +1,3 @@
-namespace Typeshift.Samples.Docs.Knowledge;
+namespace Typeshift.Samples.Knowledge;
 
-internal record Article(string Title, string Language);
+internal sealed record Article(string Slug, string Title, string Summary);

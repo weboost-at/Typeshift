@@ -1,32 +1,32 @@
 # Getting started
 
-This page builds a working agent: a toolset with one tool, an agent that offers it, the registration, and a run with
-stored settings. The code is the console sample in
-[`samples/Typeshift.Samples.Console`](https://github.com/weboost-at/Typeshift/tree/main/samples/Typeshift.Samples.Console),
-which CI publishes as Native AOT and runs.
+This page builds a working agent: a toolset with one tool, an agent that offers it, the registration, stored settings
+and a run.
 
 ## Install
 
-Typeshift targets .NET 10 and C# 14. The package is not on nuget.org yet. Until the first release, pack it from a
-clone of the repository and add the folder as a package source:
+Typeshift targets .NET 10 and C# 14. Add the package to every project that declares toolsets or agents, or calls
+`AddTypeshift()`: it carries the source generator, and NuGet does not pass a generator on to the projects that
+reference yours ([TSH020](./diagnostics.md#tsh020)). Turn on `GenerateDocumentationFile` too: tools take their
+descriptions from XML docs ([TSH011](./diagnostics.md#tsh011)).
 
-```shell
-dotnet pack src/Typeshift -c Release -o artifacts/packages
-dotnet nuget add source "$PWD/artifacts/packages" --name typeshift-local
+Ids are yours: a settings id names an agent's stored settings, a conversation id its conversation, and Typeshift never
+creates either. They are `Guid`s unless the build says otherwise, once, in `Directory.Build.props`:
+
+<!-- snippet: id-type -->
+<a id='snippet-id-type'></a>
+```csproj
+<PropertyGroup>
+  <TypeshiftIdType>int</TypeshiftIdType>
+</PropertyGroup>
 ```
-
-Add the package to **every project that declares toolsets or agents, or calls `AddTypeshift()`**. The package carries
-the source generator, and NuGet does not pass a generator on to the projects that reference yours. A referenced
-project without it is reported as [TSH011](./diagnostics.md#tsh011).
-
-A project that declares toolsets also needs `<GenerateDocumentationFile>true</GenerateDocumentationFile>`: tools take
-their descriptions from XML docs, which the compiler reads only then, and without it the build warns with
-[TSH010](./diagnostics.md#tsh010).
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Typeshift.Samples.Docs.csproj#L5-L9' title='Snippet source file'>snippet source</a> | <a href='#snippet-id-type' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
 
 ## A toolset
 
-A toolset is a `partial` class deriving from `Toolset` that declares its tools in its constructor. A tool is a public
-static method with a lower_snake_case name.
+A toolset is a `partial` class deriving from `Toolset` that declares its tools in its constructor. A tool is a
+static method; its name is the method's in snake_case, `find_companies`.
 
 <!-- snippet: quickstart-toolset -->
 <a id='snippet-quickstart-toolset'></a>
@@ -35,10 +35,9 @@ internal partial class CompanyToolset : Toolset
 {
     public CompanyToolset()
     {
-        DisplayName = "Companies";
+        WithDisplayName("Companies");
 
         AddTool(FindCompanies)
-            .WithName("find_companies")
             .WithSettings<FindCompaniesSettings>()
             .Configurable(s => s.Limit);
     }
@@ -47,23 +46,20 @@ internal partial class CompanyToolset : Toolset
     /// Finds the companies of a city, best matches first.
     /// </summary>
     /// <param name="city">The city the companies are based in.</param>
-    /// <param name="settings">The settings the search runs with; the model never sees them.</param>
     public static IReadOnlyList<Company> FindCompanies(string city, FindCompaniesSettings settings) =>
     [
-        .. KnownCompanies.All
+        .. Companies
             .Where(company => company.City.Equals(city, StringComparison.OrdinalIgnoreCase))
             .Where(company => company.Active || settings.IncludeInactive)
             .Take(settings.Limit)
     ];
-}
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Companies/CompanyToolset.cs#L5-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-toolset' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/CompanyToolset.cs#L3-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-toolset' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The method's `<summary>` becomes the tool's description and each `<param>` the description of its parameter. The
-`FindCompaniesSettings` parameter never reaches the model: the call fills it with the tool's resolved settings. The
-settings are a record; `Configurable(s => s.Limit)` marks `Limit` as changeable at runtime, while `IncludeInactive`
-stays whatever the code says.
+The `<summary>` becomes the tool's description and each `<param>` its parameter's. The `FindCompaniesSettings`
+parameter never reaches the model: the call fills it with the tool's resolved settings, a record whose code sets the
+defaults. `Configurable(s => s.Limit)` lets `Limit` change at runtime; `IncludeInactive` stays what the code says.
 
 <!-- snippet: quickstart-settings-record -->
 <a id='snippet-quickstart-settings-record'></a>
@@ -75,30 +71,30 @@ internal record FindCompaniesSettings
     public bool IncludeInactive { get; init; }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Companies/FindCompaniesSettings.cs#L3-L10' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings-record' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/FindCompaniesSettings.cs#L3-L10' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings-record' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## An agent
 
-An agent is a `partial` class deriving from `AgentDefinition`. Its constructor sets its chat options, picks its tools
-and sets their settings; `GetInstructions()` returns its instructions.
+An agent is a `partial` class deriving from `Agent`. Its constructor sets its chat options, picks its tools and sets
+their settings; `GetInstructions()` returns its instructions.
 
 <!-- snippet: quickstart-agent -->
 <a id='snippet-quickstart-agent'></a>
 ```cs
-internal partial class ResearchAgent : AgentDefinition
+internal partial class ResearchAgent : Agent
 {
     public ResearchAgent()
     {
-        WithName("research_agent");
         WithDescription("Researches the companies of a city.");
 
         WithChatOptions()
+            .WithModel("fast-model")
             .WithTemperature(0.2f)
-            .Configurable(o => o.Temperature)
-            .Configurable(o => o.Instructions);
+            .Configurable(o => o.Instructions)
+            .Configurable(o => o.Temperature);
 
-        UseToolset<CompanyToolset>().Include(t => t.FindCompanies);
+        UseToolset<CompanyToolset>();
 
         ConfigureFindCompanies()
             .WithLimit(3);
@@ -110,126 +106,87 @@ internal partial class ResearchAgent : AgentDefinition
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Companies/ResearchAgent.cs#L5-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/ResearchAgent.cs#L3-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`t.FindCompanies` is a property the generator adds for each tool of `CompanyToolset`, and `ConfigureFindCompanies()`
-exists because the agent offers that tool, with a `With...` per member of its settings. Both reject mistakes at
-compile time.
+`ConfigureFindCompanies()` exists because the agent offers `find_companies`, with a `With...` per member of its
+settings. Configuring a tool the agent does not offer does not compile.
 
 ## Registration
 
-`AddTypeshift()` registers every toolset and agent of the project and of the projects it references. The store is
-optional: without one, everything runs from code. The chat client provider maps model names to `IChatClient`s; the
-sample uses a scripted one, a real host [plugs in its providers](./running-agents.md#chat-clients).
+`AddTypeshift()` registers every toolset and agent of the project and the projects it references. The chain adds the
+store, which turns persistence on, and the provider that maps model names to `IChatClient`s.
 
 <!-- snippet: quickstart-registration -->
 <a id='snippet-quickstart-registration'></a>
 ```cs
 var services = new ServiceCollection();
 
-services.AddTypeshift();
-services.AddTypeshiftStore<InMemoryTypeshiftStore<Guid>, Guid>();
-services.AddSingleton<IChatClientProvider, ScriptedChatClientProvider>();
+services.AddTypeshift()
+    .WithStore<InMemoryTypeshiftStore>()
+    .WithChatClientProvider<CannedChatClientProvider>();
 
-await using var provider = services.BuildServiceProvider();
+await using var provider = services.BuildServiceProvider(validateScopes: true);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L11-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L10-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-## Settings per customer
+## Stored settings
 
-The generator gives `ResearchAgent` a nested `Settings` record holding exactly what may change: the model, the
-configurable chat options and the configurable settings of its tools. The agent's `AgentRuntime<ResearchAgent>`,
-registered by `AddTypeshift()`, stores them here under a customer's id.
+The generator gives `ResearchAgent` a nested `Settings` record holding exactly what may change: the configurable
+chat options and the configurable settings of its tools. `AgentHost<ResearchAgent>` stores them under a settings id.
+What a settings id stands for is the host's choice: one per customer, per team or per user.
 
 <!-- snippet: quickstart-settings -->
 <a id='snippet-quickstart-settings'></a>
 ```cs
-var research = provider.GetRequiredService<AgentRuntime<ResearchAgent>>();
-var customer = Guid.NewGuid();
+await using var scope = provider.CreateAsyncScope();
+var research = scope.ServiceProvider.GetRequiredService<AgentHost<ResearchAgent>>();
+var settingsId = 42;
 
-await research.ConfigureAsync(customer, settings => settings with
+await research.ConfigureAsync(settingsId, settings => settings with
 {
-    Model = "scripted-model",
     Temperature = 0.4f,
     FindCompanies = settings.FindCompanies with { Limit = 2 }
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L22-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L20-L30' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## A run
 
-`ResolveChatOptionsAsync` layers the stored settings over the code and adds the agent's tools.
-`CreateChatClientAsync` picks the client for the resolved model and wraps it in the tool-calling loop and
-conversation tracking.
+`RunAsync` layers the settings stored under the settings id over the code, resumes the conversation, runs the tool
+loop and stores the exchange:
 
 <!-- snippet: quickstart-run -->
 <a id='snippet-quickstart-run'></a>
 ```cs
-var conversationId = Guid.NewGuid();
-var options = await research.ResolveChatOptionsAsync(customer, conversationId: conversationId.ToString());
-var client = await research.CreateChatClientAsync(options);
-var answer = await client.GetResponseAsync("Vienna", options);
+var answer = await research.RunAsync("Vienna", settingsId, conversationId: 1);
 
-Console.WriteLine($"{research.Definition.Name}: {answer.Text}");
+Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L35-L42' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L32-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Because the run had a conversation id, the tracked conversation is stored under it:
-
-<!-- snippet: quickstart-conversation -->
-<a id='snippet-quickstart-conversation'></a>
-```cs
-var store = provider.GetRequiredService<ITypeshiftStore<Guid>>();
-
-var conversation = await store.LoadAsync<StoredConversation>(conversationId, CancellationToken.None)
-    ?? throw new InvalidOperationException("The conversation was not stored.");
-
-Console.WriteLine(
-    $"Stored {conversation.AggregatedMessages.Count} messages of {conversation.ExecutionContext.Value}, " +
-    $"{conversation.AggregatedUsage.TotalTokenCount} tokens");
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L45-L54' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-conversation' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
-
-A single run can also override settings without storing them, here streamed:
+A run can also pass settings for itself alone, here streamed:
 
 <!-- snippet: quickstart-run-settings -->
 <a id='snippet-quickstart-run-settings'></a>
 ```cs
 var run = new ResearchAgent.Settings
 {
-    Model = "scripted-model",
     FindCompanies = new CompanyToolset.FindCompaniesOverrides { Limit = 1 }
 };
 
-var runOptions = research.ResolveChatOptions(run);
-var runClient = await research.CreateChatClientAsync(runOptions);
-
-Console.Write($"{research.Definition.Name}, one run: ");
-
-await foreach (var update in runClient.GetStreamingResponseAsync("Vienna", runOptions))
+await foreach (var update in research.RunStreamingAsync("Vienna", settingsId, settings: run))
     Console.Write(update.Text);
-
-Console.WriteLine();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L57-L73' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L38-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
-
-The sample prints:
-
-```text
-research_agent: Found Danube Robotics, Prater Motion.
-Stored 4 messages of research_agent, 300 tokens
-research_agent, one run: Found Danube Robotics.
-```
 
 ## Next steps
 
 - [Toolsets](./toolsets.md) and [tool settings](./tool-settings.md) in depth.
 - [Agents](./defining-agents.md) and [running them](./running-agents.md) with real providers.
-- [Stores and settings](./persistence.md): implementing `ITypeshiftStore` for your database.
-- [Native AOT](./native-aot.md): what a host declares to publish without warnings.
+- [Settings and stores](./settings-and-stores.md): implementing `ITypeshiftStore` for your database.
+- [Conversations](./conversations.md): resuming, steering and watching runs.

@@ -1,35 +1,38 @@
 # Agents
 
-An agent bundles what a model needs for one job: its chat options, the tools it may call and the settings those
-tools run with. Like a toolset, it is declared in its constructor and the generator reads it at compile time.
+An agent bundles what a model needs for one job: chat options, instructions, tools and their settings. Like a
+toolset, it is declared in its constructor and read at compile time.
 
 ## Declaring an agent
 
-An agent is a `partial`, non-generic class deriving from `AgentDefinition`:
+An agent is a `partial`, non-generic class deriving from `Agent`:
 
 <!-- snippet: agent -->
 <a id='snippet-agent'></a>
 ```cs
-internal partial class SupportAgent : AgentDefinition
+internal partial class SupportAgent : Agent
 {
     public SupportAgent()
     {
-        WithName("support_agent");
         WithDescription("Answers customers from their tickets and the help center.");
 
         WithChatOptions()
             .WithModel("fast-model")
             .WithTemperature(0.3f)
+            .Configurable(o => o.ModelId)
             .Configurable(o => o.Instructions)
-            .Configurable(o => o.Temperature)
-            .Configurable(o => o.MaxOutputTokens);
+            .Configurable(o => o.Temperature);
 
-        UseToolset<TicketToolset>().Include(t => t.SearchTickets);
+        UseToolset<TicketToolset>().Include(t => t.SearchTickets).Include(t => t.CloseTicket);
 
-        UseToolset<KnowledgeToolset>();
+        UseToolset<KnowledgeToolset>().Exclude(t => t.DeleteArticle);
 
         ConfigureSearchTickets()
             .WithLimit(5);
+
+        UseMcpServer("status_page").ReadOnly();
+
+        UseContext<CustomerProfileContext>();
     }
 
     protected override string GetInstructions() =>
@@ -38,80 +41,98 @@ internal partial class SupportAgent : AgentDefinition
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L35' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L42' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-- **`WithName`** is optional; without it the agent goes by its class name. The name labels the execution context of
-  the agent's conversations. It need not be unique, since nothing is stored by name.
-- **`WithDescription`** says what the agent does, for people choosing among agents.
-- **`WithChatOptions()`** starts a chain that sets the chat options every run starts from: `WithModel`,
-  `WithTemperature`, `WithMaxOutputTokens` and one `With...` per other option. `WithModel` names the model the agent
-  runs on unless its settings say otherwise. Tools added with `WithTools`, a hosted web search for example, are
-  offered before the toolsets' tools.
-- **`GetInstructions()`** is a virtual method returning the agent's instructions, its system prompt. Override it,
-  with a raw string literal for anything longer than a line. It runs whenever a run's options are resolved, so the
-  instructions may also be computed.
+- **`WithName`** is optional; without it the agent goes by its class name in snake_case, `support_agent`. Messages the
+  agent writes carry it as their author.
+- **`WithDescription`** says what the agent does.
+- **`WithChatOptions()`** sets the options every run starts from: `WithModel`, `WithTemperature`,
+  `WithMaxOutputTokens` and one `With...` per other option. `WithTools` adds tools of no toolset, such as a hosted
+  web search.
+- **`GetInstructions()`** returns the instructions. It runs whenever a run's options are resolved, so the text may be
+  computed.
+
+`WithName` and `WithDescription` take constants ([TSH002](./diagnostics.md#tsh002)). Every declaration goes directly
+in the constructor, one chain per statement ([TSH014](./diagnostics.md#tsh014),
+[TSH015](./diagnostics.md#tsh015)). An agent derives from `Agent` directly ([TSH017](./diagnostics.md#tsh017)); share
+declarations through plain static methods and constants.
 
 ## Selecting tools
 
-`UseToolset<T>()` offers every tool of a toolset. Chain `Include` to offer only some, as the support agent above does
-with `search_tickets`, in the order you include them; or `Exclude` to offer all but some:
+`UseToolset<T>()` offers every tool of a toolset. Chain `Include` to offer only some, in that order, or `Exclude` to
+offer all but some:
 
 <!-- snippet: exclude-tools -->
 <a id='snippet-exclude-tools'></a>
 ```cs
-internal partial class TriageAgent : AgentDefinition
-{
-    public TriageAgent()
-    {
-        WithChatOptions().WithModel("fast-model");
-
-        UseToolset<TicketToolset>().Exclude(t => t.GetTicket);
-    }
-
-    protected override string GetInstructions() => "Find the tickets a customer's message is about.";
-}
+UseToolset<TicketToolset>().Exclude(t => t.CloseTicket);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L6-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-exclude-tools' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L12-L14' title='Snippet source file'>snippet source</a> | <a href='#snippet-exclude-tools' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-One `UseToolset` call either includes or excludes: after `Include` the chain offers only `Include`, after `Exclude`
-only `Exclude`. The lambda picks from `t`, a list the generator writes per toolset with one property per tool, named
-after the tool: `search_tickets` is `t.SearchTickets`. A tool of another toolset is not on the list, so picking it
-does not compile. Keep the chain in one expression; the generator reads it from the syntax. Including one tool twice
-throws an `InvalidOperationException` when the agent's tools are first read.
+The lambda picks from a list the generator writes per toolset, one property per tool: `search_tickets` is
+`t.SearchTickets`. A tool of another toolset is not on the list, so picking it does not compile. Use each toolset
+once and pick each tool once ([TSH025](./diagnostics.md#tsh025)). A toolset of another project needs the package in
+that project ([TSH019](./diagnostics.md#tsh019)).
+
+## Other agents
+
+`UseAgent<T>()` offers another agent as a tool, `UseHandoff<T>()` lets the model hand the conversation to it. See
+[multiple agents](./multi-agent.md).
+
+## Context providers
+
+`UseContext<T>()` adds what a provider returns to every run: instructions, messages ahead of the input, tools. See
+[context providers](./context-providers.md).
 
 ## Configurable chat options
 
-`Configurable(o => o.Temperature)` in the `WithChatOptions()` chain marks a chat option that may change at runtime,
-whether the code sets it or not. Like the settings picks, it is read by the generator only. Configurable options must
-have a type the settings can store ([TSH014](./diagnostics.md#tsh014)).
+`Configurable(o => o.Temperature)` marks an option that a run may change, whether the code sets it or not. The model
+is an option like any other: `Configurable(o => o.ModelId)` lets settings choose it, so a settings form never offers
+a model the agent does not allow. The model, the instructions, the sampling options (`Temperature`,
+`MaxOutputTokens`, `TopP`, `TopK`, the penalties, `Seed`), `StopSequences`, `AllowMultipleToolCalls` and
+`Reasoning` may be configurable; the rest belongs to the run, not to settings ([TSH012](./diagnostics.md#tsh012)).
+
+## Run options
+
+`WithRunOptions()` sets how a run's tool loop goes: the [mode](./modes.md) it starts in, the most rounds of tool
+calls a run makes (40 unless set), the most tool calls in a row that may fail (3), whether the calls of one response
+run at the same time, and when the history is [compacted](./long-running-agents.md#compaction). `Configurable` marks
+those a run may change:
+
+<!-- snippet: run-options -->
+<a id='snippet-run-options'></a>
+```cs
+WithRunOptions()
+    .WithMaxToolIterations(10)
+    .WithConcurrentToolCalls(true)
+    .Configurable(r => r.Mode)
+    .Configurable(r => r.MaxToolIterations);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L16-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-options' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
 
 ## Tool settings
 
-`Configure{Tool}()` sets the settings a tool runs with in this agent, over the tool's code defaults:
-`ConfigureSearchTickets().WithLimit(5)`. The generator writes one such method per offered tool that has settings,
-with one `With...` per settable member of the tool's settings record, configurable or not. A tool the agent does not
-offer has no `Configure` method, so setting its settings does not compile. A tool the agent sets this way no longer
-takes its stored defaults; see [the layers](./tool-settings.md#the-layers).
+`Configure{Tool}()` sets a tool's settings in this agent, over the record's code defaults:
+`ConfigureSearchTickets().WithLimit(5)`. The generator writes one per offered tool with settings, with a `With...`
+per settable member, configurable or not. A tool the agent does not offer has none, so configuring it does not
+compile. A `Configure{Tool}()` the agent declares itself takes the place of the generated one.
 
 ## The generated settings
 
-For every agent, the generator writes a nested `Settings` record, `SupportAgent.Settings`, holding exactly what may
-change at runtime:
+Every agent gets a nested `Settings` record, `SupportAgent.Settings`, holding exactly what may change at runtime:
 
 | Member | From |
 |---|---|
-| `Model` | Always there; overrides `ChatOptions.ModelId`. |
-| One property per configurable chat option | `Instructions`, `Temperature`, `MaxOutputTokens` above. |
-| One property per tool with configurable settings | `SearchTickets`, `SearchArticles`: the tools' [overrides](./tool-settings.md#the-generated-overrides). |
+| `Model` | When `Configurable(o => o.ModelId)` allows it; overrides `WithModel`. |
+| One per configurable chat option | `Instructions` and `Temperature` above. |
+| One per configurable run option | `MaxToolIterations` of the triage agent above. |
+| One per offered tool with configurable settings | `SearchTickets`, `SearchArticles`: their [overrides](./tool-settings.md#the-generated-overrides). |
 
-Every value is nullable, and null keeps what the layer below sets. The record is the agent's settings contract:
-store it [per id](./persistence.md#agent-settings), pass it [for one run](./running-agents.md#run-settings), or bind
-a settings UI or an API to it. It serializes itself to JSON, so it needs no serializer setup.
-
-## The runtime
-
-`AddTypeshift()` registers each agent as a singleton together with an `AgentRuntime<TAgent>`, the object a host runs
-it through; see [running agents](./running-agents.md). Every runtime is also registered as `AgentRuntime`, so a host
-can list all agents.
+Every value is nullable, and null keeps the layer below. A tool member named like an option gets a `Tool` suffix. Store
+the record [under a settings id](./settings-and-stores.md#agent-settings), pass it
+[for one run](./running-agents.md#run-settings), or bind a settings form or an API to it. Its JSON is the same through
+`Serialize()` and through `System.Text.Json`. `WithStorageKind` and `WithSettingsVersion` name and version it in a
+store.

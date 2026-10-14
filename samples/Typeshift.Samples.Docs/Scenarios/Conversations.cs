@@ -1,57 +1,83 @@
-using Typeshift.Agents;
-using Typeshift.Conversations;
-using Typeshift.Persistence;
-using Typeshift.Samples.Docs.Agents;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
+using Typeshift.Samples.Agents;
 
-namespace Typeshift.Samples.Docs.Scenarios;
+namespace Typeshift.Samples.Scenarios;
 
 internal static class Conversations
 {
-    public static async Task RunAsync()
+    public static async Task RunAsync(IServiceProvider provider, CancellationToken ct)
     {
-        await using var services = Host.Create();
-        var support = services.GetRequiredService<AgentRuntime<SupportAgent>>();
-        var customer = Guid.NewGuid();
-        var running = 0;
-
-        // begin-snippet: live-sessions
-        var tracker = services.GetRequiredService<ConversationTracker>();
-
-        tracker.OnConversationsChanged += ct =>
-        {
-            foreach (var session in tracker.Sessions)
-                Console.WriteLine($"{session.ExecutionContext.Value} is running on {session.Model}");
-
-            return Task.CompletedTask;
-        };
-        // end-snippet
-
-        tracker.OnConversationsChanged += ct =>
-        {
-            running += tracker.Sessions.Count;
-            return Task.CompletedTask;
-        };
+        await using var scope = provider.CreateAsyncScope();
+        var support = scope.ServiceProvider.GetRequiredService<AgentHost<SupportAgent>>();
+        var settingsId = 42;
 
         // begin-snippet: conversation
-        var conversation = Guid.NewGuid();
+        var conversationId = 7;
 
-        var options = await support.ResolveChatOptionsAsync(customer, conversationId: conversation.ToString());
-        var client = await support.CreateChatClientAsync(options);
-
-        await client.GetResponseAsync("Where is my refund?", options);
-        await client.GetResponseAsync("When will it arrive?", options);
+        await support.RunAsync("Where is my refund?", conversationId: conversationId);
+        await support.RunAsync("When will it arrive?", conversationId: conversationId);
         // end-snippet
 
-        // begin-snippet: stored-conversation
-        var store = services.GetRequiredService<ITypeshiftStore<Guid>>();
-        var stored = await store.LoadAsync<StoredConversation>(conversation, CancellationToken.None);
+        // begin-snippet: load-conversation
+        var store = provider.GetRequiredService<ITypeshiftStore>();
+        var entries = await store.LoadConversationAsync(conversationId, ct);
 
-        Console.WriteLine($"{stored!.Sessions.Count} sessions, {stored.AggregatedUsage.TotalTokenCount} tokens");
+        Console.WriteLine($"{entries.Count} entries, {entries.Sum(entry => entry.Usage?.TotalTokenCount)} tokens");
         // end-snippet
 
-        Expect.That(stored.Sessions.Count == 2, "the second call resumes the conversation");
-        Expect.That(running == 2, "live sessions are listed while they run");
+        if (entries.Count != 6) throw new InvalidOperationException("Expected two runs of three entries each.");
+
+        // begin-snippet: live-sessions
+        var tracker = provider.GetRequiredService<ConversationTracker>();
+
+        foreach (var run in tracker.Runs)
+            Console.WriteLine($"{run.Agent} is answering conversation {run.Conversation} on {run.Model}");
+        // end-snippet
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var watcher = WatchAsync(tracker, conversationId, watching.Token);
+
+        await foreach (var update in support.RunStreamingAsync("Thanks!", settingsId, conversationId, ct: ct))
+            Console.Write(update.Text);
+
+        Console.WriteLine();
+        await watching.CancelAsync();
+        await watcher;
+
+        // begin-snippet: steering
+        var input = "Send me the invoice too.";
+
+        if (!tracker.TrySteer(conversationId, input))
+            await support.RunAsync(input, settingsId, conversationId);
+        // end-snippet
+
+        // A run cut off by a crash: its input is stored, nothing else
+        var interrupted = 12;
+        var question = new ChatMessage(ChatRole.User, "Where is my refund?");
+        var entry = new ConversationEntry("support_agent", [question], TimeProvider.System.GetUtcNow());
+        await store.AppendConversationAsync(interrupted, entry, ct);
+
+        // begin-snippet: resume
+        var resumed = await support.ResumeAsync(interrupted, settingsId);
+        // end-snippet
+
+        if (resumed.Text.Length == 0) throw new InvalidOperationException("Expected the resumed run to answer.");
+    }
+
+    // Watches until the scenario stops it, as a UI would until its user leaves
+    private static async Task WatchAsync(ConversationTracker tracker, int conversationId, CancellationToken ct)
+    {
+        try
+        {
+            // begin-snippet: watch-conversation
+            await foreach (var update in tracker.WatchAsync(conversationId, ct))
+                Console.Write(update.Text);
+            // end-snippet
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            Console.WriteLine();
+        }
     }
 }

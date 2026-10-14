@@ -1,15 +1,16 @@
 using Typeshift.Generators.Tests.Agents.Support;
-using Typeshift.Generators.Tests.Toolsets.Support;
+using Typeshift.Generators.Tests.Diagnostics.Support;
+using FluentAssertions;
 
 namespace Typeshift.Generators.Tests.Agents;
 
 public class AgentGenerationTests : GeneratorTestBase
 {
     [Fact]
-    public void Given_An_Agent_Its_Settings_Tool_Settings_And_Runtime_Members_Are_Generated()
+    public void Given_An_Agent_Its_Settings_Declaration_Host_Members_Module_And_Interceptor_Are_Generated()
     {
         // Act
-        var run = Run(ToolsetSources.WebResearch, AgentSources.Profiling);
+        var run = Run(AgentSources.Tickets, AgentSources.Support);
 
         // Assert
         Snapshot.Verify(run.Result);
@@ -19,92 +20,77 @@ public class AgentGenerationTests : GeneratorTestBase
     public void Given_An_Agent_The_Generated_Code_Compiles_Without_Warnings()
     {
         // Act
-        var run = Run(ToolsetSources.WebResearch, AgentSources.Profiling);
+        var run = Run(AgentSources.Tickets, AgentSources.Support);
 
         // Assert
         run.Assert.CompilesCleanly();
     }
 
     [Fact]
-    public void Given_An_Agent_Using_A_Toolset_Of_A_Reference_The_Generated_Code_Compiles_Without_Warnings()
+    public void Given_A_Toolset_Of_A_Reference_The_Agent_Configures_It_And_The_Interceptor_Registers_Both_Modules()
     {
         // Arrange
-        var tools = CompileReference("Demo", ToolsetSources.WebResearch);
+        var reference = CompileReference("Companies", ReferenceSources.CompanyToolset);
 
         // Act
-        var run = Run(Compile("App", [tools], AgentSources.UsesWebResearch));
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.CompanyAgent));
+
+        // Assert
+        Snapshot.Verify(run.Result);
+    }
+
+    [Fact]
+    public void Given_A_Toolset_Of_A_Reference_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Arrange
+        var reference = CompileReference("Companies", ReferenceSources.CompanyToolset);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.CompanyAgent));
 
         // Assert
         run.Assert.CompilesCleanly();
     }
 
     [Fact]
-    public void Given_Tools_Named_Like_Settings_Members_The_Generated_Code_Compiles_Without_Warnings()
+    public void Given_Names_That_Would_Clash_The_Generated_Code_Avoids_Them_And_Compiles()
     {
         // Act
-        var run = Run(AgentSources.Lookup, AgentSources.ReservedToolNames);
+        var run = Run(AgentSources.Clashes);
 
         // Assert
         run.Assert.CompilesCleanly();
+        run.Output.GetTypeByMetadataName("Demo.Outer+WeatherAgent+Settings")!
+            .GetMembers("TemperatureTool")
+            .Should()
+            .ContainSingle();
     }
 
     [Fact]
-    public void Given_A_Public_Agent_Of_An_Internal_Toolset_The_Generated_Code_Compiles_Without_Warnings()
+    public void Given_A_Private_Nested_Agent_It_Gets_No_Host_Members_And_No_Registration()
     {
         // Act
-        var run = Run(AgentSources.Lookup, AgentSources.PublicAgentOfInternalToolset);
+        var run = Run(AgentSources.Private);
 
         // Assert
-        run.Assert.CompilesCleanly();
+        run.Assert.GeneratesValidCode();
+        run.Output.GetTypeByMetadataName("Demo.Outer_HiddenAgentHostExtensions").Should().BeNull();
     }
 
     [Fact]
-    public void Given_A_Public_Agent_In_An_Internal_Class_The_Generated_Code_Compiles_Without_Warnings()
+    public void Given_An_Id_Type_The_Aliases_And_The_Host_Members_Use_It()
     {
+        // Arrange
+        var compilation = Compile(AgentSources.Tickets, AgentSources.Support);
+
         // Act
-        var run = Run(AgentSources.Lookup, AgentSources.PublicAgentInInternalClass);
+        var run = Run(compilation, properties: BuildProperties.WithIdType("int"));
+
+        var sources = run.Result.GeneratedTrees.Select(tree => tree.ToString()).ToList();
 
         // Assert
         run.Assert.CompilesCleanly();
-    }
-
-    [Fact]
-    public void Given_Nested_Agents_Sharing_A_Name_The_Generated_Code_Compiles_Without_Warnings()
-    {
-        // Act
-        var run = Run(AgentSources.Lookup, AgentSources.NestedTwins);
-
-        // Assert
-        run.Assert.CompilesCleanly();
-    }
-
-    [Fact]
-    public void Given_A_Configurable_Setting_Of_A_Base_Record_The_Generated_Code_Compiles_Without_Warnings()
-    {
-        // Act
-        var run = Run(AgentSources.InheritedSetting);
-
-        // Assert
-        run.Assert.CompilesCleanly();
-    }
-
-    [Fact]
-    public void Given_Names_Shadowing_The_Start_Of_A_Cref_The_Generated_Code_Compiles_Without_Warnings()
-    {
-        // Act
-        var run = Run(AgentSources.ShadowingNames);
-
-        // Assert
-        run.Assert.CompilesCleanly();
-    }
-
-    [Fact]
-    public void Given_Awkward_Settings_The_Generated_Code_Compiles_Without_Warnings()
-    {
-        // Act
-        var run = Run(AgentSources.AwkwardSettings);
-
-        // Assert
-        run.Assert.CompilesCleanly();
+        sources.Should().Contain(source => source.Contains("global::Typeshift.ITypeshiftStore<int>;"));
+        sources.Should().Contain(source => source.Contains("int? settingsId = null"));
     }
 }

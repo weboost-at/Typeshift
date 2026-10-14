@@ -1,10 +1,9 @@
 using Microsoft.Extensions.AI;
 
-namespace Typeshift.Agents;
+namespace Typeshift;
 
 /// <summary>
-/// Sets the chat options an agent runs with and marks those that may change at runtime, in a chain its constructor
-/// starts with <c>WithChatOptions()</c>. The agent's instructions come from <c>GetInstructions()</c>.
+/// The chat options an agent starts every run from, and those that may change at runtime.
 /// </summary>
 public sealed class ChatOptionsBuilder
 {
@@ -13,129 +12,131 @@ public sealed class ChatOptionsBuilder
     internal ChatOptionsBuilder(ChatOptions options) => _options = options;
 
     /// <summary>
-    /// Sets the model the agent runs on by default, as the registered chat client provider names it.
+    /// Sets the model, as the host's <see cref="IChatClientProvider"/> names it. <c>Configurable(o => o.ModelId)</c>
+    /// lets stored settings or a run choose another.
     /// </summary>
-    /// <param name="model">The model's name; the agent's settings may override it.</param>
-    /// <returns>The same builder.</returns>
-    public ChatOptionsBuilder WithModel(string model) => With(options => options.ModelId = model);
+    /// <param name="model">The model's name.</param>
+    /// <returns>The same chain.</returns>
+    public ChatOptionsBuilder WithModel(string model) => Set(options => options.ModelId = model);
 
     /// <summary>
     /// Sets the sampling temperature.
     /// </summary>
     /// <param name="temperature">The temperature.</param>
-    /// <returns>The same builder.</returns>
-    public ChatOptionsBuilder WithTemperature(float temperature) => With(options => options.Temperature = temperature);
+    /// <returns>The same chain.</returns>
+    public ChatOptionsBuilder WithTemperature(float temperature) =>
+        Set(options => options.Temperature = temperature);
 
     /// <summary>
     /// Sets the most tokens a response may hold.
     /// </summary>
-    /// <param name="tokens">The most tokens.</param>
-    /// <returns>The same builder.</returns>
-    public ChatOptionsBuilder WithMaxOutputTokens(int tokens) => With(options => options.MaxOutputTokens = tokens);
+    /// <param name="tokens">The tokens.</param>
+    /// <returns>The same chain.</returns>
+    public ChatOptionsBuilder WithMaxOutputTokens(int tokens) => Set(options => options.MaxOutputTokens = tokens);
 
     /// <summary>
-    /// Sets the nucleus sampling probability.
+    /// Sets nucleus sampling.
     /// </summary>
     /// <param name="topP">The probability mass to sample from.</param>
-    /// <returns>The same builder.</returns>
-    public ChatOptionsBuilder WithTopP(float topP) => With(options => options.TopP = topP);
+    /// <returns>The same chain.</returns>
+    public ChatOptionsBuilder WithTopP(float topP) => Set(options => options.TopP = topP);
 
     /// <summary>
-    /// Sets how many of the most likely tokens are sampled from.
+    /// Sets how many of the likeliest tokens are sampled from.
     /// </summary>
-    /// <param name="topK">The number of tokens.</param>
-    /// <returns>The same builder.</returns>
-    public ChatOptionsBuilder WithTopK(int topK) => With(options => options.TopK = topK);
+    /// <param name="topK">The tokens.</param>
+    /// <returns>The same chain.</returns>
+    public ChatOptionsBuilder WithTopK(int topK) => Set(options => options.TopK = topK);
 
     /// <summary>
-    /// Sets the penalty for tokens by how often they already appear.
+    /// Sets the penalty on tokens by how often they appeared.
     /// </summary>
     /// <param name="penalty">The penalty.</param>
-    /// <returns>The same builder.</returns>
+    /// <returns>The same chain.</returns>
     public ChatOptionsBuilder WithFrequencyPenalty(float penalty) =>
-        With(options => options.FrequencyPenalty = penalty);
+        Set(options => options.FrequencyPenalty = penalty);
 
     /// <summary>
-    /// Sets the penalty for tokens that already appear.
+    /// Sets the penalty on tokens that appeared at all.
     /// </summary>
     /// <param name="penalty">The penalty.</param>
-    /// <returns>The same builder.</returns>
-    public ChatOptionsBuilder WithPresencePenalty(float penalty) => With(options => options.PresencePenalty = penalty);
+    /// <returns>The same chain.</returns>
+    public ChatOptionsBuilder WithPresencePenalty(float penalty) => Set(options => options.PresencePenalty = penalty);
 
     /// <summary>
-    /// Sets the seed for repeatable sampling.
+    /// Sets the seed of providers that sample reproducibly.
     /// </summary>
     /// <param name="seed">The seed.</param>
-    /// <returns>The same builder.</returns>
-    public ChatOptionsBuilder WithSeed(long seed) => With(options => options.Seed = seed);
+    /// <returns>The same chain.</returns>
+    public ChatOptionsBuilder WithSeed(long seed) => Set(options => options.Seed = seed);
 
     /// <summary>
-    /// Sets how much the model reasons before it answers.
+    /// Sets how much the model reasons and what of it the response shows.
     /// </summary>
     /// <param name="reasoning">The reasoning options.</param>
-    /// <returns>The same builder.</returns>
+    /// <returns>The same chain.</returns>
     public ChatOptionsBuilder WithReasoning(ReasoningOptions reasoning) =>
-        With(options => options.Reasoning = reasoning);
+        Set(options => options.Reasoning = reasoning);
 
     /// <summary>
-    /// Sets the format of the responses, such as JSON.
+    /// Sets the format of the response: text, any JSON or JSON of a schema.
     /// </summary>
     /// <param name="format">The format.</param>
-    /// <returns>The same builder.</returns>
+    /// <returns>The same chain.</returns>
     public ChatOptionsBuilder WithResponseFormat(ChatResponseFormat format) =>
-        With(options => options.ResponseFormat = format);
+        Set(options => options.ResponseFormat = format);
 
     /// <summary>
     /// Sets the sequences that end a response.
     /// </summary>
     /// <param name="sequences">The sequences.</param>
-    /// <returns>The same builder.</returns>
+    /// <returns>The same chain.</returns>
     public ChatOptionsBuilder WithStopSequences(params string[] sequences) =>
-        With(options => options.StopSequences = [.. sequences]);
+        Set(options => options.StopSequences = [.. sequences]);
 
     /// <summary>
     /// Sets whether and which tools the model must call.
     /// </summary>
     /// <param name="mode">The mode.</param>
-    /// <returns>The same builder.</returns>
-    public ChatOptionsBuilder WithToolMode(ChatToolMode mode) => With(options => options.ToolMode = mode);
+    /// <returns>The same chain.</returns>
+    public ChatOptionsBuilder WithToolMode(ChatToolMode mode) => Set(options => options.ToolMode = mode);
 
     /// <summary>
-    /// Sets whether the model may call several tools in one response.
+    /// Sets whether one response may call several tools.
     /// </summary>
     /// <param name="allow">Whether it may.</param>
-    /// <returns>The same builder.</returns>
+    /// <returns>The same chain.</returns>
     public ChatOptionsBuilder WithAllowMultipleToolCalls(bool allow) =>
-        With(options => options.AllowMultipleToolCalls = allow);
+        Set(options => options.AllowMultipleToolCalls = allow);
 
     /// <summary>
-    /// Adds tools that belong to no toolset, such as a <see cref="HostedWebSearchTool"/>; they come before the tools
-    /// of the agent's toolsets.
+    /// Adds tools of no toolset, such as a <see cref="HostedWebSearchTool"/> or a <see cref="HostedMcpServerTool"/>.
     /// </summary>
     /// <param name="tools">The tools.</param>
-    /// <returns>The same builder.</returns>
+    /// <returns>The same chain.</returns>
     public ChatOptionsBuilder WithTools(params AITool[] tools) =>
-        With(options => options.Tools = [.. options.Tools ?? [], .. tools]);
+        Set(options => options.Tools = [.. options.Tools ?? [], .. tools]);
 
     /// <summary>
     /// Sets a provider-specific option.
     /// </summary>
+    /// <typeparam name="TValue">The option's type.</typeparam>
     /// <param name="key">The option's key.</param>
     /// <param name="value">The option's value.</param>
-    /// <returns>The same builder.</returns>
-    public ChatOptionsBuilder WithAdditionalProperty(string key, object? value) =>
-        With(options => (options.AdditionalProperties ??= [])[key] = value);
+    /// <returns>The same chain.</returns>
+    public ChatOptionsBuilder WithAdditionalProperty<TValue>(string key, TValue value) =>
+        Set(options => (options.AdditionalProperties ??= [])[key] = value);
 
+    // D5: the generator reads the pick; at runtime the call declares nothing
     /// <summary>
-    /// Allows an option to change at runtime, through the agent's stored settings or a run's; every other option
-    /// stays as the code sets it. The generator reads the pick into the agent's <c>Settings</c>; the lambda never
-    /// runs.
+    /// Lets an option change at runtime, whether the code sets it or not. The lambda never runs.
     /// </summary>
-    /// <param name="option">The option, <c>o => o.Temperature</c>; it needs a type settings can store (TSH014).</param>
-    /// <returns>The same builder.</returns>
-    public ChatOptionsBuilder Configurable(Func<ChatOptions, object?> option) => this;
+    /// <typeparam name="TOption">The option's type.</typeparam>
+    /// <param name="option">The option, <c>o => o.Temperature</c>.</param>
+    /// <returns>The same chain.</returns>
+    public ChatOptionsBuilder Configurable<TOption>(Func<ChatOptions, TOption> option) => this;
 
-    private ChatOptionsBuilder With(Action<ChatOptions> set)
+    private ChatOptionsBuilder Set(Action<ChatOptions> set)
     {
         set(_options);
         return this;

@@ -1,30 +1,38 @@
-using Typeshift.Toolsets;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace Typeshift.Samples.Docs.Knowledge;
+namespace Typeshift.Samples.Knowledge;
 
 internal partial class KnowledgeToolset : Toolset
 {
-    private static readonly Article[] Articles =
-    [
-        new("How refunds work", "en"),
-        new("So funktionieren Rückerstattungen", "de")
-    ];
-
     public KnowledgeToolset()
     {
+        WithDisplayName("Help center");
+
         // begin-snippet: settings-all-configurable
-        AddTool(SearchArticles)
-            .WithName("search_articles")
+        AddTool(SearchArticlesAsync)
             .WithConfigurableSettings<SearchArticlesSettings>()
             .NotConfigurable(s => s.Limit);
         // end-snippet
+
+        AddTool(DeleteArticleAsync)
+            .RequiresApproval();
     }
 
     /// <summary>
     /// Searches the help center's articles.
     /// </summary>
-    /// <param name="question">The customer's question.</param>
-    /// <param name="settings">The settings the search runs with.</param>
-    public static IReadOnlyList<Article> SearchArticles(string question, SearchArticlesSettings settings) =>
-        [.. Articles.Where(article => article.Language == settings.Language).Take(settings.Limit)];
+    /// <param name="query">What the customer asks about.</param>
+    public static Task<IReadOnlyList<Article>> SearchArticlesAsync(
+        string query,
+        SearchArticlesSettings settings,
+        IServiceProvider services,
+        CancellationToken ct) =>
+        services.GetRequiredService<IArticleIndex>().SearchAsync(query, settings, ct);
+
+    /// <summary>
+    /// Deletes an outdated article.
+    /// </summary>
+    /// <param name="slug">The article's slug.</param>
+    public static Task DeleteArticleAsync(string slug, IServiceProvider services, CancellationToken ct) =>
+        services.GetRequiredService<IArticleIndex>().DeleteAsync(slug, ct);
 }

@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Xml.Linq;
-using Typeshift.Agents;
+using Typeshift;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -16,7 +16,7 @@ public static class PublicApi
 
     private static List<ISymbol> FindDocumentedMembers()
     {
-        var path = typeof(AgentDefinition).Assembly.Location;
+        var path = typeof(Toolset).Assembly.Location;
         var library = MetadataReference.CreateFromFile(
             path,
             documentation: new XmlDocumentation(Path.ChangeExtension(path, ".xml")));

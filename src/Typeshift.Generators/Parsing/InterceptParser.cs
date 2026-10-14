@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Typeshift.Generators.Parsing;
 
-// Finds the services.AddTypeshift() calls of the library's one public method, the ones the host intercepts
+// D1: the services.AddTypeshift() calls of the library's method, the ones the generator intercepts
 internal static class InterceptParser
 {
     public static bool IsCandidate(SyntaxNode node, CancellationToken ct) =>
@@ -22,11 +22,9 @@ internal static class InterceptParser
         if (context.SemanticModel.GetSymbolInfo(invocation, ct).Symbol is not IMethodSymbol method) return null;
         if (!IsLibraryMethod(method)) return null;
 
-        if (context.SemanticModel.GetInterceptableLocation(invocation, ct) is not { } location) return null;
-
-        return new InterceptModel(
-            location.GetInterceptsLocationAttributeSyntax(),
-            LocationInfo.From(invocation.GetLocation()));
+        return context.SemanticModel.GetInterceptableLocation(invocation, ct) is { } location
+            ? new InterceptModel(location.GetInterceptsLocationAttributeSyntax())
+            : null;
     }
 
     // A call of a C# 14 extension member binds to a method of the extension block nested in the declaring class

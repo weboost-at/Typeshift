@@ -1,8 +1,0 @@
-{
-  "model": "reasoning-model",
-  "tools": {
-    "search_tickets": {
-      "limit": 20
-    }
-  }
-}

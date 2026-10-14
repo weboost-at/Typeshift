@@ -8,39 +8,44 @@ internal static class InterceptorEmitter
 {
     private const string Services = "global::Microsoft.Extensions.DependencyInjection.IServiceCollection";
 
-    public static string Emit(IReadOnlyList<InterceptModel> calls, IReadOnlyList<string> modules)
+    // D1: every call in the project registers this assembly's module and those of its references
+    public static string Emit(
+        IReadOnlyList<InterceptModel> calls,
+        IReadOnlyList<string> modules,
+        string idType,
+        string idParser)
     {
         var writer = new SourceWriter();
 
         writer.Line(SourceWriter.Header);
 
         using (writer.Block($"namespace {Names.GeneratedNamespace}"))
+        using (writer.Block($"file static class {KnownTypes.RegistrationMethod}Interceptor"))
         {
-            using (writer.Block($"file static class {KnownTypes.RegistrationMethod}Interceptor"))
+            foreach (var call in calls)
             {
-                foreach (var call in calls)
+                writer.Line(call.Attribute);
+            }
+
+            writer.Line(
+                $"public static global::Typeshift.TypeshiftBuilder {KnownTypes.RegistrationMethod}("
+                + $"this {Services} services)");
+
+            using (writer.Block())
+            {
+                writer.Line(
+                    "var builder = global::Typeshift.Generated.ModuleRegistration"
+                    + $".AddCoreServices<{idType}>(services, {idParser});");
+                writer.Line();
+
+                foreach (var module in modules)
                 {
-                    writer.Line(call.Attribute);
+                    writer.Line($"{module}.Register(services);");
                 }
 
-                writer.Lines(
-                    $"""
-                    public static {Services} {KnownTypes.RegistrationMethod}(
-                        this {Services} services)
-                    """);
+                if (modules.Count > 0) writer.Line();
 
-                using (writer.Block())
-                {
-                    writer.Line("global::Typeshift.Modules.ModuleRegistration.AddCoreServices(services);");
-
-                    foreach (var module in modules)
-                    {
-                        writer.Line($"{module}.Register(services);");
-                    }
-
-                    writer.Line();
-                    writer.Line("return services;");
-                }
+                writer.Line("return builder;");
             }
         }
 

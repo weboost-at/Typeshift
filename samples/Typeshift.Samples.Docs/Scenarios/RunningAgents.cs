@@ -1,62 +1,85 @@
-using Typeshift.Agents;
-using Typeshift.Samples.Docs.Agents;
-using Typeshift.Samples.Docs.Tickets;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
+using Typeshift.Samples.Agents;
+using Typeshift.Samples.Knowledge;
+using Typeshift.Samples.Tickets;
 
-namespace Typeshift.Samples.Docs.Scenarios;
+namespace Typeshift.Samples.Scenarios;
 
 internal static class RunningAgents
 {
-    public static async Task RunAsync()
+    public static async Task RunAsync(IServiceProvider provider)
     {
-        await using var services = Host.Create();
+        // begin-snippet: run
+        await using var scope = provider.CreateAsyncScope();
+        var support = scope.ServiceProvider.GetRequiredService<AgentHost<SupportAgent>>();
 
-        // begin-snippet: run-from-code
-        var support = services.GetRequiredService<AgentRuntime<SupportAgent>>();
+        var answer = await support.RunAsync("Where is my refund?");
 
-        var options = support.ResolveChatOptions();
-        var client = await support.CreateChatClientAsync(options);
-        var response = await client.GetResponseAsync("Where is my refund?", options);
+        Console.WriteLine($"{answer.Messages[^1].AuthorName}: {answer.Text}");
         // end-snippet
 
-        Expect.That(response.Text == "Answered by fast-model.", "the code's model answers");
+        // begin-snippet: run-with-settings-id
+        var settingsId = 42;
 
-        var triage = services.GetRequiredService<AgentRuntime<TriageAgent>>().ResolveChatOptions();
+        var stored = await support.RunAsync("Where is my refund?", settingsId);
+        // end-snippet
 
-        Expect.That(triage.Tools!.Single().Name == "search_tickets", "excluded tools are not offered");
+        Expect(stored.Text == answer.Text, "a run with a settings id answers");
 
         // begin-snippet: run-settings
         var run = new SupportAgent.Settings
         {
             Model = "reasoning-model",
             Temperature = 0,
-            SearchTickets = new TicketToolset.SearchTicketsOverrides { IncludeClosed = true }
+            SearchTickets = new TicketToolset.SearchTicketsOverrides { IncludeClosed = true },
+            SearchArticles = new KnowledgeToolset.SearchArticlesOverrides { Language = "de" }
         };
 
-        var runOptions = support.ResolveChatOptions(run);
-        var runClient = await support.CreateChatClientAsync(runOptions);
+        var thorough = await support.RunAsync("Where is my refund?", settingsId, settings: run);
         // end-snippet
 
-        Expect.That(runOptions.Temperature == 0, "run settings override the code's chat options");
+        Expect(thorough.Text.Length > 0, "a run with settings answers");
 
-        var search = runOptions.Tools!.OfType<AIFunction>().Single(tool => tool.Name == "search_tickets");
+        // begin-snippet: structured-output
+        var report = await support.RunAsync<RefundStatus>("Summarize the refund.", settingsId);
 
-        var tickets = await search.InvokeAsync(new AIFunctionArguments(new Dictionary<string, object?>
-        {
-            ["query"] = "refund"
-        })
-        {
-            Services = services
-        });
+        Console.WriteLine($"{report.Result.Invoice}: {report.Result.State}");
+        // end-snippet
 
-        Expect.That(tickets!.ToString()!.Contains("parcel", StringComparison.Ordinal), "run settings reach the tools");
+        Expect(report.Result.State == RefundState.Approved, "structured output is parsed");
 
         // begin-snippet: streaming
-        await foreach (var update in runClient.GetStreamingResponseAsync("Where is my refund?", runOptions))
+        await foreach (var update in support.RunStreamingAsync("Where is my refund?", settingsId))
             Console.Write(update.Text);
         // end-snippet
 
         Console.WriteLine();
+
+        // begin-snippet: raw-path
+        var options = await support.ResolveOptionsAsync(settingsId, run);
+
+        using var client = await support.CreateChatClientAsync(options);
+        var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "Where is my refund?")], options);
+        // end-snippet
+
+        Expect(options.Tools?.Count > 0, "resolved options carry the agent's tools");
+        Expect(response.Text == answer.Text, "the raw path answers like a run");
+    }
+
+    private static void Expect(bool condition, string what)
+    {
+        if (!condition) throw new InvalidOperationException($"Expected {what}.");
     }
 }
+
+// begin-snippet: structured-output-type
+internal sealed record RefundStatus(string Invoice, RefundState State, DateOnly? Expected);
+
+internal enum RefundState
+{
+    Requested,
+    Approved,
+    Paid
+}
+// end-snippet

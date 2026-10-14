@@ -1,51 +1,26 @@
-using System.Diagnostics.CodeAnalysis;
-using Typeshift.Conversations;
-using Typeshift.Persistence;
+using Typeshift;
 
-// D1: the Microsoft.Extensions.DependencyInjection namespace makes AddTypeshift() available without a using
 namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
-/// Registers the toolsets and agents of a host and of its references, and the store they persist through.
+/// The entry point of the registration.
 /// </summary>
 public static class TypeshiftServiceCollectionExtensions
 {
     extension(IServiceCollection services)
     {
+        // D1: the generator intercepts every call; this body runs only for one it did not see
         /// <summary>
-        /// Registers the library and every toolset, agent and agent runtime the calling project can see. The
-        /// generator replaces this call at compile time; the method itself only runs when that did not happen.
+        /// Registers every toolset and agent of this project and of the projects it references, an
+        /// <see cref="AgentHost{TAgent}"/> per agent, and the core services. The generator intercepts the call; one it
+        /// did not intercept throws, saying what to check.
         /// </summary>
-        /// <returns>The same service collection, for chaining.</returns>
-        /// <exception cref="InvalidOperationException">The call was not intercepted; the message says why.</exception>
-        public IServiceCollection AddTypeshift() =>
+        /// <returns>The chain that registers the chat client provider and the rest.</returns>
+        /// <exception cref="InvalidOperationException">The call was not intercepted.</exception>
+        public TypeshiftBuilder AddTypeshift() =>
             throw new InvalidOperationException(
-                "AddTypeshift() was not intercepted, so nothing was registered. The project that calls it must "
-                + "reference the Typeshift package itself (analyzers do not flow to referencing projects), build with "
-                + "the .NET 10 SDK and keep Typeshift.Generated in its InterceptorsNamespaces. Call it directly, as "
-                + "services.AddTypeshift(); a call through a delegate cannot be intercepted.");
-
-        /// <summary>
-        /// Registers the store the library persists through: agent settings, tool defaults and conversations.
-        /// Without a store, the code alone defines every agent and the APIs that save or load throw.
-        /// </summary>
-        /// <typeparam name="TStore">Your store, registered as a singleton.</typeparam>
-        /// <typeparam name="TId">
-        /// The id type of your store. Conversation ids are parsed into it, so it must be parsable, as
-        /// <see cref="Guid"/>, <see cref="string"/> and <see cref="int"/> are.
-        /// </typeparam>
-        /// <returns>The same service collection, for chaining.</returns>
-        public IServiceCollection AddTypeshiftStore<
-            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TStore,
-            TId>()
-            where TStore : class, ITypeshiftStore<TId>
-            where TId : notnull, IParsable<TId>
-        {
-            services.AddSingleton<ITypeshiftStore<TId>, TStore>();
-            services.AddSingleton<ConversationStore>(provider =>
-                new ConversationStore<TId>(provider.GetRequiredService<ITypeshiftStore<TId>>()));
-
-            return services;
-        }
+                "AddTypeshift() was not intercepted by the Typeshift generator. Reference the Typeshift package in "
+                + "the project that calls it, call it as services.AddTypeshift(), and keep the Typeshift.Generated "
+                + "namespace in InterceptorsNamespaces.");
     }
 }

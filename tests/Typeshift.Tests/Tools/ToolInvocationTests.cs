@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Typeshift.Tests.Toolsets.Support;
 using Typeshift.Tests.Tools.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
@@ -19,10 +18,7 @@ public class ToolInvocationTests : HostTestBase
             .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
             .Reply(Text(Data.Tool.Answer));
 
-        var options = new ChatOptions
-        {
-            Tools = [.. new ProbeToolset().CreateTools(Json)]
-        };
+        var options = new ChatOptions { Tools = [ProbeToolset.CreateProbe(new ProbeSettings(), Json)] };
 
         // Act
         var response = await FunctionLoop().GetResponseAsync(Data.Tool.Question, options, Ct);
@@ -32,7 +28,7 @@ public class ToolInvocationTests : HostTestBase
     }
 
     [Fact]
-    public async Task Given_Two_Scripted_Calls_Each_Runs_In_A_Scope_Of_Its_Own()
+    public async Task Given_Two_Calls_Of_One_Run_Both_Resolve_From_The_Runs_Scope()
     {
         // Arrange
         ChatClient
@@ -41,10 +37,7 @@ public class ToolInvocationTests : HostTestBase
                 Call(Data.Tool.SecondCallId, "probe", ("query", Data.Tool.Query))))
             .Reply(Text(Data.Tool.Answer));
 
-        var options = new ChatOptions
-        {
-            Tools = [.. new ProbeToolset().CreateTools(Json)]
-        };
+        var options = new ChatOptions { Tools = [ProbeToolset.CreateProbe(new ProbeSettings(), Json)] };
 
         // Act
         var response = await FunctionLoop().GetResponseAsync(Data.Tool.Question, options, Ct);
@@ -52,61 +45,48 @@ public class ToolInvocationTests : HostTestBase
         var second = response.Assert.ToolResult<ProbeResult>(Data.Tool.SecondCallId, Json);
 
         // Assert
-        first.Scope.Should().NotBeNull();
-        second.Scope.Should().NotBeNull();
-        second.Scope.Should().NotBe(first.Scope!.Value);
+        first.Scope.Should().Be(Scope.GetRequiredService<CallScope>().Id);
+        second.Scope.Should().Be(first.Scope);
     }
 
     [Fact]
-    public async Task Given_A_Tool_Taking_Its_Arguments_Their_Services_Are_The_Calls_Scope()
+    public async Task Given_A_Call_The_Tool_Receives_The_Services_Its_Arguments_Carry()
     {
         // Arrange
-        var probe = new ProbeToolset().CreateTools(Json).Single();
+        var probe = ProbeToolset.CreateProbe(new ProbeSettings(), Json);
 
         // Act
         var result = ReadResult<ProbeResult>(await probe.InvokeAsync(Arguments(("query", Data.Tool.Query)), Ct));
 
         // Assert
-        result.ArgumentsScope.Should().Be(result.Scope);
+        result.ArgumentsCarryServices.Should().BeTrue();
     }
 
     [Fact]
-    public async Task Given_A_Call_The_Callers_Arguments_Keep_Their_Services()
+    public async Task Given_A_Call_The_Tool_Receives_The_Calls_Token()
     {
         // Arrange
-        var probe = new ProbeToolset().CreateTools(Json).Single();
-        var arguments = Arguments(("query", Data.Tool.Query));
+        var probe = ProbeToolset.CreateProbe(new ProbeSettings(), Json);
 
         // Act
-        await probe.InvokeAsync(arguments, Ct);
+        var result = ReadResult<ProbeResult>(await probe.InvokeAsync(Arguments(("query", Data.Tool.Query)), Ct));
 
         // Assert
-        arguments.Services.Should().BeSameAs(Services);
+        result.Cancellable.Should().BeTrue();
     }
 
     [Fact]
-    public async Task Given_A_Scripted_Call_The_Tool_Runs_With_Its_Resolved_Settings()
+    public async Task Given_Settings_The_Tool_Runs_With_Them()
     {
         // Arrange
-        ChatClient
-            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
-            .Reply(Text(Data.Tool.Answer));
-
-        var overrides = new ProbeToolset.ProbeOverrides { Limit = Data.Tool.Limit };
-
-        var options = new ChatOptions
-        {
-            Tools = [.. new ProbeToolset().CreateTools(Json, overrides)]
-        };
+        var settings = new ProbeSettings { Limit = Data.Tool.Limit };
+        var probe = ProbeToolset.CreateProbe(settings, Json);
 
         // Act
-        var response = await FunctionLoop().GetResponseAsync(Data.Tool.Question, options, Ct);
+        var result = ReadResult<ProbeResult>(await probe.InvokeAsync(Arguments(("query", Data.Tool.Query)), Ct));
 
         // Assert
-        response.Assert.ToolResult<ProbeResult>(Data.Tool.CallId, Json)
-            .Settings
-            .Should()
-            .Be(new ProbeSettings { Limit = Data.Tool.Limit.Default });
+        result.Settings.Should().Be(settings);
     }
 
     [Fact]
@@ -117,13 +97,11 @@ public class ToolInvocationTests : HostTestBase
             .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
             .Reply(Text(Data.Tool.Answer));
 
-        var options = new ChatOptions
-        {
-            Tools = [.. new ProbeToolset().CreateTools(Json)]
-        };
+        var options = new ChatOptions { Tools = [ProbeToolset.CreateProbe(new ProbeSettings(), Json)] };
 
         // Act
         await FunctionLoop().GetResponseAsync(Data.Tool.Question, options, Ct);
+
         var sent = ChatClient.Requests[1]
             .SelectMany(message => message.Contents)
             .OfType<FunctionResultContent>()
@@ -134,10 +112,24 @@ public class ToolInvocationTests : HostTestBase
     }
 
     [Fact]
+    public async Task Given_No_Services_The_Call_Fails_Saying_How_To_Run_It()
+    {
+        // Arrange
+        var probe = ProbeToolset.CreateProbe(new ProbeSettings(), Json);
+        var arguments = new AIFunctionArguments(new Dictionary<string, object?> { ["query"] = Data.Tool.Query });
+
+        // Act
+        var invoke = async () => await probe.InvokeAsync(arguments, Ct);
+
+        // Assert
+        await invoke.Should().ThrowAsync<InvalidOperationException>().WithMessage("*AgentHost*");
+    }
+
+    [Fact]
     public async Task Given_A_Missing_Required_Argument_The_Call_Fails_With_An_ArgumentException()
     {
         // Arrange
-        var count = new SchemaToolset().CreateTools(Json).Single(tool => tool.Name == "count_words");
+        var count = SchemaToolset.CreateCountWords(Json);
 
         // Act
         var invoke = async () => await count.InvokeAsync(Arguments(), Ct);
@@ -150,7 +142,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_An_Absent_Optional_Argument_The_Tool_Takes_Its_Default()
     {
         // Arrange
-        var search = new SchemaToolset().CreateTools(Json).Single(tool => tool.Name == "search_companies");
+        var search = SchemaToolset.CreateSearchCompanies(Json);
 
         var arguments = Arguments(
             ("query", Data.Tool.Query),
@@ -168,7 +160,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_A_Json_Null_For_An_Optional_Argument_The_Tool_Takes_Its_Default()
     {
         // Arrange
-        var search = new SchemaToolset().CreateTools(Json).Single(tool => tool.Name == "search_companies");
+        var search = SchemaToolset.CreateSearchCompanies(Json);
 
         var arguments = Arguments(
             ("query", Data.Tool.Query),
@@ -187,7 +179,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_A_Number_Of_Another_Type_The_Tool_Receives_It_As_Its_Parameter_Type()
     {
         // Arrange
-        var search = new SchemaToolset().CreateTools(Json).Single(tool => tool.Name == "search_companies");
+        var search = SchemaToolset.CreateSearchCompanies(Json);
 
         var arguments = Arguments(
             ("query", Data.Tool.Query),
@@ -206,7 +198,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_An_Object_Argument_As_Json_Text_The_Tool_Receives_The_Object()
     {
         // Arrange
-        var locate = new SchemaToolset().CreateTools(Json).Single(tool => tool.Name == "locate");
+        var locate = SchemaToolset.CreateLocate(Json);
         var point = JsonSerializer.Serialize(Data.Tool.Point, Json.SerializerOptions);
 
         // Act
@@ -220,7 +212,7 @@ public class ToolInvocationTests : HostTestBase
     public async Task Given_A_Struct_Parameter_Defaulting_To_Default_The_Tool_Runs_Without_It()
     {
         // Arrange
-        var locate = new SchemaToolset().CreateTools(Json).Single(tool => tool.Name == "locate");
+        var locate = SchemaToolset.CreateLocate(Json);
 
         // Act
         var result = await locate.InvokeAsync(Arguments(), Ct);

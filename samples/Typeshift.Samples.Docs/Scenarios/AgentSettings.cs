@@ -1,45 +1,54 @@
-using System.Text.Json.Nodes;
-using Typeshift.Agents;
-using Typeshift.Persistence;
-using Typeshift.Samples.Docs.Agents;
 using Microsoft.Extensions.DependencyInjection;
+using Typeshift.Samples.Agents;
 
-namespace Typeshift.Samples.Docs.Scenarios;
+namespace Typeshift.Samples.Scenarios;
 
 internal static class AgentSettings
 {
-    public static async Task RunAsync()
+    public static async Task RunAsync(IServiceProvider provider)
     {
-        await using var services = Host.Create();
-        var support = services.GetRequiredService<AgentRuntime<SupportAgent>>();
+        await using var scope = provider.CreateAsyncScope();
+        var support = scope.ServiceProvider.GetRequiredService<AgentHost<SupportAgent>>();
+        var settingsId = 42;
 
         // begin-snippet: configure-settings
-        var customer = Guid.NewGuid();
-
-        await support.ConfigureAsync(customer, settings => settings with
+        await support.ConfigureAsync(settingsId, settings => settings with
         {
             Model = "reasoning-model",
             Instructions = "Answer in German.",
             SearchTickets = settings.SearchTickets with { Limit = 20 }
         });
-
-        var options = await support.ResolveChatOptionsAsync(customer);
         // end-snippet
-
-        Expect.That(options.ModelId == "reasoning-model", "stored settings choose the model");
 
         // begin-snippet: load-and-save-settings
-        var settings = await support.LoadSettingsAsync(customer);
+        var stored = await support.LoadSettingsAsync(settingsId);
 
-        await support.SaveSettingsAsync(customer, settings with { Instructions = null });
+        try
+        {
+            await support.SaveSettingsAsync(settingsId, stored.Data with { Instructions = null }, stored.Revision);
+        }
+        catch (StoreConflictException)
+        {
+            stored = await support.LoadSettingsAsync(settingsId);
+        }
         // end-snippet
 
-        var stored = await services.GetRequiredService<ITypeshiftStore<Guid>>()
-            .LoadAsync<SupportAgent.Settings>(customer, CancellationToken.None);
+        var saved = await support.LoadSettingsAsync(settingsId);
 
-        var example = JsonNode.Parse(
-            await File.ReadAllTextAsync(Path.Combine(AppContext.BaseDirectory, "Examples", "support-agent-settings.json")));
+        if (saved.Data.Instructions is not null || saved.Data.SearchTickets.Limit != 20 || saved.Revision != 2)
+            throw new InvalidOperationException("Expected the configured settings, saved twice.");
 
-        Expect.That(JsonNode.DeepEquals(JsonNode.Parse(stored!.Serialize()), example), "the documented JSON is stored");
+        var conflict = false;
+
+        try
+        {
+            await support.SaveSettingsAsync(settingsId, saved.Data, stored.Revision);
+        }
+        catch (StoreConflictException)
+        {
+            conflict = true;
+        }
+
+        if (!conflict) throw new InvalidOperationException("Expected a stale revision to conflict.");
     }
 }

@@ -3,6 +3,15 @@
   <PropertyGroup>
     <!-- The generator intercepts services.AddTypeshift() from this namespace. -->
     <InterceptorsNamespaces>$(InterceptorsNamespaces);Typeshift.Generated</InterceptorsNamespaces>
+    <!-- D11: the type of every settings and conversation id; set it once, in Directory.Build.props. -->
+    <TypeshiftIdType Condition="'$(TypeshiftIdType)' == ''">Guid</TypeshiftIdType>
   </PropertyGroup>
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="TypeshiftIdType" />
+    <!-- D45: TSH027 holds for projects that publish with Native AOT or declare themselves compatible -->
+    <CompilerVisibleProperty Include="PublishAot" />
+    <CompilerVisibleProperty Include="IsAotCompatible" />
+  </ItemGroup>
 
 </Project>

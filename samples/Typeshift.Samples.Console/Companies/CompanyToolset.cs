@@ -1,16 +1,13 @@
-using Typeshift.Toolsets;
-
 namespace Typeshift.Samples.Companies;
 
-// begin-snippet: quickstart-toolset
 internal partial class CompanyToolset : Toolset
 {
     public CompanyToolset()
     {
-        DisplayName = "Companies";
+        WithDisplayName("Companies");
 
         AddTool(FindCompanies)
-            .WithName("find_companies")
+            .ReadOnly()
             .WithSettings<FindCompaniesSettings>()
             .Configurable(s => s.Limit);
     }
@@ -28,4 +25,3 @@ internal partial class CompanyToolset : Toolset
             .Take(settings.Limit)
     ];
 }
-// end-snippet

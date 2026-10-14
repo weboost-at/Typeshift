@@ -1,60 +1,89 @@
-using Typeshift.Persistence;
-using Typeshift.Samples.Docs.Agents;
 using Microsoft.EntityFrameworkCore;
 
-namespace Typeshift.Samples.Docs.Stores.EfCore;
+namespace Typeshift.Samples.Stores.EfCore;
 
 // begin-snippet: ef-core-store
-internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDbContext> contexts) : ITypeshiftStore<string>
+internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) : ITypeshiftStore
 {
-    public async Task<TData?> LoadAsync<TData>(string tenant, CancellationToken ct)
+    public async Task<Stored<TData>?> LoadAsync<TData>(int id, CancellationToken ct)
         where TData : class, IStorable<TData>
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
-        // The support agent's settings live in columns of their own, everything else in JSON documents
-        if (typeof(TData) == typeof(SupportAgent.Settings))
-            return await db.SupportAgentSettings.FindAsync([tenant], ct) is { } row
-                ? (TData)(object)row.ToSettings()
-                : null;
-
-        return await db.Documents.FindAsync([Kind<TData>(), tenant], ct) is { } document
-            ? TData.Deserialize(document.Json)
+        return await db.Documents.FindAsync([TData.Kind, id], ct) is { } row
+            ? new Stored<TData>(TData.Deserialize(row.Json, row.Version), row.Revision)
             : null;
     }
 
-    public async Task SaveAsync<TData>(string tenant, TData data, CancellationToken ct)
+    public async Task<long> SaveAsync<TData>(int id, TData data, long revision, CancellationToken ct)
         where TData : class, IStorable<TData>
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
-        if (data is SupportAgent.Settings settings)
+        var row = new DocumentRow
         {
-            var row = SupportAgentSettingsRow.From(tenant, settings);
-            Upsert(db, await db.SupportAgentSettings.FindAsync([tenant], ct), row);
-        }
-        else
+            Kind = TData.Kind,
+            Id = id,
+            Version = TData.Version,
+            Revision = revision + 1,
+            Json = data.Serialize()
+        };
+
+        var entry = db.Entry(row);
+        entry.State = revision == 0 ? EntityState.Added : EntityState.Modified;
+
+        // The update only matches the row while it still has the revision the caller loaded
+        if (revision > 0)
+            entry.Property(document => document.Revision).OriginalValue = revision;
+
+        // A conflict is another save that won; any other failure is the database's and surfaces as it is
+        try
         {
-            var document = new StoredDocument
-            {
-                Kind = Kind<TData>(),
-                Id = tenant,
-                Json = data.Serialize()
-            };
-
-            Upsert(db, await db.Documents.FindAsync([document.Kind, tenant], ct), document);
+            await db.SaveChangesAsync(ct);
+            return row.Revision;
         }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            throw new StoreConflictException($"{TData.Kind} {id} changed after revision {revision}.", exception);
+        }
+        catch (DbUpdateException exception) when (revision == 0)
+        {
+            if (!await ExistsAsync(TData.Kind, id, ct)) throw;
 
-        await db.SaveChangesAsync(ct);
+            throw new StoreConflictException($"{TData.Kind} {id} was saved first by another.", exception);
+        }
     }
 
-    // The full name keeps the Settings of two agents apart
-    private static string Kind<TData>() => typeof(TData).FullName!;
-
-    private static void Upsert<TRow>(TypeshiftDbContext db, TRow? existing, TRow row) where TRow : class
+    private async Task<bool> ExistsAsync(string kind, int id, CancellationToken ct)
     {
-        if (existing is null) db.Add(row);
-        else db.Entry(existing).CurrentValues.SetValues(row);
+        await using var db = await contexts.CreateDbContextAsync(ct);
+        return await db.Documents.AnyAsync(row => row.Kind == kind && row.Id == id, ct);
+    }
+
+    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(int conversation, CancellationToken ct)
+    {
+        await using var db = await contexts.CreateDbContextAsync(ct);
+
+        var rows = await db.Entries
+            .Where(entry => entry.Conversation == conversation)
+            .OrderBy(entry => entry.Sequence)
+            .ToListAsync(ct);
+
+        return [.. rows.Select(row => ConversationEntry.Deserialize(row.Json, row.Version))];
+    }
+
+    public async Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct)
+    {
+        await using var db = await contexts.CreateDbContextAsync(ct);
+
+        db.Entries.Add(new EntryRow
+        {
+            Conversation = conversation,
+            Version = ConversationEntry.Version,
+            Json = entry.Serialize()
+        });
+
+        await db.SaveChangesAsync(ct);
     }
 }
 // end-snippet

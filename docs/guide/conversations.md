@@ -1,80 +1,133 @@
 # Conversations
 
-Every chat client `CreateChatClientAsync` returns tracks its exchanges with the model. One call, with all the tool
-calls it triggers, is one session; sessions with the same conversation id form a conversation.
+A run with a conversation id resumes the conversation and stores everything it does in it, step by step.
 
 ## Tracking a conversation
-
-Pass a conversation id when you resolve the options:
 
 <!-- snippet: conversation -->
 <a id='snippet-conversation'></a>
 ```cs
-var conversation = Guid.NewGuid();
+var conversationId = 7;
 
-var options = await support.ResolveChatOptionsAsync(customer, conversationId: conversation.ToString());
-var client = await support.CreateChatClientAsync(options);
-
-await client.GetResponseAsync("Where is my refund?", options);
-await client.GetResponseAsync("When will it arrive?", options);
+await support.RunAsync("Where is my refund?", conversationId: conversationId);
+await support.RunAsync("When will it arrive?", conversationId: conversationId);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L37-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L15-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The first call starts the conversation and stores it under the id when it ends. The second call resumes it: the
-stored messages are sent ahead of the new input, so the model sees the whole conversation. The provider never
-receives the id itself, since the tracker resends the conversation.
+The first run starts the conversation; the second resumes it: the stored messages go ahead of the new input, so the
+model sees the whole conversation. The provider never receives the conversation id; Typeshift resends the
+conversation itself. Settings ids and conversation ids are independent of each other; a run may pass either or both.
 
-The id must parse as the store's id type. A call without an id, or with one that does not parse, is tracked while it
-runs and not stored; so is every call when no store is registered.
+Typeshift resumes whichever conversation it is given. The host decides who may see a conversation: check the caller
+against your own record of the conversation before you pass its id, as you would for any other id from a request.
 
 ## What is stored
 
-A `StoredConversation` holds the name of the agent it ran under and every finished session: the input, every message
-the model and the tools produced, the model, the token usage and why the model stopped.
+A conversation is a list of entries, appended as they happen: a run's input, each model response with its model and
+token usage, each tool result, and an entry that ends the run.
 
-<!-- snippet: stored-conversation -->
-<a id='snippet-stored-conversation'></a>
+<!-- snippet: load-conversation -->
+<a id='snippet-load-conversation'></a>
 ```cs
-var store = services.GetRequiredService<ITypeshiftStore<Guid>>();
-var stored = await store.LoadAsync<StoredConversation>(conversation, CancellationToken.None);
+var store = provider.GetRequiredService<ITypeshiftStore>();
+var entries = await store.LoadConversationAsync(conversationId, ct);
 
-Console.WriteLine($"{stored!.Sessions.Count} sessions, {stored.AggregatedUsage.TotalTokenCount} tokens");
+Console.WriteLine($"{entries.Count} entries, {entries.Sum(entry => entry.Usage?.TotalTokenCount)} tokens");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L47-L52' title='Snippet source file'>snippet source</a> | <a href='#snippet-stored-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L22-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Sessions are stored whether they succeed or not:
+- A failed run ends with an `ErrorContent` entry, then the exception surfaces.
+- A stream that fails, is cancelled or is left early ends with the updates that arrived.
+- A cancelled run is stored too; storing does not observe the run's token.
+- A store that fails to save is logged; the run still returns its answer.
+- A run cut off by a crash has no ending entry; [resume it](#resuming).
 
-- a failed call is stored with an `ErrorContent` message, then the exception surfaces;
-- a stream that fails, is cancelled or is left early is stored with the updates that arrived;
-- a cancelled call is stored as well; storing does not observe the call's token.
+On resume, tool calls that never got a result and error messages are left out, since providers reject them.
 
-When a conversation is resumed, function calls that never got a result (a call cancelled mid-tool) are left out,
-since providers reject them.
+## Resuming
 
-## Live sessions
+A run is stored as it goes: its input, every model response and every tool result, each the moment it exists. A host
+that crashes mid-run loses at most the call in flight. `ResumeAsync` continues a conversation's interrupted run from
+its last stored step, without new input:
 
-`ConversationTracker` lists the sessions that are running and raises `OnConversationsChanged` when one starts or
-ends:
+<!-- snippet: resume -->
+<a id='snippet-resume'></a>
+```cs
+var resumed = await support.ResumeAsync(interrupted, settingsId);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L61-L63' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+A call interrupted while its tool ran is left out, so the model decides again; tools with side effects should be safe
+to call twice. A new run on an interrupted conversation works too: it starts from the interrupted run's steps,
+followed by its own input. Typeshift runs one run per conversation at a time in a process; across processes, the host
+makes sure of it.
+
+## Steering
+
+A user can steer a run while it works: `TrySteer` hands input to the run of the conversation going on in this process.
+The model receives it before its next call, the run does not end before it has, and it is stored with the
+conversation like any input. With no run going on here, or one that is already ending, `TrySteer` returns false;
+start a run with the input instead:
+
+<!-- snippet: steering -->
+<a id='snippet-steering'></a>
+```cs
+var input = "Send me the invoice too.";
+
+if (!tracker.TrySteer(conversationId, input))
+    await support.RunAsync(input, settingsId, conversationId);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L48-L53' title='Snippet source file'>snippet source</a> | <a href='#snippet-steering' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+To stop a run instead, cancel its token; it is stored up to where it stopped.
+
+## Live runs
+
+`ConversationTracker` lists the runs of conversations going on in this process:
 
 <!-- snippet: live-sessions -->
 <a id='snippet-live-sessions'></a>
 ```cs
-var tracker = services.GetRequiredService<ConversationTracker>();
+var tracker = provider.GetRequiredService<ConversationTracker>();
 
-tracker.OnConversationsChanged += ct =>
-{
-    foreach (var session in tracker.Sessions)
-        Console.WriteLine($"{session.ExecutionContext.Value} is running on {session.Model}");
-
-    return Task.CompletedTask;
-};
+foreach (var run in tracker.Runs)
+    Console.WriteLine($"{run.Agent} is answering conversation {run.Conversation} on {run.Model}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L19-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-live-sessions' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L31-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-live-sessions' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Streaming sessions are listed in `RealtimeSessions`. Each publishes its updates through `OnSessionUpdated`: anything
-but text, reasoning or usage at once, text at most every 100 ms; `OnSessionCompleted` fires when it ends. Every
-handler gets a token that is cancelled at its time limit, and the call does not wait longer for it. An exception a
-handler throws stays with the handler.
+## Live updates
+
+With `WithRealtimeTracking()`, the updates of streaming runs are published as they happen. `WatchAsync` reads those
+of one conversation, until cancelled; a UI forwards them over SignalR, say:
+
+<!-- snippet: watch-conversation -->
+<a id='snippet-watch-conversation'></a>
+```cs
+await foreach (var update in tracker.WatchAsync(conversationId, ct))
+    Console.Write(update.Text);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L73-L76' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-conversation' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Text, reasoning and usage are merged and published at most every 100 ms, other updates at once. A watcher that
+falls behind loses its oldest updates; a run never waits for a watcher. Both limits are options:
+
+<!-- snippet: realtime-options -->
+<a id='snippet-realtime-options'></a>
+```cs
+services.AddTypeshift()
+    .WithRealtimeTracking(new RealtimeTrackingOptions
+    {
+        PublishInterval = TimeSpan.FromMilliseconds(250),
+        MaxPendingUpdates = 1024
+    });
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L49-L56' title='Snippet source file'>snippet source</a> | <a href='#snippet-realtime-options' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Live updates are in-process: a host with several processes watches on the process that runs the conversation.

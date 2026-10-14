@@ -24,9 +24,7 @@ export default defineConfig({
       '/guide/': [
         {
           text: 'Introduction',
-          items: [
-            { text: 'Getting started', link: '/guide/getting-started' }
-          ]
+          items: [{ text: 'Getting started', link: '/guide/getting-started' }]
         },
         {
           text: 'Building agents',
@@ -34,20 +32,24 @@ export default defineConfig({
             { text: 'Toolsets', link: '/guide/toolsets' },
             { text: 'Tool settings', link: '/guide/tool-settings' },
             { text: 'Agents', link: '/guide/defining-agents' },
-            { text: 'Running agents', link: '/guide/running-agents' }
-          ]
-        },
-        {
-          text: 'Persistence',
-          items: [
-            { text: 'Stores and settings', link: '/guide/persistence' },
-            { text: 'Conversations', link: '/guide/conversations' }
+            { text: 'Running agents', link: '/guide/running-agents' },
+            { text: 'Settings and stores', link: '/guide/settings-and-stores' },
+            { text: 'Conversations', link: '/guide/conversations' },
+            { text: 'Tool approval', link: '/guide/tool-approval' },
+            { text: 'Plan and auto modes', link: '/guide/modes' },
+            { text: 'Middleware', link: '/guide/middleware' },
+            { text: 'Context providers', link: '/guide/context-providers' },
+            { text: 'MCP servers', link: '/guide/mcp' },
+            { text: 'Multiple agents', link: '/guide/multi-agent' },
+            { text: 'Long-running agents', link: '/guide/long-running-agents' },
+            { text: 'Observability', link: '/guide/observability' },
+            { text: 'Built-in toolsets', link: '/guide/built-in-toolsets' },
+            { text: 'Native AOT', link: '/guide/native-aot' }
           ]
         },
         {
           text: 'Reference',
           items: [
-            { text: 'Native AOT', link: '/guide/native-aot' },
             { text: 'Diagnostics', link: '/guide/diagnostics' }
           ]
         }

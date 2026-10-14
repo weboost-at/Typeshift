@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Typeshift.Json;
+using Typeshift.Generated;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
 
@@ -7,7 +7,7 @@ namespace Typeshift.Tests.Testing.Assertions;
 
 public sealed class ChatResponseAssertions(ChatResponse response)
 {
-    public T ToolResult<T>(string callId, AgentJson json)
+    public T ToolResult<T>(string callId, ToolJson json)
     {
         var result = ToolResult(callId);
         result.Exception.Should().BeNull();

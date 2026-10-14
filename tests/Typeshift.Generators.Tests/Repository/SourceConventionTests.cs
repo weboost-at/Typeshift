@@ -41,6 +41,26 @@ public partial class SourceConventionTests
     }
 
     [Fact]
+    public void The_Code_Fits_120_Columns()
+    {
+        // Act
+        var violations = Violations(LongLine());
+
+        // Assert
+        violations.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void No_Docs_Page_Is_Named_Agents()
+    {
+        // Act
+        var pages = RepositoryFiles.Find("*.md", "docs").Where(page => Path.GetFileName(page) == "agents.md");
+
+        // Assert
+        pages.Should().BeEmpty("mdsnippets skips every file of that name");
+    }
+
+    [Fact]
     public void The_Code_Holds_No_Todo()
     {
         // Act
@@ -57,11 +77,14 @@ public partial class SourceConventionTests
             .Where(line => rule.IsMatch(line.Text))
             .Select(line => line.Line);
 
-    // Task.Delay waits on the real clock unless a TimeProvider is its second argument
+    // Task.Delay waits on the real clock unless a TimeProvider is its second argument, and CancelAfter always does
     [GeneratedRegex(
         @"\bDateTime(Offset)?\.(UtcNow|Now|Today)\b|\bStop[w]atch\b|\bEnvironment\.TickCount"
-        + @"|\bTask\.Delay\([^,]*\)\s*;")]
+        + @"|\bTask\.Delay\([^,]*\)\s*;|\.CancelAf[t]er\(")]
     private static partial Regex Clock();
+
+    [GeneratedRegex(@"^.{121}")]
+    private static partial Regex LongLine();
 
     [GeneratedRegex(@"[!=]= null\b|\bnull [!=]=")]
     private static partial Regex NullComparison();

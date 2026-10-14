@@ -1,5 +1,4 @@
 using System.Text.Json;
-using Typeshift.Toolsets;
 
 namespace Typeshift.Tests.Tools.Support;
 
@@ -18,18 +17,15 @@ public partial class SchemaToolset : Toolset
     public SchemaToolset()
     {
         AddTool(SearchCompanies)
-            .WithName("search_companies")
             .WithDescription("Searches companies and returns the limit it searched with.");
 
         AddTool(Locate)
-            .WithName("locate")
             .WithDescription("Returns the point it was given.");
 
-        AddTool(CountWords)
-            .WithName("count_words");
+        AddTool(CountWordsAsync);
 
         AddTool(Echo)
-            .WithName("echo")
+            .WithName("echo_json")
             .WithDescription("Returns the JSON it was given.");
     }
 
@@ -52,7 +48,8 @@ public partial class SchemaToolset : Toolset
     /// Counts the words of a text.
     /// </summary>
     /// <param name="text">The text whose words are counted.</param>
-    public static int CountWords(string text) => text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+    public static Task<int> CountWordsAsync(string text, CancellationToken ct) =>
+        Task.FromResult(text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length);
 
     public static JsonElement Echo(JsonElement value) => value;
 }

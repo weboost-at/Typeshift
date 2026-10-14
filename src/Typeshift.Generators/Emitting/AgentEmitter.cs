@@ -6,335 +6,598 @@ namespace Typeshift.Generators.Emitting;
 
 internal static class AgentEmitter
 {
+    private const string ChatOptions = "global::Microsoft.Extensions.AI.ChatOptions";
+
+    private const string RunOptions = "global::Typeshift.RunOptions";
+
     private const string Task = "global::System.Threading.Tasks.Task";
 
     private const string CancellationToken = "global::System.Threading.CancellationToken";
 
-    private const string InvalidOperationException = "global::System.InvalidOperationException";
+    private const string Runs = "global::Typeshift.Generated.AgentRuns";
 
-    private const string MissingStore = "No store with ids of <typeparamref name=\"TId\"/> is registered.";
+    private const string Tools =
+        "global::System.Collections.Generic.IEnumerable<global::Microsoft.Extensions.AI.AITool>";
 
-    public static string Emit(AgentOutput output) =>
-        TypeEmitter.EmitPartial(
-            output.Agent.Type,
-            [],
-            writer => WriteMembers(writer, output),
-            writer => WriteRuntimeExtensions(writer, output.Agent));
+    private const string Updates =
+        "global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate>";
 
-    private static void WriteMembers(SourceWriter writer, AgentOutput output)
+    private const string Json = StorageEmitter.Json;
+
+    // The members of the record that its properties must not be named like
+    private static readonly string[] RecordMembers =
+    [
+        "Clone", "Deconstruct", "Deserialize", "EqualityContract", "Equals", "GetHashCode", "Kind", "PrintMembers",
+        "Serialize", "Settings", "ToString", "TryReadJson", "Version", "WriteJson"
+    ];
+
+    public static string Emit(AgentOutput output, string idType)
     {
-        var tools = output.Tools.Where(tool => tool.Settings?.Properties.Count > 0).ToList();
+        var agent = output.Agent;
+        var configured = output.Tools.Where(tool => HasConfigure(agent, tool.Tool)).ToList();
 
-        if (tools.Count > 0)
-        {
-            WriteToolSettings(writer, output.Agent, tools);
-            writer.Line();
-        }
+        return TypeEmitter.EmitPartial(
+            agent.Type,
+            [],
+            writer =>
+            {
+                WriteSettings(writer, output);
+                writer.Line();
+                writer.Line("/// <inheritdoc />");
+                writer.Line(Names.Hidden);
+                writer.Line(
+                    "protected override global::Typeshift.Generated.AgentDeclaration Declaration => "
+                    + "TypeshiftGenerated.Instance;");
 
-        WriteSettings(writer, output.Agent, output.Tools);
+                if (configured.Count > 0)
+                {
+                    writer.Line();
+                    writer.Line("private readonly TypeshiftGenerated.Configured _typeshift = new();");
+                }
+
+                foreach (var tool in configured)
+                {
+                    writer.Line();
+                    Docs.WriteSummary(
+                        writer,
+                        $"Sets the settings <c>{tool.Tool.Name}</c> runs with in this agent, over the code defaults "
+                        + "of its settings record.");
+                    Docs.WriteReturns(writer, "The settings, one <c>With...</c> per member.");
+                    writer.Line(
+                        $"private TypeshiftGenerated.{Builder(tool.Tool)} {Configure(tool.Tool)}() => "
+                        + "new(_typeshift);");
+                }
+
+                writer.Line();
+                WriteDeclaration(writer, output, configured);
+            },
+            writer =>
+            {
+                if (agent.IsReachable) WriteHostMembers(writer, agent, idType);
+            });
     }
 
-    // D30: per tool with settings a field, set through its Configure{Tool}() builder; nothing for any other tool
-    private static void WriteToolSettings(SourceWriter writer, AgentModel agent, IReadOnlyList<ResolvedTool> tools)
+    // The user's own Configure{Tool}() wins; a tool without settings has nothing to configure
+    private static bool HasConfigure(AgentModel agent, ToolSummary tool) =>
+        tool.Settings is not null && !agent.Configures.Contains(Configure(tool));
+
+    private static string Configure(ToolSummary tool) => $"Configure{Names.ToPascalCase(tool.Name)}";
+
+    private static string Builder(ToolSummary tool) => $"{Names.ToPascalCase(tool.Name)}Builder";
+
+    private static string Field(ToolSummary tool)
     {
-        foreach (var tool in tools)
+        var pascal = Names.ToPascalCase(tool.Name);
+        return Names.Identifier(char.ToLowerInvariant(pascal[0]) + pascal.Substring(1));
+    }
+
+    // The tool's resolved settings in CreateTools; ends in Settings, so never one of its parameters
+    private static string Local(ToolSummary tool) => $"{Field(tool).TrimStart('@')}Settings";
+
+    private static IEnumerable<OptionMember> Picked(EquatableArray<string> picks, OptionMember[] options) =>
+        options.Where(option => picks.Contains(option.Option));
+
+    // D6: a tool member named like an option or one of the record's own gets a suffix instead of clashing with it
+    private static string SettingsMember(AgentModel agent, ToolSummary tool)
+    {
+        string[] reserved =
+        [
+            .. RecordMembers,
+            .. Picked(agent.ChatOptions, OptionMembers.Chat).Select(option => option.Setting),
+            .. Picked(agent.RunOptions, OptionMembers.Run).Select(option => option.Setting)
+        ];
+
+        return Names.Identifier(Names.Unreserved(Names.ToPascalCase(tool.Name), "Tool", reserved));
+    }
+
+    private static void WriteSettings(SourceWriter writer, AgentOutput output)
+    {
+        var agent = output.Agent;
+        var chat = Picked(agent.ChatOptions, OptionMembers.Chat).ToList();
+        var run = Picked(agent.RunOptions, OptionMembers.Run).ToList();
+        var tools = output.Tools.Select(offered => offered.Tool).Where(tool => tool.Overrides is not null).ToList();
+
+        Docs.WriteSummary(
+            writer,
+            "What may change at runtime: stored under a settings id, or passed for one run. Null keeps the layer "
+            + "below.");
+        writer.Line(
+            "[global::System.Text.Json.Serialization.JsonConverter("
+            + "typeof(global::Typeshift.Generated.StorableJsonConverter<Settings>))]");
+        writer.Line("public sealed record Settings");
+
+        using (writer.Indent())
         {
-            writer.Line($"private {tool.Settings!.Type}? {Field(tool)};");
+            writer.Line(": global::Typeshift.IStorable<Settings>, global::Typeshift.Generated.IJsonStorable<Settings>");
+        }
+
+        using (writer.Block())
+        {
+            var members = new List<(string Summary, string Declaration)>();
+
+            foreach (var option in chat)
+            {
+                var summary = option.Option == "ModelId"
+                    ? "The model, over <c>WithModel</c>. Null keeps the layer below."
+                    : $"The chat option <c>{option.Option}</c>. Null keeps the layer below.";
+
+                members.Add((summary, $"public {option.Type} {option.Setting} {{ get; init; }}"));
+            }
+
+            foreach (var option in run)
+            {
+                members.Add((
+                    $"The run option <c>{option.Option}</c>. Null keeps the layer below.",
+                    $"public {option.Type} {option.Setting} {{ get; init; }}"));
+            }
+
+            foreach (var tool in tools)
+            {
+                members.Add((
+                    $"The configurable settings of the <c>{tool.Name}</c> tool; its null values keep the layer below.",
+                    $"public {tool.Overrides} {SettingsMember(agent, tool)} {{ get; init; }} = new();"));
+            }
+
+            foreach (var (summary, declaration) in members)
+            {
+                Docs.WriteSummary(writer, summary);
+                writer.Line(declaration);
+                writer.Line();
+            }
+
+            // D39, D40, D44
+            writer.Lines(
+                $$"""
+                /// <inheritdoc />
+                public static string Kind => {{Names.Literal(agent.Kind)}};
+
+                /// <inheritdoc />
+                public static int Version => {{agent.Version}};
+
+                /// <inheritdoc />
+                public string Serialize() => {{Json}}.Write(WriteJson);
+
+                /// <inheritdoc />
+                public static Settings Deserialize(string json, int version) =>
+                    version > Version
+                        ? throw new global::System.Text.Json.JsonException(
+                            $"{Kind} settings of version {version} are newer than this code's {Version}.")
+                        : {{Json}}.Read<Settings>(json, TryReadJson);
+                """);
+
+            var stored = chat.Concat(run)
+                .Select(option => (option.Setting, Parsing.Storage.JsonName(option.Setting), option.Storage));
+
+            StorageEmitter.WriteRecordJson(
+                writer,
+                "Settings",
+                stored,
+                tools.Count == 0 ? null : more => WriteTools(more, agent, tools),
+                [
+                    .. tools.Select((tool, index) =>
+                        $"{SettingsMember(agent, tool)} = {tool.Overrides}.TryReadJson("
+                        + $"{Json}.Member({Json}.Member(element, \"tools\"), {Names.Literal(tool.Name)}), "
+                        + $"out var tool{index}) ? tool{index} : new()")
+                ]);
+        }
+    }
+
+    // Tools are stored under "tools" by name, each left out while it overrides nothing
+    private static void WriteTools(SourceWriter writer, AgentModel agent, IReadOnlyList<ToolSummary> tools)
+    {
+        for (var index = 0; index < tools.Count; index++)
+        {
+            var tool = tools[index];
+
+            writer.Line(
+                $"var tool{index} = {SettingsMember(agent, tool)} is {{ }} set{index} && set{index} != new "
+                + $"{tool.Overrides}() ? set{index} : null;");
         }
 
         writer.Line();
-        Docs.WriteInheritDoc(writer);
-        writer.ToolSwitch(
-            "protected override object? GetToolSettings(global::Typeshift.Tools.ToolName tool) =>",
-            "tool.Value",
-            [.. tools.Select(tool => (tool.Name, Field(tool)))],
-            "null");
 
-        foreach (var tool in tools)
+        using (writer.Block($"if ({string.Join(" || ", tools.Select((_, index) => $"tool{index} is not null"))})"))
         {
-            var name = Names.ToolProperty(tool.Name);
+            writer.Line("writer.WriteStartObject(\"tools\");");
+
+            for (var index = 0; index < tools.Count; index++)
+            {
+                writer.Line();
+
+                using (writer.Block($"if (tool{index} is not null)"))
+                {
+                    writer.Line($"writer.WritePropertyName({Names.Literal(tools[index].Name)});");
+                    writer.Line($"tool{index}.WriteJson(writer);");
+                }
+            }
 
             writer.Line();
-            Docs.WriteSummary(
-                writer,
-                $"Sets the settings of the <c>{tool.Name}</c> tool in code, over its code defaults. The tool then "
-                + "ignores its stored defaults; the agent's stored settings and run settings still change its "
-                + "configurable values.");
-            Docs.WriteReturns(writer, "A builder of the tool's settings.");
-            writer.Line($"private {name}SettingsBuilder Configure{name}() => new(this);");
-            writer.Line();
-            WriteToolSettingsBuilder(writer, agent, tool, $"{name}SettingsBuilder");
+            writer.Line("writer.WriteEndObject();");
         }
     }
 
-    private static void WriteToolSettingsBuilder(SourceWriter writer, AgentModel agent, ResolvedTool tool, string type)
+    private static void WriteDeclaration(SourceWriter writer, AgentOutput output, IReadOnlyList<OfferedTool> configured)
     {
-        var field = $"agent.{Field(tool)}";
+        var agent = output.Agent;
+        var declaration = $"global::Typeshift.Generated.AgentDeclaration<{agent.Type.FullName}, Settings>";
 
-        Docs.WriteSummary(writer, $"Sets the settings of the <c>{tool.Name}</c> tool.");
+        writer.Line("private sealed class TypeshiftGenerated");
 
-        using (writer.Block($"private sealed class {type}({agent.Type.FullName} agent)"))
+        using (writer.Indent())
         {
-            foreach (var property in tool.Settings!.Properties)
+            writer.Line($": {declaration}");
+        }
+
+        using (writer.Block())
+        {
+            writer.Line("public static readonly TypeshiftGenerated Instance = new();");
+            writer.Line();
+            writer.Line($"public override string Name => {Names.Literal(agent.Name)};");
+            writer.Line();
+
+            var description = agent.Description is { } text ? Names.Literal(text) : "null";
+            writer.Line($"public override string? Description => {description};");
+            writer.Line();
+            WriteApplySettings(writer, agent);
+            writer.Line();
+            WriteCreateTools(writer, output, configured);
+
+            if (configured.Count == 0) return;
+
+            writer.Line();
+            WriteConfigured(writer, configured);
+        }
+    }
+
+    private static void WriteApplySettings(SourceWriter writer, AgentModel agent)
+    {
+        var chat = Picked(agent.ChatOptions, OptionMembers.Chat).ToList();
+        var run = Picked(agent.RunOptions, OptionMembers.Run).ToList();
+
+        writer.Lines(
+            $"""
+            protected override {RunOptions} ApplySettings(
+                {ChatOptions} options,
+                {RunOptions} run,
+                Settings settings)
+            """);
+
+        if (chat.Count == 0 && run.Count == 0)
+        {
+            writer.Line("    => run;");
+            return;
+        }
+
+        using (writer.Block())
+        {
+            foreach (var option in chat)
             {
-                if (property != tool.Settings.Properties[0]) writer.Line();
+                var value = Names.Identifier(char.ToLowerInvariant(option.Setting[0]) + option.Setting.Substring(1));
+                var applied = string.Format(option.Apply, value);
 
-                Docs.WriteSummary(
-                    writer,
-                    $"Sets <c>{property.Name}</c>{(property.Summary is { } summary ? $": {Docs.Escape(summary)}" : ".")}");
-                Docs.WriteParam(writer, "value", "The value.");
-                Docs.WriteReturns(writer, "The same builder, to set further values.");
-                writer.Line($"public {type} With{property.Name}({property.Type} value)");
+                writer.Line($"if (settings.{option.Setting} is {{ }} {value}) options.{option.Option} = {applied};");
+            }
 
-                using (writer.Block())
+            if (chat.Count > 0) writer.Line();
+
+            if (run.Count == 0)
+            {
+                writer.Line("return run;");
+                return;
+            }
+
+            writer.Line("return run with");
+
+            using (writer.Block(close: "};"))
+            {
+                writer.List(
+                [
+                    .. run.Select(option =>
+                        $"{option.Option} = settings.{option.Setting} ?? run.{option.Option}")
+                ]);
+            }
+        }
+    }
+
+    // D27: the agent's Configure{Tool}() over the record's defaults, then each layer's overrides
+    private static void WriteCreateTools(
+        SourceWriter writer,
+        AgentOutput output,
+        IReadOnlyList<OfferedTool> configured)
+    {
+        var agent = output.Agent;
+
+        writer.Lines(
+            $"""
+            protected override {Tools} CreateTools(
+                {agent.Type.FullName} agent,
+                global::System.Collections.Generic.IReadOnlyList<Settings> layers,
+                global::Typeshift.Generated.ToolJson json)
+            """);
+
+        using (writer.Block())
+        {
+            foreach (var offered in output.Tools.Where(offered => offered.Tool.Settings is not null))
+            {
+                var tool = offered.Tool;
+                var local = Local(tool);
+                var code = configured.Contains(offered) ? $"agent._typeshift.{Field(tool)} ?? new()" : "new()";
+
+                writer.Line($"{tool.Settings} {local} = {code};");
+
+                if (tool.Overrides is not null)
                 {
-                    writer.Line($"{field} = ({field} ?? new()) with {{ {Names.Identifier(property.Name)} = value }};");
-                    writer.Line("return this;");
+                    var member = SettingsMember(agent, tool);
+
+                    writer.Line();
+
+                    using (writer.Block("foreach (var layer in layers)"))
+                    {
+                        writer.Line($"{local} = layer.{member}?.ApplyTo({local}) ?? {local};");
+                    }
+                }
+
+                writer.Line();
+            }
+
+            if (output.Tools.Count == 0)
+            {
+                writer.Line("return [];");
+                return;
+            }
+
+            writer.Line("return");
+
+            using (writer.Block(open: "[", close: "];"))
+            {
+                writer.List(
+                [
+                    .. output.Tools.Select(offered =>
+                        offered.Tool.Settings is null
+                            ? $"{offered.Toolset}.{offered.Tool.Factory}(json)"
+                            : $"{offered.Toolset}.{offered.Tool.Factory}({Local(offered.Tool)}, json)")
+                ]);
+            }
+        }
+    }
+
+    // What Configure{Tool}() sets, kept per agent instance; the builders write it
+    private static void WriteConfigured(SourceWriter writer, IReadOnlyList<OfferedTool> configured)
+    {
+        using (writer.Block("public sealed class Configured"))
+        {
+            foreach (var offered in configured)
+            {
+                writer.Line($"public {offered.Tool.Settings}? {Field(offered.Tool)};");
+            }
+        }
+
+        foreach (var offered in configured)
+        {
+            var tool = offered.Tool;
+            var builder = Builder(tool);
+
+            writer.Line();
+
+            using (writer.Block($"public sealed class {builder}(Configured configured)"))
+            {
+                foreach (var member in tool.Members)
+                {
+                    if (member != tool.Members[0]) writer.Line();
+
+                    using (writer.Block($"public {builder} With{member.Name}({member.Type} value)"))
+                    {
+                        writer.Line(
+                            $"configured.{Field(tool)} = (configured.{Field(tool)} ?? new()) with "
+                            + $"{{ {Names.Identifier(member.Name)} = value }};");
+                        writer.Line("return this;");
+                    }
                 }
             }
         }
     }
 
-    // _searchWebSettings for search_web; tool names are unique, so are the fields
-    private static string Field(ResolvedTool tool)
+    // D12: the typed members of the agent's host, next to the agent in its namespace
+    private static void WriteHostMembers(SourceWriter writer, AgentModel agent, string idType)
     {
-        var name = Names.ToPascalCase(tool.Name);
-        return $"_{char.ToLowerInvariant(name[0])}{name.Substring(1)}Settings";
-    }
-
-    private static void WriteSettings(SourceWriter writer, AgentModel agent, IReadOnlyList<ResolvedTool> tools)
-    {
-        var configurableTools = tools.Where(tool => tool.HasOverrides).ToList();
-
-        // A tool property never clashes with the model, a chat option, a member of the record or the record itself
-        string[] reserved =
-        [
-            "Model",
-            "Settings",
-            .. agent.ConfigurableOptions.Select(option => option.Name),
-            .. StorableEmitter.RecordMembers
-        ];
-
-        var members = new[] { new StoredMember("Model", "model", new StorageModel("Write", "ReadString")) }
-            .Concat(agent.ConfigurableOptions.Select(option =>
-                new StoredMember(option.Name, Names.JsonName(option.Name), option.Storage)))
-            .ToList();
-
-        var stored = configurableTools
-            .Select(tool => new StoredTool(
-                Names.Unreserved(Names.ToPascalCase(tool.Name), "Tool", reserved),
-                tool.Name,
-                $"{tool.Toolset}.{Names.OverridesName(tool.Name)}"))
-            .ToList();
-
-        Docs.WriteSummary(
-            writer,
-            $"The settings of <see cref=\"{agent.Type.FullName}\"/> that may change at runtime: "
-            + "its model, its configurable chat options and the configurable settings of its tools. A null value "
-            + "keeps what the layer below sets. Store them per id through the agent's runtime, or pass them for a "
-            + "single run.");
-        writer.Lines(
-            """
-            public sealed record Settings :
-                global::Typeshift.Agents.IAgentSettings,
-                global::Typeshift.Persistence.IStorable<Settings>
-            """);
-
-        using (writer.Block())
-        {
-            Docs.WriteSummary(
-                writer,
-                "The model the agent runs on, as the registered chat client provider names it. Null keeps the "
-                + "model of the agent's chat options.");
-            writer.Line("public string? Model { get; init; }");
-
-            foreach (var option in agent.ConfigurableOptions)
-            {
-                writer.Line();
-                Docs.WriteSummary(
-                    writer,
-                    $"Overrides the <c>{option.Name}</c> of the agent's chat options. Null keeps the value of the layer "
-                    + "below.");
-                writer.Line($"public {option.NullableType} {Names.Identifier(option.Name)} {{ get; init; }}");
-            }
-
-            for (var index = 0; index < configurableTools.Count; index++)
-            {
-                // The overrides of an internal toolset cannot be part of a public agent's settings
-                var accessibility = configurableTools[index].IsPublic ? "public" : "internal";
-
-                writer.Line();
-                Docs.WriteSummary(
-                    writer,
-                    $"Overrides the configurable settings of the agent's <c>{stored[index].Name}</c> tool.");
-                writer.Line($"{accessibility} {stored[index].Type} {stored[index].Property} {{ get; init; }} = new();");
-            }
-
-            writer.Line();
-            StorableEmitter.WriteSerialize(writer, members, stored);
-            writer.Line();
-            StorableEmitter.WriteDeserialize(writer, "Settings", members, stored);
-            writer.Line();
-            WriteApplyTo(writer, agent);
-            writer.Line();
-            WriteGetToolOverrides(writer, stored);
-        }
-    }
-
-    private static void WriteApplyTo(SourceWriter writer, AgentModel agent)
-    {
-        writer.Line(
-            "void global::Typeshift.Agents.IAgentSettings.ApplyTo("
-            + "global::Microsoft.Extensions.AI.ChatOptions options)");
-
-        using (writer.Block())
-        {
-            writer.Line("if (Model is { } model) options.ModelId = model;");
-
-            foreach (var option in agent.ConfigurableOptions)
-            {
-                var property = Names.Identifier(option.Name);
-                var local = Names.Identifier(Names.JsonName(option.Name));
-
-                writer.Line($"if ({property} is {{ }} {local}) options.{property} = {local};");
-            }
-        }
-    }
-
-    private static void WriteGetToolOverrides(SourceWriter writer, IReadOnlyList<StoredTool> tools) =>
-        writer.ToolSwitch(
-            """
-            global::Typeshift.Settings.IToolOverrides? global::Typeshift.Agents.IAgentSettings.GetToolOverrides(
-                global::Typeshift.Tools.ToolName tool) =>
-            """,
-            "tool.Value",
-            [.. tools.Select(tool => (tool.Name, tool.Property))],
-            "null");
-
-    // The typed members of the agent's runtime, as an extension block so the settings type never needs naming
-    private static void WriteRuntimeExtensions(SourceWriter writer, AgentModel agent)
-    {
+        var host = $"global::Typeshift.AgentHost<{agent.Type.FullName}>";
         var settings = $"{agent.Type.FullName}.Settings";
+        var response = "global::Microsoft.Extensions.AI.ChatResponse";
+        var message = "global::Microsoft.Extensions.AI.ChatMessage";
+        var user = "new(global::Microsoft.Extensions.AI.ChatRole.User, input)";
+        var types = $"{agent.Type.FullName}, {settings}";
+        var run = new HostRun(idType, settings);
 
         writer.Line();
-        Docs.WriteSummary(writer, $"The typed members of the runtime of <see cref=\"{agent.Type.FullName}\"/>.");
+        Docs.WriteSummary(writer, $"The runs and stored settings of <see cref=\"{agent.Type.FullName}\"/>.");
 
-        using (writer.Block($"{agent.Type.Accessibility} static class {agent.Type.FlatName}RuntimeExtensions"))
+        using (writer.Block($"{agent.Type.Accessibility} static class {agent.Type.FlatName}HostExtensions"))
+        using (writer.Block($"extension({host} host)"))
         {
-            using (writer.Block($"extension(global::Typeshift.Agents.AgentRuntime<{agent.Type.FullName}> runtime)"))
-            {
-                WriteLoadSettings(writer, settings);
-                writer.Line();
-                WriteSaveSettings(writer, settings);
-                writer.Line();
-                WriteConfigure(writer, settings);
-                writer.Line();
-                WriteResolveChatOptions(writer, settings);
-                writer.Line();
-                WriteResolveStoredChatOptions(writer, settings);
-            }
+            run.Write(writer, "Runs the agent on a message", $"{Task}<{response}>", "RunAsync", "string",
+                $"{Runs}.RunAsync(host, {user}, settingsId, conversationId, settings, ct);");
+            writer.Line();
+            run.Write(writer, "Runs the agent on a message, which may carry images or approvals", $"{Task}<{response}>",
+                "RunAsync", message, $"{Runs}.RunAsync(host, input, settingsId, conversationId, settings, ct);");
+            writer.Line();
+
+            Docs.WriteSummary(
+                writer,
+                "Runs the agent on a message, asking the model for JSON of <typeparamref name=\"TResult\"/>'s schema.");
+            Docs.WriteTypeParam(writer, "TResult", "The result's type.");
+            run.Write(writer, null, $"{Task}<{response}<TResult>>", "RunAsync<TResult>", "string",
+                $"{Runs}.RunAsync<{agent.Type.FullName}, TResult>"
+                + $"(host, {user}, settingsId, conversationId, settings, ct);");
+            writer.Line();
+            run.Write(writer, "Runs the agent on a message, streaming the updates", Updates, "RunStreamingAsync",
+                "string", $"{Runs}.RunStreamingAsync(host, {user}, settingsId, conversationId, settings, ct);");
+            writer.Line();
+            run.Write(writer, "Runs the agent on a message, streaming the updates", Updates, "RunStreamingAsync",
+                message, $"{Runs}.RunStreamingAsync(host, input, settingsId, conversationId, settings, ct);");
+            writer.Line();
+
+            WriteResume(writer, "ResumeAsync", $"{Task}<{response}>", idType, settings, "ResumeAsync");
+            writer.Line();
+            WriteResume(writer, "ResumeStreamingAsync", Updates, idType, settings, "ResumeStreamingAsync");
+            writer.Line();
+
+            Docs.WriteSummary(
+                writer,
+                "Resolves the options of a run, for the raw path: <c>CreateChatClientAsync</c>, then the client. "
+                + "<c>ChatOptions.ConversationId</c> names the conversation there.");
+            Docs.WriteParam(writer, "settingsId", "The id of the stored settings to apply, or null for none.");
+            Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
+            Docs.WriteParam(writer, "ct", "Cancels the resolution.");
+            Docs.WriteReturns(writer, "The options, with the agent's tools.");
+            writer.Lines(
+                $"""
+                public {Task}<{ChatOptions}> ResolveOptionsAsync(
+                    {idType}? settingsId = null,
+                    {settings}? settings = null,
+                    {CancellationToken} ct = default) =>
+                    {Runs}.ResolveOptionsAsync(host, settingsId, settings, ct);
+                """);
+            writer.Line();
+
+            // D41: revisions guard every save
+            Docs.WriteSummary(writer, "Loads the settings stored under an id.");
+            Docs.WriteParam(writer, "settingsId", "The id.");
+            Docs.WriteParam(writer, "ct", "Cancels the load.");
+            Docs.WriteReturns(
+                writer,
+                "The settings and the revision <c>SaveSettingsAsync</c> takes; empty settings at revision 0 when none "
+                + "are stored.");
+            writer.Lines(
+                $"""
+                public {Task}<global::Typeshift.Stored<{settings}>> LoadSettingsAsync(
+                    {idType} settingsId,
+                    {CancellationToken} ct = default) =>
+                    {Runs}.LoadSettingsAsync<{types}>(host, settingsId, ct);
+                """);
+            writer.Line();
+
+            Docs.WriteSummary(writer, "Saves settings under an id, unless another save came since they were loaded.");
+            Docs.WriteParam(writer, "settingsId", "The id.");
+            Docs.WriteParam(writer, "settings", "The settings.");
+            Docs.WriteParam(writer, "revision", "The revision <c>LoadSettingsAsync</c> returned.");
+            Docs.WriteParam(writer, "ct", "Cancels the save.");
+            Docs.WriteReturns(writer, "The new revision.");
+            Docs.WriteException(writer, "global::Typeshift.StoreConflictException", "Another save came first.");
+            writer.Lines(
+                $"""
+                public {Task}<long> SaveSettingsAsync(
+                    {idType} settingsId,
+                    {settings} settings,
+                    long revision,
+                    {CancellationToken} ct = default) =>
+                    {Runs}.SaveSettingsAsync<{types}>(host, settingsId, settings, revision, ct);
+                """);
+            writer.Line();
+
+            Docs.WriteSummary(
+                writer,
+                "Changes the settings stored under an id, reloading and changing them again whenever another save "
+                + "came first.");
+            Docs.WriteParam(writer, "settingsId", "The id.");
+            Docs.WriteParam(writer, "configure", "Returns the changed settings; called again after a lost save.");
+            Docs.WriteParam(writer, "ct", "Cancels the change.");
+            Docs.WriteReturns(writer, "The settings saved.");
+            writer.Lines(
+                $"""
+                public {Task}<{settings}> ConfigureAsync(
+                    {idType} settingsId,
+                    global::System.Func<{settings}, {settings}> configure,
+                    {CancellationToken} ct = default) =>
+                    {Runs}.ConfigureAsync<{types}>(host, settingsId, configure, ct);
+                """);
         }
     }
 
-    private static void WriteLoadSettings(SourceWriter writer, string settings)
-    {
-        Docs.WriteSummary(writer, "Loads the agent's settings stored under an id.");
-        Docs.WriteTypeParam(writer, "TId", "The id type of the registered store.");
-        Docs.WriteParam(writer, "id", "The id the settings were saved under.");
-        Docs.WriteParam(writer, "ct", "Cancels the load.");
-        Docs.WriteReturns(writer, "The stored settings, or empty settings when none are stored.");
-        Docs.WriteException(writer, InvalidOperationException, MissingStore);
-        writer.Lines(
-            $"""
-            public {Task}<{settings}> LoadSettingsAsync<TId>(
-                TId id,
-                {CancellationToken} ct = default)
-                where TId : notnull =>
-                runtime.LoadSettingsCoreAsync<{settings}, TId>(id, ct);
-            """);
-    }
-
-    private static void WriteSaveSettings(SourceWriter writer, string settings)
-    {
-        Docs.WriteSummary(writer, "Saves the agent's settings under an id, replacing what was stored there.");
-        Docs.WriteTypeParam(writer, "TId", "The id type of the registered store.");
-        Docs.WriteParam(writer, "id", "The id to save the settings under.");
-        Docs.WriteParam(writer, "settings", "The settings; a null value keeps what the agent's code sets.");
-        Docs.WriteParam(writer, "ct", "Cancels the save.");
-        Docs.WriteException(writer, InvalidOperationException, MissingStore);
-        writer.Lines(
-            $"""
-            public {Task} SaveSettingsAsync<TId>(
-                TId id,
-                {settings} settings,
-                {CancellationToken} ct = default)
-                where TId : notnull =>
-                runtime.SaveSettingsCoreAsync(id, settings, ct);
-            """);
-    }
-
-    private static void WriteConfigure(SourceWriter writer, string settings)
-    {
-        Docs.WriteSummary(writer, "Changes the agent's settings stored under an id and saves them.");
-        Docs.WriteTypeParam(writer, "TId", "The id type of the registered store.");
-        Docs.WriteParam(writer, "id", "The id the settings are stored under.");
-        Docs.WriteParam(
-            writer,
-            "configure",
-            "Returns the changed settings, <c>settings => settings with { Temperature = 0.4f }</c>.");
-        Docs.WriteParam(writer, "ct", "Cancels the load and the save.");
-        Docs.WriteReturns(writer, "The saved settings.");
-        Docs.WriteException(writer, InvalidOperationException, MissingStore);
-        writer.Lines(
-            $"""
-            public {Task}<{settings}> ConfigureAsync<TId>(
-                TId id,
-                global::System.Func<{settings}, {settings}> configure,
-                {CancellationToken} ct = default)
-                where TId : notnull =>
-                runtime.ConfigureSettingsCoreAsync(id, configure, ct);
-            """);
-    }
-
-    private static void WriteResolveChatOptions(SourceWriter writer, string settings)
+    // D50: a conversation's interrupted run, continued without input
+    private static void WriteResume(
+        SourceWriter writer,
+        string name,
+        string returns,
+        string idType,
+        string settings,
+        string run)
     {
         Docs.WriteSummary(
             writer,
-            "Resolves the chat options of a run from the agent's code alone, without a store.");
-        Docs.WriteParam(writer, "run", "Settings for this run only; a null value keeps what the code sets.");
-        Docs.WriteParam(writer, "conversationId", "The conversation the run continues, or null.");
-        Docs.WriteReturns(writer, "The options, with the agent's tools, to create the chat client with and call it with.");
+            "Continues the conversation's run that was interrupted, from its last stored step, without new input.");
+        Docs.WriteParam(writer, "conversationId", "The conversation's id.");
+        Docs.WriteParam(writer, "settingsId", "The id of the stored settings to apply, or null for none.");
+        Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
+        Docs.WriteParam(writer, "ct", "Cancels the run.");
+        Docs.WriteReturns(
+            writer,
+            returns.Contains("IAsyncEnumerable") ? "The updates." : "The response.");
+        Docs.WriteException(
+            writer,
+            "global::System.InvalidOperationException",
+            "The conversation has no interrupted run.");
         writer.Lines(
             $"""
-            public global::Microsoft.Extensions.AI.ChatOptions ResolveChatOptions(
-                {settings}? run = null,
-                string? conversationId = null) =>
-                runtime.ResolveChatOptionsCore(run, conversationId);
+            public {returns} {name}(
+                {idType} conversationId,
+                {idType}? settingsId = null,
+                {settings}? settings = null,
+                {CancellationToken} ct = default) =>
+                {Runs}.{run}(host, conversationId, settingsId, settings, ct);
             """);
     }
 
-    private static void WriteResolveStoredChatOptions(SourceWriter writer, string settings)
+    // The parameters every run takes, after its input
+    private sealed class HostRun(string idType, string settings)
     {
-        Docs.WriteSummary(
-            writer,
-            "Resolves the chat options of a run from the agent's code, the settings stored under an id and the "
-            + "defaults stored under the same id for its tools.");
-        Docs.WriteTypeParam(writer, "TId", "The id type of the registered store.");
-        Docs.WriteParam(writer, "id", "The id the agent's settings and its tools' defaults are stored under.");
-        Docs.WriteParam(writer, "run", "Settings for this run only; a null value keeps what the layers below set.");
-        Docs.WriteParam(writer, "conversationId", "The conversation the run continues, or null.");
-        Docs.WriteParam(writer, "ct", "Cancels the loads.");
-        Docs.WriteReturns(writer, "The options, with the agent's tools, to create the chat client with and call it with.");
-        Docs.WriteException(writer, InvalidOperationException, MissingStore);
-        writer.Lines(
-            $"""
-            public {Task}<global::Microsoft.Extensions.AI.ChatOptions> ResolveChatOptionsAsync<TId>(
-                TId id,
-                {settings}? run = null,
-                string? conversationId = null,
-                {CancellationToken} ct = default)
-                where TId : notnull =>
-                runtime.ResolveChatOptionsCoreAsync<{settings}, TId>(id, run, conversationId, ct);
-            """);
+        public void Write(SourceWriter writer, string? summary, string returns, string name, string input, string call)
+        {
+            if (summary is not null)
+                Docs.WriteSummary(writer, $"{summary}, with the stored and the run's settings over the agent's code.");
+
+            Docs.WriteParam(writer, "input", "The user's message.");
+            Docs.WriteParam(writer, "settingsId", "The id of the stored settings to apply, or null for none.");
+            Docs.WriteParam(
+                writer,
+                "conversationId",
+                "The id of the conversation the run resumes and is stored in, or null for none.");
+            Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
+            Docs.WriteParam(writer, "ct", "Cancels the run.");
+            Docs.WriteReturns(
+                writer,
+                returns.Contains("IAsyncEnumerable")
+                    ? "The updates; they carry the agent's name as their author."
+                    : "The response; its messages carry the agent's name as their author.");
+            writer.Lines(
+                $"""
+                public {returns} {name}(
+                    {input} input,
+                    {idType}? settingsId = null,
+                    {idType}? conversationId = null,
+                    {settings}? settings = null,
+                    {CancellationToken} ct = default) =>
+                    {call}
+                """);
+        }
     }
 }

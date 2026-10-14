@@ -1,20 +1,19 @@
 namespace Typeshift.Generators.Models;
 
+// IsReachable: code outside the class can name and create it, so the host members and the module reach it.
+// ChatOptions and RunOptions hold the configurable options' member names, Configures the Configure{Tool} names the
+// user declared, which the generator leaves to them; Kind and Version are those of the stored Settings
 internal sealed record AgentModel(
     TypeModel Type,
-    bool IsPartial,
-    EquatableArray<ChatOptionModel> ConfigurableOptions,
-    EquatableArray<ToolsetUseModel> Uses,
-    EquatableArray<DiagnosticInfo> Diagnostics);
+    bool IsReachable,
+    string Name,
+    string? Description,
+    string Kind,
+    int Version,
+    EquatableArray<string> ChatOptions,
+    EquatableArray<string> RunOptions,
+    EquatableArray<ToolsetUseModel> Toolsets,
+    EquatableArray<string> Configures);
 
-// A chat option the agent's settings may override; NullableType is its type made nullable
-internal sealed record ChatOptionModel(string Name, string NullableType, StorageModel Storage);
-
-// Picked holds the tool properties chained in Include or, when Excludes, in Exclude; none offers every tool. IsPublic
-// when other assemblies can name T
-internal sealed record ToolsetUseModel(
-    string Toolset,
-    bool IsPublic,
-    bool Excludes,
-    EquatableArray<string> Picked,
-    LocationInfo? Location);
+// Picks are tool list property names, in source order; with none, the use offers every tool
+internal sealed record ToolsetUseModel(string Toolset, bool Excludes, EquatableArray<string> Picks);

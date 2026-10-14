@@ -6,9 +6,8 @@
     <IsTrimmable>true</IsTrimmable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IsPackable>true</IsPackable>
-    <!-- D38: the library's name; the buildTransitive props are packed under it -->
     <PackageId>Typeshift</PackageId>
-    <Description>Code-defined agents and toolsets for Microsoft.Extensions.AI. A source generator turns them into reflection-free AIFunctions, a typed settings record per agent and one AddTypeshift() registration, ready for Native AOT.</Description>
+    <Description>Code-defined agents and toolsets for Microsoft.Extensions.AI. A source generator turns them into reflection-free AIFunctions, a typed settings record per agent and one AddTypeshift() registration.</Description>
     <PackageTags>ai;agents;tools;source-generator;microsoft.extensions.ai;llm;aot</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageReleaseNotes>https://github.com/weboost-at/Typeshift/blob/main/CHANGELOG.md</PackageReleaseNotes>
@@ -17,16 +16,21 @@
     <EnablePackageValidation>true</EnablePackageValidation>
   </PropertyGroup>
 
+  <!-- D45: the built-in toolsets are held to TSH027 like any AOT-compatible toolset library -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.AI" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
-    <PackageReference Include="Microsoft.Extensions.Options" />
+    <CompilerVisibleProperty Include="IsAotCompatible" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../Typeshift.Generators/Typeshift.Generators.csproj" ReferenceOutputAssembly="false" />
+    <PackageReference Include="Microsoft.Extensions.AI" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- D37: the generator compiles the built-in toolsets too -->
+    <ProjectReference Include="../Typeshift.Generators/Typeshift.Generators.csproj" ReferenceOutputAssembly="false" OutputItemType="Analyzer" />
     <None Include="../Typeshift.Generators/bin/$(Configuration)/netstandard2.0/Typeshift.Generators.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
-    <!-- D38: NuGet imports buildTransitive/{PackageId}.props only, so the file is packed under the package's ID -->
+    <!-- D48: NuGet imports buildTransitive/{PackageId}.props only, so the file is packed under the package's ID -->
     <None Include="buildTransitive/Typeshift.props" Pack="true" PackagePath="buildTransitive/$(PackageId).props" />
     <None Include="PACKAGE.md" Pack="true" PackagePath="README.md" />
   </ItemGroup>

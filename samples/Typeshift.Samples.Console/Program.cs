@@ -1,73 +1,51 @@
-using Typeshift.Agents;
-using Typeshift.Conversations;
-using Typeshift.Persistence;
-using Typeshift.Persistence.InMemory;
+using Typeshift;
 using Typeshift.Samples.Chat;
 using Typeshift.Samples.Companies;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
-// Registration: one call registers every toolset and agent of this assembly and of the assemblies it references
-// begin-snippet: quickstart-registration
+// Runs a toolset, stored settings, a tracked conversation, streaming and structured output published as Native AOT;
+// any reflection a generated path needed would fail here, which fails CI
 var services = new ServiceCollection();
 
-services.AddTypeshift();
-services.AddTypeshiftStore<InMemoryTypeshiftStore<Guid>, Guid>();
-services.AddSingleton<IChatClientProvider, ScriptedChatClientProvider>();
+services.AddTypeshift()
+    .WithStore<InMemoryTypeshiftStore>()
+    .WithChatClientProvider<ScriptedChatClientProvider>();
 
 await using var provider = services.BuildServiceProvider();
-// end-snippet
+await using var scope = provider.CreateAsyncScope();
 
-// Typed settings: ResearchAgent.Settings holds only what the agent's code marks configurable, stored per id
-// begin-snippet: quickstart-settings
-var research = provider.GetRequiredService<AgentRuntime<ResearchAgent>>();
-var customer = Guid.NewGuid();
+var research = scope.ServiceProvider.GetRequiredService<AgentHost<ResearchAgent>>();
+var settingsId = Guid.CreateVersion7();
+var conversationId = Guid.CreateVersion7();
 
-await research.ConfigureAsync(customer, settings => settings with
+await research.ConfigureAsync(settingsId, settings => settings with
 {
-    Model = "scripted-model",
     Temperature = 0.4f,
-    FindCompanies = settings.FindCompanies with { Limit = 2 }
+    FindCompanies = new CompanyToolset.FindCompaniesOverrides { Limit = 2 }
 });
-// end-snippet
 
-// A tool loop: the model calls find_companies, which runs with the settings stored for the customer
-// begin-snippet: quickstart-run
-var conversationId = Guid.NewGuid();
-var options = await research.ResolveChatOptionsAsync(customer, conversationId: conversationId.ToString());
-var client = await research.CreateChatClientAsync(options);
-var answer = await client.GetResponseAsync("Vienna", options);
+var answer = await research.RunAsync("Vienna", settingsId, conversationId);
+Expect(answer.Text == "Found Danube Robotics, Prater Motion.", answer.Text);
 
-Console.WriteLine($"{research.Definition.Name}: {answer.Text}");
-// end-snippet
+var entries = await provider.GetRequiredService<ITypeshiftStore>().LoadConversationAsync(conversationId, default);
+Expect(entries is [.., { EndsRun: true }], $"{entries.Count} entries without an end");
 
-// A tracked conversation: stored under its id through the same store, as JSON
-// begin-snippet: quickstart-conversation
-var store = provider.GetRequiredService<ITypeshiftStore<Guid>>();
+var streamed = new System.Text.StringBuilder();
 
-var conversation = await store.LoadAsync<StoredConversation>(conversationId, CancellationToken.None)
-    ?? throw new InvalidOperationException("The conversation was not stored.");
-
-Console.WriteLine(
-    $"Stored {conversation.AggregatedMessages.Count} messages of {conversation.ExecutionContext.Value}, " +
-    $"{conversation.AggregatedUsage.TotalTokenCount} tokens");
-// end-snippet
-
-// Run settings: one run overrides configurable values from the code alone, without storing them
-// begin-snippet: quickstart-run-settings
-var run = new ResearchAgent.Settings
+await foreach (var update in research.RunStreamingAsync("Graz", settingsId))
 {
-    Model = "scripted-model",
-    FindCompanies = new CompanyToolset.FindCompaniesOverrides { Limit = 1 }
-};
+    streamed.Append(update.Text);
+}
 
-var runOptions = research.ResolveChatOptions(run);
-var runClient = await research.CreateChatClientAsync(runOptions);
+Expect(streamed.ToString() == "Found Alpine Grippers.", streamed.ToString());
 
-Console.Write($"{research.Definition.Name}, one run: ");
+var count = await research.RunAsync<CompanyCount>("Vienna", settingsId);
+Expect(count.Result == new CompanyCount("Vienna", 2), count.Text);
 
-await foreach (var update in runClient.GetStreamingResponseAsync("Vienna", runOptions))
-    Console.Write(update.Text);
+Console.WriteLine($"{research.Agent.Name}: {answer.Text} {streamed} {count.Result}; {entries.Count} entries stored");
+return 0;
 
-Console.WriteLine();
-// end-snippet
+static void Expect(bool holds, string what)
+{
+    if (!holds) throw new InvalidOperationException($"Unexpected: {what}");
+}

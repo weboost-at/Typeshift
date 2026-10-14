@@ -1,30 +1,37 @@
-using Typeshift.Agents;
-using Typeshift.Samples.Docs.Knowledge;
-using Typeshift.Samples.Docs.Tickets;
+using Typeshift.Samples.Hosting;
+using Typeshift.Samples.Knowledge;
+using Typeshift.Samples.Tickets;
 
-namespace Typeshift.Samples.Docs.Agents;
+namespace Typeshift.Samples.Agents;
 
 // begin-snippet: agent
-internal partial class SupportAgent : AgentDefinition
+internal partial class SupportAgent : Agent
 {
     public SupportAgent()
     {
-        WithName("support_agent");
         WithDescription("Answers customers from their tickets and the help center.");
 
         WithChatOptions()
             .WithModel("fast-model")
             .WithTemperature(0.3f)
+            .Configurable(o => o.ModelId)
             .Configurable(o => o.Instructions)
-            .Configurable(o => o.Temperature)
-            .Configurable(o => o.MaxOutputTokens);
+            .Configurable(o => o.Temperature);
 
-        UseToolset<TicketToolset>().Include(t => t.SearchTickets);
+        UseToolset<TicketToolset>().Include(t => t.SearchTickets).Include(t => t.CloseTicket);
 
-        UseToolset<KnowledgeToolset>();
+        UseToolset<KnowledgeToolset>().Exclude(t => t.DeleteArticle);
 
         ConfigureSearchTickets()
             .WithLimit(5);
+
+        // begin-snippet: use-mcp-server
+        UseMcpServer("status_page").ReadOnly();
+        // end-snippet
+
+        // begin-snippet: use-context
+        UseContext<CustomerProfileContext>();
+        // end-snippet
     }
 
     protected override string GetInstructions() =>

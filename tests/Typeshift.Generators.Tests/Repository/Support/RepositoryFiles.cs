@@ -17,7 +17,8 @@ public static class RepositoryFiles
     public static IReadOnlyList<string> Find(string pattern, params string[] folders) =>
     [
         .. folders
-            .SelectMany(folder => Directory.EnumerateFiles(Path.Combine(Root, folder), pattern, SearchOption.AllDirectories))
+            .SelectMany(folder =>
+                Directory.EnumerateFiles(Path.Combine(Root, folder), pattern, SearchOption.AllDirectories))
             .Select(path => Path.GetRelativePath(Root, path).Replace('\\', '/'))
             .Where(path => !path.Contains("/bin/") && !path.Contains("/obj/"))
             .Order()

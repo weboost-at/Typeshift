@@ -1,22 +1,26 @@
-namespace Typeshift.Samples.Docs.Tickets;
+namespace Typeshift.Samples.Tickets;
 
-internal sealed class InMemoryTicketClient : ITicketClient
+// The tickets of the guide's scenarios
+internal sealed class InMemoryTicketClient(TimeProvider time) : ITicketClient
 {
-    private static readonly Ticket[] Tickets =
-    [
-        new(42, "Refund not received", Closed: false),
-        new(41, "Refund for a damaged parcel", Closed: true),
-        new(40, "Invoice address wrong", Closed: false)
-    ];
+    private readonly List<Ticket> _tickets = [new(1234, "Refund for order 77", Closed: false, time.GetUtcNow())];
 
     public IReadOnlyList<Ticket> Search(string query, bool includeClosed, int limit) =>
     [
-        .. Tickets
+        .. _tickets
             .Where(ticket => ticket.Title.Contains(query, StringComparison.OrdinalIgnoreCase))
             .Where(ticket => includeClosed || !ticket.Closed)
             .Take(limit)
     ];
 
     public Task<Ticket?> GetAsync(int number, CancellationToken ct) =>
-        Task.FromResult(Tickets.FirstOrDefault(ticket => ticket.Number == number));
+        Task.FromResult(_tickets.FirstOrDefault(ticket => ticket.Number == number));
+
+    public Task CloseAsync(int number, string reason, CancellationToken ct)
+    {
+        var index = _tickets.FindIndex(ticket => ticket.Number == number);
+        if (index >= 0) _tickets[index] = _tickets[index] with { Closed = true };
+
+        return Task.CompletedTask;
+    }
 }

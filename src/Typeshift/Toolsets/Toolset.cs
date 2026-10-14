@@ -1,71 +1,30 @@
-using System.ComponentModel;
-using Typeshift.Json;
-using Typeshift.Persistence;
-using Typeshift.Settings;
-using Typeshift.Tools;
-using Microsoft.Extensions.AI;
-
-namespace Typeshift.Toolsets;
+namespace Typeshift;
 
 /// <summary>
-/// The base of a partial class that declares its tools in its constructor.
+/// The base of a partial class that declares its tools in its constructor. The generator turns each tool into a
+/// reflection-free <c>AIFunction</c>, its configurable settings into a <c>{Tool}Overrides</c> record, and its tools
+/// into properties of <see cref="ToolList{TToolset}"/>.
 /// </summary>
 public abstract class Toolset
 {
-    private readonly List<ToolDefinition> _definitions = [];
+    /// <summary>
+    /// A name for people, a tool picker say; null unless <see cref="WithDisplayName"/> sets it.
+    /// </summary>
+    public string? DisplayName { get; private set; }
 
     /// <summary>
-    /// A human-readable name of the toolset.
+    /// Names the toolset for people.
     /// </summary>
-    public string? DisplayName { get; protected set; }
+    /// <param name="displayName">The name.</param>
+    protected void WithDisplayName(string displayName) => DisplayName = displayName;
 
+    // D4: the generator reads the chain at compile time; at runtime it declares nothing
     /// <summary>
-    /// The tools of this toolset, in declaration order.
+    /// Declares a tool backed by a static method. Its name is the method's in snake_case without an
+    /// <c>Async</c> suffix (<c>CloseTicketAsync</c> is <c>close_ticket</c>), its description the method's
+    /// <c>&lt;summary&gt;</c>.
     /// </summary>
-    public IReadOnlyList<ToolDefinition> Definitions => _definitions;
-
-    // Every tool outside of any agent, with run overrides of one tool each at most
-    internal IReadOnlyList<AIFunction> CreateTools(AgentJson json, params IToolOverrides[] overrides) =>
-        [.. _definitions.Select(tool => CreateTool(tool, RunningWith(tool, overrides), json))];
-
-    internal AIFunction CreateTool(ToolDefinition tool, ToolSettingsLayers layers, AgentJson json) =>
-        GetBinding(tool).CreateFunction(tool, layers, json);
-
-    internal Task<IToolOverrides?> LoadDefaultsAsync<TId>(
-        ToolDefinition tool,
-        ITypeshiftStore<TId> store,
-        TId id,
-        CancellationToken ct)
-        where TId : notnull =>
-        GetBinding(tool).LoadDefaultsAsync(store, id, ct);
-
-    /// <summary>
-    /// Declares a tool backed by a public static method; the generator reads the same chain at compile time.
-    /// </summary>
-    /// <param name="method">The tool's method, as a method group: <c>AddTool(FindCompanies)</c>.</param>
-    /// <returns>A builder that names, describes and configures the tool.</returns>
-    protected ToolBuilder AddTool(Delegate method)
-    {
-        var definition = new ToolDefinition(this);
-        _definitions.Add(definition);
-        return new ToolBuilder(definition);
-    }
-
-    private static ToolSettingsLayers RunningWith(ToolDefinition tool, IToolOverrides[] overrides) =>
-        new()
-        {
-            Run = overrides.FirstOrDefault(candidate => candidate.Tool == tool.Name)
-        };
-
-    /// <summary>
-    /// The generated binding of one of this toolset's tools; the generator overrides it.
-    /// </summary>
-    /// <param name="tool">One of this toolset's tools.</param>
-    /// <returns>The tool's binding.</returns>
-    /// <exception cref="InvalidOperationException">The toolset was not compiled with the generator.</exception>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    protected virtual ToolBinding GetBinding(ToolDefinition tool) =>
-        throw new InvalidOperationException(
-            $"{GetType().Name} has no generated tool '{tool.Name}'. "
-            + "Declare it partial and reference the package in its project.");
+    /// <param name="method">The method group: <c>AddTool(SearchTickets)</c>.</param>
+    /// <returns>A chain that renames, describes, marks and configures the tool.</returns>
+    protected ToolBuilder AddTool(Delegate method) => ToolBuilder.Instance;
 }

@@ -1,7 +1,8 @@
 using System.Collections.Immutable;
-using Typeshift.Generators;
+using Typeshift.Generators.Analysis;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Typeshift.Generators.Tests.Testing;
 
@@ -15,6 +16,9 @@ public abstract class GeneratorTestBase
         .WithFeatures([new("InterceptorsNamespaces", "Typeshift.Generated")]);
 
     private static readonly ImmutableArray<MetadataReference> FrameworkReferences = CreateFrameworkReferences();
+
+    private static readonly ImmutableArray<DiagnosticAnalyzer> Analyzers =
+        [new TypeshiftAnalyzer(), new ParameterDocsSuppressor()];
 
     protected CancellationToken Ct { get; } = TestContext.Current.CancellationToken;
 
@@ -35,18 +39,27 @@ public abstract class GeneratorTestBase
     protected static SyntaxTree Parse(string source, string path) =>
         CSharpSyntaxTree.ParseText(source, ParseOptions, path);
 
-    protected static GeneratorDriver CreateDriver() =>
+    protected static GeneratorDriver CreateDriver(
+        CSharpParseOptions? parseOptions = null,
+        BuildProperties? properties = null) =>
         CSharpGeneratorDriver.Create(
-            generators: [new AgentGenerator().AsSourceGenerator()],
-            parseOptions: ParseOptions,
+            generators: [new TypeshiftGenerator().AsSourceGenerator()],
+            parseOptions: parseOptions ?? ParseOptions,
+            optionsProvider: properties ?? BuildProperties.None,
             driverOptions: new GeneratorDriverOptions(
                 IncrementalGeneratorOutputKind.None,
                 trackIncrementalGeneratorSteps: true));
 
-    protected GeneratorRun Run(Compilation compilation)
+    // The generator, then the analyzers over the subject and the generated code, as the IDE runs them
+    protected GeneratorRun Run(
+        Compilation compilation,
+        CSharpParseOptions? parseOptions = null,
+        BuildProperties? properties = null)
     {
-        var driver = CreateDriver().RunGeneratorsAndUpdateCompilation(compilation, out var output, out _, Ct);
-        return new GeneratorRun(driver, output);
+        var driver = CreateDriver(parseOptions, properties)
+            .RunGeneratorsAndUpdateCompilation(compilation, out var output, out _, Ct);
+
+        return new GeneratorRun(driver, output, Analyze(output, properties ?? BuildProperties.None));
     }
 
     protected GeneratorRun Run(params string[] sources) => Run(Compile(sources));
@@ -55,7 +68,7 @@ public abstract class GeneratorTestBase
     protected GeneratorRun RunAgain(GeneratorRun previous, Compilation edited)
     {
         var driver = previous.Driver.RunGeneratorsAndUpdateCompilation(edited, out var output, out _, Ct);
-        return new GeneratorRun(driver, output);
+        return new GeneratorRun(driver, output, Analyze(output, BuildProperties.None));
     }
 
     protected static Compilation Edit(Compilation compilation, int tree, string source) =>
@@ -73,20 +86,37 @@ public abstract class GeneratorTestBase
             compilation,
             (current, tree) => current.ReplaceSyntaxTree(tree, tree.WithRootAndOptions(tree.GetRoot(), parseOptions)));
 
-        var driver = CSharpGeneratorDriver
-            .Create([new AgentGenerator().AsSourceGenerator()], parseOptions: parseOptions)
-            .RunGeneratorsAndUpdateCompilation(undocumented, out var output, out _, Ct);
-
-        return new GeneratorRun(driver, output);
+        return Run(undocumented, parseOptions);
     }
 
     // An assembly compiled with the generator, referenced from the subject as metadata
     protected MetadataReference CompileReference(string assemblyName, params string[] sources) =>
         Emit(Run(Compile(assemblyName, [], sources)).Output);
 
+    protected MetadataReference CompileReference(
+        string assemblyName,
+        BuildProperties properties,
+        params string[] sources) =>
+        Emit(Run(Compile(assemblyName, [], sources), properties: properties).Output);
+
     // An assembly whose project does not run the generator, as one without the package reference
     protected MetadataReference CompileReferenceWithoutGenerator(string assemblyName, params string[] sources) =>
         Emit(Compile(assemblyName, [], sources));
+
+    // Compiler diagnostics included, so the suppressor can act on them; suppressed ones are reported as such
+    private IReadOnlyList<Diagnostic> Analyze(Compilation output, BuildProperties properties) =>
+        output
+            .WithAnalyzers(
+                Analyzers,
+                new CompilationWithAnalyzersOptions(
+                    new AnalyzerOptions([], properties),
+                    onAnalyzerException: null,
+                    concurrentAnalysis: false,
+                    logAnalyzerExecutionTime: false,
+                    reportSuppressedDiagnostics: true))
+            .GetAllDiagnosticsAsync(Ct)
+            .GetAwaiter()
+            .GetResult();
 
     private MetadataReference Emit(Compilation compilation)
     {

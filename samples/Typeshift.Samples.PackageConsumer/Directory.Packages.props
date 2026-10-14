@@ -1,13 +1,13 @@
 <Project>
 
-  <!-- Replaces the repository's central versions: Typeshift floats to the newest version in the local feed. -->
+  <!-- Replaces the repository's central versions: Typeshift floats to whatever CI just packed into the local feed. -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageFloatingVersionsEnabled>true</CentralPackageFloatingVersionsEnabled>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageVersion Include="Typeshift" Version="*-*" />
+    <PackageVersion Include="Typeshift" Version="0.1.0-*" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
   </ItemGroup>
 
