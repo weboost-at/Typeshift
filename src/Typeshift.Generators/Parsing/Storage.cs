@@ -112,6 +112,7 @@ internal static class Storage
                 Parameters.IsEmpty: true,
                 DeclaredAccessibility: Accessibility.Public
             })
+            || HasRequiredMembers(type)
             || !visiting.Add(type)) return null;
 
         var members = new List<StoredMember>();
@@ -137,4 +138,17 @@ internal static class Storage
     // D44: camelCase
     public static string JsonName(string property) =>
         char.ToLowerInvariant(property[0]) + property.Substring(1);
+
+    // new() cannot create a class that requires members be set
+    private static bool HasRequiredMembers(INamedTypeSymbol type)
+    {
+        for (var level = type; level is not null; level = level.BaseType)
+        {
+            if (level.GetMembers().Any(member => member is IPropertySymbol { IsRequired: true }
+                    or IFieldSymbol { IsRequired: true }))
+                return true;
+        }
+
+        return false;
+    }
 }

@@ -14,6 +14,7 @@ public class ToolNamesTests
     [InlineData("IOStream", "io_stream")]
     [InlineData("Read_File", "read_file")]
     [InlineData("Async", "async")]
+    [InlineData("_Echo", "echo")]
     public void A_Method_Name_Becomes_Lower_Snake_Case(string method, string tool)
     {
         // Act

@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Linq;
+using Typeshift.Generators.Emitting;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -33,7 +34,7 @@ internal static class DefaultValues
         var name = type.ToTypeOf();
 
         // A negative value cast without parentheses would parse as a subtraction
-        return member is null ? $"({name})({FormatPrimitive(value)})" : $"{name}.{member.Name}";
+        return member is null ? $"({name})({FormatPrimitive(value)})" : $"{name}.{Names.Identifier(member.Name)}";
     }
 
     private static string FormatPrimitive(object value) =>

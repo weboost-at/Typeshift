@@ -767,6 +767,92 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string RequiredStoredMember =
+        """
+        using Typeshift;
+
+        internal sealed class Endpoint
+        {
+            public required string Url { get; init; }
+        }
+
+        internal record EchoSettings
+        {
+            public Endpoint? Primary { get; init; }
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Primary);
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string PrivateJsonContext =
+        """
+        using System.Text.Json.Serialization;
+        using Typeshift;
+
+        internal sealed record Company(string Name);
+
+        internal partial class CompanyToolset : Toolset
+        {
+            public CompanyToolset() => AddTool(Find).WithDescription("Finds a company.");
+
+            public static Company Find(string name) => new(name);
+
+            [JsonSerializable(typeof(Company))]
+            private partial class Json() : JsonSerializerContext(null)
+            {
+                protected override System.Text.Json.JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+                public override System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type) =>
+                    null;
+            }
+        }
+        """;
+
+    public const string PickBeingTyped =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent() => UseToolset<EchoToolset>().Include();
+        }
+        """;
+
+    public const string BuiltInToolName =
+        """
+        using Typeshift;
+
+        internal partial class SearchToolset : Toolset
+        {
+            public SearchToolset() => AddTool(WebSearch).WithDescription("Searches our own index.");
+
+            public static string WebSearch(string query) => query;
+        }
+
+        internal partial class SearchAgent : Agent
+        {
+            public SearchAgent()
+            {
+                UseToolset<SearchToolset>();
+
+                UseToolset<Typeshift.Toolsets.WebToolset>();
+            }
+        }
+        """;
+
     public const string OtherStoreIdType =
         """
         using Typeshift;

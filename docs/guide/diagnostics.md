@@ -34,6 +34,7 @@ handle has a diagnostic: generated code never fails with a compiler error of its
 | [TSH026](#tsh026) | Error | Agents call each other in a circle |
 | [TSH027](#tsh027) | Error | Tool type has no JSON metadata under Native AOT |
 | [TSH028](#tsh028) | Error | Store has another id type |
+| [TSH029](#tsh029) | Error | Id type cannot be found |
 
 ## TSH001
 
@@ -157,8 +158,9 @@ instead.
 
 ## TSH025
 
-**Tool is offered twice** by one agent: one toolset used twice, one tool picked twice, or one agent used twice as a
-sub-agent or as a handoff target. Offer each toolset's tools in one use.
+**Tool is offered twice** by one agent: one toolset used twice, one tool picked twice, one agent used twice as a
+sub-agent or as a handoff target, or two toolsets with a tool of one name, a built-in toolset's included. Offer each
+toolset's tools in one use, and leave out one of two tools of a name.
 
 ## TSH026
 
@@ -175,3 +177,8 @@ sub-agent or as a handoff target. Offer each toolset's tools in one use.
 
 **Store has another id type.** `WithStore<T>()` takes an `ITypeshiftStore` of the build's id type, the alias the
 generator writes.
+
+## TSH029
+
+**Id type cannot be found**: `TypeshiftIdType` names a type the build does not know. Give a C# keyword (`int`,
+`long`, `string`), a type of `System` (`Guid`), or the type's full name with its namespace.

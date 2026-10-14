@@ -538,6 +538,71 @@ public class DiagnosticTests : GeneratorTestBase
         run.Assert.DoesNotReport("TSH027");
     }
 
+    [Fact]
+    public void Given_A_Stored_Object_With_A_Required_Member_TSH012_Is_Reported_On_The_Pick()
+    {
+        // Act
+        var run = Run(DiagnosticSources.RequiredStoredMember);
+
+        // Assert
+        run.Assert.ReportsAmong("TSH012", DiagnosticSeverity.Error, "s => s.Primary");
+    }
+
+    [Fact]
+    public void Given_A_Tool_Type_Only_A_Private_Context_Lists_Under_Native_Aot_TSH027_Is_Reported()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.PrivateJsonContext);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.PublishingAot());
+
+        // Assert
+        run.Assert.Reports("TSH027", DiagnosticSeverity.Error, "AddTool(Find)");
+    }
+
+    [Fact]
+    public void Given_A_Pick_Being_Typed_TSH015_Is_Reported_And_The_Generator_Runs_On()
+    {
+        // Act
+        var run = Run(DiagnosticSources.PickBeingTyped);
+
+        // Assert
+        run.Assert.ReportsAmong("TSH015", DiagnosticSeverity.Error, "Include");
+        run.Result.Diagnostics.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Given_An_Id_Type_The_Build_Cannot_Find_TSH029_Is_Reported_On_The_Compilation()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.ToolTypeWithoutJsonMetadata);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.WithIdType("TenantId"));
+
+        // Assert
+        run.Assert.ReportsOnTheCompilation("TSH029", DiagnosticSeverity.Error)
+            .GetMessage()
+            .Should()
+            .Contain("TenantId");
+        run.Assert.GeneratesValidCode();
+    }
+
+    [Fact]
+    public void Given_A_Tool_Named_Like_A_Built_In_One_TSH025_Is_Reported_Only_On_The_Agent_Offering_Both()
+    {
+        // Act
+        var run = Run(DiagnosticSources.BuiltInToolName);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH007");
+        run.Assert.Reports("TSH025", DiagnosticSeverity.Error, "SearchAgent")
+            .GetMessage()
+            .Should()
+            .Contain("web_search");
+    }
+
     [Theory]
     [MemberData(nameof(Mistakes))]
     public void Given_Any_Mistake_The_Generated_Code_Holds_No_Error(string mistake)

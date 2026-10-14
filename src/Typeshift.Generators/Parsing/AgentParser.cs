@@ -217,12 +217,14 @@ internal static class AgentParser
         // D4: the tool list's properties are the generator's own output, so the picks are read from syntax
         foreach (var pick in ConstructorChains.GetChain(call).Select(link => (InvocationExpressionSyntax)link.Syntax))
         {
-            var argument = pick.ArgumentList.Arguments[0].Expression;
-            excludes = ((MemberAccessExpressionSyntax)pick.Expression).Name.Identifier.ValueText == "Exclude";
+            var argument = pick.ArgumentList.Arguments.FirstOrDefault()?.Expression;
+            var method = ((MemberAccessExpressionSyntax)pick.Expression).Name;
+            excludes = method.Identifier.ValueText == "Exclude";
 
-            if (GetPickedName(argument) is not { } picked)
+            // A pick still being typed has no argument yet
+            if (argument is null || GetPickedName(argument) is not { } picked)
             {
-                reporter.Report(Descriptors.UnreadableChain, argument, "tool pick");
+                reporter.Report(Descriptors.UnreadableChain, (SyntaxNode?)argument ?? method, "tool pick");
                 return null;
             }
 

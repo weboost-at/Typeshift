@@ -28,8 +28,9 @@ internal static class ToolNames
                 continue;
             }
 
-            if (char.IsUpper(character) && index > 0 && StartsWord(name, index) && snake[snake.Length - 1] != '_')
-                snake.Append('_');
+            // A leading _ appends nothing, so the first letter may follow none
+            var follows = snake.Length > 0 && snake[snake.Length - 1] != '_';
+            if (char.IsUpper(character) && follows && StartsWord(name, index)) snake.Append('_');
 
             snake.Append(char.ToLowerInvariant(character));
         }

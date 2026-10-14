@@ -37,11 +37,7 @@ internal static class Catalog
         {
             if (toolsets.FirstOrDefault(toolset => toolset.Type == use.Toolset) is not { } toolset) continue;
 
-            // Included tools come in the order picked, the others in the toolset's
-            var tools = use.Excludes || use.Picks.Count == 0
-                ? toolset.Tools.Where(tool => AgentParser.Offers(use.Excludes, use.Picks, tool.Property))
-                : use.Picks.Select(pick => toolset.Tools.FirstOrDefault(tool => tool.Property == pick))
-                    .OfType<ToolSummary>();
+            var tools = Offered(use, toolset);
 
             // TSH006: a public agent's Settings cannot name the overrides of a toolset less accessible
             var hidden = agent.Type.Accessibility == "public" && !toolset.IsPublic;
@@ -56,6 +52,13 @@ internal static class Catalog
 
         return new AgentOutput(agent, offered.ToEquatableArray());
     }
+
+    // Included tools come in the order picked, the others in the toolset's
+    public static IEnumerable<ToolSummary> Offered(ToolsetUseModel use, ToolsetSummary toolset) =>
+        use.Excludes || use.Picks.Count == 0
+            ? toolset.Tools.Where(tool => AgentParser.Offers(use.Excludes, use.Picks, tool.Property))
+            : use.Picks.Select(pick => toolset.Tools.FirstOrDefault(tool => tool.Property == pick))
+                .OfType<ToolSummary>();
 
     private static bool Clashes(ToolSummary offered, ToolSummary tool) =>
         offered.Name == tool.Name || Names.ToPascalCase(offered.Name) == Names.ToPascalCase(tool.Name);

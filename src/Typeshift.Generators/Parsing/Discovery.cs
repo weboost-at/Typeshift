@@ -58,7 +58,7 @@ internal static class Discovery
                 BaseType: var direct
             } type
             && direct.Is(baseType)
-            && IsFirstDeclarationWithBaseList(type, declaration, ct)
+            && IsFirstDeclarationWithBase(type, declaration, baseType.Substring(baseType.LastIndexOf('.') + 1), ct)
                 ? type
                 : null;
     }
@@ -72,13 +72,15 @@ internal static class Discovery
             _ => null
         };
 
-    // A partial class may list its base on several declarations, the model is built once
-    private static bool IsFirstDeclarationWithBaseList(
+    // A partial class may name its base on several declarations, and list interfaces on others; the model is built
+    // once, from the first that names the base
+    private static bool IsFirstDeclarationWithBase(
         INamedTypeSymbol type,
         ClassDeclarationSyntax declaration,
+        string baseName,
         CancellationToken ct) =>
         type.DeclaringSyntaxReferences
             .Select(reference => reference.GetSyntax(ct))
             .OfType<ClassDeclarationSyntax>()
-            .First(candidate => candidate.BaseList is not null) == declaration;
+            .First(candidate => HasBase(candidate, baseName)) == declaration;
 }

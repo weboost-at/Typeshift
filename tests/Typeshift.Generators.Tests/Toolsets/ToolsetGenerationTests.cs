@@ -66,6 +66,19 @@ public class ToolsetGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Partial_Toolset_Whose_Second_Declaration_Names_The_Base_It_Is_Generated()
+    {
+        // Act
+        var run = Run(ToolsetSources.SplitPartialFirst, ToolsetSources.SplitPartialSecond);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+        run.Result.GeneratedTrees.Select(tree => Path.GetFileName(tree.FilePath))
+            .Should()
+            .Contain("Demo.EchoToolset.g.cs");
+    }
+
+    [Fact]
     public void Given_Names_Spelled_Like_Keywords_The_Generated_Code_Compiles_Without_Warnings()
     {
         // Act

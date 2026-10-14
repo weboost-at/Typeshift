@@ -141,7 +141,7 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor OfferedTwice = Error(
         "TSH025",
         "Tool is offered twice",
-        "{0} is offered twice: use each toolset once and pick each tool once");
+        "{0} is offered twice: use each toolset once, pick each tool once, and leave out one of two tools of a name");
 
     public static readonly DiagnosticDescriptor NoJsonMetadata = Error(
         "TSH027",
@@ -153,6 +153,12 @@ internal static class Descriptors
         "TSH028",
         "Store has another id type",
         "'{0}' is no ITypeshiftStore<{1}>, a store of the build's id type");
+
+    public static readonly DiagnosticDescriptor UnknownIdType = Error(
+        "TSH029",
+        "Id type cannot be found",
+        "TypeshiftIdType names '{0}', which the build cannot find: give a C# keyword such as int, or the type's full "
+        + "name with its namespace");
 
     private static DiagnosticDescriptor Error(string id, string title, string message) =>
         Create(id, title, message, DiagnosticSeverity.Error);

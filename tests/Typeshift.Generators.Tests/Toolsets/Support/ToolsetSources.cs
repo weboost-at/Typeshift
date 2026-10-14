@@ -195,12 +195,45 @@ public static class ToolsetSources
             public int @int { get; init; }
         }
 
+        internal enum @mode
+        {
+            @default,
+            @fixed
+        }
+
         internal partial class @object : Toolset
         {
             public @object() =>
                 AddTool(@params).WithDescription("Runs.").WithSettings<@record>().Configurable(s => s.@int);
 
-            public static string @params(string @string, @record settings) => @string;
+            public static string @params(string @string, @record settings, @mode @in = @mode.@default) => @string;
+        }
+        """;
+
+    // The base is named on the second declaration only; the first lists an interface
+    public const string SplitPartialFirst =
+        """
+        namespace Demo;
+
+        internal partial class EchoToolset : System.IDisposable
+        {
+            public void Dispose()
+            {
+            }
+        }
+        """;
+
+    public const string SplitPartialSecond =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
         }
         """;
 

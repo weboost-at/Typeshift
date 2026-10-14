@@ -45,7 +45,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.AgentCircle,
         Descriptors.OfferedTwice,
         Descriptors.NoJsonMetadata,
-        Descriptors.OtherStoreIdType
+        Descriptors.OtherStoreIdType,
+        Descriptors.UnknownIdType
     ];
 
     public override void Initialize(AnalysisContext context)
@@ -65,6 +66,12 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
         var property = IdTypes.Read(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
         var idType = IdTypes.Resolve(property, context.Compilation);
+
+        if (idType is null)
+        {
+            context.RegisterCompilationEndAction(end =>
+                end.ReportDiagnostic(Diagnostic.Create(Descriptors.UnknownIdType, Location.None, property)));
+        }
 
         context.RegisterSymbolStartAction(start => StartClass(start, tools, kinds, found), SymbolKind.NamedType);
         context.RegisterSymbolAction(symbol => CollectJsonTypes(symbol, found), SymbolKind.NamedType);
@@ -173,8 +180,9 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         var invocation = (IInvocationOperation)context.Operation;
         var target = invocation.TargetMethod;
 
-        // D11: the store serves ids of the build's type
-        if (target is { Name: "WithStore", TypeArguments.Length: 1 }
+        // D11: the store serves ids of the build's type; an id type the build cannot find is TSH029 already
+        if (idType is not null
+            && target is { Name: "WithStore", TypeArguments.Length: 1 }
             && target.ContainingType.Is(KnownTypes.TypeshiftBuilder)
             && target.TypeArguments[0] is var store
             && !store.AllInterfaces.Any(contract => contract.Is(KnownTypes.Store)
@@ -242,8 +250,10 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         CompilationAnalysisContext context,
         IEnumerable<(string Name, INamedTypeSymbol Toolset, Location Location)> tools)
     {
+        // D37: the built-in toolsets reserve no names; an agent that offers one beside a tool of its name is TSH025
         var referenced = new HashSet<string>(ReferenceReader.Read(context.Compilation, context.CancellationToken)
             .Toolsets
+            .Where(toolset => !toolset.Type.StartsWith(KnownTypes.BuiltInNamespace, System.StringComparison.Ordinal))
             .SelectMany(toolset => toolset.Tools)
             .Select(tool => Names.ToPascalCase(tool.Name)));
 
@@ -369,6 +379,30 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
                 if (Calls(use.Target, type, agents))
                     Report(context, Descriptors.AgentCircle, use, type.Name, target.Type.Name);
             }
+
+            ReportNamesOfferedTwice(context, agents[type], toolsets);
+        }
+    }
+
+    // D37: two toolsets an agent uses, of this assembly, a reference or the library's built-ins, may share a tool name
+    private static void ReportNamesOfferedTwice(
+        CompilationAnalysisContext context,
+        FoundAgent agent,
+        IReadOnlyList<ToolsetSummary> toolsets)
+    {
+        var offered = agent.Model.Toolsets
+            .SelectMany(use => toolsets.Where(toolset => toolset.Type == use.Toolset)
+                .Take(1)
+                .SelectMany(toolset => Catalog.Offered(use, toolset)))
+            .GroupBy(tool => tool.Name)
+            .Where(group => group.Count() > 1);
+
+        foreach (var name in offered)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                Descriptors.OfferedTwice,
+                agent.Type.Locations.FirstOrDefault(),
+                $"The tool name '{name.Key}'"));
         }
     }
 
@@ -423,7 +457,11 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
     private static void CollectJsonTypes(SymbolAnalysisContext context, Found found)
     {
         var type = (INamedTypeSymbol)context.Symbol;
-        if (!type.DerivesFrom(KnownTypes.JsonSerializerContext)) return;
+
+        // The contexts the module registers, as the generator finds them
+        if (type is { IsAbstract: true } or { IsGenericType: true }
+            || !type.DerivesFrom(KnownTypes.JsonSerializerContext)
+            || !type.IsVisibleInAssembly()) return;
 
         var listed = type.GetAttributes()
             .Where(attribute => attribute.AttributeClass.Is(KnownTypes.JsonSerializableAttribute))
