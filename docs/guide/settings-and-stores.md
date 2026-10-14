@@ -1,52 +1,29 @@
+---
+title: Settings and stores
+description: Implement the one store that keeps settings and conversations, and change an agent's settings safely.
+---
+
 # Settings and stores
 
 Typeshift persists two things: each agent's `Settings` under a settings id, and conversations under a conversation id.
-Both go through one interface you implement once, with your id type.
+Both go through `ITypeshiftStore`, one interface you implement once, with the id type you already use. This page shows
+the store's contract, a store on Entity Framework Core, and how to change an agent's stored settings.
 
-## The id type
+::: tip The short version
 
-The id type is `Guid` unless `Directory.Build.props` names another:
+- `WithStore<T>()` registers your store. Without one, agents still run from their code. Every load or save throws.
+- A store has four methods: load and save a document, load and append to a conversation.
+- Next to each document's JSON, a store keeps its kind, its version and its revision. A save that another save beat
+  throws a `StoreConflictException`.
+- `ConfigureAsync` changes an agent's settings and retries on a conflict. A settings form uses `LoadSettingsAsync` and
+  `SaveSettingsAsync`.
+- The stored JSON is camelCase, with the tools nested under `"tools"`, so an endpoint can bind `Settings` to it.
 
-<!-- snippet: id-type -->
-<a id='snippet-id-type'></a>
-```csproj
-<PropertyGroup>
-  <TypeshiftIdType>int</TypeshiftIdType>
-</PropertyGroup>
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Typeshift.Samples.Docs.csproj#L5-L9' title='Snippet source file'>snippet source</a> | <a href='#snippet-id-type' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
-
-Every project that uses Typeshift sees it: generated members take it (`RunAsync(input, settingsId: 42)`), and
-`ITypeshiftStore`, `InMemoryTypeshiftStore`, `ConversationTracker` and `LiveRun` are aliases the generator writes
-for it. A referenced project built
-with another id type is [TSH021](./diagnostics.md#tsh021); a store of another is [TSH028](./diagnostics.md#tsh028).
-The library never creates ids.
-
-## The store
-
-`ITypeshiftStore` has four methods:
-
-- `LoadAsync<TData>(id)` returns the document of kind `TData.Kind` under an id with its revision, or null;
-- `SaveAsync<TData>(id, data, revision)` saves it if the stored revision is still `revision` (0 for none), returns the
-  new revision, and throws a `StoreConflictException` when another save came first;
-- `LoadConversationAsync(conversation)` returns a conversation's entries, oldest first;
-- `AppendConversationAsync(conversation, entry)` appends one entry: a run's input, a model response, tool results.
-  Runs append as they go, so this is the hot path; a row per entry keeps it cheap.
-
-Documents serialize themselves: `Serialize()` and `TData.Deserialize(json, version)`. Next to the JSON, a store keeps:
-
-- **the kind**, `TData.Kind`: a stable name. For an agent's settings it is the class name, so moving an agent to
-  another namespace keeps its data; `WithStorageKind("support")` in the agent pins it, so renaming the class keeps it
-  too. Two agents of one kind are [TSH022](./diagnostics.md#tsh022);
-- **the version**, `TData.Version`, handed back to `Deserialize`, which refuses a version newer than its code's. A
-  store migrates older documents if it needs to;
-- **the revision**, for optimistic concurrency.
-
-What a settings id stands for is the host's choice: a customer, a team, a user, or a settings profile of its own.
-Under one settings id, each agent has its own document, since each agent's `Settings` is its own kind.
+:::
 
 ## Registering a store
+
+Register the store in the `AddTypeshift()` chain:
 
 <!-- snippet: quickstart-registration -->
 <a id='snippet-quickstart-registration'></a>
@@ -64,10 +41,43 @@ await using var provider = services.BuildServiceProvider(validateScopes: true);
 
 `WithStore<T>()` registers the store as a singleton. `InMemoryTypeshiftStore` is for tests and samples.
 
-**Without a store**, agents run from their code: a run without a settings id or a conversation id works, tools run.
-Every call that loads or saves throws an `InvalidOperationException` that names `WithStore<T>()`.
+**Without a store**, agents run from their code. A run without a settings id or a conversation id works, and its tools
+run. Every call that loads or saves throws an `InvalidOperationException` that names `WithStore<T>()`.
+
+## The store
+
+`ITypeshiftStore` has four methods. Their ids are of the build's [id type](./registration.md#the-id-type), `Guid` unless
+`TypeshiftIdType` names another.
+
+| Method | Does |
+|---|---|
+| `LoadAsync<TData>(id)` | Returns the document of kind `TData.Kind` under an id, with its revision, or null. |
+| `SaveAsync<TData>(id, data, revision)` | Saves the document if the stored revision is still `revision` (0 for none) and returns the new revision. Throws a `StoreConflictException` when another save came first. |
+| `LoadConversationAsync(conversation)` | Returns a conversation's entries, oldest first. |
+| `AppendConversationAsync(conversation, entry)` | Appends one entry: a run's input, a model response or tool results. |
+
+Runs append as they go, so `AppendConversationAsync` is the hot path. A row per entry keeps it cheap.
+
+## What a store keeps
+
+Documents serialize themselves, with `Serialize()` and `TData.Deserialize(json, version)`. Next to the JSON, a store
+keeps three things:
+
+- **The kind**, `TData.Kind`: a stable name. For an agent's settings it is the class name, so moving an agent to another
+  namespace keeps its data. `WithStorageKind("support")` in the agent pins it, so renaming the class keeps the data too.
+  Two agents of one kind are [TSH022](./diagnostics.md#tsh022).
+- **The version**, `TData.Version`, which the store hands back to `Deserialize`. `Deserialize` refuses a version newer
+  than its code's. A store migrates older documents if it needs to.
+- **The revision**, for optimistic concurrency. A save names the revision it loaded, so it fails when another save came
+  first.
+
+What a settings id stands for is the host's choice: a customer, a team, a user, or a settings profile of its own. Under
+one settings id, each agent has its own document, since each agent's `Settings` is its own kind.
 
 ## An Entity Framework Core store
+
+The database keeps documents keyed by kind and id, with the revision as a concurrency token, and conversation entries in
+order:
 
 <!-- snippet: ef-core-db -->
 <a id='snippet-ef-core-db'></a>
@@ -113,6 +123,9 @@ internal sealed class EntryRow
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/TypeshiftDb.cs#L5-L44' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-db' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
+
+The store maps the four methods onto it. A save that another save beat becomes a `StoreConflictException`, and any other
+database failure surfaces as it is:
 
 <!-- snippet: ef-core-store -->
 <a id='snippet-ef-core-store'></a>
@@ -204,6 +217,8 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L5-L89' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-store' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+Register the context factory the store takes, next to `WithStore<EfTypeshiftStore>()`:
+
 <!-- snippet: ef-core-registration -->
 <a id='snippet-ef-core-registration'></a>
 ```cs
@@ -214,8 +229,8 @@ services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite("Data Sou
 
 ## Agent settings
 
-`ConfigureAsync` loads an agent's settings, applies your change and saves them; when another save came in between,
-it loads them again and applies the change again, until its save wins:
+`ConfigureAsync` loads an agent's settings, applies your change and saves them. When another save came in between, it
+loads them again and applies your change again, until its save wins:
 
 <!-- snippet: configure-settings -->
 <a id='snippet-configure-settings'></a>
@@ -230,8 +245,8 @@ await support.ConfigureAsync(settingsId, settings => settings with
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L14-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-configure-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-A settings form loads them with their revision and saves them back with it; a conflict means someone saved in
-between:
+A settings form loads the settings with their revision and saves them back with it. A `StoreConflictException` means
+someone saved in between:
 
 <!-- snippet: load-and-save-settings -->
 <a id='snippet-load-and-save-settings'></a>
@@ -250,7 +265,9 @@ catch (StoreConflictException)
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L23-L34' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-and-save-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-What is stored is the record's JSON: camelCase, tools nested under `"tools"` by name, nulls left out.
+## The stored JSON
+
+What is stored is the record's JSON: camelCase, with the tools nested under `"tools"` by name and nulls left out.
 
 ```json
 {
@@ -265,8 +282,21 @@ What is stored is the record's JSON: camelCase, tools nested under `"tools"` by 
 ```
 
 `System.Text.Json` writes and reads the same JSON, so an endpoint that binds `SupportAgent.Settings` speaks the stored
-shape. A member that does not read, mistyped or unknown, keeps the layer below; a stored record or class is replaced
-as a whole, its missing members taking their defaults.
+shape.
 
-A configurable member renamed or removed reads as missing. When that matters, raise the agent's settings version with
-`WithSettingsVersion(2)` and migrate the documents of the older version in the store.
+- A member that does not read, because it is mistyped or unknown, keeps the layer below.
+- A stored record or class is replaced as a whole. Its missing members take their defaults.
+
+::: warning A renamed member loses its stored value
+A configurable member that is renamed or removed reads as missing, so its stored value no longer applies. When that
+matters, raise the agent's settings version with `WithSettingsVersion(2)` and migrate the documents of the older version
+in the store.
+:::
+
+## Related
+
+- [Registration](./registration.md#the-id-type): the id type and the other chain calls.
+- [Settings layering](./settings-layering.md): how stored settings combine with the code and the run.
+- [Generated members](./generated-members.md#settings): the `Settings` record a store keeps.
+- [Conversations](./conversations.md): what a run stores in a conversation, and resuming it.
+- [Running agents](./running-agents.md#stored-settings): passing a settings id to a run.

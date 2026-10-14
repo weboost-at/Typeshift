@@ -1,3 +1,8 @@
+---
+title: Status
+description: "Where the library stands: the slices of the rewrite, the test that covers each behavior, and the known gaps."
+---
+
 # Status
 
 Where the library stands: what is built, which test covers each behavior, and what is open. Open items live here,
@@ -128,3 +133,8 @@ The numbers are the rules of v0's behavior table where they still hold.
   reaches. No fetcher ships with Typeshift.
 - **Shell:** `run_command` runs what the model sends, within the root as its working directory but not a sandbox;
   it requires approval unless a rule or auto mode answers.
+
+## Related
+
+- [Decisions](./decisions.md): why the built behavior is shaped the way it is.
+- [Architecture](./architecture.md): where each behavior lives in the code.

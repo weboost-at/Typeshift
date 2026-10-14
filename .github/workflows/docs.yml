@@ -40,6 +40,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Fail when a page breaks the Markdown or the docs rules
+        run: npm run docs:lint
+
       - id: pages
         if: github.event_name != 'pull_request'
         uses: actions/configure-pages@v5

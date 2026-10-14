@@ -1,7 +1,27 @@
+---
+title: Built-in toolsets
+description: The to-do, file, shell and web toolsets that ship with Typeshift, what each needs from the host, and where they are not safe.
+---
+
 # Built-in toolsets
 
-Typeshift ships four toolsets in `Typeshift.Toolsets`, declared like your own, so agents pick and configure their
-tools the same way:
+Typeshift ships four toolsets in `Typeshift.Toolsets`: to-dos, files, the shell and the web. They are declared like your
+own toolsets, so an agent picks and configures their tools the same way. Together they make a coding agent. Each needs a
+service from the host, except the to-dos.
+
+::: tip The short version
+
+- `TodoToolset`, `FileSystemToolset`, `ShellToolset` and `WebToolset` are toolsets like yours.
+- The file tools and the shell work in the folder your `IFileSystemRoot` gives. That folder is not a sandbox.
+- `run_command` and `delete_file` need approval. Let rules reject what you never allow, and leave the rest to the host.
+- `web_search` and `web_fetch` call services you register. Your fetcher must refuse private addresses.
+- Search results and fetched pages are untrusted text, never instructions.
+
+:::
+
+## Offering them
+
+An agent offers the built-in toolsets with `UseToolset<T>()`, like any other:
 
 <!-- snippet: coding-agent -->
 <a id='snippet-coding-agent'></a>
@@ -42,6 +62,11 @@ internal partial class CodingAgent : Agent
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L42' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+This agent offers all four toolsets, but only `web_fetch` of the web tools. `ConfigureRunCommand()` sets the shell's
+settings for this agent. The run options make it a [long-running agent](./long-running-agents.md).
+
+## What each needs
+
 | Toolset | Tools | Needs |
 |---|---|---|
 | `TodoToolset` | `write_todos` | nothing |
@@ -49,7 +74,7 @@ internal partial class CodingAgent : Agent
 | `ShellToolset` | `run_command` | `WithFileSystemRoot<T>()` |
 | `WebToolset` | `web_search`, `web_fetch` | `WithWebSearch<T>()`, `WithWebFetch<T>()` |
 
-A tool whose service is missing fails its call with a message naming the registration.
+Register the services after `AddTypeshift()`:
 
 <!-- snippet: built-in-registration -->
 <a id='snippet-built-in-registration'></a>
@@ -65,15 +90,17 @@ services.AddTypeshift()
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L86-L94' title='Snippet source file'>snippet source</a> | <a href='#snippet-built-in-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+A tool whose service is missing fails its call with a message naming the registration.
+
 ## Todos
 
-`write_todos` replaces the model's to-do list, a list of titles with a status each. The list lives in the
-conversation: the latest call holds it, and [compaction](./long-running-agents.md#compaction) never drops that call.
-Plan mode offers it.
+`write_todos` replaces the model's to-do list: a list of titles, each with a status of `Pending`, `InProgress` or
+`Completed`. The list lives in the conversation. The latest call holds it, and
+[compaction](./long-running-agents.md#compaction) never drops that call. Plan mode offers it.
 
 ## Files
 
-The file tools work within the root an `IFileSystemRoot` gives. It is resolved from the run's services, so each
+The file tools work within the root an `IFileSystemRoot` gives. Typeshift resolves it from the run's services, so each
 customer can have a folder of their own:
 
 <!-- snippet: file-system-root -->
@@ -87,27 +114,50 @@ internal sealed class CustomerWorkspace(ICurrentCustomer customer) : IFileSystem
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/CustomerWorkspace.cs#L5-L10' title='Snippet source file'>snippet source</a> | <a href='#snippet-file-system-root' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Paths are relative to the root; absolute paths, `..` and links that lead outside are refused, and the model reads
-why. The three reading tools are `ReadOnly()`, so plan mode offers them; `delete_file` needs approval. For read-only
-access, include only `read_file`, `list_files` and `search_files`. `FileSystemSettings` limits how many lines, how
-long a line and how many characters a read or a search returns. A search pattern is a .NET regular expression,
-matched in linear time where it allows it. Like the shell's, the root is not a sandbox: a link swapped in while a
-tool runs still leads outside, so give each customer a container when the workspace holds what others must not
-reach.
+Paths are relative to the root. Absolute paths, `..` and links that lead outside are refused, and the model reads why.
+
+| Tool | Does | Marked |
+|---|---|---|
+| `read_file` | Reads a text file, numbering its lines. | `ReadOnly()` |
+| `list_files` | Lists the files and folders of a folder. | `ReadOnly()` |
+| `search_files` | Finds the lines that match a regular expression, in every file under a folder. | `ReadOnly()` |
+| `write_file` | Writes a text file, replacing it if it exists and creating its folders. | |
+| `edit_file` | Replaces one exact occurrence of a text in a file. | |
+| `delete_file` | Deletes a file. | `RequiresApproval()` |
+
+- Plan mode offers the three `ReadOnly()` tools. For read-only access, include only those three; see [selecting
+  tools](./defining-agents.md#selecting-tools).
+- `FileSystemSettings` limits how many lines, how long a line and how many characters a read or a search returns.
+- A search pattern is a .NET regular expression, matched in linear time where the pattern allows it.
+
+::: danger The root is not a sandbox
+A link swapped in while a tool runs still leads outside the root. Give each customer a container when the workspace
+holds what others must not reach.
+:::
 
 ## Shell
 
-`run_command` runs a command in the root and needs approval for every call; an
-[approval rule](./tool-approval.md#approval-rules) rejects the commands you never allow. Approving a command
-without asking is rarely safe: while `write_file` runs unasked, the model can write the configuration or the code that
-`git status` or `dotnet test` then runs. `ShellSettings` set the shell, the timeout and how much output the model
-receives (its start and its end). A process a command leaves running in the background outlives the call, which
-returns at the timeout. The root is the working folder, not a sandbox: run the host in a container when commands must
-not reach further.
+`run_command` runs a command in the root and needs approval for every call. An [approval
+rule](./tool-approval.md#approval-rules) rejects the commands you never allow. `ShellSettings` set the shell, the
+timeout and how much output the model receives: its start and its end.
+
+::: danger Approving commands unasked is rarely safe
+A rule that approves the commands that look harmless approves the model's code too. While `write_file` runs unasked, the
+model can write the configuration or the code that `git status` or `dotnet test` then runs.
+:::
+
+::: danger The working folder is not a sandbox
+The root is the working folder of each command, nothing more. Run the host in a container when commands must not reach
+further.
+:::
+
+::: warning A background process outlives the call
+A process a command leaves running in the background outlives the call, which returns at the timeout.
+:::
 
 ## Web
 
-`web_search` and `web_fetch` call the services the host registers; no provider ships with Typeshift, so Tavily,
+`web_search` and `web_fetch` call the services the host registers. No provider ships with Typeshift, so Tavily,
 Firecrawl, Brave or a plain `HttpClient` plug in:
 
 <!-- snippet: web-search -->
@@ -127,6 +177,22 @@ internal sealed class SearchApi(HttpClient http) : IWebSearch
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/SearchApi.cs#L7-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-web-search' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`web_fetch` takes absolute http and https URLs only, and the model picks them: a fetcher on the host's network
-refuses loopback, private and link-local addresses where it connects (`SocketsHttpHandler.ConnectCallback`), or the
-model reads the cloud's metadata service. Search results and fetched pages are untrusted text, never instructions.
+Both tools are `ReadOnly()`, so plan mode offers them. `web_fetch` takes absolute http and https URLs only.
+
+::: danger Your fetcher must refuse private addresses
+The model picks the URLs `web_fetch` reads. A fetcher on the host's network must refuse loopback, private and link-local
+addresses where it connects (`SocketsHttpHandler.ConnectCallback`). Otherwise the model reads the cloud's metadata
+service. Check the address there, not the host name, which a DNS answer can change.
+:::
+
+::: danger What the web returns is untrusted
+Search results and fetched pages are untrusted text, never instructions. Anyone can write a page the model reads.
+:::
+
+## Related
+
+- [Toolsets](./toolsets.md): declaring your own toolsets the same way.
+- [Agents](./defining-agents.md#selecting-tools): picking a toolset's tools with `Include` and `Exclude`.
+- [Tool approval](./tool-approval.md#approval-rules): the rules that guard the shell.
+- [Long-running agents](./long-running-agents.md): the coding agent's run options and compaction.
+- [Generated members](./generated-members.md): `ConfigureRunCommand()` and the other `Configure{Tool}()` methods.

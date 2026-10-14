@@ -12,7 +12,8 @@ the playbook. That is meant to be enough; if you had to dig for something, add i
 | Change what the generator reads or writes | `docs/contributing/architecture.md`, "The generator and the analyzer" | `.claude/skills/change-generated-code` |
 | Tool settings: configurable members, overrides | `docs/guide/tool-settings.md`; D18, D19 | `.claude/skills/extend-settings` |
 | Runtime behavior or public API | `docs/contributing/architecture.md`; the subject's decisions | `.claude/skills/add-runtime-feature` |
-| Docs, README, the code they show | `docs/contributing/documentation.md` | `.claude/skills/update-docs` |
+| Docs, README, the code they show | `docs/contributing/writing.md`, `documentation.md`; "Docs" below | `.claude/skills/update-docs` |
+| Audit the docs for drift and rule breaks | "Docs" below | `.claude/skills/review-docs` |
 | A release | `docs/contributing/releasing.md` | none: a person pushes the tag |
 
 - **What is built, what is open.** `docs/contributing/status.md` lists the slices of the rewrite, the test of each
@@ -22,7 +23,7 @@ the playbook. That is meant to be enough; if you had to dig for something, add i
   you change such code; to change the decision, edit the entry in the same commit, or add a new one and move the old
   to the withdrawn table.
 - **What is open?** `docs/contributing/status.md`: the slices, known gaps, and which test covers each behavior.
-- **How do users see it?** The guide in `docs/guide/`, published at https://weboost-at.github.io/Typeshift/.
+- **How do users see it?** The guide in `docs/guide/`, published at <https://weboost-at.github.io/Typeshift/>.
 
 ## Traps
 
@@ -63,7 +64,51 @@ dotnet mdsnippets && git diff --exit-code
 - Generator snapshots live in `tests/Typeshift.Generators.Tests/Snapshots`. A mismatch writes `.received.txt`; review
   it, then rerun with `ACCEPT_SNAPSHOTS=1` to accept.
 - Run the whole suite three times before you call a change done. All green every time.
-- The docs site: `npm ci`, then `npm run docs:build` (fails on dead links) or `npm run docs:dev`.
+- The docs site: `npm ci`, then `npm run docs:check` (markdownlint, the docs rules, a build that fails on dead links)
+  or `npm run docs:dev`.
+
+## Docs
+
+The guide is for library users, `docs/contributing/` for this repository. `docs/contributing/writing.md` holds the
+style; the essentials:
+
+- Every page: `title` and `description` frontmatter, an H1 equal to the title, a lead that answers first, "The short
+  version" tip on pages longer than a screen, one idea per section, `## Related` last.
+- Short sentences, present tense, "you" for the reader. Say why. No trailing "say" for examples: "for example".
+- C# only from `samples/Typeshift.Samples.Docs` through mdsnippets. Callouts carry meaning and a title. Mermaid for
+  flows, at most about ten nodes.
+- One fact, one page: change the canonical page below and link to it elsewhere. A snippet may repeat; its
+  explanation may not.
+
+| Fact | Canonical page | Also mentioned in |
+|---|---|---|
+| Package setup, requirements, the id type | `guide/registration.md` | `getting-started.md` (the steps) |
+| `AddTypeshift()` chain calls and lifetimes | `guide/registration.md#the-chain` | each feature page shows its own `With...` call |
+| Builder calls of toolsets and agents | `guide/builders.md` | `toolsets.md`, `tool-settings.md`, `defining-agents.md` |
+| Parameters the call fills, tool results | `guide/toolsets.md` | `builders.md` (link) |
+| Storable types of configurable members | `guide/tool-settings.md#configurable-members` | `builders.md` (link) |
+| Chat options and run options, their defaults | `guide/builders.md` | `defining-agents.md`, `long-running-agents.md` |
+| Modes | `guide/modes.md` | `tool-approval.md`, `builders.md` (link) |
+| Settings layers and precedence | `guide/settings-layering.md` | `tool-settings.md`, `defining-agents.md`, `running-agents.md` |
+| The order of a run's steps | `guide/how-a-run-works.md` | `contributing/architecture.md#a-run` (the code's side) |
+| The store contract, kinds, versions, revisions, the `Settings` JSON | `guide/settings-and-stores.md` | `generated-members.md#settings` |
+| Conversations: storage, resume, steering, live updates | `guide/conversations.md` | `long-running-agents.md` |
+| Generated members | `guide/generated-members.md` | `agent-host.md` |
+| `AgentHost` members and signatures | `guide/agent-host.md` | `running-agents.md` |
+| Spans and metrics | `guide/observability.md` | |
+| Diagnostics | `guide/diagnostics.md` | every page, linked by ID |
+| Terms | `guide/glossary.md` | |
+| Why the code is shaped this way | `contributing/decisions.md` | `guide/why-code-defined.md` (the user's view) |
+| What is built, what is open | `contributing/status.md` | |
+
+| Change | Touch |
+|---|---|
+| New public API a user calls | Its feature's guide page (a sample region, then mdsnippets), its reference page, the glossary if it adds a term |
+| New builder or `AddTypeshift()` chain call | `builders.md` or `registration.md#the-chain`, the guide page that teaches it |
+| New or changed diagnostic | `diagnostics.md` row and section (a guard test checks), the guide page that states the rule |
+| Changed default or limit | The reference table, then every page that states it: grep for the old value |
+| Change in the run pipeline | `how-a-run-works.md` and its diagram, `contributing/architecture.md#a-run`, D29 |
+| New page | A template from `docs/contributing/templates/`, the sidebar, `guide/index.md` when a section changes, the neighbours' `## Related` |
 
 ## Guard tests
 
@@ -79,7 +124,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `DiagnosticTests.Given_Any_Mistake_The_Generated_Code_Holds_No_Error` | No mistake ends in a compiler error inside generated code. |
 | RS2000 (analyzer) | Every descriptor has a row in `AnalyzerReleases.Unshipped.md` or `Shipped.md`. |
 | `IncrementalTests` (generator tests) | Unrelated edits leave the generator's output cached. |
-| CI: docs workflow | The Markdown matches its snippets; the site has no dead links. |
+| CI: docs workflow | The Markdown matches its snippets, passes markdownlint and the docs rules (`docs/.vitepress/lint.mjs`), and the site has no dead links or anchors. |
 
 ## Layout
 
@@ -93,7 +138,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `samples/Typeshift.Samples.Docs` | The code every guide page shows, run as scenarios in CI. |
 | `samples/Typeshift.Samples.Console` | A host published as Native AOT in CI, failing on any trim or AOT warning. |
 | `samples/Typeshift.Samples.PackageConsumer` | A consumer of the packed package rather than the projects, run by CI after the pack. |
-| `docs/` | The VitePress site: `guide/` for users, `contributing/` for this repository. |
+| `docs/` | The VitePress site: `guide/` for users, `contributing/` for this repository, `contributing/templates/` for new pages, `.vitepress/lint.mjs` for the docs rules. |
 | `.claude/skills/` | The playbooks of the table above. |
 | `build/UseGenerator.props` | What the package gives a consumer: the generator as an analyzer and the interceptor opt-in. |
 
