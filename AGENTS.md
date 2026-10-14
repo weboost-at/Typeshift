@@ -50,6 +50,8 @@ dotnet tool restore
 dotnet build Typeshift.slnx -c Release -warnaserror
 dotnet test --solution Typeshift.slnx -c Release --no-build
 dotnet run --project samples/Typeshift.Samples.Docs -c Release --no-build
+dotnet publish samples/Typeshift.Samples.Console -c Release -r linux-x64 -o artifacts/sample
+./artifacts/sample/Typeshift.Samples.Console
 dotnet slopwatch analyze --fail-on warning
 dotnet mdsnippets && git diff --exit-code
 ```
@@ -83,12 +85,14 @@ These fail the build when the repository's own rules slip, so a rule never depen
 
 | Path | Holds |
 |---|---|
-| `src/Typeshift` | The runtime library: public types in `Typeshift`, what only generated code calls in `Typeshift.Generated`. |
+| `src/Typeshift` | The runtime library: public types in `Typeshift`, what only generated code calls in `Typeshift.Generated`, the built-in toolsets in `Typeshift.Toolsets`, compiled by the library's own generator. |
 | `src/Typeshift.Generators` | The generator, the analyzer and the suppressor: `Parsing/` (symbols to models), `Models/`, `Emitting/` (models to source), `Analysis/`, `Diagnostics/`. |
 | `tests/Typeshift.Tests` | Runtime behavior, through real `FunctionInvokingChatClient` loops and a scripted `IChatClient`. |
 | `tests/Typeshift.Tests.Toolsets` | Toolsets in an assembly of their own, which `Typeshift.Tests` references for modules, stamps and JSON contexts across assemblies. |
 | `tests/Typeshift.Generators.Tests` | Snapshots, one test per diagnostic, incremental caching, guard tests. |
 | `samples/Typeshift.Samples.Docs` | The code every guide page shows, run as scenarios in CI. |
+| `samples/Typeshift.Samples.Console` | A host published as Native AOT in CI, failing on any trim or AOT warning. |
+| `samples/Typeshift.Samples.PackageConsumer` | A consumer of the packed package rather than the projects, run by CI after the pack. |
 | `signoff/` | The approved API: stubs, compiled samples, the draft guide. Goes once the slices have built it. |
 | `docs/` | The VitePress site: `guide/` for users, `contributing/` for this repository. |
 | `.claude/skills/` | The playbooks of the table above. |

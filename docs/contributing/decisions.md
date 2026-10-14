@@ -463,6 +463,10 @@ commit, or add a new one and withdraw the old.
 - **Decision:** modules register the `JsonSerializerContext`s that list their tools' types (v0 D44). Outside Native
   AOT, Microsoft.Extensions.AI's reflection-based defaults cover the rest, so tools need no context; under AOT
   (`PublishAot` or `IsAotCompatible`), a type no context lists is TSH027.
+- **As built:** TSH027 knows the types Microsoft.Extensions.AI's own context lists (strings, numbers, `bool`, dates,
+  `TimeSpan`, JSON elements) and the contexts of the compilation. The console sample publishes as Native AOT in CI,
+  where a trim or AOT warning fails the build.
+- **Where:** `Analysis/TypeshiftAnalyzer.cs`, `samples/Typeshift.Samples.Console`.
 
 ## Conversations
 

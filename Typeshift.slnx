@@ -4,6 +4,7 @@
     <Project Path="src/Typeshift/Typeshift.csproj" />
   </Folder>
   <Folder Name="/samples/">
+    <Project Path="samples/Typeshift.Samples.Console/Typeshift.Samples.Console.csproj" />
     <Project Path="samples/Typeshift.Samples.Docs/Typeshift.Samples.Docs.csproj" />
   </Folder>
   <Folder Name="/tests/">

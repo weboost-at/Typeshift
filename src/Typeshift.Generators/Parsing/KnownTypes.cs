@@ -44,6 +44,8 @@ internal static class KnownTypes
 
     public const string JsonSerializerContext = "System.Text.Json.Serialization.JsonSerializerContext";
 
+    public const string JsonSerializableAttribute = "System.Text.Json.Serialization.JsonSerializableAttribute";
+
     public const string ServiceProvider = "System.IServiceProvider";
 
     public const string CancellationToken = "System.Threading.CancellationToken";

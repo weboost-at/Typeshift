@@ -29,6 +29,7 @@ their descriptions from XML docs, which the compiler reads only then, and withou
 - Sub-agents, in the foreground or the background, and handoffs between agents.
 - MCP servers' tools through the MCP client of your choice.
 - Built-in toolsets for to-dos, files, the shell and the web.
+- Native AOT: generated paths never reflect, and the analyzer names a tool type that needs JSON metadata.
 - Compile-time diagnostics instead of runtime surprises.
 
 ## Learn more

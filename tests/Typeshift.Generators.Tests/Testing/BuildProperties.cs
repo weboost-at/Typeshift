@@ -14,6 +14,9 @@ public sealed class BuildProperties(IReadOnlyDictionary<string, string> global) 
     public static BuildProperties WithIdType(string idType) =>
         new(new Dictionary<string, string> { ["build_property.TypeshiftIdType"] = idType });
 
+    public static BuildProperties PublishingAot() =>
+        new(new Dictionary<string, string> { ["build_property.PublishAot"] = "true" });
+
     public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => Options.Empty;
 
     public override AnalyzerConfigOptions GetOptions(AdditionalText textFile) => Options.Empty;

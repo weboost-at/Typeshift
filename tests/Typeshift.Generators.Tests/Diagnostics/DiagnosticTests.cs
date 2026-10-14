@@ -512,6 +512,32 @@ public class DiagnosticTests : GeneratorTestBase
         run.Assert.ReportsAmong("TSH026", DiagnosticSeverity.Error, "UseAgent<AskAgent>");
     }
 
+    [Fact]
+    public void Given_A_Tool_Type_No_Context_Lists_Under_Native_Aot_TSH027_Is_Reported_On_Its_Tool()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.ToolTypeWithoutJsonMetadata);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.PublishingAot());
+
+        // Assert
+        run.Assert.Reports("TSH027", DiagnosticSeverity.Error, "AddTool(Count)")
+            .GetMessage()
+            .Should()
+            .Contain("global::System.Guid");
+    }
+
+    [Fact]
+    public void Given_A_Tool_Type_No_Context_Lists_Outside_Native_Aot_TSH027_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToolTypeWithoutJsonMetadata);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH027");
+    }
+
     [Theory]
     [MemberData(nameof(Mistakes))]
     public void Given_Any_Mistake_The_Generated_Code_Holds_No_Error(string mistake)

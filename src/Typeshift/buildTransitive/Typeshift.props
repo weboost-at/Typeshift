@@ -9,6 +9,9 @@
 
   <ItemGroup>
     <CompilerVisibleProperty Include="TypeshiftIdType" />
+    <!-- D45: TSH027 holds for projects that publish with Native AOT or declare themselves compatible -->
+    <CompilerVisibleProperty Include="PublishAot" />
+    <CompilerVisibleProperty Include="IsAotCompatible" />
   </ItemGroup>
 
 </Project>

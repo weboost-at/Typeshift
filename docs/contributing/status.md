@@ -17,7 +17,7 @@ the slices build it one at a time.
 | 7. Telemetry, compaction | built |
 | 8. Sub-agents, handoff | built |
 | 9. MCP, built-in toolsets | built |
-| 10. Native AOT: the console sample, the package consumer | next |
+| 10. Native AOT: the console sample, the package consumer | built |
 
 ## Behavior coverage
 
@@ -92,6 +92,9 @@ The numbers are the rules of v0's behavior table where they still hold.
 | new | The web tools refuse other schemes and name a missing registration (D37) | `WebToolsetTests` |
 | new | A consumer's agent configures a built-in tool across the assembly boundary (D7, D37) | `FileSystemToolsetTests.Given_An_Agent_Using_The_Built_In_Toolset_Its_Configuration_Reaches_The_Tool` |
 | new | A reference without agents has no id type to clash (D11) | `DiagnosticTests.Given_A_Reference_Of_Toolsets_Only_Built_With_Another_Id_Type_TSH021_Is_Not_Reported` |
+| new | Under Native AOT, a tool type no context lists is TSH027 (D45) | `DiagnosticTests.Given_A_Tool_Type_No_Context_Lists_Under_Native_Aot_TSH027_Is_Reported_On_Its_Tool` |
+| new | Tools, settings, conversations, streaming and structured output run published as Native AOT | `samples/Typeshift.Samples.Console`, run by CI |
+| new | A consumer of the package, not of the projects, generates and registers its agents and the built-ins | `samples/Typeshift.Samples.PackageConsumer`, run by CI |
 
 ## Known gaps
 

@@ -8,4 +8,5 @@ namespace Typeshift.Toolsets;
 [JsonSerializable(typeof(IReadOnlyList<WebSearchResult>))]
 [JsonSerializable(typeof(WebPage))]
 [JsonSerializable(typeof(Uri))]
+[JsonSerializable(typeof(int?))]
 internal sealed partial class ToolsetsJson : JsonSerializerContext;

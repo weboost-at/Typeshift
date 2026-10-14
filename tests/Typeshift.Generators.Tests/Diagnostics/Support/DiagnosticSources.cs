@@ -734,6 +734,39 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string ToolTypeWithoutJsonMetadata =
+        """
+        using System.Text.Json.Serialization;
+        using Typeshift;
+
+        internal sealed record Company(string Name);
+
+        internal partial class CompanyToolset : Toolset
+        {
+            public CompanyToolset()
+            {
+                AddTool(Find).WithDescription("Finds a company.");
+
+                AddTool(Count).WithDescription("Counts companies.");
+            }
+
+            public static Company Find(string name) => new(name);
+
+            public static int Count(System.Guid region) => 0;
+        }
+
+        // The System.Text.Json generator does not run here; what it would write is stubbed
+        [JsonSerializable(typeof(Company))]
+        internal partial class CompanyJson() : JsonSerializerContext(null)
+        {
+            public static CompanyJson Default { get; } = new();
+
+            protected override System.Text.Json.JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type) => null;
+        }
+        """;
+
     public const string OtherStoreIdType =
         """
         using Typeshift;

@@ -51,5 +51,7 @@ The library was rebuilt from the API its owner approved; nothing of the unreleas
 - Built-in toolsets in `Typeshift.Toolsets`: `TodoToolset` (`write_todos`), `FileSystemToolset` within an
   `IFileSystemRoot`, `ShellToolset` (`run_command`, behind approval) and `WebToolset` over the host's `IWebSearch`
   and `IWebFetch`.
+- Native AOT: generated paths never reflect; the analyzer reports a tool type without JSON metadata in an AOT
+  project (TSH027).
 - An analyzer reports every Typeshift diagnostic at real source locations, so `#pragma` and `.editorconfig` reach
   them; a suppressor drops CS1573 for tool parameters the model never sees.

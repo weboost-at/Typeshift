@@ -44,6 +44,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.SubAgentNeedsApproval,
         Descriptors.AgentCircle,
         Descriptors.OfferedTwice,
+        Descriptors.NoJsonMetadata,
         Descriptors.OtherStoreIdType
     ];
 
@@ -66,6 +67,9 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         var idType = IdTypes.Resolve(property, context.Compilation);
 
         context.RegisterSymbolStartAction(start => StartClass(start, tools, kinds, found), SymbolKind.NamedType);
+        context.RegisterSymbolAction(symbol => CollectJsonTypes(symbol, found), SymbolKind.NamedType);
+
+        var aot = IsAot(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
         // The library's own builders make the calls a user may not; its built-in toolsets are checked as declarations
         if (context.Compilation.AssemblyName != KnownTypes.LibraryAssembly)
             context.RegisterOperationAction(call => AnalyzeCall(call, idType), OperationKind.Invocation);
@@ -77,6 +81,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             ReportOtherIdTypes(end, idType);
             ReportSharedKinds(end, kinds);
             ReportAgentUses(end, found);
+            if (aot) ReportMissingJsonMetadata(end, found);
         });
     }
 
@@ -150,6 +155,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             foreach (var (tool, addTool) in declarations)
             {
                 tools.Add((tool.Name, type, addTool.Syntax.GetLocation()));
+                found.Tools.Add((tool, addTool.Syntax.GetLocation()));
             }
         });
     }
@@ -397,9 +403,65 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         params object[] arguments) =>
         context.ReportDiagnostic(Diagnostic.Create(descriptor, use.Syntax.GetLocation(), arguments));
 
+    // D45: Microsoft.Extensions.AI's own context covers these, without reflection
+    private static readonly HashSet<string> CoveredTypes =
+    [
+        "string", "char", "short", "ushort", "int", "uint", "long", "ulong", "float", "double", "decimal", "bool",
+        "global::System.TimeSpan", "global::System.DateTime", "global::System.DateTimeOffset",
+        "global::System.Text.Json.JsonElement", "global::System.Text.Json.JsonDocument",
+        "global::System.Text.Json.Nodes.JsonNode", "global::System.Text.Json.Nodes.JsonObject",
+        "global::System.Text.Json.Nodes.JsonArray", "global::System.Text.Json.Nodes.JsonValue",
+        "global::System.Collections.Generic.IEnumerable<string>"
+    ];
+
+    private static bool IsAot(AnalyzerConfigOptions options) =>
+        new[] { "build_property.PublishAot", "build_property.IsAotCompatible" }
+            .Any(name => options.TryGetValue(name, out var value) && IsTrue(value));
+
+    private static bool IsTrue(string value) => value.Equals("true", System.StringComparison.OrdinalIgnoreCase);
+
+    private static void CollectJsonTypes(SymbolAnalysisContext context, Found found)
+    {
+        var type = (INamedTypeSymbol)context.Symbol;
+        if (!type.DerivesFrom(KnownTypes.JsonSerializerContext)) return;
+
+        var listed = type.GetAttributes()
+            .Where(attribute => attribute.AttributeClass.Is(KnownTypes.JsonSerializableAttribute))
+            .Select(attribute => attribute.ConstructorArguments.FirstOrDefault().Value)
+            .OfType<ITypeSymbol>();
+
+        foreach (var json in listed)
+        {
+            found.JsonTypes[json.ToTypeOf()] = true;
+        }
+    }
+
+    // D45: under Native AOT, every type a tool binds or returns needs metadata from a context
+    private static void ReportMissingJsonMetadata(CompilationAnalysisContext context, Found found)
+    {
+        foreach (var (tool, location) in found.Tools)
+        {
+            var types = tool.Parameters
+                .Where(parameter => parameter.Kind == ParameterKind.Argument)
+                .Select(parameter => parameter.TypeOf)
+                .Concat(tool.Result is { } result ? [result] : []);
+
+            foreach (var type in types.Distinct())
+            {
+                if (CoveredTypes.Contains(type) || found.JsonTypes.ContainsKey(type)) continue;
+
+                context.ReportDiagnostic(Diagnostic.Create(Descriptors.NoJsonMetadata, location, type, tool.Name));
+            }
+        }
+    }
+
     // What the classes of the compilation declare, for the checks at its end
     private sealed class Found
     {
+        public ConcurrentBag<(ToolModel Tool, Location Location)> Tools { get; } = [];
+
+        public ConcurrentDictionary<string, bool> JsonTypes { get; } = [];
+
         public ConcurrentBag<FoundAgent> Agents { get; } = [];
 
         public ConcurrentBag<ToolsetSummary> Toolsets { get; } = [];

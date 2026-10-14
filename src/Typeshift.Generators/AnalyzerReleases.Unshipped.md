@@ -31,4 +31,5 @@ TSH023 | Typeshift | Error | Agent cannot be a tool or a handoff target
 TSH024 | Typeshift | Warning | Sub-agent offers tools that need approval
 TSH025 | Typeshift | Error | Tool is offered twice
 TSH026 | Typeshift | Error | Agents call each other in a circle
+TSH027 | Typeshift | Error | Tool type has no JSON metadata under Native AOT
 TSH028 | Typeshift | Error | Store has another id type

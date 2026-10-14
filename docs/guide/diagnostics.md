@@ -32,6 +32,7 @@ handle has a diagnostic: generated code never fails with a compiler error of its
 | [TSH024](#tsh024) | Warning | Sub-agent offers tools that need approval |
 | [TSH025](#tsh025) | Error | Tool is offered twice |
 | [TSH026](#tsh026) | Error | Agents call each other in a circle |
+| [TSH027](#tsh027) | Error | Tool type has no JSON metadata under Native AOT |
 | [TSH028](#tsh028) | Error | Store has another id type |
 
 ## TSH001
@@ -162,6 +163,13 @@ sub-agent or as a handoff target. Offer each toolset's tools in one use.
 ## TSH026
 
 **Agents call each other in a circle** through `UseAgent`, so a call could never end. Handoffs may form circles.
+
+## TSH027
+
+**Tool type has no JSON metadata under Native AOT.** In a project that publishes with Native AOT or sets
+`IsAotCompatible`, every parameter and result type of a tool needs source-generated metadata: list it in a
+`JsonSerializerContext` of the toolset's assembly; see [Native AOT](./native-aot.md). Strings, numbers, `bool`, dates,
+`TimeSpan` and JSON elements need none.
 
 ## TSH028
 

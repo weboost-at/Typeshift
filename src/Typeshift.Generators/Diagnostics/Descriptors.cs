@@ -143,6 +143,12 @@ internal static class Descriptors
         "Tool is offered twice",
         "{0} is offered twice: use each toolset once and pick each tool once");
 
+    public static readonly DiagnosticDescriptor NoJsonMetadata = Error(
+        "TSH027",
+        "Tool type has no JSON metadata under Native AOT",
+        "'{0}' of '{1}' has no JSON metadata, which Native AOT needs: list it in a JsonSerializerContext of this "
+        + "assembly, [JsonSerializable(typeof({0}))]");
+
     public static readonly DiagnosticDescriptor OtherStoreIdType = Error(
         "TSH028",
         "Store has another id type",

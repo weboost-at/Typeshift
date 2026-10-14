@@ -43,7 +43,8 @@ export default defineConfig({
             { text: 'Multiple agents', link: '/guide/multi-agent' },
             { text: 'Long-running agents', link: '/guide/long-running-agents' },
             { text: 'Observability', link: '/guide/observability' },
-            { text: 'Built-in toolsets', link: '/guide/built-in-toolsets' }
+            { text: 'Built-in toolsets', link: '/guide/built-in-toolsets' },
+            { text: 'Native AOT', link: '/guide/native-aot' }
           ]
         },
         {
