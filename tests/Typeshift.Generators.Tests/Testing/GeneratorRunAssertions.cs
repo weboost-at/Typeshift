@@ -73,10 +73,12 @@ public sealed class GeneratorRunAssertions(GeneratorRun run)
         return run;
     }
 
-    // No generated file holds a compiler error: the analyzer reports every shape the generator cannot handle
+    // No generated file holds a compiler error or warning: the analyzer reports every shape the generator cannot
+    // handle. Hidden ones (an alias the project never uses) are the IDE's business
     public GeneratorRun GeneratesValidCode()
     {
         run.Reported
+            .Where(diagnostic => diagnostic.Severity >= DiagnosticSeverity.Warning)
             .Where(diagnostic => diagnostic.Location.SourceTree is { } tree && Generated(tree))
             .Select(diagnostic => diagnostic.ToString())
             .Should()

@@ -26,6 +26,8 @@ public abstract class AgentDeclaration
     internal abstract RunOptions ApplySettings(ChatOptions options, RunOptions run, object settings);
 
     internal abstract IEnumerable<AITool> CreateTools(Agent agent, IReadOnlyList<object> layers, ToolJson json);
+
+    internal abstract Task<object?> LoadSettingsAsync(IStoreAccess store, object id, CancellationToken ct);
 }
 
 /// <summary>
@@ -36,7 +38,7 @@ public abstract class AgentDeclaration
 [EditorBrowsable(EditorBrowsableState.Never)]
 public abstract class AgentDeclaration<TAgent, TSettings> : AgentDeclaration
     where TAgent : Agent
-    where TSettings : class
+    where TSettings : class, IStorable<TSettings>
 {
     internal sealed override RunOptions ApplySettings(ChatOptions options, RunOptions run, object settings) =>
         ApplySettings(options, run, (TSettings)settings);
@@ -46,6 +48,12 @@ public abstract class AgentDeclaration<TAgent, TSettings> : AgentDeclaration
         IReadOnlyList<object> layers,
         ToolJson json) =>
         CreateTools((TAgent)agent, [.. layers.Cast<TSettings>()], json);
+
+    internal sealed override async Task<object?> LoadSettingsAsync(
+        IStoreAccess store,
+        object id,
+        CancellationToken ct) =>
+        (await store.LoadAsync<TSettings>(id, ct))?.Data;
 
     /// <summary>
     /// Applies the chat and run options one settings layer sets.

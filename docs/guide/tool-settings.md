@@ -58,6 +58,12 @@ The generator reads the picks; their lambdas never run, and a pick must be `s =>
 ([TSH015](./diagnostics.md#tsh015)). Obsolete members stay out on their own. A configurable member needs a public
 `set` or `init` accessor ([TSH013](./diagnostics.md#tsh013)).
 
+A configurable member's type is one settings can store ([TSH012](./diagnostics.md#tsh012)): strings, Booleans,
+numbers, enums (stored by name), `Guid`, `DateTime`, `DateTimeOffset`, `TimeSpan`, `DateOnly`, `TimeOnly` and `Uri`;
+records and classes with a public parameterless constructor whose settable members are storable, replaced as a whole,
+never merged; arrays, lists and sets of storable values; dictionaries keyed by `string` or an enum. A type that
+contains itself is not storable.
+
 ## Receiving settings in the tool
 
 The tool takes a parameter of its settings type. A tool with settings but no such parameter is
@@ -91,6 +97,8 @@ A tool runs with its settings resolved in layers, each over the one below:
 
 1. The record's code defaults, its parameterless constructor.
 2. The agent's code: [`Configure{Tool}()`](./agents.md#tool-settings), which may set any settable member.
-3. The run: the overrides in the [run's settings](./running-agents.md#run-settings), configurable members only.
+3. The agent's stored settings, under a [settings id](./settings-and-stores.md#agent-settings): the overrides,
+   configurable members only.
+4. The run: the overrides in the [run's settings](./running-agents.md#run-settings).
 
 A layer that leaves a member null keeps the value below it.

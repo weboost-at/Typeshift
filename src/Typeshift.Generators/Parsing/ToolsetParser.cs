@@ -295,18 +295,34 @@ internal static class ToolsetParser
 
         // An obsolete member that is not configurable stays out, so no generated member uses it and the consumer
         // gets no CS0618
-        var properties = type.GetPublicProperties()
-            .Where(property => property.IsSettable)
-            .Where(property => IsConfigurable(property) || !property.IsObsolete)
-            .Select(property => new SettingsPropertyModel(
+        var properties = new List<SettingsPropertyModel>();
+
+        foreach (var property in type.GetPublicProperties().Where(property => property.IsSettable))
+        {
+            var configurable = IsConfigurable(property);
+            if (!configurable && property.IsObsolete) continue;
+
+            // D19: what a store keeps; a pick names the member, a deny list the call that allowed it
+            var storage = configurable ? Storage.Of(property.Type) : null;
+
+            if (configurable && storage is null)
+            {
+                var pick = picked.FirstOrDefault(candidate => candidate.Property.Name == property.Name).Call;
+                var location = pick?.Arguments[0].Syntax ?? settingsName;
+
+                reporter.Report(Descriptors.NotStorable, location, property.Name);
+                return null;
+            }
+
+            properties.Add(new SettingsPropertyModel(
                 Name: property.Name,
                 Type: property.Type.ToFullyQualified(),
                 NullableType: property.Type.ToNullableFullyQualified(),
-                IsConfigurable: IsConfigurable(property),
-                Summary: XmlDocs.Read(property, ct).Summary))
-            .ToEquatableArray();
+                Storage: storage,
+                Summary: XmlDocs.Read(property, ct).Summary));
+        }
 
-        return new SettingsModel(type.ToTypeOf(), properties);
+        return new SettingsModel(type.ToTypeOf(), properties.ToEquatableArray());
     }
 
     // The model's JSON fills a value; it cannot fill a reference, a pointer or a stack-only type

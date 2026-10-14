@@ -37,7 +37,10 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.GeneratedNameClash,
         Descriptors.NotGenerated,
         Descriptors.UnstampedReference,
-        Descriptors.OfferedTwice
+        Descriptors.OtherIdType,
+        Descriptors.SharedKind,
+        Descriptors.OfferedTwice,
+        Descriptors.OtherStoreIdType
     ];
 
     public override void Initialize(AnalysisContext context)
@@ -52,20 +55,27 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         if (context.Compilation.GetTypeByMetadataName(KnownTypes.Toolset) is null) return;
 
         var tools = new ConcurrentBag<(string Name, INamedTypeSymbol Toolset, Location Location)>();
+        var kinds = new ConcurrentBag<(string Kind, INamedTypeSymbol Agent)>();
 
-        context.RegisterSymbolStartAction(start => StartClass(start, tools), SymbolKind.NamedType);
-        context.RegisterOperationAction(AnalyzeCall, OperationKind.Invocation);
+        var property = IdTypes.Read(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
+        var idType = IdTypes.Resolve(property, context.Compilation);
+
+        context.RegisterSymbolStartAction(start => StartClass(start, tools, kinds), SymbolKind.NamedType);
+        context.RegisterOperationAction(call => AnalyzeCall(call, idType), OperationKind.Invocation);
 
         context.RegisterCompilationEndAction(end =>
         {
             ReportClashesAcrossToolsets(end, tools);
             ReportUnstampedReferences(end);
+            ReportOtherIdTypes(end, idType);
+            ReportSharedKinds(end, kinds);
         });
     }
 
     private static void StartClass(
         SymbolStartAnalysisContext context,
-        ConcurrentBag<(string Name, INamedTypeSymbol Toolset, Location Location)> tools)
+        ConcurrentBag<(string Name, INamedTypeSymbol Toolset, Location Location)> tools,
+        ConcurrentBag<(string Kind, INamedTypeSymbol Agent)> kinds)
     {
         var type = (INamedTypeSymbol)context.Symbol;
         if (type.IsAbstract) return;
@@ -112,7 +122,9 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
             if (baseType == "Agent")
             {
-                AgentParser.Parse(type, ordered, reporter, end.CancellationToken);
+                if (AgentParser.Parse(type, ordered, reporter, end.CancellationToken) is { } agent)
+                    kinds.Add((agent.Kind, type));
+
                 return;
             }
 
@@ -136,10 +148,26 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             _ => null
         };
 
-    private static void AnalyzeCall(OperationAnalysisContext context)
+    private static void AnalyzeCall(OperationAnalysisContext context, ITypeSymbol? idType)
     {
         var invocation = (IInvocationOperation)context.Operation;
         var target = invocation.TargetMethod;
+
+        // D11: the store serves ids of the build's type
+        if (target is { Name: "WithStore", TypeArguments.Length: 1 }
+            && target.ContainingType.Is(KnownTypes.TypeshiftBuilder)
+            && target.TypeArguments[0] is var store
+            && !store.AllInterfaces.Any(contract => contract.Is(KnownTypes.Store)
+                && SymbolEqualityComparer.Default.Equals(contract.TypeArguments[0], idType)))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                Descriptors.OtherStoreIdType,
+                ConstructorChains.GetCalledName(invocation).GetLocation(),
+                store.Name,
+                idType?.ToDisplayString()));
+
+            return;
+        }
 
         var declares = ToolsetParser.IsAddTool(invocation) || AgentParser.IsDeclaration(invocation);
 
@@ -225,6 +253,50 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         foreach (var assembly in ReferenceReader.GetUnstamped(context.Compilation, context.CancellationToken))
         {
             context.ReportDiagnostic(Diagnostic.Create(Descriptors.UnstampedReference, Location.None, assembly.Name));
+        }
+    }
+
+    private static void ReportOtherIdTypes(CompilationAnalysisContext context, ITypeSymbol? idType)
+    {
+        foreach (var (assembly, other) in ReferenceReader.GetOtherIdTypes(context.Compilation, idType))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                Descriptors.OtherIdType,
+                Location.None,
+                assembly.Name,
+                other.ToDisplayString(),
+                idType?.ToDisplayString()));
+        }
+    }
+
+    // D39: the kinds of this compilation's agents, and those its references stamp
+    private static void ReportSharedKinds(
+        CompilationAnalysisContext context,
+        IEnumerable<(string Kind, INamedTypeSymbol Agent)> kinds)
+    {
+        var taken = ReferenceReader.GetAgentKinds(context.Compilation)
+            .GroupBy(kind => kind.Kind)
+            .ToDictionary(group => group.Key, group => group.First().Agent);
+
+        var ordered = kinds
+            .OrderBy(kind => kind.Agent.Locations.FirstOrDefault()?.SourceTree?.FilePath)
+            .ThenBy(kind => kind.Agent.Locations.FirstOrDefault()?.SourceSpan.Start);
+
+        foreach (var (kind, agent) in ordered)
+        {
+            if (taken.TryGetValue(kind, out var other))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Descriptors.SharedKind,
+                    agent.Locations.FirstOrDefault(),
+                    agent.ToDisplayString(),
+                    kind,
+                    other));
+
+                continue;
+            }
+
+            taken[kind] = agent.ToDisplayString();
         }
     }
 }

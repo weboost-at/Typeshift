@@ -4,9 +4,13 @@ namespace Typeshift.Generators.Models;
 internal sealed record ModuleModel(
     string Name,
     string AssemblyName,
+    string IdType,
     EquatableArray<string> Toolsets,
-    EquatableArray<string> Agents,
+    EquatableArray<ModuleAgent> Agents,
     EquatableArray<string> JsonContexts);
+
+// D39: an agent and the kind its stored Settings go by
+internal sealed record ModuleAgent(string Type, string Kind);
 
 // The modules and toolsets of the referenced assemblies compiled with the generator
 internal sealed record ReferenceModel(EquatableArray<string> Modules, EquatableArray<ToolsetSummary> Toolsets);

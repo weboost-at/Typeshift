@@ -65,13 +65,14 @@ public sealed class AgentHost<TAgent> where TAgent : Agent
         return new AuthorNameChatClient(loop, Agent.Name);
     }
 
-    // D27: the agent's code, then the run's settings; values a layer leaves null keep the one below
-    internal Task<ChatOptions> ResolveOptionsCoreAsync(object? settings, CancellationToken ct)
+    // D27: the agent's code, its stored settings, then the run's; values a layer leaves null keep the one below
+    internal async Task<ChatOptions> ResolveOptionsCoreAsync(object? settingsId, object? settings, CancellationToken ct)
     {
         var declaration = Agent.GeneratedDeclaration;
-        var options = new ResolvedChatOptions(Agent.ChatOptions) { Instructions = Agent.Instructions };
-        IReadOnlyList<object> layers = settings is null ? [] : [settings];
+        var stored = settingsId is null ? null : await declaration.LoadSettingsAsync(Store, settingsId, ct);
+        IReadOnlyList<object> layers = [.. new[] { stored, settings }.OfType<object>()];
 
+        var options = new ResolvedChatOptions(Agent.ChatOptions) { Instructions = Agent.Instructions };
         var run = Agent.RunOptions;
 
         foreach (var layer in layers)
@@ -84,12 +85,16 @@ public sealed class AgentHost<TAgent> where TAgent : Agent
         options.Tools = [.. tools, .. options.Tools ?? []];
         options.Run = run;
 
-        return Task.FromResult<ChatOptions>(options);
+        return options;
     }
 
-    internal async Task<ChatResponse> RunCoreAsync(ChatMessage input, object? settings, CancellationToken ct)
+    internal async Task<ChatResponse> RunCoreAsync(
+        ChatMessage input,
+        object? settingsId,
+        object? settings,
+        CancellationToken ct)
     {
-        var options = await ResolveOptionsCoreAsync(settings, ct);
+        var options = await ResolveOptionsCoreAsync(settingsId, settings, ct);
         using var client = await CreateChatClientAsync(options, ct);
 
         return await client.GetResponseAsync([input], options, ct);
@@ -97,10 +102,11 @@ public sealed class AgentHost<TAgent> where TAgent : Agent
 
     internal async Task<ChatResponse<TResult>> RunCoreAsync<TResult>(
         ChatMessage input,
+        object? settingsId,
         object? settings,
         CancellationToken ct)
     {
-        var options = await ResolveOptionsCoreAsync(settings, ct);
+        var options = await ResolveOptionsCoreAsync(settingsId, settings, ct);
         using var client = await CreateChatClientAsync(options, ct);
         var json = _services.GetRequiredService<ToolJson>();
 
@@ -109,10 +115,11 @@ public sealed class AgentHost<TAgent> where TAgent : Agent
 
     internal async IAsyncEnumerable<ChatResponseUpdate> RunStreamingCoreAsync(
         ChatMessage input,
+        object? settingsId,
         object? settings,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        var options = await ResolveOptionsCoreAsync(settings, ct);
+        var options = await ResolveOptionsCoreAsync(settingsId, settings, ct);
         using var client = await CreateChatClientAsync(options, ct);
 
         await foreach (var update in client.GetStreamingResponseAsync([input], options, ct))
@@ -120,4 +127,6 @@ public sealed class AgentHost<TAgent> where TAgent : Agent
             yield return update;
         }
     }
+
+    internal IStoreAccess Store => _services.GetRequiredService<IStoreAccess>();
 }

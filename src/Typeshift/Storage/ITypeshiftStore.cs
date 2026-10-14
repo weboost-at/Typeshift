@@ -1,0 +1,48 @@
+namespace Typeshift;
+
+/// <summary>
+/// The one store Typeshift persists through. Each project sees it as <c>ITypeshiftStore</c>, an alias the generator
+/// writes for the build's id type (<c>TypeshiftIdType</c>, <see cref="Guid"/> by default).
+/// </summary>
+/// <typeparam name="TId">
+/// The id type of settings; the library never creates ids, it passes on the host's.
+/// </typeparam>
+public interface ITypeshiftStore<TId> where TId : notnull
+{
+    /// <summary>
+    /// Loads the document of kind <c>TData.Kind</c> stored under an id.
+    /// </summary>
+    /// <typeparam name="TData">The document's type.</typeparam>
+    /// <param name="id">The id.</param>
+    /// <param name="ct">Cancels the load.</param>
+    /// <returns>The document and its revision, or null when none is stored.</returns>
+    Task<Stored<TData>?> LoadAsync<TData>(TId id, CancellationToken ct) where TData : class, IStorable<TData>;
+
+    /// <summary>
+    /// Saves a document if the stored revision is still <paramref name="revision"/>, 0 for none.
+    /// </summary>
+    /// <typeparam name="TData">The document's type.</typeparam>
+    /// <param name="id">The id.</param>
+    /// <param name="data">The document.</param>
+    /// <param name="revision">The revision the caller loaded, 0 when it found none.</param>
+    /// <param name="ct">Cancels the save.</param>
+    /// <returns>The new revision.</returns>
+    /// <exception cref="StoreConflictException">Another save came first.</exception>
+    Task<long> SaveAsync<TData>(TId id, TData data, long revision, CancellationToken ct)
+        where TData : class, IStorable<TData>;
+}
+
+/// <summary>
+/// A stored document and the revision a save must name.
+/// </summary>
+/// <typeparam name="TData">The document's type.</typeparam>
+/// <param name="Data">The document.</param>
+/// <param name="Revision">Its revision.</param>
+public sealed record Stored<TData>(TData Data, long Revision);
+
+/// <summary>
+/// A save that lost to another save of the same document.
+/// </summary>
+/// <param name="message">What was saved.</param>
+/// <param name="inner">The store's own exception, if any.</param>
+public sealed class StoreConflictException(string message, Exception? inner = null) : Exception(message, inner);

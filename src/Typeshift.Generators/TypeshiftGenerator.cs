@@ -38,6 +38,11 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             .Select(static (call, _) => call!)
             .Collect();
 
+        // D11: the id type of every typed member, the aliases and the stamps
+        var idType = context.AnalyzerConfigOptionsProvider
+            .Combine(context.CompilationProvider)
+            .Select(static (pair, _) => IdTypes.Display(IdTypes.Read(pair.Left.GlobalOptions), pair.Right));
+
         // Every edit makes a new compilation; the stamps it yields compare equal, so what depends on them is cached
         var references = context.CompilationProvider
             .Select(ReferenceReader.Read)
@@ -59,15 +64,23 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             .Combine(agents.Collect())
             .Combine(contexts)
             .Combine(context.CompilationProvider.Select(static (compilation, _) => compilation.AssemblyName ?? ""))
-            .Select(static (pair, _) =>
-                CreateModule(pair.Left.Left.Left, pair.Left.Left.Right, pair.Left.Right, pair.Right))
+            .Combine(idType)
+            .Select(static (pair, _) => CreateModule(
+                pair.Left.Left.Left.Left,
+                pair.Left.Left.Left.Right,
+                pair.Left.Left.Right,
+                pair.Left.Right,
+                pair.Right))
             .WithTrackingName(TrackingNames.Module);
 
         context.RegisterSourceOutput(toolsets, static (output, toolset) =>
             output.AddSource(Names.HintName(toolset.Type.FullName), ToolsetEmitter.Emit(toolset)));
 
-        context.RegisterSourceOutput(outputs, static (output, agent) =>
-            output.AddSource(Names.HintName(agent.Agent.Type.FullName), AgentEmitter.Emit(agent)));
+        context.RegisterSourceOutput(outputs.Combine(idType), static (output, pair) =>
+            output.AddSource(Names.HintName(pair.Left.Agent.Type.FullName), AgentEmitter.Emit(pair.Left, pair.Right)));
+
+        context.RegisterSourceOutput(idType, static (output, type) =>
+            output.AddSource(Names.HintName($"{Names.GeneratedNamespace}.Aliases"), AliasEmitter.Emit(type)));
 
         context.RegisterSourceOutput(module, static (output, model) =>
         {
@@ -76,8 +89,8 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             output.AddSource(Names.HintName($"{Names.GeneratedNamespace}.{model.Name}"), ModuleEmitter.Emit(model));
         });
 
-        context.RegisterSourceOutput(calls.Combine(module).Combine(references), static (output, pair) =>
-            EmitInterceptor(output, pair.Left.Left, pair.Left.Right, pair.Right));
+        context.RegisterSourceOutput(calls.Combine(module).Combine(references).Combine(idType), static (output, pair) =>
+            EmitInterceptor(output, pair.Left.Left.Left, pair.Left.Left.Right, pair.Left.Right, pair.Right));
     }
 
     // Null for an assembly that declares neither toolsets nor agents; its contexts serve no generated tool
@@ -85,15 +98,20 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
         ImmutableArray<ToolsetModel> toolsets,
         ImmutableArray<AgentModel> agents,
         ImmutableArray<string> contexts,
-        string assemblyName)
+        string assemblyName,
+        string idType)
     {
         if (toolsets.IsEmpty && agents.IsEmpty) return null;
 
         return new ModuleModel(
             ModuleEmitter.GetName(assemblyName),
             assemblyName,
+            idType,
             toolsets.Where(toolset => toolset.IsReachable).Select(toolset => toolset.Type.FullName).ToEquatableArray(),
-            agents.Where(agent => agent.IsReachable).Select(agent => agent.Type.FullName).ToEquatableArray(),
+            agents
+                .Where(agent => agent.IsReachable)
+                .Select(agent => new ModuleAgent(agent.Type.FullName, agent.Kind))
+                .ToEquatableArray(),
             contexts.Distinct().ToEquatableArray());
     }
 
@@ -101,7 +119,8 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
         SourceProductionContext output,
         ImmutableArray<InterceptModel> calls,
         ModuleModel? module,
-        ReferenceModel references)
+        ReferenceModel references,
+        string idType)
     {
         if (calls.IsEmpty) return;
 
@@ -109,6 +128,6 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
 
         output.AddSource(
             Names.HintName($"{Names.GeneratedNamespace}.{KnownTypes.RegistrationMethod}Interceptor"),
-            InterceptorEmitter.Emit(calls, [.. own, .. references.Modules]));
+            InterceptorEmitter.Emit(calls, [.. own, .. references.Modules], idType));
     }
 }

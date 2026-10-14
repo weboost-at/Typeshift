@@ -145,6 +145,26 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Configurable_Member_Settings_Cannot_Store_TSH012_Is_Reported_On_The_Pick()
+    {
+        // Act
+        var run = Run(DiagnosticSources.UnstorablePick);
+
+        // Assert
+        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, "s => s.Pick");
+    }
+
+    [Fact]
+    public void Given_A_Recursive_Member_Under_A_Deny_List_TSH012_Is_Reported_On_The_Settings_Call()
+    {
+        // Act
+        var run = Run(DiagnosticSources.UnstorableDenyList);
+
+        // Assert
+        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, "WithConfigurableSettings<EchoSettings>");
+    }
+
+    [Fact]
     public void Given_A_Configurable_Member_Without_Setter_TSH013_Is_Reported_On_The_Pick()
     {
         // Act
@@ -391,6 +411,40 @@ public class DiagnosticTests : GeneratorTestBase
 
         // Assert
         run.Assert.Reports("TSH007", DiagnosticSeverity.Error, "AddTool(FindCompanies)");
+    }
+
+    [Fact]
+    public void Given_A_Reference_Built_With_Another_Id_Type_TSH021_Is_Reported()
+    {
+        // Arrange
+        var properties = BuildProperties.WithIdType("int");
+        var reference = CompileReference("Companies", properties, ReferenceSources.CompanyToolset);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.SameNamedToolset));
+
+        // Assert
+        run.Assert.ReportsOnTheCompilation("TSH021", DiagnosticSeverity.Error).GetMessage().Should().Contain("int");
+    }
+
+    [Fact]
+    public void Given_Two_Agents_Of_One_Class_Name_TSH022_Is_Reported_On_The_Second()
+    {
+        // Act
+        var run = Run(DiagnosticSources.SharedKind);
+
+        // Assert
+        run.Assert.Reports("TSH022", DiagnosticSeverity.Error, "HelpAgent").GetMessage().Should().Contain("Billing");
+    }
+
+    [Fact]
+    public void Given_A_Store_Of_Another_Id_Type_TSH028_Is_Reported_On_WithStore()
+    {
+        // Act
+        var run = Run(DiagnosticSources.OtherStoreIdType);
+
+        // Assert
+        run.Assert.Reports("TSH028", DiagnosticSeverity.Error, "WithStore<InMemoryTypeshiftStore<int>>");
     }
 
     [Fact]

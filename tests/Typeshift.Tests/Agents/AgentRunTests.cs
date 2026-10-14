@@ -40,7 +40,7 @@ public class AgentRunTests : AgentTestBase
         };
 
         // Act
-        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, settings, Ct);
+        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, settings: settings, ct: Ct);
         var options = ChatClient.Options[0]!;
 
         // Assert
@@ -55,8 +55,10 @@ public class AgentRunTests : AgentTestBase
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
 
+        var settings = new ProbeAgent.Settings { Temperature = Data.Agent.Temperature };
+
         // Act
-        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, new() { Temperature = Data.Agent.Temperature }, Ct);
+        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, settings: settings, ct: Ct);
 
         // Assert
         Models.Should().Equal(ProbeAgent.Model);
@@ -125,7 +127,7 @@ public class AgentRunTests : AgentTestBase
         var settings = new ProbeAgent.Settings { Probe = new() { Limit = Data.Tool.Limit } };
 
         // Act
-        var response = await Host<ProbeAgent>().RunAsync(Data.Tool.Question, settings, Ct);
+        var response = await Host<ProbeAgent>().RunAsync(Data.Tool.Question, settings: settings, ct: Ct);
         var result = response.Assert.ToolResult<ProbeResult>(Data.Tool.CallId, Json);
 
         // Assert
@@ -221,7 +223,7 @@ public class AgentRunTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, new() { MaxToolIterations = 1 }, Ct);
+        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, settings: new() { MaxToolIterations = 1 }, ct: Ct);
 
         // Assert
         ChatClient.Requests.Should().HaveCount(2);
@@ -244,7 +246,7 @@ public class AgentRunTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         var host = Host<ProbeAgent>();
-        var options = await host.ResolveOptionsAsync(new() { Model = Data.Agent.Model }, Ct);
+        var options = await host.ResolveOptionsAsync(settings: new() { Model = Data.Agent.Model }, ct: Ct);
 
         // Act
         using var client = await host.CreateChatClientAsync(options, Ct);

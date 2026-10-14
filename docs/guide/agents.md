@@ -72,5 +72,8 @@ Every agent gets a nested `Settings` record, `SupportAgent.Settings`, holding ex
 | One per configurable run option | `MaxToolIterations` of the triage agent above. |
 | One per offered tool with configurable settings | `SearchTickets`, `SearchArticles`: their [overrides](./tool-settings.md#the-generated-overrides). |
 
-Every value is nullable, and null keeps the layer below. A tool member named like an option gets a `Tool` suffix. Pass
-the record [for one run](./running-agents.md#run-settings).
+Every value is nullable, and null keeps the layer below. A tool member named like an option gets a `Tool` suffix. Store
+the record [under a settings id](./settings-and-stores.md#agent-settings), pass it
+[for one run](./running-agents.md#run-settings), or bind a settings form or an API to it. Its JSON is the same through
+`Serialize()` and through `System.Text.Json`. `WithStorageKind` and `WithSettingsVersion` name and version it in a
+store.

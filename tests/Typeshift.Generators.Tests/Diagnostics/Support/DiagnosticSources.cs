@@ -601,4 +601,79 @@ public static class DiagnosticSources
             public EchoAgent() => UseToolset<EchoToolset>();
         }
         """;
+
+    public const string UnstorablePick =
+        """
+        using System;
+        using Typeshift;
+
+        internal record EchoSettings
+        {
+            public Func<int> Pick { get; init; } = () => 1;
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Pick);
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string UnstorableDenyList =
+        """
+        using Typeshift;
+
+        internal record Node
+        {
+            public Node? Next { get; init; }
+        }
+
+        internal record EchoSettings
+        {
+            public Node Chain { get; init; } = new();
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithConfigurableSettings<EchoSettings>();
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string SharedKind =
+        """
+        using Typeshift;
+
+        namespace Support
+        {
+            internal partial class HelpAgent : Agent
+            {
+                public HelpAgent() => WithChatOptions().WithModel("fast-model");
+            }
+        }
+
+        namespace Billing
+        {
+            internal partial class HelpAgent : Agent
+            {
+                public HelpAgent() => WithChatOptions().WithModel("fast-model");
+            }
+        }
+        """;
+
+    public const string OtherStoreIdType =
+        """
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithStore<InMemoryTypeshiftStore<int>>();
+        }
+        """;
 }

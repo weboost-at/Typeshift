@@ -16,7 +16,7 @@ internal static class Descriptors
 
     public static readonly DiagnosticDescriptor NotConstant = Error(
         "TSH002",
-        "Name or description is not a constant",
+        "Declared value is not a constant",
         "The {0} must be a constant: the generator reads it at compile time");
 
     public static readonly DiagnosticDescriptor NotStaticMethodGroup = Error(
@@ -111,10 +111,26 @@ internal static class Descriptors
         "'{0}' declares toolsets or agents but carries no module of this Typeshift version, so AddTypeshift() "
         + "cannot register them: reference the Typeshift package in its project, at this version");
 
+    public static readonly DiagnosticDescriptor OtherIdType = Error(
+        "TSH021",
+        "Referenced assembly has another id type",
+        "'{0}' was built with the id type '{1}', this project with '{2}': set TypeshiftIdType once, in "
+        + "Directory.Build.props");
+
+    public static readonly DiagnosticDescriptor SharedKind = Error(
+        "TSH022",
+        "Two agents share a settings kind",
+        "'{0}' stores its settings as '{1}', like '{2}': give one of them a WithStorageKind of its own");
+
     public static readonly DiagnosticDescriptor OfferedTwice = Error(
         "TSH025",
         "Tool is offered twice",
         "{0} is offered twice: use each toolset once and pick each tool once");
+
+    public static readonly DiagnosticDescriptor OtherStoreIdType = Error(
+        "TSH028",
+        "Store has another id type",
+        "'{0}' is no ITypeshiftStore<{1}>, a store of the build's id type");
 
     private static DiagnosticDescriptor Error(string id, string title, string message) =>
         Create(id, title, message, DiagnosticSeverity.Error);

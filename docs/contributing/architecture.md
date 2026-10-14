@@ -81,11 +81,21 @@ modules' JSON contexts first, then Microsoft.Extensions.AI's defaults, which ref
 
 ## A run
 
-1. The generated `RunAsync` passes the input and the run's `Settings` to `AgentRuns`, which calls the host.
+1. The generated `RunAsync` passes the input, the settings id (boxed) and the run's `Settings` to `AgentRuns`, which
+   calls the host.
 2. `AgentHost<T>` resolves the options: a copy of the agent's chat options, its instructions, then each settings
-   layer through the generated declaration (configurable options, run options), then the offered tools, created
-   with their layered settings (D27).
+   layer (the stored settings, loaded through the declaration, then the run's) through the generated declaration
+   (configurable options, run options), then the offered tools, created with their layered settings (D27).
 3. It asks the scope's `IChatClientProvider` for the model's client and builds the pipeline, outermost first: author
    names on every message (D26), `FunctionInvokingChatClient` with the run options and the scope's services, and the
    provider's client behind a wrapper that never disposes it (D29).
 4. The options are a `ChatOptions` subclass that remembers the run options, so the raw path's client gets them too.
+
+## Storage
+
+`ITypeshiftStore<TId>` keeps documents by kind and id, with revisions (D38, D41). The library never sees the id type:
+the interceptor registers `StoreAccess<TId>` through `AddCoreServices<TId>`, which the runs reach as `IStoreAccess`
+with boxed ids (D11). The generator writes each agent's `Settings` as an `IStorable<Settings>` (kind, version,
+`Serialize`, `Deserialize`) and an `IJsonStorable<Settings>` (`WriteJson`, `TryReadJson`, used by `Serialize` and by
+the `StorableJsonConverter` that lets `System.Text.Json` speak the stored shape). Tool overrides are
+`IJsonStorable` too, so an agent's settings delegate to the overrides of a toolset in another assembly (D44).

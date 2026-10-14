@@ -7,9 +7,10 @@ namespace Typeshift.Generated;
 /// </summary>
 /// <param name="module">The module.</param>
 /// <param name="version">D7: the stamps' version, which generators of other versions check.</param>
+/// <param name="idType">D11: the id type the assembly was built with.</param>
 [EditorBrowsable(EditorBrowsableState.Never)]
 [AttributeUsage(AttributeTargets.Assembly)]
-public sealed class GeneratedModuleAttribute(Type module, int version) : Attribute
+public sealed class GeneratedModuleAttribute(Type module, int version, Type idType) : Attribute
 {
     /// <summary>
     /// The module.
@@ -20,6 +21,31 @@ public sealed class GeneratedModuleAttribute(Type module, int version) : Attribu
     /// The stamps' version.
     /// </summary>
     public int Version { get; } = version;
+
+    /// <summary>
+    /// The id type the assembly was built with.
+    /// </summary>
+    public Type IdType { get; } = idType;
+}
+
+/// <summary>
+/// Names an agent a module registers and the kind its stored settings go by.
+/// </summary>
+/// <param name="agent">The agent.</param>
+/// <param name="kind">D39: the kind.</param>
+[EditorBrowsable(EditorBrowsableState.Never)]
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+public sealed class ModuleAgentAttribute(Type agent, string kind) : Attribute
+{
+    /// <summary>
+    /// The agent.
+    /// </summary>
+    public Type Agent { get; } = agent;
+
+    /// <summary>
+    /// The kind its stored settings go by.
+    /// </summary>
+    public string Kind { get; } = kind;
 }
 
 /// <summary>

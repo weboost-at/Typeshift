@@ -61,6 +61,24 @@ public abstract class Agent
     }
 
     /// <summary>
+    /// Names the kind a store keys the agent's <c>Settings</c> by, in place of its class name, so renaming the class
+    /// keeps its stored settings.
+    /// </summary>
+    /// <param name="kind">A constant, unique among the agents the host sees.</param>
+    protected void WithStorageKind(string kind)
+    {
+    }
+
+    /// <summary>
+    /// Raises the schema version of the agent's stored <c>Settings</c>, 1 by default, after renaming or removing a
+    /// configurable member; stores see it and migrate older documents.
+    /// </summary>
+    /// <param name="version">A constant above the last one.</param>
+    protected void WithSettingsVersion(int version)
+    {
+    }
+
+    /// <summary>
     /// Sets the chat options every run starts from and marks those a run or stored settings may change.
     /// </summary>
     /// <returns>The chain of chat options.</returns>

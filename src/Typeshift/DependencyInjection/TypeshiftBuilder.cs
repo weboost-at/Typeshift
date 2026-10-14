@@ -9,8 +9,30 @@ namespace Typeshift;
 public sealed class TypeshiftBuilder
 {
     private readonly IServiceCollection _services;
+    private readonly Action<IServiceCollection, Func<IServiceProvider, object>> _addStore;
 
-    internal TypeshiftBuilder(IServiceCollection services) => _services = services;
+    internal TypeshiftBuilder(
+        IServiceCollection services,
+        Action<IServiceCollection, Func<IServiceProvider, object>> addStore)
+    {
+        _services = services;
+        _addStore = addStore;
+    }
+
+    /// <summary>
+    /// Registers the store, a singleton, and turns persistence on: stored settings. Without it, every call that loads
+    /// or saves throws, naming this method.
+    /// </summary>
+    /// <typeparam name="TStore">An <c>ITypeshiftStore</c> of the build's id type (TSH028).</typeparam>
+    /// <returns>The same chain.</returns>
+    public TypeshiftBuilder WithStore<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TStore>()
+        where TStore : class
+    {
+        _services.AddSingleton<TStore>();
+        _addStore(_services, provider => provider.GetRequiredService<TStore>());
+        return this;
+    }
 
     /// <summary>
     /// Registers the provider that maps model names to clients, scoped.

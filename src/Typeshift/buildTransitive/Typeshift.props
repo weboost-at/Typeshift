@@ -3,6 +3,12 @@
   <PropertyGroup>
     <!-- The generator intercepts services.AddTypeshift() from this namespace. -->
     <InterceptorsNamespaces>$(InterceptorsNamespaces);Typeshift.Generated</InterceptorsNamespaces>
+    <!-- D11: the type of every settings and conversation id; set it once, in Directory.Build.props. -->
+    <TypeshiftIdType Condition="'$(TypeshiftIdType)' == ''">Guid</TypeshiftIdType>
   </PropertyGroup>
+
+  <ItemGroup>
+    <CompilerVisibleProperty Include="TypeshiftIdType" />
+  </ItemGroup>
 
 </Project>

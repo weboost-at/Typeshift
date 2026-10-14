@@ -28,7 +28,10 @@ internal static class ModuleEmitter
         writer.Line(SourceWriter.Header);
         writer.Lines(
             $"""
-            [assembly: global::Typeshift.Generated.GeneratedModule(typeof({module}), {ReferenceReader.StampVersion})]
+            [assembly: global::Typeshift.Generated.GeneratedModule(
+                typeof({module}),
+                {ReferenceReader.StampVersion},
+                typeof({model.IdType}))]
 
             namespace {Names.GeneratedNamespace};
 
@@ -41,6 +44,12 @@ internal static class ModuleEmitter
         foreach (var toolset in model.Toolsets)
         {
             writer.Line($"[global::Typeshift.Generated.ModuleToolset(typeof({toolset}))]");
+        }
+
+        foreach (var agent in model.Agents)
+        {
+            writer.Line(
+                $"[global::Typeshift.Generated.ModuleAgent(typeof({agent.Type}), {Names.Literal(agent.Kind)})]");
         }
 
         using (writer.Block($"public static class {model.Name}"))
@@ -66,7 +75,7 @@ internal static class ModuleEmitter
 
                 foreach (var agent in model.Agents)
                 {
-                    writer.Line($"{Registration}.AddAgent(services, static () => new {agent}());");
+                    writer.Line($"{Registration}.AddAgent(services, static () => new {agent.Type}());");
                 }
 
                 foreach (var context in model.JsonContexts)

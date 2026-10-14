@@ -110,7 +110,9 @@ commit, or add a new one and withdraw the old.
   The library's id-carrying types are generic (`ITypeshiftStore<TId>`); the generator writes per project
   `global using` aliases (`ITypeshiftStore`, `InMemoryTypeshiftStore`, `ConversationTracker`, `LiveRun`) and
   generates typed members with the concrete type. A reference built with another id type is TSH021; a store of
-  another is TSH028.
+  another is TSH028. The interceptor closes the core services over the id type (`AddCoreServices<TId>`), so
+  `WithStore<T>()` needs none; behind the typed members, the library passes ids boxed to the store of that type.
+  Module stamps carry the id type.
 - **Alternatives:** `AddTypeshift().WithIdType<int>()`, known only in the registering project, with generic run
   members checked at runtime; a generated interface per project, ambiguous under `InternalsVisibleTo`.
 - **Where:** `buildTransitive/Typeshift.props`, `Emitting/AliasEmitter.cs`.
@@ -168,7 +170,11 @@ commit, or add a new one and withdraw the old.
   storable settable members (replaced as a whole, never merged), arrays, lists and sets of storable values,
   dictionaries keyed by `string` or an enum. The generator writes their serialization member by member, as for the
   records themselves; anything else is TSH012. Recursive types are TSH012.
-- **Where:** `Parsing/Storage.cs`, `Emitting/StorableEmitter.cs`.
+- **Details:** a stored record or class needs a public parameterless constructor; its members without a setter are
+  computed and not stored, its obsolete ones no longer stored. A missing member reads as the constructor's value.
+  Collection items and dictionary values are values: a nullable value type item has no stored form. Structs other
+  than the scalars are not storable.
+- **Where:** `Parsing/Storage.cs`, `Emitting/StorageEmitter.cs`, `Generated/StorableJson.cs`.
 
 ### D20. `Configure{Tool}()` stays
 
@@ -399,6 +405,10 @@ commit, or add a new one and withdraw the old.
 - **Decision:** member by member through hidden helpers, no reflection; camelCase, tools under `"tools"` by name,
   nulls left out. The generator also writes a `JsonConverter` on the record, so `System.Text.Json` (an ASP.NET
   endpoint) writes the stored shape too.
+- **Details:** each overrides record writes and reads itself (`IJsonStorable<T>`), so an agent's `Settings` in
+  another assembly than the toolset delegates to it. A member that does not read, missing or mistyped, reads as
+  null and keeps the layer below; a document that is no JSON object throws. Enums are stored by name, non-finite
+  numbers as strings.
 
 ### D45. Tool JSON: contexts from the modules, reflection outside AOT
 

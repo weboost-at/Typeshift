@@ -18,7 +18,10 @@ internal static class ToolsetEmitter
 
     // The members of a record the overrides' properties must not be named like
     private static readonly string[] RecordMembers =
-        ["ApplyTo", "Clone", "Deconstruct", "EqualityContract", "Equals", "GetHashCode", "PrintMembers", "ToString"];
+    [
+        "ApplyTo", "Clone", "Deconstruct", "EqualityContract", "Equals", "GetHashCode", "PrintMembers", "ToString",
+        "TryReadJson", "WriteJson"
+    ];
 
     public static string Emit(ToolsetModel toolset) =>
         TypeEmitter.EmitPartial(
@@ -78,7 +81,12 @@ internal static class ToolsetEmitter
             $"The configurable settings of the <c>{tool.Name}</c> tool, as an agent's stored settings or a run "
             + "override them. A null value keeps what the layer below sets.");
 
-        using (writer.Block($"public sealed record {type}"))
+        writer.Line(
+            "[global::System.Text.Json.Serialization.JsonConverter("
+            + $"typeof(global::Typeshift.Generated.StorableJsonConverter<{type}>))]");
+
+        using (writer.Block(
+            $"public sealed record {type} : global::Typeshift.Generated.IJsonStorable<{type}>"))
         {
             foreach (var property in configurable)
             {
@@ -110,6 +118,10 @@ internal static class ToolsetEmitter
                     ]);
                 }
             }
+
+            // D44: the overrides as an agent's stored settings keep them, under the tool's name
+            StorageEmitter.WriteRecordJson(writer, type, configurable.Select(property =>
+                (Member(property, reserved), Parsing.Storage.JsonName(property.Name), property.Storage!)));
         }
     }
 

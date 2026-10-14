@@ -21,5 +21,9 @@ The library was rebuilt from the API its owner approved; nothing of the unreleas
   `AgentHost<T>` per agent and the assemblies' JSON contexts. Runs (`RunAsync`, `RunAsync<T>`, `RunStreamingAsync`,
   the raw `ResolveOptionsAsync` and `CreateChatClientAsync`) use the services of the host's scope and return
   Microsoft.Extensions.AI's types.
+- Stored settings: `ITypeshiftStore<TId>` with revisions, `InMemoryTypeshiftStore`, `WithStore<T>()`, and per agent
+  `LoadSettingsAsync`, `SaveSettingsAsync` and `ConfigureAsync`; runs take a settings id. The id type is the
+  `TypeshiftIdType` MSBuild property; the generator writes `ITypeshiftStore` and `InMemoryTypeshiftStore` aliases for
+  it. Settings serialize themselves member by member, `System.Text.Json` included, with kinds and versions.
 - An analyzer reports every Typeshift diagnostic at real source locations, so `#pragma` and `.editorconfig` reach
   them; a suppressor drops CS1573 for tool parameters the model never sees.

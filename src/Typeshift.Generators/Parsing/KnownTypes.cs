@@ -36,6 +36,12 @@ internal static class KnownTypes
 
     public const string GeneratedToolAttribute = "Typeshift.Generated.GeneratedToolAttribute";
 
+    public const string ModuleAgentAttribute = "Typeshift.Generated.ModuleAgentAttribute";
+
+    public const string TypeshiftBuilder = "Typeshift.TypeshiftBuilder";
+
+    public const string Store = "Typeshift.ITypeshiftStore`1";
+
     public const string JsonSerializerContext = "System.Text.Json.Serialization.JsonSerializerContext";
 
     public const string ServiceProvider = "System.IServiceProvider";

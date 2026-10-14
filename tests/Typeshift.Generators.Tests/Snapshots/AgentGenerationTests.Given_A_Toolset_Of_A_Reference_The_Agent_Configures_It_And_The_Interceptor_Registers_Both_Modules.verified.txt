@@ -7,9 +7,11 @@ namespace Research;
 partial class ResearchAgent
 {
     /// <summary>
-    /// What may change at runtime: passed for one run, over the agent's code. Null keeps the layer below.
+    /// What may change at runtime: stored under a settings id, or passed for one run. Null keeps the layer below.
     /// </summary>
+    [global::System.Text.Json.Serialization.JsonConverter(typeof(global::Typeshift.Generated.StorableJsonConverter<Settings>))]
     public sealed record Settings
+        : global::Typeshift.IStorable<Settings>, global::Typeshift.Generated.IJsonStorable<Settings>
     {
         /// <summary>
         /// The chat option <c>Temperature</c>. Null keeps the layer below.
@@ -20,6 +22,68 @@ partial class ResearchAgent
         /// The configurable settings of the <c>find_companies</c> tool; its null values keep the layer below.
         /// </summary>
         public global::Companies.CompanyToolset.FindCompaniesOverrides FindCompanies { get; init; } = new();
+
+        /// <inheritdoc />
+        public static string Kind => "ResearchAgent";
+
+        /// <inheritdoc />
+        public static int Version => 1;
+
+        /// <inheritdoc />
+        public string Serialize() => global::Typeshift.Generated.StorableJson.Write(WriteJson);
+
+        /// <inheritdoc />
+        public static Settings Deserialize(string json, int version) =>
+            version > Version
+                ? throw new global::System.Text.Json.JsonException(
+                    $"{Kind} settings of version {version} are newer than this code's {Version}.")
+                : global::Typeshift.Generated.StorableJson.Read<Settings>(json, TryReadJson);
+
+        /// <inheritdoc />
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public void WriteJson(global::System.Text.Json.Utf8JsonWriter writer)
+        {
+            writer.WriteStartObject();
+
+            if (Temperature is { } member0)
+            {
+                writer.WritePropertyName("temperature");
+                global::Typeshift.Generated.StorableJson.WriteNumber(writer, member0);
+            }
+
+            var tool0 = FindCompanies is { } set0 && set0 != new global::Companies.CompanyToolset.FindCompaniesOverrides() ? set0 : null;
+
+            if (tool0 is not null)
+            {
+                writer.WriteStartObject("tools");
+
+                if (tool0 is not null)
+                {
+                    writer.WritePropertyName("find_companies");
+                    tool0.WriteJson(writer);
+                }
+
+                writer.WriteEndObject();
+            }
+
+            writer.WriteEndObject();
+        }
+
+        /// <inheritdoc />
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public static bool TryReadJson(global::System.Text.Json.JsonElement element, out Settings value)
+        {
+            value = null!;
+            if (element.ValueKind is not global::System.Text.Json.JsonValueKind.Object) return false;
+
+            value = new()
+            {
+                Temperature = global::Typeshift.Generated.StorableJson.TryReadNumber<float>(global::Typeshift.Generated.StorableJson.Member(element, "temperature"), out float member0) ? member0 : null,
+                FindCompanies = global::Companies.CompanyToolset.FindCompaniesOverrides.TryReadJson(global::Typeshift.Generated.StorableJson.Member(global::Typeshift.Generated.StorableJson.Member(element, "tools"), "find_companies"), out var tool0) ? tool0 : new()
+            };
+
+            return true;
+        }
     }
 
     /// <inheritdoc />
@@ -94,89 +158,146 @@ partial class ResearchAgent
 }
 
 /// <summary>
-/// The runs of <see cref="global::Research.ResearchAgent"/>.
+/// The runs and stored settings of <see cref="global::Research.ResearchAgent"/>.
 /// </summary>
 internal static class ResearchAgentHostExtensions
 {
     extension(global::Typeshift.AgentHost<global::Research.ResearchAgent> host)
     {
         /// <summary>
-        /// Runs the agent on a message, with the run's settings over the agent's code.
+        /// Runs the agent on a message, with the stored and the run's settings over the agent's code.
         /// </summary>
         /// <param name="input">The user's message.</param>
-        /// <param name="settings">What the run changes; null keeps the agent's code.</param>
+        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The response; its messages carry the agent's name as their author.</returns>
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse> RunAsync(
             string input,
+            global::System.Guid? settingsId = null,
             global::Research.ResearchAgent.Settings? settings = null,
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RunAsync(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settings, ct);
+            global::Typeshift.Generated.AgentRuns.RunAsync(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settingsId, settings, ct);
 
         /// <summary>
-        /// Runs the agent on a message, which may carry images or approvals, with the run's settings over the agent's
-        /// code.
+        /// Runs the agent on a message, which may carry images or approvals, with the stored and the run's settings
+        /// over the agent's code.
         /// </summary>
         /// <param name="input">The user's message.</param>
-        /// <param name="settings">What the run changes; null keeps the agent's code.</param>
+        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The response; its messages carry the agent's name as their author.</returns>
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse> RunAsync(
             global::Microsoft.Extensions.AI.ChatMessage input,
+            global::System.Guid? settingsId = null,
             global::Research.ResearchAgent.Settings? settings = null,
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RunAsync(host, input, settings, ct);
+            global::Typeshift.Generated.AgentRuns.RunAsync(host, input, settingsId, settings, ct);
 
         /// <summary>
         /// Runs the agent on a message, asking the model for JSON of <typeparamref name="TResult"/>'s schema.
         /// </summary>
         /// <typeparam name="TResult">The result's type.</typeparam>
         /// <param name="input">The user's message.</param>
-        /// <param name="settings">What the run changes; null keeps the agent's code.</param>
+        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The response; its messages carry the agent's name as their author.</returns>
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse<TResult>> RunAsync<TResult>(
             string input,
+            global::System.Guid? settingsId = null,
             global::Research.ResearchAgent.Settings? settings = null,
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RunAsync<global::Research.ResearchAgent, TResult>(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settings, ct);
+            global::Typeshift.Generated.AgentRuns.RunAsync<global::Research.ResearchAgent, TResult>(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settingsId, settings, ct);
 
         /// <summary>
-        /// Runs the agent on a message, streaming the updates, with the run's settings over the agent's code.
+        /// Runs the agent on a message, streaming the updates, with the stored and the run's settings over the agent's
+        /// code.
         /// </summary>
         /// <param name="input">The user's message.</param>
-        /// <param name="settings">What the run changes; null keeps the agent's code.</param>
+        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The updates; they carry the agent's name as their author.</returns>
         public global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate> RunStreamingAsync(
             string input,
+            global::System.Guid? settingsId = null,
             global::Research.ResearchAgent.Settings? settings = null,
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RunStreamingAsync(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settings, ct);
+            global::Typeshift.Generated.AgentRuns.RunStreamingAsync(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settingsId, settings, ct);
 
         /// <summary>
-        /// Runs the agent on a message, streaming the updates, with the run's settings over the agent's code.
+        /// Runs the agent on a message, streaming the updates, with the stored and the run's settings over the agent's
+        /// code.
         /// </summary>
         /// <param name="input">The user's message.</param>
-        /// <param name="settings">What the run changes; null keeps the agent's code.</param>
+        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The updates; they carry the agent's name as their author.</returns>
         public global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate> RunStreamingAsync(
             global::Microsoft.Extensions.AI.ChatMessage input,
+            global::System.Guid? settingsId = null,
             global::Research.ResearchAgent.Settings? settings = null,
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RunStreamingAsync(host, input, settings, ct);
+            global::Typeshift.Generated.AgentRuns.RunStreamingAsync(host, input, settingsId, settings, ct);
 
         /// <summary>
         /// Resolves the options of a run, for the raw path: <c>CreateChatClientAsync</c>, then the client.
         /// </summary>
-        /// <param name="settings">What the run changes; null keeps the agent's code.</param>
+        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the resolution.</param>
         /// <returns>The options, with the agent's tools.</returns>
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatOptions> ResolveOptionsAsync(
+            global::System.Guid? settingsId = null,
             global::Research.ResearchAgent.Settings? settings = null,
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.ResolveOptionsAsync(host, settings, ct);
+            global::Typeshift.Generated.AgentRuns.ResolveOptionsAsync(host, settingsId, settings, ct);
+
+        /// <summary>
+        /// Loads the settings stored under an id.
+        /// </summary>
+        /// <param name="settingsId">The id.</param>
+        /// <param name="ct">Cancels the load.</param>
+        /// <returns>
+        /// The settings and the revision <c>SaveSettingsAsync</c> takes; empty settings at revision 0 when none are
+        /// stored.
+        /// </returns>
+        public global::System.Threading.Tasks.Task<global::Typeshift.Stored<global::Research.ResearchAgent.Settings>> LoadSettingsAsync(
+            global::System.Guid settingsId,
+            global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.LoadSettingsAsync<global::Research.ResearchAgent, global::Research.ResearchAgent.Settings>(host, settingsId, ct);
+
+        /// <summary>
+        /// Saves settings under an id, unless another save came since they were loaded.
+        /// </summary>
+        /// <param name="settingsId">The id.</param>
+        /// <param name="settings">The settings.</param>
+        /// <param name="revision">The revision <c>LoadSettingsAsync</c> returned.</param>
+        /// <param name="ct">Cancels the save.</param>
+        /// <returns>The new revision.</returns>
+        /// <exception cref="global::Typeshift.StoreConflictException">Another save came first.</exception>
+        public global::System.Threading.Tasks.Task<long> SaveSettingsAsync(
+            global::System.Guid settingsId,
+            global::Research.ResearchAgent.Settings settings,
+            long revision,
+            global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.SaveSettingsAsync<global::Research.ResearchAgent, global::Research.ResearchAgent.Settings>(host, settingsId, settings, revision, ct);
+
+        /// <summary>
+        /// Changes the settings stored under an id, reloading and changing them again whenever another save came first.
+        /// </summary>
+        /// <param name="settingsId">The id.</param>
+        /// <param name="configure">Returns the changed settings; called again after a lost save.</param>
+        /// <param name="ct">Cancels the change.</param>
+        /// <returns>The settings saved.</returns>
+        public global::System.Threading.Tasks.Task<global::Research.ResearchAgent.Settings> ConfigureAsync(
+            global::System.Guid settingsId,
+            global::System.Func<global::Research.ResearchAgent.Settings, global::Research.ResearchAgent.Settings> configure,
+            global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.ConfigureAsync<global::Research.ResearchAgent, global::Research.ResearchAgent.Settings>(host, settingsId, configure, ct);
     }
 }
 
@@ -191,7 +312,7 @@ namespace Typeshift.Generated
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "cY+J0jAJaitQy/RAFtonGB8CAABTb3VyY2UwLmNz")]
         public static global::Typeshift.TypeshiftBuilder AddTypeshift(this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)
         {
-            var builder = global::Typeshift.Generated.ModuleRegistration.AddCoreServices(services);
+            var builder = global::Typeshift.Generated.ModuleRegistration.AddCoreServices<global::System.Guid>(services);
 
             global::Typeshift.Generated.SubjectModule.Register(services);
             global::Typeshift.Generated.CompaniesModule.Register(services);
@@ -212,11 +333,21 @@ namespace System.Runtime.CompilerServices
     }
 }
 
+// HintName: Typeshift.Generated.Aliases.g.cs
+// <auto-generated/>
+#nullable enable
+
+global using ITypeshiftStore = global::Typeshift.ITypeshiftStore<global::System.Guid>;
+global using InMemoryTypeshiftStore = global::Typeshift.InMemoryTypeshiftStore<global::System.Guid>;
+
 // HintName: Typeshift.Generated.SubjectModule.g.cs
 // <auto-generated/>
 #nullable enable
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 1)]
+[assembly: global::Typeshift.Generated.GeneratedModule(
+    typeof(global::Typeshift.Generated.SubjectModule),
+    1,
+    typeof(global::System.Guid))]
 
 namespace Typeshift.Generated;
 
@@ -224,6 +355,7 @@ namespace Typeshift.Generated;
 /// Registers the toolsets and agents of Subject.
 /// </summary>
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+[global::Typeshift.Generated.ModuleAgent(typeof(global::Research.ResearchAgent), "ResearchAgent")]
 public static class SubjectModule
 {
     /// <summary>

@@ -8,16 +8,18 @@ A host runs an agent through its `AgentHost<TAgent>`, which `AddTypeshift()` reg
 <a id='snippet-registration'></a>
 ```cs
 services.AddTypeshift()
+    .WithStore<EfTypeshiftStore>()
     .WithChatClientProvider<KeyedChatClientProvider>();
 
 services.AddKeyedSingleton("fast-model", fast);
 services.AddKeyedSingleton("reasoning-model", reasoning);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L11-L17' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L17-L24' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `AddTypeshift()` registers every toolset and agent of the project and of the projects it references, each agent's
-host, and the JSON contexts of their assemblies, which tools ask before the defaults. The generator intercepts the
+host, and the JSON contexts of their assemblies, which tools ask before the defaults. `WithStore<T>()` turns
+persistence on; see [settings and stores](./settings-and-stores.md). The generator intercepts the
 call, so it works only in a project that references the package; a library that calls it in its own `AddX()`
 registers only its own toolsets and agents and those of its references. `WithChatClientProvider<T>()` maps model
 names to clients.
@@ -64,9 +66,24 @@ Console.WriteLine($"{answer.Messages[^1].AuthorName}: {answer.Text}");
 A run returns Microsoft.Extensions.AI's `ChatResponse`: the model's messages and the tool calls and results between
 them, each carrying the agent's name as `AuthorName`.
 
+## Stored settings
+
+With a settings id, the run layers the settings stored under it over the agent's code; see
+[settings and stores](./settings-and-stores.md):
+
+<!-- snippet: run-with-settings-id -->
+<a id='snippet-run-with-settings-id'></a>
+```cs
+var settingsId = 42;
+
+var stored = await support.RunAsync("Where is my refund?", settingsId);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L22-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-with-settings-id' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
 ## Run settings
 
-A run can override what the agent's `Settings` allow, for that run only:
+A run can override what the agent's `Settings` allow, over the stored settings, for that run only:
 
 <!-- snippet: run-settings -->
 <a id='snippet-run-settings'></a>
@@ -79,12 +96,13 @@ var run = new SupportAgent.Settings
     SearchArticles = new KnowledgeToolset.SearchArticlesOverrides { Language = "de" }
 };
 
-var thorough = await support.RunAsync("Where is my refund?", run);
+var thorough = await support.RunAsync("Where is my refund?", settingsId, run);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L22-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L30-L40' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Values a run leaves null keep what the agent's code sets; see [the layers](./tool-settings.md#the-layers).
+Values a run leaves null keep what the stored settings or the agent's code set; see
+[the layers](./tool-settings.md#the-layers).
 
 ## Structured output
 
@@ -93,11 +111,11 @@ Values a run leaves null keep what the agent's code sets; see [the layers](./too
 <!-- snippet: structured-output -->
 <a id='snippet-structured-output'></a>
 ```cs
-var report = await support.RunAsync<RefundStatus>("Summarize the refund.");
+var report = await support.RunAsync<RefundStatus>("Summarize the refund.", settingsId);
 
 Console.WriteLine($"{report.Result.Invoice}: {report.Result.State}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L36-L40' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L44-L48' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 <!-- snippet: structured-output-type -->
@@ -112,7 +130,7 @@ internal enum RefundState
     Paid
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L68-L77' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output-type' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L76-L85' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output-type' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Streaming
@@ -122,10 +140,10 @@ internal enum RefundState
 <!-- snippet: streaming -->
 <a id='snippet-streaming'></a>
 ```cs
-await foreach (var update in support.RunStreamingAsync("Where is my refund?"))
+await foreach (var update in support.RunStreamingAsync("Where is my refund?", settingsId))
     Console.Write(update.Text);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L44-L47' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L52-L55' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## The raw path
@@ -137,10 +155,10 @@ disposing it leaves the provider's client alone.
 <!-- snippet: raw-path -->
 <a id='snippet-raw-path'></a>
 ```cs
-var options = await support.ResolveOptionsAsync(run);
+var options = await support.ResolveOptionsAsync(settingsId, run);
 
 using var client = await support.CreateChatClientAsync(options);
 var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "Where is my refund?")], options);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L51-L56' title='Snippet source file'>snippet source</a> | <a href='#snippet-raw-path' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L59-L64' title='Snippet source file'>snippet source</a> | <a href='#snippet-raw-path' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->

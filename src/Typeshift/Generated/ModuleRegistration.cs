@@ -14,14 +14,21 @@ public static class ModuleRegistration
     /// <summary>
     /// Registers the services every module needs, once.
     /// </summary>
+    /// <typeparam name="TId">The build's id type, <c>TypeshiftIdType</c>.</typeparam>
     /// <param name="services">The services.</param>
     /// <returns>The registration chain <c>AddTypeshift()</c> returns.</returns>
-    public static TypeshiftBuilder AddCoreServices(IServiceCollection services)
+    public static TypeshiftBuilder AddCoreServices<TId>(IServiceCollection services) where TId : notnull
     {
         services.TryAddSingleton(provider => new ToolJson(
             provider.GetServices<JsonContextRegistration>().Select(registration => registration.Resolver)));
 
-        return new TypeshiftBuilder(services);
+        services.TryAddSingleton<IStoreAccess>(provider => new StoreAccess<TId>(provider));
+
+        return new TypeshiftBuilder(services, static (services, store) =>
+            services.AddSingleton<ITypeshiftStore<TId>>(provider =>
+                store(provider) as ITypeshiftStore<TId>
+                ?? throw new InvalidOperationException(
+                    $"The store is no ITypeshiftStore<{typeof(TId).Name}>, the build's id type (TSH028).")));
     }
 
     /// <summary>

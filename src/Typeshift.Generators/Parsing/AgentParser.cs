@@ -70,6 +70,8 @@ internal static class AgentParser
             unreachable is null,
             declarations.Name ?? ToolNames.ToSnakeCase(agent.Name),
             declarations.Description,
+            declarations.Kind ?? agent.Name,
+            declarations.Version ?? 1,
             declarations.ChatOptions.ToEquatableArray(),
             declarations.RunOptions.ToEquatableArray(),
             declarations.Toolsets.ToEquatableArray(),
@@ -99,6 +101,19 @@ internal static class AgentParser
             case "WithDescription":
                 declarations.Description = ReadConstant(call, "agent description", reporter)
                     ?? declarations.Description;
+                break;
+
+            // D39, D40
+            case "WithStorageKind":
+                declarations.Kind = ReadConstant(call, "storage kind", reporter) ?? declarations.Kind;
+                break;
+
+            case "WithSettingsVersion":
+                if (call.Arguments[0].Value.ConstantValue is { HasValue: true, Value: int version })
+                    declarations.Version = version;
+                else
+                    reporter.Report(Descriptors.NotConstant, call.Arguments[0].Syntax, "settings version");
+
                 break;
 
             case "WithChatOptions":
@@ -235,6 +250,10 @@ internal static class AgentParser
         public string? Name { get; set; }
 
         public string? Description { get; set; }
+
+        public string? Kind { get; set; }
+
+        public int? Version { get; set; }
 
         public List<string> ChatOptions { get; } = [];
 

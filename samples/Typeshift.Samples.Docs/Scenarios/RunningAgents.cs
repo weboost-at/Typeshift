@@ -19,6 +19,14 @@ internal static class RunningAgents
         Console.WriteLine($"{answer.Messages[^1].AuthorName}: {answer.Text}");
         // end-snippet
 
+        // begin-snippet: run-with-settings-id
+        var settingsId = 42;
+
+        var stored = await support.RunAsync("Where is my refund?", settingsId);
+        // end-snippet
+
+        Expect(stored.Text == answer.Text, "a run with a settings id answers");
+
         // begin-snippet: run-settings
         var run = new SupportAgent.Settings
         {
@@ -28,13 +36,13 @@ internal static class RunningAgents
             SearchArticles = new KnowledgeToolset.SearchArticlesOverrides { Language = "de" }
         };
 
-        var thorough = await support.RunAsync("Where is my refund?", run);
+        var thorough = await support.RunAsync("Where is my refund?", settingsId, run);
         // end-snippet
 
         Expect(thorough.Text.Length > 0, "a run with settings answers");
 
         // begin-snippet: structured-output
-        var report = await support.RunAsync<RefundStatus>("Summarize the refund.");
+        var report = await support.RunAsync<RefundStatus>("Summarize the refund.", settingsId);
 
         Console.WriteLine($"{report.Result.Invoice}: {report.Result.State}");
         // end-snippet
@@ -42,14 +50,14 @@ internal static class RunningAgents
         Expect(report.Result.State == RefundState.Approved, "structured output is parsed");
 
         // begin-snippet: streaming
-        await foreach (var update in support.RunStreamingAsync("Where is my refund?"))
+        await foreach (var update in support.RunStreamingAsync("Where is my refund?", settingsId))
             Console.Write(update.Text);
         // end-snippet
 
         Console.WriteLine();
 
         // begin-snippet: raw-path
-        var options = await support.ResolveOptionsAsync(run);
+        var options = await support.ResolveOptionsAsync(settingsId, run);
 
         using var client = await support.CreateChatClientAsync(options);
         var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "Where is my refund?")], options);

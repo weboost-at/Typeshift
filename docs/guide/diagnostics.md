@@ -7,7 +7,7 @@ handle has a diagnostic: generated code never fails with a compiler error of its
 | ID | Severity | Title |
 |---|---|---|
 | [TSH001](#tsh001) | Error | Toolset or agent is not partial |
-| [TSH002](#tsh002) | Error | Name or description is not a constant |
+| [TSH002](#tsh002) | Error | Declared value is not a constant |
 | [TSH003](#tsh003) | Error | Tool is not a static method group |
 | [TSH004](#tsh004) | Error | Tool parameter cannot be bound |
 | [TSH005](#tsh005) | Error | Settings type is not a record with a parameterless constructor |
@@ -26,7 +26,10 @@ handle has a diagnostic: generated code never fails with a compiler error of its
 | [TSH018](#tsh018) | Error | Member clashes with a generated member |
 | [TSH019](#tsh019) | Error | Toolset was not compiled with the generator |
 | [TSH020](#tsh020) | Warning | Referenced assembly was not compiled with the generator |
+| [TSH021](#tsh021) | Error | Referenced assembly has another id type |
+| [TSH022](#tsh022) | Error | Two agents share a settings kind |
 | [TSH025](#tsh025) | Error | Tool is offered twice |
+| [TSH028](#tsh028) | Error | Store has another id type |
 
 ## TSH001
 
@@ -34,8 +37,8 @@ handle has a diagnostic: generated code never fails with a compiler error of its
 
 ## TSH002
 
-**Name or description is not a constant.** `WithName` and `WithDescription` are read at compile time; pass a literal
-or a `const`.
+**Declared value is not a constant.** `WithName`, `WithDescription`, `WithStorageKind` and `WithSettingsVersion`
+are read at compile time; pass a literal or a `const`.
 
 ## TSH003
 
@@ -126,7 +129,23 @@ toolset's project.
 this Typeshift version, so `AddTypeshift()` cannot register them. Reference the package in its project, at the version
 the rest of the build uses.
 
+## TSH021
+
+**Referenced assembly has another id type.** Every project of a build shares one id type: set `TypeshiftIdType` once,
+in `Directory.Build.props`.
+
+## TSH022
+
+**Two agents share a settings kind**: two agent classes of one name in different namespaces, or one
+`WithStorageKind` twice. Their settings would overwrite each other in the store; give one a `WithStorageKind` of its
+own.
+
 ## TSH025
 
 **Tool is offered twice** by one agent: one toolset used twice, or one tool picked twice. Offer each toolset's tools in
 one use.
+
+## TSH028
+
+**Store has another id type.** `WithStore<T>()` takes an `ITypeshiftStore` of the build's id type, the alias the
+generator writes.

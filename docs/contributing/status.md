@@ -10,8 +10,8 @@ the slices build it one at a time.
 |---|---|
 | 1. Toolsets and tools: generated functions, overrides, tool lists, the analyzer | built |
 | 2. Agents, registration, `AgentHost` runs | built |
-| 3. Settings store, id type | next |
-| 4. Conversations: checkpoints, resume, live updates, steering | open |
+| 3. Settings store, id type | built |
+| 4. Conversations: checkpoints, resume, live updates, steering | next |
 | 5. Approval, rules, plan and auto modes | open |
 | 6. Middleware, context providers, MCP, telemetry, compaction, sub-agents, handoff, built-in toolsets, Native AOT | open |
 
@@ -46,6 +46,13 @@ The numbers are the rules of v0's behavior table where they still hold.
 | new | A run without a model or a provider fails, saying how to fix it | `AgentRunTests.Given_No_Model_The_Run_Fails_Saying_How_To_Set_One`, `AddTypeshiftTests.Given_No_Chat_Client_Provider_A_Run_Fails_Naming_The_Registration` |
 | new | Toolsets of referenced assemblies: stamps, settings, JSON contexts (D7, D45) | `AgentRunTests.Given_A_Toolset_Of_A_Referenced_Assembly_Its_Tool_Runs_With_Its_Settings`, `AddTypeshiftTests.Given_A_Json_Context_In_A_Toolsets_Assembly_Tools_Ask_It_Before_The_Defaults`, `AgentGenerationTests` |
 | new | An agent's output is generated again only when what it offers changes | `IncrementalTests` |
+| 16 | Stored settings apply under their id, run settings over them, tool overrides included | `StoredSettingsTests.Given_Stored_Settings_A_Run_With_Their_Id_Applies_Them`, `..._Given_Stored_And_Run_Settings_The_Runs_Apply_Over_The_Stored`, `..._Given_Stored_Tool_Overrides_The_Tool_Runs_With_Them_Over_The_Agents_Settings` |
+| 17 | Saves are guarded by revisions; `ConfigureAsync` retries until it wins (D41) | `StoredSettingsTests.Given_A_Revision_Another_Save_Replaced_Saving_Throws_A_StoreConflictException`, `..._Given_A_Save_Between_Load_And_Save_Configuring_Applies_The_Change_Again_And_Wins` |
+| 18 | Without a store, loading or saving throws naming `WithStore<T>()` (D43) | `StoredSettingsTests.Given_No_Store_A_Run_With_A_Settings_Id_Fails_Naming_WithStore` |
+| 19 | Settings of every storable kind read back equivalent; nulls left out; mistyped members read as null | `SettingsJsonTests` |
+| new | `System.Text.Json` writes and reads the stored shape (D44) | `SettingsJsonTests.Given_Settings_System_Text_Json_Writes_What_The_Store_Keeps`, `..._Given_Stored_Json_System_Text_Json_Reads_The_Settings` |
+| new | Kinds and versions (D39, D40) | `SettingsJsonTests.Given_WithStorageKind_And_WithSettingsVersion_The_Settings_Carry_Them`, `..._Given_A_Version_Newer_Than_The_Codes_Reading_Throws_A_JsonException` |
+| new | The id type reaches the aliases and the typed members (D11) | `AgentGenerationTests.Given_An_Id_Type_The_Aliases_And_The_Host_Members_Use_It` |
 
 ## Known gaps
 
@@ -58,5 +65,6 @@ The numbers are the rules of v0's behavior table where they still hold.
 - **Generated line length:** generated code is `global::`-qualified and some declarations exceed 120 columns.
 - **Streamed results:** a tool returning `IAsyncEnumerable<T>` compiles, but its result is serialized synchronously
   and the call fails at runtime. Neither v0 nor the sign-off supports it.
-- **Storable types:** TSH012 (a configurable member the store cannot keep) comes with the store of slice 3; until
-  then any type may be configurable.
+- **Kinds across references:** TSH022 compares the compilation's agents with each other and with those the
+  references stamp, not two references' agents with each other.
+- **Storable structs:** a user struct other than the scalars cannot be configurable (TSH012).

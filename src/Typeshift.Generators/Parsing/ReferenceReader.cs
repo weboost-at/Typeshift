@@ -35,14 +35,35 @@ internal static class ReferenceReader
         GetLibraryUsers(compilation)
             .Where(assembly => GetModule(assembly) is null && DeclaresToolsetsOrAgents(assembly.GlobalNamespace, ct));
 
+    // TSH021: the id type a reference was built with, when it differs from the build's
+    public static IEnumerable<(IAssemblySymbol Assembly, ITypeSymbol IdType)> GetOtherIdTypes(
+        Compilation compilation,
+        ITypeSymbol? idType) =>
+        GetLibraryUsers(compilation)
+            .Select(assembly => (Assembly: assembly, Stamp: GetModuleStamp(assembly)))
+            .Where(stamped => stamped.Stamp?.ConstructorArguments[2].Value is ITypeSymbol other
+                && !SymbolEqualityComparer.Default.Equals(other, idType))
+            .Select(stamped => (stamped.Assembly, (ITypeSymbol)stamped.Stamp!.ConstructorArguments[2].Value!));
+
+    // D39: the kinds of the referenced agents' stored settings
+    public static IEnumerable<(string Kind, string Agent)> GetAgentKinds(Compilation compilation) =>
+        GetLibraryUsers(compilation)
+            .Select(GetModule)
+            .OfType<INamedTypeSymbol>()
+            .SelectMany(module => module.GetAttributes())
+            .Where(attribute => attribute.AttributeClass.Is(KnownTypes.ModuleAgentAttribute))
+            .Select(attribute => (
+                (string)attribute.ConstructorArguments[1].Value!,
+                ((ITypeSymbol)attribute.ConstructorArguments[0].Value!).ToDisplayString()));
+
     public static INamedTypeSymbol? GetModule(IAssemblySymbol assembly) =>
+        GetModuleStamp(assembly)?.ConstructorArguments[0].Value as INamedTypeSymbol;
+
+    private static AttributeData? GetModuleStamp(IAssemblySymbol assembly) =>
         assembly.GetAttributes()
             .Where(attribute => attribute.AttributeClass.Is(KnownTypes.GeneratedModuleAttribute))
-            .Where(attribute => attribute.ConstructorArguments.Length == 2
-                && attribute.ConstructorArguments[1].Value is StampVersion)
-            .Select(attribute => attribute.ConstructorArguments[0].Value)
-            .OfType<INamedTypeSymbol>()
-            .FirstOrDefault();
+            .FirstOrDefault(attribute => attribute.ConstructorArguments.Length == 3
+                && attribute.ConstructorArguments[1].Value is StampVersion);
 
     // Every module stamps its toolsets, so the toolset's own assembly is never searched
     private static IEnumerable<INamedTypeSymbol> GetToolsets(INamedTypeSymbol module) =>

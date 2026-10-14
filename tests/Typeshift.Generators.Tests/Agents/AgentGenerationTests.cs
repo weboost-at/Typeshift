@@ -76,4 +76,21 @@ public class AgentGenerationTests : GeneratorTestBase
         run.Assert.GeneratesValidCode();
         run.Output.GetTypeByMetadataName("Demo.Outer_HiddenAgentHostExtensions").Should().BeNull();
     }
+
+    [Fact]
+    public void Given_An_Id_Type_The_Aliases_And_The_Host_Members_Use_It()
+    {
+        // Arrange
+        var compilation = Compile(AgentSources.Tickets, AgentSources.Support);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.WithIdType("int"));
+
+        var sources = run.Result.GeneratedTrees.Select(tree => tree.ToString()).ToList();
+
+        // Assert
+        run.Assert.CompilesCleanly();
+        sources.Should().Contain(source => source.Contains("global::Typeshift.ITypeshiftStore<int>;"));
+        sources.Should().Contain(source => source.Contains("int? settingsId = null"));
+    }
 }

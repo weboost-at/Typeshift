@@ -25,11 +25,16 @@ internal static class AgentEmitter
     private const string Updates =
         "global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate>";
 
-    // The members of a record that its properties must not be named like
-    private static readonly string[] RecordMembers =
-        ["Clone", "Deconstruct", "EqualityContract", "Equals", "GetHashCode", "PrintMembers", "Settings", "ToString"];
+    private const string Json = StorageEmitter.Json;
 
-    public static string Emit(AgentOutput output)
+    // The members of the record that its properties must not be named like
+    private static readonly string[] RecordMembers =
+    [
+        "Clone", "Deconstruct", "Deserialize", "EqualityContract", "Equals", "GetHashCode", "Kind", "PrintMembers",
+        "Serialize", "Settings", "ToString", "TryReadJson", "Version", "WriteJson"
+    ];
+
+    public static string Emit(AgentOutput output, string idType)
     {
         var agent = output.Agent;
         var configured = output.Tools.Where(tool => HasConfigure(agent, tool.Tool)).ToList();
@@ -71,7 +76,7 @@ internal static class AgentEmitter
             },
             writer =>
             {
-                if (agent.IsReachable) WriteHostMembers(writer, agent);
+                if (agent.IsReachable) WriteHostMembers(writer, agent, idType);
             });
     }
 
@@ -111,16 +116,29 @@ internal static class AgentEmitter
     private static void WriteSettings(SourceWriter writer, AgentOutput output)
     {
         var agent = output.Agent;
+        var chat = Picked(agent.ChatOptions, OptionMembers.Chat).ToList();
+        var run = Picked(agent.RunOptions, OptionMembers.Run).ToList();
+        var tools = output.Tools.Select(offered => offered.Tool).Where(tool => tool.Overrides is not null).ToList();
 
         Docs.WriteSummary(
             writer,
-            "What may change at runtime: passed for one run, over the agent's code. Null keeps the layer below.");
+            "What may change at runtime: stored under a settings id, or passed for one run. Null keeps the layer "
+            + "below.");
+        writer.Line(
+            "[global::System.Text.Json.Serialization.JsonConverter("
+            + "typeof(global::Typeshift.Generated.StorableJsonConverter<Settings>))]");
+        writer.Line("public sealed record Settings");
 
-        using (writer.Block("public sealed record Settings"))
+        using (writer.Indent())
+        {
+            writer.Line(": global::Typeshift.IStorable<Settings>, global::Typeshift.Generated.IJsonStorable<Settings>");
+        }
+
+        using (writer.Block())
         {
             var members = new List<(string Summary, string Declaration)>();
 
-            foreach (var option in Picked(agent.ChatOptions, OptionMembers.Chat))
+            foreach (var option in chat)
             {
                 var summary = option.Option == "ModelId"
                     ? "The model, over <c>WithModel</c>. Null keeps the layer below."
@@ -129,14 +147,14 @@ internal static class AgentEmitter
                 members.Add((summary, $"public {option.Type} {option.Setting} {{ get; init; }}"));
             }
 
-            foreach (var option in Picked(agent.RunOptions, OptionMembers.Run))
+            foreach (var option in run)
             {
                 members.Add((
                     $"The run option <c>{option.Option}</c>. Null keeps the layer below.",
                     $"public {option.Type} {option.Setting} {{ get; init; }}"));
             }
 
-            foreach (var tool in output.Tools.Select(offered => offered.Tool).Where(tool => tool.Overrides is not null))
+            foreach (var tool in tools)
             {
                 members.Add((
                     $"The configurable settings of the <c>{tool.Name}</c> tool; its null values keep the layer below.",
@@ -145,11 +163,79 @@ internal static class AgentEmitter
 
             foreach (var (summary, declaration) in members)
             {
-                if (declaration != members[0].Declaration) writer.Line();
-
                 Docs.WriteSummary(writer, summary);
                 writer.Line(declaration);
+                writer.Line();
             }
+
+            // D39, D40, D44
+            writer.Lines(
+                $$"""
+                /// <inheritdoc />
+                public static string Kind => {{Names.Literal(agent.Kind)}};
+
+                /// <inheritdoc />
+                public static int Version => {{agent.Version}};
+
+                /// <inheritdoc />
+                public string Serialize() => {{Json}}.Write(WriteJson);
+
+                /// <inheritdoc />
+                public static Settings Deserialize(string json, int version) =>
+                    version > Version
+                        ? throw new global::System.Text.Json.JsonException(
+                            $"{Kind} settings of version {version} are newer than this code's {Version}.")
+                        : {{Json}}.Read<Settings>(json, TryReadJson);
+                """);
+
+            var stored = chat.Concat(run)
+                .Select(option => (option.Setting, Parsing.Storage.JsonName(option.Setting), option.Storage));
+
+            StorageEmitter.WriteRecordJson(
+                writer,
+                "Settings",
+                stored,
+                tools.Count == 0 ? null : more => WriteTools(more, agent, tools),
+                [
+                    .. tools.Select((tool, index) =>
+                        $"{SettingsMember(agent, tool)} = {tool.Overrides}.TryReadJson("
+                        + $"{Json}.Member({Json}.Member(element, \"tools\"), {Names.Literal(tool.Name)}), "
+                        + $"out var tool{index}) ? tool{index} : new()")
+                ]);
+        }
+    }
+
+    // Tools are stored under "tools" by name, each left out while it overrides nothing
+    private static void WriteTools(SourceWriter writer, AgentModel agent, IReadOnlyList<ToolSummary> tools)
+    {
+        for (var index = 0; index < tools.Count; index++)
+        {
+            var tool = tools[index];
+
+            writer.Line(
+                $"var tool{index} = {SettingsMember(agent, tool)} is {{ }} set{index} && set{index} != new "
+                + $"{tool.Overrides}() ? set{index} : null;");
+        }
+
+        writer.Line();
+
+        using (writer.Block($"if ({string.Join(" || ", tools.Select((_, index) => $"tool{index} is not null"))})"))
+        {
+            writer.Line("writer.WriteStartObject(\"tools\");");
+
+            for (var index = 0; index < tools.Count; index++)
+            {
+                writer.Line();
+
+                using (writer.Block($"if (tool{index} is not null)"))
+                {
+                    writer.Line($"writer.WritePropertyName({Names.Literal(tools[index].Name)});");
+                    writer.Line($"tool{index}.WriteJson(writer);");
+                }
+            }
+
+            writer.Line();
+            writer.Line("writer.WriteEndObject();");
         }
     }
 
@@ -335,84 +421,140 @@ internal static class AgentEmitter
     }
 
     // D12: the typed members of the agent's host, next to the agent in its namespace
-    private static void WriteHostMembers(SourceWriter writer, AgentModel agent)
+    private static void WriteHostMembers(SourceWriter writer, AgentModel agent, string idType)
     {
         var host = $"global::Typeshift.AgentHost<{agent.Type.FullName}>";
         var settings = $"{agent.Type.FullName}.Settings";
         var response = "global::Microsoft.Extensions.AI.ChatResponse";
         var message = "global::Microsoft.Extensions.AI.ChatMessage";
         var user = "new(global::Microsoft.Extensions.AI.ChatRole.User, input)";
+        var types = $"{agent.Type.FullName}, {settings}";
+        var run = new HostRun(idType, settings);
 
         writer.Line();
-        Docs.WriteSummary(writer, $"The runs of <see cref=\"{agent.Type.FullName}\"/>.");
+        Docs.WriteSummary(writer, $"The runs and stored settings of <see cref=\"{agent.Type.FullName}\"/>.");
 
         using (writer.Block($"{agent.Type.Accessibility} static class {agent.Type.FlatName}HostExtensions"))
         using (writer.Block($"extension({host} host)"))
         {
-            WriteRun(writer, "Runs the agent on a message", $"{Task}<{response}>", "RunAsync", "string", settings,
-                $"{Runs}.RunAsync(host, {user}, settings, ct);");
+            run.Write(writer, "Runs the agent on a message", $"{Task}<{response}>", "RunAsync", "string",
+                $"{Runs}.RunAsync(host, {user}, settingsId, settings, ct);");
             writer.Line();
-            WriteRun(writer, "Runs the agent on a message, which may carry images or approvals", $"{Task}<{response}>",
-                "RunAsync", message, settings, $"{Runs}.RunAsync(host, input, settings, ct);");
+            run.Write(writer, "Runs the agent on a message, which may carry images or approvals", $"{Task}<{response}>",
+                "RunAsync", message, $"{Runs}.RunAsync(host, input, settingsId, settings, ct);");
             writer.Line();
 
             Docs.WriteSummary(
                 writer,
                 "Runs the agent on a message, asking the model for JSON of <typeparamref name=\"TResult\"/>'s schema.");
             Docs.WriteTypeParam(writer, "TResult", "The result's type.");
-            WriteRun(writer, null, $"{Task}<{response}<TResult>>", "RunAsync<TResult>", "string", settings,
-                $"{Runs}.RunAsync<{agent.Type.FullName}, TResult>(host, {user}, settings, ct);");
+            run.Write(writer, null, $"{Task}<{response}<TResult>>", "RunAsync<TResult>", "string",
+                $"{Runs}.RunAsync<{agent.Type.FullName}, TResult>(host, {user}, settingsId, settings, ct);");
             writer.Line();
-            WriteRun(writer, "Runs the agent on a message, streaming the updates", Updates, "RunStreamingAsync",
-                "string", settings, $"{Runs}.RunStreamingAsync(host, {user}, settings, ct);");
+            run.Write(writer, "Runs the agent on a message, streaming the updates", Updates, "RunStreamingAsync",
+                "string", $"{Runs}.RunStreamingAsync(host, {user}, settingsId, settings, ct);");
             writer.Line();
-            WriteRun(writer, "Runs the agent on a message, streaming the updates", Updates, "RunStreamingAsync",
-                message, settings, $"{Runs}.RunStreamingAsync(host, input, settings, ct);");
+            run.Write(writer, "Runs the agent on a message, streaming the updates", Updates, "RunStreamingAsync",
+                message, $"{Runs}.RunStreamingAsync(host, input, settingsId, settings, ct);");
             writer.Line();
 
             Docs.WriteSummary(
                 writer,
                 "Resolves the options of a run, for the raw path: <c>CreateChatClientAsync</c>, then the client.");
-            Docs.WriteParam(writer, "settings", "What the run changes; null keeps the agent's code.");
+            Docs.WriteParam(writer, "settingsId", "The id of the stored settings to apply, or null for none.");
+            Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
             Docs.WriteParam(writer, "ct", "Cancels the resolution.");
             Docs.WriteReturns(writer, "The options, with the agent's tools.");
             writer.Lines(
                 $"""
                 public {Task}<{ChatOptions}> ResolveOptionsAsync(
+                    {idType}? settingsId = null,
                     {settings}? settings = null,
                     {CancellationToken} ct = default) =>
-                    {Runs}.ResolveOptionsAsync(host, settings, ct);
+                    {Runs}.ResolveOptionsAsync(host, settingsId, settings, ct);
+                """);
+            writer.Line();
+
+            // D41: revisions guard every save
+            Docs.WriteSummary(writer, "Loads the settings stored under an id.");
+            Docs.WriteParam(writer, "settingsId", "The id.");
+            Docs.WriteParam(writer, "ct", "Cancels the load.");
+            Docs.WriteReturns(
+                writer,
+                "The settings and the revision <c>SaveSettingsAsync</c> takes; empty settings at revision 0 when none "
+                + "are stored.");
+            writer.Lines(
+                $"""
+                public {Task}<global::Typeshift.Stored<{settings}>> LoadSettingsAsync(
+                    {idType} settingsId,
+                    {CancellationToken} ct = default) =>
+                    {Runs}.LoadSettingsAsync<{types}>(host, settingsId, ct);
+                """);
+            writer.Line();
+
+            Docs.WriteSummary(writer, "Saves settings under an id, unless another save came since they were loaded.");
+            Docs.WriteParam(writer, "settingsId", "The id.");
+            Docs.WriteParam(writer, "settings", "The settings.");
+            Docs.WriteParam(writer, "revision", "The revision <c>LoadSettingsAsync</c> returned.");
+            Docs.WriteParam(writer, "ct", "Cancels the save.");
+            Docs.WriteReturns(writer, "The new revision.");
+            Docs.WriteException(writer, "global::Typeshift.StoreConflictException", "Another save came first.");
+            writer.Lines(
+                $"""
+                public {Task}<long> SaveSettingsAsync(
+                    {idType} settingsId,
+                    {settings} settings,
+                    long revision,
+                    {CancellationToken} ct = default) =>
+                    {Runs}.SaveSettingsAsync<{types}>(host, settingsId, settings, revision, ct);
+                """);
+            writer.Line();
+
+            Docs.WriteSummary(
+                writer,
+                "Changes the settings stored under an id, reloading and changing them again whenever another save "
+                + "came first.");
+            Docs.WriteParam(writer, "settingsId", "The id.");
+            Docs.WriteParam(writer, "configure", "Returns the changed settings; called again after a lost save.");
+            Docs.WriteParam(writer, "ct", "Cancels the change.");
+            Docs.WriteReturns(writer, "The settings saved.");
+            writer.Lines(
+                $"""
+                public {Task}<{settings}> ConfigureAsync(
+                    {idType} settingsId,
+                    global::System.Func<{settings}, {settings}> configure,
+                    {CancellationToken} ct = default) =>
+                    {Runs}.ConfigureAsync<{types}>(host, settingsId, configure, ct);
                 """);
         }
     }
 
-    private static void WriteRun(
-        SourceWriter writer,
-        string? summary,
-        string returns,
-        string name,
-        string input,
-        string settings,
-        string call)
+    // The parameters every run takes, after its input
+    private sealed class HostRun(string idType, string settings)
     {
-        if (summary is not null)
-            Docs.WriteSummary(writer, $"{summary}, with the run's settings over the agent's code.");
+        public void Write(SourceWriter writer, string? summary, string returns, string name, string input, string call)
+        {
+            if (summary is not null)
+                Docs.WriteSummary(writer, $"{summary}, with the stored and the run's settings over the agent's code.");
 
-        Docs.WriteParam(writer, "input", "The user's message.");
-        Docs.WriteParam(writer, "settings", "What the run changes; null keeps the agent's code.");
-        Docs.WriteParam(writer, "ct", "Cancels the run.");
-        Docs.WriteReturns(
-            writer,
-            returns.Contains("IAsyncEnumerable")
-                ? "The updates; they carry the agent's name as their author."
-                : "The response; its messages carry the agent's name as their author.");
-        writer.Lines(
-            $"""
-            public {returns} {name}(
-                {input} input,
-                {settings}? settings = null,
-                {CancellationToken} ct = default) =>
-                {call}
-            """);
+            Docs.WriteParam(writer, "input", "The user's message.");
+            Docs.WriteParam(writer, "settingsId", "The id of the stored settings to apply, or null for none.");
+            Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
+            Docs.WriteParam(writer, "ct", "Cancels the run.");
+            Docs.WriteReturns(
+                writer,
+                returns.Contains("IAsyncEnumerable")
+                    ? "The updates; they carry the agent's name as their author."
+                    : "The response; its messages carry the agent's name as their author.");
+            writer.Lines(
+                $"""
+                public {returns} {name}(
+                    {input} input,
+                    {idType}? settingsId = null,
+                    {settings}? settings = null,
+                    {CancellationToken} ct = default) =>
+                    {call}
+                """);
+        }
     }
 }

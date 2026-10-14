@@ -6,7 +6,7 @@
 Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
 TSH001 | Typeshift | Error | Toolset or agent is not partial
-TSH002 | Typeshift | Error | Name or description is not a constant
+TSH002 | Typeshift | Error | Declared value is not a constant
 TSH003 | Typeshift | Error | Tool is not a static method group
 TSH004 | Typeshift | Error | Tool parameter cannot be bound
 TSH005 | Typeshift | Error | Settings type is not a record with a parameterless constructor
@@ -25,4 +25,7 @@ TSH017 | Typeshift | Error | Toolset or agent is generic or derives from another
 TSH018 | Typeshift | Error | Member clashes with a generated member
 TSH019 | Typeshift | Error | Toolset was not compiled with the generator
 TSH020 | Typeshift | Warning | Referenced assembly was not compiled with the generator
+TSH021 | Typeshift | Error | Referenced assembly has another id type
+TSH022 | Typeshift | Error | Two agents share a settings kind
 TSH025 | Typeshift | Error | Tool is offered twice
+TSH028 | Typeshift | Error | Store has another id type
