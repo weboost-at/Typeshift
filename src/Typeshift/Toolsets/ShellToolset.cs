@@ -5,7 +5,8 @@ namespace Typeshift.Toolsets;
 
 /// <summary>
 /// Runs shell commands in the root the host's <see cref="IFileSystemRoot"/> gives, each behind the host's approval.
-/// The root is the working folder, not a sandbox: run the host in a container when commands must not reach further.
+/// The root is the working folder, not a sandbox: run the host in a container when commands must not reach further. A
+/// process a command leaves running in the background outlives the call, which returns at its timeout.
 /// </summary>
 public sealed partial class ShellToolset : Toolset
 {
@@ -52,11 +53,13 @@ public sealed partial class ShellToolset : Toolset
 
         process.StandardInput.Close();
 
-        var output = Capture(process.StandardOutput, settings.MaxOutputLength);
-        var error = Capture(process.StandardError, settings.MaxOutputLength);
-
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(settings.Timeout);
+
+        // A process the command left running in the background keeps the streams open; reading them ends with the
+        // timeout as well
+        var output = Capture(process.StandardOutput, settings.MaxOutputLength, timeout.Token);
+        var error = Capture(process.StandardError, settings.MaxOutputLength, timeout.Token);
 
         var timedOut = false;
 
@@ -71,19 +74,21 @@ public sealed partial class ShellToolset : Toolset
             timedOut = true;
         }
 
-        return new CommandResult(timedOut ? -1 : process.ExitCode, await output, await error, timedOut);
+        var result = new CommandResult(timedOut ? -1 : process.ExitCode, await output, await error, timedOut);
+        ct.ThrowIfCancellationRequested();
+
+        return result;
     }
 
     // The stream's start and end, within the limit, read to its end so the process never blocks on a full pipe
-    private static async Task<string> Capture(StreamReader stream, int limit)
+    private static async Task<string> Capture(StreamReader stream, int limit, CancellationToken stop)
     {
         var start = new StringBuilder();
         var end = new Queue<char>();
         var skipped = 0L;
         var buffer = new char[4096];
-        int read;
 
-        while ((read = await stream.ReadAsync(buffer)) > 0)
+        while (await ReadAsync(stream, buffer, stop) is var read and > 0)
         {
             foreach (var character in buffer.AsSpan(0, read))
             {
@@ -101,6 +106,19 @@ public sealed partial class ShellToolset : Toolset
         return skipped == 0
             ? start.Append(end.ToArray()).ToString()
             : $"{start}\n[{skipped} characters left out]\n{new string([.. end])}";
+    }
+
+    // Stopping reads as the end of the stream
+    private static async Task<int> ReadAsync(StreamReader stream, char[] buffer, CancellationToken stop)
+    {
+        try
+        {
+            return await stream.ReadAsync(buffer, stop);
+        }
+        catch (OperationCanceledException)
+        {
+            return 0;
+        }
     }
 }
 

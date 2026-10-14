@@ -49,6 +49,55 @@ public class FileSystemToolsetTests : WorkspaceTestBase
     }
 
     [Fact]
+    public async Task Given_A_Link_Whose_Target_Goes_Through_Another_Link_Outside_Using_It_Is_Refused()
+    {
+        // Arrange
+        var outside = Directory.CreateTempSubdirectory("typeshift-outside-").FullName;
+        var secret = Path.Combine(outside, "secret.txt");
+        File.WriteAllText(secret, Data.Agent.Reason);
+        Directory.CreateSymbolicLink(Path.Combine(Root, "shared"), outside);
+        File.CreateSymbolicLink(Path.Combine(Root, "notes.txt"), "shared/secret.txt");
+
+        // Act
+        var read = await FileSystemToolset.ReadFileAsync("notes.txt", Files, Scope, ct: Ct);
+        var deleted = FileSystemToolset.DeleteFile("notes.txt", Scope);
+
+        // Assert
+        read.Should().Contain("outside the workspace");
+        deleted.Should().Contain("outside the workspace");
+        File.Exists(secret).Should().BeTrue();
+        Directory.Delete(outside, recursive: true);
+    }
+
+    [Fact]
+    public async Task Given_A_Line_Over_The_Limit_Reading_And_Searching_Cut_It()
+    {
+        // Arrange
+        Write("app.min.js", new string('x', Files.MaxLineLength * 10));
+
+        // Act
+        var read = await FileSystemToolset.ReadFileAsync("app.min.js", Files, Scope, ct: Ct);
+        var found = await FileSystemToolset.SearchFilesAsync("x", Files, Scope, ct: Ct);
+
+        // Assert
+        read.Length.Should().BeLessThan(Files.MaxLineLength + 20);
+        found.Should().EndWith("[cut]");
+    }
+
+    [Fact]
+    public async Task Given_A_Pattern_That_Backtracks_Searching_Still_Ends_At_Once()
+    {
+        // Arrange
+        Write("a.txt", string.Join('\n', Enumerable.Repeat(new string('a', 44) + "!", 20)));
+
+        // Act
+        var found = await FileSystemToolset.SearchFilesAsync("^(a+)+$", Files, Scope, ct: Ct);
+
+        // Assert
+        found.Should().Be("No line matches.");
+    }
+
+    [Fact]
     public async Task Given_A_New_Path_Writing_Creates_Its_Folders()
     {
         // Act
@@ -107,7 +156,7 @@ public class FileSystemToolsetTests : WorkspaceTestBase
         Write("a/c.txt", "");
 
         // Act
-        var listed = FileSystemToolset.ListFiles(Scope);
+        var listed = FileSystemToolset.ListFiles(Files, Scope);
 
         // Assert
         listed.Split('\n').Should().Equal("a/", "b.txt");

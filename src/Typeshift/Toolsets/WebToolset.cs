@@ -70,7 +70,9 @@ public interface IWebSearch
 }
 
 /// <summary>
-/// The fetcher behind <c>web_fetch</c>: Firecrawl, a headless browser, a plain <c>HttpClient</c>.
+/// The fetcher behind <c>web_fetch</c>: Firecrawl, a headless browser, a plain <c>HttpClient</c>. The model picks the
+/// URL, so a fetcher on the host's network refuses loopback, private and link-local addresses where it connects
+/// (<c>SocketsHttpHandler.ConnectCallback</c>), not by the host name, which a DNS answer can change.
 /// </summary>
 public interface IWebFetch
 {

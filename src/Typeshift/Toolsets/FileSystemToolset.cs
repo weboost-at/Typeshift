@@ -9,7 +9,10 @@ namespace Typeshift.Toolsets;
 /// </summary>
 public sealed partial class FileSystemToolset : Toolset
 {
-    // A search that runs longer than this on one line gives up on the pattern
+    // shortcut: a file edited whole in memory; larger ones are refused, line-wise tools would lift the limit
+    private const long MaxEditSize = 16 * 1024 * 1024;
+
+    // A pattern linear matching cannot run gets this long per line, and the search stops at its first timeout
     private static readonly TimeSpan PatternTimeout = TimeSpan.FromSeconds(1);
 
     /// <summary>
@@ -24,7 +27,8 @@ public sealed partial class FileSystemToolset : Toolset
             .WithSettings<FileSystemSettings>();
 
         AddTool(ListFiles)
-            .ReadOnly();
+            .ReadOnly()
+            .WithSettings<FileSystemSettings>();
 
         AddTool(SearchFilesAsync)
             .ReadOnly()
@@ -64,9 +68,11 @@ public sealed partial class FileSystemToolset : Toolset
         var read = new StringBuilder();
         var number = 0;
 
-        await foreach (var line in File.ReadLinesAsync(file, ct))
+        await foreach (var line in Lines(file, settings, ct))
         {
-            if (number >= offset + count) return read.Append($"[More lines follow from line {number}.]").ToString();
+            if (number >= offset + count || read.Length >= settings.MaxOutputLength)
+                return read.Append($"[More lines follow from line {number}.]").ToString();
+
             if (number >= offset) read.Append($"{number + 1,6}\t{line}\n");
 
             number++;
@@ -78,10 +84,11 @@ public sealed partial class FileSystemToolset : Toolset
     /// <summary>
     /// Lists the files and folders of a folder, folders ending in <c>/</c>.
     /// </summary>
+    /// <param name="settings">The limits.</param>
     /// <param name="services">The run's services.</param>
     /// <param name="path">The folder, relative to the root.</param>
     /// <returns>The entries, one per line, or why the folder cannot be listed.</returns>
-    public static string ListFiles(IServiceProvider services, string path = ".")
+    public static string ListFiles(FileSystemSettings settings, IServiceProvider services, string path = ".")
     {
         var root = FileSystemRoot.Of(services);
         if (FileSystemRoot.Resolve(root, path, out var refused) is not { } folder) return refused!;
@@ -92,7 +99,11 @@ public sealed partial class FileSystemToolset : Toolset
             .Order(StringComparer.Ordinal)
             .ToList();
 
-        return entries.Count == 0 ? $"'{path}' is empty." : string.Join('\n', entries);
+        if (entries.Count == 0) return $"'{path}' is empty.";
+
+        return entries.Count > settings.MaxLines
+            ? Joined([.. entries.Take(settings.MaxLines)], $"[{entries.Count - settings.MaxLines} more entries.]")
+            : Joined(entries, null);
     }
 
     /// <summary>
@@ -115,18 +126,10 @@ public sealed partial class FileSystemToolset : Toolset
         if (FileSystemRoot.Resolve(root, path, out var refused) is not { } folder) return refused!;
         if (!Directory.Exists(folder)) return $"'{path}' is no folder.";
 
-        Regex regex;
-
-        try
-        {
-            regex = new Regex(pattern, RegexOptions.None, PatternTimeout);
-        }
-        catch (ArgumentException exception)
-        {
-            return $"The pattern is not a .NET regular expression: {exception.Message}";
-        }
+        if (Compile(pattern, out var invalid) is not { } regex) return invalid!;
 
         var matches = new List<string>();
+        var length = 0;
         var files = Directory.EnumerateFiles(folder, "*", new EnumerationOptions
         {
             RecurseSubdirectories = true,
@@ -137,14 +140,19 @@ public sealed partial class FileSystemToolset : Toolset
         {
             var number = 0;
 
-            await foreach (var line in File.ReadLinesAsync(file, ct))
+            await foreach (var line in Lines(file, settings, ct))
             {
                 number++;
 
-                if (!Matches(regex, line)) continue;
-                if (matches.Count == settings.MaxLines) return Joined(matches, "[More matches follow.]");
+                if (!Matches(regex, line, out var slow)) continue;
+                if (slow) return "The pattern is too slow on these files; simplify it.";
 
-                matches.Add($"{FileSystemRoot.Relative(root, file)}:{number}: {line}");
+                if (matches.Count == settings.MaxLines || length >= settings.MaxOutputLength)
+                    return Joined(matches, "[More matches follow.]");
+
+                var match = $"{FileSystemRoot.Relative(root, file)}:{number}: {line}";
+                matches.Add(match);
+                length += match.Length;
             }
         }
 
@@ -170,7 +178,9 @@ public sealed partial class FileSystemToolset : Toolset
         if (Directory.Exists(file)) return $"'{path}' is a folder.";
 
         Directory.CreateDirectory(Path.GetDirectoryName(file)!);
-        await File.WriteAllTextAsync(file, content, ct);
+
+        // A write cut short would leave the file half written
+        await File.WriteAllTextAsync(file, content, CancellationToken.None);
 
         return $"Wrote '{path}'.";
     }
@@ -195,6 +205,7 @@ public sealed partial class FileSystemToolset : Toolset
         if (FileSystemRoot.Resolve(root, path, out var refused) is not { } file) return refused!;
         if (!File.Exists(file)) return $"'{path}' is no file.";
         if (oldText.Length == 0) return "The text to replace is empty.";
+        if (new FileInfo(file).Length > MaxEditSize) return $"'{path}' is too large to edit; write it whole instead.";
 
         var content = await File.ReadAllTextAsync(file, ct);
         var first = content.IndexOf(oldText, StringComparison.Ordinal);
@@ -206,7 +217,7 @@ public sealed partial class FileSystemToolset : Toolset
 
         var edited = string.Concat(content.AsSpan(0, first), newText, content.AsSpan(first + oldText.Length));
 
-        await File.WriteAllTextAsync(file, edited, ct);
+        await File.WriteAllTextAsync(file, edited, CancellationToken.None);
         return $"Edited '{path}'.";
     }
 
@@ -226,16 +237,83 @@ public sealed partial class FileSystemToolset : Toolset
         return $"Deleted '{path}'.";
     }
 
-    private static bool Matches(Regex regex, string line)
+    // Linear matching where the pattern allows it, so no pattern stalls a search
+    private static Regex? Compile(string pattern, out string? invalid)
     {
+        invalid = null;
+
+        try
+        {
+            return new Regex(pattern, RegexOptions.NonBacktracking);
+        }
+        catch (NotSupportedException)
+        {
+            return new Regex(pattern, RegexOptions.None, PatternTimeout);
+        }
+        catch (ArgumentException exception)
+        {
+            invalid = $"The pattern is not a .NET regular expression: {exception.Message}";
+            return null;
+        }
+    }
+
+    private static bool Matches(Regex regex, string line, out bool slow)
+    {
+        slow = false;
+
         try
         {
             return regex.IsMatch(line);
         }
         catch (RegexMatchTimeoutException)
         {
-            return false;
+            slow = true;
+            return true;
         }
+    }
+
+    // A file's lines, each cut at the settings' length, without holding a longer line in memory
+    private static async IAsyncEnumerable<string> Lines(
+        string file,
+        FileSystemSettings settings,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
+    {
+        using var reader = new StreamReader(file);
+        var line = new StringBuilder();
+        var buffer = new char[4096];
+        var cut = false;
+        int read;
+
+        while ((read = await reader.ReadAsync(buffer, ct)) > 0)
+        {
+            for (var i = 0; i < read; i++)
+            {
+                var character = buffer[i];
+
+                if (character == '\n')
+                {
+                    yield return Ended(line, cut);
+                    line.Clear();
+                    cut = false;
+                }
+                else if (line.Length < settings.MaxLineLength)
+                {
+                    line.Append(character);
+                }
+                else
+                {
+                    cut = true;
+                }
+            }
+        }
+
+        if (line.Length > 0 || cut) yield return Ended(line, cut);
+    }
+
+    private static string Ended(StringBuilder line, bool cut)
+    {
+        var text = line.ToString().TrimEnd('\r');
+        return cut ? $"{text}[cut]" : text;
     }
 
     private static string Joined(List<string> lines, string? more) =>
@@ -248,7 +326,17 @@ public sealed partial class FileSystemToolset : Toolset
 public sealed record FileSystemSettings
 {
     /// <summary>
-    /// The most lines one read returns, and the most matches one search returns.
+    /// The most lines one read returns, the most matches one search returns, and the most entries one list returns.
     /// </summary>
     public int MaxLines { get; init; } = 2000;
+
+    /// <summary>
+    /// The most characters of one line the model receives; a longer line is cut.
+    /// </summary>
+    public int MaxLineLength { get; init; } = 2000;
+
+    /// <summary>
+    /// The most characters one read or search returns.
+    /// </summary>
+    public int MaxOutputLength { get; init; } = 64 * 1024;
 }

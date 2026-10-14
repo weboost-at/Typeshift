@@ -91,32 +91,23 @@ reason:
 ```cs
 internal sealed class ShellGuard : IToolApprovalRule
 {
-    private static readonly string[] Safe = ["dotnet build", "dotnet test", "git status", "git diff"];
-
-    private static readonly string[] Never = ["sudo", "rm -rf", "curl", "ssh"];
+    private static readonly string[] Never = ["sudo", "rm -rf", "curl", "wget", "ssh"];
 
     public ValueTask<ToolDecision> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct) =>
         ValueTask.FromResult(call is { Name: "run_command", Arguments: { } arguments }
             && arguments["command"] is string command
-                ? Decide(command)
+            && Never.Any(command.Contains)
+                ? ToolDecision.Reject("This command is never allowed here.")
                 : ToolDecision.Abstain);
-
-    private static ToolDecision Decide(string command) =>
-        command switch
-        {
-            _ when Never.Any(command.Contains) => ToolDecision.Reject("This command is never allowed here."),
-            _ when command.IndexOfAny([';', '&', '|', '`', '$', '>', '<', '\n']) >= 0 => ToolDecision.Abstain,
-            _ when Safe.Any(command.StartsWith) => ToolDecision.Approve,
-            _ => ToolDecision.Abstain
-        };
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/ShellGuard.cs#L5-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/ShellGuard.cs#L5-L17' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-A rule sees the arguments the model sent, so it decides on exactly the call that runs. Abstain on what you cannot
-read: the rule above leaves every command that chains, pipes or redirects to the host. What an abstention means
-depends on the [mode](./modes.md): the host is asked in the default mode, the call runs in auto mode.
+A rule sees the arguments the model sent, so it decides on exactly the call that runs. Approve only what you can
+read in full: a command that looks harmless may run code the model wrote, so the rule above only rejects, and leaves
+the rest to the host ([the shell](./built-in-toolsets.md#shell)). What an abstention means depends on the
+[mode](./modes.md): the host is asked in the default mode, the call runs in auto mode.
 
 ## MCP servers
 

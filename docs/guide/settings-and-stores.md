@@ -150,15 +150,28 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         if (revision > 0)
             entry.Property(document => document.Revision).OriginalValue = revision;
 
+        // A conflict is another save that won; any other failure is the database's and surfaces as it is
         try
         {
             await db.SaveChangesAsync(ct);
             return row.Revision;
         }
-        catch (DbUpdateException exception)
+        catch (DbUpdateConcurrencyException exception)
         {
             throw new StoreConflictException($"{TData.Kind} {id} changed after revision {revision}.", exception);
         }
+        catch (DbUpdateException exception) when (revision == 0)
+        {
+            if (!await ExistsAsync(TData.Kind, id, ct)) throw;
+
+            throw new StoreConflictException($"{TData.Kind} {id} was saved first by another.", exception);
+        }
+    }
+
+    private async Task<bool> ExistsAsync(string kind, int id, CancellationToken ct)
+    {
+        await using var db = await contexts.CreateDbContextAsync(ct);
+        return await db.Documents.AnyAsync(row => row.Kind == kind && row.Id == id, ct);
     }
 
     public async Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(int conversation, CancellationToken ct)
@@ -188,7 +201,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L5-L76' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-store' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L5-L89' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-store' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 <!-- snippet: ef-core-registration -->

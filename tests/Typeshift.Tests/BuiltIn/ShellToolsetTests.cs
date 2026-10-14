@@ -31,6 +31,20 @@ public class ShellToolsetTests : WorkspaceTestBase
     }
 
     [Fact]
+    public async Task Given_A_Command_That_Leaves_A_Process_Behind_It_Returns_At_The_Timeout()
+    {
+        // Arrange
+        var settings = new ShellSettings { Timeout = TimeSpan.FromMilliseconds(300) };
+
+        // Act
+        var result = await ShellToolset.RunCommandAsync("echo started; sleep 30 &", settings, Scope, Ct);
+
+        // Assert
+        result.ExitCode.Should().Be(0);
+        result.Output.Should().Be("started\n");
+    }
+
+    [Fact]
     public async Task Given_Output_Over_The_Limit_The_Model_Receives_Its_Start_And_Its_End()
     {
         // Arrange
