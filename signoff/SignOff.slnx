@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Typeshift/Typeshift.csproj" />
+  <Project Path="Typeshift.Samples/Typeshift.Samples.csproj" />
+</Solution>
