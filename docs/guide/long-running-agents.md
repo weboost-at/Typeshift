@@ -104,7 +104,7 @@ a call interrupted while it ran is left out when the run continues.
 ```cs
 var resumed = await support.ResumeAsync(interrupted, settingsId);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L60-L62' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L61-L63' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A new run on that conversation works too: it starts from the interrupted run's steps, followed by its own input.

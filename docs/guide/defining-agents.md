@@ -8,6 +8,40 @@ toolset, it is declared in its constructor and read at compile time.
 An agent is a `partial`, non-generic class deriving from `Agent`:
 
 <!-- snippet: agent -->
+<a id='snippet-agent'></a>
+```cs
+internal partial class SupportAgent : Agent
+{
+    public SupportAgent()
+    {
+        WithDescription("Answers customers from their tickets and the help center.");
+
+        WithChatOptions()
+            .WithModel("fast-model")
+            .WithTemperature(0.3f)
+            .Configurable(o => o.ModelId)
+            .Configurable(o => o.Instructions)
+            .Configurable(o => o.Temperature);
+
+        UseToolset<TicketToolset>().Include(t => t.SearchTickets).Include(t => t.CloseTicket);
+
+        UseToolset<KnowledgeToolset>().Exclude(t => t.DeleteArticle);
+
+        ConfigureSearchTickets()
+            .WithLimit(5);
+
+        UseMcpServer("status_page").ReadOnly();
+
+        UseContext<CustomerProfileContext>();
+    }
+
+    protected override string GetInstructions() =>
+        """
+        Answer from the customer's tickets and cite help center articles.
+        """;
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L42' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - **`WithName`** is optional; without it the agent goes by its class name in snake_case, `support_agent`. Messages the
@@ -30,6 +64,11 @@ declarations through plain static methods and constants.
 offer all but some:
 
 <!-- snippet: exclude-tools -->
+<a id='snippet-exclude-tools'></a>
+```cs
+UseToolset<TicketToolset>().Exclude(t => t.CloseTicket);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L12-L14' title='Snippet source file'>snippet source</a> | <a href='#snippet-exclude-tools' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The lambda picks from a list the generator writes per toolset, one property per tool: `search_tickets` is
@@ -63,6 +102,15 @@ run at the same time, and when the history is [compacted](./long-running-agents.
 those a run may change:
 
 <!-- snippet: run-options -->
+<a id='snippet-run-options'></a>
+```cs
+WithRunOptions()
+    .WithMaxToolIterations(10)
+    .WithConcurrentToolCalls(true)
+    .Configurable(r => r.Mode)
+    .Configurable(r => r.MaxToolIterations);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L16-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Tool settings

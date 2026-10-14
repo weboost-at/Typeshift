@@ -10,8 +10,6 @@ public sealed record GeneratorRun(GeneratorDriver Driver, Compilation Output, IR
 
     public IEnumerable<Diagnostic> Reported => Diagnostics.Where(diagnostic => !diagnostic.IsSuppressed);
 
-    public IEnumerable<string> HintNames => Result.GeneratedTrees.Select(tree => Path.GetFileName(tree.FilePath));
-
     public string Source(string hintName) =>
         Result.GeneratedTrees.Single(tree => Path.GetFileName(tree.FilePath) == hintName).ToString();
 }

@@ -14,6 +14,10 @@ internal static class Names
     // user's when the analyzer looks at both
     public const string Generator = "Typeshift.Generators.TypeshiftGenerator";
 
+    // Generated plumbing the consumer's code completion leaves out
+    public const string Hidden =
+        "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
+
     // search_web reads as SearchWeb in generated member names
     public static string ToPascalCase(string snakeCase) =>
         string.Concat(snakeCase.Split('_').Select(part => char.ToUpperInvariant(part[0]) + part.Substring(1)));

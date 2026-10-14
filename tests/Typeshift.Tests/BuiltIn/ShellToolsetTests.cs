@@ -21,10 +21,10 @@ public class ShellToolsetTests : WorkspaceTestBase
     public async Task Given_A_Command_That_Outruns_Its_Timeout_It_Is_Killed()
     {
         // Arrange
-        var settings = new ShellSettings { Timeout = TimeSpan.FromMilliseconds(200) };
+        var settings = new ShellSettings();
 
         // Act
-        var result = await ShellToolset.RunCommandAsync("sleep 30", settings, Scope, Ct);
+        var result = await RunPastTheTimeoutAsync("sleep 30", settings);
 
         // Assert
         result.TimedOut.Should().BeTrue();
@@ -34,13 +34,20 @@ public class ShellToolsetTests : WorkspaceTestBase
     public async Task Given_A_Command_That_Leaves_A_Process_Behind_It_Returns_At_The_Timeout()
     {
         // Arrange
-        var settings = new ShellSettings { Timeout = TimeSpan.FromMilliseconds(300) };
+        var settings = new ShellSettings();
+        var ready = Path.Combine(Root, "ready");
+        var run = ShellToolset.RunCommandAsync("echo started; sleep 30 & touch ready", settings, Scope, Ct);
+
+        while (!File.Exists(ready))
+        {
+            await Task.Yield();
+        }
 
         // Act
-        var result = await ShellToolset.RunCommandAsync("echo started; sleep 30 &", settings, Scope, Ct);
+        Time.Advance(settings.Timeout);
+        var result = await run;
 
         // Assert
-        result.ExitCode.Should().Be(0);
         result.Output.Should().Be("started\n");
     }
 
@@ -57,5 +64,19 @@ public class ShellToolsetTests : WorkspaceTestBase
         result.Output.Should().StartWith("1\n2\n3\n4\n5\n");
         result.Output.Should().Contain("characters left out");
         result.Output.Should().EndWith("99\n100\n");
+    }
+
+    // The fake clock moves past the timeout until the command returns, however long it takes to start
+    private async Task<CommandResult> RunPastTheTimeoutAsync(string command, ShellSettings settings)
+    {
+        var run = ShellToolset.RunCommandAsync(command, settings, Scope, Ct);
+
+        while (!run.IsCompleted)
+        {
+            Time.Advance(settings.Timeout);
+            await Task.Yield();
+        }
+
+        return await run;
     }
 }

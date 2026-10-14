@@ -47,8 +47,8 @@ are read at compile time; pass a literal or a `const`.
 
 ## TSH003
 
-**Tool is not a static method group.** `AddTool(Find)` with `Find` a public static method. Lambdas, instance methods,
-local functions and delegate variables cannot be generated without reflection.
+**Tool is not a static method group.** `AddTool(Find)` with `Find` a static method, of any accessibility. Lambdas,
+instance methods, local functions and delegate variables cannot be generated without reflection.
 
 ## TSH004
 

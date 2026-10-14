@@ -388,6 +388,32 @@ public class ConversationRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_Text_Within_The_Interval_A_Watcher_Receives_It_Merged_Ahead_Of_The_Next_Call()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Text("a"), Text("b"), Text("c"), Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        await using var watch = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token).GetAsyncEnumerator(Ct);
+        var first = watch.MoveNextAsync();
+
+        // Act
+        await Host<ProbeAgent>()
+            .RunStreamingAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct)
+            .ToListAsync(Ct);
+
+        // Assert
+        (await first).Should().BeTrue();
+        watch.Current.Text.Should().Be("a");
+        (await watch.MoveNextAsync()).Should().BeTrue();
+        watch.Current.Text.Should().Be("bc");
+        (await watch.MoveNextAsync()).Should().BeTrue();
+        watch.Current.Contents.Should().ContainSingle(content => content is FunctionCallContent);
+    }
+
+    [Fact]
     public async Task Given_A_Conversation_Id_In_The_Options_The_Raw_Path_Stores_The_Run()
     {
         // Arrange

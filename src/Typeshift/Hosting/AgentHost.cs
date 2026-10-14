@@ -9,8 +9,9 @@ namespace Typeshift;
 /// <summary>
 /// Runs <typeparamref name="TAgent"/> with the services of the scope it was resolved from: its tools and its chat
 /// client provider resolve there. Registered as transient by <c>AddTypeshift()</c>. The generator adds the agent's
-/// typed members: <c>RunAsync</c>, <c>RunAsync&lt;T&gt;</c>, <c>RunStreamingAsync</c> and
-/// <c>ResolveOptionsAsync</c>.
+/// typed members (D12): <c>RunAsync</c>, <c>RunAsync&lt;T&gt;</c>, <c>RunStreamingAsync</c>, <c>ResumeAsync</c>,
+/// <c>ResumeStreamingAsync</c>, <c>ResolveOptionsAsync</c>, <c>LoadSettingsAsync</c>, <c>SaveSettingsAsync</c> and
+/// <c>ConfigureAsync</c>.
 /// </summary>
 /// <typeparam name="TAgent">The agent.</typeparam>
 public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
@@ -108,18 +109,13 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
     }
 
     // A run without input resumes the conversation's interrupted run (D50)
-    internal async Task<ChatResponse> RunCoreAsync(
+    internal Task<ChatResponse> RunCoreAsync(
         ChatMessage? input,
         object? settingsId,
         object? conversationId,
         object? settings,
-        CancellationToken ct)
-    {
-        var options = await ResolveRunAsync(settingsId, conversationId, settings, ct);
-        using var client = await CreateChatClientAsync(options, ct);
-
-        return await client.GetResponseAsync(input is null ? [] : [input], options, ct);
-    }
+        CancellationToken ct) =>
+        RunAsync(input is null ? [] : [input], settingsId, conversationId, settings, null, ct);
 
     internal async Task<ChatResponse<TResult>> RunCoreAsync<TResult>(
         ChatMessage input,
@@ -128,59 +124,62 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
         object? settings,
         CancellationToken ct)
     {
-        var options = await ResolveRunAsync(settingsId, conversationId, settings, ct);
+        var options = await ResolveRunAsync(settingsId, conversationId, settings, null, ct);
         using var client = await CreateChatClientAsync(options, ct);
         var json = _services.GetRequiredService<ToolJson>();
 
         return await client.GetResponseAsync<TResult>([input], json.SerializerOptions, options, cancellationToken: ct);
     }
 
-    internal async IAsyncEnumerable<ChatResponseUpdate> RunStreamingCoreAsync(
+    internal IAsyncEnumerable<ChatResponseUpdate> RunStreamingCoreAsync(
         ChatMessage? input,
         object? settingsId,
         object? conversationId,
         object? settings,
-        [EnumeratorCancellation] CancellationToken ct)
-    {
-        var options = await ResolveRunAsync(settingsId, conversationId, settings, ct);
-        using var client = await CreateChatClientAsync(options, ct);
-
-        await foreach (var update in client.GetStreamingResponseAsync(input is null ? [] : [input], options, ct))
-        {
-            yield return update;
-        }
-    }
+        CancellationToken ct) =>
+        RunStreamingAsync(input is null ? [] : [input], settingsId, conversationId, settings, ct);
 
     internal IStoreAccess Store => _services.GetRequiredService<IStoreAccess>();
 
     Agent IAgentHost.Agent => Agent;
 
-    async Task<ChatResponse> IAgentHost.RunAsync(
+    Task<ChatResponse> IAgentHost.RunAsync(
         IEnumerable<ChatMessage> messages,
         object? settingsId,
         object? conversation,
         AgentRun? caller,
-        CancellationToken ct)
-    {
-        var options = await ResolveRunAsync(settingsId, conversation, null, ct);
+        CancellationToken ct) =>
+        RunAsync(messages, settingsId, conversation, null, caller, ct);
 
-        if (caller is not null)
-        {
-            options.RunOptions = options.RunOptions with { Mode = caller.Mode };
-            options.Caller = caller;
-        }
-
-        using var client = await CreateChatClientAsync(options, ct);
-        return await client.GetResponseAsync(messages, options, ct);
-    }
-
-    async IAsyncEnumerable<ChatResponseUpdate> IAgentHost.RunStreamingAsync(
+    IAsyncEnumerable<ChatResponseUpdate> IAgentHost.RunStreamingAsync(
         IEnumerable<ChatMessage> messages,
         object? settingsId,
         object? conversation,
+        CancellationToken ct) =>
+        RunStreamingAsync(messages, settingsId, conversation, null, ct);
+
+    private async Task<ChatResponse> RunAsync(
+        IEnumerable<ChatMessage> messages,
+        object? settingsId,
+        object? conversation,
+        object? settings,
+        AgentRun? caller,
+        CancellationToken ct)
+    {
+        var options = await ResolveRunAsync(settingsId, conversation, settings, caller, ct);
+        using var client = await CreateChatClientAsync(options, ct);
+
+        return await client.GetResponseAsync(messages, options, ct);
+    }
+
+    private async IAsyncEnumerable<ChatResponseUpdate> RunStreamingAsync(
+        IEnumerable<ChatMessage> messages,
+        object? settingsId,
+        object? conversation,
+        object? settings,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        var options = await ResolveRunAsync(settingsId, conversation, null, ct);
+        var options = await ResolveRunAsync(settingsId, conversation, settings, null, ct);
         using var client = await CreateChatClientAsync(options, ct);
 
         await foreach (var update in client.GetStreamingResponseAsync(messages, options, ct))
@@ -225,14 +224,23 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
         declaration.ApplySettings(new ChatOptions(), new RunOptions { Mode = AgentMode.Default }, settings).Mode
         == declaration.ApplySettings(new ChatOptions(), new RunOptions { Mode = AgentMode.Plan }, settings).Mode;
 
+    // A sub-agent's run goes in its caller's mode (D33)
     private async Task<ResolvedChatOptions> ResolveRunAsync(
         object? settingsId,
-        object? conversationId,
+        object? conversation,
         object? settings,
+        AgentRun? caller,
         CancellationToken ct)
     {
         var options = (ResolvedChatOptions)await ResolveOptionsCoreAsync(settingsId, settings, ct);
-        options.Conversation = conversationId;
+        options.Conversation = conversation;
+
+        if (caller is not null)
+        {
+            options.RunOptions = options.RunOptions with { Mode = caller.Mode };
+            options.Caller = caller;
+        }
+
         return options;
     }
 }

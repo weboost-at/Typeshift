@@ -55,7 +55,8 @@ internal static class Conversations
         // A run cut off by a crash: its input is stored, nothing else
         var interrupted = 12;
         var question = new ChatMessage(ChatRole.User, "Where is my refund?");
-        await store.AppendConversationAsync(interrupted, new("support_agent", [question], TimeProvider.System.GetUtcNow()), ct);
+        var entry = new ConversationEntry("support_agent", [question], TimeProvider.System.GetUtcNow());
+        await store.AppendConversationAsync(interrupted, entry, ct);
 
         // begin-snippet: resume
         var resumed = await support.ResumeAsync(interrupted, settingsId);

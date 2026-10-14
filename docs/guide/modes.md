@@ -6,12 +6,12 @@ Every run is in one of three modes, which decide what the model is offered and w
 | Mode | Offers | Tools that require approval |
 |---|---|---|
 | `Default` | every tool | ask the host, unless a rule or a standing approval decides |
-| `Plan` | read-only tools and `exit_plan_mode` | not offered |
+| `Plan` | read-only tools and `exit_plan_mode` | offered only if also `ReadOnly()`; they still ask |
 | `Auto` | every tool | run without asking, unless a rule rejects the call |
 
 ## Setting the mode
 
-The mode is a [run option](./agents.md#run-options): the agent's code sets the mode runs start in, `Default` unless
+The mode is a [run option](./defining-agents.md#run-options): the agent's code sets the mode runs start in, `Default` unless
 set, and `Configurable(r => r.Mode)` lets stored settings or a run change it:
 
 <!-- snippet: switch-mode -->

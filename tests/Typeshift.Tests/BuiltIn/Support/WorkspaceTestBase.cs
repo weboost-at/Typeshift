@@ -46,6 +46,19 @@ public sealed class Workspace(WorkspacePath path) : IFileSystemRoot
     public string Path => path.Value;
 }
 
+// Every file and shell tool, to see which ask first and which only read
+public partial class WorkspaceAgent : Agent
+{
+    public WorkspaceAgent()
+    {
+        WithChatOptions().WithModel("workspace-model");
+
+        UseToolset<FileSystemToolset>();
+
+        UseToolset<ShellToolset>();
+    }
+}
+
 // Reads files through the built-in toolset of the library, a toolset of a referenced assembly
 public partial class ReaderAgent : Agent
 {

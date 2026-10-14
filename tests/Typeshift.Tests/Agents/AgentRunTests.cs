@@ -77,7 +77,20 @@ public class AgentRunTests : AgentTestBase
         // Assert
         ChatClient.Options[0]!.Tools!.Select(tool => tool.Name)
             .Should()
-            .Equal("probe", "find_companies", new HostedWebSearchTool().Name);
+            .Equal("probe", "count_companies", "find_companies", new HostedWebSearchTool().Name);
+    }
+
+    [Fact]
+    public async Task Given_A_Run_The_Providers_Client_Outlives_It()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Disposed.Should().BeFalse();
     }
 
     [Fact]

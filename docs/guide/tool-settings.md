@@ -96,7 +96,7 @@ through it, and null keeps the layer below.
 A tool runs with its settings resolved in layers, each over the one below:
 
 1. The record's code defaults, its parameterless constructor.
-2. The agent's code: [`Configure{Tool}()`](./agents.md#tool-settings), which may set any settable member.
+2. The agent's code: [`Configure{Tool}()`](./defining-agents.md#tool-settings), which may set any settable member.
 3. The agent's stored settings, under a [settings id](./settings-and-stores.md#agent-settings): the overrides,
    configurable members only.
 4. The run: the overrides in the [run's settings](./running-agents.md#run-settings).

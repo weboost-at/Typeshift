@@ -176,6 +176,24 @@ public class FileSystemToolsetTests : WorkspaceTestBase
     }
 
     [Fact]
+    public async Task Given_The_File_And_Shell_Tools_Those_That_Change_Things_Ask_And_The_Readers_Only_Read()
+    {
+        // Act
+        var options = await Host<WorkspaceAgent>().ResolveOptionsAsync(ct: Ct);
+        var tools = options.Tools!.ToList();
+
+        // Assert
+        tools.Where(tool => tool.GetService<Microsoft.Extensions.AI.ApprovalRequiredAIFunction>() is not null)
+            .Select(tool => tool.Name)
+            .Should()
+            .Equal("delete_file", "run_command");
+        tools.Where(tool => tool.GetService<Typeshift.Generated.GeneratedToolFunction>() is { IsReadOnly: true })
+            .Select(tool => tool.Name)
+            .Should()
+            .Equal("read_file", "list_files", "search_files");
+    }
+
+    [Fact]
     public async Task Given_An_Agent_Using_The_Built_In_Toolset_Its_Configuration_Reaches_The_Tool()
     {
         // Arrange

@@ -64,8 +64,8 @@ await using var provider = services.BuildServiceProvider(validateScopes: true);
 
 `WithStore<T>()` registers the store as a singleton. `InMemoryTypeshiftStore` is for tests and samples.
 
-**Without a store**, agents run from their code: a run without a settings id or a conversation id works, tools run. Every call that loads
-or saves throws an `InvalidOperationException` that names `WithStore<T>()`.
+**Without a store**, agents run from their code: a run without a settings id or a conversation id works, tools run.
+Every call that loads or saves throws an `InvalidOperationException` that names `WithStore<T>()`.
 
 ## An Entity Framework Core store
 

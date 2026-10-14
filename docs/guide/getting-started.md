@@ -25,7 +25,7 @@ creates either. They are `Guid`s unless the build says otherwise, once, in `Dire
 
 ## A toolset
 
-A toolset is a `partial` class deriving from `Toolset` that declares its tools in its constructor. A tool is a public
+A toolset is a `partial` class deriving from `Toolset` that declares its tools in its constructor. A tool is a
 static method; its name is the method's in snake_case, `find_companies`.
 
 <!-- snippet: quickstart-toolset -->
@@ -187,6 +187,6 @@ await foreach (var update in research.RunStreamingAsync("Vienna", settingsId, se
 ## Next steps
 
 - [Toolsets](./toolsets.md) and [tool settings](./tool-settings.md) in depth.
-- [Agents](./agents.md) and [running them](./running-agents.md) with real providers.
+- [Agents](./defining-agents.md) and [running them](./running-agents.md) with real providers.
 - [Settings and stores](./settings-and-stores.md): implementing `ITypeshiftStore` for your database.
 - [Conversations](./conversations.md): resuming, steering and watching runs.

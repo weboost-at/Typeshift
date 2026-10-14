@@ -20,7 +20,7 @@ public abstract class Toolset
 
     // D4: the generator reads the chain at compile time; at runtime it declares nothing
     /// <summary>
-    /// Declares a tool backed by a public static method. Its name is the method's in snake_case without an
+    /// Declares a tool backed by a static method. Its name is the method's in snake_case without an
     /// <c>Async</c> suffix (<c>CloseTicketAsync</c> is <c>close_ticket</c>), its description the method's
     /// <c>&lt;summary&gt;</c>.
     /// </summary>

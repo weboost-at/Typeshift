@@ -73,5 +73,6 @@ public class PublicApiDocumentationTests
     // A Task or ValueTask without a value completes, it returns nothing a reader needs described
     private static bool HasResult(IMethodSymbol method) =>
         method is { MethodKind: MethodKind.Ordinary, ReturnsVoid: false }
-        && method.ReturnType.ToDisplayString() is not ("System.Threading.Tasks.Task" or "System.Threading.Tasks.ValueTask");
+        && method.ReturnType.ToDisplayString()
+            is not ("System.Threading.Tasks.Task" or "System.Threading.Tasks.ValueTask");
 }

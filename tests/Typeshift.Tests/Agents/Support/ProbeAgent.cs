@@ -40,7 +40,7 @@ public partial class ProbeAgent : Agent
 
         UseToolset<ProbeToolset>();
 
-        UseToolset<CompanyToolset>().Include(t => t.FindCompanies);
+        UseToolset<CompanyToolset>().Include(t => t.CountCompanies).Include(t => t.FindCompanies);
 
         ConfigureProbe()
             .WithLimit(ConfiguredLimit)

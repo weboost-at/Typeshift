@@ -36,4 +36,4 @@ their descriptions from XML docs, which the compiler reads only then, and withou
 
 - [Documentation](https://weboost-at.github.io/Typeshift/)
 - [Toolsets](https://weboost-at.github.io/Typeshift/guide/toolsets)
-- [Agents](https://weboost-at.github.io/Typeshift/guide/agents)
+- [Agents](https://weboost-at.github.io/Typeshift/guide/defining-agents)

@@ -158,6 +158,32 @@ public class CompactionTests : AgentTestBase
         Results(2)[0].Should().Be(Typeshift.Compaction.ClearedResult);
     }
 
+    [Fact]
+    public async Task Given_A_Streaming_Run_Reported_Input_Tokens_Over_The_Estimate_Compaction_Goes_By_The_Report()
+    {
+        // Arrange
+        var reported = new UsageDetails { InputTokenCount = 1_000 };
+
+        ChatClient
+            .Reply(
+                Read(Data.Tool.CallId, Page / 2),
+                new ChatResponseUpdate(ChatRole.Assistant, [new UsageContent(reported)]))
+            .Reply(Read(Data.Tool.SecondCallId, 4))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<CompactingAgent>()
+            .RunStreamingAsync(
+                Data.Tool.Question,
+                conversationId: Data.Agent.ConversationId,
+                settings: new() { MaxInputTokens = 1_500, TargetInputTokens = 1_000 },
+                ct: Ct)
+            .ToListAsync(Ct);
+
+        // Assert
+        Results(2)[0].Should().Be(Typeshift.Compaction.ClearedResult);
+    }
+
     private Task<ChatResponse> RunAsync(string input, CompactingAgent.Settings? settings = null) =>
         Host<CompactingAgent>().RunAsync(input, conversationId: Data.Agent.ConversationId, settings: settings, ct: Ct);
 

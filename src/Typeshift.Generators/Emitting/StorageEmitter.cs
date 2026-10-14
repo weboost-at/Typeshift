@@ -16,9 +16,6 @@ internal sealed class StorageEmitter
 
     private const string ObjectKind = "global::System.Text.Json.JsonValueKind.Object";
 
-    private const string Hidden =
-        "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
-
     private readonly List<StorageModel> _helpers = [];
 
     // WriteJson and TryReadJson of an IJsonStorable record; writeMore and readMore add what is not a stored member
@@ -34,7 +31,7 @@ internal sealed class StorageEmitter
 
         writer.Line();
         Docs.WriteInheritDoc(writer);
-        writer.Line(Hidden);
+        writer.Line(Names.Hidden);
 
         using (writer.Block("public void WriteJson(global::System.Text.Json.Utf8JsonWriter writer)"))
         {
@@ -54,7 +51,7 @@ internal sealed class StorageEmitter
 
         writer.Line();
         Docs.WriteInheritDoc(writer);
-        writer.Line(Hidden);
+        writer.Line(Names.Hidden);
         writer.Line($"public static bool TryReadJson(global::System.Text.Json.JsonElement element, out {type} value)");
 
         using (writer.Block())

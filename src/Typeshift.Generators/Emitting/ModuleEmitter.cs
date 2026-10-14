@@ -10,9 +10,6 @@ internal static class ModuleEmitter
 
     private const string Services = "global::Microsoft.Extensions.DependencyInjection.IServiceCollection";
 
-    private const string Hidden =
-        "global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)";
-
     // An identifier per assembly, so the modules of several assemblies live side by side in one namespace
     public static string GetName(string assemblyName)
     {
@@ -38,7 +35,7 @@ internal static class ModuleEmitter
             /// <summary>
             /// Registers the toolsets and agents of {Docs.Escape(model.AssemblyName)}.
             /// </summary>
-            [{Hidden}]
+            {Names.Hidden}
             """);
 
         foreach (var toolset in model.Toolsets)

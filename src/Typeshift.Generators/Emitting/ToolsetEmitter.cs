@@ -15,9 +15,6 @@ internal static class ToolsetEmitter
 
     private const string ApprovalRequired = "global::Microsoft.Extensions.AI.ApprovalRequiredAIFunction";
 
-    private const string Hidden =
-        "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
-
     // The members of a record the overrides' properties must not be named like
     private static readonly string[] RecordMembers =
     [
@@ -105,7 +102,7 @@ internal static class ToolsetEmitter
             Docs.WriteSummary(writer, "Applies the values this layer sets over the settings of the layer below.");
             Docs.WriteParam(writer, "settings", "The settings of the layer below.");
             Docs.WriteReturns(writer, "The settings with every value this layer sets.");
-            writer.Line(Hidden);
+            writer.Line(Names.Hidden);
             writer.Line($"public {settings.Type} ApplyTo({settings.Type} settings) =>");
 
             using (writer.Indent())
@@ -143,7 +140,7 @@ internal static class ToolsetEmitter
 
         Docs.WriteParam(writer, "json", "How the tool binds its arguments and serializes its result.");
         Docs.WriteReturns(writer, "The tool.");
-        writer.Line(Hidden);
+        writer.Line(Names.Hidden);
         writer.Line($"public static {AIFunction} {Names.FactoryName(tool.Name)}(");
 
         using (writer.Indent())

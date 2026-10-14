@@ -37,8 +37,8 @@ commit, or add a new one and withdraw the old.
 
 - **Status:** decided by the owner in this session.
 - **Context:** v0 re-bound every class with a base list on each edit (about 170 ms per keystroke for 50 toolsets).
-- **Decision:** the syntax predicate takes classes whose base list names `Toolset` or `Agent` (any qualification);
-  the semantic check confirms. No marker attribute.
+- **Decision:** the syntax predicate takes classes whose base list names `Toolset`, `Agent` or
+  `JsonSerializerContext` (any qualification); the semantic check confirms. No marker attribute.
 - **Alternatives:** a marker attribute with `ForAttributeWithMetadataName`, which reruns only changed files but adds
   ceremony to every declaration.
 - **Where:** `Parsing/Discovery.cs`.
@@ -85,7 +85,7 @@ commit, or add a new one and withdraw the old.
   generator version.
 - **Decision:** tool stamps name the overrides type and the list property, and every module stamp has a stamp
   version; an unknown version is TSH020.
-- **Where:** `Modules/`, `Parsing/ReferenceReader.cs`.
+- **Where:** `Generated/Stamps.cs`, `Emitting/ModuleEmitter.cs`, `Parsing/ReferenceReader.cs`.
 
 ### D8. The generator targets Roslyn 5
 
@@ -120,9 +120,9 @@ commit, or add a new one and withdraw the old.
 ### D12. Typed host members are generated extension blocks
 
 - **Status:** carried (v0 D4).
-- **Decision:** `extension(AgentHost<TAgent> host)` per agent, in the agent's assembly, with `RunAsync`,
-  `RunAsync<T>`, `RunStreamingAsync`, `ResumeAsync`, `ResumeStreamingAsync`, `LoadSettingsAsync`,
-  `SaveSettingsAsync`, `ConfigureAsync` and `ResolveOptionsAsync`. They call hidden library methods, so the logic lives and is tested in the library.
+- **Decision:** `extension(AgentHost<TAgent> host)` per agent, in the agent's assembly, with `RunAsync`, `RunAsync<T>`,
+  `RunStreamingAsync`, `ResumeAsync`, `ResumeStreamingAsync`, `LoadSettingsAsync`, `SaveSettingsAsync`, `ConfigureAsync`
+  and `ResolveOptionsAsync`. They call hidden library methods, so the logic lives and is tested in the library.
 
 ## Declarations
 
@@ -203,22 +203,22 @@ commit, or add a new one and withdraw the old.
 ### D24. Tool approval uses Microsoft.Extensions.AI's contents, with standing approvals and rules
 
 - **Status:** approved with the sign-off.
-- **Decision:** `RequiresApproval()` wraps the tool in `ApprovalRequiredAIFunction`; `FunctionInvokingChatClient`
-  ends the run with `ToolApprovalRequestContent`s, listed by `response.ApprovalRequests`. The host answers with
-  `CreateResponse(approved)` in the next run of the conversation; the stored request is the one that runs, an answer
-  to no stored request is dropped, a request keeps its first answer, and an unanswered request is left out of the
-  next run. A request in the input is dropped before anything stores it, so a host's input cannot bring a call of
-  its own past the rules. Standing approvals are read from the whole conversation, beyond what compaction left. Calls in the same response that need no approval wait with it and run once the host answered (the tool
-  loop asks for every call of a response once one needs approval; the approval layer approves the others). A run
-  that asks without a conversation throws, naming the tool.
-  `request.ApproveForConversation()` approves the tool for the rest of the conversation; the approval is stored with
-  it, so it holds across runs and processes. `IToolApprovalRule`s (`WithApprovalRule<T>()`, scoped) decide calls
-  before the host is asked, seeing the exact arguments: `Approve`, `Reject(reason)` (wins over every approval) or
-  `Abstain`, which the mode resolves (D52). A layer above `FunctionInvokingChatClient` answers the requests rules and
-  standing approvals decide and continues the loop, so only the rest reach the host. It also stores the requests and
-  its own answers when a run ends asking, as `FunctionInvokingChatClient` keeps them out of what the checkpoint layer
-  below it sees. Approvals match tools by name, which is unique per agent (TSH007, and a runtime check for MCP
-  tools).
+- **Decision:** `RequiresApproval()` wraps the tool in `ApprovalRequiredAIFunction`; `FunctionInvokingChatClient` ends
+  the run with `ToolApprovalRequestContent`s, listed by `response.ApprovalRequests`. The host answers with
+  `CreateResponse(approved)` in the next run of the conversation; the stored request is the one that runs, an answer to
+  no stored request is dropped, a request keeps its first answer, and an unanswered request is left out of the next run.
+  A request in the input is dropped before anything stores it, so a host's input cannot bring a call of its own past the
+  rules. Standing approvals are read from the whole conversation, beyond what compaction left. Calls in the same
+  response that need no approval wait with it and run once the host answered (the tool loop asks for every call of a
+  response once one needs approval; the approval layer approves the others). A run that asks without a conversation
+  throws, naming the tool. `request.ApproveForConversation()` approves the tool for the rest of the conversation; the
+  approval is stored with it, so it holds across runs and processes. `IToolApprovalRule`s (`WithApprovalRule<T>()`,
+  scoped) decide calls before the host is asked, seeing the exact arguments: `Approve`, `Reject(reason)` (wins over
+  every approval) or `Abstain`, which the mode resolves (D52). A layer above `FunctionInvokingChatClient` answers the
+  requests rules and standing approvals decide and continues the loop, so only the rest reach the host. It also stores
+  the requests and its own answers when a run ends asking, as `FunctionInvokingChatClient` keeps them out of what the
+  checkpoint layer below it sees. Approvals match tools by name, which is unique per agent (TSH007, and a runtime check
+  for MCP tools).
 - **Where:** `Approval/ApprovalChatClient.cs`, `Approval/ToolApproval.cs`.
 - **Alternatives:** an approval callback the run awaits, which holds a run open across requests; a Typeshift approval
   type, a second vocabulary.
@@ -350,8 +350,9 @@ commit, or add a new one and withdraw the old.
   conversation; run settings apply to the host's agent only.
 - **As built:** the conversation layer sees the declaration's call the tool loop passes out, stores its result as an
   entry of the agent handed to, and lets that agent resume the run; a run without a conversation does not offer
-  handoffs, and a call of an agent it does not hand off to is answered by the tool loop as an unknown tool. Tool results after which the tool loop made no model call are stored before the run ends, a handoff's
-  and a terminating tool's alike.
+  handoffs, and a call of an agent it does not hand off to is answered by the tool loop as an unknown tool. Tool results
+  after which the tool loop made no model call are stored before the run ends, a handoff's and a terminating tool's
+  alike.
 - **Where:** `Conversations/ConversationChatClient.cs`.
 
 ### D35. MCP servers through a host provider

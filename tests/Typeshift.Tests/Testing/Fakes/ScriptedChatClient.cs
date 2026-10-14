@@ -13,6 +13,8 @@ public sealed class ScriptedChatClient : IChatClient
 
     public List<ChatOptions?> Options { get; } = [];
 
+    public bool Disposed { get; private set; }
+
     public Task Requested => RequestedAsync(1);
 
     // Completes once the client received that many requests
@@ -78,7 +80,5 @@ public sealed class ScriptedChatClient : IChatClient
     public object? GetService(Type serviceType, object? serviceKey = null) =>
         serviceType.IsInstanceOfType(this) ? this : null;
 
-    public void Dispose()
-    {
-    }
+    public void Dispose() => Disposed = true;
 }

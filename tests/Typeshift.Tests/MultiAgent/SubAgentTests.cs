@@ -67,6 +67,32 @@ public class SubAgentTests : MultiAgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Tool_Approved_For_The_Callers_Conversation_The_Sub_Agents_Call_Of_It_Runs()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "close_ticket", ("number", Data.Agent.Ticket.Default)))
+            .Reply(Call(Data.Tool.SecondCallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Tool.Answer));
+
+        HelperClient
+            .Reply(Call($"{Data.Tool.CallId}_helper", "close_ticket", ("number", Data.Agent.Ticket.Updated)))
+            .Reply(Text(Data.Agent.Reason));
+
+        var lead = Host<TrustingLeadAgent>();
+        var asked = await lead.RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+        var always = new ChatMessage(ChatRole.User, [asked.ApprovalRequests[0].ApproveForConversation()]);
+
+        // Act
+        await lead.RunAsync(always, conversationId: Data.Agent.ConversationId, ct: Ct);
+
+        // Assert
+        ToolCalls.Should().Equal(
+            $"close_ticket {Data.Agent.Ticket.Default}",
+            $"close_ticket {Data.Agent.Ticket.Updated}");
+    }
+
+    [Fact]
     public async Task Given_A_Caller_In_Auto_Mode_Its_Sub_Agent_Runs_In_Auto_Mode()
     {
         // Arrange

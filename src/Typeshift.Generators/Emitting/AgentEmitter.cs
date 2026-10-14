@@ -6,9 +6,6 @@ namespace Typeshift.Generators.Emitting;
 
 internal static class AgentEmitter
 {
-    private const string Hidden =
-        "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
-
     private const string ChatOptions = "global::Microsoft.Extensions.AI.ChatOptions";
 
     private const string RunOptions = "global::Typeshift.RunOptions";
@@ -47,7 +44,7 @@ internal static class AgentEmitter
                 WriteSettings(writer, output);
                 writer.Line();
                 writer.Line("/// <inheritdoc />");
-                writer.Line(Hidden);
+                writer.Line(Names.Hidden);
                 writer.Line(
                     "protected override global::Typeshift.Generated.AgentDeclaration Declaration => "
                     + "TypeshiftGenerated.Instance;");
@@ -100,7 +97,7 @@ internal static class AgentEmitter
     private static IEnumerable<OptionMember> Picked(EquatableArray<string> picks, OptionMember[] options) =>
         options.Where(option => picks.Contains(option.Option));
 
-    // D27: a tool member named like an option or one of the record's own gets a suffix instead of clashing with it
+    // D6: a tool member named like an option or one of the record's own gets a suffix instead of clashing with it
     private static string SettingsMember(AgentModel agent, ToolSummary tool)
     {
         string[] reserved =

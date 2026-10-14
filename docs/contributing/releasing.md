@@ -14,7 +14,7 @@ the packages attached.
 
 These need someone with admin rights on the repository and the nuget.org account.
 
-1. **Point the install sections at nuget.org.** The package ID is `Typeshift` (D38). Change the install sections of
+1. **Point the install sections at nuget.org.** The package ID is `Typeshift` (D48). Change the install sections of
    `README.md` and `docs/guide/getting-started.md` to `dotnet add package Typeshift --prerelease`, and add a NuGet
    badge to `README.md`. Reserving the `Typeshift.*` prefix on nuget.org keeps later packages under the name.
 2. **Set up trusted publishing on nuget.org.** Under the account's *Trusted Publishing*, add a policy for the

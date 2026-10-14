@@ -48,13 +48,14 @@ public sealed partial class ShellToolset : Toolset
         start.ArgumentList.Add("-c");
         start.ArgumentList.Add(command);
 
+        // The timeout runs from before the start, so a command never outlives it
+        using var limit = new CancellationTokenSource(settings.Timeout, Time(services));
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct, limit.Token);
+
         using var process = Process.Start(start)
             ?? throw new InvalidOperationException($"The shell '{settings.Shell}' did not start.");
 
         process.StandardInput.Close();
-
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeout.CancelAfter(settings.Timeout);
 
         // A process the command left running in the background keeps the streams open; reading them ends with the
         // timeout as well
@@ -79,6 +80,9 @@ public sealed partial class ShellToolset : Toolset
 
         return result;
     }
+
+    private static TimeProvider Time(IServiceProvider services) =>
+        services.GetService(typeof(TimeProvider)) as TimeProvider ?? TimeProvider.System;
 
     // The stream's start and end, within the limit, read to its end so the process never blocks on a full pipe
     private static async Task<string> Capture(StreamReader stream, int limit, CancellationToken stop)

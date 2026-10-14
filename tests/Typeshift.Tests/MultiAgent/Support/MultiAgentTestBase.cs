@@ -67,6 +67,19 @@ public partial class LeadAgent : Agent
     }
 }
 
+// Closes tickets itself too, so the host can approve close_ticket for the conversation
+public partial class TrustingLeadAgent : Agent
+{
+    public TrustingLeadAgent()
+    {
+        WithChatOptions().WithModel("lead-model");
+
+        UseToolset<GuardedToolset>().Include(t => t.CloseTicket);
+
+        UseAgent<HelperAgent>();
+    }
+}
+
 public partial class BackgroundLeadAgent : Agent
 {
     public BackgroundLeadAgent()
