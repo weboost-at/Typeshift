@@ -372,6 +372,7 @@ namespace Typeshift.Generated
             var builder = global::Typeshift.Generated.ModuleRegistration.AddCoreServices<global::System.Guid>(services, static text => global::System.Guid.Parse(text, global::System.Globalization.CultureInfo.InvariantCulture));
 
             global::Typeshift.Generated.SubjectModule.Register(services);
+            global::Typeshift.Generated.TypeshiftModule.Register(services);
             global::Typeshift.Generated.CompaniesModule.Register(services);
 
             return builder;

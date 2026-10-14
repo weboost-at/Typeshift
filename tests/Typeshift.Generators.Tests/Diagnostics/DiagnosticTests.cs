@@ -414,11 +414,29 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_A_Reference_Built_With_Another_Id_Type_TSH021_Is_Reported()
+    public void Given_A_Reference_Of_Toolsets_Only_Built_With_Another_Id_Type_TSH021_Is_Not_Reported()
     {
         // Arrange
         var properties = BuildProperties.WithIdType("int");
         var reference = CompileReference("Companies", properties, ReferenceSources.CompanyToolset);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.SameNamedToolset));
+
+        // Assert
+        run.Assert.DoesNotReport("TSH021");
+    }
+
+    [Fact]
+    public void Given_A_Reference_With_Agents_Built_With_Another_Id_Type_TSH021_Is_Reported()
+    {
+        // Arrange
+        var properties = BuildProperties.WithIdType("int");
+        var reference = CompileReference(
+            "Companies",
+            properties,
+            ReferenceSources.CompanyToolset,
+            ReferenceSources.CompanyAgent);
 
         // Act
         var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.SameNamedToolset));

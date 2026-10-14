@@ -59,11 +59,15 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             .Select(static (pair, _) => Catalog.Resolve(pair.Left, pair.Right))
             .WithTrackingName(TrackingNames.AgentOutputs);
 
+        // D37: the library declares the built-in toolsets with its own generator, and needs no aliases of its types
+        var assemblyName = context.CompilationProvider
+            .Select(static (compilation, _) => compilation.AssemblyName ?? "");
+
         var module = toolsets
             .Collect()
             .Combine(agents.Collect())
             .Combine(contexts)
-            .Combine(context.CompilationProvider.Select(static (compilation, _) => compilation.AssemblyName ?? ""))
+            .Combine(assemblyName)
             .Combine(idType)
             .Select(static (pair, _) => CreateModule(
                 pair.Left.Left.Left.Left,
@@ -79,8 +83,12 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(outputs.Combine(idType), static (output, pair) =>
             output.AddSource(Names.HintName(pair.Left.Agent.Type.FullName), AgentEmitter.Emit(pair.Left, pair.Right)));
 
-        context.RegisterSourceOutput(idType, static (output, type) =>
-            output.AddSource(Names.HintName($"{Names.GeneratedNamespace}.Aliases"), AliasEmitter.Emit(type)));
+        context.RegisterSourceOutput(idType.Combine(assemblyName), static (output, pair) =>
+        {
+            if (pair.Right == KnownTypes.LibraryAssembly) return;
+
+            output.AddSource(Names.HintName($"{Names.GeneratedNamespace}.Aliases"), AliasEmitter.Emit(pair.Left));
+        });
 
         context.RegisterSourceOutput(module, static (output, model) =>
         {

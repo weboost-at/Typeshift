@@ -7,10 +7,10 @@ namespace Typeshift.Generated;
 /// </summary>
 /// <param name="module">The module.</param>
 /// <param name="version">D7: the stamps' version, which generators of other versions check.</param>
-/// <param name="idType">D11: the id type the assembly was built with.</param>
+/// <param name="idType">D11: the id type the assembly was built with; null for an assembly without agents.</param>
 [EditorBrowsable(EditorBrowsableState.Never)]
 [AttributeUsage(AttributeTargets.Assembly)]
-public sealed class GeneratedModuleAttribute(Type module, int version, Type idType) : Attribute
+public sealed class GeneratedModuleAttribute(Type module, int version, Type? idType) : Attribute
 {
     /// <summary>
     /// The module.
@@ -23,9 +23,9 @@ public sealed class GeneratedModuleAttribute(Type module, int version, Type idTy
     public int Version { get; } = version;
 
     /// <summary>
-    /// The id type the assembly was built with.
+    /// The id type the assembly was built with; null for an assembly without agents.
     /// </summary>
-    public Type IdType { get; } = idType;
+    public Type? IdType { get; } = idType;
 }
 
 /// <summary>

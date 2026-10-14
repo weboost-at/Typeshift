@@ -1,3 +1,5 @@
+using Typeshift.Toolsets;
+
 namespace Typeshift.Tests.Compaction.Support;
 
 // A tool whose results are as long as the model asks, to fill a run's context
@@ -28,5 +30,7 @@ public partial class CompactingAgent : Agent
             .Configurable(r => r.SummaryModel);
 
         UseToolset<ReadingToolset>();
+
+        UseToolset<TodoToolset>();
     }
 }

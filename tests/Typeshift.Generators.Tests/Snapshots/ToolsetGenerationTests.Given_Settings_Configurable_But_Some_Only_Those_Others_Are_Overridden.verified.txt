@@ -151,7 +151,7 @@ global using LiveRun = global::Typeshift.LiveRun<global::System.Guid>;
 [assembly: global::Typeshift.Generated.GeneratedModule(
     typeof(global::Typeshift.Generated.SubjectModule),
     1,
-    typeof(global::System.Guid))]
+    null)]
 
 namespace Typeshift.Generated;
 

@@ -16,8 +16,8 @@ the slices build it one at a time.
 | 6. Middleware, context providers | built |
 | 7. Telemetry, compaction | built |
 | 8. Sub-agents, handoff | built |
-| 9. MCP, built-in toolsets | next |
-| 10. Native AOT: the console sample, the package consumer | open |
+| 9. MCP, built-in toolsets | built |
+| 10. Native AOT: the console sample, the package consumer | next |
 
 ## Behavior coverage
 
@@ -80,12 +80,18 @@ The numbers are the rules of v0's behavior table where they still hold.
 | new | A run is an `invoke_agent` span around its chat and tool spans, with usage and errors (D36) | `TelemetryTests` |
 | new | Compaction clears the oldest read results, then summarizes or drops the oldest turns, by calibrated estimate (D32) | `CompactionTests` |
 | new | A summary is stored, and later runs start from it (D32) | `CompactionTests.Given_A_Summary_Later_Runs_Start_From_It` |
+| new | Summarizing keeps the latest `write_todos` call with its result (D32, D37) | `CompactionTests.Given_Summarized_Turns_The_Latest_Todo_List_Stays_With_Its_Result` |
 | new | A sub-agent is a tool of its description and one input, answering in a fresh context in its caller's mode (D33) | `SubAgentTests` |
 | new | A sub-agent's calls that need approval are rejected unless something approves them (D33) | `SubAgentTests.Given_A_Sub_Agent_In_The_Default_Mode_A_Call_That_Needs_Approval_Is_Rejected` |
 | new | A background sub-agent's answer joins the run, which waits for it; a lost one is reported on resume (D33) | `SubAgentTests.Given_A_Background_Sub_Agent_The_Caller_Works_On_And_Receives_Its_Answer_Before_It_Ends`, `..._Given_An_Interrupted_Run_With_A_Background_Sub_Agent_The_Model_Hears_It_Was_Lost` |
 | new | A handoff continues the run with the other agent, which answers the conversation's later runs (D34) | `HandoffTests` |
 | new | Sub-agents and handoff targets are checked at compile time (TSH023, TSH024, TSH026) | `DiagnosticTests` |
 | new | MCP servers' tools follow the agent's own, read-only or behind approval; a clash or no provider fails (D35) | `McpTests` |
+| new | The file tools stay within the root, links included, and read, list, search, write, edit and delete (D37) | `FileSystemToolsetTests` |
+| new | `run_command` runs in the root, with a timeout and an output limit (D37) | `ShellToolsetTests` |
+| new | The web tools refuse other schemes and name a missing registration (D37) | `WebToolsetTests` |
+| new | A consumer's agent configures a built-in tool across the assembly boundary (D7, D37) | `FileSystemToolsetTests.Given_An_Agent_Using_The_Built_In_Toolset_Its_Configuration_Reaches_The_Tool` |
+| new | A reference without agents has no id type to clash (D11) | `DiagnosticTests.Given_A_Reference_Of_Toolsets_Only_Built_With_Another_Id_Type_TSH021_Is_Not_Reported` |
 
 ## Known gaps
 

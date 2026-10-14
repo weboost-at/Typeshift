@@ -1,11 +1,18 @@
+using Typeshift.Toolsets;
+
 namespace Typeshift.Samples.Agents;
 
-// A long-running agent: the built-in toolsets and sub-agents of the guide's later pages join it
+// begin-snippet: coding-agent
 internal partial class CodingAgent : Agent
 {
     public CodingAgent()
     {
         WithChatOptions().WithModel("reasoning-model");
+
+        UseToolset<TodoToolset>();
+        UseToolset<FileSystemToolset>();
+        UseToolset<ShellToolset>();
+        UseToolset<WebToolset>().Include(t => t.WebFetch);
 
         // begin-snippet: background-sub-agent
         UseAgent<ExploreAgent>().InBackground();
@@ -20,6 +27,10 @@ internal partial class CodingAgent : Agent
             .Configurable(r => r.Mode)
             .Configurable(r => r.MaxToolIterations);
         // end-snippet
+
+        ConfigureRunCommand()
+            .WithShell("/bin/bash")
+            .WithTimeout(TimeSpan.FromMinutes(2));
     }
 
     protected override string GetInstructions() =>
@@ -28,3 +39,4 @@ internal partial class CodingAgent : Agent
         every change.
         """;
 }
+// end-snippet

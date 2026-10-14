@@ -28,6 +28,7 @@ their descriptions from XML docs, which the compiler reads only then, and withou
 - OpenTelemetry traces and metrics after the GenAI conventions, always on.
 - Sub-agents, in the foreground or the background, and handoffs between agents.
 - MCP servers' tools through the MCP client of your choice.
+- Built-in toolsets for to-dos, files, the shell and the web.
 - Compile-time diagnostics instead of runtime surprises.
 
 ## Learn more

@@ -66,7 +66,9 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         var idType = IdTypes.Resolve(property, context.Compilation);
 
         context.RegisterSymbolStartAction(start => StartClass(start, tools, kinds, found), SymbolKind.NamedType);
-        context.RegisterOperationAction(call => AnalyzeCall(call, idType), OperationKind.Invocation);
+        // The library's own builders make the calls a user may not; its built-in toolsets are checked as declarations
+        if (context.Compilation.AssemblyName != KnownTypes.LibraryAssembly)
+            context.RegisterOperationAction(call => AnalyzeCall(call, idType), OperationKind.Invocation);
 
         context.RegisterCompilationEndAction(end =>
         {

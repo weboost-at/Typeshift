@@ -56,7 +56,7 @@ needs a description ([TSH023](./diagnostics.md#tsh023)); agents that call each o
 ```cs
 UseAgent<ExploreAgent>().InBackground();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L10-L12' title='Snippet source file'>snippet source</a> | <a href='#snippet-background-sub-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L17-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-background-sub-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 When the sub-agent answers, its answer reaches the calling run as a message before the run's next model call. A run
@@ -71,15 +71,15 @@ internal partial class ExploreAgent : Agent
 {
     public ExploreAgent()
     {
-        WithDescription("Explores the help center and answers one question about it, citing articles.");
+        WithDescription("Explores the workspace and answers one question about it, citing files and lines.");
 
         WithChatOptions().WithModel("fast-model");
 
-        UseToolset<KnowledgeToolset>().Exclude(t => t.DeleteArticle);
+        UseToolset<FileSystemToolset>().Include(t => t.ReadFile).Include(t => t.ListFiles).Include(t => t.SearchFiles);
     }
 
     protected override string GetInstructions() =>
-        "Answer the question from the articles. Read only what you need; quote what you rely on.";
+        "Answer the question from the files. Read only what you need; quote the lines you rely on.";
 }
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/ExploreAgent.cs#L5-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-sub-agent' title='Start of snippet'>anchor</a></sup>

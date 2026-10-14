@@ -31,7 +31,7 @@ internal static class ModuleEmitter
             [assembly: global::Typeshift.Generated.GeneratedModule(
                 typeof({module}),
                 {ReferenceReader.StampVersion},
-                typeof({model.IdType}))]
+                {(model.Agents.Count == 0 ? "null" : $"typeof({model.IdType})")})]
 
             namespace {Names.GeneratedNamespace};
 

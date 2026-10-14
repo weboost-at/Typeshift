@@ -42,7 +42,8 @@ export default defineConfig({
             { text: 'MCP servers', link: '/guide/mcp' },
             { text: 'Multiple agents', link: '/guide/multi-agent' },
             { text: 'Long-running agents', link: '/guide/long-running-agents' },
-            { text: 'Observability', link: '/guide/observability' }
+            { text: 'Observability', link: '/guide/observability' },
+            { text: 'Built-in toolsets', link: '/guide/built-in-toolsets' }
           ]
         },
         {

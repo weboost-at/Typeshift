@@ -384,6 +384,11 @@ commit, or add a new one and withdraw the old.
     and escaping links refused; the three reading tools `ReadOnly()`, `delete_file` behind approval.
   - `ShellToolset`: `run_command` in the root, always behind approval; timeout and output cap as settings.
   - `WebToolset`: `web_search` and `web_fetch` over `IWebSearch` and `IWebFetch`, no provider shipped.
+- **As built:** the library compiles them with its own generator; its module stamps no id type, as it has no
+  agents, and every consumer's `AddTypeshift()` registers it. The file tools follow every link on a path, the root's
+  own included, before comparing it with the root, and return why they refuse instead of failing the call, so the
+  model can correct itself.
+- **Where:** `Toolsets/`.
 - **Alternatives:** MAF's five todo tools with state in the session (more tokens, a store per session); file access
   in a store abstraction.
 

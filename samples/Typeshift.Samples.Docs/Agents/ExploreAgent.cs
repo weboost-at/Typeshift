@@ -1,4 +1,4 @@
-using Typeshift.Samples.Knowledge;
+using Typeshift.Toolsets;
 
 namespace Typeshift.Samples.Agents;
 
@@ -7,14 +7,14 @@ internal partial class ExploreAgent : Agent
 {
     public ExploreAgent()
     {
-        WithDescription("Explores the help center and answers one question about it, citing articles.");
+        WithDescription("Explores the workspace and answers one question about it, citing files and lines.");
 
         WithChatOptions().WithModel("fast-model");
 
-        UseToolset<KnowledgeToolset>().Exclude(t => t.DeleteArticle);
+        UseToolset<FileSystemToolset>().Include(t => t.ReadFile).Include(t => t.ListFiles).Include(t => t.SearchFiles);
     }
 
     protected override string GetInstructions() =>
-        "Answer the question from the articles. Read only what you need; quote what you rely on.";
+        "Answer the question from the files. Read only what you need; quote the lines you rely on.";
 }
 // end-snippet

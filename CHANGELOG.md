@@ -48,5 +48,8 @@ The library was rebuilt from the API its owner approved; nothing of the unreleas
   analyzer checks both (TSH023, TSH024, TSH026).
 - MCP: `UseMcpServer(name)` offers a server's tools, which the host's `IMcpToolProvider` connects
   (`WithMcpToolProvider<T>()`), with `RequiresApproval()` and `ReadOnly()`.
+- Built-in toolsets in `Typeshift.Toolsets`: `TodoToolset` (`write_todos`), `FileSystemToolset` within an
+  `IFileSystemRoot`, `ShellToolset` (`run_command`, behind approval) and `WebToolset` over the host's `IWebSearch`
+  and `IWebFetch`.
 - An analyzer reports every Typeshift diagnostic at real source locations, so `#pragma` and `.editorconfig` reach
   them; a suppressor drops CS1573 for tool parameters the model never sees.

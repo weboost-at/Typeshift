@@ -114,6 +114,31 @@ public class CompactionTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_Summarized_Turns_The_Latest_Todo_List_Stays_With_Its_Result()
+    {
+        // Arrange
+        var settings = new CompactingAgent.Settings { MaxInputTokens = 1_000, SummaryModel = SummaryModel };
+        var todos = JsonElement.Parse("""[{ "title": "Read the logs", "status": "InProgress" }]""");
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "write_todos", ("todos", todos)))
+            .Reply(Text(new string('x', Page)))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        await RunAsync(Data.Tool.Question, settings);
+
+        // Act
+        await RunAsync(Data.Agent.FollowUp, settings);
+
+        // Assert
+        ChatClient.Requests[3].Select(message => message.Role.Value)
+            .Should()
+            .Equal("user", "assistant", "tool", "user");
+        Calls(3).Should().Equal(Data.Tool.CallId);
+    }
+
+    [Fact]
     public async Task Given_Reported_Input_Tokens_Over_The_Estimate_Compaction_Goes_By_The_Report()
     {
         // Arrange

@@ -4,6 +4,45 @@ Most runs take a few model calls. An agent that works through a task on its own,
 of calls in one run, for an hour or more. Typeshift keeps such a run within its context, stores it as it goes and
 lets the host stop asking for every command.
 
+<!-- snippet: coding-agent -->
+<a id='snippet-coding-agent'></a>
+```cs
+internal partial class CodingAgent : Agent
+{
+    public CodingAgent()
+    {
+        WithChatOptions().WithModel("reasoning-model");
+
+        UseToolset<TodoToolset>();
+        UseToolset<FileSystemToolset>();
+        UseToolset<ShellToolset>();
+        UseToolset<WebToolset>().Include(t => t.WebFetch);
+
+        UseAgent<ExploreAgent>().InBackground();
+
+        WithRunOptions()
+            .WithMode(AgentMode.Plan)
+            .WithMaxToolIterations(500)
+            .WithMaxInputTokens(150_000)
+            .WithSummaryModel("fast-model")
+            .Configurable(r => r.Mode)
+            .Configurable(r => r.MaxToolIterations);
+
+        ConfigureRunCommand()
+            .WithShell("/bin/bash")
+            .WithTimeout(TimeSpan.FromMinutes(2));
+    }
+
+    protected override string GetInstructions() =>
+        """
+        Work in the customer's workspace. Plan with write_todos, read before you edit, and run the tests after
+        every change.
+        """;
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L42' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
 ## Run options
 
 `WithRunOptions()` sets how a run goes:
@@ -19,7 +58,7 @@ WithRunOptions()
     .Configurable(r => r.Mode)
     .Configurable(r => r.MaxToolIterations);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L14-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-long-running-options' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L21-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-long-running-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 | Option | Default | Does |

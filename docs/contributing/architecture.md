@@ -148,3 +148,10 @@ standing approvals, or starts it on `ConversationRun`, whose answers join the ru
 `ConversationChatClient` declares the handoff tools when the run has a conversation, continues a run whose tool loop
 passed a handoff call out with the agent handed to, and sends a conversation's next run to the agent that answered it
 last (D33, D34).
+
+## MCP and the built-in toolsets
+
+`AgentHost` asks the host's `IMcpToolProvider` for each server's tools when it resolves a run's options and offers
+them after the agent's own, marked for plan mode or wrapped for approval (D35). The built-in toolsets in `Toolsets/`
+are compiled by the library's own generator, which writes no id-type aliases for it; consumers register the library's
+module like any reference's (D37).

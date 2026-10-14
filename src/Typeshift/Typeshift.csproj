@@ -22,7 +22,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../Typeshift.Generators/Typeshift.Generators.csproj" ReferenceOutputAssembly="false" />
+    <!-- D37: the generator compiles the built-in toolsets too -->
+    <ProjectReference Include="../Typeshift.Generators/Typeshift.Generators.csproj" ReferenceOutputAssembly="false" OutputItemType="Analyzer" />
     <None Include="../Typeshift.Generators/bin/$(Configuration)/netstandard2.0/Typeshift.Generators.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
     <!-- D48: NuGet imports buildTransitive/{PackageId}.props only, so the file is packed under the package's ID -->
     <None Include="buildTransitive/Typeshift.props" Pack="true" PackagePath="buildTransitive/$(PackageId).props" />
