@@ -59,6 +59,8 @@ dotnet mdsnippets && git diff --exit-code
 dotnet publish samples/Typeshift.Samples.Console -c Release -r linux-x64 -o artifacts/sample
 ```
 
+- Cloud sessions run `.claude/hooks/session-start.sh`: the .NET SDK from Ubuntu's feed (dot.net is unreachable), the
+  tools, the packages, and the owner's skills pinned to reviewed commits.
 - The build is warning-free with `TreatWarningsAsErrors`. The only suppressed warning is CS1591 in `tests/`.
 - Generator snapshots live in `tests/Typeshift.Generators.Tests/Snapshots`. A mismatch writes `.received.txt`; review
   it, then rerun with `ACCEPT_SNAPSHOTS=1` to accept.
