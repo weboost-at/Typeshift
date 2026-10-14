@@ -4,14 +4,29 @@ Code-defined agents and toolsets for .NET 10 on
 [Microsoft.Extensions.AI](https://learn.microsoft.com/dotnet/ai/microsoft-extensions-ai). A source generator turns
 them into reflection-free `AIFunction`s, a typed settings record per agent, and one `services.AddTypeshift()` call.
 
-[![ci](https://github.com/weboost-at/Typeshift/actions/workflows/ci.yml/badge.svg)](https://github.com/weboost-at/Typeshift/actions/workflows/ci.yml)
-
 **[Documentation](https://weboost-at.github.io/Typeshift/)** ·
 [Diagnostics](https://weboost-at.github.io/Typeshift/guide/diagnostics) ·
 [Changelog](CHANGELOG.md)
 
 > **Alpha:** the API may change between releases. [`docs/contributing/status.md`](docs/contributing/status.md) lists
 > what is open.
+
+```bash
+dotnet add package Typeshift --prerelease
+```
+
+## What you get
+
+- Tools from static methods: a generated `AIFunction` each, its schema from the parameters and XML docs.
+- Arguments bound and results serialized without reflection, ready for Native AOT.
+- Tool settings the model never sees, with configurable members as an allow list.
+- A generated `Settings` record per agent: exactly what may change at runtime, the model included.
+- Settings layered from code, the agent, a store and the run, under ids you own.
+- One `ITypeshiftStore` to implement; without one, everything runs from code.
+- Conversations stored step by step: resume after a crash, steer a run, watch it live.
+- Tool approval with rules, plan and auto modes, middleware and context providers.
+- Sub-agents, handoffs, MCP servers, compaction, OpenTelemetry and built-in toolsets.
+- Mistakes as compile errors and analyzer diagnostics, never as errors in generated code.
 
 ## A toolset
 
