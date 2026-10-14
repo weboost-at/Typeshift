@@ -12,4 +12,10 @@ public class AgentTestData(Faker faker)
     public string Instructions { get; } = faker.Lorem.Sentence();
 
     public string CompanyName { get; } = faker.Company.CompanyName();
+
+    public Guid ConversationId { get; } = faker.Random.Guid();
+
+    public string FollowUp { get; } = faker.Lorem.Sentence();
+
+    public string Steering { get; } = faker.Lorem.Sentence();
 }

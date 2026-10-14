@@ -16,13 +16,21 @@ public static class ModuleRegistration
     /// </summary>
     /// <typeparam name="TId">The build's id type, <c>TypeshiftIdType</c>.</typeparam>
     /// <param name="services">The services.</param>
+    /// <param name="parse">
+    /// Reads an id from text, for the raw path's <c>ChatOptions.ConversationId</c>; null for an id type without one.
+    /// </param>
     /// <returns>The registration chain <c>AddTypeshift()</c> returns.</returns>
-    public static TypeshiftBuilder AddCoreServices<TId>(IServiceCollection services) where TId : notnull
+    public static TypeshiftBuilder AddCoreServices<TId>(IServiceCollection services, Func<string, TId>? parse)
+        where TId : notnull
     {
         services.TryAddSingleton(provider => new ToolJson(
             provider.GetServices<JsonContextRegistration>().Select(registration => registration.Resolver)));
 
-        services.TryAddSingleton<IStoreAccess>(provider => new StoreAccess<TId>(provider));
+        services.TryAddSingleton<IStoreAccess>(provider => new StoreAccess<TId>(provider, parse));
+        services.TryAddSingleton<LiveRuns>();
+        services.TryAddSingleton(provider => new ConversationTracker<TId>(
+            provider.GetRequiredService<LiveRuns>(),
+            provider.GetService<RealtimeTrackingOptions>()));
 
         return new TypeshiftBuilder(services, static (services, store) =>
             services.AddSingleton<ITypeshiftStore<TId>>(provider =>

@@ -1,7 +1,7 @@
 # Settings and stores
 
-Typeshift persists each agent's `Settings` under a settings id, through one interface you implement once, with your
-id type.
+Typeshift persists two things: each agent's `Settings` under a settings id, and conversations under a conversation id.
+Both go through one interface you implement once, with your id type.
 
 ## The id type
 
@@ -18,17 +18,21 @@ The id type is `Guid` unless `Directory.Build.props` names another:
 <!-- endSnippet -->
 
 Every project that uses Typeshift sees it: generated members take it (`RunAsync(input, settingsId: 42)`), and
-`ITypeshiftStore` and `InMemoryTypeshiftStore` are aliases the generator writes for it. A referenced project built
+`ITypeshiftStore`, `InMemoryTypeshiftStore`, `ConversationTracker` and `LiveRun` are aliases the generator writes
+for it. A referenced project built
 with another id type is [TSH021](./diagnostics.md#tsh021); a store of another is [TSH028](./diagnostics.md#tsh028).
 The library never creates ids.
 
 ## The store
 
-`ITypeshiftStore` has two methods:
+`ITypeshiftStore` has four methods:
 
 - `LoadAsync<TData>(id)` returns the document of kind `TData.Kind` under an id with its revision, or null;
 - `SaveAsync<TData>(id, data, revision)` saves it if the stored revision is still `revision` (0 for none), returns the
-  new revision, and throws a `StoreConflictException` when another save came first.
+  new revision, and throws a `StoreConflictException` when another save came first;
+- `LoadConversationAsync(conversation)` returns a conversation's entries, oldest first;
+- `AppendConversationAsync(conversation, entry)` appends one entry: a run's input, a model response, tool results.
+  Runs append as they go, so this is the hot path; a row per entry keeps it cheap.
 
 Documents serialize themselves: `Serialize()` and `TData.Deserialize(json, version)`. Next to the JSON, a store keeps:
 
@@ -60,7 +64,7 @@ await using var provider = services.BuildServiceProvider(validateScopes: true);
 
 `WithStore<T>()` registers the store as a singleton. `InMemoryTypeshiftStore` is for tests and samples.
 
-**Without a store**, agents run from their code: a run without a settings id works, tools run. Every call that loads
+**Without a store**, agents run from their code: a run without a settings id or a conversation id works, tools run. Every call that loads
 or saves throws an `InvalidOperationException` that names `WithStore<T>()`.
 
 ## An Entity Framework Core store
@@ -72,10 +76,14 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
 {
     public DbSet<DocumentRow> Documents => Set<DocumentRow>();
 
+    public DbSet<EntryRow> Entries => Set<EntryRow>();
+
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.Entity<DocumentRow>().HasKey(document => new { document.Kind, document.Id });
         model.Entity<DocumentRow>().Property(document => document.Revision).IsConcurrencyToken();
+        model.Entity<EntryRow>().HasKey(entry => entry.Sequence);
+        model.Entity<EntryRow>().HasIndex(entry => entry.Conversation);
     }
 }
 
@@ -91,8 +99,19 @@ internal sealed class DocumentRow
 
     public required string Json { get; set; }
 }
+
+internal sealed class EntryRow
+{
+    public long Sequence { get; init; }
+
+    public required int Conversation { get; init; }
+
+    public required int Version { get; init; }
+
+    public required string Json { get; init; }
+}
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/TypeshiftDb.cs#L5-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-db' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/TypeshiftDb.cs#L5-L44' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-db' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 <!-- snippet: ef-core-store -->
@@ -141,9 +160,35 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
             throw new StoreConflictException($"{TData.Kind} {id} changed after revision {revision}.", exception);
         }
     }
+
+    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(int conversation, CancellationToken ct)
+    {
+        await using var db = await contexts.CreateDbContextAsync(ct);
+
+        var rows = await db.Entries
+            .Where(entry => entry.Conversation == conversation)
+            .OrderBy(entry => entry.Sequence)
+            .ToListAsync(ct);
+
+        return [.. rows.Select(row => ConversationEntry.Deserialize(row.Json, row.Version))];
+    }
+
+    public async Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct)
+    {
+        await using var db = await contexts.CreateDbContextAsync(ct);
+
+        db.Entries.Add(new EntryRow
+        {
+            Conversation = conversation,
+            Version = ConversationEntry.Version,
+            Json = entry.Serialize()
+        });
+
+        await db.SaveChangesAsync(ct);
+    }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L5-L50' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-store' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L5-L76' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-store' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 <!-- snippet: ef-core-registration -->
@@ -151,7 +196,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
 ```cs
 services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite("Data Source=typeshift.db"));
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L33-L35' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L34-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Agent settings

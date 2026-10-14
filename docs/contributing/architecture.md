@@ -86,9 +86,9 @@ modules' JSON contexts first, then Microsoft.Extensions.AI's defaults, which ref
 2. `AgentHost<T>` resolves the options: a copy of the agent's chat options, its instructions, then each settings
    layer (the stored settings, loaded through the declaration, then the run's) through the generated declaration
    (configurable options, run options), then the offered tools, created with their layered settings (D27).
-3. It asks the scope's `IChatClientProvider` for the model's client and builds the pipeline, outermost first: author
-   names on every message (D26), `FunctionInvokingChatClient` with the run options and the scope's services, and the
-   provider's client behind a wrapper that never disposes it (D29).
+3. It asks the scope's `IChatClientProvider` for the model's client and builds the pipeline, outermost first: the
+   conversation (D46, D50), author names on every message (D26), `FunctionInvokingChatClient` with the run options and
+   the scope's services, the checkpoints, and the provider's client behind a wrapper that never disposes it (D29).
 4. The options are a `ChatOptions` subclass that remembers the run options, so the raw path's client gets them too.
 
 ## Storage
@@ -99,3 +99,12 @@ with boxed ids (D11). The generator writes each agent's `Settings` as an `IStora
 `Serialize`, `Deserialize`) and an `IJsonStorable<Settings>` (`WriteJson`, `TryReadJson`, used by `Serialize` and by
 the `StorableJsonConverter` that lets `System.Text.Json` speak the stored shape). Tool overrides are
 `IJsonStorable` too, so an agent's settings delegate to the overrides of a toolset in another assembly (D44).
+
+## Conversations
+
+A run with a conversation id goes through `ConversationChatClient`: it loads the entries, builds the history without
+unanswered calls and errors, registers the run in `LiveRuns` (one per conversation in a process), stores the input,
+and ends the run with an entry of its own. Inside the tool loop, `CheckpointChatClient` stores the steps before each
+model call (tool results, then steering input it takes in) and each response as it arrives. `ConversationRun` holds
+what one run stored and where its steering input went. Streaming runs publish their updates through `LivePublisher`
+to the watchers `ConversationTracker.WatchAsync` registered (D47).

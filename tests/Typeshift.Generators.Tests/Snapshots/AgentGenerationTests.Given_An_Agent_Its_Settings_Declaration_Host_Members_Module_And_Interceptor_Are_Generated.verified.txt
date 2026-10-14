@@ -243,15 +243,19 @@ public static class SupportAgentHostExtensions
         /// </summary>
         /// <param name="input">The user's message.</param>
         /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="conversationId">
+        /// The id of the conversation the run resumes and is stored in, or null for none.
+        /// </param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The response; its messages carry the agent's name as their author.</returns>
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse> RunAsync(
             string input,
             global::System.Guid? settingsId = null,
+            global::System.Guid? conversationId = null,
             global::Demo.SupportAgent.Settings? settings = null,
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RunAsync(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settingsId, settings, ct);
+            global::Typeshift.Generated.AgentRuns.RunAsync(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settingsId, conversationId, settings, ct);
 
         /// <summary>
         /// Runs the agent on a message, which may carry images or approvals, with the stored and the run's settings
@@ -259,15 +263,19 @@ public static class SupportAgentHostExtensions
         /// </summary>
         /// <param name="input">The user's message.</param>
         /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="conversationId">
+        /// The id of the conversation the run resumes and is stored in, or null for none.
+        /// </param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The response; its messages carry the agent's name as their author.</returns>
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse> RunAsync(
             global::Microsoft.Extensions.AI.ChatMessage input,
             global::System.Guid? settingsId = null,
+            global::System.Guid? conversationId = null,
             global::Demo.SupportAgent.Settings? settings = null,
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RunAsync(host, input, settingsId, settings, ct);
+            global::Typeshift.Generated.AgentRuns.RunAsync(host, input, settingsId, conversationId, settings, ct);
 
         /// <summary>
         /// Runs the agent on a message, asking the model for JSON of <typeparamref name="TResult"/>'s schema.
@@ -275,15 +283,19 @@ public static class SupportAgentHostExtensions
         /// <typeparam name="TResult">The result's type.</typeparam>
         /// <param name="input">The user's message.</param>
         /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="conversationId">
+        /// The id of the conversation the run resumes and is stored in, or null for none.
+        /// </param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The response; its messages carry the agent's name as their author.</returns>
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse<TResult>> RunAsync<TResult>(
             string input,
             global::System.Guid? settingsId = null,
+            global::System.Guid? conversationId = null,
             global::Demo.SupportAgent.Settings? settings = null,
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RunAsync<global::Demo.SupportAgent, TResult>(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settingsId, settings, ct);
+            global::Typeshift.Generated.AgentRuns.RunAsync<global::Demo.SupportAgent, TResult>(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settingsId, conversationId, settings, ct);
 
         /// <summary>
         /// Runs the agent on a message, streaming the updates, with the stored and the run's settings over the agent's
@@ -291,15 +303,19 @@ public static class SupportAgentHostExtensions
         /// </summary>
         /// <param name="input">The user's message.</param>
         /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="conversationId">
+        /// The id of the conversation the run resumes and is stored in, or null for none.
+        /// </param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The updates; they carry the agent's name as their author.</returns>
         public global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate> RunStreamingAsync(
             string input,
             global::System.Guid? settingsId = null,
+            global::System.Guid? conversationId = null,
             global::Demo.SupportAgent.Settings? settings = null,
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RunStreamingAsync(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settingsId, settings, ct);
+            global::Typeshift.Generated.AgentRuns.RunStreamingAsync(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settingsId, conversationId, settings, ct);
 
         /// <summary>
         /// Runs the agent on a message, streaming the updates, with the stored and the run's settings over the agent's
@@ -307,18 +323,59 @@ public static class SupportAgentHostExtensions
         /// </summary>
         /// <param name="input">The user's message.</param>
         /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="conversationId">
+        /// The id of the conversation the run resumes and is stored in, or null for none.
+        /// </param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The updates; they carry the agent's name as their author.</returns>
         public global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate> RunStreamingAsync(
             global::Microsoft.Extensions.AI.ChatMessage input,
             global::System.Guid? settingsId = null,
+            global::System.Guid? conversationId = null,
             global::Demo.SupportAgent.Settings? settings = null,
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.RunStreamingAsync(host, input, settingsId, settings, ct);
+            global::Typeshift.Generated.AgentRuns.RunStreamingAsync(host, input, settingsId, conversationId, settings, ct);
+
+        /// <summary>
+        /// Continues the conversation's run that was interrupted, from its last stored step, without new input.
+        /// </summary>
+        /// <param name="conversationId">The conversation's id.</param>
+        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
+        /// <param name="ct">Cancels the run.</param>
+        /// <returns>The response.</returns>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The conversation has no interrupted run.
+        /// </exception>
+        public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse> ResumeAsync(
+            global::System.Guid conversationId,
+            global::System.Guid? settingsId = null,
+            global::Demo.SupportAgent.Settings? settings = null,
+            global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.ResumeAsync(host, conversationId, settingsId, settings, ct);
+
+        /// <summary>
+        /// Continues the conversation's run that was interrupted, from its last stored step, without new input.
+        /// </summary>
+        /// <param name="conversationId">The conversation's id.</param>
+        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
+        /// <param name="ct">Cancels the run.</param>
+        /// <returns>The updates.</returns>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The conversation has no interrupted run.
+        /// </exception>
+        public global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate> ResumeStreamingAsync(
+            global::System.Guid conversationId,
+            global::System.Guid? settingsId = null,
+            global::Demo.SupportAgent.Settings? settings = null,
+            global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.ResumeStreamingAsync(host, conversationId, settingsId, settings, ct);
 
         /// <summary>
         /// Resolves the options of a run, for the raw path: <c>CreateChatClientAsync</c>, then the client.
+        /// <c>ChatOptions.ConversationId</c> names the conversation there.
         /// </summary>
         /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
@@ -595,7 +652,7 @@ namespace Typeshift.Generated
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "1zUgx46dpUaHSawyOUaoC60DAABTb3VyY2UxLmNz")]
         public static global::Typeshift.TypeshiftBuilder AddTypeshift(this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)
         {
-            var builder = global::Typeshift.Generated.ModuleRegistration.AddCoreServices<global::System.Guid>(services);
+            var builder = global::Typeshift.Generated.ModuleRegistration.AddCoreServices<global::System.Guid>(services, static text => global::System.Guid.Parse(text, global::System.Globalization.CultureInfo.InvariantCulture));
 
             global::Typeshift.Generated.SubjectModule.Register(services);
 
@@ -621,6 +678,8 @@ namespace System.Runtime.CompilerServices
 
 global using ITypeshiftStore = global::Typeshift.ITypeshiftStore<global::System.Guid>;
 global using InMemoryTypeshiftStore = global::Typeshift.InMemoryTypeshiftStore<global::System.Guid>;
+global using ConversationTracker = global::Typeshift.ConversationTracker<global::System.Guid>;
+global using LiveRun = global::Typeshift.LiveRun<global::System.Guid>;
 
 // HintName: Typeshift.Generated.SubjectModule.g.cs
 // <auto-generated/>

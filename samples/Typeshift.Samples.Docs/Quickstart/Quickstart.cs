@@ -30,7 +30,7 @@ internal static class Quickstart
         // end-snippet
 
         // begin-snippet: quickstart-run
-        var answer = await research.RunAsync("Vienna", settingsId);
+        var answer = await research.RunAsync("Vienna", settingsId, conversationId: 1);
 
         Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
         // end-snippet
@@ -41,7 +41,7 @@ internal static class Quickstart
             FindCompanies = new CompanyToolset.FindCompaniesOverrides { Limit = 1 }
         };
 
-        await foreach (var update in research.RunStreamingAsync("Vienna", settingsId, run))
+        await foreach (var update in research.RunStreamingAsync("Vienna", settingsId, settings: run))
             Console.Write(update.Text);
         // end-snippet
 

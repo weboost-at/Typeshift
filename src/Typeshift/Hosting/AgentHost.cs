@@ -51,9 +51,10 @@ public sealed class AgentHost<TAgent> where TAgent : Agent
         var client = await provider.GetChatClientAsync(model, ct);
         var run = options is ResolvedChatOptions resolved ? resolved.Run : Agent.RunOptions;
 
-        // D29: the provider's client innermost, behind a wrapper that never disposes it
+        // D29: outermost the conversation, innermost the provider's client behind a wrapper that never disposes it,
+        // with the checkpoints inside the tool loop
         var loop = new FunctionInvokingChatClient(
-            new UndisposedChatClient(client),
+            new CheckpointChatClient(new UndisposedChatClient(client)),
             _services.GetService<ILoggerFactory>(),
             _services)
         {
@@ -62,7 +63,7 @@ public sealed class AgentHost<TAgent> where TAgent : Agent
             AllowConcurrentInvocation = run.ConcurrentToolCalls
         };
 
-        return new AuthorNameChatClient(loop, Agent.Name);
+        return new ConversationChatClient(new AuthorNameChatClient(loop, Agent.Name), Agent.Name, _services);
     }
 
     // D27: the agent's code, its stored settings, then the run's; values a layer leaves null keep the one below
@@ -84,29 +85,33 @@ public sealed class AgentHost<TAgent> where TAgent : Agent
 
         options.Tools = [.. tools, .. options.Tools ?? []];
         options.Run = run;
+        options.SettingsId = settingsId;
 
         return options;
     }
 
+    // A run without input resumes the conversation's interrupted run (D50)
     internal async Task<ChatResponse> RunCoreAsync(
-        ChatMessage input,
+        ChatMessage? input,
         object? settingsId,
+        object? conversationId,
         object? settings,
         CancellationToken ct)
     {
-        var options = await ResolveOptionsCoreAsync(settingsId, settings, ct);
+        var options = await ResolveRunAsync(settingsId, conversationId, settings, ct);
         using var client = await CreateChatClientAsync(options, ct);
 
-        return await client.GetResponseAsync([input], options, ct);
+        return await client.GetResponseAsync(input is null ? [] : [input], options, ct);
     }
 
     internal async Task<ChatResponse<TResult>> RunCoreAsync<TResult>(
         ChatMessage input,
         object? settingsId,
+        object? conversationId,
         object? settings,
         CancellationToken ct)
     {
-        var options = await ResolveOptionsCoreAsync(settingsId, settings, ct);
+        var options = await ResolveRunAsync(settingsId, conversationId, settings, ct);
         using var client = await CreateChatClientAsync(options, ct);
         var json = _services.GetRequiredService<ToolJson>();
 
@@ -114,19 +119,31 @@ public sealed class AgentHost<TAgent> where TAgent : Agent
     }
 
     internal async IAsyncEnumerable<ChatResponseUpdate> RunStreamingCoreAsync(
-        ChatMessage input,
+        ChatMessage? input,
         object? settingsId,
+        object? conversationId,
         object? settings,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        var options = await ResolveOptionsCoreAsync(settingsId, settings, ct);
+        var options = await ResolveRunAsync(settingsId, conversationId, settings, ct);
         using var client = await CreateChatClientAsync(options, ct);
 
-        await foreach (var update in client.GetStreamingResponseAsync([input], options, ct))
+        await foreach (var update in client.GetStreamingResponseAsync(input is null ? [] : [input], options, ct))
         {
             yield return update;
         }
     }
 
     internal IStoreAccess Store => _services.GetRequiredService<IStoreAccess>();
+
+    private async Task<ResolvedChatOptions> ResolveRunAsync(
+        object? settingsId,
+        object? conversationId,
+        object? settings,
+        CancellationToken ct)
+    {
+        var options = (ResolvedChatOptions)await ResolveOptionsCoreAsync(settingsId, settings, ct);
+        options.Conversation = conversationId;
+        return options;
+    }
 }

@@ -21,6 +21,7 @@ their descriptions from XML docs, which the compiler reads only then, and withou
 - A generated `Settings` record per agent, holding exactly what may change at runtime.
 - One store interface, `ITypeshiftStore<TId>`, with the id type you already use; without a store, agents run from code.
 - Runs that return Microsoft.Extensions.AI's `ChatResponse`, streaming and structured output included.
+- Conversations stored step by step: resume after a crash, steer a run going on, watch it live.
 - Compile-time diagnostics instead of runtime surprises.
 
 ## Learn more

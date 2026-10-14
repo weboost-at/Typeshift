@@ -1,3 +1,4 @@
+using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 
@@ -32,4 +33,16 @@ internal static class IdTypes
 
     public static string Display(string? property, Compilation compilation) =>
         Resolve(property, compilation)?.ToTypeOf() ?? property ?? "global::System.Guid";
+
+    // How the raw path reads a conversation id from ChatOptions.ConversationId: a string as it is, a parsable type
+    // through IParsable, any other not at all
+    public static string Parser(string? property, Compilation compilation) =>
+        Resolve(property, compilation) switch
+        {
+            { SpecialType: SpecialType.System_String } => "static text => text",
+            { } type when type.AllInterfaces.Any(contract => contract.Is("System.IParsable`1")) =>
+                $"static text => {type.ToTypeOf()}.Parse(text, "
+                + "global::System.Globalization.CultureInfo.InvariantCulture)",
+            _ => "null"
+        };
 }

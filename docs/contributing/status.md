@@ -11,8 +11,8 @@ the slices build it one at a time.
 | 1. Toolsets and tools: generated functions, overrides, tool lists, the analyzer | built |
 | 2. Agents, registration, `AgentHost` runs | built |
 | 3. Settings store, id type | built |
-| 4. Conversations: checkpoints, resume, live updates, steering | next |
-| 5. Approval, rules, plan and auto modes | open |
+| 4. Conversations: checkpoints, resume, live updates, steering | built |
+| 5. Approval, rules, plan and auto modes | next |
 | 6. Middleware, context providers, MCP, telemetry, compaction, sub-agents, handoff, built-in toolsets, Native AOT | open |
 
 ## Behavior coverage
@@ -53,6 +53,15 @@ The numbers are the rules of v0's behavior table where they still hold.
 | new | `System.Text.Json` writes and reads the stored shape (D44) | `SettingsJsonTests.Given_Settings_System_Text_Json_Writes_What_The_Store_Keeps`, `..._Given_Stored_Json_System_Text_Json_Reads_The_Settings` |
 | new | Kinds and versions (D39, D40) | `SettingsJsonTests.Given_WithStorageKind_And_WithSettingsVersion_The_Settings_Carry_Them`, `..._Given_A_Version_Newer_Than_The_Codes_Reading_Throws_A_JsonException` |
 | new | The id type reaches the aliases and the typed members (D11) | `AgentGenerationTests.Given_An_Id_Type_The_Aliases_And_The_Host_Members_Use_It` |
+| 20 | A conversation's next run starts from its stored messages; the provider never sees its id | `ConversationRunTests.Given_A_Conversation_A_Second_Run_Starts_From_The_First`, `..._Given_A_Conversation_The_Provider_Never_Receives_Its_Id` |
+| 21 | Each step is stored as it happens; the last entry ends the run (D50) | `ConversationRunTests.Given_A_Run_Its_Input_Responses_And_Tool_Results_Are_Stored_Step_By_Step`, `..._Given_A_Run_Only_Its_Last_Entry_Ends_It`, `..._Given_A_Model_Response_Its_Entry_Carries_The_Model_And_The_Agent` |
+| 22 | A failed run ends with its error, which the next run leaves out; a stream left early is stored (D46) | `ConversationRunTests.Given_A_Failing_Run_It_Ends_With_Its_Error_And_The_Exception_Surfaces`, `..._Given_A_Failed_Run_The_Next_Run_Leaves_Out_Its_Error`, `..._Given_A_Stream_Left_Early_The_Run_Ends_With_The_Updates_That_Arrived` |
+| 23 | A store that fails to append does not fail the run | `ConversationStoreTests.Given_A_Store_That_Fails_To_Append_The_Run_Still_Answers` |
+| new | Resuming continues an interrupted run without the call in flight (D50) | `ConversationRunTests.Given_An_Interrupted_Run_Resuming_Continues_From_Its_Last_Step_Without_The_Call_In_Flight`, `..._Given_A_Conversation_Whose_Last_Run_Ended_Resuming_Fails` |
+| new | One run per conversation in a process; the tracker lists it | `ConversationRunTests.Given_A_Run_Going_On_A_Second_Run_Of_The_Conversation_Fails`, `..._Given_A_Run_Going_On_The_Tracker_Lists_It` |
+| new | Steering reaches the next model call, is stored, and keeps the run going (D51) | `ConversationRunTests.Given_Steering_Input_The_Run_Answers_It_Before_It_Ends`, `..._Given_Steering_Input_During_The_Answer_To_Steering_The_Run_Answers_Both_In_Order`, `..._Given_Steering_Input_It_Is_Stored_With_The_Conversation` |
+| new | Watchers receive streamed updates (D47) | `ConversationRunTests.Given_A_Watcher_It_Receives_The_Updates_Of_A_Streaming_Run` |
+| new | The raw path names its conversation in `ChatOptions.ConversationId` | `ConversationRunTests.Given_A_Conversation_Id_In_The_Options_The_Raw_Path_Stores_The_Run` |
 
 ## Known gaps
 
@@ -67,4 +76,7 @@ The numbers are the rules of v0's behavior table where they still hold.
   and the call fails at runtime. Neither v0 nor the sign-off supports it.
 - **Kinds across references:** TSH022 compares the compilation's agents with each other and with those the
   references stamp, not two references' agents with each other.
+- **A tool loop a tool ends:** tool results after which the tool loop makes no model call (a function that sets
+  `Terminate`) are not stored; handoff, which ends the loop this way, stores them in slice 6.
+- **Live updates of non-streaming runs:** only streaming runs publish.
 - **Storable structs:** a user struct other than the scalars cannot be configurable (TSH012).

@@ -16,6 +16,7 @@ public static class AgentRuns
     /// <param name="host">The host, with the run's services.</param>
     /// <param name="input">The message.</param>
     /// <param name="settingsId">The id of the stored settings to apply, or null.</param>
+    /// <param name="conversationId">The id of the conversation to resume and store the run in, or null.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The response.</returns>
@@ -23,10 +24,11 @@ public static class AgentRuns
         AgentHost<TAgent> host,
         ChatMessage input,
         object? settingsId,
+        object? conversationId,
         object? settings,
         CancellationToken ct)
         where TAgent : Agent =>
-        host.RunCoreAsync(input, settingsId, settings, ct);
+        host.RunCoreAsync(input, settingsId, conversationId, settings, ct);
 
     /// <summary>
     /// Runs the agent on one message, asking for JSON of <typeparamref name="TResult"/>'s schema.
@@ -36,6 +38,7 @@ public static class AgentRuns
     /// <param name="host">The host, with the run's services.</param>
     /// <param name="input">The message.</param>
     /// <param name="settingsId">The id of the stored settings to apply, or null.</param>
+    /// <param name="conversationId">The id of the conversation to resume and store the run in, or null.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The response, with the result.</returns>
@@ -43,10 +46,11 @@ public static class AgentRuns
         AgentHost<TAgent> host,
         ChatMessage input,
         object? settingsId,
+        object? conversationId,
         object? settings,
         CancellationToken ct)
         where TAgent : Agent =>
-        host.RunCoreAsync<TResult>(input, settingsId, settings, ct);
+        host.RunCoreAsync<TResult>(input, settingsId, conversationId, settings, ct);
 
     /// <summary>
     /// Runs the agent on one message, streaming the updates.
@@ -55,6 +59,7 @@ public static class AgentRuns
     /// <param name="host">The host, with the run's services.</param>
     /// <param name="input">The message.</param>
     /// <param name="settingsId">The id of the stored settings to apply, or null.</param>
+    /// <param name="conversationId">The id of the conversation to resume and store the run in, or null.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The updates.</returns>
@@ -62,10 +67,50 @@ public static class AgentRuns
         AgentHost<TAgent> host,
         ChatMessage input,
         object? settingsId,
+        object? conversationId,
         object? settings,
         CancellationToken ct)
         where TAgent : Agent =>
-        host.RunStreamingCoreAsync(input, settingsId, settings, ct);
+        host.RunStreamingCoreAsync(input, settingsId, conversationId, settings, ct);
+
+    /// <summary>
+    /// Continues a conversation's interrupted run from its last stored step, without new input.
+    /// </summary>
+    /// <typeparam name="TAgent">The agent.</typeparam>
+    /// <param name="host">The host, with the run's services.</param>
+    /// <param name="conversationId">The conversation's id.</param>
+    /// <param name="settingsId">The id of the stored settings to apply, or null.</param>
+    /// <param name="settings">The run's settings, over the stored ones.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The response.</returns>
+    public static Task<ChatResponse> ResumeAsync<TAgent>(
+        AgentHost<TAgent> host,
+        object conversationId,
+        object? settingsId,
+        object? settings,
+        CancellationToken ct)
+        where TAgent : Agent =>
+        host.RunCoreAsync(null, settingsId, conversationId, settings, ct);
+
+    /// <summary>
+    /// Continues a conversation's interrupted run from its last stored step, without new input, streaming the
+    /// updates.
+    /// </summary>
+    /// <typeparam name="TAgent">The agent.</typeparam>
+    /// <param name="host">The host, with the run's services.</param>
+    /// <param name="conversationId">The conversation's id.</param>
+    /// <param name="settingsId">The id of the stored settings to apply, or null.</param>
+    /// <param name="settings">The run's settings, over the stored ones.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The updates.</returns>
+    public static IAsyncEnumerable<ChatResponseUpdate> ResumeStreamingAsync<TAgent>(
+        AgentHost<TAgent> host,
+        object conversationId,
+        object? settingsId,
+        object? settings,
+        CancellationToken ct)
+        where TAgent : Agent =>
+        host.RunStreamingCoreAsync(null, settingsId, conversationId, settings, ct);
 
     /// <summary>
     /// Resolves the options of a run: the agent's code, its stored settings, the run's settings, then its tools.

@@ -37,8 +37,8 @@ public class StoredSettingsTests : AgentTestBase
         await host.RunAsync(
             Data.Tool.Question,
             Data.Persistence.SettingsId,
-            new() { Temperature = Data.Agent.Temperature },
-            Ct);
+            settings: new() { Temperature = Data.Agent.Temperature },
+            ct: Ct);
 
         // Assert
         Models.Should().Equal(Data.Agent.Model);

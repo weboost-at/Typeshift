@@ -33,7 +33,8 @@ export default defineConfig({
             { text: 'Tool settings', link: '/guide/tool-settings' },
             { text: 'Agents', link: '/guide/agents' },
             { text: 'Running agents', link: '/guide/running-agents' },
-            { text: 'Settings and stores', link: '/guide/settings-and-stores' }
+            { text: 'Settings and stores', link: '/guide/settings-and-stores' },
+            { text: 'Conversations', link: '/guide/conversations' }
           ]
         },
         {

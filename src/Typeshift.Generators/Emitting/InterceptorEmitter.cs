@@ -9,7 +9,11 @@ internal static class InterceptorEmitter
     private const string Services = "global::Microsoft.Extensions.DependencyInjection.IServiceCollection";
 
     // D1: every call in the project registers this assembly's module and those of its references
-    public static string Emit(IReadOnlyList<InterceptModel> calls, IReadOnlyList<string> modules, string idType)
+    public static string Emit(
+        IReadOnlyList<InterceptModel> calls,
+        IReadOnlyList<string> modules,
+        string idType,
+        string idParser)
     {
         var writer = new SourceWriter();
 
@@ -31,7 +35,7 @@ internal static class InterceptorEmitter
             {
                 writer.Line(
                     "var builder = global::Typeshift.Generated.ModuleRegistration"
-                    + $".AddCoreServices<{idType}>(services);");
+                    + $".AddCoreServices<{idType}>(services, {idParser});");
                 writer.Line();
 
                 foreach (var module in modules)

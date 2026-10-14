@@ -5,7 +5,7 @@ namespace Typeshift;
 /// writes for the build's id type (<c>TypeshiftIdType</c>, <see cref="Guid"/> by default).
 /// </summary>
 /// <typeparam name="TId">
-/// The id type of settings; the library never creates ids, it passes on the host's.
+/// The id type of settings and conversations; the library never creates ids, it passes on the host's.
 /// </typeparam>
 public interface ITypeshiftStore<TId> where TId : notnull
 {
@@ -30,6 +30,23 @@ public interface ITypeshiftStore<TId> where TId : notnull
     /// <exception cref="StoreConflictException">Another save came first.</exception>
     Task<long> SaveAsync<TData>(TId id, TData data, long revision, CancellationToken ct)
         where TData : class, IStorable<TData>;
+
+    /// <summary>
+    /// Loads the entries of a conversation, oldest first.
+    /// </summary>
+    /// <param name="conversation">The conversation's id.</param>
+    /// <param name="ct">Cancels the load.</param>
+    /// <returns>The entries; none for a conversation never stored.</returns>
+    Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(TId conversation, CancellationToken ct);
+
+    /// <summary>
+    /// Appends an entry to a conversation, creating it on the first. Runs append as they go, so this is the hot path.
+    /// </summary>
+    /// <param name="conversation">The conversation's id.</param>
+    /// <param name="entry">The entry.</param>
+    /// <param name="ct">Cancels the append.</param>
+    /// <returns>A task that completes once the entry is stored.</returns>
+    Task AppendConversationAsync(TId conversation, ConversationEntry entry, CancellationToken ct);
 }
 
 /// <summary>

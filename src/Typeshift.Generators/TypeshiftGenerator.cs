@@ -89,8 +89,19 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             output.AddSource(Names.HintName($"{Names.GeneratedNamespace}.{model.Name}"), ModuleEmitter.Emit(model));
         });
 
-        context.RegisterSourceOutput(calls.Combine(module).Combine(references).Combine(idType), static (output, pair) =>
-            EmitInterceptor(output, pair.Left.Left.Left, pair.Left.Left.Right, pair.Left.Right, pair.Right));
+        var idParser = context.AnalyzerConfigOptionsProvider
+            .Combine(context.CompilationProvider)
+            .Select(static (pair, _) => IdTypes.Parser(IdTypes.Read(pair.Left.GlobalOptions), pair.Right));
+
+        context.RegisterSourceOutput(
+            calls.Combine(module).Combine(references).Combine(idType).Combine(idParser),
+            static (output, pair) => EmitInterceptor(
+                output,
+                pair.Left.Left.Left.Left,
+                pair.Left.Left.Left.Right,
+                pair.Left.Left.Right,
+                pair.Left.Right,
+                pair.Right));
     }
 
     // Null for an assembly that declares neither toolsets nor agents; its contexts serve no generated tool
@@ -120,7 +131,8 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
         ImmutableArray<InterceptModel> calls,
         ModuleModel? module,
         ReferenceModel references,
-        string idType)
+        string idType,
+        string idParser)
     {
         if (calls.IsEmpty) return;
 
@@ -128,6 +140,6 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
 
         output.AddSource(
             Names.HintName($"{Names.GeneratedNamespace}.{KnownTypes.RegistrationMethod}Interceptor"),
-            InterceptorEmitter.Emit(calls, [.. own, .. references.Modules], idType));
+            InterceptorEmitter.Emit(calls, [.. own, .. references.Modules], idType, idParser));
     }
 }

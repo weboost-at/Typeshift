@@ -20,8 +20,8 @@ public sealed class TypeshiftBuilder
     }
 
     /// <summary>
-    /// Registers the store, a singleton, and turns persistence on: stored settings. Without it, every call that loads
-    /// or saves throws, naming this method.
+    /// Registers the store, a singleton, and turns persistence on: stored settings and conversations. Without it,
+    /// every call that loads or saves throws, naming this method.
     /// </summary>
     /// <typeparam name="TStore">An <c>ITypeshiftStore</c> of the build's id type (TSH028).</typeparam>
     /// <returns>The same chain.</returns>
@@ -44,6 +44,17 @@ public sealed class TypeshiftBuilder
         where TProvider : class, IChatClientProvider
     {
         _services.AddScoped<IChatClientProvider, TProvider>();
+        return this;
+    }
+
+    /// <summary>
+    /// Publishes the updates of streaming runs live, to <c>ConversationTracker.WatchAsync</c>.
+    /// </summary>
+    /// <param name="options">Intervals and limits; the defaults when null.</param>
+    /// <returns>The same chain.</returns>
+    public TypeshiftBuilder WithRealtimeTracking(RealtimeTrackingOptions? options = null)
+    {
+        _services.AddSingleton(options ?? new RealtimeTrackingOptions());
         return this;
     }
 }

@@ -438,10 +438,10 @@ internal static class AgentEmitter
         using (writer.Block($"extension({host} host)"))
         {
             run.Write(writer, "Runs the agent on a message", $"{Task}<{response}>", "RunAsync", "string",
-                $"{Runs}.RunAsync(host, {user}, settingsId, settings, ct);");
+                $"{Runs}.RunAsync(host, {user}, settingsId, conversationId, settings, ct);");
             writer.Line();
             run.Write(writer, "Runs the agent on a message, which may carry images or approvals", $"{Task}<{response}>",
-                "RunAsync", message, $"{Runs}.RunAsync(host, input, settingsId, settings, ct);");
+                "RunAsync", message, $"{Runs}.RunAsync(host, input, settingsId, conversationId, settings, ct);");
             writer.Line();
 
             Docs.WriteSummary(
@@ -449,18 +449,25 @@ internal static class AgentEmitter
                 "Runs the agent on a message, asking the model for JSON of <typeparamref name=\"TResult\"/>'s schema.");
             Docs.WriteTypeParam(writer, "TResult", "The result's type.");
             run.Write(writer, null, $"{Task}<{response}<TResult>>", "RunAsync<TResult>", "string",
-                $"{Runs}.RunAsync<{agent.Type.FullName}, TResult>(host, {user}, settingsId, settings, ct);");
+                $"{Runs}.RunAsync<{agent.Type.FullName}, TResult>"
+                + $"(host, {user}, settingsId, conversationId, settings, ct);");
             writer.Line();
             run.Write(writer, "Runs the agent on a message, streaming the updates", Updates, "RunStreamingAsync",
-                "string", $"{Runs}.RunStreamingAsync(host, {user}, settingsId, settings, ct);");
+                "string", $"{Runs}.RunStreamingAsync(host, {user}, settingsId, conversationId, settings, ct);");
             writer.Line();
             run.Write(writer, "Runs the agent on a message, streaming the updates", Updates, "RunStreamingAsync",
-                message, $"{Runs}.RunStreamingAsync(host, input, settingsId, settings, ct);");
+                message, $"{Runs}.RunStreamingAsync(host, input, settingsId, conversationId, settings, ct);");
+            writer.Line();
+
+            WriteResume(writer, "ResumeAsync", $"{Task}<{response}>", idType, settings, "ResumeAsync");
+            writer.Line();
+            WriteResume(writer, "ResumeStreamingAsync", Updates, idType, settings, "ResumeStreamingAsync");
             writer.Line();
 
             Docs.WriteSummary(
                 writer,
-                "Resolves the options of a run, for the raw path: <c>CreateChatClientAsync</c>, then the client.");
+                "Resolves the options of a run, for the raw path: <c>CreateChatClientAsync</c>, then the client. "
+                + "<c>ChatOptions.ConversationId</c> names the conversation there.");
             Docs.WriteParam(writer, "settingsId", "The id of the stored settings to apply, or null for none.");
             Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
             Docs.WriteParam(writer, "ct", "Cancels the resolution.");
@@ -529,6 +536,40 @@ internal static class AgentEmitter
         }
     }
 
+    // D50: a conversation's interrupted run, continued without input
+    private static void WriteResume(
+        SourceWriter writer,
+        string name,
+        string returns,
+        string idType,
+        string settings,
+        string run)
+    {
+        Docs.WriteSummary(
+            writer,
+            "Continues the conversation's run that was interrupted, from its last stored step, without new input.");
+        Docs.WriteParam(writer, "conversationId", "The conversation's id.");
+        Docs.WriteParam(writer, "settingsId", "The id of the stored settings to apply, or null for none.");
+        Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
+        Docs.WriteParam(writer, "ct", "Cancels the run.");
+        Docs.WriteReturns(
+            writer,
+            returns.Contains("IAsyncEnumerable") ? "The updates." : "The response.");
+        Docs.WriteException(
+            writer,
+            "global::System.InvalidOperationException",
+            "The conversation has no interrupted run.");
+        writer.Lines(
+            $"""
+            public {returns} {name}(
+                {idType} conversationId,
+                {idType}? settingsId = null,
+                {settings}? settings = null,
+                {CancellationToken} ct = default) =>
+                {Runs}.{run}(host, conversationId, settingsId, settings, ct);
+            """);
+    }
+
     // The parameters every run takes, after its input
     private sealed class HostRun(string idType, string settings)
     {
@@ -539,6 +580,10 @@ internal static class AgentEmitter
 
             Docs.WriteParam(writer, "input", "The user's message.");
             Docs.WriteParam(writer, "settingsId", "The id of the stored settings to apply, or null for none.");
+            Docs.WriteParam(
+                writer,
+                "conversationId",
+                "The id of the conversation the run resumes and is stored in, or null for none.");
             Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
             Docs.WriteParam(writer, "ct", "Cancels the run.");
             Docs.WriteReturns(
@@ -551,6 +596,7 @@ internal static class AgentEmitter
                 public {returns} {name}(
                     {input} input,
                     {idType}? settingsId = null,
+                    {idType}? conversationId = null,
                     {settings}? settings = null,
                     {CancellationToken} ct = default) =>
                     {call}

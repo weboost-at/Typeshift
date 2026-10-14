@@ -9,6 +9,8 @@ internal static class AliasEmitter
 
            global using ITypeshiftStore = global::Typeshift.ITypeshiftStore<{idType}>;
            global using InMemoryTypeshiftStore = global::Typeshift.InMemoryTypeshiftStore<{idType}>;
+           global using ConversationTracker = global::Typeshift.ConversationTracker<{idType}>;
+           global using LiveRun = global::Typeshift.LiveRun<{idType}>;
 
            """;
 }

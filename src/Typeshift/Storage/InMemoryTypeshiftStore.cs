@@ -12,6 +12,8 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId> where TId
     private readonly ConcurrentDictionary<(string Kind, TId Id), (string Json, int Version, long Revision)> _documents =
         [];
 
+    private readonly ConcurrentDictionary<TId, List<string>> _conversations = [];
+
     /// <inheritdoc />
     public Task<Stored<TData>?> LoadAsync<TData>(TId id, CancellationToken ct)
         where TData : class, IStorable<TData> =>
@@ -35,5 +37,31 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId> where TId
         return won
             ? Task.FromResult(revision + 1)
             : throw new StoreConflictException($"The {TData.Kind} of {id} was saved since revision {revision}.");
+    }
+
+    /// <inheritdoc />
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(TId conversation, CancellationToken ct)
+    {
+        if (!_conversations.TryGetValue(conversation, out var entries))
+            return Task.FromResult<IReadOnlyList<ConversationEntry>>([]);
+
+        lock (entries)
+        {
+            return Task.FromResult<IReadOnlyList<ConversationEntry>>(
+                [.. entries.Select(json => ConversationEntry.Deserialize(json, ConversationEntry.Version))]);
+        }
+    }
+
+    /// <inheritdoc />
+    public Task AppendConversationAsync(TId conversation, ConversationEntry entry, CancellationToken ct)
+    {
+        var entries = _conversations.GetOrAdd(conversation, _ => []);
+
+        lock (entries)
+        {
+            entries.Add(entry.Serialize());
+        }
+
+        return Task.CompletedTask;
     }
 }

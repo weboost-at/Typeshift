@@ -426,6 +426,12 @@ commit, or add a new one and withdraw the old.
   each step (D50). The provider never receives the
   conversation id. On resume, unanswered calls and error messages are left out. A failed save is logged and traced,
   and the answer returns. The agent's name goes on `AuthorName`, never into `AdditionalProperties`.
+- **Details:** the end of a run is an entry of its own (`EndsRun`), with an `ErrorContent` when the run failed, was
+  cancelled or its stream was left early. The checkpoints know what they stored by reference, since the tool loop
+  hands the same messages on; a streamed response is stored from the updates, and the tool loop's own messages
+  built from those updates are matched by count.
+- **Where:** `Conversations/ConversationChatClient.cs`, `Conversations/CheckpointChatClient.cs`,
+  `Conversations/ConversationHistory.cs`.
 
 ### D47. Live updates are a feed per conversation
 
@@ -435,6 +441,8 @@ commit, or add a new one and withdraw the old.
   for a watcher. `PublishInterval` (100 ms) and `MaxPendingUpdates` (256) are options. `Runs` lists the runs of
   conversations going on in this process.
 - **Alternatives:** v0's process-wide events, awaited up to 5 s per model call.
+- **Details:** merged text waits for the next update or the end of the stream, so no timer runs per watcher.
+- **Where:** `Conversations/LiveRuns.cs`, `Conversations/LivePublisher.cs`.
 
 ### D50. A conversation is stored step by step and resumes after a crash
 
@@ -445,7 +453,7 @@ commit, or add a new one and withdraw the old.
   the moment it exists, tool results before the next model call. A run without an ending entry was interrupted:
   `ResumeAsync(conversationId)` (and `ResumeStreamingAsync`) continues it without new input, leaving out a call that
   was in flight; a new run on the conversation also starts from its steps. One run per conversation at a time in a
-  process; across processes it is the host's to ensure.
+  process; across processes it is the host's to ensure. Resuming a conversation whose last run ended throws.
 - **Alternatives:** one entry per run, rewritten at each step (a whole-run write per model call); re-running the
   interrupted tool call, unsafe for side effects; a `RunAsync` with a null input in place of `ResumeAsync`.
 - **Where:** `Conversations/`, the checkpoint layer of D29.
@@ -456,7 +464,9 @@ commit, or add a new one and withdraw the old.
 - **Decision:** `ConversationTracker.TrySteer(conversation, input)` hands input to the run of the conversation going
   on in this process; the checkpoint layer injects it before the run's next model call and stores it, and the run
   does not end while steering input waits. It returns false when no run of the conversation is going on in this
-  process, and the host starts a run with the input instead. Stopping a run is cancelling its token.
+  process, and the host starts a run with the input instead. Stopping a run is cancelling its token. Steering input
+  goes in where the tool loop's messages ended when it arrived, and stays there in every later call of the run.
+- **Where:** `Conversations/LiveRuns.cs`, `Conversations/ConversationRun.cs`.
 - **Alternatives:** a steering queue in the store, which works across processes but reads the store before every
   model call; queuing input for after the run, which is just the next run.
 

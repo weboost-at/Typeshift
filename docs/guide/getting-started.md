@@ -10,8 +10,8 @@ Typeshift targets .NET 10 and C# 14. Add the package to every project that decla
 reference yours ([TSH020](./diagnostics.md#tsh020)). Turn on `GenerateDocumentationFile` too: tools take their
 descriptions from XML docs ([TSH011](./diagnostics.md#tsh011)).
 
-Settings ids are yours: a settings id names an agent's stored settings, and Typeshift never creates one. They are
-`Guid`s unless the build says otherwise, once, in `Directory.Build.props`:
+Ids are yours: a settings id names an agent's stored settings, a conversation id its conversation, and Typeshift never
+creates either. They are `Guid`s unless the build says otherwise, once, in `Directory.Build.props`:
 
 <!-- snippet: id-type -->
 <a id='snippet-id-type'></a>
@@ -155,12 +155,13 @@ await research.ConfigureAsync(settingsId, settings => settings with
 
 ## A run
 
-`RunAsync` layers the settings stored under the settings id over the code and runs the tool loop:
+`RunAsync` layers the settings stored under the settings id over the code, resumes the conversation, runs the tool
+loop and stores the exchange:
 
 <!-- snippet: quickstart-run -->
 <a id='snippet-quickstart-run'></a>
 ```cs
-var answer = await research.RunAsync("Vienna", settingsId);
+var answer = await research.RunAsync("Vienna", settingsId, conversationId: 1);
 
 Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
 ```
@@ -177,7 +178,7 @@ var run = new ResearchAgent.Settings
     FindCompanies = new CompanyToolset.FindCompaniesOverrides { Limit = 1 }
 };
 
-await foreach (var update in research.RunStreamingAsync("Vienna", settingsId, run))
+await foreach (var update in research.RunStreamingAsync("Vienna", settingsId, settings: run))
     Console.Write(update.Text);
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L38-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run-settings' title='Start of snippet'>anchor</a></sup>
@@ -188,3 +189,4 @@ await foreach (var update in research.RunStreamingAsync("Vienna", settingsId, ru
 - [Toolsets](./toolsets.md) and [tool settings](./tool-settings.md) in depth.
 - [Agents](./agents.md) and [running them](./running-agents.md) with real providers.
 - [Settings and stores](./settings-and-stores.md): implementing `ITypeshiftStore` for your database.
+- [Conversations](./conversations.md): resuming, steering and watching runs.

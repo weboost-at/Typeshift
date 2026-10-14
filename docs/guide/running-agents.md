@@ -9,17 +9,19 @@ A host runs an agent through its `AgentHost<TAgent>`, which `AddTypeshift()` reg
 ```cs
 services.AddTypeshift()
     .WithStore<EfTypeshiftStore>()
-    .WithChatClientProvider<KeyedChatClientProvider>();
+    .WithChatClientProvider<KeyedChatClientProvider>()
+    .WithRealtimeTracking();
 
 services.AddKeyedSingleton("fast-model", fast);
 services.AddKeyedSingleton("reasoning-model", reasoning);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L17-L24' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L17-L25' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `AddTypeshift()` registers every toolset and agent of the project and of the projects it references, each agent's
 host, and the JSON contexts of their assemblies, which tools ask before the defaults. `WithStore<T>()` turns
-persistence on; see [settings and stores](./settings-and-stores.md). The generator intercepts the
+persistence on; see [settings and stores](./settings-and-stores.md). `WithRealtimeTracking()` publishes the updates of
+streaming runs to watchers; see [live updates](./conversations.md#live-updates). The generator intercepts the
 call, so it works only in a project that references the package; a library that calls it in its own `AddX()`
 registers only its own toolsets and agents and those of its references. `WithChatClientProvider<T>()` maps model
 names to clients.
@@ -66,6 +68,11 @@ Console.WriteLine($"{answer.Messages[^1].AuthorName}: {answer.Text}");
 A run returns Microsoft.Extensions.AI's `ChatResponse`: the model's messages and the tool calls and results between
 them, each carrying the agent's name as `AuthorName`.
 
+## Conversations
+
+With a conversation id, the run resumes the conversation and stores itself in it, step by step; see
+[conversations](./conversations.md). `ResumeAsync` continues a run a crash cut off.
+
 ## Stored settings
 
 With a settings id, the run layers the settings stored under it over the agent's code; see
@@ -96,7 +103,7 @@ var run = new SupportAgent.Settings
     SearchArticles = new KnowledgeToolset.SearchArticlesOverrides { Language = "de" }
 };
 
-var thorough = await support.RunAsync("Where is my refund?", settingsId, run);
+var thorough = await support.RunAsync("Where is my refund?", settingsId, settings: run);
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L30-L40' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
@@ -150,7 +157,8 @@ await foreach (var update in support.RunStreamingAsync("Where is my refund?", se
 
 For a host that needs the `IChatClient` itself, a run splits into three steps: resolve the options, create the client,
 call it with those options. The client is the run's pipeline, the tool loop with the agent's run options included;
-disposing it leaves the provider's client alone.
+disposing it leaves the provider's client alone. `ChatOptions.ConversationId` names the conversation there, as a
+string of the build's id type; the provider never receives it.
 
 <!-- snippet: raw-path -->
 <a id='snippet-raw-path'></a>

@@ -17,7 +17,8 @@ internal static class Registration
         // begin-snippet: registration
         services.AddTypeshift()
             .WithStore<EfTypeshiftStore>()
-            .WithChatClientProvider<KeyedChatClientProvider>();
+            .WithChatClientProvider<KeyedChatClientProvider>()
+            .WithRealtimeTracking();
 
         services.AddKeyedSingleton("fast-model", fast);
         services.AddKeyedSingleton("reasoning-model", reasoning);
@@ -32,6 +33,18 @@ internal static class Registration
     {
         // begin-snippet: ef-core-registration
         services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite("Data Source=typeshift.db"));
+        // end-snippet
+    }
+
+    public static void ShowRealtimeOptions(IServiceCollection services)
+    {
+        // begin-snippet: realtime-options
+        services.AddTypeshift()
+            .WithRealtimeTracking(new RealtimeTrackingOptions
+            {
+                PublishInterval = TimeSpan.FromMilliseconds(250),
+                MaxPendingUpdates = 1024
+            });
         // end-snippet
     }
 }

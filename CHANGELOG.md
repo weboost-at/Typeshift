@@ -25,5 +25,8 @@ The library was rebuilt from the API its owner approved; nothing of the unreleas
   `LoadSettingsAsync`, `SaveSettingsAsync` and `ConfigureAsync`; runs take a settings id. The id type is the
   `TypeshiftIdType` MSBuild property; the generator writes `ITypeshiftStore` and `InMemoryTypeshiftStore` aliases for
   it. Settings serialize themselves member by member, `System.Text.Json` included, with kinds and versions.
+- Conversations: runs with a conversation id resume it and store every step as it happens, so `ResumeAsync`
+  continues a run a crash cut off. `ConversationTracker` lists the runs going on, steers them with `TrySteer`, and
+  with `WithRealtimeTracking()` streams their updates to watchers.
 - An analyzer reports every Typeshift diagnostic at real source locations, so `#pragma` and `.editorconfig` reach
   them; a suppressor drops CS1573 for tool parameters the model never sees.

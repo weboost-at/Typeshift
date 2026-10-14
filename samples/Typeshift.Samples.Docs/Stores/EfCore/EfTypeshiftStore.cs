@@ -46,5 +46,31 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
             throw new StoreConflictException($"{TData.Kind} {id} changed after revision {revision}.", exception);
         }
     }
+
+    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(int conversation, CancellationToken ct)
+    {
+        await using var db = await contexts.CreateDbContextAsync(ct);
+
+        var rows = await db.Entries
+            .Where(entry => entry.Conversation == conversation)
+            .OrderBy(entry => entry.Sequence)
+            .ToListAsync(ct);
+
+        return [.. rows.Select(row => ConversationEntry.Deserialize(row.Json, row.Version))];
+    }
+
+    public async Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct)
+    {
+        await using var db = await contexts.CreateDbContextAsync(ct);
+
+        db.Entries.Add(new EntryRow
+        {
+            Conversation = conversation,
+            Version = ConversationEntry.Version,
+            Json = entry.Serialize()
+        });
+
+        await db.SaveChangesAsync(ct);
+    }
 }
 // end-snippet

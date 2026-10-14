@@ -36,7 +36,7 @@ internal static class RunningAgents
             SearchArticles = new KnowledgeToolset.SearchArticlesOverrides { Language = "de" }
         };
 
-        var thorough = await support.RunAsync("Where is my refund?", settingsId, run);
+        var thorough = await support.RunAsync("Where is my refund?", settingsId, settings: run);
         // end-snippet
 
         Expect(thorough.Text.Length > 0, "a run with settings answers");
