@@ -34,8 +34,9 @@ referenced project built with another id type is [TSH021](./diagnostics.md#tsh02
 
 Documents serialize themselves: `Serialize()` and `TData.Deserialize(json, version)`. Next to the JSON, a store keeps:
 
-- **the kind**, `TData.Kind`: a stable name, the agent's class name for its settings, so moving an agent to another
-  namespace keeps its data. Two agents with one class name are [TSH022](./diagnostics.md#tsh022);
+- **the kind**, `TData.Kind`: a stable name. For an agent's settings it is the class name, so moving an agent to
+  another namespace keeps its data; `WithStorageKind("support")` in the agent pins it, so renaming the class keeps it
+  too. Two agents of one kind are [TSH022](./diagnostics.md#tsh022);
 - **the version**, `TData.Version`, handed back to `Deserialize`, which refuses a version newer than its code's. A
   store migrates older documents if it needs to;
 - **the revision**, for optimistic concurrency.

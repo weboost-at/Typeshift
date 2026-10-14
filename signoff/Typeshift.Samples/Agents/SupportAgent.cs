@@ -15,6 +15,7 @@ internal partial class SupportAgent : Agent
         WithChatOptions()
             .WithModel("fast-model")
             .WithTemperature(0.3f)
+            .Configurable(o => o.ModelId)
             .Configurable(o => o.Instructions)
             .Configurable(o => o.Temperature);
 

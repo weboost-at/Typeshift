@@ -11,8 +11,6 @@ partial class ResearchAgent
     /// </summary>
     public sealed record Settings : global::Typeshift.IStorable<Settings>
     {
-        public string? Model { get; init; }
-
         public string? Instructions { get; init; }
 
         public float? Temperature { get; init; }

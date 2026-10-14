@@ -38,6 +38,15 @@ public abstract class Agent
     }
 
     /// <summary>
+    /// Names the kind a store keys the agent's <c>Settings</c> by, in place of its class name, so renaming the class
+    /// keeps its stored settings.
+    /// </summary>
+    /// <param name="kind">A constant, unique among the agents the host sees.</param>
+    protected void WithStorageKind(string kind)
+    {
+    }
+
+    /// <summary>
     /// Raises the schema version of the agent's stored <c>Settings</c>, 1 by default, after renaming or removing a
     /// configurable member; stores see it and migrate older documents.
     /// </summary>
@@ -116,7 +125,8 @@ public sealed class ChatOptionsBuilder
     }
 
     /// <summary>
-    /// Sets the model, as the host's <see cref="IChatClientProvider"/> names it.
+    /// Sets the model, as the host's <see cref="IChatClientProvider"/> names it. <c>Configurable(o => o.ModelId)</c>
+    /// lets stored settings or a run choose another.
     /// </summary>
     public ChatOptionsBuilder WithModel(string model) => this;
 

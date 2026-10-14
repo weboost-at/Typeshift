@@ -11,7 +11,7 @@ An agent can offer the tools of an MCP server next to its toolsets.
 ```cs
 UseMcpServer("status_page");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Agents/SupportAgent.cs#L27-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-mcp-server' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Agents/SupportAgent.cs#L28-L30' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-mcp-server' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The host connects it, with the MCP client of its choice, by implementing `IMcpToolProvider`:

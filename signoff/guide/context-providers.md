@@ -22,7 +22,7 @@ internal sealed class CustomerProfileContext(ICurrentCustomer customer) : IConte
 ```cs
 UseContext<CustomerProfileContext>();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Agents/SupportAgent.cs#L31-L33' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-context' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Agents/SupportAgent.cs#L32-L34' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-context' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 It is resolved from the run's services and called after the conversation is resumed, before the model is called.

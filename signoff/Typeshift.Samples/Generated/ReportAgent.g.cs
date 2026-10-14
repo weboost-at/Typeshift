@@ -11,8 +11,6 @@ partial class ReportAgent
     /// </summary>
     public sealed record Settings : global::Typeshift.IStorable<Settings>
     {
-        public string? Model { get; init; }
-
         public static string Kind => "ReportAgent";
 
         public static int Version => 1;

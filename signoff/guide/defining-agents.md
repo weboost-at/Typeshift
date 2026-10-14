@@ -19,6 +19,7 @@ internal partial class SupportAgent : Agent
         WithChatOptions()
             .WithModel("fast-model")
             .WithTemperature(0.3f)
+            .Configurable(o => o.ModelId)
             .Configurable(o => o.Instructions)
             .Configurable(o => o.Temperature);
 
@@ -46,7 +47,7 @@ internal partial class SupportAgent : Agent
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Agents/SupportAgent.cs#L8-L50' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Agents/SupportAgent.cs#L8-L51' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - **`WithName`** is optional; without it the agent goes by its class name in snake_case, `support_agent`. Messages the
@@ -86,7 +87,8 @@ one expression; a split chain is [TSH015](./diagnostics.md#tsh015). Offering a t
 ## Configurable chat options
 
 `Configurable(o => o.Temperature)` marks an option that stored settings or a run may change, whether the code sets it
-or not.
+or not. The model is an option like any other: `Configurable(o => o.ModelId)` lets settings choose it, so a settings
+form never offers a model the agent does not allow.
 
 ## Tool settings
 
@@ -101,7 +103,7 @@ Every agent gets a nested `Settings` record, `SupportAgent.Settings`, holding ex
 
 | Member | From |
 |---|---|
-| `Model` | Always there; overrides `WithModel`. |
+| `Model` | When `Configurable(o => o.ModelId)` allows it; overrides `WithModel`. |
 | One per configurable chat option | `Instructions` and `Temperature` above. |
 | One per configurable run option | `MaxToolIterations` of the [coding agent](./long-running-agents.md#run-options). |
 | One per offered tool with configurable settings | `SearchTickets`, `SearchArticles`: their [overrides](./tool-settings.md#the-generated-overrides). |

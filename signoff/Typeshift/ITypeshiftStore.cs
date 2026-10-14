@@ -48,8 +48,8 @@ public sealed record Stored<TData>(TData Data, long Revision);
 public interface IStorable<TSelf> where TSelf : class, IStorable<TSelf>
 {
     /// <summary>
-    /// The stable name a store keys the kind by: the agent's class name for its settings, so moving it to another
-    /// namespace keeps its data.
+    /// The stable name a store keys the kind by: for an agent's settings its <c>WithStorageKind</c>, or else its class
+    /// name, so moving it to another namespace keeps its data.
     /// </summary>
     static abstract string Kind { get; }
 

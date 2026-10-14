@@ -31,7 +31,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D3. Discovery stays attribute-free, narrowed by syntax
 
-- **Status:** proposed.
+- **Status:** decided by the owner in this session.
 - **Context:** v0 re-bound every class with a base list on each edit (about 170 ms per keystroke for 50 toolsets).
 - **Decision:** the syntax predicate takes classes whose base list names `Toolset` or `Agent` (any qualification);
   the semantic check confirms. No marker attribute.
@@ -114,7 +114,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D13. Tool names derive from the method
 
-- **Status:** proposed (an open question of the brief).
+- **Status:** decided by the owner in this session.
 - **Decision:** `SearchTickets` is `search_tickets`; an `Async` suffix is dropped, so `CloseTicketAsync` is
   `close_ticket`. `WithName` overrides. The name keys stored settings, so renaming a method renames the tool: the docs
   say to pin the old name with `WithName` first. TSH007 also compares the generated property names.
@@ -151,7 +151,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D19. Configurable types widen to what the generator can serialize
 
-- **Status:** proposed (the brief's retrospective).
+- **Status:** decided by the owner in this session.
 - **Decision:** besides v0's scalars, enums and string lists: `DateOnly`, `TimeOnly`, `Uri`, records and classes of
   storable settable members (replaced as a whole, never merged), arrays, lists and sets of storable values,
   dictionaries keyed by `string` or an enum. The generator writes their serialization member by member, as for the
@@ -202,7 +202,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D25. A run uses the services of the scope its host was resolved from
 
-- **Status:** proposed; withdraws v0 D11 (a scope per tool call).
+- **Status:** decided by the owner in this session.
 - **Context:** v0 gave each tool call a fresh scope of the root container, so request-scoped services (the current
   customer) never reached tools, context or the chat client provider (audit finding 2).
 - **Decision:** `AgentHost<TAgent>` is transient and keeps the provider it was resolved from. Tools, context
@@ -214,7 +214,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D26. Runs return Microsoft.Extensions.AI's types
 
-- **Status:** proposed.
+- **Status:** decided by the owner in this session.
 - **Decision:** `RunAsync` returns `ChatResponse`, `RunAsync<T>` `ChatResponse<T>`, `RunStreamingAsync`
   `ChatResponseUpdate`s; messages carry the answering agent as `AuthorName`. Inputs are a `string` or a
   `ChatMessage` (for images and approvals). The raw path (`ResolveOptionsAsync`, `CreateChatClientAsync`, the client)
@@ -226,12 +226,13 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 - **Status:** decided in the brief. Code defaults, the agent's code, its stored `Settings`, the run. Stored tool
   defaults (`ToolDefaults`) are gone, so resolving a run's settings is one document.
 
-### D28. The model is a setting
+### D28. The model is a configurable option like any other
 
-- **Status:** carried (v0 D34), decided in the brief; **question for the owner**.
-- **Decision:** every `Settings` has `Model`, which overrides `WithModel`.
-- **Note:** a settings form a customer may edit then lets them pick any model the provider knows. The alternative is
-  to make it opt-in like every other option, `Configurable(o => o.ModelId)`.
+- **Status:** decided by the owner in this session; changes v0 D34.
+- **Decision:** `Configurable(o => o.ModelId)` puts `Model` into the agent's `Settings`, overriding `WithModel`;
+  without it the model stays in code. The allow list holds for the model too.
+- **Alternatives:** `Model` in every `Settings` (v0, the brief's first sketch), which lets a settings form a
+  customer edits pick any model the provider knows.
 
 ### D29. The chat client pipeline
 
@@ -246,7 +247,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D30. Middleware: one interface around runs, one around tool calls
 
-- **Status:** proposed.
+- **Status:** decided by the owner in this session.
 - **Decision:** `IRunMiddleware.InvokeAsync(run, next, ct)` serves streaming and non-streaming runs alike: it may
   change messages and options, read `run.Response` after `next`, or set it instead of calling `next`.
   `IToolMiddleware` wraps `FunctionInvocationContext`. Registered in the chain, in order, for every agent; a
@@ -263,7 +264,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D32. Run options, with compaction inside the tool loop
 
-- **Status:** proposed; long-horizon scope decided by the owner in this session.
+- **Status:** decided by the owner in this session.
 - **Context:** the first draft compacted only when a conversation resumed, so one long run outgrew its context, and
   the tool loop's limits were Microsoft.Extensions.AI's constants (40 iterations).
 - **Decision:** `WithRunOptions()`: `WithMaxToolIterations`, `WithMaxConsecutiveToolErrors`,
@@ -279,7 +280,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D33. Sub-agents, in the foreground or the background
 
-- **Status:** proposed; background sub-agents decided by the owner in this session.
+- **Status:** decided by the owner in this session.
 - **Decision:** `UseAgent<T>()` offers a tool named like the agent, with its description and one `input` string. A
   call runs it in a fresh context with the same settings id, the caller's mode, standing approvals and rules, and no
   conversation of its own, and returns its text. `.InBackground()` makes the tool return at once; the answer reaches
@@ -314,7 +315,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D37. The built-in toolsets
 
-- **Status:** proposed (scope from the brief).
+- **Status:** decided by the owner in this session.
 - **Decision:** in `Typeshift.Toolsets`, declared with Typeshift's own toolset API:
   - `TodoToolset`: `write_todos` replaces the whole list; the list lives in the conversation (the latest call).
   - `FileSystemToolset`: six tools within an `IFileSystemRoot` the host registers per scope; absolute paths, `..`
@@ -338,15 +339,15 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D39. Kinds are stable names
 
-- **Status:** proposed.
-- **Decision:** `IStorable.Kind`: the agent's class name for its `Settings`, `conversation_entry` for conversation entries.
-  Moving an agent to another namespace keeps its data; renaming its class does not. Two agents of one class name are
-  TSH022.
-- **Alternatives:** the agent's name, which would need unique names (out of scope); an explicit `WithStorageKind`.
+- **Status:** decided by the owner in this session.
+- **Decision:** `IStorable.Kind`: for an agent's `Settings` its `WithStorageKind("...")` if it has one, or else its
+  class name; `conversation_entry` for conversation entries. Moving an agent to another namespace keeps its data;
+  renaming the class keeps it once `WithStorageKind` pins the old name. Two agents of one kind are TSH022.
+- **Alternatives:** the agent's name, which would need unique names (out of scope); the full type name (v0).
 
 ### D40. A schema version per document
 
-- **Status:** proposed.
+- **Status:** decided by the owner in this session.
 - **Decision:** `IStorable.Version`, 1 for `Settings` until `WithSettingsVersion(n)` raises it. The store keeps it
   next to the JSON and passes it to `Deserialize`, which refuses a newer version; migrating older documents is the
   store's job.
@@ -355,14 +356,14 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D41. Optimistic concurrency
 
-- **Status:** proposed.
+- **Status:** decided by the owner in this session.
 - **Decision:** `SaveAsync` takes the revision the caller loaded, 0 for none, and throws `StoreConflictException`
   when the stored one differs. `ConfigureAsync` reloads and reapplies until it wins (each conflict means another
   save won). `SaveSettingsAsync` takes the revision from `LoadSettingsAsync`.
 
 ### D42. Settings ids and conversation ids are separate; conversations grow by appending
 
-- **Status:** proposed (audit findings 1 and 5, the owner's review of the naming).
+- **Status:** decided by the owner in this session.
 - **Context:** the first draft keyed conversations by the run's `id`, its settings id, as their owner. The owner
   found `id: customer` confusing: one id named whose settings apply and who owns a conversation.
 - **Decision:** runs take `settingsId` (which stored `Settings` apply) and `conversationId` (which conversation
@@ -427,7 +428,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D51. Steering a run going on
 
-- **Status:** proposed; steering decided by the owner in this session.
+- **Status:** decided by the owner in this session.
 - **Decision:** `ConversationTracker.TrySteer(conversation, input)` hands input to the run of the conversation going
   on in this process; the checkpoint layer injects it before the run's next model call and stores it, and the run
   does not end while steering input waits. It returns false when no run of the conversation is going on in this
@@ -437,7 +438,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D52. Plan and auto modes are built in
 
-- **Status:** proposed; both modes decided by the owner in this session.
+- **Status:** decided by the owner in this session.
 - **Decision:** `AgentMode` `Default`, `Plan`, `Auto`, a run option (`WithMode`, configurable like any run option).
   `Plan` offers only tools marked `ReadOnly()` (toolset tools, or MCP servers with `UseMcpServer(...).ReadOnly()`),
   `write_todos` and a built-in `exit_plan_mode(plan)`, which asks the host; `ApprovePlan(mode)` continues in `Default`

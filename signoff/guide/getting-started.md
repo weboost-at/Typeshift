@@ -133,8 +133,8 @@ await using var provider = services.BuildServiceProvider(validateScopes: true);
 
 ## Stored settings
 
-The generator gives `ResearchAgent` a nested `Settings` record holding exactly what may change: the model, the
-configurable chat options and the configurable settings of its tools. `AgentHost<ResearchAgent>` stores them under a
+The generator gives `ResearchAgent` a nested `Settings` record holding exactly what may change: the configurable
+chat options and the configurable settings of its tools. `AgentHost<ResearchAgent>` stores them under a
 settings id. What a settings id stands for is the host's choice: one per customer, per team or per user.
 
 <!-- snippet: quickstart-settings -->

@@ -140,7 +140,8 @@ stamp, so `AddTypeshift()` cannot register them. Reference the package in its pr
 
 ## TSH022
 
-**Two agents share a settings kind**: two agent classes of one name in different namespaces. Rename one.
+**Two agents share a settings kind**: two agent classes of one name in different namespaces, or one
+`WithStorageKind` twice. Give one a `WithStorageKind` of its own.
 
 ## TSH023
 

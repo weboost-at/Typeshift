@@ -11,8 +11,6 @@ partial class TriageAgent
     /// </summary>
     public sealed record Settings : global::Typeshift.IStorable<Settings>
     {
-        public string? Model { get; init; }
-
         public global::Typeshift.Samples.Tickets.TicketToolset.SearchTicketsOverrides SearchTickets { get; init; } = new();
 
         public static string Kind => "TriageAgent";

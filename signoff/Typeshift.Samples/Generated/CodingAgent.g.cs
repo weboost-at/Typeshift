@@ -11,8 +11,6 @@ partial class CodingAgent
     /// </summary>
     public sealed record Settings : global::Typeshift.IStorable<Settings>
     {
-        public string? Model { get; init; }
-
         public global::Typeshift.AgentMode? Mode { get; init; }
 
         public int? MaxToolIterations { get; init; }
