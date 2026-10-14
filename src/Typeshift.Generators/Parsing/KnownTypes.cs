@@ -1,30 +1,15 @@
 namespace Typeshift.Generators.Parsing;
 
-// Metadata names of the library types the generator recognizes by base type and by call target
+// Metadata names of the types the generator recognizes by base type and by call target
 internal static class KnownTypes
 {
-    public const string LibraryAssembly = "Typeshift";
+    public const string Toolset = "Typeshift.Toolset";
 
-    public const string Toolset = "Typeshift.Toolsets.Toolset";
+    public const string ToolBuilder = "Typeshift.ToolBuilder";
 
-    public const string AgentDefinition = "Typeshift.Agents.AgentDefinition";
+    public const string SettingsBuilder = "Typeshift.ToolBuilder`1";
 
-    public const string ServiceCollectionExtensions =
-        "Microsoft.Extensions.DependencyInjection.TypeshiftServiceCollectionExtensions";
-
-    public const string RegistrationMethod = "AddTypeshift";
-
-    public const string GeneratedModuleAttribute = "Typeshift.Modules.GeneratedModuleAttribute";
-
-    public const string ModuleToolsetAttribute = "Typeshift.Modules.ModuleToolsetAttribute";
-
-    public const string GeneratedToolAttribute = "Typeshift.Modules.GeneratedToolAttribute";
-
-    public const string ChatOptionsBuilder = "Typeshift.Agents.ChatOptionsBuilder";
-
-    public const string JsonSerializerContext = "System.Text.Json.Serialization.JsonSerializerContext";
-
-    public const string JsonSerializableAttribute = "System.Text.Json.Serialization.JsonSerializableAttribute";
+    public const string ConfigurableSettingsBuilder = "Typeshift.ConfigurableSettingsBuilder`1";
 
     public const string ServiceProvider = "System.IServiceProvider";
 
@@ -39,4 +24,6 @@ internal static class KnownTypes
     public const string ValueTask = "System.Threading.Tasks.ValueTask";
 
     public const string ValueTaskOfT = "System.Threading.Tasks.ValueTask`1";
+
+    public const string Obsolete = "System.ObsoleteAttribute";
 }

@@ -1,78 +1,13 @@
 namespace Typeshift.Generators.Tests.Diagnostics.Support;
 
-// One toolset per diagnostic, each wrong in exactly the way its diagnostic names
+// One mistake each, in an otherwise valid toolset
 public static class DiagnosticSources
 {
     public const string NotPartial =
         """
-        using Typeshift.Toolsets;
+        using Typeshift;
 
-        namespace Demo;
-
-        public class EchoToolset : Toolset
-        {
-            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes.");
-
-            public static string Echo(string text) => text;
-        }
-        """;
-
-    public const string ContainerNotPartial =
-        """
-        using Typeshift.Toolsets;
-
-        namespace Demo;
-
-        public static class Outer
-        {
-            public partial class EchoToolset : Toolset
-            {
-                public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes.");
-
-                public static string Echo(string text) => text;
-            }
-        }
-        """;
-
-    public const string NotConstant =
-        """
-        using Typeshift.Toolsets;
-
-        namespace Demo;
-
-        public partial class EchoToolset : Toolset
-        {
-            private static readonly string Name = "echo";
-
-            public EchoToolset() => AddTool(Echo).WithName(Name).WithDescription("Echoes.");
-
-            public static string Echo(string text) => text;
-        }
-        """;
-
-    public const string DescriptionNotConstant =
-        """
-        using Typeshift.Toolsets;
-
-        namespace Demo;
-
-        public partial class EchoToolset : Toolset
-        {
-            private static readonly string Description = "Echoes.";
-
-            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription(Description);
-
-            public static string Echo(string text) => text;
-        }
-        """;
-
-    public const string MissingToolName =
-        """
-        using Typeshift.Toolsets;
-
-        namespace Demo;
-
-        public partial class EchoToolset : Toolset
+        internal class EchoToolset : Toolset
         {
             public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
 
@@ -80,52 +15,123 @@ public static class DiagnosticSources
         }
         """;
 
-    public const string NotStaticMethodGroup =
+    public const string NotConstant =
         """
-        using System;
-        using Typeshift.Toolsets;
+        using Typeshift;
 
-        namespace Demo;
-
-        public partial class EchoToolset : Toolset
+        internal partial class EchoToolset : Toolset
         {
-            public EchoToolset() =>
-                AddTool((Func<string, string>)(text => text)).WithName("echo").WithDescription("Echoes.");
+            private static readonly string Prefix = "say_";
+
+            public EchoToolset() => AddTool(Echo).WithName(Prefix + "echo").WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
         }
         """;
 
-    public const string StaticLocalFunction =
+    public const string Lambda =
         """
-        using Typeshift.Toolsets;
+        using System;
+        using Typeshift;
 
-        namespace Demo;
-
-        public partial class EchoToolset : Toolset
+        internal partial class EchoToolset : Toolset
         {
-            public EchoToolset()
-            {
-                AddTool(Echo).WithName("echo").WithDescription("Echoes.");
+            public EchoToolset() => AddTool((Func<string, string>)(text => text)).WithDescription("Echoes.");
+        }
+        """;
 
-                static string Echo(string text) => text;
-            }
+    public const string RefParameter =
+        """
+        using Typeshift;
+
+        internal partial class CounterToolset : Toolset
+        {
+            public CounterToolset() => AddTool(Bump).WithDescription("Bumps.");
+
+            public static void Bump(ref int value) => value++;
         }
         """;
 
     public const string SettingsNotRecord =
         """
-        using Typeshift.Toolsets;
+        using Typeshift;
 
-        namespace Demo;
-
-        public class EchoSettings
+        internal class EchoSettings
         {
-            public int Repeat { get; set; } = 1;
+            public int Repeat { get; init; }
         }
 
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>();
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string SettingsLessAccessible =
+        """
+        using Typeshift;
+
+        internal record EchoSettings
+        {
+            public int Repeat { get; init; }
+        }
+
+        /// <summary>Echoes.</summary>
         public partial class EchoToolset : Toolset
         {
-            public EchoToolset() =>
-                AddTool(Echo).WithName("echo").WithDescription("Echoes.").WithSettings<EchoSettings>();
+            /// <summary>Declares the tool.</summary>
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>();
+
+            internal static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string DuplicateName =
+        """
+        using Typeshift;
+
+        internal partial class VersionToolset : Toolset
+        {
+            public VersionToolset()
+            {
+                AddTool(Get).WithName("get_v2").WithDescription("Gets.");
+                AddTool(GetOther).WithName("get_v_2").WithDescription("Gets.");
+            }
+
+            public static string Get(string key) => key;
+
+            public static string GetOther(string key) => key;
+        }
+        """;
+
+    public const string DuplicateAcrossToolsets =
+        """
+        using Typeshift;
+
+        internal partial class FirstToolset : Toolset
+        {
+            public FirstToolset() => AddTool(Find).WithDescription("Finds.");
+
+            public static string Find(string query) => query;
+        }
+
+        internal partial class SecondToolset : Toolset
+        {
+            public SecondToolset() => AddTool(Find).WithDescription("Finds.");
+
+            public static string Find(string query) => query;
+        }
+        """;
+
+    public const string NotLowerSnakeCase =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithName("Echo").WithDescription("Echoes.");
 
             public static string Echo(string text) => text;
         }
@@ -133,13 +139,11 @@ public static class DiagnosticSources
 
     public const string MissingDescription =
         """
-        using Typeshift.Toolsets;
+        using Typeshift;
 
-        namespace Demo;
-
-        public partial class EchoToolset : Toolset
+        internal partial class EchoToolset : Toolset
         {
-            public EchoToolset() => AddTool(Echo).WithName("echo");
+            public EchoToolset() => AddTool(Echo);
 
             public static string Echo(string text) => text;
         }
@@ -147,33 +151,28 @@ public static class DiagnosticSources
 
     public const string UnreadSettings =
         """
-        using Typeshift.Toolsets;
+        using Typeshift;
 
-        namespace Demo;
-
-        public record EchoSettings
+        internal record EchoSettings
         {
-            public int Repeat { get; init; } = 1;
+            public int Repeat { get; init; }
         }
 
-        public partial class EchoToolset : Toolset
+        internal partial class EchoToolset : Toolset
         {
-            public EchoToolset() =>
-                AddTool(Echo).WithName("echo").WithDescription("Echoes.").WithSettings<EchoSettings>();
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>();
 
             public static string Echo(string text) => text;
         }
         """;
 
-    public const string DocumentationOff =
+    public const string SummaryOnly =
         """
-        using Typeshift.Toolsets;
+        using Typeshift;
 
-        namespace Demo;
-
-        public partial class EchoToolset : Toolset
+        internal partial class EchoToolset : Toolset
         {
-            public EchoToolset() => AddTool(Echo).WithName("echo");
+            public EchoToolset() => AddTool(Echo);
 
             /// <summary>
             /// Echoes the text.
@@ -182,292 +181,185 @@ public static class DiagnosticSources
         }
         """;
 
-    public const string AgentNotPartial =
+    public const string ReadOnlyPick =
         """
-        using Typeshift.Agents;
-
-        namespace Demo;
-
-        public class EchoAgent : AgentDefinition
-        {
-            public EchoAgent() => WithName("echo_agent");
-        }
-        """;
-
-    public const string ForeignTool =
-        """
-        using Typeshift.Agents;
-        using Typeshift.Toolsets;
-
-        namespace Demo;
-
-        public partial class EchoToolset : Toolset
-        {
-            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes.");
-
-            public static string Echo(string text) => text;
-        }
-
-        public partial class ShoutToolset : Toolset
-        {
-            public ShoutToolset() => AddTool(Shout).WithName("shout").WithDescription("Shouts.");
-
-            public static string Shout(string text) => text;
-        }
-
-        public partial class EchoAgent : AgentDefinition
-        {
-            public EchoAgent()
-            {
-                WithName("echo_agent");
-                UseToolset<EchoToolset>().Include(t => t.Shout);
-            }
-        }
-        """;
-
-    // Two tools with settings, for the agents below that do not offer one of them
-    public const string ToneToolset =
-        """
-        using Typeshift.Toolsets;
-
-        namespace Demo;
-
-        public record ToneSettings
-        {
-            public bool Loud { get; init; }
-        }
-
-        public partial class EchoToolset : Toolset
-        {
-            public EchoToolset()
-            {
-                AddTool(Echo).WithName("echo").WithDescription("Echoes.").WithSettings<ToneSettings>();
-                AddTool(Shout).WithName("shout").WithDescription("Shouts.").WithSettings<ToneSettings>();
-            }
-
-            public static string Echo(string text, ToneSettings settings) => text;
-
-            public static string Shout(string text, ToneSettings settings) => text;
-        }
-        """;
-
-    public const string SettingsOfAnUnofferedTool =
-        """
-        using Typeshift.Agents;
-
-        namespace Demo;
-
-        public partial class EchoAgent : AgentDefinition
-        {
-            public EchoAgent()
-            {
-                UseToolset<EchoToolset>().Include(t => t.Echo);
-                ConfigureShout().WithLoud(true);
-            }
-        }
-        """;
-
-    public const string SettingsOfAnExcludedTool =
-        """
-        using Typeshift.Agents;
-
-        namespace Demo;
-
-        public partial class EchoAgent : AgentDefinition
-        {
-            public EchoAgent()
-            {
-                UseToolset<EchoToolset>().Exclude(t => t.Shout);
-                ConfigureShout().WithLoud(true);
-            }
-        }
-        """;
-
-    public const string DescribedWithDocumentationOff =
-        """
-        using Typeshift.Toolsets;
-
-        namespace Demo;
-
-        public partial class EchoToolset : Toolset
-        {
-            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes the text.");
-
-            /// <summary>
-            /// Echoes the text.
-            /// </summary>
-            public static string Echo(string text) => text;
-        }
-        """;
-
-    public const string DescribedWithParamDocsAndDocumentationOff =
-        """
-        using Typeshift.Toolsets;
-
-        namespace Demo;
-
-        public partial class EchoToolset : Toolset
-        {
-            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes the text.");
-
-            /// <param name="text">The text to echo.</param>
-            public static string Echo(string text) => text;
-        }
-        """;
-
-    public const string InternalSettingsOfPublicToolset =
-        """
-        using Typeshift.Toolsets;
-
-        namespace Demo;
+        using Typeshift;
 
         internal record EchoSettings
         {
             public int Repeat { get; init; } = 1;
+
+            public int Twice => Repeat * 2;
         }
-
-        public partial class EchoToolset : Toolset
-        {
-            public EchoToolset()
-            {
-                AddTool(Echo)
-                    .WithName("echo")
-                    .WithDescription("Echoes the text.")
-                    .WithSettings<EchoSettings>()
-                    .Configurable(s => s.Repeat);
-            }
-
-            public static string Echo(string text, EchoSettings settings) => text;
-        }
-        """;
-
-    public const string PrivateSettingsOfInternalToolset =
-        """
-        using Typeshift.Toolsets;
-
-        namespace Demo;
 
         internal partial class EchoToolset : Toolset
         {
             public EchoToolset()
             {
                 AddTool(Echo)
-                    .WithName("echo")
-                    .WithDescription("Echoes the text.")
-                    .WithSettings<EchoSettings>()
-                    .Configurable(s => s.Repeat);
-            }
-
-            private static string Echo(string text, EchoSettings settings) => text;
-
-            private record EchoSettings
-            {
-                public int Repeat { get; init; } = 1;
-            }
-        }
-        """;
-
-    public const string UnsupportedSetting =
-        """
-        using System.Collections.Generic;
-        using Typeshift.Toolsets;
-
-        namespace Demo;
-
-        public record EchoSettings
-        {
-            public IReadOnlyDictionary<string, int> Weights { get; init; } = new Dictionary<string, int>();
-        }
-
-        public partial class EchoToolset : Toolset
-        {
-            public EchoToolset() =>
-                AddTool(Echo)
-                    .WithName("echo")
                     .WithDescription("Echoes.")
                     .WithSettings<EchoSettings>()
-                    .Configurable(s => s.Weights);
+                    .Configurable(s => s.Twice);
+            }
 
             public static string Echo(string text, EchoSettings settings) => text;
         }
         """;
 
-    public const string UnsupportedChatOption =
+    public const string OutsideConstructor =
         """
-        using Typeshift.Agents;
+        using Typeshift;
 
-        namespace Demo;
-
-        public partial class EchoAgent : AgentDefinition
+        internal partial class EchoToolset : Toolset
         {
-            public EchoAgent() => WithChatOptions().Configurable(o => o.ResponseFormat);
-        }
-        """;
-
-    public const string UnsupportedConfigurableSetting =
-        """
-        using System.Collections.Generic;
-        using Typeshift.Toolsets;
-
-        namespace Demo;
-
-        public record EchoSettings
-        {
-            public int Repeat { get; init; } = 1;
-
-            public IReadOnlyDictionary<string, int> Weights { get; init; } = new Dictionary<string, int>();
-        }
-
-        public partial class EchoToolset : Toolset
-        {
-            public EchoToolset() =>
-                AddTool(Echo)
-                    .WithName("echo")
-                    .WithDescription("Echoes.")
-                    .WithConfigurableSettings<EchoSettings>();
-
-            public static string Echo(string text, EchoSettings settings) => text;
-        }
-        """;
-
-    public const string UnsupportedSettingNotConfigurable =
-        """
-        using System.Collections.Generic;
-        using Typeshift.Toolsets;
-
-        namespace Demo;
-
-        public record EchoSettings
-        {
-            public int Repeat { get; init; } = 1;
-
-            public IReadOnlyDictionary<string, int> Weights { get; init; } = new Dictionary<string, int>();
-        }
-
-        public partial class EchoToolset : Toolset
-        {
-            public EchoToolset() =>
-                AddTool(Echo)
-                    .WithName("echo")
-                    .WithDescription("Echoes.")
-                    .WithConfigurableSettings<EchoSettings>()
-                    .NotConfigurable(s => s.Weights);
-
-            public static string Echo(string text, EchoSettings settings) => text;
-        }
-        """;
-
-    public static string NotLowerSnakeCase(string name) =>
-        $$"""
-        using Typeshift.Toolsets;
-
-        namespace Demo;
-
-        public partial class EchoToolset : Toolset
-        {
-            public EchoToolset() => AddTool(Echo).WithName("{{name}}").WithDescription("Echoes.");
+            public EchoToolset() => Declare();
 
             public static string Echo(string text) => text;
+
+            private void Declare() => AddTool(Echo).WithDescription("Echoes.");
+        }
+        """;
+
+    public const string ConditionalTool =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset(bool loud)
+            {
+                if (loud) AddTool(Echo).WithDescription("Echoes.");
+            }
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string GenericMethod =
+        """
+        using System;
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo<int>).WithDescription("Echoes.");
+
+            public static T Echo<T>(T value) => value;
+        }
+        """;
+
+    public const string ChainOnVariable =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset()
+            {
+                var tool = AddTool(Echo);
+                tool.WithDescription("Echoes.");
+            }
+
+            /// <summary>Echoes.</summary>
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string StoredChain =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset()
+            {
+                var tool = AddTool(Echo);
+            }
+
+            /// <summary>Echoes.</summary>
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string ComputedPick =
+        """
+        using Typeshift;
+
+        internal record EchoSettings
+        {
+            public int Repeat { get; init; } = 1;
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset()
+            {
+                AddTool(Echo)
+                    .WithDescription("Echoes.")
+                    .WithSettings<EchoSettings>()
+                    .Configurable(s => s.Repeat + 1);
+            }
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string PrivateNested =
+        """
+        using Typeshift;
+
+        internal partial class Outer
+        {
+            private partial class EchoToolset : Toolset
+            {
+                public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+                public static string Echo(string text) => text;
+            }
+        }
+        """;
+
+    public const string Derived =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class LoudToolset : EchoToolset
+        {
+        }
+        """;
+
+    public const string Generic =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset<T> : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string ClashingMember =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+
+            public static void CreateEcho()
+            {
+            }
         }
         """;
 }

@@ -4,8 +4,6 @@
     <TargetFramework>net10.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <IsTestProject>true</IsTestProject>
-    <!-- The tests compile C# 14 subjects, which needs a newer compiler than the generator targets. -->
-    <RoslynVersion>5.0.0</RoslynVersion>
   </PropertyGroup>
 
   <ItemGroup>

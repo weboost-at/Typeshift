@@ -4,38 +4,23 @@
 
 namespace Demo;
 
-[global::Typeshift.Modules.GeneratedTool("greet", null)]
 partial class GreetingToolset
 {
     /// <summary>
-    /// Typed references to the tools of this toolset.
+    /// Creates the <c>greet</c> tool; generated agents call it.
     /// </summary>
-    public static class Tools
-    {
-        /// <summary>
-        /// The <c>greet</c> tool.
-        /// </summary>
-        public static global::Typeshift.Tools.ToolRef Greet { get; } = new("greet");
-    }
-
-    /// <inheritdoc />
-    protected override global::Typeshift.Tools.ToolBinding GetBinding(global::Typeshift.Toolsets.ToolDefinition tool) =>
-        tool.Name.Value switch
-        {
-            "greet" => GreetBinding,
-            _ => base.GetBinding(tool)
-        };
-
-    private static readonly global::Typeshift.Tools.ToolBinding GreetBinding =
-        global::Typeshift.Tools.ToolBinding.Create(
-            static (tool, json) => new GreetFunction(tool, json));
+    /// <param name="json">How the tool binds its arguments and serializes its result.</param>
+    /// <returns>The tool.</returns>
+    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+    public static global::Microsoft.Extensions.AI.AIFunction CreateGreet(
+        global::Typeshift.Generated.ToolJson json) =>
+        new GreetFunction(json);
 
     private sealed class GreetFunction(
-        global::Typeshift.Toolsets.ToolDefinition tool,
-        global::Typeshift.Json.AgentJson json)
-        : global::Typeshift.Tools.GeneratedToolFunction(tool, json)
+        global::Typeshift.Generated.ToolJson json)
+        : global::Typeshift.Generated.GeneratedToolFunction(json)
     {
-        private static readonly global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Tools.ToolParameter> ModelParameters =
+        private static readonly global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> ModelParameters =
         [
             new("greeting", typeof(string))
             {
@@ -47,10 +32,40 @@ partial class GreetingToolset
                 HasDefaultValue = true,
                 DefaultValue = true
             },
-            new("limit", typeof(long))
+            new("mark", typeof(char))
             {
                 HasDefaultValue = true,
-                DefaultValue = 5L
+                DefaultValue = '!'
+            },
+            new("times", typeof(byte))
+            {
+                HasDefaultValue = true,
+                DefaultValue = (byte)2
+            },
+            new("pause", typeof(short))
+            {
+                HasDefaultValue = true,
+                DefaultValue = (short)-1
+            },
+            new("budget", typeof(long))
+            {
+                HasDefaultValue = true,
+                DefaultValue = 9000000000L
+            },
+            new("ratio", typeof(float))
+            {
+                HasDefaultValue = true,
+                DefaultValue = 0.5f
+            },
+            new("nan", typeof(double))
+            {
+                HasDefaultValue = true,
+                DefaultValue = double.NaN
+            },
+            new("price", typeof(decimal))
+            {
+                HasDefaultValue = true,
+                DefaultValue = 1.25m
             },
             new("level", typeof(global::Demo.Level))
             {
@@ -62,21 +77,27 @@ partial class GreetingToolset
                 HasDefaultValue = true,
                 DefaultValue = (global::Demo.Level)(7)
             },
-            new("negative", typeof(global::Demo.Level))
+            new("when", typeof(global::System.DateTime))
             {
                 HasDefaultValue = true,
-                DefaultValue = (global::Demo.Level)(-1)
+                DefaultValue = default(global::System.DateTime)
             },
-            new("fallback", typeof(global::Demo.Level?))
+            new("optional", typeof(int?))
+            {
+                HasDefaultValue = true
+            },
+            new("missing", typeof(string))
             {
                 HasDefaultValue = true,
-                DefaultValue = global::Demo.Level.Low
+                IsNullable = true
             }
         ];
 
+        public override string Name => "greet";
+
         public override string Description => "Greets.";
 
-        protected override global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Tools.ToolParameter> Parameters => ModelParameters;
+        protected override global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> Parameters => ModelParameters;
 
         protected override global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
             global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
@@ -85,53 +106,31 @@ partial class GreetingToolset
             new(GetResult(global::Demo.GreetingToolset.Greet(
                 GetArgument<string>(arguments, "greeting", "say \"hi\""),
                 GetArgument<bool>(arguments, "loud", true),
-                GetArgument<long>(arguments, "limit", 5L),
+                GetArgument<char>(arguments, "mark", '!'),
+                GetArgument<byte>(arguments, "times", (byte)2),
+                GetArgument<short>(arguments, "pause", (short)-1),
+                GetArgument<long>(arguments, "budget", 9000000000L),
+                GetArgument<float>(arguments, "ratio", 0.5f),
+                GetArgument<double>(arguments, "nan", double.NaN),
+                GetArgument<decimal>(arguments, "price", 1.25m),
                 GetArgument<global::Demo.Level>(arguments, "level", global::Demo.Level.High),
                 GetArgument<global::Demo.Level>(arguments, "unnamed", (global::Demo.Level)(7)),
-                GetArgument<global::Demo.Level>(arguments, "negative", (global::Demo.Level)(-1)),
-                GetArgument<global::Demo.Level?>(arguments, "fallback", global::Demo.Level.Low))));
+                GetArgument<global::System.DateTime>(arguments, "when", default(global::System.DateTime)),
+                GetArgument<int?>(arguments, "optional", null),
+                GetArgument<string?>(arguments, "missing", null))));
     }
 }
 
 /// <summary>
-/// The tools of <see cref="global::Demo.GreetingToolset"/>, to include in or exclude from an agent:
-/// <c>UseToolset&lt;GreetingToolset&gt;().Include(t => t.Name)</c>.
+/// The tools of <see cref="global::Demo.GreetingToolset"/>, to include in or exclude from an agent.
 /// </summary>
 internal static class GreetingToolsetToolList
 {
-    extension(global::Typeshift.Tools.ToolList<global::Demo.GreetingToolset> tools)
+    extension(global::Typeshift.ToolList<global::Demo.GreetingToolset> tools)
     {
         /// <summary>
         /// The <c>greet</c> tool: Greets.
         /// </summary>
-        public global::Typeshift.Tools.ToolRef Greet => global::Demo.GreetingToolset.Tools.Greet;
-    }
-}
-
-// HintName: Module.g.cs
-// <auto-generated/>
-#nullable enable
-
-[assembly: global::Typeshift.Modules.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule))]
-
-namespace Typeshift.Generated;
-
-/// <summary>
-/// Registers the toolsets and agents of Subject.
-/// </summary>
-[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-[global::Typeshift.Modules.ModuleToolset(typeof(global::Demo.GreetingToolset))]
-public static class SubjectModule
-{
-    /// <summary>
-    /// Registers this assembly's toolsets, agents and the JSON contexts of their tools, once per service
-    /// collection.
-    /// </summary>
-    public static void Register(
-        global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)
-    {
-        if (!global::Typeshift.Modules.ModuleRegistration.TryAddModule(services, typeof(SubjectModule))) return;
-
-        global::Typeshift.Modules.ModuleRegistration.AddToolset(services, static () => new global::Demo.GreetingToolset());
+        public global::Typeshift.ToolName Greet => new("greet");
     }
 }

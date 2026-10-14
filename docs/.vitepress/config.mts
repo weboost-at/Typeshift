@@ -15,7 +15,7 @@ export default defineConfig({
   },
   themeConfig: {
     nav: [
-      { text: 'Guide', link: '/guide/getting-started', activeMatch: '/guide/' },
+      { text: 'Guide', link: '/guide/toolsets', activeMatch: '/guide/' },
       { text: 'Diagnostics', link: '/guide/diagnostics' },
       { text: 'Contributing', link: '/contributing/', activeMatch: '/contributing/' },
       { text: 'Changelog', link: `${repository}/blob/main/CHANGELOG.md` }
@@ -23,31 +23,15 @@ export default defineConfig({
     sidebar: {
       '/guide/': [
         {
-          text: 'Introduction',
-          items: [
-            { text: 'Getting started', link: '/guide/getting-started' }
-          ]
-        },
-        {
           text: 'Building agents',
           items: [
             { text: 'Toolsets', link: '/guide/toolsets' },
-            { text: 'Tool settings', link: '/guide/tool-settings' },
-            { text: 'Agents', link: '/guide/defining-agents' },
-            { text: 'Running agents', link: '/guide/running-agents' }
-          ]
-        },
-        {
-          text: 'Persistence',
-          items: [
-            { text: 'Stores and settings', link: '/guide/persistence' },
-            { text: 'Conversations', link: '/guide/conversations' }
+            { text: 'Tool settings', link: '/guide/tool-settings' }
           ]
         },
         {
           text: 'Reference',
           items: [
-            { text: 'Native AOT', link: '/guide/native-aot' },
             { text: 'Diagnostics', link: '/guide/diagnostics' }
           ]
         }

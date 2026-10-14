@@ -33,13 +33,13 @@ internal static class SymbolExtensions
                 _ => true
             };
 
-        // Internal or wider along its containing types, so generated code in the same assembly can name it
+        // Internal or wider along its containing types, so code outside the class but in its assembly can name it
         public bool IsVisibleInAssembly() =>
             type.DeclaredAccessibility
                 is Accessibility.Public or Accessibility.Internal or Accessibility.ProtectedOrInternal
             && (type.ContainingType?.IsVisibleInAssembly() ?? true);
 
-        // The type of a stored value: null means "inherit", so even a value type becomes nullable
+        // The type of an override: null means "the layer below", so even a value type becomes nullable
         public string ToNullableFullyQualified() =>
             type switch
             {
@@ -53,7 +53,8 @@ internal static class SymbolExtensions
             type.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
                 .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
-        public IEnumerable<IPropertySymbol> GetSettableProperties()
+        // Base records first; a redeclared property counts once, as its most derived declaration
+        public IEnumerable<IPropertySymbol> GetPublicProperties()
         {
             var hierarchy = new List<ITypeSymbol>();
 
@@ -62,13 +63,26 @@ internal static class SymbolExtensions
                 hierarchy.Insert(0, level);
             }
 
-            // Base records first; a redeclared property counts once, as its most derived declaration
             return hierarchy
                 .SelectMany(level => level.GetMembers().OfType<IPropertySymbol>())
-                .Where(IsSettable)
+                .Where(property => property is
+                {
+                    IsStatic: false,
+                    IsIndexer: false,
+                    DeclaredAccessibility: Accessibility.Public,
+                    Name: not "EqualityContract"
+                })
                 .GroupBy(property => property.Name)
                 .Select(group => group.Last());
         }
+    }
+
+    extension(IPropertySymbol property)
+    {
+        public bool IsSettable => property.SetMethod is { DeclaredAccessibility: Accessibility.Public };
+
+        public bool IsObsolete =>
+            property.GetAttributes().Any(attribute => attribute.AttributeClass.Is(KnownTypes.Obsolete));
     }
 
     extension(INamedTypeSymbol type)
@@ -92,10 +106,6 @@ internal static class SymbolExtensions
                 ? type.ContainingType?.GetNotPartial(ct)
                 : type;
     }
-
-    private static bool IsSettable(IPropertySymbol property) =>
-        property is { IsStatic: false, IsIndexer: false, DeclaredAccessibility: Accessibility.Public }
-        && property.SetMethod is { DeclaredAccessibility: Accessibility.Public };
 
     private static string GetMetadataName(INamedTypeSymbol type) =>
         type.ContainingNamespace is { IsGlobalNamespace: false } ns

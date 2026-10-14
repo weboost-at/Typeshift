@@ -1,18 +1,19 @@
-using Typeshift.Json;
+using Typeshift.Generated;
 using Typeshift.Tests.Tools.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Options;
 
 namespace Typeshift.Tests.Tools;
 
-public class ToolSchemaTests : HostTestBase
+public class ToolSchemaTests : UnitTestBase
 {
+    private ToolJson Json { get; } = new([]);
+
     [Fact]
     public void Given_A_Struct_Parameter_Defaulting_To_Default_Its_Schema_Carries_The_Default()
     {
         // Act
-        var locate = new SchemaToolset().CreateTools(Json).Single(tool => tool.Name == "locate");
+        var locate = SchemaToolset.CreateLocate(Json);
 
         // Assert
         locate.JsonSchema.Assert.ParameterDefault("point", """{"latitude":0,"longitude":0}""");
@@ -22,7 +23,7 @@ public class ToolSchemaTests : HostTestBase
     public void Given_An_Undocumented_JsonElement_Parameter_Its_Schema_Accepts_Any_Json()
     {
         // Act
-        var echo = new SchemaToolset().CreateTools(Json).Single(tool => tool.Name == "echo");
+        var echo = SchemaToolset.CreateEchoJson(Json);
 
         // Assert
         echo.JsonSchema.Assert.ParameterSchema("value", "{}");
@@ -32,7 +33,7 @@ public class ToolSchemaTests : HostTestBase
     public void Given_A_Nullable_Reference_Parameter_It_Is_Typed_As_Nullable()
     {
         // Act
-        var search = new SchemaToolset().CreateTools(Json).Single(tool => tool.Name == "search_companies");
+        var search = SchemaToolset.CreateSearchCompanies(Json);
 
         // Assert
         search.JsonSchema.Assert.ParameterTypes("country", "string", "null");
@@ -48,7 +49,7 @@ public class ToolSchemaTests : HostTestBase
         });
 
         // Act
-        var search = new SchemaToolset().CreateTools(Json).Single(tool => tool.Name == "search_companies");
+        var search = SchemaToolset.CreateSearchCompanies(Json);
 
         // Assert
         search.JsonSchema.Assert.MatchesWithoutDescriptions(reflected.JsonSchema);
@@ -58,7 +59,7 @@ public class ToolSchemaTests : HostTestBase
     public void Given_Param_Docs_They_Become_The_Parameter_Descriptions()
     {
         // Act
-        var search = new SchemaToolset().CreateTools(Json).Single(tool => tool.Name == "search_companies");
+        var search = SchemaToolset.CreateSearchCompanies(Json);
 
         // Assert
         search.JsonSchema.Assert.ParameterDescription("query", "What to search for.");
@@ -68,42 +69,52 @@ public class ToolSchemaTests : HostTestBase
     public void Given_Two_Tools_Each_Gets_A_Schema_Of_Its_Own()
     {
         // Arrange
-        var tools = new SchemaToolset().CreateTools(Json);
-        _ = tools.Single(tool => tool.Name == "locate").JsonSchema;
+        _ = SchemaToolset.CreateLocate(Json).JsonSchema;
 
         // Act
-        var count = tools.Single(tool => tool.Name == "count_words").JsonSchema;
+        var count = SchemaToolset.CreateCountWords(Json).JsonSchema;
 
         // Assert
         count.Assert.Properties("text");
     }
 
     [Fact]
-    public void Given_Schema_Transform_Options_The_Tool_Schema_Is_Transformed()
+    public void Given_Parameters_The_Call_Fills_They_Stay_Out_Of_The_Schema()
     {
-        // Arrange
-        var json = new AgentJson(Options.Create(new AgentJsonOptions
-        {
-            SchemaCreateOptions = new AIJsonSchemaCreateOptions
-            {
-                TransformOptions = new AIJsonSchemaTransformOptions { DisallowAdditionalProperties = true }
-            }
-        }));
-
         // Act
-        var count = new SchemaToolset().CreateTools(json).Single(tool => tool.Name == "count_words");
+        var probe = ProbeToolset.CreateProbe(new ProbeSettings(), Json);
 
         // Assert
-        count.JsonSchema.GetProperty("additionalProperties").GetBoolean().Should().BeFalse();
+        probe.JsonSchema.Assert.Properties("query");
     }
 
     [Fact]
     public void Given_No_WithDescription_The_Summary_Is_The_Tool_Description()
     {
         // Act
-        var count = new SchemaToolset().CreateTools(Json).Single(tool => tool.Name == "count_words");
+        var count = SchemaToolset.CreateCountWords(Json);
 
         // Assert
         count.Description.Should().Be("Counts the words of a text.");
+    }
+
+    [Fact]
+    public void Given_An_Async_Method_Without_WithName_The_Tool_Is_Named_Without_The_Suffix()
+    {
+        // Act
+        var count = SchemaToolset.CreateCountWords(Json);
+
+        // Assert
+        count.Name.Should().Be("count_words");
+    }
+
+    [Fact]
+    public void Given_WithName_The_Tool_Goes_By_That_Name()
+    {
+        // Act
+        var echo = SchemaToolset.CreateEchoJson(Json);
+
+        // Assert
+        echo.Name.Should().Be("echo_json");
     }
 }

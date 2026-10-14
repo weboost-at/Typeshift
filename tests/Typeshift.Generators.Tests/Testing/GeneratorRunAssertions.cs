@@ -9,8 +9,8 @@ public sealed class GeneratorRunAssertions(GeneratorRun run)
     // that neither warns nor fails
     public GeneratorRun CompilesCleanly()
     {
-        run.CompilationDiagnostics
-            .Concat(run.Diagnostics)
+        run.Reported
+            .Concat(run.Result.Diagnostics)
             .Where(diagnostic => diagnostic.Severity >= DiagnosticSeverity.Warning)
             .Select(diagnostic => diagnostic.ToString())
             .Should()
@@ -21,7 +21,7 @@ public sealed class GeneratorRunAssertions(GeneratorRun run)
 
     public Diagnostic Reports(string id, DiagnosticSeverity severity, string offendingSyntax)
     {
-        var reported = run.Diagnostics.Where(diagnostic => diagnostic.Id == id).ToList();
+        var reported = run.Reported.Where(diagnostic => diagnostic.Id == id).ToList();
 
         reported.Should().ContainSingle();
         reported[0].Severity.Should().Be(severity);
@@ -29,19 +29,48 @@ public sealed class GeneratorRunAssertions(GeneratorRun run)
         return reported[0];
     }
 
-    // A compiler error in the subject, which the generated code makes possible where a diagnostic is not needed
-    public Diagnostic DoesNotCompile(string id, string offendingSyntax)
+    // One of several reports of the id, for a mistake that several checks see
+    public Diagnostic ReportsAmong(string id, DiagnosticSeverity severity, string offendingSyntax)
     {
-        var reported = run.CompilationDiagnostics.Where(diagnostic => diagnostic.Id == id).ToList();
+        var reported = run.Reported
+            .Where(diagnostic => diagnostic.Id == id && SourceAt(diagnostic.Location) == offendingSyntax)
+            .ToList();
 
         reported.Should().ContainSingle();
-        SourceAt(reported[0].Location).Should().Be(offendingSyntax);
+        reported[0].Severity.Should().Be(severity);
         return reported[0];
     }
 
+    // A compiler error in the subject, which the generated code makes possible where a diagnostic is not needed
+    public Diagnostic DoesNotCompile(string id, string offendingSyntax) =>
+        Reports(id, DiagnosticSeverity.Error, offendingSyntax);
+
     public GeneratorRun DoesNotReport(string id)
     {
-        run.Diagnostics.Select(diagnostic => diagnostic.Id).Should().NotContain(id);
+        run.Reported.Select(diagnostic => diagnostic.Id).Should().NotContain(id);
+        return run;
+    }
+
+    public GeneratorRun Suppresses(string id)
+    {
+        run.Diagnostics
+            .Where(diagnostic => diagnostic.Id == id)
+            .Should()
+            .OnlyContain(diagnostic => diagnostic.IsSuppressed);
+
+        run.Diagnostics.Should().Contain(diagnostic => diagnostic.Id == id);
+        return run;
+    }
+
+    // No generated file holds a compiler error: the analyzer reports every shape the generator cannot handle
+    public GeneratorRun GeneratesValidCode()
+    {
+        run.Reported
+            .Where(diagnostic => diagnostic.Location.SourceTree is { } tree && Generated(tree))
+            .Select(diagnostic => diagnostic.ToString())
+            .Should()
+            .BeEmpty();
+
         return run;
     }
 
@@ -80,14 +109,10 @@ public sealed class GeneratorRunAssertions(GeneratorRun run)
     private static IEnumerable<IncrementalStepRunReason> Reasons(IEnumerable<IncrementalGeneratorRunStep> steps) =>
         steps.SelectMany(step => step.Outputs).Select(output => output.Reason);
 
-    // Models keep locations as path and span, so they come back as file locations without a tree
-    private string SourceAt(Location location)
-    {
-        var path = location.GetLineSpan().Path;
-        var tree = run.Output.SyntaxTrees.Single(candidate => candidate.FilePath == path);
+    private bool Generated(SyntaxTree tree) => run.Result.GeneratedTrees.Contains(tree);
 
-        return tree.GetText().ToString(location.SourceSpan);
-    }
+    private static string SourceAt(Location location) =>
+        location.SourceTree!.GetText().ToString(location.SourceSpan);
 }
 
 public static class GeneratorRunAssertionExtensions

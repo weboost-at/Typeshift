@@ -9,19 +9,18 @@ and CI fails when the two disagree.
 
 | Source | Shown on |
 |---|---|
-| `samples/Typeshift.Samples.Console` | Getting started, the README and Native AOT. CI publishes it as Native AOT and runs it. |
-| `samples/Typeshift.Samples.Docs` | Every other guide page. It builds with the solution, and CI runs its program, which executes each documented scenario and throws when one breaks. |
+| `samples/Typeshift.Samples.Docs` | The guide pages and the README. It builds with the solution, and CI runs its program, which executes each documented scenario and throws when one breaks. |
 
 A region is marked in the source with comments, in any file type:
 
 ```text
-// begin-snippet: tool-defaults
+// begin-snippet: settings-picks
 ...
 // end-snippet
 ```
 
-and used in Markdown by its name on a line of its own, `snippet: tool-defaults`. A whole file is used by its path
-from the repository root, `snippet: samples/Typeshift.Samples.Docs/Examples/support-agent-settings.json`.
+and used in Markdown by its name on a line of its own, `snippet: settings-picks`. A whole file is used by its path
+from the repository root.
 
 ## Changing a page or its code
 

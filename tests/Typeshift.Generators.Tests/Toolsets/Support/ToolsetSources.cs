@@ -2,126 +2,135 @@ namespace Typeshift.Generators.Tests.Toolsets.Support;
 
 public static class ToolsetSources
 {
-    public const string WebResearch =
+    public const string Tickets =
         """
         using System;
         using System.Collections.Generic;
         using System.Threading;
         using System.Threading.Tasks;
-        using Typeshift.Tools;
-        using Typeshift.Toolsets;
         using Microsoft.Extensions.AI;
+        using Typeshift;
 
         namespace Demo;
 
         /// <summary>
-        /// The settings of the web search.
+        /// The settings of the ticket search.
         /// </summary>
-        public record SearchWebSettings
+        public record SearchTicketsSettings
         {
             /// <summary>
-            /// The most results to return.
+            /// The most tickets to return.
             /// </summary>
             public int Limit { get; init; } = 10;
 
             /// <summary>
-            /// Whether explicit results are filtered.
+            /// Whether closed tickets are found too.
             /// </summary>
-            public bool SafeSearch { get; init; } = true;
+            public bool IncludeClosed { get; init; }
 
             /// <summary>
-            /// The region results are ranked for.
+            /// How long the search may take.
             /// </summary>
-            public string? Region { get; init; }
+            public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(5);
         }
 
         /// <summary>
-        /// How a page is read.
+        /// One ticket.
         /// </summary>
-        public enum ReadMode
-        {
-            /// <summary>
-            /// Only the main content.
-            /// </summary>
-            Main,
-
-            /// <summary>
-            /// The whole page.
-            /// </summary>
-            Full
-        }
+        public record Ticket(int Number, string Title);
 
         /// <summary>
-        /// One search result.
+        /// The customer's support tickets.
         /// </summary>
-        public record WebSearchResult(string Url, string Title);
-
-        /// <summary>
-        /// Searches and reads the public web.
-        /// </summary>
-        public partial class WebResearchToolset : Toolset
+        public partial class TicketToolset : Toolset
         {
-            private const string SearchWebDescription =
-                "Search the public web. Returns the most relevant results first.";
+            private const string CloseDescription = "Closes a ticket for good.";
 
             /// <summary>
             /// Declares the tools.
             /// </summary>
-            public WebResearchToolset()
+            public TicketToolset()
             {
-                DisplayName = "Web research";
+                WithDisplayName("Tickets");
 
-                AddTool(SearchWebAsync)
-                    .WithName("search_web")
-                    .WithDescription(SearchWebDescription)
-                    .WithSettings<SearchWebSettings>()
+                AddTool(SearchTicketsAsync)
+                    .ReadOnly()
+                    .WithSettings<SearchTicketsSettings>()
                     .Configurable(s => s.Limit)
-                    .Configurable(s => s.Region);
+                    .Configurable(s => s.IncludeClosed);
 
-                AddTool(ReadWebPage)
-                    .WithName("read_web_page");
+                AddTool(CloseTicket)
+                    .WithDescription(CloseDescription)
+                    .RequiresApproval();
 
                 AddTool(Forget)
-                    .WithName("forget")
-                    .WithDescription("Forgets what was read.");
+                    .WithName("forget_ticket");
             }
 
-            /// <param name="query">What to search for.</param>
-            /// <param name="country">Two-letter ISO country code for local results, or null.</param>
-            /// <param name="settings">The settings the search runs with.</param>
-            /// <param name="serviceProvider">The services of the call.</param>
-            /// <param name="ct">Cancels the search.</param>
-            public static Task<IReadOnlyList<WebSearchResult>> SearchWebAsync(
-                string query,
-                string? country,
-                SearchWebSettings settings,
-                IServiceProvider serviceProvider,
-                CancellationToken ct) =>
-                Task.FromResult<IReadOnlyList<WebSearchResult>>([]);
-
             /// <summary>
-            /// Reads the main content of a web page as markdown, at most
-            /// <paramref name="maximumLength"/> characters of it. Pass the URL of a
-            /// <see cref="WebSearchResult"/> from the <see cref="IReadOnlyList{T}"/> the search returns.
+            /// Searches the customer's tickets, newest first.
             /// </summary>
-            /// <param name="url">The page to read.</param>
-            /// <param name="maximumLength">The longest text to return.</param>
-            /// <param name="mode">How much of the page to read.</param>
-            public static string ReadWebPage(string url, int maximumLength = 4000, ReadMode mode = ReadMode.Main) =>
-                url;
+            /// <param name="query">Words the ticket's title contains.</param>
+            /// <param name="author">Only tickets of this author, or null for all.</param>
+            public static Task<IReadOnlyList<Ticket>> SearchTicketsAsync(
+                string query,
+                string? author,
+                SearchTicketsSettings settings,
+                IServiceProvider services,
+                CancellationToken ct) =>
+                Task.FromResult<IReadOnlyList<Ticket>>([]);
+
+            /// <param name="number">The ticket's number.</param>
+            /// <param name="reason">Why it is closed, as the customer will read it.</param>
+            /// <param name="notify">Whether the customer is told.</param>
+            public static void CloseTicket(int number, string reason, bool notify = true)
+            {
+            }
 
             /// <summary>
             /// Forgets what was read.
             /// </summary>
-            /// <param name="arguments">The raw arguments of the call.</param>
             public static ValueTask Forget(AIFunctionArguments arguments) => ValueTask.CompletedTask;
+        }
+        """;
+
+    public const string DeniedSettings =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record SearchArticlesSettings
+        {
+            public string Language { get; init; } = "en";
+
+            public int Limit { get; init; } = 5;
+
+            public bool Fuzzy { get; init; }
+        }
+
+        internal partial class KnowledgeToolset : Toolset
+        {
+            public KnowledgeToolset()
+            {
+                AddTool(SearchArticles)
+                    .WithConfigurableSettings<SearchArticlesSettings>()
+                    .NotConfigurable(s => s.Limit);
+            }
+
+            /// <summary>
+            /// Searches the help center.
+            /// </summary>
+            /// <param name="query">What to search for.</param>
+            public static string[] SearchArticles(string query, SearchArticlesSettings settings) => [query];
         }
         """;
 
     // A default of each kind that needs care to come out as a literal of the parameter's own type
     public const string Defaults =
         """
-        using Typeshift.Toolsets;
+        using System;
+        using Typeshift;
 
         namespace Demo;
 
@@ -133,88 +142,101 @@ public static class ToolsetSources
 
         internal partial class GreetingToolset : Toolset
         {
-            public GreetingToolset() => AddTool(Greet).WithName("greet").WithDescription("Greets.");
+            public GreetingToolset() => AddTool(Greet).WithDescription("Greets.");
 
             public static string Greet(
                 string greeting = "say \"hi\"",
                 bool loud = true,
-                long limit = 5,
+                char mark = '!',
+                byte times = 2,
+                short pause = -1,
+                long budget = 9_000_000_000,
+                float ratio = 0.5f,
+                double nan = double.NaN,
+                decimal price = 1.25m,
                 Level level = Level.High,
                 Level unnamed = (Level)7,
-                Level negative = (Level)(-1),
-                Level? fallback = Level.Low) =>
+                DateTime when = default,
+                int? optional = null,
+                string? missing = null) =>
                 greeting;
         }
         """;
 
     public const string Nested =
         """
-        using Typeshift.Toolsets;
+        using Typeshift;
 
         namespace Demo;
 
-        /// <summary>
-        /// Holds a toolset.
-        /// </summary>
-        public static partial class Outer
+        internal partial class Outer
         {
-            /// <summary>
-            /// A toolset nested in another class.
-            /// </summary>
-            public partial class EchoToolset : Toolset
+            internal partial class Tickets : Toolset
             {
-                /// <summary>
-                /// Declares the tool.
-                /// </summary>
-                public EchoToolset()
-                {
-                    AddTool(Echo)
-                        .WithName("echo")
-                        .WithDescription("Echoes the text.");
-                }
+                public Tickets() => AddTool(Find).WithDescription("Finds.");
 
-                /// <summary>
-                /// Echoes the text.
-                /// </summary>
-                /// <param name="text">The text to echo.</param>
-                public static string Echo(string text) => text;
+                public static string Find(string query) => query;
             }
         }
+
+        internal partial class Outer_Tickets
+        {
+        }
         """;
 
-    // A description spanning lines, as a line break or a multi-line raw string puts it
-    public const string MultiLineDescription =
+    public const string KeywordNames =
         """
-        using Typeshift.Toolsets;
+        using Typeshift;
+
+        namespace @class.@event;
+
+        internal record @record
+        {
+            public int @int { get; init; }
+        }
+
+        internal partial class @object : Toolset
+        {
+            public @object() =>
+                AddTool(@params).WithDescription("Runs.").WithSettings<@record>().Configurable(s => s.@int);
+
+            public static string @params(string @string, @record settings) => @string;
+        }
+        """;
+
+    public const string ReservedNames =
+        """
+        using Typeshift;
 
         namespace Demo;
 
-        internal partial class EchoToolset : Toolset
+        internal record EqualsSettings
         {
-            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes the text.\nTwice.");
+            public int ApplyTo { get; init; }
 
-            public static string Echo(string text) => text;
+            public int EqualsOverrides { get; init; }
+        }
+
+        internal partial class ReservedToolset : Toolset
+        {
+            public ReservedToolset()
+            {
+                AddTool(Compare)
+                    .WithName("equals")
+                    .WithDescription("Compares.")
+                    .WithSettings<EqualsSettings>()
+                    .Configurable(s => s.ApplyTo)
+                    .Configurable(s => s.EqualsOverrides);
+            }
+
+            public static bool Compare(string left, string right, EqualsSettings settings) => left == right;
         }
         """;
 
-    public const string KeywordNamespace =
-        """
-        using Typeshift.Toolsets;
-
-        namespace Demo.@event;
-
-        internal partial class EchoToolset : Toolset
-        {
-            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes the text.");
-
-            public static string Echo(string text) => text;
-        }
-        """;
-
-    public const string ObsoleteConfigurableSetting =
+    public const string ObsoleteSetting =
         """
         using System;
-        using Typeshift.Toolsets;
+        using Typeshift;
 
         namespace Demo;
 
@@ -228,129 +250,59 @@ public static class ToolsetSources
 
         internal partial class EchoToolset : Toolset
         {
-            public EchoToolset() =>
-                AddTool(Echo)
-                    .WithName("echo")
-                    .WithDescription("Echoes the text.")
-                    .WithConfigurableSettings<EchoSettings>();
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.").WithConfigurableSettings<EchoSettings>();
 
             public static string Echo(string text, EchoSettings settings) => text;
         }
         """;
 
-    // Members whose names need care in C# and in JSON
-    public const string AwkwardSettingNames =
+    public const string MultiLineDescription =
         """
-        using Typeshift.Toolsets;
+        using Typeshift;
 
         namespace Demo;
 
-        internal record LinkSettings
+        internal partial class NoteToolset : Toolset
         {
-            public int @event { get; init; }
+            public NoteToolset() => AddTool(Note);
 
-            public string URLPrefix { get; init; } = "";
-        }
-
-        internal partial class LinkToolset : Toolset
-        {
-            public LinkToolset() =>
-                AddTool(Link)
-                    .WithName("link")
-                    .WithDescription("Links the text.")
-                    .WithConfigurableSettings<LinkSettings>();
-
-            public static string Link(string text, LinkSettings settings) => text;
+            /// <summary>
+            /// Takes a note that spans
+            /// several lines, with <c>code</c> &amp; "quotes".
+            /// </summary>
+            /// <param name="text">The note's text,
+            /// on two lines.</param>
+            public static string Note(string text) => text;
         }
         """;
 
     public const string DocumentedTwice =
         """
-        using Typeshift.Toolsets;
+        using Typeshift;
 
         namespace Demo;
 
-        /// <summary>
-        /// Echoes text.
-        /// </summary>
-        public partial class EchoToolset : Toolset
+        internal partial class NoteToolset : Toolset
         {
-            /// <summary>
-            /// Declares the tool.
-            /// </summary>
-            public EchoToolset() => AddTool(Echo).WithName("echo");
+            public NoteToolset() => AddTool(Note).WithDescription("Takes a note.");
 
-            /// <summary>
-            /// Echoes the text.
-            /// </summary>
-            /// <param name="text">The text to echo.</param>
-            /// <param name="text">The text, again.</param>
-            public static string Echo(string text) => text;
+            /// <param name="text">The note's text.</param>
+            /// <param name="text">A second description of the same parameter.</param>
+            public static string Note(string text) => text;
         }
         """;
 
-    public const string ReservedNames =
+    public const string PrivateMethod =
         """
-        using System;
-        using Typeshift.Toolsets;
+        using Typeshift;
 
         namespace Demo;
 
-        /// <summary>
-        /// Settings whose members are named like the members of the generated overrides.
-        /// </summary>
-        public record ClashingSettings
+        internal partial class SecretToolset : Toolset
         {
-            /// <summary>
-            /// A member named like the overrides' writer.
-            /// </summary>
-            public int Serialize { get; init; }
+            public SecretToolset() => AddTool(Reveal).WithDescription("Reveals.");
 
-            /// <summary>
-            /// A member named like the overrides' reader.
-            /// </summary>
-            public int Deserialize { get; init; }
-
-            /// <summary>
-            /// A member named like the overrides themselves.
-            /// </summary>
-            public int ToolsOverrides { get; init; }
-        }
-
-        /// <summary>
-        /// A toolset with tools named like members of its Tools class and of object.
-        /// </summary>
-        public partial class ClashingToolset : Toolset
-        {
-            /// <summary>
-            /// Declares the tools.
-            /// </summary>
-            public ClashingToolset()
-            {
-                AddTool(ListTools)
-                    .WithName("tools")
-                    .WithDescription("Lists the tools.")
-                    .WithConfigurableSettings<ClashingSettings>();
-
-                AddTool(Describe)
-                    .WithName("equals")
-                    .WithDescription("Compares the tools.");
-
-                AddTool(Describe)
-                    .WithName("to_string")
-                    .WithDescription("Prints the tools.");
-            }
-
-            /// <summary>
-            /// Lists the tools.
-            /// </summary>
-            /// <param name="settings">The settings of the call.</param>
-            public static string ListTools(ClashingSettings settings) => "";
-
-            /// <summary>
-            /// Describes the tools.
-            /// </summary>
-            public static string Describe() => "";
+            private static string Reveal(string name) => name;
         }
         """;
 }

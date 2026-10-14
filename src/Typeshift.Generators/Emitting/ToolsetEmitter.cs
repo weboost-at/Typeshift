@@ -7,141 +7,76 @@ namespace Typeshift.Generators.Emitting;
 internal static class ToolsetEmitter
 {
     private const string ToolParameterList =
-        "global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Tools.ToolParameter>";
+        "global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter>";
 
-    private const string ToolBinding = "global::Typeshift.Tools.ToolBinding";
+    private const string ToolJson = "global::Typeshift.Generated.ToolJson";
 
-    private const string ToolDefinition = "global::Typeshift.Toolsets.ToolDefinition";
+    private const string AIFunction = "global::Microsoft.Extensions.AI.AIFunction";
 
-    private const string ToolName = "global::Typeshift.Tools.ToolName";
+    private const string Hidden =
+        "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
+
+    // The members of a record the overrides' properties must not be named like
+    private static readonly string[] RecordMembers =
+        ["ApplyTo", "Clone", "Deconstruct", "EqualityContract", "Equals", "GetHashCode", "PrintMembers", "ToString"];
 
     public static string Emit(ToolsetModel toolset) =>
         TypeEmitter.EmitPartial(
             toolset.Type,
-            toolset.Tools.Select(GetStamp),
+            [],
             writer =>
             {
-                WriteToolReferences(writer, toolset);
-
-                foreach (var tool in toolset.Tools.Where(HasOverrides))
-                {
-                    writer.Line();
-                    WriteOverrides(writer, tool, tool.Settings!);
-                }
-
-                writer.Line();
-                WriteGetBinding(writer, toolset);
-
                 foreach (var tool in toolset.Tools)
                 {
-                    writer.Line();
-                    WriteBinding(writer, tool);
+                    if (tool != toolset.Tools[0]) writer.Line();
+
+                    if (HasOverrides(tool))
+                    {
+                        WriteOverrides(writer, tool, tool.Settings!);
+                        writer.Line();
+                    }
+
+                    WriteFactory(writer, tool);
                     writer.Line();
                     WriteFunction(writer, tool);
                 }
             },
-            writer => WriteToolList(writer, toolset));
+            writer =>
+            {
+                if (toolset.IsReachable) WriteToolList(writer, toolset);
+            });
 
     private static bool HasOverrides(ToolModel tool) => tool.Settings?.HasConfigurable is true;
 
-    // A tool whose method takes no settings is warned about (TSH009) and created without them
-    private static bool ReadsSettings(ToolModel tool) =>
-        tool.Parameters.Any(parameter => parameter.Kind == ParameterKind.Settings);
-
-    // Other compilations read the tools of this toolset from these stamps
-    private static string GetStamp(ToolModel tool)
-    {
-        var settings = tool.Settings is { } model ? $"typeof({model.Type})" : "null";
-
-        var configurable = tool.Settings?.Properties
-            .Where(property => property.IsConfigurable)
-            .Select(property => $", {Names.Literal(property.Name)}") ?? [];
-
-        return $"global::Typeshift.Modules.GeneratedTool({Names.Literal(tool.Name)}, {settings}{string.Concat(configurable)})";
-    }
-
-    private static void WriteToolReferences(SourceWriter writer, ToolsetModel toolset)
-    {
-        Docs.WriteSummary(writer, "Typed references to the tools of this toolset.");
-
-        using (writer.Block("public static class Tools"))
-        {
-            foreach (var tool in toolset.Tools)
-            {
-                if (tool != toolset.Tools[0]) writer.Line();
-
-                Docs.WriteSummary(writer, $"The <c>{tool.Name}</c> tool.");
-                writer.Line(
-                    $"public static {RefType(toolset, tool)} {Names.ToolProperty(tool.Name)} {{ get; }} = "
-                    + $"new({Names.Literal(tool.Name)});");
-            }
-        }
-    }
-
-    private static string RefType(ToolsetModel toolset, ToolModel tool) =>
-        HasOverrides(tool)
-            ? $"global::Typeshift.Tools.ToolRef<{tool.Settings!.Type}, "
-                + $"{toolset.Type.FullName}.{Names.OverridesName(tool.Name)}>"
-            : "global::Typeshift.Tools.ToolRef";
-
-    // The tool's configurable members, nullable: what a UI edits, a store keeps and a run passes
+    // The tool's configurable members, nullable: what a settings form edits, a store keeps and a run passes
     private static void WriteOverrides(SourceWriter writer, ToolModel tool, SettingsModel settings)
     {
         var type = Names.OverridesName(tool.Name);
         var configurable = settings.Properties.Where(property => property.IsConfigurable).ToList();
-
-        // A value never clashes with a member of the record or the record itself
-        string[] reserved = [type, .. StorableEmitter.RecordMembers];
-
-        var members = configurable
-            .Select(property => new StoredMember(
-                Names.Unreserved(property.Name, "Value", reserved),
-                Names.JsonName(property.Name),
-                property.Storage!))
-            .ToList();
+        string[] reserved = [type, .. RecordMembers];
 
         Docs.WriteSummary(
             writer,
-            $"Overrides the configurable settings of the <c>{tool.Name}</c> tool, as stored tool defaults, as "
-            + "an agent's stored settings or for a single run. A null value keeps what the layer below sets.");
-        writer.Lines(
-            $"""
-            public sealed record {type} :
-                global::Typeshift.Settings.IToolOverrides<{settings.Type}>,
-                global::Typeshift.Persistence.IStorable<{type}>
-            """);
+            $"The configurable settings of the <c>{tool.Name}</c> tool, as an agent's stored settings or a run "
+            + "override them. A null value keeps what the layer below sets.");
 
-        using (writer.Block())
+        using (writer.Block($"public sealed record {type}"))
         {
-            for (var index = 0; index < configurable.Count; index++)
+            foreach (var property in configurable)
             {
-                var property = configurable[index];
                 var summary = property.Summary is { } text ? Docs.Escape(text) : $"Overrides <c>{property.Name}</c>.";
 
                 Docs.WriteSummary(writer, $"{summary} Null keeps the value of the layer below.");
-                writer.Line($"public {property.NullableType} {Names.Identifier(members[index].Property)} {{ get; init; }}");
+                writer.Line(
+                    $"public {property.NullableType} {Member(property, reserved)} {{ get; init; }}");
                 writer.Line();
             }
 
-            writer.Line(
-                $"{ToolName} global::Typeshift.Settings.IToolOverrides.Tool => new({Names.Literal(tool.Name)});");
-            writer.Line();
-            StorableEmitter.WriteSerialize(writer, members, []);
-            writer.Line();
-            StorableEmitter.WriteDeserialize(writer, type, members, []);
-            writer.Line();
-            writer.Lines(
-                $"""
-                {settings.Type} global::Typeshift.Settings.IToolOverrides<{settings.Type}>.ApplyTo(
-                    {settings.Type} settings) =>
-                """);
-
-            var assignments = configurable
-                .Select((property, index) => (
-                    Setting: Names.Identifier(property.Name),
-                    Value: Names.Identifier(members[index].Property)))
-                .Select(pair => $"{pair.Setting} = {pair.Value} ?? settings.{pair.Setting}")
-                .ToList();
+            Docs.WriteSummary(writer, "Applies the values this layer sets over the settings of the layer below.");
+            Docs.WriteParam(writer, "settings", "The settings of the layer below.");
+            Docs.WriteReturns(writer, "The settings with every value this layer sets.");
+            writer.Line(Hidden);
+            writer.Line($"public {settings.Type} ApplyTo({settings.Type} settings) =>");
 
             using (writer.Indent())
             {
@@ -149,93 +84,64 @@ internal static class ToolsetEmitter
 
                 using (writer.Block(close: "};"))
                 {
-                    writer.List(assignments);
+                    writer.List(
+                    [
+                        .. configurable.Select(property =>
+                            $"{Names.Identifier(property.Name)} = {Member(property, reserved)} ?? "
+                            + $"settings.{Names.Identifier(property.Name)}")
+                    ]);
                 }
             }
         }
     }
 
-    // D29: what agents pick in UseToolset<T>().Include(t => t.X), next to the toolset in its namespace
-    private static void WriteToolList(SourceWriter writer, ToolsetModel toolset)
+    // D6: a member named like one of the record's own gets a suffix instead of clashing with it
+    private static string Member(SettingsPropertyModel property, string[] reserved) =>
+        Names.Identifier(Names.Unreserved(property.Name, "Value", reserved));
+
+    private static void WriteFactory(SourceWriter writer, ToolModel tool)
     {
-        var list = $"global::Typeshift.Tools.ToolList<{toolset.Type.FullName}>";
+        var arguments = tool.Settings is not null && ReadsSettings(tool) ? "settings, json" : "json";
 
-        writer.Line();
-        Docs.WriteSummary(
-            writer,
-            $"The tools of <see cref=\"{toolset.Type.FullName}\"/>, to include in or exclude "
-            + $"from an agent: <c>UseToolset&lt;{toolset.Type.Name}&gt;().Include(t => t.Name)</c>.");
+        Docs.WriteSummary(writer, $"Creates the <c>{tool.Name}</c> tool; generated agents call it.");
 
-        using (writer.Block($"{toolset.Type.Accessibility} static class {toolset.Type.FlatName}ToolList"))
+        if (tool.Settings is not null) Docs.WriteParam(writer, "settings", "The settings the tool runs with.");
+
+        Docs.WriteParam(writer, "json", "How the tool binds its arguments and serializes its result.");
+        Docs.WriteReturns(writer, "The tool.");
+        writer.Line(Hidden);
+        writer.Line($"public static {AIFunction} {Names.FactoryName(tool.Name)}(");
+
+        using (writer.Indent())
         {
-            using (writer.Block($"extension({list} tools)"))
-            {
-                foreach (var tool in toolset.Tools)
-                {
-                    if (tool != toolset.Tools[0]) writer.Line();
+            if (tool.Settings is { } model) writer.Line($"{model.Type} settings,");
 
-                    var description = tool.Description is { } text ? $": {Docs.Escape(text)}" : ".";
-                    var property = Names.ToolProperty(tool.Name);
-
-                    Docs.WriteSummary(writer, $"The <c>{tool.Name}</c> tool{description}");
-                    writer.Line(
-                        $"public {RefType(toolset, tool)} {property} => {toolset.Type.FullName}.Tools.{property};");
-                }
-            }
+            writer.Line($"{ToolJson} json) =>");
+            writer.Line($"new {Names.FunctionName(tool.Name)}({arguments});");
         }
     }
 
-    private static void WriteGetBinding(SourceWriter writer, ToolsetModel toolset)
-    {
-        Docs.WriteInheritDoc(writer);
-        writer.ToolSwitch(
-            $"protected override {ToolBinding} GetBinding({ToolDefinition} tool) =>",
-            "tool.Name.Value",
-            [.. toolset.Tools.Select(tool => (tool.Name, $"{Names.ToPascalCase(tool.Name)}Binding"))],
-            "base.GetBinding(tool)");
-    }
-
-    private static void WriteBinding(SourceWriter writer, ToolModel tool)
-    {
-        var name = Names.ToPascalCase(tool.Name);
-        var settings = ReadsSettings(tool) ? "settings, " : "";
-
-        var create = tool.Settings switch
-        {
-            null => "Create",
-            { } model when HasOverrides(tool) => $"Create<{model.Type}, {Names.OverridesName(tool.Name)}>",
-            { } model => $"Create<{model.Type}>"
-        };
-
-        var function = tool.Settings is null
-            ? $"static (tool, json) => new {name}Function(tool, json)"
-            : $"static (tool, settings, json) => new {name}Function(tool, {settings}json)";
-
-        writer.Lines(
-            $"""
-            private static readonly {ToolBinding} {name}Binding =
-                {ToolBinding}.{create}(
-                    {function});
-            """);
-    }
+    // A tool whose method takes no settings is warned about (TSH010) and runs without them
+    private static bool ReadsSettings(ToolModel tool) =>
+        tool.Parameters.Any(parameter => parameter.Kind == ParameterKind.Settings);
 
     private static void WriteFunction(SourceWriter writer, ToolModel tool)
     {
-        var name = Names.ToPascalCase(tool.Name);
+        writer.Line($"private sealed class {Names.FunctionName(tool.Name)}(");
 
-        var settings = ReadsSettings(tool) ? $"\n    {tool.Settings!.Type} settings," : "";
+        using (writer.Indent())
+        {
+            if (ReadsSettings(tool)) writer.Line($"{tool.Settings!.Type} settings,");
 
-        writer.Lines(
-            $"""
-            private sealed class {name}Function(
-                {ToolDefinition} tool,{settings}
-                global::Typeshift.Json.AgentJson json)
-                : global::Typeshift.Tools.GeneratedToolFunction(tool, json)
-            """);
+            writer.Line($"{ToolJson} json)");
+            writer.Line(": global::Typeshift.Generated.GeneratedToolFunction(json)");
+        }
 
         using (writer.Block())
         {
             WriteParameters(writer, tool);
+            writer.Line();
+            writer.Line($"public override string Name => {Names.Literal(tool.Name)};");
             writer.Line();
 
             if (tool.Description is { } description)
@@ -300,7 +206,7 @@ internal static class ToolsetEmitter
         var kind = tool.Return;
         var isAsync = kind is ReturnKind.Awaitable or ReturnKind.AwaitableValue;
         var isExpression = kind is ReturnKind.Value or ReturnKind.AwaitableValue;
-        var call = $"{tool.Target}.{Names.Identifier(tool.Method)}";
+        var call = $"{tool.Target}.{tool.Method}";
         var arguments = tool.Parameters.Select(GetArgument).ToList();
 
         var modifiers = isAsync ? "override async" : "override";
@@ -361,4 +267,33 @@ internal static class ToolsetEmitter
                 $"GetArgument<{parameter.Type}>(arguments, {Names.Literal(parameter.Name)}, {value})",
             _ => $"GetArgument<{parameter.Type}>(arguments, {Names.Literal(parameter.Name)})"
         };
+
+    // D4: what agents pick in UseToolset<T>().Include(t => t.X), next to the toolset in its namespace
+    private static void WriteToolList(SourceWriter writer, ToolsetModel toolset)
+    {
+        var list = $"global::Typeshift.ToolList<{toolset.Type.FullName}>";
+
+        writer.Line();
+        Docs.WriteSummary(
+            writer,
+            $"The tools of <see cref=\"{toolset.Type.FullName}\"/>, to include in or exclude from an agent.");
+
+        using (writer.Block($"{toolset.Type.Accessibility} static class {toolset.Type.FlatName}ToolList"))
+        {
+            using (writer.Block($"extension({list} tools)"))
+            {
+                foreach (var tool in toolset.Tools)
+                {
+                    if (tool != toolset.Tools[0]) writer.Line();
+
+                    var description = tool.Description is { } text ? $": {Docs.Escape(text)}" : ".";
+
+                    Docs.WriteSummary(writer, $"The <c>{tool.Name}</c> tool{description}");
+                    writer.Line(
+                        $"public global::Typeshift.ToolName {Names.ToolProperty(tool.Name)} => "
+                        + $"new({Names.Literal(tool.Name)});");
+                }
+            }
+        }
+    }
 }

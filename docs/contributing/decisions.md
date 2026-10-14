@@ -1,14 +1,10 @@
 # Decisions
 
 Why the code is shaped the way it is. Each entry gives the context, the decision, the alternatives that lost and where
-the decision lives in the code. IDs are stable: code comments cite them (`// D25: ...`), and a decision that no longer
-holds moves to the [withdrawn](#withdrawn) table, pointing to what replaced it. "Spec" means the alpha's design
-document; "owner" means the maintainer, whose review shaped D25 to D36.
-
-The ones that shape the API the most: D25 to D27 (one store of self-serializing documents, the generated settings
-records), D29 and D30 (generated tool lists and `Configure{Tool}()`, so misuse does not compile), D40 to D42 (settings
-as a tool parameter, one flat chain per declaration), D33 (conversation ids parsed into the store's ids), D1 and D4
-(the intercepted `AddTypeshift()`, the typed runtime members) and D44 (JSON contexts registered by the modules).
+it lives. **Status** says whether the owner decided it, whether it carries a decision of v0 over (v0's number in
+brackets), or whether the owner approved it with the API sign-off of the rewrite. IDs are stable: code cites them as
+`// D25: ...`, and a decision that no longer holds moves to the [withdrawn](#withdrawn) table, pointing to what
+replaced it.
 
 Before changing code an entry names, read the entry. To change the decision itself, edit the entry in the same
 commit, or add a new one and withdraw the old.
@@ -17,440 +13,461 @@ commit, or add a new one and withdraw the old.
 
 ### D1. `AddTypeshift()` exists only as an intercepted call
 
-- **Context:** a generated `AddTypeshift()` per assembly is ambiguous (CS0121) wherever `InternalsVisibleTo` exposes
-  another assembly's internals, and every test project does.
-- **Decision:** the library ships one public `AddTypeshift()` that throws an `InvalidOperationException` saying what to
-  check; the generator intercepts every call in the project that makes it. The method lives in the
-  `Microsoft.Extensions.DependencyInjection` namespace, like every `Add...` method, so hosts need no extra using.
-- **Alternatives:** a generated method with a per-assembly name (`AddTypeshiftForMyApp()`), which leaks the assembly
-  name into every host; module initializers, which run on load and cannot see the service collection.
-- **Where:** `DependencyInjection/TypeshiftServiceCollectionExtensions.cs`, `Emitting/InterceptorEmitter.cs`,
-  `buildTransitive/Typeshift.props`.
+- **Status:** carried (v0 D1).
+- **Decision:** the library's `AddTypeshift()` throws, saying what to check; the generator intercepts every call in a
+  project. It returns `TypeshiftBuilder`, the one registration chain. A library that calls `AddTypeshift()` inside its
+  own `AddX()` registers only its own modules; the docs say so.
+- **Alternatives:** a generated method per assembly, ambiguous (CS0121) wherever `InternalsVisibleTo` reaches.
+- **Where:** `DependencyInjection/`, `Emitting/InterceptorEmitter.cs`.
 
-### D2. The generated names
+### D2. An analyzer reports the diagnostics; the generator only writes code
 
-- **Decision:**
-  - per toolset: `{Toolset}.Tools.{Tool}`, a `ToolRef` or `ToolRef<TSettings, TOverrides>`; per tool with
-    configurable settings a nested `{Tool}Overrides` record; a `{Toolset}ToolList` class whose extension block adds
-    one property per tool to `ToolList<TToolset>`, named like the tool's property in `Tools`;
-  - per agent: the nested `Settings` record; per tool with settings a private `Configure{Tool}()` returning a nested
-    `{Tool}SettingsBuilder`; a `{Agent}RuntimeExtensions` class with the typed members of `AgentRuntime<TAgent>`; a
-    nested agent's class name joins its containers' names, so twins in two classes do not clash;
-  - per assembly: `Typeshift.Generated.{Assembly}Module`, with every character of the assembly name that is not a letter
-    or digit replaced by `_` (`Typeshift.Samples.Console` gives `Typeshift_Samples_ConsoleModule`);
-  - the interceptor: a `file static class AddTypeshiftInterceptor` in `Typeshift.Generated`;
-  - a generated member named like a member next to it gets a suffix: a tool `equals` is `Tools.EqualsTool` and
-    `t => t.EqualsTool`, since `Equals` is an inherited member.
-- **Alternatives:** `{Tool}Configuration` and `Configuration` views over a JSON dictionary, the alpha's first
-  design, replaced by D27.
+- **Status:** approved with the sign-off.
+- **Context:** v0 reported TSH diagnostics without syntax trees, so `#pragma` and `.editorconfig` could not reach
+  them, and locations in the models broke caching.
+- **Decision:** a `DiagnosticAnalyzer` in the same package reports every TSH diagnostic at real locations; the parser
+  takes a report callback, a no-op in the generator. Compilation-wide checks (unique names, references, the id type)
+  are compilation-end actions. The analyzer sees generated code, so it checks picks and the store type semantically.
+  A `DiagnosticSuppressor` silences CS1573 for tool parameters the model never sees.
+- **Alternatives:** the generator reporting with real locations, which keeps syntax nodes out of cached models only
+  with v0's plumbing.
+- **Where:** `src/Typeshift.Generators/Analysis/`.
+
+### D3. Discovery stays attribute-free, narrowed by syntax
+
+- **Status:** decided by the owner in this session.
+- **Context:** v0 re-bound every class with a base list on each edit (about 170 ms per keystroke for 50 toolsets).
+- **Decision:** the syntax predicate takes classes whose base list names `Toolset` or `Agent` (any qualification);
+  the semantic check confirms. No marker attribute.
+- **Alternatives:** a marker attribute with `ForAttributeWithMetadataName`, which reruns only changed files but adds
+  ceremony to every declaration.
+- **Where:** `Parsing/Discovery.cs`.
+
+### D4. Every declaration shape the generator cannot read is diagnosed
+
+- **Status:** approved with the sign-off.
+- **Context:** v0 ran the declaration chains at runtime too, and read the tool picks from syntax at compile time, so a
+  chain split over variables offered one set of tools at runtime and generated code for another.
+- **Decision:** `Include(t => t.X)` stays, picked from the generated `ToolList<T>` (v0 D29): a foreign tool does not
+  compile. The generator reads the picks from syntax, since the list's properties are its own output; the analyzer
+  reports every other shape: a chain split over variables, a pick that is not `t => t.X` (TSH015), a declaration
+  outside the constructor body (TSH014). At runtime the chains declare nothing: the generated code is the one truth,
+  and only values (`WithDisplayName`, chat options, `Configure{Tool}()`) are recorded.
+- **Alternatives:** method groups (`Include(TicketToolset.SearchTickets)`), which bind semantically but take a
+  `Delegate` and fail only through a diagnostic.
+- **Where:** `Parsing/AgentParser.cs`, `Analysis/`.
+
+### D5. Settings and chat-option picks are typed lambdas that never run
+
+- **Status:** carried (v0 D5), typed.
+- **Decision:** `Configurable<TMember>(Func<TSettings, TMember>)`: no `object`. The generator reads the picks; the
+  configurable set exists once, in the generated records.
+- **Where:** `Toolset.cs`, `Agent.cs`, `Parsing/ConstructorChains.cs`.
+
+### D6. The generated names
+
+- **Status:** carried (v0 D2), extended.
+- **Decision:** per toolset a `{Tool}Overrides` record per tool with configurable settings and a `{Toolset}ToolList`
+  extension block; per agent the nested `Settings` record, a private `Configure{Tool}()` per offered tool with
+  settings and an `{Agent}HostExtensions` extension block; per assembly a module; per project the id aliases. Nested
+  classes join their containers' names with `_`; keywords get `@`. A clash with a user member is TSH018.
 - **Where:** `Emitting/Names.cs`.
 
-### D3. `ToolRef<TSettings, TOverrides>` carries the overrides type as well
+### D7. Stamps carry the generated names and a version
 
-- **Context:** the spec sketched `ToolRef<TSettings>`. Configuring a tool's stored defaults needs its generated
-  overrides record, a type the library cannot name.
-- **Decision:** `ToolDefaults.ConfigureAsync(id, CompanyToolset.Tools.FindCompanies, d => d with { Limit = 2 })`
-  infers both types from the reference. The overrides implement `IToolOverrides<TSettings>` and `IStorable<TSelf>`,
-  so nothing creates or reads them by reflection.
-- **Alternatives:** a generic `ConfigureAsync<TOverrides>` the caller spells out; a generated method per tool.
-- **Where:** `Tools/ToolRef.cs`, `Settings/ToolDefaults.cs`.
+- **Status:** approved with the sign-off.
+- **Context:** v0's stamps carried tool names only, so an agent rebuilt `{Tool}Overrides` names with its own
+  generator version.
+- **Decision:** tool stamps name the overrides type and the list property, and every module stamp has a stamp
+  version; an unknown version is TSH020.
+- **Where:** `Modules/`, `Parsing/ReferenceReader.cs`.
 
-### D4. Typed runtime members are C# 14 extension blocks
+### D8. The generator targets Roslyn 5
 
-- **Context:** `AgentRuntime<TAgent>` is a library type; its typed members need the agent's generated `Settings`.
-- **Decision:** the generator emits `extension(AgentRuntime<TAgent> runtime) { ... }` with `LoadSettingsAsync`,
-  `SaveSettingsAsync`, `ConfigureAsync`, `ResolveChatOptions` and `ResolveChatOptionsAsync`. They call hidden
-  `...Core` and `...CoreAsync` methods of `AgentRuntime`, so the logic lives and is tested in the library. Consumers
-  need C# 14, the default of .NET 10.
-- **Alternatives:** classic `this` extension methods, which would let C# 13 consumers compile; a generated runtime
-  subclass per agent, which the container would have to know.
-- **Where:** `Emitting/AgentEmitter.cs`, `Agents/AgentRuntime.cs`.
-
-### D5. Settings picks and chat-option picks are read only by the generator
-
-- **Context:** `WithSettings<T>().Configurable(s => s.Limit)` and `WithChatOptions().Configurable(o => o.Temperature)`
-  name the configurable members.
-- **Decision:** the generator reads the `Configurable` calls from the constructor and emits the `Overrides` and
-  `Settings` records; at runtime `Configurable` returns its builder and its lambda never runs. The lambdas are
-  `Func<T, object?>`, not expression trees, so nothing is built for them at runtime. The configurable set exists
-  once, in generated types. Tool picks are different: their calls run (D29).
-- **Alternatives:** recording the picks at runtime, which duplicates the set and needs expression trees under AOT.
-- **Where:** `Parsing/ConstructorChains.cs` (`GetPickedProperty`), `Toolsets/ToolBuilder.cs`,
-  `Agents/ChatOptionsBuilder.cs`.
-
-### D6. Generic toolsets and agents are not generated
-
-- **Context:** a generic toolset's tools depend on its type arguments, which only the closing site knows.
-- **Decision:** discovery skips generic classes. Their misuse surfaces through the runtime guards (a toolset without
-  a generated binding throws when asked for a tool), which the runtime-guard tests use on purpose.
-- **Alternatives:** generating per closed type found in `UseToolset<T>` calls.
-- **Where:** `Parsing/Discovery.cs`, `tests/Typeshift.Tests/Agents/Support/RuntimeGuardAgents.cs`.
-
-### D7. Tools are keyed by name, toolsets by nothing
-
-- **Context:** the spec asked whether toolsets need a key besides the type name.
-- **Decision:** no. Stored settings, the catalog and the tool lists address tools by their lower_snake_case name,
-  which is unique host-wide (TSH007), so a toolset can move or be renamed without touching stored data.
-- **Alternatives:** a `WithKey("...")` on the toolset.
-- **Where:** `Tools/ToolName.cs`.
-
-### D8. Diagnostics beyond the spec's list
-
-- **Decision:**
-  - TSH012 reports a tool name that is not lower_snake_case. The runtime does not check it again: only generated
-    toolsets have bindings, and the generator has already reported the name.
-  - TSH013 reports settings less accessible than their toolset, whose generated API exposes them: public for a
-    public toolset, internal or wider for any other; generating narrower members instead would cascade into every
-    agent that uses the tool.
-  - TSH014 reports a configurable member whose type the generated records cannot store (D27).
-  - TSH007 is reported on the first own declaration, or on `AddTypeshift()` when the clash is only among references.
-  - The spec's agent-name diagnostics went with D31; including a foreign tool and configuring a tool the agent does
-    not offer became compiler errors (D29, D30).
-- **Where:** `Diagnostics/Descriptors.cs`, `docs/guide/diagnostics.md`.
+- **Status:** approved with the sign-off.
+- **Decision:** consumers need C# 14 for the extension blocks, so the generator uses Roslyn 5 APIs; v0's 4.14 pin and
+  its trap go.
 
 ### D9. Every project that declares toolsets or agents references the package
 
-- **Context:** NuGet does not flow analyzers to the projects that reference a consumer (`PrivateAssets` defaults
-  include `analyzers`).
-- **Decision:** document it, and catch the mistake with TSH011. Flowing the analyzer through `buildTransitive` would
-  load the generator twice in projects that also reference the package directly.
-- **Alternatives:** a `buildTransitive` targets file that adds the analyzer when it is missing; possible later.
-- **Where:** `Parsing/ReferenceReader.cs`, `Diagnostics/RegistrationDiagnostics.cs`.
+- **Status:** carried (v0 D9). TSH020 catches a reference without it.
+
+### D10. The hidden public surface generated code calls
+
+- **Status:** carried (v0 D35).
+- **Decision:** what only generated code calls is public and `[EditorBrowsable(Never)]`, in `Typeshift.Generated`.
+
+### D11. The id type is an MSBuild property
+
+- **Status:** decided by the owner in this session.
+- **Context:** ids are typed end to end and the library is compiled before the host chooses its id type.
+- **Decision:** `<TypeshiftIdType>int</TypeshiftIdType>`, set once in `Directory.Build.props`, `Guid` by default.
+  The library's id-carrying types are generic (`ITypeshiftStore<TId>`); the generator writes per project
+  `global using` aliases (`ITypeshiftStore`, `InMemoryTypeshiftStore`, `ConversationTracker`, `LiveRun`) and
+  generates typed members with the concrete type. A reference built with another id type is TSH021; a store of
+  another is TSH028.
+- **Alternatives:** `AddTypeshift().WithIdType<int>()`, known only in the registering project, with generic run
+  members checked at runtime; a generated interface per project, ambiguous under `InternalsVisibleTo`.
+- **Where:** `buildTransitive/Typeshift.props`, `Emitting/AliasEmitter.cs`.
+
+### D12. Typed host members are generated extension blocks
+
+- **Status:** carried (v0 D4).
+- **Decision:** `extension(AgentHost<TAgent> host)` per agent, in the agent's assembly, with `RunAsync`,
+  `RunAsync<T>`, `RunStreamingAsync`, `ResumeAsync`, `ResumeStreamingAsync`, `LoadSettingsAsync`,
+  `SaveSettingsAsync`, `ConfigureAsync` and `ResolveOptionsAsync`. They call hidden library methods, so the logic lives and is tested in the library.
+
+## Declarations
+
+### D13. Tool names derive from the method
+
+- **Status:** decided by the owner in this session.
+- **Decision:** `SearchTickets` is `search_tickets`; an `Async` suffix is dropped, so `CloseTicketAsync` is
+  `close_ticket`. `WithName` overrides. The name keys stored settings, so renaming a method renames the tool: the docs
+  say to pin the old name with `WithName` first. TSH007 also compares the generated property names.
+- **Alternatives:** keeping `Async` (`close_ticket_async`), which leaks a C# convention to the model; a stored key
+  separate from the name, a second identity.
+- **Where:** `Parsing/ToolsetParser.cs`.
+
+### D14. Descriptions come from XML docs
+
+- **Status:** carried (v0), `WithDescription` overrides; parameters the model never sees need no `<param>` (D2's
+  suppressor).
+
+### D15. Tools receive services through `IServiceProvider`
+
+- **Status:** decided by the owner in this session.
+- **Context:** the brief asked to investigate injecting resolved services as parameters.
+- **Decision:** tools stay static and take `IServiceProvider`, the run's services. No injection.
+- **Alternatives:** `[FromServices]` parameters (one attribute, TSH for an interface parameter without it); inference
+  by type (interfaces are services), leaky for collection interfaces and concrete services such as a `DbContext`.
+
+### D16. A tool receives its settings as a parameter
+
+- **Status:** carried (v0 D40). The settings, `IServiceProvider`, `CancellationToken` and `AIFunctionArguments` are
+  bound by type and left out of the schema; `ref` and `out` are TSH004.
+
+### D17. One flat chain per declaration
+
+- **Status:** carried (v0 D41), decided in the brief. No builder inside a lambda anywhere: toolsets, agents,
+  registration. Metadata goes through `With...` calls, capabilities through `Use...` calls.
+
+### D18. Configurable members are an allow list unless `WithConfigurableSettings` says otherwise
+
+- **Status:** carried (v0 D43).
+
+### D19. Configurable types widen to what the generator can serialize
+
+- **Status:** decided by the owner in this session.
+- **Decision:** besides v0's scalars, enums and string lists: `DateOnly`, `TimeOnly`, `Uri`, records and classes of
+  storable settable members (replaced as a whole, never merged), arrays, lists and sets of storable values,
+  dictionaries keyed by `string` or an enum. The generator writes their serialization member by member, as for the
+  records themselves; anything else is TSH012. Recursive types are TSH012.
+- **Where:** `Parsing/Storage.cs`, `Emitting/StorableEmitter.cs`.
+
+### D20. `Configure{Tool}()` stays
+
+- **Status:** carried (v0 D30), decided in the brief.
+- **Decision:** a generated private method per offered tool with settings, returning a builder with a `With...` per
+  settable member. No better shape fits the one-chain rule: a picker (`Configure(t => t.X)`) still needs a generated
+  builder per tool, one step longer.
+
+### D21. Instructions come from a virtual method
+
+- **Status:** carried (v0 D42), decided in the brief.
+
+### D22. Agent names are optional and derive from the class
+
+- **Status:** carried (v0 D31), changed.
+- **Decision:** without `WithName`, an agent goes by its class name in snake_case, like a tool, so it can be a tool or
+  a handoff target. Names need not be unique; nothing is stored by name (D39).
+
+### D23. No agent inheritance, no composition block in v1
+
+- **Status:** decided by the owner in this session.
+- **Decision:** agents and toolsets derive from `Agent` and `Toolset` directly (TSH017). Shared declarations come
+  from static methods and constants. A preset class folded into agents (`UsePreset<T>()`) was considered and
+  deferred.
+
+### D24. Tool approval uses Microsoft.Extensions.AI's contents, with standing approvals and rules
+
+- **Status:** approved with the sign-off.
+- **Decision:** `RequiresApproval()` wraps the tool in `ApprovalRequiredAIFunction`; `FunctionInvokingChatClient`
+  ends the run with `ToolApprovalRequestContent`s, listed by `response.ApprovalRequests`. The host answers with
+  `CreateResponse(approved)` in the next run of the conversation; the stored request is the one that runs. Calls in
+  the same response that need no approval run anyway. A run that asks without a conversation throws, naming the tool.
+  `request.ApproveForConversation()` approves the tool for the rest of the conversation; the approval is stored with
+  it, so it holds across runs and processes. `IToolApprovalRule`s (`WithApprovalRule<T>()`, scoped) decide calls
+  before the host is asked, seeing the exact arguments: `Approve`, `Reject(reason)` (wins over every approval) or
+  `Abstain`, which the mode resolves (D52). A layer above `FunctionInvokingChatClient` answers the requests rules and
+  standing approvals decide and continues the loop, so only the rest reach the host. Approvals match tools by
+  name, which is unique per agent (TSH007, and a runtime check for MCP tools).
+- **Alternatives:** an approval callback the run awaits, which holds a run open across requests; a Typeshift approval
+  type, a second vocabulary.
 
 ## Runtime
 
-### D10. The tool catalog is a library class fed by the generated modules
+### D25. A run uses the services of the scope its host was resolved from
 
-- **Decision:** `ToolCatalog` lives in the library and reads the toolsets the modules register, so a host can create
-  any tool by name (for agents it assembles itself). Generated code stays small and the catalog is tested once.
-- **Alternatives:** a generated catalog per host, as the spec sketched.
-- **Where:** `Catalogs/ToolCatalog.cs`.
+- **Status:** decided by the owner in this session.
+- **Context:** v0 gave each tool call a fresh scope of the root container, so request-scoped services (the current
+  customer) never reached tools, context or the chat client provider (audit finding 2).
+- **Decision:** `AgentHost<TAgent>` is transient and keeps the provider it was resolved from. Tools, context
+  providers, middleware, the MCP tool provider and the chat client provider resolve from it. Agents and toolsets stay
+  singletons, the store too.
+- **Alternatives:** a run-context tool parameter carrying the typed id, which built-in toolsets compiled before the
+  host cannot type; per-call scopes, which lose the request.
+- **Where:** `AgentHost.cs`.
 
-### D11. Each tool call runs in a DI scope of its own
+### D26. Runs return Microsoft.Extensions.AI's types
 
-- **Context:** `FunctionInvokingChatClient` hands tools the root provider.
-- **Decision:** `GeneratedToolFunction` creates a scope per call, and the `AIFunctionArguments` the tool receives
-  carry it, so scoped services work per call. A container without `IServiceScopeFactory` throws, naming
-  `AddTypeshift()`. Settings no longer travel through the scope (D40).
-- **Alternatives:** the root provider, which makes every scoped service a singleton.
-- **Where:** `Tools/GeneratedToolFunction.cs`.
+- **Status:** decided by the owner in this session.
+- **Decision:** `RunAsync` returns `ChatResponse`, `RunAsync<T>` `ChatResponse<T>`, `RunStreamingAsync`
+  `ChatResponseUpdate`s; messages carry the answering agent as `AuthorName`. Inputs are a `string` or a
+  `ChatMessage` (for images and approvals). The raw path (`ResolveOptionsAsync`, `CreateChatClientAsync`, the client)
+  stays; options it resolved remember their settings id, so the conversation id is the only string.
+- **Alternatives:** an own `AgentResponse`, a type to learn for what `ChatResponse` holds.
 
-### D12. Nullable parameters are nullable at the schema root only
+### D27. Four settings layers
 
-- **Context:** `AIJsonUtilities.CreateJsonSchema` does not mark a nullable reference parameter as nullable.
-- **Decision:** the generator records the nullability and the library widens the parameter's root `type` to
-  `[type, "null"]`. Nested nullability follows Microsoft.Extensions.AI unchanged, and the schema test compares
-  against `AIFunctionFactory` for that reason.
-- **Alternatives:** rewriting nested schemas, which diverges from what providers already accept.
-- **Where:** `Json/AgentJson.cs`.
+- **Status:** decided in the brief. Code defaults, the agent's code, its stored `Settings`, the run. Stored tool
+  defaults (`ToolDefaults`) are gone, so resolving a run's settings is one document.
 
-### D17. The model provider interface
+### D28. The model is a configurable option like any other
 
-- **Decision:** `IChatClientProvider.GetChatClientAsync(string model, ct)` maps a model name to a client.
-  `AgentRuntime.CreateChatClientAsync(options)` passes it `options.ModelId`, which the agent's code sets and its
-  `Settings.Model` overrides (D34), and wraps the client: conversation tracking outside, `FunctionInvokingChatClient`
-  inside. A missing model throws `ConfigurationRequiredException`.
-- **Alternatives:** keyed `IChatClient` registrations, which cannot depend on stored settings.
-- **Where:** `Agents/IChatClientProvider.cs`, `Agents/AgentRuntime.cs`.
+- **Status:** decided by the owner in this session; changes v0 D34.
+- **Decision:** `Configurable(o => o.ModelId)` puts `Model` into the agent's `Settings`, overriding `WithModel`;
+  without it the model stays in code. The allow list holds for the model too.
+- **Alternatives:** `Model` in every `Settings` (v0, the brief's first sketch), which lets a settings form a
+  customer edits pick any model the provider knows.
+
+### D29. The chat client pipeline
+
+- **Status:** approved with the sign-off.
+- **Decision:** outermost first: conversation tracking (resume, run boundaries, live updates), run middleware,
+  context providers, the `invoke_agent` span, approval (standing approvals and rules), `FunctionInvokingChatClient`
+  (handoff, run options, tool middleware as its `FunctionInvoker`), checkpoints (each step appended before compaction
+  sees it; steering input and background answers injected here), compaction, `OpenTelemetryChatClient`, the
+  provider's client behind a wrapper that never disposes it.
+  Checkpoints and compaction sit inside the tool loop, so they act before every model call.
+- **Where:** `AgentHost.cs`.
+
+### D30. Middleware: one interface around runs, one around tool calls
+
+- **Status:** decided by the owner in this session.
+- **Decision:** `IRunMiddleware.InvokeAsync(run, next, ct)` serves streaming and non-streaming runs alike: it may
+  change messages and options, read `run.Response` after `next`, or set it instead of calling `next`.
+  `IToolMiddleware` wraps `FunctionInvocationContext`. Registered in the chain, in order, for every agent; a
+  middleware filters by `run.Agent`.
+- **Alternatives:** MAF's separate run and streaming delegates (streaming falls back to non-streaming when one is
+  missing); per-agent middleware in the agent's chain, a second place.
+
+### D31. Context providers
+
+- **Status:** approved with the sign-off.
+- **Decision:** `UseContext<T>()`; `IContextProvider.GetContextAsync(run, ct)` returns an `AgentContext` of
+  instructions, messages and tools, appended to the run's. Called once per run after resume; its messages are never
+  stored. No after-run hook: run middleware covers it.
+
+### D32. Run options, with compaction inside the tool loop
+
+- **Status:** decided by the owner in this session.
+- **Context:** the first draft compacted only when a conversation resumed, so one long run outgrew its context, and
+  the tool loop's limits were Microsoft.Extensions.AI's constants (40 iterations).
+- **Decision:** `WithRunOptions()`: `WithMaxToolIterations`, `WithMaxConsecutiveToolErrors`,
+  `WithConcurrentToolCalls`, `WithMaxInputTokens`, `WithTargetInputTokens`, `WithSummaryModel`, and `Configurable`
+  over the `RunOptions` record, so a run option joins `Settings` like a chat option. Before each model call, when the
+  last call's reported input tokens reached the maximum, the history shrinks to the target: oldest tool results
+  cleared first (calls kept), then the oldest turns summarized (or dropped without a summary model). Instructions,
+  the latest `write_todos` call and call/result pairs stay; the summary is stored as an entry later runs start from.
+  Without reported usage, tokens are estimated from the text.
+- **Alternatives:** MAF's strategy pipeline and trigger combinators, more concepts for the same two steps; a
+  tokenizer dependency; message-count triggers, which ignore that one tool result may outweigh a hundred messages; a
+  separate `WithCompaction()` chain next to the limits.
+
+### D33. Sub-agents, in the foreground or the background
+
+- **Status:** decided by the owner in this session.
+- **Decision:** `UseAgent<T>()` offers a tool named like the agent, with its description and one `input` string. A
+  call runs it in a fresh context with the same settings id, the caller's mode, standing approvals and rules, and no
+  conversation of its own, and returns its text. `.InBackground()` makes the tool return at once; the answer reaches
+  the calling run as a message before a later model call, and the run does not end while sub-agents work. A
+  sub-agent cannot ask the host: in the default mode its calls that need approval and that nothing approves are
+  rejected (TSH024 warns). Circles are TSH026.
+- **Alternatives:** passing a sub-agent's approval requests up to the caller's host, which pauses a parent run on a
+  child's call and needs the child's state stored to resume (possible later); MAF's six background-task tools
+  (start, wait, results, continue, clear), where one tool and an injected answer do the job; storing each sub-agent
+  run as a conversation of its own, which needs ids the library may not create.
+
+### D34. Handoff continues with the agent handed to
+
+- **Status:** decided by the owner in this session.
+- **Decision:** `UseHandoff<T>()` adds a declaration-only tool `handoff_to_{name}`. Calling it ends the current
+  agent's loop; the target answers in the same run with the whole conversation. The conversation's last entry names
+  the agent that answers its next run, if it is reachable through the host agent's handoffs. Handoff needs a
+  conversation; run settings apply to the host's agent only.
+
+### D35. MCP servers through a host provider
+
+- **Status:** approved with the sign-off.
+- **Decision:** `UseMcpServer(name)` with `.RequiresApproval()`; the host's `IMcpToolProvider` returns the server's
+  tools, connected with the MCP client of its choice. Typeshift takes no MCP dependency. Provider-side servers use
+  `HostedMcpServerTool` in `WithTools`.
+
+### D36. OpenTelemetry is always on
+
+- **Status:** approved with the sign-off.
+- **Decision:** source and meter `Typeshift`, GenAI conventions (`invoke_agent`, `chat`, `execute_tool`, operation
+  duration, token usage); message content only with `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`. No API.
+
+### D37. The built-in toolsets
+
+- **Status:** decided by the owner in this session.
+- **Decision:** in `Typeshift.Toolsets`, declared with Typeshift's own toolset API:
+  - `TodoToolset`: `write_todos` replaces the whole list; the list lives in the conversation (the latest call).
+  - `FileSystemToolset`: six tools within an `IFileSystemRoot` the host registers per scope; absolute paths, `..`
+    and escaping links refused; the three reading tools `ReadOnly()`, `delete_file` behind approval.
+  - `ShellToolset`: `run_command` in the root, always behind approval; timeout and output cap as settings.
+  - `WebToolset`: `web_search` and `web_fetch` over `IWebSearch` and `IWebFetch`, no provider shipped.
+- **Alternatives:** MAF's five todo tools with state in the session (more tokens, a store per session); file access
+  in a store abstraction.
+
+## Storage
+
+### D38. One store of documents and conversations
+
+- **Status:** approved with the sign-off.
+- **Decision:** `ITypeshiftStore<TId>` (aliased `ITypeshiftStore`): `LoadAsync` and `SaveAsync` of documents with
+  revisions, `LoadConversationAsync` and `AppendConversationAsync` of `ConversationEntry`s keyed by the conversation
+  id. Documents stay a closed set (each agent's `Settings`, `ConversationEntry`), so store generators stay
+  possible.
+- **Alternatives:** v0's load and save only, which rewrote a whole conversation per turn; a generic append for any
+  kind, a concept with one user.
+
+### D39. Kinds are stable names
+
+- **Status:** decided by the owner in this session.
+- **Decision:** `IStorable.Kind`: for an agent's `Settings` its `WithStorageKind("...")` if it has one, or else its
+  class name; `conversation_entry` for conversation entries. Moving an agent to another namespace keeps its data;
+  renaming the class keeps it once `WithStorageKind` pins the old name. Two agents of one kind are TSH022.
+- **Alternatives:** the agent's name, which would need unique names (out of scope); the full type name (v0).
+
+### D40. A schema version per document
+
+- **Status:** decided by the owner in this session.
+- **Decision:** `IStorable.Version`, 1 for `Settings` until `WithSettingsVersion(n)` raises it. The store keeps it
+  next to the JSON and passes it to `Deserialize`, which refuses a newer version; migrating older documents is the
+  store's job.
+- **Alternatives:** a version hashed from the record's shape (automatic, but no store can map it to a migration); a
+  migration hook on the agent; an analyzer against a shipped list of stored members (later).
+
+### D41. Optimistic concurrency
+
+- **Status:** decided by the owner in this session.
+- **Decision:** `SaveAsync` takes the revision the caller loaded, 0 for none, and throws `StoreConflictException`
+  when the stored one differs. `ConfigureAsync` reloads and reapplies until it wins (each conflict means another
+  save won). `SaveSettingsAsync` takes the revision from `LoadSettingsAsync`.
+
+### D42. Settings ids and conversation ids are separate; conversations grow by appending
+
+- **Status:** decided by the owner in this session.
+- **Context:** the first draft keyed conversations by the run's `id`, its settings id, as their owner. The owner
+  found `id: customer` confusing: one id named whose settings apply and who owns a conversation.
+- **Decision:** runs take `settingsId` (which stored `Settings` apply) and `conversationId` (which conversation
+  resumes), independent of each other; either may be left out. What a settings id stands for (a customer, a team, a
+  user, a profile) is the host's choice. A conversation is keyed by its id alone: the host authorizes it before
+  passing it, as any id from a request, and the guide says so. Runs append entries (D50); no locks, no second
+  read.
+- **Alternatives:** an explicit `ownerId` on conversation runs, a third id whose authorization the host still owns;
+  keying conversations by settings id, which ties two unrelated choices of the host.
+
+### D43. The store is the persistence switch
+
+- **Status:** carried (v0 D26). Without `WithStore<T>()`, runs without a settings or conversation id work; everything
+  that loads or saves throws, naming `WithStore<T>()`.
+
+### D44. Settings records serialize themselves
+
+- **Status:** carried (v0 D27), extended.
+- **Decision:** member by member through hidden helpers, no reflection; camelCase, tools under `"tools"` by name,
+  nulls left out. The generator also writes a `JsonConverter` on the record, so `System.Text.Json` (an ASP.NET
+  endpoint) writes the stored shape too.
+
+### D45. Tool JSON: contexts from the modules, reflection outside AOT
+
+- **Status:** approved with the sign-off.
+- **Decision:** modules register the `JsonSerializerContext`s that list their tools' types (v0 D44). Outside Native
+  AOT, Microsoft.Extensions.AI's reflection-based defaults cover the rest, so tools need no context; under AOT
+  (`PublishAot` or `IsAotCompatible`), a type no context lists is TSH027.
 
 ## Conversations
 
-### D18. The port of the owner's conversation tracking
+### D46. Tracking, carried and fixed
 
-- **Decision:**
-  - `TrackedConversationManager` became `ConversationTracker`; the initialize and resume option classes became one
-    internal `ConversationStart` record; `ProviderModel` became the plain model name the provider maps.
-  - The provider receives the options without `ConversationId`. The owner's code passed them unchanged; but the
-    tracker resends the conversation itself, and a provider that reads the id as server-side state (the OpenAI
-    Responses API, say) would reject it or double the history.
-  - A failed stream is stored with the updates that arrived and no `ErrorContent`, as in the owner's code; a failed
-    unary call gets the `ErrorContent`.
-  - A session that started a new conversation decides at its end whether to create it or append to it, so two
-    overlapping first sessions both land; appending to a conversation deleted meanwhile leaves it deleted. In one
-    process the sessions of a conversation store one at a time; across processes the later save wins.
-  - Storing a finished session does not observe the call's token, so cancelled calls are stored too.
-  - Resuming drops function calls that never got a result (a call cancelled mid-tool), which providers reject.
-  - Subscribers are awaited until their limit token fires instead of on a second timer. The behavior is the same, and
-    tests that advance a `FakeTimeProvider` cannot race the wait.
-- **Alternatives:** keeping the option classes public, which adds API the alpha does not need.
-- **Where:** `Conversations/`.
+- **Status:** carried (v0 D18), with the audit's fixes.
+- **Decision:** tracking wraps the tool loop and marks where a run begins and ends; checkpoints inside it store
+  each step (D50). The provider never receives the
+  conversation id. On resume, unanswered calls and error messages are left out. A failed save is logged and traced,
+  and the answer returns. The agent's name goes on `AuthorName`, never into `AdditionalProperties`.
+
+### D47. Live updates are a feed per conversation
+
+- **Status:** approved with the sign-off.
+- **Decision:** `WithRealtimeTracking(options)` turns publishing on; `ConversationTracker.WatchAsync(conversation)`
+  reads a bounded feed that drops its oldest updates when the watcher falls behind. A run never waits
+  for a watcher. `PublishInterval` (100 ms) and `MaxPendingUpdates` (256) are options. `Runs` lists the runs of
+  conversations going on in this process.
+- **Alternatives:** v0's process-wide events, awaited up to 5 s per model call.
+
+### D50. A conversation is stored step by step and resumes after a crash
+
+- **Status:** approved with the sign-off.
+- **Context:** the first draft stored a run when it ended, so a run that died after an hour of work lost all of it.
+- **Decision:** a conversation is a log of `ConversationEntry`s: a run's input, each model response (with model and
+  usage), each tool result, compaction summaries; the run's last entry has `EndsRun`. Checkpoints append each step
+  the moment it exists, tool results before the next model call. A run without an ending entry was interrupted:
+  `ResumeAsync(conversationId)` (and `ResumeStreamingAsync`) continues it without new input, leaving out a call that
+  was in flight; a new run on the conversation also starts from its steps. One run per conversation at a time in a
+  process; across processes it is the host's to ensure.
+- **Alternatives:** one entry per run, rewritten at each step (a whole-run write per model call); re-running the
+  interrupted tool call, unsafe for side effects; a `RunAsync` with a null input in place of `ResumeAsync`.
+- **Where:** `Conversations/`, the checkpoint layer of D29.
+
+### D51. Steering a run going on
+
+- **Status:** decided by the owner in this session.
+- **Decision:** `ConversationTracker.TrySteer(conversation, input)` hands input to the run of the conversation going
+  on in this process; the checkpoint layer injects it before the run's next model call and stores it, and the run
+  does not end while steering input waits. It returns false when no run of the conversation is going on in this
+  process, and the host starts a run with the input instead. Stopping a run is cancelling its token.
+- **Alternatives:** a steering queue in the store, which works across processes but reads the store before every
+  model call; queuing input for after the run, which is just the next run.
+
+### D52. Plan and auto modes are built in
+
+- **Status:** decided by the owner in this session.
+- **Decision:** `AgentMode` `Default`, `Plan`, `Auto`, a run option (`WithMode`, configurable like any run option).
+  `Plan` offers only tools marked `ReadOnly()` (toolset tools, or MCP servers with `UseMcpServer(...).ReadOnly()`),
+  `write_todos` and a built-in `exit_plan_mode(plan)`, which asks the host; `ApprovePlan(mode)` continues in `Default`
+  or `Auto`, a rejection's reason sends the model back to planning. `Auto` runs tools that require approval unless a
+  rule rejects the call. A conversation keeps its mode: a run without one continues in the mode the last run ended
+  in, stored as an entry. Sub-agents run in their caller's mode.
+- **Alternatives:** modes as tools the model calls (MAF's `mode_get`/`mode_set`), which lets the model leave plan
+  mode unasked; a classifier built into auto mode, where a rule the host writes can ask any model it chooses.
 
 ## Repository
 
-### D19. Sealing
+### D48. Carried as they were
 
-- **Decision:** generated classes, assertion classes and classes whose inheritance would be a bug (`AgentRuntime<T>`,
-  `ToolCatalog`, `ToolDefaults`, `InMemoryTypeshiftStore<TId>`) are sealed; the rest stays open, as the owner's code
-  does.
+- Sealing (v0 D19), CS1591 off in tests only (v0 D20), samples use a scripted client (v0 D21), package metadata
+  (v0 D22), releases by tag through trusted publishing (v0 D37), the Typeshift name (v0 D38), the package README
+  (v0 D39), nullable parameters widened at the schema root (v0 D12).
 
-### D20. CS1591 is suppressed in test projects only
+### D49. Diagnostics are numbered afresh
 
-- **Decision:** `tests/.editorconfig` turns CS1591 off, with a comment saying why: test classes are public for the
-  test framework but are not API. Everything else builds with `TreatWarningsAsErrors` and documentation on.
-
-### D21. The sample uses only a scripted client
-
-- **Context:** the spec allowed an optional real provider behind an environment variable.
-- **Decision:** provider SDKs are out of scope, so the sample ships only its scripted client and shows where a real
-  one plugs in (`IChatClientProvider`).
-
-### D22. The package metadata points at the real repository
-
-- **Context:** the spec names the repository `agentic-dotnet`; the work happens in `weboost-at/Typeshift`, which now
-  publishes the docs site and the packages.
-- **Decision:** `RepositoryUrl` is `https://github.com/weboost-at/Typeshift` and `PackageProjectUrl` the docs site, so
-  SourceLink, nuget.org and the docs agree.
-
-## Persistence and typed settings, decided with the owner
-
-### D25. One store, `ITypeshiftStore<TId>`, of documents that serialize themselves
-
-- **Context:** the alpha had four store interfaces (agent configuration, agent definitions, tool defaults,
-  conversations). The owner asked for one atomic interface whose data serializes itself, with a generic load that
-  returns the typed object, and an id type the host chooses.
-- **Decision:** `ITypeshiftStore<TId>` has `LoadAsync<TData>(id, ct)` and `SaveAsync<TData>(id, data, ct)`, where
-  `TData : IStorable<TData>`: `Serialize()` and a static abstract `Deserialize(string)`. The store keys a document
-  by its type and the id. It may keep the JSON as it is or read the typed properties into columns of its own; the
-  library never creates ids, it passes on the ones the host gives it. `InMemoryTypeshiftStore<TId>` keeps JSON in a
-  dictionary.
-- **Alternatives:** a store of JSON strings keyed by a string, which hides the types a Marten or EF Core store would
-  map; one interface per document kind, the alpha's design.
-- **Consequence:** the documents are a closed set of known types (each agent's `Settings`, each tool's `Overrides`,
-  `StoredConversation`), so a generator for Marten or EF Core mappings can enumerate them later.
-- **Where:** `Persistence/ITypeshiftStore.cs`, `Persistence/IStorable.cs`, `Persistence/InMemory/`.
-
-### D26. The store is the persistence feature flag
-
-- **Decision:** `AddTypeshiftStore<TStore, TId>()` registers the store as a singleton, plus an internal bridge that
-  stores conversations. Without it, everything that works from code works (`ResolveChatOptions`, tool calls,
-  conversation tracking in memory), and every API that loads or saves throws an `InvalidOperationException` naming
-  `AddTypeshiftStore<TStore, TId>()`, also when the store's `TId` differs from the one asked for.
-- **Alternatives:** a null-object store that silently stores nothing, which hides a missing registration until data
-  is lost.
-- **Where:** `Persistence/Stores.cs`, `DependencyInjection/TypeshiftServiceCollectionExtensions.cs`.
-
-### D27. Settings are generated records, typed and closed
-
-- **Context:** the owner asked for typed settings throughout, no reflection, no `object` catch-all, and one settings
-  object per agent holding only what may change, usable as a contract (a settings UI, say).
-- **Decision:**
-  - per agent, a nested `Settings` record: `Model`, every configurable chat option, and per tool with configurable
-    settings a property of the tool's `{Tool}Overrides` record. Every value is nullable; null keeps the layer below.
-  - The records serialize through hidden `StorableJson` helpers the generated code calls member by member, so no
-    `JsonSerializerContext` is needed and nothing reflects. The JSON is camelCase, tools nest under `"tools"` by tool
-    name, nulls are left out, and a missing or mistyped value reads as null.
-  - Configurable members are limited to types a UI can edit and the helpers can write (TSH014).
-- **Alternatives:** a generated `JsonSerializerContext` per agent, impossible because source generators do not see
-  each other's output; the alpha's `StoredSettings` dictionary with views over it, which the owner rejected as
-  untyped.
-- **Where:** `Emitting/StorableEmitter.cs`, `Parsing/Storage.cs`, `Persistence/StorableJson.cs`,
-  `Agents/IAgentSettings.cs`, `Settings/IToolOverrides.cs`.
-
-### D28. Tool defaults are stored under the agent's id
-
-- **Context:** the owner chose one id for an agent's settings and for the defaults of the tools it runs.
-- **Decision:** `ResolveChatOptionsAsync(id)` loads the agent's `Settings` and each tool's `{Tool}Overrides` under the
-  same id, all in parallel. Stored defaults therefore apply to every agent run under that id, and two agents'
-  settings never collide, since each agent has its own `Settings` type.
-- **Alternatives:** a separate id for tool defaults, which every resolve call would have to pass.
-- **Where:** `Agents/AgentRuntime.cs` (`LoadToolDefaultsAsync`), `Tools/OverridableToolBinding.cs`.
-
-### D29. Tools are picked from a generated list, included or excluded
-
-- **Context:** `UseToolset<T>(params Delegate[])` accepted any delegate and checked it at runtime and in TSH007. Its
-  successor chained a generated method per tool after `UseToolset<T>()`, which could only include; the owner asked
-  for include and exclude, picked from a typed list of the toolset's tools, never a delegate.
-- **Decision:** `UseToolset<T>()` offers every tool; `.Include(t => t.A).Include(t => t.B)` offers only those, in
-  that order; `.Exclude(t => t.A)` offers all but those. `Include` returns a chain that only includes and `Exclude`
-  one that only excludes, so one call never mixes them. The lambda's parameter is the library's `ToolList<T>`, to
-  which the generator adds one C# 14 extension property per tool returning the tool's `ToolRef`. A tool of another
-  toolset has no property on this list: CS9286. The lambdas run at runtime, and a `ToolRef` of another toolset
-  throws an `ArgumentException`; in the generator's own compilation the properties do not bind (they do not exist
-  yet), so the parser reads the method and the property name of each pick from syntax.
-- **Alternatives:** method groups (`T.Method`), matched by `Delegate.Method`; a generated method per tool chained on
-  the selection, include-only; one generated `Include` and `Exclude` per toolset, where a library list typed by the
-  toolset does the same.
-- **Where:** `Tools/ToolsetUse.cs`, `Tools/ToolList.cs`, `Parsing/AgentParser.cs` (`GetPicks`),
-  `Emitting/ToolsetEmitter.cs` (`WriteToolList`).
-
-### D30. `Configure{Tool}()` is a generated builder per tool of an agent
-
-- **Context:** the alpha's `WithToolSettings(object)` accepted anything and checked at runtime and in TSH012. Its
-  successors, one `WithToolSettings(TSettings)` overload per settings type and then a `WithToolSettings()` picker in
-  front of a builder per tool, made the agent build a whole settings object or pick the tool twice; the owner asked
-  for one entry point per tool.
-- **Decision:** the generator emits a private `Configure{Tool}()` per offered tool that has settings, returning a
-  nested builder, `ConfigureSearchTickets().WithLimit(5)`. Each tool's builder has one
-  `With{Member}` per settable member of its settings record and writes `(field ?? new()) with { Member = value }`
-  into a field per tool; the hidden `GetToolSettings(ToolName)` override returns it. The agent's values still act as
-  a whole object over the code defaults, so the layering is unchanged. A tool the agent does not offer has no method:
-  a compiler error. The fields are read when options are resolved, so the call may come before or after
-  `UseToolset`. Referenced toolsets' settings members are read from the settings type in metadata.
-- **Alternatives:** one overload per settings type, which applied one object to every tool reading the type; a
-  `WithToolSettings()` picker, a step that says nothing; a lambda over the settings record, which is the nested
-  builder D41 rules out.
-- **Where:** `Emitting/AgentEmitter.cs`, `Agents/AgentDefinition.cs`, `Parsing/ReferenceReader.cs`.
-
-### D31. Agent names are optional and need not be unique
-
-- **Context:** the owner asked to drop the unique-name requirement.
-- **Decision:** `WithName` is optional; without it an agent goes by its class name. The name only labels the
-  execution context of its conversations. Stored data is keyed by type and id, never by name.
-- **Where:** `Agents/AgentDefinition.cs`.
-
-### D32. Agents as data are dropped
-
-- **Context:** stored agents (`StoredAgent`, export, the agent catalog) required unique names and a schema of
-  their own. The owner chose to drop them; hosts decide how to store anything beyond settings.
-- **Decision:** removed, with the spec's behaviors 38 to 40.
-- **Where:** nothing left; [status](./status.md) records the dropped behaviors.
-
-### D33. Conversation ids are parsed into the store's id type
-
-- **Context:** `ChatOptions.ConversationId` is a string; the store's ids are `TId`.
-- **Decision:** `AddTypeshiftStore` requires `TId : IParsable<TId>` and the tracker parses the id with the invariant
-  culture. A call without an id is tracked live but not stored; an id that does not parse is neither resumed nor
-  stored. A `StoredConversation` is just another `IStorable` document.
-- **Alternatives:** a separate conversation id type, which every host would have to register twice.
-- **Where:** `Conversations/ConversationStore.cs`, `Conversations/ConversationTracker.cs`.
-
-### D34. The model is a setting
-
-- **Decision:** every agent's `Settings` has `Model`, which overrides `ChatOptions.ModelId`. The runtime picks the
-  client from the resolved options, so a model stored per id or passed per run needs no further API.
-- **Where:** `Emitting/AgentEmitter.cs`, `Agents/AgentRuntime.cs`.
-
-### D35. The hidden public surface generated code calls
-
-- **Decision:** generated code in a consumer cannot reach internals, so what only it calls is public and
-  `[EditorBrowsable(Never)]`: `AgentDefinition.GetToolSettings`, the `AgentRuntime.*Core*`
-  methods, `StorableJson`, `Toolset.GetBinding` and `ModuleRegistration`. The base type generated code derives
-  from (`GeneratedToolFunction`), the `ToolBinding` it creates and the stamps in `Typeshift.Modules` stay visible.
-- **Alternatives:** `InternalsVisibleTo` for every consumer, which is not possible.
-
-### D36. Diagnostics renumbered before the first release
-
-- **Decision:** with nothing shipped, the IDs were renumbered to close the gaps D29 to D31 left: TSH001 to TSH014.
-  After the first release IDs never change; a retired one stays unused.
-- **Where:** `AnalyzerReleases.Unshipped.md`.
-
-## Distribution
-
-### D37. Releases are tags, published through trusted publishing
-
-- **Context:** the owner distributes the library through NuGet.
-- **Decision:** a `v*` tag runs `release.yml`: build, test, pack with package validation, run the package consumer,
-  then push to nuget.org and create the GitHub release. nuget.org trusted publishing exchanges the run's GitHub
-  identity for a key valid for an hour, so no API key is stored; the `nuget` environment gates the push. MinVer
-  versions from the tag. Symbols ship as a `.snupkg`, sources through SourceLink.
-- **Alternatives:** a stored `NUGET_API_KEY` secret, which lives until someone rotates it; versions in the project
-  file, which a release commit has to bump.
-- **Where:** `.github/workflows/release.yml`, `Directory.Build.props`, `docs/contributing/releasing.md`.
-
-### D38. The library is named Typeshift; the props follow the package ID
-
-- **Context:** the working name, `Agentic`, is taken on nuget.org by another author. NuGet imports
-  `buildTransitive/{PackageId}.props` only, and that file opts consumers into the interceptor namespace.
-- **Decision:** the owner named the library Typeshift, for what the generator does: plain C# toolsets and agents
-  shift into typed, reflection-free code at compile time. It names the package ID, the root namespace, the
-  repository, `AddTypeshift()`, `AddTypeshiftStore<TStore, TId>()` and the diagnostic prefix `TSH`. The props file is
-  packed under `$(PackageId).props`, so the ID, the props and the interceptor namespace cannot disagree; the package
-  consumer fails the build when they do.
-- **Alternatives:** keeping `Agentic` under an owner prefix (`Weboost.Agentic`), which leaves the namespace and the
-  search results shared with the other package; `Agentype`, taken on PyPI; `Agentric`, one letter from `Agentic`;
-  `Agentwright`, `Caddie` and other names that say nothing about types or compile time.
-- **Where:** `src/Typeshift/Typeshift.csproj`, `Emitting/Names.cs` (`GeneratedNamespace`), `Parsing/KnownTypes.cs`.
-
-### D39. The package has a README of its own
-
-- **Decision:** `src/Typeshift/PACKAGE.md` is the package's README on nuget.org: what it is, how to install, links to
-  the docs. It has no code, so it cannot drift; the repository README carries the compiled quickstart, whose
-  snippet links nuget.org would show as raw HTML.
-- **Where:** `src/Typeshift/PACKAGE.md`.
-
-## API shape, decided with the owner
-
-### D40. A tool receives its settings as a parameter
-
-- **Context:** tools read their settings with `services.GetToolSettings<T>()` from a scoped accessor the generated
-  function filled, and TSH009 forbade a settings parameter. The owner asked for the settings to arrive as a parameter
-  the model cannot set.
-- **Decision:** a parameter of the type given to `WithSettings<T>()` is bound like `IServiceProvider`: the generated
-  function passes the settings it was created with and leaves the parameter out of the schema, so the model never
-  sees or sets it. `GetToolSettings<T>()` and the accessor are gone; TSH009 now warns about a tool with settings but
-  no such parameter, whose settings would reach nothing.
-- **Alternatives:** keeping `GetToolSettings<T>()` next to the parameter, two ways to do one thing.
-- **Where:** `Parsing/ToolsetParser.cs` (`ParameterKind.Settings`), `Emitting/ToolsetEmitter.cs`.
-
-### D41. One builder chain, never a builder inside a lambda
-
-- **Context:** `WithSettings<T>(s => s.Configurable(...))`, `WithChatOptions(options, p => p.Configurable(...))` and
-  `UseToolset<T>(tools => tools.A())` each opened a second builder inside a lambda, and chat options needed a
-  `ChatOptions` instance built by hand.
-- **Decision:** every declaration is one flat chain. `WithSettings<T>()` returns `ToolBuilder<TSettings>`, whose
-  `Configurable` is typed by the settings, and `WithConfigurableSettings<T>()` its counterpart with `NotConfigurable`
-  (D43); either comes last in the tool's chain.
-  `WithChatOptions()` returns a `ChatOptionsBuilder` with a `With...` per chat option worth setting in code and
-  `Configurable`. `UseToolset<T>()` returns the use itself, chained with `Include` or `Exclude` (D29); nothing
-  chained offers the whole toolset, so the duplicate check runs when the agent's tools are first read. Plain generics
-  carry the chains where the library knows the types; the generator writes only what it alone knows, the tool lists
-  and `Configure{Tool}()` (D29, D30).
-- **Alternatives:** generating the `Configurable` methods per settings type, which a generic builder gives for free
-  and before the generator runs; `WithName` and `WithDescription` on `ToolBuilder<TSettings>` too, flexibility no
-  chain needs.
-- **Where:** `Toolsets/ToolBuilder.cs`, `Agents/ChatOptionsBuilder.cs`, `Agents/AgentDefinition.cs`,
-  `Tools/ToolsetUse.cs`.
-
-### D42. Instructions come from a virtual method
-
-- **Decision:** `AgentDefinition.GetInstructions()` returns the agent's instructions, null by default; the
-  `ChatOptionsBuilder` has no `WithInstructions`, so there is one place for them. It is called whenever a run's
-  options are resolved, never from the constructor, so an override may read anything the derived constructor set and
-  may compute the text.
-- **Alternatives:** a `WithInstructions` call, which puts long prompts into the constructor; calling it once in the
-  base constructor, before the derived constructor has run.
-- **Where:** `Agents/AgentDefinition.cs` (`CreateChatOptions`).
-
-### D43. Configurable members are an allow list unless `WithConfigurableSettings` says otherwise
-
-- **Context:** a settings record whose members should almost all change at runtime needed one `Configurable` per
-  member.
-- **Decision:** `WithSettings<T>()` keeps every member in code; `Configurable(s => s.X)` allows the members it names.
-  `WithConfigurableSettings<T>()` allows every settable member but the obsolete ones and those
-  `NotConfigurable(s => s.X)` names. Each returns a builder that only continues in its own way, so the two styles
-  never mix. There is no "none configurable" call: plain `WithSettings<T>()` is that. Under
-  `WithConfigurableSettings<T>()`, a member whose type settings cannot store is reported as TSH014 on that call until
-  it is kept out, so it never silently stays code-only. The mode is part of the entry call, not a call of its own,
-  so the chain reads from the longest line down, as the owner orders it.
-- **Alternatives:** an opt-out default, which would put every new member into stored contracts unasked; skipping
-  unstorable members silently; a separate `AllConfigurable()` call after `WithSettings<T>()`, a short line above
-  the longer exclusions; an enum argument on `WithSettings<T>`; exclusions before a closing `AllConfigurable()`.
-- **Where:** `Toolsets/ToolBuilder.cs`, `Parsing/ToolsetParser.cs` (`ParseSettings`).
-
-### D44. Each module registers the JSON contexts of its tools
-
-- **Context:** under Native AOT, the types a tool takes and returns need source-generated metadata, and every host
-  added its context by hand with `services.Configure<AgentJsonOptions>(...)`. A host cannot name an `internal`
-  context of a referenced toolset assembly at all.
-- **Decision:** the generator reads every `JsonSerializerContext` the module can name and the types its
-  `[JsonSerializable]` attributes list. A context that lists a parameter or result type (awaited) of the assembly's
-  own tools is added by the module's `Register`, so `AddTypeshift()` registers it. The module adds it with
-  `PostConfigure`, so the resolvers the host configures come first, then the contexts of the own module, then those
-  of the referenced ones, then the library's `AgentJsonContext`; a context the host added itself is not added twice.
-- **Alternatives:** registering every context of the assembly, which lets one written for other JSON, with other
-  options, take over tool types; an `AddTypeshift(params IJsonTypeInfoResolver[])` overload, explicit but still a
-  line per host and no help for referenced assemblies; a context generated per assembly, impossible because source
-  generators do not see each other's output (D27).
-- **Where:** `Parsing/Discovery.cs` (`ReadJsonContext`), `AgentGenerator.cs` (`GetJsonContexts`),
-  `Emitting/ModuleEmitter.cs`, `Modules/ModuleRegistration.cs` (`AddJsonContext`).
+- **Decision:** nothing has shipped, so the catalog starts again at TSH001; after the first release IDs never change.
 
 ## Withdrawn
 
 | ID | Was | Replaced by |
 |---|---|---|
-| D13 | Agents resolve through one path, code or stored. | D32: agents as data were dropped; one resolve path remains, `AgentDefinition.CreateChatOptions`. |
-| D14 | Stored agents get generated names. | D32. |
-| D15 | Listing and exporting agents. | D32; the agent catalog went with it. |
-| D16 | Optional store interfaces, tool defaults loaded in batches. | D25, D26; tool defaults load one document per tool, in parallel (D28). |
-| D23 | Run tool settings are settings objects. | D27: run settings are the agent's generated `Settings`, whose nullable members override only what a run sets. |
-| D24 | Selected tools are matched by their method. | D29: tools are picked from a generated list and matched by name. |

@@ -2,13 +2,13 @@ using Microsoft.CodeAnalysis;
 
 namespace Typeshift.Generators.Tests.Testing;
 
-public sealed record GeneratorRun(GeneratorDriver Driver, Compilation Output)
+// Diagnostics are the compiler's and the analyzers', over the subject and the generated code, suppressed ones
+// marked as such
+public sealed record GeneratorRun(GeneratorDriver Driver, Compilation Output, IReadOnlyList<Diagnostic> Diagnostics)
 {
     public GeneratorDriverRunResult Result => Driver.GetRunResult();
 
-    public IReadOnlyList<Diagnostic> Diagnostics => Result.Diagnostics;
-
-    public IReadOnlyList<Diagnostic> CompilationDiagnostics => Output.GetDiagnostics();
+    public IEnumerable<Diagnostic> Reported => Diagnostics.Where(diagnostic => !diagnostic.IsSuppressed);
 
     public IEnumerable<string> HintNames => Result.GeneratedTrees.Select(tree => Path.GetFileName(tree.FilePath));
 

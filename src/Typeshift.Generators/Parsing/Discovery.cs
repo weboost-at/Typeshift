@@ -7,48 +7,43 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Typeshift.Generators.Parsing;
 
-// Attribute-free discovery: a cheap syntax check, then the base type decides
+// D3: attribute-free; the syntax check passes only classes whose base list names Toolset, so an edit re-binds just
+// those, and the semantic check confirms the direct base
 internal static class Discovery
 {
     public static bool IsCandidate(SyntaxNode node, CancellationToken ct) =>
-        node is ClassDeclarationSyntax { BaseList: not null } declaration
-        && !declaration.Modifiers.Any(SyntaxKind.AbstractKeyword);
+        node is ClassDeclarationSyntax { BaseList: { } bases } declaration
+        && !declaration.Modifiers.Any(SyntaxKind.AbstractKeyword)
+        && bases.Types.Any(type => RightmostName(type.Type) == "Toolset");
 
-    public static ClassModel? Classify(GeneratorSyntaxContext context, CancellationToken ct)
+    public static ToolsetModel? Classify(GeneratorSyntaxContext context, CancellationToken ct)
     {
         var declaration = (ClassDeclarationSyntax)context.Node;
 
-        var symbol = context.SemanticModel.GetDeclaredSymbol(declaration, ct);
-
-        // D6: a generic class's tools depend on type arguments only the closing site knows
-        if (symbol is not { IsAbstract: false, IsGenericType: false } type) return null;
-        if (!IsFirstDeclarationWithBaseList(type, declaration, ct)) return null;
+        // D23: generic toolsets and toolsets deriving from another are TSH017, which the analyzer reports
+        if (context.SemanticModel.GetDeclaredSymbol(declaration, ct) is not
+            {
+                IsAbstract: false,
+                IsGenericType: false,
+                BaseType: var baseType
+            } type
+            || !baseType.Is(KnownTypes.Toolset)
+            || !IsFirstDeclarationWithBaseList(type, declaration, ct)) return null;
 
         var documented = declaration.SyntaxTree.Options.DocumentationMode != DocumentationMode.None;
+        var constructors = ConstructorChains.GetBlocks(type, context.SemanticModel.Compilation, ct);
 
-        var compilation = context.SemanticModel.Compilation;
-
-        if (type.DerivesFrom(KnownTypes.Toolset))
-            return new ClassModel(ToolsetParser.Parse(type, compilation, documented, ct), null, null);
-
-        if (type.DerivesFrom(KnownTypes.AgentDefinition))
-            return new ClassModel(null, AgentParser.Parse(type, compilation, ct), null);
-
-        // D44: the module registers the contexts of its tools, so it must be able to name them
-        return type.DerivesFrom(KnownTypes.JsonSerializerContext) && type.IsVisibleInAssembly()
-            ? new ClassModel(null, null, ReadJsonContext(type))
-            : null;
+        return ToolsetParser.Parse(type, constructors, documented, Reporter.None, ct);
     }
 
-    private static JsonContextModel ReadJsonContext(INamedTypeSymbol context) =>
-        new(
-            context.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
-            context.GetAttributes()
-                .Where(attribute => attribute.AttributeClass.Is(KnownTypes.JsonSerializableAttribute))
-                .Select(attribute => attribute.ConstructorArguments.FirstOrDefault().Value)
-                .OfType<ITypeSymbol>()
-                .Select(type => type.ToTypeOf())
-                .ToEquatableArray());
+    private static string? RightmostName(TypeSyntax type) =>
+        type switch
+        {
+            SimpleNameSyntax name => name.Identifier.ValueText,
+            QualifiedNameSyntax qualified => qualified.Right.Identifier.ValueText,
+            AliasQualifiedNameSyntax aliased => aliased.Name.Identifier.ValueText,
+            _ => null
+        };
 
     // A partial class may list its base on several declarations, the model is built once
     private static bool IsFirstDeclarationWithBaseList(

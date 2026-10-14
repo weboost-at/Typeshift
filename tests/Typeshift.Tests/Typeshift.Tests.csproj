@@ -26,8 +26,4 @@
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="../Typeshift.Tests.Toolsets/Typeshift.Tests.Toolsets.csproj" />
-  </ItemGroup>
-
 </Project>

@@ -1,4 +1,4 @@
-namespace Typeshift.Samples.Docs.Tickets;
+namespace Typeshift.Samples.Tickets;
 
 // begin-snippet: settings-record
 internal record SearchTicketsSettings

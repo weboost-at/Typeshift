@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Typeshift.Json;
+using Typeshift.Generated;
 using Typeshift.Tests.Testing.Fakes;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,17 +10,26 @@ namespace Typeshift.Tests.Testing.Bases;
 public abstract class HostTestBase : UnitTestBase, IAsyncDisposable
 {
     private readonly Lazy<ServiceProvider> _services;
+    private readonly Lazy<AsyncServiceScope> _scope;
 
-    protected HostTestBase() => _services = new(BuildServices);
+    protected HostTestBase()
+    {
+        _services = new(BuildServices);
+        _scope = new(() => Services.CreateAsyncScope());
+    }
 
     protected ServiceProvider Services => _services.Value;
 
-    protected AgentJson Json => Services.GetRequiredService<AgentJson>();
+    // The scope a request or a job would run in
+    protected IServiceProvider Scope => _scope.Value.ServiceProvider;
+
+    protected ToolJson Json { get; } = new([]);
 
     protected ScriptedChatClient ChatClient { get; } = new();
 
     public async ValueTask DisposeAsync()
     {
+        if (_scope.IsValueCreated) await _scope.Value.DisposeAsync();
         if (_services.IsValueCreated) await _services.Value.DisposeAsync();
 
         GC.SuppressFinalize(this);
@@ -30,13 +39,13 @@ public abstract class HostTestBase : UnitTestBase, IAsyncDisposable
     {
     }
 
-    // The function loop a provider client sits under, driven by the scripted client
-    protected IChatClient FunctionLoop() => ChatClient.AsBuilder().UseFunctionInvocation().Build(Services);
+    // The function loop a provider client sits under, driven by the scripted client, with the services of a run
+    protected IChatClient FunctionLoop() => ChatClient.AsBuilder().UseFunctionInvocation().Build(Scope);
 
     protected AIFunctionArguments Arguments(params (string Name, object? Value)[] values) =>
         new(values.ToDictionary(value => value.Name, value => value.Value))
         {
-            Services = Services
+            Services = Scope
         };
 
     protected T ReadResult<T>(object? result) => ((JsonElement)result!).Deserialize(Json.GetTypeInfo<T>())!;
@@ -60,7 +69,6 @@ public abstract class HostTestBase : UnitTestBase, IAsyncDisposable
     {
         var services = new ServiceCollection();
 
-        services.AddTypeshift();
         services.AddSingleton<TimeProvider>(Time);
         ConfigureServices(services);
 
