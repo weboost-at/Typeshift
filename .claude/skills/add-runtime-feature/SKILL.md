@@ -11,7 +11,9 @@ description: Add or change public behavior of the Typeshift runtime library (src
    hidden from editors (D10). Every public member has XML docs with each `param`, `typeparam` and `returns`
    (`PublicApiDocumentationTests`).
 3. **Tests** in `tests/Typeshift.Tests`, one class per subject, following `AGENTS.md`, "Tests": the scripted
-   `IChatClient` in `Testing/Fakes`, `HostTestBase` for anything that needs services, data from the catalog.
+   `IChatClient` in `Testing/Fakes`, `HostTestBase` for anything that needs services, `AgentTestBase` for runs
+   through `AddTypeshift()` and an `AgentHost<T>`, data from the catalog. A behavior across assemblies uses the
+   toolsets of `tests/Typeshift.Tests.Toolsets`.
 4. **Docs.** The guide page of the feature, its code from `samples/Typeshift.Samples.Docs` through mdsnippets; see the
    `update-docs` playbook.
 5. **Status.** Add the behavior and its test to the table in `docs/contributing/status.md`; a known limit goes under

@@ -86,6 +86,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `src/Typeshift` | The runtime library: public types in `Typeshift`, what only generated code calls in `Typeshift.Generated`. |
 | `src/Typeshift.Generators` | The generator, the analyzer and the suppressor: `Parsing/` (symbols to models), `Models/`, `Emitting/` (models to source), `Analysis/`, `Diagnostics/`. |
 | `tests/Typeshift.Tests` | Runtime behavior, through real `FunctionInvokingChatClient` loops and a scripted `IChatClient`. |
+| `tests/Typeshift.Tests.Toolsets` | Toolsets in an assembly of their own, which `Typeshift.Tests` references for modules, stamps and JSON contexts across assemblies. |
 | `tests/Typeshift.Generators.Tests` | Snapshots, one test per diagnostic, incremental caching, guard tests. |
 | `samples/Typeshift.Samples.Docs` | The code every guide page shows, run as scenarios in CI. |
 | `signoff/` | The approved API: stubs, compiled samples, the draft guide. Goes once the slices have built it. |
