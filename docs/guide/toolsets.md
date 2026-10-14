@@ -110,7 +110,7 @@ these four itself, and leaves them out of the schema:
 
 | Type | Receives |
 |---|---|
-| The record of `WithSettings<T>()` | The tool's resolved settings. |
+| The record of `WithSettings<T>()` or `WithConfigurableSettings<T>()` | The tool's resolved settings. |
 | `IServiceProvider` | The run's services: the scope the host was resolved from. |
 | `CancellationToken` | The call's token. |
 | `AIFunctionArguments` | The raw arguments the model sent. |

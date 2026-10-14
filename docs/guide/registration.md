@@ -1,7 +1,13 @@
+---
+title: Registration
+description: What a project needs, the id type, and every service AddTypeshift() and its chain register, with lifetimes.
+---
+
 # Registration
 
-`services.AddTypeshift()` registers every toolset and agent of the project and of the projects it references, and
-returns `TypeshiftBuilder`, the chain that registers the rest.
+`services.AddTypeshift()` registers every toolset and agent of your project and of the projects it references. It
+returns `TypeshiftBuilder`, the chain that registers the rest. This page lists what a project needs, the id type, and
+every service the registration adds; [Getting started](./getting-started.md) walks through the steps.
 
 ## Project setup
 
@@ -12,14 +18,14 @@ dotnet add package Typeshift --prerelease
 | Requirement | Why |
 |---|---|
 | .NET 10 and C# 14 | Generated members are extension blocks. |
-| The package in every project that declares toolsets or agents, or calls `AddTypeshift()` | It carries the generator, and NuGet does not pass a generator on to the projects that reference yours ([TSH019](./diagnostics.md#tsh019), [TSH020](./diagnostics.md#tsh020)). |
+| The package in every project that declares toolsets or agents, or calls `AddTypeshift()` | The package carries the generator, and NuGet does not pass a generator on to the projects that reference yours ([TSH019](./diagnostics.md#tsh019), [TSH020](./diagnostics.md#tsh020)). |
 | `GenerateDocumentationFile` | Tools take their descriptions from XML docs ([TSH011](./diagnostics.md#tsh011)). |
-| `Typeshift.Generated` in `InterceptorsNamespaces` | The generator intercepts `AddTypeshift()` from there. The package adds it. |
+| `Typeshift.Generated` in `InterceptorsNamespaces` | The generator intercepts `AddTypeshift()` from that namespace. The package adds it for you. |
 
 ## The id type
 
-Settings ids and conversation ids are of one type, `Guid` unless `TypeshiftIdType` names another, once for the
-whole build in `Directory.Build.props`:
+Settings ids and conversation ids share one type across the whole build. It is `Guid` unless `TypeshiftIdType` names
+another. Set it once, in `Directory.Build.props`:
 
 <!-- snippet: id-type -->
 <a id='snippet-id-type'></a>
@@ -31,13 +37,19 @@ whole build in `Directory.Build.props`:
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Typeshift.Samples.Docs.csproj#L5-L9' title='Snippet source file'>snippet source</a> | <a href='#snippet-id-type' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-A C# keyword (`int`, `long`, `string`), a type of `System`, or a full type name ([TSH029](./diagnostics.md#tsh029)).
-Generated members take it (`RunAsync(input, settingsId: 42)`), and `ITypeshiftStore`, `InMemoryTypeshiftStore`,
-`ConversationTracker` and `LiveRun` are aliases the generator writes for it. A referenced project built with another
-id type is [TSH021](./diagnostics.md#tsh021); a store of another is [TSH028](./diagnostics.md#tsh028). The library
-never creates ids.
+`TypeshiftIdType` takes a C# keyword (`int`, `long`, `string`), a type of `System`, or a full type name
+([TSH029](./diagnostics.md#tsh029)).
+
+- Generated members take the id type: `RunAsync(input, settingsId: 42)`.
+- `ITypeshiftStore`, `InMemoryTypeshiftStore`, `ConversationTracker` and `LiveRun` are aliases the generator writes for
+  it.
+- A referenced project built with another id type is [TSH021](./diagnostics.md#tsh021). A store of another id type is
+  [TSH028](./diagnostics.md#tsh028).
+- The library never creates ids. Your code chooses them.
 
 ## What `AddTypeshift()` registers
+
+A typical registration, with the chain:
 
 <!-- snippet: registration -->
 <a id='snippet-registration'></a>
@@ -55,6 +67,8 @@ services.AddKeyedSingleton("reasoning-model", reasoning);
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L18-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+`AddTypeshift()` itself registers these:
+
 | Service | Lifetime |
 |---|---|
 | Each toolset | Singleton |
@@ -63,29 +77,42 @@ services.AddKeyedSingleton("reasoning-model", reasoning);
 | The JSON contexts of each assembly, which tools ask before the defaults | Singleton |
 | `ConversationTracker` and the core services runs need | Singleton |
 
-The modules come from this project, every project it references that declares toolsets or agents, and the library's
-[built-in toolsets](./built-in-toolsets.md). Each registers once per service collection, so calling `AddTypeshift()`
-again only returns another chain.
+The registrations come in modules, from three places: this project, every project it references that declares toolsets
+or agents, and the library's [built-in toolsets](./built-in-toolsets.md). Each module registers once per service
+collection, so a second call of `AddTypeshift()` only returns another chain.
 
-The generator intercepts the call, so it works only in a project that references the package and only as
-`services.AddTypeshift()`; a call it did not intercept throws an `InvalidOperationException` saying what to check. A
-library that calls it in its own `AddX()` registers its own toolsets and agents and those of its references, not the
-host's.
+The generator intercepts the call. So it works only in a project that references the package, and only written as
+`services.AddTypeshift()`. A call the generator did not intercept throws an `InvalidOperationException` that says what
+to check.
+
+::: warning A library's call registers the library's agents, not the host's
+A library that calls `AddTypeshift()` in its own `AddX()` registers its own toolsets and agents and those of its
+references. The host's toolsets and agents need the host's own call.
+:::
 
 ## The chain
 
 | Call | Registers | Lifetime | Needed by |
 |---|---|---|---|
-| `WithStore<TStore>()` | `TStore`, and `ITypeshiftStore` as it | Singleton | Settings ids, conversation ids, approval, handoffs. Without a store, every call that loads or saves throws, naming this method. |
+| `WithStore<TStore>()` | `TStore`, and `ITypeshiftStore` as it | Singleton | Settings ids, conversation ids, approval and handoffs. Without a store, every call that loads or saves throws, naming this method. |
 | `WithChatClientProvider<TProvider>()` | `IChatClientProvider` | Scoped | Every run. |
-| `WithRealtimeTracking(RealtimeTrackingOptions? options = null)` | The options: `PublishInterval` (100 ms), `MaxPendingUpdates` (256) | Singleton | `ConversationTracker.WatchAsync`. |
+| `WithRealtimeTracking(RealtimeTrackingOptions? options = null)` | The options. By default, `PublishInterval` is 100 ms and `MaxPendingUpdates` 256. | Singleton | `ConversationTracker.WatchAsync`. |
 | `WithApprovalRule<TRule>()` | One more `IToolApprovalRule` | Scoped | Deciding calls before the host is asked. |
-| `WithRunMiddleware<TMiddleware>()` | One more `IRunMiddleware`; the first registered is the outermost | Scoped | Wrapping every run. |
-| `WithToolMiddleware<TMiddleware>()` | One more `IToolMiddleware`; the first registered is the outermost | Scoped | Wrapping every tool call. |
+| `WithRunMiddleware<TMiddleware>()` | One more `IRunMiddleware`. The first registered is the outermost. | Scoped | Wrapping every run. |
+| `WithToolMiddleware<TMiddleware>()` | One more `IToolMiddleware`. The first registered is the outermost. | Scoped | Wrapping every tool call. |
 | `WithMcpToolProvider<TProvider>()` | `IMcpToolProvider` | Scoped | Agents with `UseMcpServer`. |
 | `WithFileSystemRoot<TRoot>()` | `IFileSystemRoot` | Scoped | `FileSystemToolset`, `ShellToolset`. |
 | `WithWebSearch<TSearch>()` | `IWebSearch` | Scoped | `web_search`. |
 | `WithWebFetch<TFetch>()` | `IWebFetch` | Scoped | `web_fetch`. |
 
-Scoped services resolve from the run's scope, so they may differ per request: the current customer's credentials,
-folder or rules.
+Scoped services resolve from the run's scope, so they can differ per request. For example, they can use the current
+customer's credentials, folder or rules.
+
+## Related
+
+- [Getting started](./getting-started.md): the setup, step by step.
+- [Running agents](./running-agents.md): resolving a host from a scope and running an agent.
+- [Settings and stores](./settings-and-stores.md): the store `WithStore<T>()` registers.
+- [Generated members](./generated-members.md#per-project): the module, the aliases and the interceptor the generator
+  writes.
+- [Diagnostics](./diagnostics.md): what the analyzer reports when the setup is incomplete.
