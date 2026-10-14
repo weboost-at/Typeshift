@@ -32,7 +32,8 @@ internal static class DefaultValues
             .FirstOrDefault(field => field.HasConstantValue && Equals(field.ConstantValue, value));
         var name = type.ToTypeOf();
 
-        return member is null ? $"({name}){FormatPrimitive(value)}" : $"{name}.{member.Name}";
+        // A negative value cast without parentheses would parse as a subtraction
+        return member is null ? $"({name})({FormatPrimitive(value)})" : $"{name}.{member.Name}";
     }
 
     private static string FormatPrimitive(object value) =>

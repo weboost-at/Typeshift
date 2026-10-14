@@ -11,8 +11,6 @@ public class AgentTestData(Faker faker)
         new TestValue<float>(MathF.Round(faker.Random.Float(0.3f, 0.9f), 2))
             .SetUpdated(MathF.Round(faker.Random.Float(1.0f, 1.9f), 2));
 
-    public int MaxOutputTokens { get; } = faker.Random.Int(256, 4096);
-
     public string Instructions { get; } = faker.Lorem.Sentence();
 
     public Guid ConversationId { get; } = faker.Random.Guid();

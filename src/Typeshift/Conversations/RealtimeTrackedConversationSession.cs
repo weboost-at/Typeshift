@@ -47,7 +47,7 @@ public sealed class RealtimeTrackedConversationSession : TrackedConversationSess
         if (_updates.Count == Updates.Count) return;
 
         _published = Time.GetTimestamp();
-        Updates = [.. _updates];
+        Updates = Updates.AddRange(_updates[Updates.Count..]);
         await Subscribers.RaiseAsync(OnSessionUpdated, SubscriberLimit, Time);
     }
 

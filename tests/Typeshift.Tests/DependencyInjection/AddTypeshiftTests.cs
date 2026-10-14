@@ -38,20 +38,20 @@ public class AddTypeshiftTests : HostTestBase
     public void Registers_The_Agents_Of_The_Calling_Assembly()
     {
         // Act
-        var agents = Services.GetServices<AgentDefinition>();
+        var runtimes = Services.GetServices<AgentRuntime>();
 
         // Assert
-        agents.Should().ContainSingle(agent => agent is ProbeAgent);
+        runtimes.Should().ContainSingle(runtime => runtime.Definition is ProbeAgent);
     }
 
     [Fact]
     public void Registers_The_Agents_Of_A_Referenced_Assembly()
     {
         // Act
-        var agents = Services.GetServices<AgentDefinition>();
+        var runtimes = Services.GetServices<AgentRuntime>();
 
         // Assert
-        agents.Should().ContainSingle(agent => agent is ResearchAgent);
+        runtimes.Should().ContainSingle(runtime => runtime.Definition is ResearchAgent);
     }
 
     [Fact]

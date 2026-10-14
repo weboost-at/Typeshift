@@ -39,6 +39,19 @@ public class StorableJsonTests : UnitTestBase
         json.Should().Be("""{"shade":"Dark"}""");
     }
 
+    [Theory]
+    [InlineData("7")]
+    [InlineData("1")]
+    [InlineData("Grey")]
+    public void Given_An_Enum_Value_That_Is_No_Member_Name_The_Member_Reads_As_Null(string value)
+    {
+        // Act
+        var restored = EveryKind.Deserialize($$"""{"shade":"{{value}}"}""");
+
+        // Assert
+        restored.Shade.Should().BeNull();
+    }
+
     [Fact]
     public void Given_A_Number_With_An_Exponent_It_Reads_As_That_Number()
     {
@@ -47,6 +60,39 @@ public class StorableJsonTests : UnitTestBase
 
         // Assert
         restored.Money.Should().Be(0.0015m);
+    }
+
+    [Fact]
+    public void Given_NaN_It_Is_Stored_As_A_String()
+    {
+        // Act
+        var json = new EveryKind { Precise = double.NaN }.Serialize();
+
+        // Assert
+        json.Should().Be("""{"precise":"NaN"}""");
+    }
+
+    [Fact]
+    public void Given_An_Infinity_It_Reads_Back_As_That_Infinity()
+    {
+        // Arrange
+        var json = new EveryKind { Ratio = float.NegativeInfinity }.Serialize();
+
+        // Act
+        var restored = EveryKind.Deserialize(json);
+
+        // Assert
+        restored.Ratio.Should().Be(float.NegativeInfinity);
+    }
+
+    [Fact]
+    public void Given_A_Finite_Number_In_A_String_The_Member_Reads_As_Null()
+    {
+        // Act
+        var restored = EveryKind.Deserialize("""{"precise":"1.5"}""");
+
+        // Assert
+        restored.Precise.Should().BeNull();
     }
 
     [Fact]

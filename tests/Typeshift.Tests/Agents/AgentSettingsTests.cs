@@ -1,8 +1,10 @@
 using System.Reflection;
+using Typeshift.Agents;
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Toolsets.Companies;
 using Typeshift.Tests.Toolsets.Support;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift.Tests.Agents;
 
@@ -113,5 +115,23 @@ public class AgentSettingsTests : AgentTestBase
 
         // Assert
         options.Temperature.Should().Be(Agent.Temperature.Updated);
+    }
+
+    [Fact]
+    public async Task Given_Settings_Of_Two_Agents_Under_One_Id_Each_Loads_Its_Own()
+    {
+        // Arrange
+        var hosted = Services.GetRequiredService<AgentRuntime<HostedToolAgent>>();
+
+        await Runtime.SaveSettingsAsync(
+            Agent.Id.Default, new ProbeAgent.Settings { Temperature = Agent.Temperature }, Ct);
+
+        await hosted.SaveSettingsAsync(Agent.Id.Default, new HostedToolAgent.Settings { Model = Agent.Model }, Ct);
+
+        // Act
+        var loaded = await Runtime.LoadSettingsAsync(Agent.Id.Default, Ct);
+
+        // Assert
+        loaded.Should().Be(new ProbeAgent.Settings { Temperature = Agent.Temperature });
     }
 }

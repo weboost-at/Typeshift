@@ -29,6 +29,6 @@ The first alpha. The API will change.
 - Conversation tracking: every model exchange stored as a session of a conversation, streaming included, when
   `ChatOptions.ConversationId` parses as the store's id type.
 - `services.AddTypeshift()`, intercepted per project, registering the toolsets and agents of the project and its
-  references.
+  references, and the JSON contexts that list their tools' parameter and result types.
 - Diagnostics TSH001 to TSH014; TSH009 warns about a tool that does not take its settings.
 - Native AOT support, proven by the console sample.

@@ -33,6 +33,15 @@ internal sealed class SourceWriter
         return this;
     }
 
+    // Comma-separated lines, the last one ending in end instead
+    public void List(IReadOnlyList<string> items, string end = "")
+    {
+        for (var index = 0; index < items.Count; index++)
+        {
+            Line(items[index] + (index < items.Count - 1 ? "," : end));
+        }
+    }
+
     // A member answering per tool: the signature, then a switch on the tool's name that ends in the fallback
     public void ToolSwitch(
         string signature,

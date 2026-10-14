@@ -36,6 +36,27 @@ public class SettingsLayeringTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_Stored_Tool_Defaults_And_Stored_Agent_Settings_The_Agent_Settings_Win()
+    {
+        // Arrange
+        await ToolDefaults.SaveAsync(
+            Agent.Id.Default, new CompanyToolset.FindCompaniesOverrides { Limit = Data.Tool.Limit }, Ct);
+
+        await Runtime.ConfigureAsync(Agent.Id.Default, settings => settings with
+        {
+            FindCompanies = new CompanyToolset.FindCompaniesOverrides { Limit = Data.Tool.Limit.Updated }
+        }, Ct);
+
+        var options = await Runtime.ResolveChatOptionsAsync(Agent.Id.Default, ct: Ct);
+
+        // Act
+        var settings = await FindCompaniesAsync(options);
+
+        // Assert
+        settings.Limit.Should().Be(Data.Tool.Limit.Updated);
+    }
+
+    [Fact]
     public async Task Given_Stored_Tool_Defaults_And_Code_Settings_Of_The_Agent_The_Defaults_Do_Not_Apply()
     {
         // Arrange
@@ -88,6 +109,22 @@ public class SettingsLayeringTests : AgentTestBase
 
         // Assert
         settings.Should().Be(new ProbeSettings { Limit = Data.Tool.Limit.Updated, Mode = "thorough" });
+    }
+
+    [Fact]
+    public async Task Given_Stored_And_Run_Chat_Options_The_Run_Options_Win()
+    {
+        // Arrange
+        await Runtime.ConfigureAsync(
+            Agent.Id.Default, settings => settings with { Temperature = Agent.Temperature }, Ct);
+
+        var run = new ProbeAgent.Settings { Temperature = Agent.Temperature.Updated };
+
+        // Act
+        var options = await Runtime.ResolveChatOptionsAsync(Agent.Id.Default, run, ct: Ct);
+
+        // Assert
+        options.Temperature.Should().Be(Agent.Temperature.Updated);
     }
 
     [Fact]

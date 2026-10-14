@@ -9,8 +9,8 @@ description: Add or change public behavior of the Typeshift runtime library (src
 
 - Find the subject in `docs/contributing/architecture.md` and its decisions (`Dnn` in `docs/contributing/decisions.md`).
   Code comments starting `// Dnn:` point at the decision that explains odd-looking code; don't undo one without
-  reading it. If you change a decision, edit its entry in the same commit, or add a new one and mark the old
-  "Withdrawn"; `DecisionCitationTests` fails on citations of withdrawn or missing decisions.
+  reading it. If you change a decision, edit its entry in the same commit, or add a new one and move the old to the
+  withdrawn table; `DecisionCitationTests` fails on citations of withdrawn or missing decisions.
 - Check `docs/contributing/status.md` for known gaps and next steps on the subject.
 
 ## Where things go

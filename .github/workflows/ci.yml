@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,12 +25,9 @@ jobs:
       - run: dotnet test -c Release --no-build
       - run: dotnet slopwatch analyze --fail-on warning
 
+      # TreatWarningsAsErrors turns every IL2xxx and IL3xxx warning into an error that fails the publish
       - name: Publish the sample as Native AOT, failing on any trim or AOT warning
-        run: |
-          set -o pipefail
-          mkdir -p artifacts
-          dotnet publish samples/Typeshift.Samples.Console -c Release -r linux-x64 -o artifacts/sample | tee artifacts/publish.log
-          ! grep -E "warning IL[23][0-9]{3}" artifacts/publish.log
+        run: dotnet publish samples/Typeshift.Samples.Console -c Release -r linux-x64 -o artifacts/sample
 
       - name: Run the AOT sample
         run: ./artifacts/sample/Typeshift.Samples.Console

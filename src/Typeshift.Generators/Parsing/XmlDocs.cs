@@ -77,10 +77,10 @@ internal sealed class XmlDocs
             _ => ""
         };
 
-    // T:Ns.Type, M:Ns.Type.Method(System.String) and the like read as their last segment
+    // T:Ns.Type, T:Ns.List`1, M:Ns.Type.Method``1(System.String) and the like read as their last segment
     private static string GetShortName(string cref)
     {
-        var name = cref.Split('(')[0];
+        var name = cref.Split('(', '`')[0];
         return name.Substring(name.LastIndexOfAny([':', '.']) + 1);
     }
 }

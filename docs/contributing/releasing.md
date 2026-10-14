@@ -41,7 +41,8 @@ These need someone with admin rights on the repository and the nuget.org account
    git push origin v0.2.0
    ```
 
-5. Approve the `nuget` environment if it asks, and check the package on nuget.org and the GitHub release.
+5. Approve the `nuget` environment if it asks, and check the package on nuget.org and the GitHub release. When the
+   GitHub release fails, rerun the failed job: the push skips packages nuget.org already has.
 
 A tag with a hyphen (`v0.2.0-alpha.1`) creates a prerelease on GitHub; nuget.org marks it prerelease from its version.
 

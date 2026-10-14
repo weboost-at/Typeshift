@@ -24,9 +24,7 @@ internal partial class SupportAgent : AgentDefinition
             .Configurable(o => o.Temperature)
             .Configurable(o => o.MaxOutputTokens);
 
-        UseToolset<TicketToolset>()
-            .Include(t => t.SearchTickets)
-            .Include(t => t.GetTicket);
+        UseToolset<TicketToolset>().Include(t => t.SearchTickets);
 
         UseToolset<KnowledgeToolset>();
 
@@ -40,7 +38,7 @@ internal partial class SupportAgent : AgentDefinition
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L35' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - **`WithName`** is optional; without it the agent goes by its class name. The name labels the execution context of
@@ -56,8 +54,8 @@ internal partial class SupportAgent : AgentDefinition
 
 ## Selecting tools
 
-`UseToolset<T>()` offers every tool of a toolset. Chain `Include` to offer only some, in the order you include them,
-as the support agent above does, or `Exclude` to offer all but some:
+`UseToolset<T>()` offers every tool of a toolset. Chain `Include` to offer only some, as the support agent above does
+with `search_tickets`, in the order you include them; or `Exclude` to offer all but some:
 
 <!-- snippet: exclude-tools -->
 <a id='snippet-exclude-tools'></a>

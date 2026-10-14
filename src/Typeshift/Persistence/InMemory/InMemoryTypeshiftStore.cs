@@ -3,7 +3,7 @@ using System.Collections.Concurrent;
 namespace Typeshift.Persistence.InMemory;
 
 /// <summary>
-/// Keeps everything in memory, as JSON, for tests, samples and single-process hosts.
+/// Keeps everything in memory, as JSON, for tests and samples.
 /// </summary>
 /// <typeparam name="TId">The id type of your choice.</typeparam>
 public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId> where TId : notnull

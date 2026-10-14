@@ -113,4 +113,27 @@ public class SubscriberTests : ConversationTestBase
         // Assert
         tokens.Select(token => token.IsCancellationRequested).Should().Equal(true, true);
     }
+
+    [Fact]
+    public async Task Given_A_Store_That_Fails_When_A_Session_Ends_Subscribers_Still_Hear_Of_The_End()
+    {
+        // Arrange
+        var changes = 0;
+        ChatClient.Reply([.. AnswerUpdates()]);
+        Store.SavesWaitFor = Task.FromException(new InvalidOperationException(Conversation.Failure));
+
+        Tracker.OnConversationsChanged += _ =>
+        {
+            changes++;
+            return Task.CompletedTask;
+        };
+
+        var ask = () => Tracked().GetResponseAsync(Conversation.Question, Options(Conversation.ConversationId), Ct);
+
+        // Act
+        await Record.ExceptionAsync(ask);
+
+        // Assert
+        changes.Should().Be(2);
+    }
 }

@@ -10,8 +10,6 @@ namespace Typeshift.Generators.Models;
 internal readonly struct EquatableArray<T>(ImmutableArray<T> items) : IEquatable<EquatableArray<T>>, IReadOnlyList<T>
     where T : IEquatable<T>
 {
-    public static readonly EquatableArray<T> Empty = new(ImmutableArray<T>.Empty);
-
     private readonly ImmutableArray<T> _items = items;
 
     private ImmutableArray<T> Items => _items.IsDefault ? ImmutableArray<T>.Empty : _items;

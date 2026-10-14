@@ -40,6 +40,18 @@ internal static class RunningAgents
 
         Expect.That(runOptions.Temperature == 0, "run settings override the code's chat options");
 
+        var search = runOptions.Tools!.OfType<AIFunction>().Single(tool => tool.Name == "search_tickets");
+
+        var tickets = await search.InvokeAsync(new AIFunctionArguments(new Dictionary<string, object?>
+        {
+            ["query"] = "refund"
+        })
+        {
+            Services = services
+        });
+
+        Expect.That(tickets!.ToString()!.Contains("parcel", StringComparison.Ordinal), "run settings reach the tools");
+
         // begin-snippet: streaming
         await foreach (var update in runClient.GetStreamingResponseAsync("Where is my refund?", runOptions))
             Console.Write(update.Text);

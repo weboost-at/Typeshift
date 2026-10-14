@@ -24,16 +24,8 @@ public abstract class Toolset
     /// </summary>
     public IReadOnlyList<ToolDefinition> Definitions => _definitions;
 
-    /// <summary>
-    /// Creates every tool of this toolset, outside of any agent.
-    /// </summary>
-    /// <param name="json">The serializer and schema options the functions bind arguments and results with.</param>
-    /// <param name="overrides">
-    /// Overrides of the tools' configurable settings, one per tool at most; a tool without any runs with its code
-    /// defaults.
-    /// </param>
-    /// <returns>One function per tool, in declaration order.</returns>
-    public IReadOnlyList<AIFunction> CreateTools(AgentJson json, params IToolOverrides[] overrides) =>
+    // Every tool outside of any agent, with run overrides of one tool each at most
+    internal IReadOnlyList<AIFunction> CreateTools(AgentJson json, params IToolOverrides[] overrides) =>
         [.. _definitions.Select(tool => CreateTool(tool, RunningWith(tool, overrides), json))];
 
     internal AIFunction CreateTool(ToolDefinition tool, ToolSettingsLayers layers, AgentJson json) =>
@@ -54,7 +46,7 @@ public abstract class Toolset
     /// <returns>A builder that names, describes and configures the tool.</returns>
     protected ToolBuilder AddTool(Delegate method)
     {
-        var definition = new ToolDefinition(this, method);
+        var definition = new ToolDefinition(this);
         _definitions.Add(definition);
         return new ToolBuilder(definition);
     }

@@ -39,7 +39,7 @@ public class AgentGenerationTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_Tools_Named_Like_Members_Of_The_View_The_Generated_Code_Compiles_Without_Warnings()
+    public void Given_Tools_Named_Like_Settings_Members_The_Generated_Code_Compiles_Without_Warnings()
     {
         // Act
         var run = Run(AgentSources.Lookup, AgentSources.ReservedToolNames);
@@ -73,6 +73,26 @@ public class AgentGenerationTests : GeneratorTestBase
     {
         // Act
         var run = Run(AgentSources.Lookup, AgentSources.NestedTwins);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
+    public void Given_A_Configurable_Setting_Of_A_Base_Record_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(AgentSources.InheritedSetting);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
+    public void Given_Names_Shadowing_The_Start_Of_A_Cref_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(AgentSources.ShadowingNames);
 
         // Assert
         run.Assert.CompilesCleanly();

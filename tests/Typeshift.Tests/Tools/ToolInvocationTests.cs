@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Typeshift.Tests.Toolsets.Support;
 using Typeshift.Tests.Tools.Support;
 using FluentAssertions;
@@ -54,6 +55,33 @@ public class ToolInvocationTests : HostTestBase
         first.Scope.Should().NotBeNull();
         second.Scope.Should().NotBeNull();
         second.Scope.Should().NotBe(first.Scope!.Value);
+    }
+
+    [Fact]
+    public async Task Given_A_Tool_Taking_Its_Arguments_Their_Services_Are_The_Calls_Scope()
+    {
+        // Arrange
+        var probe = new ProbeToolset().CreateTools(Json).Single();
+
+        // Act
+        var result = ReadResult<ProbeResult>(await probe.InvokeAsync(Arguments(("query", Data.Tool.Query)), Ct));
+
+        // Assert
+        result.ArgumentsScope.Should().Be(result.Scope);
+    }
+
+    [Fact]
+    public async Task Given_A_Call_The_Callers_Arguments_Keep_Their_Services()
+    {
+        // Arrange
+        var probe = new ProbeToolset().CreateTools(Json).Single();
+        var arguments = Arguments(("query", Data.Tool.Query));
+
+        // Act
+        await probe.InvokeAsync(arguments, Ct);
+
+        // Assert
+        arguments.Services.Should().BeSameAs(Services);
     }
 
     [Fact]
@@ -134,6 +162,58 @@ public class ToolInvocationTests : HostTestBase
 
         // Assert
         ReadResult<int>(result).Should().Be(10);
+    }
+
+    [Fact]
+    public async Task Given_A_Json_Null_For_An_Optional_Argument_The_Tool_Takes_Its_Default()
+    {
+        // Arrange
+        var search = new SchemaToolset().CreateTools(Json).Single(tool => tool.Name == "search_companies");
+
+        var arguments = Arguments(
+            ("query", Data.Tool.Query),
+            ("country", null),
+            ("known", Array.Empty<Company>()),
+            ("limit", JsonElement.Parse("null")));
+
+        // Act
+        var result = await search.InvokeAsync(arguments, Ct);
+
+        // Assert
+        ReadResult<int>(result).Should().Be(10);
+    }
+
+    [Fact]
+    public async Task Given_A_Number_Of_Another_Type_The_Tool_Receives_It_As_Its_Parameter_Type()
+    {
+        // Arrange
+        var search = new SchemaToolset().CreateTools(Json).Single(tool => tool.Name == "search_companies");
+
+        var arguments = Arguments(
+            ("query", Data.Tool.Query),
+            ("country", null),
+            ("known", Array.Empty<Company>()),
+            ("limit", (long)Data.Tool.Limit.Default));
+
+        // Act
+        var result = await search.InvokeAsync(arguments, Ct);
+
+        // Assert
+        ReadResult<int>(result).Should().Be(Data.Tool.Limit.Default);
+    }
+
+    [Fact]
+    public async Task Given_An_Object_Argument_As_Json_Text_The_Tool_Receives_The_Object()
+    {
+        // Arrange
+        var locate = new SchemaToolset().CreateTools(Json).Single(tool => tool.Name == "locate");
+        var point = JsonSerializer.Serialize(Data.Tool.Point, Json.SerializerOptions);
+
+        // Act
+        var result = await locate.InvokeAsync(Arguments(("point", point)), Ct);
+
+        // Assert
+        ReadResult<GeoPoint>(result).Should().Be(Data.Tool.Point);
     }
 
     [Fact]

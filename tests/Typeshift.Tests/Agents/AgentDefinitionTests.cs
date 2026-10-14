@@ -7,7 +7,7 @@ namespace Typeshift.Tests.Agents;
 public class AgentDefinitionTests : UnitTestBase
 {
     [Fact]
-    public void Given_Selected_Tools_And_A_Whole_Toolset_The_Agent_Offers_Exactly_Those_In_Order()
+    public void Given_Included_Tools_And_A_Whole_Toolset_The_Agent_Offers_Exactly_Those_In_Order()
     {
         // Act
         var tools = new ProbeAgent().Tools.Select(tool => tool.Name.Value);
@@ -27,10 +27,10 @@ public class AgentDefinitionTests : UnitTestBase
     }
 
     [Fact]
-    public void Given_A_Selected_Name_That_Is_No_Tool_Of_The_Toolset_It_Throws_An_ArgumentException()
+    public void Given_An_Included_Name_That_Is_No_Tool_Of_The_Toolset_It_Throws_An_ArgumentException()
     {
         // Act
-        var define = () => new MisselectingAgent<ProbeToolset>();
+        var define = () => new ForeignToolAgent<ProbeToolset>();
 
         // Assert
         define.Should().Throw<ArgumentException>();

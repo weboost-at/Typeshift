@@ -17,6 +17,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Toolset_In_A_Class_That_Is_Not_Partial_TSH001_Is_Reported_On_The_Class_Name()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ContainerNotPartial);
+
+        // Assert
+        run.Assert.Reports("TSH001", DiagnosticSeverity.Error, "Outer");
+    }
+
+    [Fact]
     public void Given_An_Agent_That_Is_Not_Partial_TSH001_Is_Reported_On_Its_Name()
     {
         // Act
@@ -34,6 +44,16 @@ public class DiagnosticTests : GeneratorTestBase
 
         // Assert
         run.Assert.Reports("TSH002", DiagnosticSeverity.Error, "Name");
+    }
+
+    [Fact]
+    public void Given_A_Tool_Description_That_Is_Not_A_Constant_TSH002_Is_Reported_On_It()
+    {
+        // Act
+        var run = Run(DiagnosticSources.DescriptionNotConstant);
+
+        // Assert
+        run.Assert.Reports("TSH002", DiagnosticSeverity.Error, "Description");
     }
 
     [Fact]
@@ -57,6 +77,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Static_Local_Function_TSH004_Is_Reported_On_It()
+    {
+        // Act
+        var run = Run(DiagnosticSources.StaticLocalFunction);
+
+        // Assert
+        run.Assert.Reports("TSH004", DiagnosticSeverity.Error, "Echo");
+    }
+
+    [Fact]
     public void Given_A_Settings_Class_That_Is_Not_A_Record_TSH005_Is_Reported_On_WithSettings()
     {
         // Act
@@ -67,7 +97,7 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_A_Tool_Of_Another_Toolset_Selecting_It_Does_Not_Compile()
+    public void Given_A_Tool_Of_Another_Toolset_Including_It_Does_Not_Compile()
     {
         // Act
         var run = Run(DiagnosticSources.ForeignTool);
@@ -80,10 +110,10 @@ public class DiagnosticTests : GeneratorTestBase
     public void Given_A_Toolset_Not_Compiled_With_The_Generator_TSH006_Is_Reported_On_UseToolset()
     {
         // Arrange
-        var tools = CompileReferenceWithoutGenerator("Tools", DiagnosticSources.UngeneratedToolset);
+        var tools = CompileReferenceWithoutGenerator("Tools", RegistrationSources.EchoToolset);
 
         // Act
-        var run = Run(Compile("App", [tools], DiagnosticSources.AgentOfUngeneratedToolset));
+        var run = Run(Compile("App", [tools], RegistrationSources.EchoAgent));
 
         // Assert
         run.Assert.Reports("TSH006", DiagnosticSeverity.Error, "UseToolset<EchoToolset>");
@@ -113,6 +143,20 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_Two_References_Sharing_A_Tool_Name_TSH007_Is_Reported_On_AddTypeshift()
+    {
+        // Arrange
+        var echo = CompileReference("Tools", RegistrationSources.EchoToolset);
+        var shout = CompileReference("Shouts", RegistrationSources.ShoutToolset);
+
+        // Act
+        var run = Run(Compile("App", [echo, shout], RegistrationSources.Host));
+
+        // Assert
+        run.Assert.Reports("TSH007", DiagnosticSeverity.Error, "services.AddTypeshift()");
+    }
+
+    [Fact]
     public void Given_A_Tool_Without_Any_Description_TSH008_Is_Reported_On_AddTool()
     {
         // Act
@@ -136,7 +180,17 @@ public class DiagnosticTests : GeneratorTestBase
     public void Given_Settings_Of_A_Tool_The_Agent_Does_Not_Offer_Configuring_Them_Does_Not_Compile()
     {
         // Act
-        var run = Run(DiagnosticSources.SettingsOfAnUnofferedTool);
+        var run = Run(DiagnosticSources.ToneToolset, DiagnosticSources.SettingsOfAnUnofferedTool);
+
+        // Assert
+        run.Assert.DoesNotCompile("CS0103", "ConfigureShout");
+    }
+
+    [Fact]
+    public void Given_Settings_Of_An_Excluded_Tool_Configuring_Them_Does_Not_Compile()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToneToolset, DiagnosticSources.SettingsOfAnExcludedTool);
 
         // Assert
         run.Assert.DoesNotCompile("CS0103", "ConfigureShout");
@@ -147,6 +201,16 @@ public class DiagnosticTests : GeneratorTestBase
     {
         // Act
         var run = RunWithoutDocumentation(DiagnosticSources.DocumentationOff);
+
+        // Assert
+        run.Assert.Reports("TSH010", DiagnosticSeverity.Warning, "AddTool(Echo)");
+    }
+
+    [Fact]
+    public void Given_A_Description_And_Param_Docs_Without_GenerateDocumentationFile_TSH010_Is_Reported_On_AddTool()
+    {
+        // Act
+        var run = RunWithoutDocumentation(DiagnosticSources.DescribedWithParamDocsAndDocumentationOff);
 
         // Assert
         run.Assert.Reports("TSH010", DiagnosticSeverity.Warning, "AddTool(Echo)");
@@ -175,14 +239,17 @@ public class DiagnosticTests : GeneratorTestBase
         run.Assert.Reports("TSH011", DiagnosticSeverity.Warning, "services.AddTypeshift()");
     }
 
-    [Fact]
-    public void Given_A_Tool_Name_That_Is_Not_Lower_Snake_Case_TSH012_Is_Reported_On_It()
+    [Theory]
+    [InlineData("EchoText")]
+    [InlineData("echo_")]
+    [InlineData("echo__text")]
+    public void Given_A_Tool_Name_That_Is_Not_Lower_Snake_Case_TSH012_Is_Reported_On_It(string name)
     {
         // Act
-        var run = Run(DiagnosticSources.NotLowerSnakeCase);
+        var run = Run(DiagnosticSources.NotLowerSnakeCase(name));
 
         // Assert
-        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, "\"EchoText\"");
+        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, $"\"{name}\"");
     }
 
     [Fact]
@@ -190,6 +257,16 @@ public class DiagnosticTests : GeneratorTestBase
     {
         // Act
         var run = Run(DiagnosticSources.InternalSettingsOfPublicToolset);
+
+        // Assert
+        run.Assert.Reports("TSH013", DiagnosticSeverity.Error, "WithSettings<EchoSettings>");
+    }
+
+    [Fact]
+    public void Given_Private_Settings_Of_An_Internal_Toolset_TSH013_Is_Reported_On_WithSettings()
+    {
+        // Act
+        var run = Run(DiagnosticSources.PrivateSettingsOfInternalToolset);
 
         // Assert
         run.Assert.Reports("TSH013", DiagnosticSeverity.Error, "WithSettings<EchoSettings>");

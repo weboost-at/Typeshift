@@ -36,7 +36,8 @@ public partial class DiagnosticCatalogTests
         var tests = typeof(DiagnosticTests).GetMethods().Select(method => method.Name).ToList();
 
         // Act
-        var untested = Ids.Where(id => !tests.Any(test => test.Contains($"_{id}_", StringComparison.Ordinal)));
+        var untested = Ids.Where(id =>
+            !tests.Any(test => test.Contains($"_{id}_Is_Reported", StringComparison.Ordinal)));
 
         // Assert
         untested.Should().BeEmpty();

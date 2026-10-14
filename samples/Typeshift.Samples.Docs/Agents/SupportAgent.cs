@@ -19,9 +19,7 @@ internal partial class SupportAgent : AgentDefinition
             .Configurable(o => o.Temperature)
             .Configurable(o => o.MaxOutputTokens);
 
-        UseToolset<TicketToolset>()
-            .Include(t => t.SearchTickets)
-            .Include(t => t.GetTicket);
+        UseToolset<TicketToolset>().Include(t => t.SearchTickets);
 
         UseToolset<KnowledgeToolset>();
 

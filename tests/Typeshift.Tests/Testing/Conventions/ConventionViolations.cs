@@ -13,8 +13,8 @@ public static partial class ConventionViolations
         ["raw cancellation token"] = new(@"TestContext\.Current\.CancellationToken"),
         ["numeric wait timeout"] = new(@"\b(WaitAsync|Timeout)\([^;]*(TimeSpan\.From\w+\(|\d+\.(Seconds|Minutes)\(\))"),
         ["wall clock"] = new(@"\bDateTime(Offset)?\.(Now|UtcNow|Today)\b"),
-        ["real time"] = new(@"\b(Stopwatch|Environment\.TickCount|TimeProvider\.System)\b"),
-        ["chained assertion"] = new(@"\)\s*\.(And|Which|Subject)\b")
+        ["real time"] = new(@"\b(Stop[w]atch|Environment\.TickCount|TimeProvider\.System)\b"),
+        ["chained assertion"] = new(@"(^|\))\s*\.(And|Which|Subject)\b")
     };
 
     // Class.Method of every test whose name is neither Given_<state>_<outcome> nor the outcome alone
@@ -59,14 +59,6 @@ public static partial class ConventionViolations
                 .Select(line => TopLevelType().Match(line))
                 .Where(match => match.Success && !match.Groups["name"].Value.EndsWith("Tests"))
                 .Select(match => $"{file}: {match.Groups["name"].Value}"));
-
-    public static IEnumerable<string> All() =>
-        Names()
-            .Concat(LongDeclarations())
-            .Concat(Misplaced())
-            .Concat(Comments())
-            .Concat(SupportOutsideSupport())
-            .Concat(BannedCalls.Keys.SelectMany(Banned));
 
     private static bool IsWellNamed(TestMethod method)
     {

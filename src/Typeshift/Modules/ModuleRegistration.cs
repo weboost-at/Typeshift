@@ -37,11 +37,6 @@ public static class ModuleRegistration
         services.TryAddSingleton(provider => new ConversationTracker(
             provider.GetService<ConversationStore>(),
             provider.GetRequiredService<TimeProvider>()));
-
-        services.TryAddSingleton(provider => new AgentRuntimeServices(
-            Services: provider,
-            Json: provider.GetRequiredService<AgentJson>(),
-            ChatClients: provider.GetService<IChatClientProvider>()));
     }
 
     /// <summary>
@@ -73,8 +68,7 @@ public static class ModuleRegistration
     }
 
     /// <summary>
-    /// Registers an agent as itself and as an <see cref="AgentDefinition"/>, and its runtime as itself and as an
-    /// <see cref="AgentRuntime"/>.
+    /// Registers an agent, and its runtime as itself and as an <see cref="AgentRuntime"/>.
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <param name="services">The host's services.</param>
@@ -83,11 +77,7 @@ public static class ModuleRegistration
         where TAgent : AgentDefinition
     {
         services.AddSingleton(_ => create());
-        services.AddSingleton<AgentDefinition>(provider => provider.GetRequiredService<TAgent>());
-
-        services.AddSingleton(provider => new AgentRuntime<TAgent>(
-            provider.GetRequiredService<TAgent>(),
-            provider.GetRequiredService<AgentRuntimeServices>()));
+        services.AddSingleton(provider => new AgentRuntime<TAgent>(provider.GetRequiredService<TAgent>(), provider));
 
         services.AddSingleton<AgentRuntime>(provider => provider.GetRequiredService<AgentRuntime<TAgent>>());
     }

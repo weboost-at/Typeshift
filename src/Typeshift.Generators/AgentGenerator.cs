@@ -36,16 +36,19 @@ public sealed class AgentGenerator : IIncrementalGenerator
                 toolset.Tools
                     .Select(tool => new ToolSummary(tool.Name, tool.Settings, tool.Location))
                     .ToEquatableArray()))
+            .WithTrackingName(TrackingNames.ToolsetSummaries)
             .Collect();
 
         var agentTypes = agents
             .Where(static agent => agent.IsPartial)
             .Select(static (agent, _) => agent.Type.FullName)
+            .WithTrackingName(TrackingNames.AgentTypes)
             .Collect();
 
         var toolTypes = toolsets
             .Where(static toolset => toolset.IsPartial)
             .SelectMany(static (toolset, _) => GetJsonTypes(toolset))
+            .WithTrackingName(TrackingNames.ToolTypes)
             .Collect();
 
         var jsonContexts = classes

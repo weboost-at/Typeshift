@@ -64,6 +64,7 @@ jobs:
           dotnet nuget push "artifacts/packages/*.nupkg"
           --api-key "${{ steps.nuget.outputs.NUGET_API_KEY }}"
           --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
 
       - name: Create the GitHub release
         env:

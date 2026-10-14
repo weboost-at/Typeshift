@@ -18,9 +18,11 @@ internal static class ToolsetParser
         CancellationToken ct)
     {
         var diagnostics = new DiagnosticBag();
-        var isPartial = toolset.IsPartial(ct);
+        var notPartial = toolset.GetNotPartial(ct);
+        var isPartial = notPartial is null;
 
-        if (!isPartial) diagnostics.Report(Descriptors.NotPartial, toolset.Locations.FirstOrDefault(), toolset.Name);
+        if (notPartial is not null)
+            diagnostics.Report(Descriptors.NotPartial, notPartial.Locations.FirstOrDefault(), notPartial.Name);
 
         var tools = ConstructorChains.GetInvocations(toolset, compilation, ct)
             .Where(IsAddTool)
@@ -40,16 +42,17 @@ internal static class ToolsetParser
     {
         var argument = addTool.Arguments[0].Value;
 
+        // A static local function is no method the generated code can call
         if (ConstructorChains.Unwrap(argument) is not IDelegateCreationOperation
             {
-                Target: IMethodReferenceOperation { Method.IsStatic: true } reference
+                Target: IMethodReferenceOperation { Method: { IsStatic: true, MethodKind: MethodKind.Ordinary } method }
             })
         {
             diagnostics.Report(Descriptors.NotStaticMethodGroup, argument.Syntax, argument.Syntax.ToString());
             return null;
         }
 
-        var tool = new DeclaredTool(reference.Method, addTool);
+        var tool = new DeclaredTool(method, addTool);
 
         foreach (var call in ConstructorChains.GetChainedCalls(addTool))
         {
@@ -67,7 +70,7 @@ internal static class ToolsetParser
                 case "WithSettings" or "WithConfigurableSettings":
                     tool.SettingsType = call.TargetMethod.TypeArguments[0];
                     tool.SettingsCall = call;
-                    tool.AllConfigurable = call.TargetMethod.Name == "WithConfigurableSettings";
+                    tool.ConfigurableByDefault = call.TargetMethod.Name == "WithConfigurableSettings";
                     break;
 
                 case "Configurable":
@@ -81,7 +84,7 @@ internal static class ToolsetParser
         }
 
         if (tool.NameCall is null)
-            diagnostics.Report(Descriptors.MissingToolName, addTool.Syntax, reference.Method.Name);
+            diagnostics.Report(Descriptors.MissingToolName, addTool.Syntax, method.Name);
 
         return tool;
     }
@@ -119,6 +122,8 @@ internal static class ToolsetParser
             .Select(parameter => ParseParameter(parameter, tool.SettingsType, docs))
             .ToEquatableArray();
 
+        var returns = ParseReturn(tool.Method.ReturnType);
+
         if (settings is not null && parameters.All(parameter => parameter.Kind != ParameterKind.Settings))
         {
             diagnostics.Report(
@@ -135,8 +140,8 @@ internal static class ToolsetParser
             Description: description,
             Settings: settings,
             Parameters: parameters,
-            Return: ParseReturn(tool.Method.ReturnType),
-            Result: GetResultType(tool.Method.ReturnType)?.ToTypeOf(),
+            Return: returns,
+            Result: GetResultType(tool.Method.ReturnType, returns)?.ToTypeOf(),
             Location: LocationInfo.From(tool.AddTool.Syntax.GetLocation()));
     }
 
@@ -191,15 +196,15 @@ internal static class ToolsetParser
 
         // D43: allowed one by one, or all but the excluded and the obsolete ones
         var configurable = type.GetSettableProperties()
-            .Where(property => tool.AllConfigurable
+            .Where(property => tool.ConfigurableByDefault
                 ? !tool.Exclusions.Contains(property.Name) && !IsObsolete(property)
                 : picks.Any(pick => pick.Property == property.Name))
             .ToList();
 
-        // A public toolset exposes its settings through Tools and the generated overrides
-        var exposed = configurable.Select(property => property.Type).Prepend(type);
+        // Tools, the tool list and the overrides name the settings wherever the toolset can be named
+        var reachable = toolset.IsEffectivelyPublic() ? type.IsEffectivelyPublic() : type.IsVisibleInAssembly();
 
-        if (toolset.IsEffectivelyPublic() && !exposed.All(member => member.IsEffectivelyPublic()))
+        if (!reachable)
         {
             diagnostics.Report(Descriptors.SettingsLessAccessible, settingsName, type.Name, toolset.Name);
             return null;
@@ -241,7 +246,6 @@ internal static class ToolsetParser
             Type: parameter.Type.ToFullyQualified(),
             TypeOf: parameter.Type.ToTypeOf(),
             IsNullable: parameter.Type is { IsReferenceType: true, NullableAnnotation: NullableAnnotation.Annotated },
-            HasDefaultValue: parameter.HasExplicitDefaultValue,
             DefaultValue: parameter.HasExplicitDefaultValue ? DefaultValues.Format(parameter) : null,
             Description: docs.Parameters.TryGetValue(parameter.Name, out var description) ? description : null);
     }
@@ -255,15 +259,15 @@ internal static class ToolsetParser
             _ => ReturnKind.Value
         };
 
-    private static ITypeSymbol? GetResultType(ITypeSymbol type) =>
-        ParseReturn(type) switch
+    private static ITypeSymbol? GetResultType(ITypeSymbol type, ReturnKind returns) =>
+        returns switch
         {
             ReturnKind.Value => type,
             ReturnKind.AwaitableValue => ((INamedTypeSymbol)type).TypeArguments[0],
             _ => null
         };
 
-    // What one AddTool chain declares, before it is checked against the toolset's other tools
+    // What one AddTool chain declares, before it is checked
     private sealed class DeclaredTool(IMethodSymbol method, IInvocationOperation addTool)
     {
         public IMethodSymbol Method { get; } = method;
@@ -282,7 +286,7 @@ internal static class ToolsetParser
 
         public List<IInvocationOperation> Picks { get; } = [];
 
-        public bool AllConfigurable { get; set; }
+        public bool ConfigurableByDefault { get; set; }
 
         public List<string?> Exclusions { get; } = [];
     }

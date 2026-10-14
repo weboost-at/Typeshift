@@ -22,17 +22,7 @@ public sealed class AgentJson
     /// <param name="options">The configured options; <c>AddTypeshift()</c> registers them.</param>
     public AgentJson(IOptions<AgentJsonOptions> options)
     {
-        SerializerOptions = new JsonSerializerOptions(AIJsonUtilities.DefaultOptions)
-        {
-            TypeInfoResolver = JsonTypeInfoResolver.Combine(
-            [
-                .. options.Value.TypeInfoResolverChain,
-                AgentJsonContext.Default,
-                AIJsonUtilities.DefaultOptions.TypeInfoResolver
-            ])
-        };
-
-        SerializerOptions.MakeReadOnly();
+        SerializerOptions = LibraryJson.CreateOptions(options.Value.TypeInfoResolverChain);
         SchemaCreateOptions = options.Value.SchemaCreateOptions;
     }
 
@@ -100,7 +90,8 @@ public sealed class AgentJson
             SerializerOptions,
             SchemaCreateOptions with { TransformOptions = null });
 
-        var schema = JsonObject.Create(element)!;
+        // A type that takes any JSON gets the schema true, which {} matches
+        var schema = element.ValueKind is JsonValueKind.Object ? JsonObject.Create(element)! : new JsonObject();
         return parameter.IsNullable ? AsNullable(schema) : schema;
     }
 

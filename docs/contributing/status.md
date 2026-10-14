@@ -1,88 +1,13 @@
 # Status
 
-Where the project stands: what is built, which test covers each behavior of the spec, and what is open. Open items
-live here, never as TODOs in code.
-
-## Plan
-
-### Milestone 1: skeleton
-
-- [x] Repository infrastructure: `global.json`, `Directory.Build.props`, `Directory.Packages.props`, `.editorconfig`,
-      `.gitignore`, `LICENSE`, `README.md`, `CHANGELOG.md`, `AGENTS.md`, `CLAUDE.md`, `Typeshift.slnx`, local tools
-- [x] Empty projects wired together: runtime, generator, the three test projects, the sample
-- [x] CI running build, tests and slopwatch
-- [x] Convention tests from the test-formatting skill, test bases and the test-data catalog
-
-### Milestone 2: tools (behaviors 1-9)
-
-- [x] Runtime: `Toolset`, the tool builder, `ToolName`, the settings accessor, the generated-function base, JSON
-      options through DI
-- [x] Generator: toolset parsing and emitting, toolset diagnostics
-- [x] Tests: toolset snapshot, one test per diagnostic, behaviors 1-9
-
-### Milestone 3: registration (behaviors 10, 30-35)
-
-- [x] Assembly modules and stamps, the `AddTypeshift()` interceptor
-- [x] The tool catalog, cross-assembly registration
-- [x] Tests: module and interceptor snapshots, cross-assembly stamps, `InternalsVisibleTo`, behaviors 10, 30-35
-
-### Milestone 4: agents and settings (behaviors 11-29, 36-37)
-
-- [x] `AgentDefinition`, the settings layering, `AgentRuntime<TAgent>`
-- [x] Tests: agent snapshot, behaviors 11-29, 36-37
-
-### Milestone 5: stored agents (behaviors 38-40)
-
-- [x] Built, then dropped in milestone 8 (D32)
-
-### Milestone 6: conversations (behaviors 41-48)
-
-- [x] The port of the conversation tracking, on `TimeProvider`
-- [x] `AgentRuntime` chat clients track their conversations under the agent's name
-
-### Milestone 7: AOT, packaging, docs (behavior 49)
-
-- [x] The sample, the AOT CI job, the packaging smoke test
-- [x] Architecture, diagnostics, decisions and renaming docs, README
-- [x] Final review pass, clean re-verification, pull request
-
-### Milestone 8: the owner's review (D25-D36)
-
-- [x] One store, `ITypeshiftStore<TId>`, of `IStorable` documents; the host picks the id type; the store is the
-      persistence feature flag
-- [x] Generated, typed `Settings` per agent and `{Tool}Overrides` per tool, serialized without reflection
-- [x] Generated tool selection and `WithToolSettings` overloads; foreign tools and unread settings do not compile
-      (the overloads became generated builders in milestone 12)
-- [x] Optional agent names; stored agents and the agent catalog removed; conversation ids parsed into the store's ids
-- [x] Full XML docs on the public API: parameters, returns, exceptions
-
-### Milestone 9: documentation site
-
-- [x] VitePress site on GitHub Pages; snippets taken from compiled code by mdsnippets and checked in CI
-- [x] README rewritten
-
-### Milestone 10: distribution
-
-- [x] NuGet release workflow on version tags, package validation, symbols, release docs
-- [x] Package ID chosen: the library is renamed from `Agentic` to Typeshift (D38); see [naming](./naming.md)
-
-### Milestone 11: working on the library
-
-- [x] Playbooks for recurring changes, decision IDs cited in code, guard tests for the repository's own rules
-
-### Milestone 12: one chain per declaration (D40-D42)
-
-- [x] `WithSettings<T>().Configurable(...)`, `WithChatOptions().With...()`, `UseToolset<T>().A()`: no builder inside a
-      lambda
-- [x] Settings arrive as a tool parameter the model never sees; `GetToolSettings<T>()` removed
-- [x] `GetInstructions()`; the generated `Configure{Tool}()` builder per tool of an agent
-- [x] `UseToolset<T>().Include(t => t.X)` and `.Exclude(t => t.X)` over a generated tool list (D29)
-- [x] `WithConfigurableSettings<T>().NotConfigurable(...)` next to the default allow list (D43)
+Where the project stands: which test covers each behavior of the alpha's spec, and what is open. Open items live
+here, never as TODOs in code.
 
 ## Behavior coverage
 
-Every rule of `spec/behaviors.md` maps to one test or more; a behavior that bundles several rules has one test per
-rule. Where the owner's review changed a behavior, the row says how.
+The numbers are the rules of the alpha's spec, `spec/behaviors.md`, which is not in the repository. Every rule maps
+to one test or more; a behavior that bundles several rules has one test per rule. Where the owner's review changed a
+behavior, the row says how.
 
 | # | Test |
 |---|---|
@@ -96,8 +21,8 @@ rule. Where the owner's review changed a behavior, the row says how.
 | 8 | `ToolSchemaTests.Given_The_Same_Method_The_Schema_Matches_AIFunctionFactory_Without_Descriptions` |
 | 9 | `ToolSchemaTests.Given_Param_Docs_They_Become_The_Parameter_Descriptions`, `..._Given_No_WithDescription_The_Summary_Is_The_Tool_Description` |
 | 10 | `DiagnosticTests.Given_Two_Own_Tools_Sharing_A_Name_TSH007_Is_Reported_On_The_First`, `..._Given_A_Tool_Named_Like_One_Of_A_Reference_TSH007_Is_Reported_On_The_Own_One` |
-| 11 | `AgentDefinitionTests.Given_Selected_Tools_And_A_Whole_Toolset_The_Agent_Offers_Exactly_Those_In_Order` |
-| 12 | `DiagnosticTests.Given_A_Tool_Of_Another_Toolset_Selecting_It_Does_Not_Compile`, `..._Given_A_Toolset_Not_Compiled_With_The_Generator_TSH006_Is_Reported_On_UseToolset`, `AgentDefinitionTests.Given_A_Selected_Name_That_Is_No_Tool_Of_The_Toolset_It_Throws_An_ArgumentException` |
+| 11 | `AgentDefinitionTests.Given_Included_Tools_And_A_Whole_Toolset_The_Agent_Offers_Exactly_Those_In_Order` |
+| 12 | `DiagnosticTests.Given_A_Tool_Of_Another_Toolset_Including_It_Does_Not_Compile`, `..._Given_A_Toolset_Not_Compiled_With_The_Generator_TSH006_Is_Reported_On_UseToolset`, `AgentDefinitionTests.Given_An_Included_Name_That_Is_No_Tool_Of_The_Toolset_It_Throws_An_ArgumentException` |
 | 13 | `AgentDefinitionTests.Given_A_Tool_The_Agent_Already_Offers_Adding_It_Again_Throws_An_InvalidOperationException` |
 | 14 | `AgentRuntimeTests.Given_Run_Settings_Their_Chat_Options_Apply_Over_The_Code`; options that are not configurable do not exist on `Settings` (`AgentSettingsTests.Exposes_Only_The_Model_The_Configurable_Chat_Options_And_The_Configurable_Tools`) |
 | 15 | `AgentRuntimeTests.Given_An_Unset_Run_Option_The_Agents_Default_Stays` |
@@ -106,7 +31,7 @@ rule. Where the owner's review changed a behavior, the row says how.
 | 18 | `AgentRuntimeTests.Given_The_Agents_Tool_Settings_Its_Tools_Run_With_All_Of_Them` |
 | 19 | `AgentRuntimeTests.Given_Run_Tool_Settings_Their_Values_Apply_Over_The_Agents_Own` |
 | 20 | `AgentRuntimeTests.Given_Run_Tool_Settings_The_Next_Run_Uses_The_Agents_Own` |
-| 21 | `DiagnosticTests.Given_Settings_Of_A_Tool_The_Agent_Does_Not_Offer_Configuring_Them_Does_Not_Compile` (a compiler error since D30) |
+| 21 | `DiagnosticTests.Given_Settings_Of_A_Tool_The_Agent_Does_Not_Offer_Configuring_Them_Does_Not_Compile`, `..._Given_Settings_Of_An_Excluded_Tool_Configuring_Them_Does_Not_Compile` (a compiler error since D30) |
 | 22 | Changed by D31, names are optional and free-form: `AgentDefinitionTests.Given_WithName_The_Agent_Goes_By_That_Name`, `..._Given_No_WithName_The_Agent_Goes_By_Its_Class_Name` |
 | 23 | Dropped by D31: names need not be unique |
 | 24 | `AgentSettingsTests.Exposes_Only_The_Model_The_Configurable_Chat_Options_And_The_Configurable_Tools`, `..._Given_Values_Configured_Under_An_Id_The_Run_Resolves_With_Them`, `..._Given_Settings_Saved_Under_An_Id_They_Load_Back_Equal`, `..._Given_No_Settings_Saved_Under_An_Id_Loading_Returns_Empty_Settings`, `..._Given_Settings_Under_Two_Ids_Each_Run_Resolves_With_Its_Own` |
@@ -134,18 +59,15 @@ rule. Where the owner's review changed a behavior, the row says how.
 | 48 | `SubscriberTests.Given_Throwing_Subscribers_The_Stream_Completes`, `..._Given_A_Subscriber_That_Never_Finishes_The_Call_Goes_On_At_The_Limit`, `..._Given_A_Session_Subscriber_That_Never_Finishes_The_Stream_Goes_On_At_The_Limit`, `..._Given_A_Subscriber_Its_Token_Is_Cancelled_At_The_Limit` |
 | 49 | CI, `.github/workflows/ci.yml`: "Publish the sample as Native AOT, failing on any trim or AOT warning" and "Run the AOT sample" |
 
-Beyond the behaviors: `StorableJsonTests` cover every storable member kind, nulls, enums by name and malformed
-values; TSH014 has a test for settings and one for chat options; the review pass's regression tests stay
-(referenced tools with optional parameters, tools in an agent's own chat options, the conversation id kept from the
-provider, overlapping first sessions, a parameter documented twice, nested and internal agents, reserved names,
-moved code staying cached). CI builds and runs `samples/Typeshift.Samples.PackageConsumer` against the packed
-`.nupkg`.
-
-## Environment notes
-
-- The run had the .NET 10 SDK and `clang`, so the AOT publish and the package consumer ran locally as well as in CI.
-- The session's git proxy answers HTTP 403 to every tag push, so no release tag exists yet. The first release follows
-  [releasing](./releasing.md) once the package ID is chosen.
+Beyond the behaviors: `StorableJsonTests` cover every storable member kind, nulls, enums and flags by name, NaN and
+the infinities, and malformed values; TSH014 has a test for settings and one for chat options; the review passes'
+regression tests stay (referenced tools with optional parameters, tools in an agent's own chat options, the
+conversation id kept from the provider, overlapping first sessions and sessions of one conversation ending at once,
+a conversation deleted during a session, a parameter documented twice, nested and internal agents, reserved names,
+moved code staying cached, multi-line descriptions, keyword-named namespaces and settings members, names that shadow
+a cref, parameter defaults of every kind, static local functions, a toolset nested in a class that is not partial,
+private settings of an internal toolset, a tool name clash among references only, and a test run outside UTC). CI
+builds and runs `samples/Typeshift.Samples.PackageConsumer` against the packed `.nupkg`.
 
 ## Known gaps
 
@@ -154,29 +76,47 @@ moved code staying cached). CI builds and runs `samples/Typeshift.Samples.Packag
   parameter, not to the function schema. Untested; non-recursive types are unaffected.
 - **Private nested classes:** a toolset or agent nested as `private` or `protected` fails with CS0122 in the
   generated module instead of a diagnostic. Nested classes the assembly can reach work.
-- **Agent inheritance:** an agent deriving from another concrete agent is not supported: the generator reads only the
-  agent's own constructor, and both classes would declare a nested `Settings`.
+- **No parameterless constructor:** a toolset or agent without a parameterless constructor fails with CS7036 in the
+  generated module instead of a diagnostic.
+- **Keyword names:** a toolset or agent named like a keyword (`@class`), or nested in such a class, is written
+  without its `@` and fails with CS1001.
+- **A toolset named `Tools`:** the generator nests a class of the same name in it, which fails with CS0542.
+- **Tool names that differ in underscores:** `get_v2` and `get_v_2` map to the same generated name, `GetV2`, which
+  fails with CS0102. TSH007 compares the snake_case names, so it does not see the clash.
+- **Agent and toolset inheritance:** an agent deriving from another concrete agent is not supported: the generator
+  reads only the agent's own constructor, and both classes would declare a nested `Settings`. A toolset deriving
+  from another concrete toolset hides the base's generated `Tools` class (CS0108) and registers the base's tools
+  twice.
 - **Store round trips:** resolving with an id loads the agent's settings and one document per tool with configurable
   settings, in parallel. A store that wants one round trip has no batch API to implement yet.
 - **Concurrent updates:** `ConfigureAsync` loads, changes and saves without a version check, so of two concurrent
-  updates under one id the later save wins.
+  updates under one id the later save wins. Conversation saves (D18) have no version check either: within one
+  process, the sessions of a conversation that end together are stored one after the other, but across processes
+  the later save wins and the other session is lost.
 - **Document kinds:** stores key documents by type, and the library offers no stable kind name, so moving or
   renaming an agent class orphans its settings in a store keyed by the type's full name.
 - **Renamed members:** stored documents carry no schema version. A renamed configurable member or tool reads as
   null, so its stored value silently falls back to the layer below.
 - **Configurable types:** only the types TSH014 lists; nested records, dictionaries and lists of other types stay
   code-only.
+- **Configurable members need a setter:** `Configurable(s => s.X)` on a property without a public `set` or `init`
+  accessor is ignored without a diagnostic, and `X` stays code-only.
 - **TSH011 reads types:** to find a reference that declares toolsets or agents without a stamp, the generator looks
   at the types of every reference that uses the library but carries no stamp. Stamped references, the normal case,
   are read from their stamps only.
+- **TSH diagnostics cannot be silenced in code:** `#pragma warning disable` and `.editorconfig` severities do not
+  reach them, since the generator reports them at locations without a syntax tree (its models keep paths and spans,
+  never trees). `<NoWarn>` in the project works.
 - **No JSON-context analyzer:** a tool whose parameter or result type is missing from every registered
   `JsonSerializerContext` compiles, then fails at runtime under Native AOT.
 - **JSON contexts match exactly:** a module registers a context only when its `[JsonSerializable]` names a tool type
   as declared, so one that lists only `Company` is left out for a tool returning `IReadOnlyList<Company>` (D44).
 - **Fixed tracking limits:** the publish interval (100 ms) and the subscriber limits (250 ms per session, 5 s for the
   tracker) are constants, as in the owner's code.
+- **Non-partial toolsets:** an agent that uses an own toolset which is not partial gets TSH006, "not compiled with
+  the generator", next to the toolset's TSH001.
 - **Generated line length:** generated code is `global::`-qualified and some declarations exceed 120 columns.
-- **Selection chains are read from syntax:** `UseToolset<T>().Include(t => t.A)` must be one expression, and each
+- **Tool picks are read from syntax:** `UseToolset<T>().Include(t => t.A)` must be one expression, and each
   pick a lambda reading one property. Splitting it, `var tickets = UseToolset<T>(); tickets.Include(t => t.A);`,
   offers only `A` at runtime while the generator assumes every tool of `T` (D29).
 
@@ -191,19 +131,3 @@ moved code staying cached). CI builds and runs `samples/Typeshift.Samples.Packag
 6. Rewrite `$ref`s of recursive parameter types, with a test against `AIFunctionFactory`.
 7. Instance-method tools, if wanted (out of the alpha's scope).
 8. A sample provider behind an environment variable, once provider SDKs are in scope.
-
-## Decisions to review first
-
-From the [decisions](./decisions.md), the ones that shape the API the most:
-
-1. **D25, D26:** one store of self-serializing documents, keyed by type and the host's id; without it the
-   persistent APIs throw.
-2. **D27:** the generated `Settings` and `{Tool}Overrides` records, their JSON shape and the storable member types.
-3. **D28:** tool defaults are stored under the agent's id.
-4. **D29, D30:** the tool lists and `Configure{Tool}()` are generated, so misuse is a compiler error.
-5. **D40, D41, D42:** settings arrive as a tool parameter; every declaration is one flat chain; instructions come
-   from `GetInstructions()`.
-6. **D33:** conversation ids are parsed into the store's id type; a call without one is not stored.
-7. **D1, D4:** `AddTypeshift()` exists only as an intercepted call; the typed runtime members are C# 14 extension
-   blocks.
-8. **D37, D38:** releases are tags published through nuget.org trusted publishing, as the package `Typeshift`.

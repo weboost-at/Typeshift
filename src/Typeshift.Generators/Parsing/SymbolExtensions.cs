@@ -33,6 +33,12 @@ internal static class SymbolExtensions
                 _ => true
             };
 
+        // Internal or wider along its containing types, so generated code in the same assembly can name it
+        public bool IsVisibleInAssembly() =>
+            type.DeclaredAccessibility
+                is Accessibility.Public or Accessibility.Internal or Accessibility.ProtectedOrInternal
+            && (type.ContainingType?.IsVisibleInAssembly() ?? true);
+
         // The type of a stored value: null means "inherit", so even a value type becomes nullable
         public string ToNullableFullyQualified() =>
             type switch
@@ -77,18 +83,14 @@ internal static class SymbolExtensions
             return false;
         }
 
-        // Internal or wider along its containing types, so generated code in the same assembly can name it
-        public bool IsVisibleInAssembly() =>
-            type.DeclaredAccessibility
-                is Accessibility.Public or Accessibility.Internal or Accessibility.ProtectedOrInternal
-            && (type.ContainingType?.IsVisibleInAssembly() ?? true);
-
-        public bool IsPartial(CancellationToken ct) =>
+        // The type itself or the innermost class it is nested in that is not partial; null when all of them are
+        public INamedTypeSymbol? GetNotPartial(CancellationToken ct) =>
             type.DeclaringSyntaxReferences
                 .Select(reference => reference.GetSyntax(ct))
                 .OfType<TypeDeclarationSyntax>()
                 .Any(declaration => declaration.Modifiers.Any(SyntaxKind.PartialKeyword))
-            && (type.ContainingType is not { } container || container.IsPartial(ct));
+                ? type.ContainingType?.GetNotPartial(ct)
+                : type;
     }
 
     private static bool IsSettable(IPropertySymbol property) =>

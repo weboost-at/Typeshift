@@ -69,7 +69,8 @@ public static class AgentSources
         }
         """;
 
-    // Settings and toolset for the agents below; internal, so they need no docs
+    // Settings and toolset for the agents below, with tools named like members of the agent's Settings record;
+    // internal, so they need no docs
     public const string Lookup =
         """
         using System;
@@ -86,22 +87,38 @@ public static class AgentSources
         {
             public LookupToolset()
             {
-                AddTool(Create)
-                    .WithName("create")
-                    .WithDescription("Creates an entry.")
+                AddTool(Find)
+                    .WithName("model")
+                    .WithDescription("Finds a model.")
                     .WithSettings<LookupSettings>()
                     .Configurable(s => s.Limit);
 
-                AddTool(Configure)
-                    .WithName("configuration")
-                    .WithDescription("Reads the configuration.")
+                AddTool(Find)
+                    .WithName("settings")
+                    .WithDescription("Finds settings.")
+                    .WithSettings<LookupSettings>()
+                    .Configurable(s => s.Limit);
+
+                AddTool(Find)
+                    .WithName("serialize")
+                    .WithDescription("Finds a serializer.")
+                    .WithSettings<LookupSettings>()
+                    .Configurable(s => s.Limit);
+
+                AddTool(Find)
+                    .WithName("equals")
+                    .WithDescription("Finds equal entries.")
+                    .WithSettings<LookupSettings>()
+                    .Configurable(s => s.Limit);
+
+                AddTool(Find)
+                    .WithName("temperature")
+                    .WithDescription("Finds a temperature.")
                     .WithSettings<LookupSettings>()
                     .Configurable(s => s.Limit);
             }
 
-            public static string Create(string name, LookupSettings settings) => name;
-
-            public static string Configure(LookupSettings settings) => "";
+            public static string Find(string name, LookupSettings settings) => name;
         }
         """;
 
@@ -116,6 +133,7 @@ public static class AgentSources
             public LookupAgent()
             {
                 WithName("lookup_agent");
+                WithChatOptions().Configurable(o => o.Temperature);
                 UseToolset<LookupToolset>();
             }
         }
@@ -196,6 +214,87 @@ public static class AgentSources
                     UseToolset<LookupToolset>();
                 }
             }
+        }
+        """;
+
+    public const string InheritedSetting =
+        """
+        using Typeshift.Agents;
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        internal record PagedSettings
+        {
+            public int Limit { get; init; } = 10;
+        }
+
+        internal record SearchSettings : PagedSettings
+        {
+            public bool Strict { get; init; }
+        }
+
+        internal partial class SearchToolset : Toolset
+        {
+            public SearchToolset() =>
+                AddTool(Search)
+                    .WithName("search")
+                    .WithDescription("Searches.")
+                    .WithSettings<SearchSettings>()
+                    .Configurable(s => s.Limit);
+
+            public static string Search(string query, SearchSettings settings) => query;
+        }
+
+        internal partial class SearchAgent : AgentDefinition
+        {
+            public SearchAgent()
+            {
+                UseToolset<SearchToolset>();
+                ConfigureSearch().WithLimit(3);
+            }
+        }
+        """;
+
+    // A class named like its namespace and a namespace named System, both shadowing the start of a cref
+    public const string ShadowingNames =
+        """
+        using Typeshift.Agents;
+        using Typeshift.Toolsets;
+
+        namespace Chatbot.System;
+
+        /// <summary>
+        /// A class named like the namespace it lives in.
+        /// </summary>
+        public static class Chatbot;
+
+        /// <summary>
+        /// Echoes text.
+        /// </summary>
+        public partial class EchoToolset : Toolset
+        {
+            /// <summary>
+            /// Declares the tool.
+            /// </summary>
+            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes the text.");
+
+            /// <summary>
+            /// Echoes the text.
+            /// </summary>
+            /// <param name="text">The text to echo.</param>
+            public static string Echo(string text) => text;
+        }
+
+        /// <summary>
+        /// Echoes what it is told.
+        /// </summary>
+        public partial class EchoAgent : AgentDefinition
+        {
+            /// <summary>
+            /// Declares the agent.
+            /// </summary>
+            public EchoAgent() => UseToolset<EchoToolset>();
         }
         """;
 

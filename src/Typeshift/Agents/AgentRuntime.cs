@@ -1,26 +1,30 @@
 using System.Collections.Frozen;
 using System.ComponentModel;
 using Typeshift.Conversations;
+using Typeshift.Json;
 using Typeshift.Persistence;
 using Typeshift.Settings;
 using Typeshift.Tools;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift.Agents;
 
 /// <summary>
 /// Runs an agent. The generator adds the typed members of each agent as extension members of
-/// <see cref="AgentRuntime{TAgent}"/>: <c>LoadSettingsAsync</c>, <c>SaveSettingsAsync</c>, <c>ConfigureAsync</c>
-/// and <c>ResolveChatOptionsAsync</c>.
+/// <see cref="AgentRuntime{TAgent}"/>: <c>LoadSettingsAsync</c>, <c>SaveSettingsAsync</c>, <c>ConfigureAsync</c>,
+/// <c>ResolveChatOptions</c> and <c>ResolveChatOptionsAsync</c>.
 /// </summary>
 public class AgentRuntime
 {
-    private readonly AgentRuntimeServices _services;
+    private readonly IServiceProvider _services;
+    private readonly AgentJson _json;
 
-    internal AgentRuntime(AgentDefinition definition, AgentRuntimeServices services)
+    internal AgentRuntime(AgentDefinition definition, IServiceProvider services)
     {
         Definition = definition;
         _services = services;
+        _json = services.GetRequiredService<AgentJson>();
     }
 
     /// <summary>
@@ -45,7 +49,7 @@ public class AgentRuntime
                 $"No model is configured for {Definition.Name}: set the model in its settings or with "
                 + "WithChatOptions().WithModel(...).");
 
-        if (_services.ChatClients is not { } provider)
+        if (_services.GetService<IChatClientProvider>() is not { } provider)
             throw new InvalidOperationException(
                 "No IChatClientProvider is registered: register one to create chat clients.");
 
@@ -55,7 +59,7 @@ public class AgentRuntime
             .AsBuilder()
             .UseConversationTracking(model)
             .UseFunctionInvocation()
-            .Build(_services.Services);
+            .Build(_services);
     }
 
     // D35: the Core members are public for the generated typed members in other assemblies, hidden from editors
@@ -74,7 +78,7 @@ public class AgentRuntime
     public async Task<TSettings> LoadSettingsCoreAsync<TSettings, TId>(TId id, CancellationToken ct)
         where TSettings : class, IAgentSettings, IStorable<TSettings>, new()
         where TId : notnull =>
-        await Stores.Get<TId>(_services.Services).LoadAsync<TSettings>(id, ct) ?? new TSettings();
+        await Stores.Get<TId>(_services).LoadAsync<TSettings>(id, ct) ?? new TSettings();
 
     /// <summary>
     /// Saves the agent's settings; the generated <c>SaveSettingsAsync</c> calls it.
@@ -91,7 +95,7 @@ public class AgentRuntime
     public Task SaveSettingsCoreAsync<TSettings, TId>(TId id, TSettings settings, CancellationToken ct)
         where TSettings : class, IAgentSettings, IStorable<TSettings>
         where TId : notnull =>
-        Stores.Get<TId>(_services.Services).SaveAsync(id, settings, ct);
+        Stores.Get<TId>(_services).SaveAsync(id, settings, ct);
 
     /// <summary>
     /// Changes the agent's stored settings and saves them; the generated <c>ConfigureAsync</c> calls it.
@@ -119,7 +123,7 @@ public class AgentRuntime
     }
 
     /// <summary>
-    /// Resolves the options of a run from the code alone; the generated <c>ResolveChatOptionsAsync</c> calls it.
+    /// Resolves the options of a run from the code alone; the generated <c>ResolveChatOptions</c> calls it.
     /// </summary>
     /// <param name="run">Settings for this run only, or null.</param>
     /// <param name="conversationId">The conversation the run continues, or null.</param>
@@ -131,7 +135,7 @@ public class AgentRuntime
             FrozenDictionary<ToolName, IToolOverrides>.Empty,
             run,
             conversationId,
-            _services.Json);
+            _json);
 
     /// <summary>
     /// Resolves the options of a run from the code and the settings stored under an id; the generated
@@ -156,11 +160,11 @@ public class AgentRuntime
         where TSettings : class, IAgentSettings, IStorable<TSettings>
         where TId : notnull
     {
-        var store = Stores.Get<TId>(_services.Services);
-        var stored = await store.LoadAsync<TSettings>(id, ct);
-        var toolDefaults = await LoadToolDefaultsAsync(store, id, ct);
+        var store = Stores.Get<TId>(_services);
+        var stored = store.LoadAsync<TSettings>(id, ct);
+        var toolDefaults = LoadToolDefaultsAsync(store, id, ct);
 
-        return Definition.CreateChatOptions(stored, toolDefaults, run, conversationId, _services.Json);
+        return Definition.CreateChatOptions(await stored, await toolDefaults, run, conversationId, _json);
     }
 
     private async Task<IReadOnlyDictionary<ToolName, IToolOverrides>> LoadToolDefaultsAsync<TId>(
@@ -182,7 +186,7 @@ public class AgentRuntime
 /// <typeparam name="TAgent">The agent.</typeparam>
 public sealed class AgentRuntime<TAgent> : AgentRuntime where TAgent : AgentDefinition
 {
-    internal AgentRuntime(TAgent definition, AgentRuntimeServices services) : base(definition, services)
+    internal AgentRuntime(TAgent definition, IServiceProvider services) : base(definition, services)
     {
     }
 }

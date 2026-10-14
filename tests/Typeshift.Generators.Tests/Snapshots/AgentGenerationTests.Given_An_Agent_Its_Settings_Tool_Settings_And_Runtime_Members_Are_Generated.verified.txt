@@ -63,9 +63,9 @@ partial class ProfilingAgent
     }
 
     /// <summary>
-    /// The settings of <see cref="Demo.ProfilingAgent"/> that may change at runtime: its model, its configurable chat
-    /// options and the configurable settings of its tools. A null value keeps what the layer below sets. Store them per
-    /// id through the agent's runtime, or pass them for a single run.
+    /// The settings of <see cref="global::Demo.ProfilingAgent"/> that may change at runtime: its model, its
+    /// configurable chat options and the configurable settings of its tools. A null value keeps what the layer below
+    /// sets. Store them per id through the agent's runtime, or pass them for a single run.
     /// </summary>
     public sealed record Settings :
         global::Typeshift.Agents.IAgentSettings,
@@ -146,7 +146,7 @@ partial class ProfilingAgent
 }
 
 /// <summary>
-/// The typed members of the runtime of <see cref="Demo.ProfilingAgent"/>.
+/// The typed members of the runtime of <see cref="global::Demo.ProfilingAgent"/>.
 /// </summary>
 public static class ProfilingAgentRuntimeExtensions
 {
@@ -159,7 +159,7 @@ public static class ProfilingAgentRuntimeExtensions
         /// <param name="id">The id the settings were saved under.</param>
         /// <param name="ct">Cancels the load.</param>
         /// <returns>The stored settings, or empty settings when none are stored.</returns>
-        /// <exception cref="System.InvalidOperationException">
+        /// <exception cref="global::System.InvalidOperationException">
         /// No store with ids of <typeparamref name="TId"/> is registered.
         /// </exception>
         public global::System.Threading.Tasks.Task<global::Demo.ProfilingAgent.Settings> LoadSettingsAsync<TId>(
@@ -175,7 +175,7 @@ public static class ProfilingAgentRuntimeExtensions
         /// <param name="id">The id to save the settings under.</param>
         /// <param name="settings">The settings; a null value keeps what the agent's code sets.</param>
         /// <param name="ct">Cancels the save.</param>
-        /// <exception cref="System.InvalidOperationException">
+        /// <exception cref="global::System.InvalidOperationException">
         /// No store with ids of <typeparamref name="TId"/> is registered.
         /// </exception>
         public global::System.Threading.Tasks.Task SaveSettingsAsync<TId>(
@@ -195,7 +195,7 @@ public static class ProfilingAgentRuntimeExtensions
         /// </param>
         /// <param name="ct">Cancels the load and the save.</param>
         /// <returns>The saved settings.</returns>
-        /// <exception cref="System.InvalidOperationException">
+        /// <exception cref="global::System.InvalidOperationException">
         /// No store with ids of <typeparamref name="TId"/> is registered.
         /// </exception>
         public global::System.Threading.Tasks.Task<global::Demo.ProfilingAgent.Settings> ConfigureAsync<TId>(
@@ -226,7 +226,7 @@ public static class ProfilingAgentRuntimeExtensions
         /// <param name="conversationId">The conversation the run continues, or null.</param>
         /// <param name="ct">Cancels the loads.</param>
         /// <returns>The options, with the agent's tools, to create the chat client with and call it with.</returns>
-        /// <exception cref="System.InvalidOperationException">
+        /// <exception cref="global::System.InvalidOperationException">
         /// No store with ids of <typeparamref name="TId"/> is registered.
         /// </exception>
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatOptions> ResolveChatOptionsAsync<TId>(
@@ -394,7 +394,7 @@ partial class WebResearchToolset
             }
         ];
 
-        public override string Description => "Reads the main content of a web page as markdown.";
+        public override string Description => "Reads the main content of a web page as markdown, at most maximumLength characters of it. Pass the URL of a WebSearchResult from the IReadOnlyList the search returns.";
 
         protected override global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Tools.ToolParameter> Parameters => ModelParameters;
 
@@ -435,7 +435,7 @@ partial class WebResearchToolset
 }
 
 /// <summary>
-/// The tools of <see cref="Demo.WebResearchToolset"/>, to include in or exclude from an agent:
+/// The tools of <see cref="global::Demo.WebResearchToolset"/>, to include in or exclude from an agent:
 /// <c>UseToolset&lt;WebResearchToolset&gt;().Include(t => t.Name)</c>.
 /// </summary>
 public static class WebResearchToolsetToolList
@@ -448,7 +448,8 @@ public static class WebResearchToolsetToolList
         public global::Typeshift.Tools.ToolRef<global::Demo.SearchWebSettings, global::Demo.WebResearchToolset.SearchWebOverrides> SearchWeb => global::Demo.WebResearchToolset.Tools.SearchWeb;
 
         /// <summary>
-        /// The <c>read_web_page</c> tool: Reads the main content of a web page as markdown.
+        /// The <c>read_web_page</c> tool: Reads the main content of a web page as markdown, at most maximumLength
+        /// characters of it. Pass the URL of a WebSearchResult from the IReadOnlyList the search returns.
         /// </summary>
         public global::Typeshift.Tools.ToolRef ReadWebPage => global::Demo.WebResearchToolset.Tools.ReadWebPage;
 
@@ -472,7 +473,6 @@ namespace Typeshift.Generated;
 /// </summary>
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
 [global::Typeshift.Modules.ModuleToolset(typeof(global::Demo.WebResearchToolset))]
-[global::Typeshift.Modules.ModuleAgent(typeof(global::Demo.ProfilingAgent))]
 public static class SubjectModule
 {
     /// <summary>

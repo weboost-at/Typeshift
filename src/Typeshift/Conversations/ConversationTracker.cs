@@ -15,6 +15,9 @@ public sealed class ConversationTracker
     private readonly ConversationStore? _store;
     private readonly TimeProvider _time;
 
+    // Sessions of one conversation store one at a time, or two ending at once would append to the same load
+    private readonly SemaphoreSlim[] _storeLocks = [.. Enumerable.Range(0, 64).Select(_ => new SemaphoreSlim(1, 1))];
+
     internal ConversationTracker(ConversationStore? store, TimeProvider time)
     {
         _store = store;
@@ -51,10 +54,15 @@ public sealed class ConversationTracker
     {
         if (!_sessions.TryRemove(sessionId, out var tracked)) return;
 
-        var completed = await tracked.CompleteAsync(response);
-        if (StoreOf(tracked.ConversationId) is { } store) await StoreAsync(store, tracked, completed);
-
-        await Subscribers.RaiseAsync(OnConversationsChanged, SubscriberLimit, _time);
+        try
+        {
+            var completed = await tracked.CompleteAsync(response);
+            if (StoreOf(tracked.ConversationId) is { } store) await StoreAsync(store, tracked, completed);
+        }
+        finally
+        {
+            await Subscribers.RaiseAsync(OnConversationsChanged, SubscriberLimit, _time);
+        }
     }
 
     // An id that is not stored starts a new conversation under that id
@@ -78,8 +86,26 @@ public sealed class ConversationTracker
     private ConversationStore? StoreOf(string? conversationId) =>
         conversationId is not null && _store?.Accepts(conversationId) is true ? _store : null;
 
+    private async Task StoreAsync(
+        ConversationStore store,
+        TrackedConversationSession tracked,
+        ConversationSession completed)
+    {
+        var storeLock = _storeLocks[(tracked.ConversationId!.GetHashCode() & int.MaxValue) % _storeLocks.Length];
+        await storeLock.WaitAsync();
+
+        try
+        {
+            await AppendAsync(store, tracked, completed);
+        }
+        finally
+        {
+            storeLock.Release();
+        }
+    }
+
     // D18: read at the end, so overlapping first sessions both land; a conversation deleted meanwhile stays deleted
-    private static async Task StoreAsync(
+    private static async Task AppendAsync(
         ConversationStore store,
         TrackedConversationSession tracked,
         ConversationSession completed)

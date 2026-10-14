@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Typeshift.Generators.Emitting;
@@ -25,7 +26,9 @@ internal static class Docs
     // A summary always on lines of its own, any other tag on one line while it fits the width the writer has left
     private static void WriteTag(SourceWriter writer, string open, string close, string text)
     {
-        var single = $"/// <{open}>{text}</{close}>";
+        // A description may span lines, a doc comment line may not
+        var words = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        var single = $"/// <{open}>{string.Join(" ", words)}</{close}>";
 
         if (close != "summary" && single.Length <= writer.Width)
         {
@@ -35,7 +38,7 @@ internal static class Docs
 
         writer.Line($"/// <{open}>");
 
-        foreach (var line in Wrap(text, writer.Width - 4))
+        foreach (var line in Wrap(words, writer.Width - 4))
         {
             writer.Line($"/// {line}");
         }
@@ -43,11 +46,11 @@ internal static class Docs
         writer.Line($"/// </{close}>");
     }
 
-    private static IEnumerable<string> Wrap(string text, int width)
+    private static IEnumerable<string> Wrap(IEnumerable<string> words, int width)
     {
         var line = "";
 
-        foreach (var word in text.Split(' '))
+        foreach (var word in words)
         {
             if (line.Length > 0 && line.Length + 1 + word.Length > width)
             {

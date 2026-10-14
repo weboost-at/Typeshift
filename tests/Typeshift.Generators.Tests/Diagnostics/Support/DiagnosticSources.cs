@@ -17,6 +17,23 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string ContainerNotPartial =
+        """
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        public static class Outer
+        {
+            public partial class EchoToolset : Toolset
+            {
+                public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes.");
+
+                public static string Echo(string text) => text;
+            }
+        }
+        """;
+
     public const string NotConstant =
         """
         using Typeshift.Toolsets;
@@ -28,6 +45,22 @@ public static class DiagnosticSources
             private static readonly string Name = "echo";
 
             public EchoToolset() => AddTool(Echo).WithName(Name).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string DescriptionNotConstant =
+        """
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        public partial class EchoToolset : Toolset
+        {
+            private static readonly string Description = "Echoes.";
+
+            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription(Description);
 
             public static string Echo(string text) => text;
         }
@@ -58,6 +91,23 @@ public static class DiagnosticSources
         {
             public EchoToolset() =>
                 AddTool((Func<string, string>)(text => text)).WithName("echo").WithDescription("Echoes.");
+        }
+        """;
+
+    public const string StaticLocalFunction =
+        """
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        public partial class EchoToolset : Toolset
+        {
+            public EchoToolset()
+            {
+                AddTool(Echo).WithName("echo").WithDescription("Echoes.");
+
+                static string Echo(string text) => text;
+            }
         }
         """;
 
@@ -132,20 +182,6 @@ public static class DiagnosticSources
         }
         """;
 
-    public const string NotLowerSnakeCase =
-        """
-        using Typeshift.Toolsets;
-
-        namespace Demo;
-
-        public partial class EchoToolset : Toolset
-        {
-            public EchoToolset() => AddTool(Echo).WithName("EchoText").WithDescription("Echoes.");
-
-            public static string Echo(string text) => text;
-        }
-        """;
-
     public const string AgentNotPartial =
         """
         using Typeshift.Agents;
@@ -189,40 +225,9 @@ public static class DiagnosticSources
         }
         """;
 
-    public const string UngeneratedToolset =
+    // Two tools with settings, for the agents below that do not offer one of them
+    public const string ToneToolset =
         """
-        using Typeshift.Toolsets;
-
-        namespace Tools;
-
-        public partial class EchoToolset : Toolset
-        {
-            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes.");
-
-            public static string Echo(string text) => text;
-        }
-        """;
-
-    public const string AgentOfUngeneratedToolset =
-        """
-        using Typeshift.Agents;
-        using Tools;
-
-        namespace Demo;
-
-        public partial class EchoAgent : AgentDefinition
-        {
-            public EchoAgent()
-            {
-                WithName("echo_agent");
-                UseToolset<EchoToolset>();
-            }
-        }
-        """;
-
-    public const string SettingsOfAnUnofferedTool =
-        """
-        using Typeshift.Agents;
         using Typeshift.Toolsets;
 
         namespace Demo;
@@ -244,12 +249,35 @@ public static class DiagnosticSources
 
             public static string Shout(string text, ToneSettings settings) => text;
         }
+        """;
+
+    public const string SettingsOfAnUnofferedTool =
+        """
+        using Typeshift.Agents;
+
+        namespace Demo;
 
         public partial class EchoAgent : AgentDefinition
         {
             public EchoAgent()
             {
                 UseToolset<EchoToolset>().Include(t => t.Echo);
+                ConfigureShout().WithLoud(true);
+            }
+        }
+        """;
+
+    public const string SettingsOfAnExcludedTool =
+        """
+        using Typeshift.Agents;
+
+        namespace Demo;
+
+        public partial class EchoAgent : AgentDefinition
+        {
+            public EchoAgent()
+            {
+                UseToolset<EchoToolset>().Exclude(t => t.Shout);
                 ConfigureShout().WithLoud(true);
             }
         }
@@ -268,6 +296,21 @@ public static class DiagnosticSources
             /// <summary>
             /// Echoes the text.
             /// </summary>
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string DescribedWithParamDocsAndDocumentationOff =
+        """
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        public partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes the text.");
+
+            /// <param name="text">The text to echo.</param>
             public static string Echo(string text) => text;
         }
         """;
@@ -295,6 +338,32 @@ public static class DiagnosticSources
             }
 
             public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string PrivateSettingsOfInternalToolset =
+        """
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset()
+            {
+                AddTool(Echo)
+                    .WithName("echo")
+                    .WithDescription("Echoes the text.")
+                    .WithSettings<EchoSettings>()
+                    .Configurable(s => s.Repeat);
+            }
+
+            private static string Echo(string text, EchoSettings settings) => text;
+
+            private record EchoSettings
+            {
+                public int Repeat { get; init; } = 1;
+            }
         }
         """;
 
@@ -385,6 +454,20 @@ public static class DiagnosticSources
                     .NotConfigurable(s => s.Weights);
 
             public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public static string NotLowerSnakeCase(string name) =>
+        $$"""
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        public partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithName("{{name}}").WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
         }
         """;
 }

@@ -95,7 +95,7 @@ The client streams like any `IChatClient`; tool calls run between the streamed u
 await foreach (var update in runClient.GetStreamingResponseAsync("Where is my refund?", runOptions))
     Console.Write(update.Text);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L43-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L55-L58' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## A run with stored settings

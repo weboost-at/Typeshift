@@ -15,11 +15,15 @@ internal static class AgentParser
     public static AgentModel Parse(INamedTypeSymbol agent, Compilation compilation, CancellationToken ct)
     {
         var diagnostics = new DiagnosticBag();
-        var isPartial = agent.IsPartial(ct);
+        var notPartial = agent.GetNotPartial(ct);
+        var isPartial = notPartial is null;
 
-        if (!isPartial) diagnostics.Report(Descriptors.NotPartial, agent.Locations.FirstOrDefault(), agent.Name);
+        if (notPartial is not null)
+            diagnostics.Report(Descriptors.NotPartial, notPartial.Locations.FirstOrDefault(), notPartial.Name);
 
-        var options = ConstructorChains.GetInvocations(agent, compilation, ct)
+        var invocations = ConstructorChains.GetInvocations(agent, compilation, ct).ToList();
+
+        var options = invocations
             .Where(call => call.TargetMethod.Name == "Configurable"
                 && call.TargetMethod.ContainingType.Is(KnownTypes.ChatOptionsBuilder))
             .OrderBy(call => ConstructorChains.GetCalledName(call).SpanStart)
@@ -32,7 +36,11 @@ internal static class AgentParser
             Type: TypeModels.From(agent),
             IsPartial: isPartial,
             ConfigurableOptions: options.ToEquatableArray(),
-            Uses: ReadUses(agent, compilation, ct).ToEquatableArray(),
+            Uses: invocations
+                .Where(call => call.TargetMethod.Name == "UseToolset"
+                    && call.TargetMethod.ContainingType.Is(KnownTypes.AgentDefinition))
+                .Select(ReadUse)
+                .ToEquatableArray(),
             Diagnostics: diagnostics.ToEquatableArray());
     }
 
@@ -54,44 +62,18 @@ internal static class AgentParser
 
     // D29: the tool properties are generated, so in the generator's own view they do not bind: the Include and
     // Exclude calls chained after UseToolset<T>() are read from their syntax
-    private static IEnumerable<ToolsetUseModel> ReadUses(
-        INamedTypeSymbol agent,
-        Compilation compilation,
-        CancellationToken ct)
+    private static ToolsetUseModel ReadUse(IInvocationOperation call)
     {
-        foreach (var constructor in ConstructorChains.GetConstructors(agent, ct))
-        {
-            var model = compilation.GetSemanticModel(constructor.SyntaxTree);
+        var toolset = call.TargetMethod.TypeArguments[0];
+        var picks = GetPicks((ExpressionSyntax)call.Syntax).ToList();
 
-            foreach (var call in constructor.DescendantNodes().OfType<InvocationExpressionSyntax>())
-            {
-                if (GetUseToolset(call) is not { } name) continue;
-
-                if (model.GetSymbolInfo(call, ct).Symbol is not IMethodSymbol method
-                    || !method.ContainingType.Is(KnownTypes.AgentDefinition))
-                    continue;
-
-                var toolset = method.TypeArguments[0];
-
-                var picks = GetPicks(call).ToList();
-
-                yield return new ToolsetUseModel(
-                    Toolset: toolset.ToTypeOf(),
-                    IsPublic: toolset.IsEffectivelyPublic(),
-                    Excludes: picks.Any(pick => pick.Method == "Exclude"),
-                    Picked: picks.Select(pick => pick.Tool).OfType<string>().ToEquatableArray(),
-                    Location: LocationInfo.From(name.GetLocation()));
-            }
-        }
+        return new ToolsetUseModel(
+            Toolset: toolset.ToTypeOf(),
+            IsPublic: toolset.IsEffectivelyPublic(),
+            Excludes: picks.Any(pick => pick.Method == "Exclude"),
+            Picked: picks.Select(pick => pick.Tool).OfType<string>().ToEquatableArray(),
+            Location: LocationInfo.From(ConstructorChains.GetCalledName(call).GetLocation()));
     }
-
-    private static GenericNameSyntax? GetUseToolset(InvocationExpressionSyntax call) =>
-        call.Expression switch
-        {
-            GenericNameSyntax { Identifier.ValueText: "UseToolset" } name => name,
-            MemberAccessExpressionSyntax { Name: GenericNameSyntax { Identifier.ValueText: "UseToolset" } name } => name,
-            _ => null
-        };
 
     // UseToolset<T>().Include(t => t.A).Include(t => t.B): each method chained on the result and the property its
     // lambda reads, outwards

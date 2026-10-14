@@ -27,11 +27,7 @@ public sealed class ToolBuilder
     /// </summary>
     /// <param name="description">A compile-time constant.</param>
     /// <returns>The same builder, to name and configure the tool further.</returns>
-    public ToolBuilder WithDescription(string description)
-    {
-        _definition.Description = description;
-        return this;
-    }
+    public ToolBuilder WithDescription(string description) => this;
 
     /// <summary>
     /// Gives the tool a settings record whose members stay as the code sets them, but those <c>Configurable</c>
@@ -40,11 +36,7 @@ public sealed class ToolBuilder
     /// </summary>
     /// <typeparam name="TSettings">The settings record; its parameterless constructor sets the code defaults.</typeparam>
     /// <returns>A builder that allows members to change at runtime.</returns>
-    public ToolBuilder<TSettings> WithSettings<TSettings>() where TSettings : class, new()
-    {
-        _definition.SettingsType = typeof(TSettings);
-        return new ToolBuilder<TSettings>();
-    }
+    public ToolBuilder<TSettings> WithSettings<TSettings>() where TSettings : class, new() => new();
 
     /// <summary>
     /// Gives the tool a settings record whose members may all change at runtime, but obsolete ones and those
@@ -53,11 +45,9 @@ public sealed class ToolBuilder
     /// </summary>
     /// <typeparam name="TSettings">The settings record; its parameterless constructor sets the code defaults.</typeparam>
     /// <returns>A builder that keeps members as the code sets them.</returns>
-    public ConfigurableSettingsBuilder<TSettings> WithConfigurableSettings<TSettings>() where TSettings : class, new()
-    {
-        _definition.SettingsType = typeof(TSettings);
-        return new ConfigurableSettingsBuilder<TSettings>();
-    }
+    public ConfigurableSettingsBuilder<TSettings> WithConfigurableSettings<TSettings>()
+        where TSettings : class, new() =>
+        new();
 }
 
 /// <summary>

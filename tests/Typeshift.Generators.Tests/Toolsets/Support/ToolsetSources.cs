@@ -100,7 +100,9 @@ public static class ToolsetSources
                 Task.FromResult<IReadOnlyList<WebSearchResult>>([]);
 
             /// <summary>
-            /// Reads the main content of a web page as markdown.
+            /// Reads the main content of a web page as markdown, at most
+            /// <paramref name="maximumLength"/> characters of it. Pass the URL of a
+            /// <see cref="WebSearchResult"/> from the <see cref="IReadOnlyList{T}"/> the search returns.
             /// </summary>
             /// <param name="url">The page to read.</param>
             /// <param name="maximumLength">The longest text to return.</param>
@@ -113,6 +115,35 @@ public static class ToolsetSources
             /// </summary>
             /// <param name="arguments">The raw arguments of the call.</param>
             public static ValueTask Forget(AIFunctionArguments arguments) => ValueTask.CompletedTask;
+        }
+        """;
+
+    // A default of each kind that needs care to come out as a literal of the parameter's own type
+    public const string Defaults =
+        """
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        internal enum Level
+        {
+            Low,
+            High
+        }
+
+        internal partial class GreetingToolset : Toolset
+        {
+            public GreetingToolset() => AddTool(Greet).WithName("greet").WithDescription("Greets.");
+
+            public static string Greet(
+                string greeting = "say \"hi\"",
+                bool loud = true,
+                long limit = 5,
+                Level level = Level.High,
+                Level unnamed = (Level)7,
+                Level negative = (Level)(-1),
+                Level? fallback = Level.Low) =>
+                greeting;
         }
         """;
 
@@ -151,6 +182,88 @@ public static class ToolsetSources
         }
         """;
 
+    // A description spanning lines, as a line break or a multi-line raw string puts it
+    public const string MultiLineDescription =
+        """
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes the text.\nTwice.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string KeywordNamespace =
+        """
+        using Typeshift.Toolsets;
+
+        namespace Demo.@event;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithName("echo").WithDescription("Echoes the text.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string ObsoleteConfigurableSetting =
+        """
+        using System;
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        internal record EchoSettings
+        {
+            public int Repeat { get; init; } = 1;
+
+            [Obsolete("Use Repeat.")]
+            public int Times { get; init; }
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo)
+                    .WithName("echo")
+                    .WithDescription("Echoes the text.")
+                    .WithConfigurableSettings<EchoSettings>();
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    // Members whose names need care in C# and in JSON
+    public const string AwkwardSettingNames =
+        """
+        using Typeshift.Toolsets;
+
+        namespace Demo;
+
+        internal record LinkSettings
+        {
+            public int @event { get; init; }
+
+            public string URLPrefix { get; init; } = "";
+        }
+
+        internal partial class LinkToolset : Toolset
+        {
+            public LinkToolset() =>
+                AddTool(Link)
+                    .WithName("link")
+                    .WithDescription("Links the text.")
+                    .WithConfigurableSettings<LinkSettings>();
+
+            public static string Link(string text, LinkSettings settings) => text;
+        }
+        """;
+
     public const string DocumentedTwice =
         """
         using Typeshift.Toolsets;
@@ -184,68 +297,60 @@ public static class ToolsetSources
         namespace Demo;
 
         /// <summary>
-        /// Settings whose members are named like the members of a configuration view.
+        /// Settings whose members are named like the members of the generated overrides.
         /// </summary>
-        public record ViewLikeSettings
+        public record ClashingSettings
         {
             /// <summary>
-            /// A member named like the view's tool.
+            /// A member named like the overrides' writer.
             /// </summary>
-            public int Tool { get; init; }
+            public int Serialize { get; init; }
 
             /// <summary>
-            /// A member named like the view's factory.
+            /// A member named like the overrides' reader.
             /// </summary>
-            public int Create { get; init; }
+            public int Deserialize { get; init; }
 
             /// <summary>
-            /// A member named like the view's reader.
+            /// A member named like the overrides themselves.
             /// </summary>
-            public int Get { get; init; }
-
-            /// <summary>
-            /// A member named like the view's writer.
-            /// </summary>
-            public int Set { get; init; }
-
-            /// <summary>
-            /// A member named like the view's stored values.
-            /// </summary>
-            public int Stored { get; init; }
-
-            /// <summary>
-            /// A member named like the view itself.
-            /// </summary>
-            public int ToolsConfiguration { get; init; }
+            public int ToolsOverrides { get; init; }
         }
 
         /// <summary>
-        /// A toolset with a tool named like its Tools class.
+        /// A toolset with tools named like members of its Tools class and of object.
         /// </summary>
-        public partial class ViewLikeToolset : Toolset
+        public partial class ClashingToolset : Toolset
         {
             /// <summary>
-            /// Declares the tool.
+            /// Declares the tools.
             /// </summary>
-            public ViewLikeToolset()
+            public ClashingToolset()
             {
                 AddTool(ListTools)
                     .WithName("tools")
                     .WithDescription("Lists the tools.")
-                    .WithSettings<ViewLikeSettings>()
-                    .Configurable(s => s.Tool)
-                    .Configurable(s => s.Create)
-                    .Configurable(s => s.Get)
-                    .Configurable(s => s.Set)
-                    .Configurable(s => s.Stored)
-                    .Configurable(s => s.ToolsConfiguration);
+                    .WithConfigurableSettings<ClashingSettings>();
+
+                AddTool(Describe)
+                    .WithName("equals")
+                    .WithDescription("Compares the tools.");
+
+                AddTool(Describe)
+                    .WithName("to_string")
+                    .WithDescription("Prints the tools.");
             }
 
             /// <summary>
             /// Lists the tools.
             /// </summary>
             /// <param name="settings">The settings of the call.</param>
-            public static string ListTools(ViewLikeSettings settings) => "";
+            public static string ListTools(ClashingSettings settings) => "";
+
+            /// <summary>
+            /// Describes the tools.
+            /// </summary>
+            public static string Describe() => "";
         }
         """;
 }

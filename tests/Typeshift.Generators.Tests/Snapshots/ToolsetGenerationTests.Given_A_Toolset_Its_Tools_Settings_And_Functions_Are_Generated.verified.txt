@@ -153,7 +153,7 @@ partial class WebResearchToolset
             }
         ];
 
-        public override string Description => "Reads the main content of a web page as markdown.";
+        public override string Description => "Reads the main content of a web page as markdown, at most maximumLength characters of it. Pass the URL of a WebSearchResult from the IReadOnlyList the search returns.";
 
         protected override global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Tools.ToolParameter> Parameters => ModelParameters;
 
@@ -194,7 +194,7 @@ partial class WebResearchToolset
 }
 
 /// <summary>
-/// The tools of <see cref="Demo.WebResearchToolset"/>, to include in or exclude from an agent:
+/// The tools of <see cref="global::Demo.WebResearchToolset"/>, to include in or exclude from an agent:
 /// <c>UseToolset&lt;WebResearchToolset&gt;().Include(t => t.Name)</c>.
 /// </summary>
 public static class WebResearchToolsetToolList
@@ -207,7 +207,8 @@ public static class WebResearchToolsetToolList
         public global::Typeshift.Tools.ToolRef<global::Demo.SearchWebSettings, global::Demo.WebResearchToolset.SearchWebOverrides> SearchWeb => global::Demo.WebResearchToolset.Tools.SearchWeb;
 
         /// <summary>
-        /// The <c>read_web_page</c> tool: Reads the main content of a web page as markdown.
+        /// The <c>read_web_page</c> tool: Reads the main content of a web page as markdown, at most maximumLength
+        /// characters of it. Pass the URL of a WebSearchResult from the IReadOnlyList the search returns.
         /// </summary>
         public global::Typeshift.Tools.ToolRef ReadWebPage => global::Demo.WebResearchToolset.Tools.ReadWebPage;
 

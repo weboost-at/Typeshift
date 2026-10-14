@@ -9,15 +9,15 @@ namespace Typeshift.Json;
 internal static class LibraryJson
 {
     public static JsonTypeInfo<StoredConversation> StoredConversation { get; } =
-        (JsonTypeInfo<StoredConversation>)CreateOptions().GetTypeInfo(typeof(StoredConversation));
+        (JsonTypeInfo<StoredConversation>)CreateOptions([]).GetTypeInfo(typeof(StoredConversation));
 
-    private static JsonSerializerOptions CreateOptions()
+    // The given resolvers come first, then the library's own context, then the defaults of Microsoft.Extensions.AI
+    public static JsonSerializerOptions CreateOptions(IEnumerable<IJsonTypeInfoResolver> resolvers)
     {
         var options = new JsonSerializerOptions(AIJsonUtilities.DefaultOptions)
         {
             TypeInfoResolver = JsonTypeInfoResolver.Combine(
-                AgentJsonContext.Default,
-                AIJsonUtilities.DefaultOptions.TypeInfoResolver)
+                [.. resolvers, AgentJsonContext.Default, AIJsonUtilities.DefaultOptions.TypeInfoResolver])
         };
 
         options.MakeReadOnly();

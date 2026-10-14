@@ -28,7 +28,7 @@ internal static class ConstructorChains
         }
     }
 
-    public static IEnumerable<SyntaxNode> GetConstructors(INamedTypeSymbol type, CancellationToken ct) =>
+    private static IEnumerable<SyntaxNode> GetConstructors(INamedTypeSymbol type, CancellationToken ct) =>
         type.InstanceConstructors
             .Where(constructor => !constructor.IsImplicitlyDeclared)
             .SelectMany(constructor => constructor.DeclaringSyntaxReferences)

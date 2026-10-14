@@ -29,8 +29,8 @@ Everything runs under Native AOT.
   conversation, streaming included.
 - **Plain fluent C#.** Tools, agents, chat options and tool settings are each declared in one chain, with
   instructions in an overridable `GetInstructions()`.
-- **Mistakes fail the build.** Selecting a tool of the wrong toolset or setting the settings of a tool the agent does
-  not offer does not compile, and fourteen diagnostics cover the rest.
+- **Mistakes fail the build.** Including a tool of the wrong toolset or setting the settings of a tool the agent does
+  not offer does not compile, and the generator's diagnostics cover the rest.
 
 ## Install
 
@@ -44,6 +44,10 @@ dotnet nuget add source "$PWD/artifacts/packages" --name typeshift-local
 
 Add it to every project that declares toolsets or agents, or calls `AddTypeshift()`: the package carries the generator,
 and NuGet does not pass generators on to referencing projects. Requires the .NET 10 SDK and C# 14.
+
+Projects that declare toolsets also need `<GenerateDocumentationFile>true</GenerateDocumentationFile>`: tools take
+their descriptions from XML docs, which the compiler reads only then, and without it the build warns with
+[TSH010](https://weboost-at.github.io/Typeshift/guide/diagnostics#tsh010).
 
 ## Quickstart
 
@@ -134,7 +138,8 @@ await using var provider = services.BuildServiceProvider();
 <!-- snippet: quickstart-settings -->
 <a id='snippet-quickstart-settings'></a>
 ```cs
-var customer = Guid.CreateVersion7(time.GetUtcNow());
+var research = provider.GetRequiredService<AgentRuntime<ResearchAgent>>();
+var customer = Guid.NewGuid();
 
 await research.ConfigureAsync(customer, settings => settings with
 {
@@ -143,20 +148,20 @@ await research.ConfigureAsync(customer, settings => settings with
     FindCompanies = settings.FindCompanies with { Limit = 2 }
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L25-L34' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L22-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 <!-- snippet: quickstart-run -->
 <a id='snippet-quickstart-run'></a>
 ```cs
-var conversationId = Guid.CreateVersion7(time.GetUtcNow());
+var conversationId = Guid.NewGuid();
 var options = await research.ResolveChatOptionsAsync(customer, conversationId: conversationId.ToString());
 var client = await research.CreateChatClientAsync(options);
 var answer = await client.GetResponseAsync("Vienna", options);
 
 Console.WriteLine($"{research.Definition.Name}: {answer.Text}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L37-L44' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L35-L42' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The code above is the [console sample](samples/Typeshift.Samples.Console), which CI publishes as Native AOT and runs.

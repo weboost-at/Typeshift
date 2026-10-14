@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Typeshift.Toolsets;
 
 namespace Typeshift.Tests.Tools.Support;
@@ -26,6 +27,10 @@ public partial class SchemaToolset : Toolset
 
         AddTool(CountWords)
             .WithName("count_words");
+
+        AddTool(Echo)
+            .WithName("echo")
+            .WithDescription("Returns the JSON it was given.");
     }
 
     /// <param name="query">What to search for.</param>
@@ -48,4 +53,6 @@ public partial class SchemaToolset : Toolset
     /// </summary>
     /// <param name="text">The text whose words are counted.</param>
     public static int CountWords(string text) => text.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length;
+
+    public static JsonElement Echo(JsonElement value) => value;
 }

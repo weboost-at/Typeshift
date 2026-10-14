@@ -32,10 +32,11 @@ delegate. Each guard throws an exception whose message says what to change.
 
 ## TSH001
 
-**Toolset or agent is not partial.** Reported on the class name.
+**Toolset or agent is not partial.** Reported on the class name, or on the name of the class it is nested in when
+that one is not partial.
 
 The generator adds members to every toolset and agent (the tool bindings, the `Settings` record, the
-`Configure{Tool}()` methods), so the class must be `partial`.
+`Configure{Tool}()` methods), so the class must be `partial`, and so must every class it is nested in.
 
 ```csharp
 public class CompanyToolset : Toolset          // TSH001
@@ -66,7 +67,7 @@ assemblies, so it never comes from the method name, which a refactoring may chan
 **Tool is not a static method group.** Reported on the argument of `AddTool`.
 
 A tool is a static method, passed as a method group. Lambdas, instance methods and delegate variables cannot be
-generated without reflection.
+generated without reflection, and a local function, even a static one, is out of the generated code's reach.
 
 ```csharp
 AddTool(query => Find(query));  // TSH004
@@ -75,14 +76,14 @@ AddTool(Find);                  // fixed, Find is static
 
 ## TSH005
 
-**Settings type is not a record.** Reported on `WithSettings<T>`.
+**Settings type is not a record.** Reported on `WithSettings<T>` or `WithConfigurableSettings<T>`.
 
 Stored and run overrides apply to a `with` copy of the settings, so the type must be a record. The code defaults
 come from its parameterless constructor, which it therefore needs as well.
 
 ## TSH006
 
-**Toolset was not compiled with the generator.** Reported on the `UseToolset<T>(...)` call.
+**Toolset was not compiled with the generator.** Reported on the `UseToolset<T>()` call.
 
 The toolset comes from an assembly that carries no generator stamps, so its tools, their tool list and their
 settings are unknown. Reference the Typeshift package in the toolset's project. At runtime, such a toolset throws an
@@ -104,7 +105,7 @@ The model chooses tools by their descriptions. Add `WithDescription(...)` or an 
 
 ## TSH009
 
-**Tool does not take its settings.** A warning, reported on `WithSettings<T>`.
+**Tool does not take its settings.** A warning, reported on `WithSettings<T>` or `WithConfigurableSettings<T>`.
 
 A tool receives its resolved settings through a parameter of its settings type, which the model never sees. Without
 one, the settings reach nothing. Add the parameter:
@@ -139,11 +140,14 @@ Tool names follow the convention of the model providers' function names, `find_c
 
 ## TSH013
 
-**Settings type is less accessible than its toolset.** Reported on `WithSettings<T>`.
+**Settings type is less accessible than its toolset.** Reported on `WithSettings<T>` or
+`WithConfigurableSettings<T>`.
 
-A public toolset exposes its settings through `Tools.{Tool}` (a `ToolRef<TSettings, TOverrides>`) and through the
-generated `{Tool}Overrides` record, whose properties have the types of the configurable members. Make the settings
-record and those member types public, or make the toolset internal.
+The generated code names the settings type wherever the toolset can be named: in `Tools.{Tool}` (a
+`ToolRef<TSettings, TOverrides>`), in the `{Toolset}ToolList` class next to the toolset and in the agents that use
+the tool. A public toolset therefore needs public settings, any other toolset settings its assembly can reach, never a
+`private` or `protected` nested record. Make the settings record as accessible as the toolset, or the toolset less
+accessible.
 
 ```csharp
 internal record EchoSettings { public int Repeat { get; init; } }
@@ -161,11 +165,10 @@ without reflection. They support:
 
 - `bool`, `byte`, `short`, `int`, `long`, `float`, `double` and `decimal`;
 - `string`, `Guid`, `DateTime`, `DateTimeOffset` and `TimeSpan`;
-- enums, stored by name;
+- enums, stored by name, and combinations of flags as their names;
 - string lists: `string[]`, `IEnumerable<string>`, `IReadOnlyCollection<string>`, `IReadOnlyList<string>`,
   `ICollection<string>` and `IList<string>`;
 - the nullable forms of all of these.
 
 Keep other members out of `Configurable(...)`, or name them in `NotConfigurable(...)` after
-`WithConfigurableSettings<T>()`; their
-value then comes from code alone.
+`WithConfigurableSettings<T>()`; their value then comes from code alone.

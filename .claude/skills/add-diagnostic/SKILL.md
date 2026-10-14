@@ -39,7 +39,8 @@ D30 in `docs/contributing/decisions.md`). A diagnostic is for what the types can
    the fix is not obvious. Link it from the guide page of the feature it guards.
 7. **Changelog.** One line under `[Unreleased]` in `CHANGELOG.md`.
 
-`DiagnosticCatalogTests` fails when a released ID has no docs row, no docs section or no test named after it.
+`DiagnosticCatalogTests` fails when a released ID has no docs row, no docs section or no `..._TSHxxx_Is_Reported_...`
+test; an `..._Is_Not_Reported` test does not count.
 
 ## Check
 

@@ -18,12 +18,10 @@ services.AddSingleton<IChatClientProvider, ScriptedChatClientProvider>();
 await using var provider = services.BuildServiceProvider();
 // end-snippet
 
-var time = provider.GetRequiredService<TimeProvider>();
-var research = provider.GetRequiredService<AgentRuntime<ResearchAgent>>();
-
 // Typed settings: ResearchAgent.Settings holds only what the agent's code marks configurable, stored per id
 // begin-snippet: quickstart-settings
-var customer = Guid.CreateVersion7(time.GetUtcNow());
+var research = provider.GetRequiredService<AgentRuntime<ResearchAgent>>();
+var customer = Guid.NewGuid();
 
 await research.ConfigureAsync(customer, settings => settings with
 {
@@ -35,7 +33,7 @@ await research.ConfigureAsync(customer, settings => settings with
 
 // A tool loop: the model calls find_companies, which runs with the settings stored for the customer
 // begin-snippet: quickstart-run
-var conversationId = Guid.CreateVersion7(time.GetUtcNow());
+var conversationId = Guid.NewGuid();
 var options = await research.ResolveChatOptionsAsync(customer, conversationId: conversationId.ToString());
 var client = await research.CreateChatClientAsync(options);
 var answer = await client.GetResponseAsync("Vienna", options);

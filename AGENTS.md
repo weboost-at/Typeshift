@@ -17,8 +17,8 @@ the playbook. That is meant to be enough; if you had to dig for something, add i
 
 - **Why is the code like this?** `docs/contributing/decisions.md` (D1, D2, ...) records each non-obvious choice, the
   alternatives that lost, and where it lives. A comment `// D29: ...` in code points at one. Read the entry before
-  you change such code; to change the decision, edit the entry in the same commit, or add a new one and mark the old
-  "Withdrawn".
+  you change such code; to change the decision, edit the entry in the same commit, or add a new one and move the old
+  to the withdrawn table.
 - **What is open?** `docs/contributing/status.md`: known gaps, next steps, and which test covers each behavior of the
   spec.
 - **How do users see it?** The guide in `docs/guide/`, published at https://weboost-at.github.io/Typeshift/.
@@ -140,7 +140,7 @@ The code must read as if the owner wrote it: terse, intention-revealing, comment
 ## Tests
 
 The rules come from the owner's skills; the convention tests in `tests/Typeshift.Tests/Testing/Conventions` enforce
-them for every test project, and their exemption list stays empty.
+them for every test project, without exemptions.
 
 - One test class per subject, one business rule per test, named `Given_<state>_<outcome>` (or `<outcome>` for the
   base case); the declaration fits 120 columns.
