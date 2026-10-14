@@ -57,4 +57,18 @@ public sealed class TypeshiftBuilder
         _services.AddSingleton(options ?? new RealtimeTrackingOptions());
         return this;
     }
+
+    /// <summary>
+    /// Adds a rule that decides tool calls before the host is asked, scoped; any rule that rejects a call wins, then
+    /// any that approves it.
+    /// </summary>
+    /// <typeparam name="TRule">The rule.</typeparam>
+    /// <returns>The same chain.</returns>
+    public TypeshiftBuilder WithApprovalRule<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TRule>()
+        where TRule : class, IToolApprovalRule
+    {
+        _services.AddScoped<IToolApprovalRule, TRule>();
+        return this;
+    }
 }

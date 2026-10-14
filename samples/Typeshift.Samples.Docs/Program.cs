@@ -27,6 +27,8 @@ await using (var provider = services.BuildServiceProvider(new ServiceProviderOpt
     await AgentSettings.RunAsync(provider);
     await RunningAgents.RunAsync(provider);
     await Conversations.RunAsync(provider, CancellationToken.None);
+    await Approval.RunAsync(provider);
+    await Modes.RunAsync(provider);
 }
 
 Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();

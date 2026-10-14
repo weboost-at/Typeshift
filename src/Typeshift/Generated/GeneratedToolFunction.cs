@@ -18,6 +18,11 @@ public abstract class GeneratedToolFunction(ToolJson json) : AIFunction
     public override JsonElement JsonSchema => json.GetSchema(GetType(), Parameters);
 
     /// <summary>
+    /// Whether the tool only reads, so plan mode offers it.
+    /// </summary>
+    public virtual bool IsReadOnly => false;
+
+    /// <summary>
     /// The model-facing parameters, in declaration order.
     /// </summary>
     protected abstract IReadOnlyList<ToolParameter> Parameters { get; }

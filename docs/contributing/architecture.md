@@ -87,8 +87,9 @@ modules' JSON contexts first, then Microsoft.Extensions.AI's defaults, which ref
    layer (the stored settings, loaded through the declaration, then the run's) through the generated declaration
    (configurable options, run options), then the offered tools, created with their layered settings (D27).
 3. It asks the scope's `IChatClientProvider` for the model's client and builds the pipeline, outermost first: the
-   conversation (D46, D50), author names on every message (D26), `FunctionInvokingChatClient` with the run options and
-   the scope's services, the checkpoints, and the provider's client behind a wrapper that never disposes it (D29).
+   conversation (D46, D50), approval and modes (D24, D52), author names on every message (D26),
+   `FunctionInvokingChatClient` with the run options, the scope's services and `exit_plan_mode`, the checkpoints, and
+   the provider's client behind a wrapper that never disposes it (D29).
 4. The options are a `ChatOptions` subclass that remembers the run options, so the raw path's client gets them too.
 
 ## Storage
@@ -108,3 +109,13 @@ and ends the run with an entry of its own. Inside the tool loop, `CheckpointChat
 model call (tool results, then steering input it takes in) and each response as it arrives. `ConversationRun` holds
 what one run stored and where its steering input went. Streaming runs publish their updates through `LivePublisher`
 to the watchers `ConversationTracker.WatchAsync` registered (D47).
+
+## Approval and modes
+
+`ApprovalChatClient` sits above `FunctionInvokingChatClient`. Before the tool loop runs, it binds the host's answers
+to the requests the conversation stored, drops what no stored request matches, collects standing approvals and
+switches the mode on an approved plan. After each pass of the tool loop it answers the requests rules, standing
+approvals and auto mode decide and sends the tool loop round again; with requests left, it stores them with its own
+answers and ends the run. In plan mode it offers the read-only tools and `exit_plan_mode`, appending the planning
+instruction. `AgentRun` carries the mode; the run's ending entry stores it, so the conversation's next run resumes
+in it (D52).

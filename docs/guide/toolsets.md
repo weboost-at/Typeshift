@@ -64,8 +64,10 @@ internal partial class TicketToolset : Toolset
   ([TSH007](./diagnostics.md#tsh007)).
 - **The description** is the method's `<summary>`, or `WithDescription(...)`. A tool without either is
   [TSH009](./diagnostics.md#tsh009); summaries need `GenerateDocumentationFile` ([TSH011](./diagnostics.md#tsh011)).
-- **`RequiresApproval()`** pauses a run that calls the tool until the host decides.
-- **`ReadOnly()`** marks a tool that only reads, without side effects.
+- **`RequiresApproval()`** pauses a run that calls the tool until the host decides; see
+  [tool approval](./tool-approval.md).
+- **`ReadOnly()`** marks a tool that only reads, without side effects; [plan mode](./modes.md#plan-mode) offers only
+  these.
 - **`WithSettings<T>()`** or **`WithConfigurableSettings<T>()`** come last; see [tool settings](./tool-settings.md).
 - **`WithDisplayName`** names the toolset for people, in a tool picker say.
 

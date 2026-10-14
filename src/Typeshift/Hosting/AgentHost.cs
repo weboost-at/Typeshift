@@ -49,10 +49,10 @@ public sealed class AgentHost<TAgent> where TAgent : Agent
                 "No IChatClientProvider is registered: call WithChatClientProvider<T>() after AddTypeshift().");
 
         var client = await provider.GetChatClientAsync(model, ct);
-        var run = options is ResolvedChatOptions resolved ? resolved.Run : Agent.RunOptions;
+        var run = options is ResolvedChatOptions resolved ? resolved.RunOptions : Agent.RunOptions;
 
         // D29: outermost the conversation, innermost the provider's client behind a wrapper that never disposes it,
-        // with the checkpoints inside the tool loop
+        // with approval above the tool loop and the checkpoints inside it
         var loop = new FunctionInvokingChatClient(
             new CheckpointChatClient(new UndisposedChatClient(client)),
             _services.GetService<ILoggerFactory>(),
@@ -60,10 +60,14 @@ public sealed class AgentHost<TAgent> where TAgent : Agent
         {
             MaximumIterationsPerRequest = run.MaxToolIterations,
             MaximumConsecutiveErrorsPerRequest = run.MaxConsecutiveToolErrors,
-            AllowConcurrentInvocation = run.ConcurrentToolCalls
+            AllowConcurrentInvocation = run.ConcurrentToolCalls,
+
+            // An approved plan runs whatever mode the run continues in
+            AdditionalTools = [ExitPlanModeFunction.Instance]
         };
 
-        return new ConversationChatClient(new AuthorNameChatClient(loop, Agent.Name), Agent.Name, _services);
+        var approval = new ApprovalChatClient(new AuthorNameChatClient(loop, Agent.Name), loop);
+        return new ConversationChatClient(approval, Agent, _services);
     }
 
     // D27: the agent's code, its stored settings, then the run's; values a layer leaves null keep the one below
@@ -84,7 +88,8 @@ public sealed class AgentHost<TAgent> where TAgent : Agent
         var tools = declaration.CreateTools(Agent, layers, _services.GetRequiredService<ToolJson>());
 
         options.Tools = [.. tools, .. options.Tools ?? []];
-        options.Run = run;
+        options.RunOptions = run;
+        options.RunSetsMode = settings is not null && SetsMode(declaration, settings);
         options.SettingsId = settingsId;
 
         return options;
@@ -135,6 +140,11 @@ public sealed class AgentHost<TAgent> where TAgent : Agent
     }
 
     internal IStoreAccess Store => _services.GetRequiredService<IStoreAccess>();
+
+    // A layer sets the mode when it moves two different modes to the same one
+    private static bool SetsMode(AgentDeclaration declaration, object settings) =>
+        declaration.ApplySettings(new ChatOptions(), new RunOptions { Mode = AgentMode.Default }, settings).Mode
+        == declaration.ApplySettings(new ChatOptions(), new RunOptions { Mode = AgentMode.Plan }, settings).Mode;
 
     private async Task<ResolvedChatOptions> ResolveRunAsync(
         object? settingsId,

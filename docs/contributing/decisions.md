@@ -205,14 +205,20 @@ commit, or add a new one and withdraw the old.
 - **Status:** approved with the sign-off.
 - **Decision:** `RequiresApproval()` wraps the tool in `ApprovalRequiredAIFunction`; `FunctionInvokingChatClient`
   ends the run with `ToolApprovalRequestContent`s, listed by `response.ApprovalRequests`. The host answers with
-  `CreateResponse(approved)` in the next run of the conversation; the stored request is the one that runs. Calls in
-  the same response that need no approval run anyway. A run that asks without a conversation throws, naming the tool.
+  `CreateResponse(approved)` in the next run of the conversation; the stored request is the one that runs, an answer
+  to no stored request is dropped, a request keeps its first answer, and an unanswered request is left out of the
+  next run. Calls in the same response that need no approval wait with it and run once the host answered (the tool
+  loop asks for every call of a response once one needs approval; the approval layer approves the others). A run
+  that asks without a conversation throws, naming the tool.
   `request.ApproveForConversation()` approves the tool for the rest of the conversation; the approval is stored with
   it, so it holds across runs and processes. `IToolApprovalRule`s (`WithApprovalRule<T>()`, scoped) decide calls
   before the host is asked, seeing the exact arguments: `Approve`, `Reject(reason)` (wins over every approval) or
   `Abstain`, which the mode resolves (D52). A layer above `FunctionInvokingChatClient` answers the requests rules and
-  standing approvals decide and continues the loop, so only the rest reach the host. Approvals match tools by
-  name, which is unique per agent (TSH007, and a runtime check for MCP tools).
+  standing approvals decide and continues the loop, so only the rest reach the host. It also stores the requests and
+  its own answers when a run ends asking, as `FunctionInvokingChatClient` keeps them out of what the checkpoint layer
+  below it sees. Approvals match tools by name, which is unique per agent (TSH007, and a runtime check for MCP
+  tools).
+- **Where:** `Approval/ApprovalChatClient.cs`, `Approval/ToolApproval.cs`.
 - **Alternatives:** an approval callback the run awaits, which holds a run open across requests; a Typeshift approval
   type, a second vocabulary.
 
@@ -478,7 +484,9 @@ commit, or add a new one and withdraw the old.
   `write_todos` and a built-in `exit_plan_mode(plan)`, which asks the host; `ApprovePlan(mode)` continues in `Default`
   or `Auto`, a rejection's reason sends the model back to planning. `Auto` runs tools that require approval unless a
   rule rejects the call. A conversation keeps its mode: a run without one continues in the mode the last run ended
-  in, stored as an entry. Sub-agents run in their caller's mode.
+  in, stored on the run's ending entry; a run whose settings name a mode switches it. Plan mode appends a short
+  instruction to research, then call `exit_plan_mode`. Sub-agents run in their caller's mode.
+- **Where:** `Agents/RunOptions.cs`, `Approval/ExitPlanModeFunction.cs`, the approval layer of D29.
 - **Alternatives:** modes as tools the model calls (MAF's `mode_get`/`mode_set`), which lets the model leave plan
   mode unasked; a classifier built into auto mode, where a rule the host writes can ask any model it chooses.
 

@@ -3,6 +3,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Typeshift.Samples.Hosting;
 using Typeshift.Samples.Stores.EfCore;
+using Typeshift.Samples.Tickets;
 
 namespace Typeshift.Samples.Scenarios;
 
@@ -25,6 +26,8 @@ internal static class Registration
         // end-snippet
 
         services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite($"Data Source={database}"));
+        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<ITicketClient, InMemoryTicketClient>();
 
         return services;
     }
@@ -45,6 +48,14 @@ internal static class Registration
                 PublishInterval = TimeSpan.FromMilliseconds(250),
                 MaxPendingUpdates = 1024
             });
+        // end-snippet
+    }
+
+    public static void ShowApprovalRule(IServiceCollection services)
+    {
+        // begin-snippet: approval-rule-registration
+        services.AddTypeshift()
+            .WithApprovalRule<ShellGuard>();
         // end-snippet
     }
 }

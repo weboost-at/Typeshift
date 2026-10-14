@@ -25,9 +25,14 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
     public UsageDetails? Usage { get; init; }
 
     /// <summary>
-    /// Whether the run ended with this entry: answered, failed or cancelled.
+    /// Whether the run ended with this entry: answered, failed, cancelled or waiting for approval.
     /// </summary>
     public bool EndsRun { get; init; }
+
+    /// <summary>
+    /// The mode the run ended in, on its last entry; a later run without a mode of its own continues in it.
+    /// </summary>
+    public AgentMode? Mode { get; init; }
 
     /// <inheritdoc />
     public static string Kind => "conversation_entry";
@@ -51,6 +56,7 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
             }
 
             if (EndsRun) writer.WriteBoolean("endsRun", true);
+            if (Mode is { } mode) writer.WriteString("mode", mode.ToString());
 
             writer.WriteStartArray("messages");
 
@@ -88,7 +94,8 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
             Usage = StorableJson.Member(root, "usage") is { ValueKind: JsonValueKind.Object } usage
                 ? usage.Deserialize(Contract<UsageDetails>())
                 : null,
-            EndsRun = StorableJson.TryRead(StorableJson.Member(root, "endsRun"), out bool ends) && ends
+            EndsRun = StorableJson.TryRead(StorableJson.Member(root, "endsRun"), out bool ends) && ends,
+            Mode = StorableJson.TryReadEnum(StorableJson.Member(root, "mode"), out AgentMode mode) ? mode : null
         };
     }
 

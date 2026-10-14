@@ -122,6 +122,8 @@ partial class TicketToolset
 
         public override string Description => "Searches the customer's tickets, newest first.";
 
+        public override bool IsReadOnly => true;
+
         protected override global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> Parameters => ModelParameters;
 
         protected override async global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
@@ -144,7 +146,7 @@ partial class TicketToolset
     [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
     public static global::Microsoft.Extensions.AI.AIFunction CreateCloseTicket(
         global::Typeshift.Generated.ToolJson json) =>
-        new CloseTicketFunction(json);
+        new global::Microsoft.Extensions.AI.ApprovalRequiredAIFunction(new CloseTicketFunction(json));
 
     private sealed class CloseTicketFunction(
         global::Typeshift.Generated.ToolJson json)

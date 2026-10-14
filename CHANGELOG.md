@@ -28,5 +28,12 @@ The library was rebuilt from the API its owner approved; nothing of the unreleas
 - Conversations: runs with a conversation id resume it and store every step as it happens, so `ResumeAsync`
   continues a run a crash cut off. `ConversationTracker` lists the runs going on, steers them with `TrySteer`, and
   with `WithRealtimeTracking()` streams their updates to watchers.
+- Tool approval: a run that calls a tool marked `RequiresApproval()` ends with Microsoft.Extensions.AI's approval
+  requests, and the conversation's next run carries the answers; the stored request is the call that runs.
+  `ApproveForConversation()` approves a tool for the rest of the conversation, and `IToolApprovalRule`s
+  (`WithApprovalRule<T>()`) approve or reject calls before the host is asked.
+- Plan and auto modes: `AgentMode` is a run option. Plan mode offers the read-only tools and `exit_plan_mode`, whose
+  plan the host approves with `ApprovePlan(mode)`; auto mode runs what requires approval unless a rule rejects it. A
+  conversation keeps its mode.
 - An analyzer reports every Typeshift diagnostic at real source locations, so `#pragma` and `.editorconfig` reach
   them; a suppressor drops CS1573 for tool parameters the model never sees.

@@ -16,6 +16,8 @@ internal static class OptionMembers
 
     private static readonly StorageModel Integer = new(StorageKind.Number, "int");
 
+    private static readonly StorageModel Mode = new(StorageKind.Enum, "global::Typeshift.AgentMode");
+
     // D28: the model is Model in Settings. Options of the run itself (ConversationId, Tools, AdditionalProperties) and
     // types settings cannot store (ResponseFormat, ToolMode) are left out
     public static readonly OptionMember[] Chat =
@@ -46,6 +48,7 @@ internal static class OptionMembers
 
     public static readonly OptionMember[] Run =
     [
+        new("Mode", "Mode", "global::Typeshift.AgentMode?", "{0}", Mode),
         new("MaxToolIterations", "MaxToolIterations", "int?", "{0}", Integer),
         new("MaxConsecutiveToolErrors", "MaxConsecutiveToolErrors", "int?", "{0}", Integer),
         new("ConcurrentToolCalls", "ConcurrentToolCalls", "bool?", "{0}", Flag)

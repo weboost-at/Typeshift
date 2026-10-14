@@ -13,6 +13,8 @@ internal static class ToolsetEmitter
 
     private const string AIFunction = "global::Microsoft.Extensions.AI.AIFunction";
 
+    private const string ApprovalRequired = "global::Microsoft.Extensions.AI.ApprovalRequiredAIFunction";
+
     private const string Hidden =
         "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
 
@@ -147,7 +149,11 @@ internal static class ToolsetEmitter
             if (tool.Settings is { } model) writer.Line($"{model.Type} settings,");
 
             writer.Line($"{ToolJson} json) =>");
-            writer.Line($"new {Names.FunctionName(tool.Name)}({arguments});");
+
+            // D24: the tool loop asks the host before it calls the tool
+            writer.Line(tool.RequiresApproval
+                ? $"new {ApprovalRequired}(new {Names.FunctionName(tool.Name)}({arguments}));"
+                : $"new {Names.FunctionName(tool.Name)}({arguments});");
         }
     }
 
@@ -177,6 +183,13 @@ internal static class ToolsetEmitter
             if (tool.Description is { } description)
             {
                 writer.Line($"public override string Description => {Names.Literal(description)};");
+                writer.Line();
+            }
+
+            // D52: plan mode offers it
+            if (tool.IsReadOnly)
+            {
+                writer.Line("public override bool IsReadOnly => true;");
                 writer.Line();
             }
 

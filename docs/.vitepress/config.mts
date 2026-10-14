@@ -34,7 +34,9 @@ export default defineConfig({
             { text: 'Agents', link: '/guide/agents' },
             { text: 'Running agents', link: '/guide/running-agents' },
             { text: 'Settings and stores', link: '/guide/settings-and-stores' },
-            { text: 'Conversations', link: '/guide/conversations' }
+            { text: 'Conversations', link: '/guide/conversations' },
+            { text: 'Tool approval', link: '/guide/tool-approval' },
+            { text: 'Plan and auto modes', link: '/guide/modes' }
           ]
         },
         {

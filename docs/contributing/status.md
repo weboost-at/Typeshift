@@ -12,8 +12,8 @@ the slices build it one at a time.
 | 2. Agents, registration, `AgentHost` runs | built |
 | 3. Settings store, id type | built |
 | 4. Conversations: checkpoints, resume, live updates, steering | built |
-| 5. Approval, rules, plan and auto modes | next |
-| 6. Middleware, context providers, MCP, telemetry, compaction, sub-agents, handoff, built-in toolsets, Native AOT | open |
+| 5. Approval, rules, plan and auto modes | built |
+| 6. Middleware, context providers, MCP, telemetry, compaction, sub-agents, handoff, built-in toolsets, Native AOT | next |
 
 ## Behavior coverage
 
@@ -62,6 +62,13 @@ The numbers are the rules of v0's behavior table where they still hold.
 | new | Steering reaches the next model call, is stored, and keeps the run going (D51) | `ConversationRunTests.Given_Steering_Input_The_Run_Answers_It_Before_It_Ends`, `..._Given_Steering_Input_During_The_Answer_To_Steering_The_Run_Answers_Both_In_Order`, `..._Given_Steering_Input_It_Is_Stored_With_The_Conversation` |
 | new | Watchers receive streamed updates (D47) | `ConversationRunTests.Given_A_Watcher_It_Receives_The_Updates_Of_A_Streaming_Run` |
 | new | The raw path names its conversation in `ChatOptions.ConversationId` | `ConversationRunTests.Given_A_Conversation_Id_In_The_Options_The_Raw_Path_Stores_The_Run` |
+| new | A call that requires approval ends the run with its request; the next run's answer runs or rejects it (D24) | `ToolApprovalTests.Given_A_Call_That_Needs_Approval_The_Run_Ends_With_Its_Request_And_It_Does_Not_Run`, `..._Given_An_Approval_The_Next_Run_Of_The_Conversation_Runs_The_Call`, `..._Given_A_Rejection_The_Model_Receives_Its_Reason_And_The_Call_Does_Not_Run`, `..._Given_A_Streaming_Run_The_Host_Receives_The_Request_And_Its_Approval_Runs_The_Call` |
+| new | The stored request is the call that runs; stray and second answers change nothing (D24) | `ToolApprovalTests.Given_An_Answer_Carrying_Other_Arguments_The_Call_The_Conversation_Stored_Runs`, `..._Given_An_Answer_To_No_Stored_Request_Nothing_Runs`, `..._Given_A_Second_Answer_To_A_Request_The_First_Stands`, `..._Given_An_Answered_Approval_Later_Runs_Send_The_Call_Once_With_Its_Result` |
+| new | Calls next to one that requires approval wait with it; without a conversation a run that asks fails | `ToolApprovalTests.Given_A_Call_Needing_Approval_Next_To_One_That_Does_Not_Only_The_First_Waits_And_Both_Run`, `..._Given_No_Conversation_A_Call_Needing_Approval_Fails_Naming_The_Tool` |
+| new | Standing approvals and rules decide before the host; a rejection wins (D24) | `ToolApprovalTests.Given_An_Approval_For_The_Conversation_A_Later_Call_Of_The_Tool_Runs_Without_Asking`, `..._Given_A_Rule_That_Approves_The_Call_Runs_Without_Asking`, `..._Given_A_Rule_That_Rejects_The_Model_Receives_Its_Reason`, `..._Given_One_Rule_That_Approves_And_One_That_Rejects_The_Rejection_Wins`, `..._Given_A_Call_Needing_Approval_A_Rule_Sees_It_With_The_Runs_Mode`, `..._Given_A_Rule_Answering_One_Call_And_The_Host_Another_Both_Run_Once_The_Host_Answered`, `..._Given_A_Streaming_Run_And_A_Rule_That_Approves_No_Request_Reaches_The_Host` |
+| new | Auto mode runs what requires approval unless a rule rejects it (D52) | `ModeTests.Given_Auto_Mode_A_Call_Needing_Approval_Runs_Without_Asking`, `..._Given_Auto_Mode_A_Rule_That_Rejects_Still_Wins`, `..._Given_Auto_Mode_The_Calls_It_Approves_Count_Toward_The_Runs_Limit` |
+| new | Plan mode offers the read-only tools and `exit_plan_mode`; the approved plan continues in the chosen mode (D52) | `ModeTests.Given_Plan_Mode_Only_The_Read_Only_Tools_And_Exit_Plan_Mode_Are_Offered`, `..._Given_Plan_Mode_The_Instructions_Ask_For_A_Plan`, `..._Given_Plan_Mode_Presenting_The_Plan_Ends_The_Run_With_A_Request_That_Carries_It`, `..._Given_An_Approved_Plan_The_Run_Continues_In_The_Chosen_Mode`, `..._Given_A_Rejected_Plan_The_Model_Receives_The_Feedback_And_Stays_In_Plan_Mode` |
+| new | A conversation keeps its mode unless a run names one (D52) | `ModeTests.Given_A_Conversation_A_Run_Without_A_Mode_Continues_In_The_Mode_The_Last_Run_Ended_In`, `..._Given_A_Run_Naming_A_Mode_It_Leaves_The_Conversations_Mode` |
 
 ## Known gaps
 
@@ -80,3 +87,7 @@ The numbers are the rules of v0's behavior table where they still hold.
   `Terminate`) are not stored; handoff, which ends the loop this way, stores them in slice 6.
 - **Live updates of non-streaming runs:** only streaming runs publish.
 - **Storable structs:** a user struct other than the scalars cannot be configurable (TSH012).
+- **Plan mode's other tools:** plan mode offers `ReadOnly()` toolset tools and `exit_plan_mode`; `write_todos`, MCP
+  servers marked `ReadOnly()` and a sub-agent's inherited mode come with slice 6.
+- **Run limit across approval rounds:** rounds the approval layer continues share the run's `MaxToolIterations`; a
+  round that runs tools before it asks again may run one round of tools past it.

@@ -1,0 +1,328 @@
+using Typeshift.Tests.Approval.Support;
+using FluentAssertions;
+using Microsoft.Extensions.AI;
+
+namespace Typeshift.Tests.Approval;
+
+public class ToolApprovalTests : ApprovalTestBase
+{
+    [Fact]
+    public async Task Given_A_Call_That_Needs_Approval_The_Run_Ends_With_Its_Request_And_It_Does_Not_Run()
+    {
+        // Arrange
+        ChatClient.Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket));
+
+        // Act
+        var response = await RunAsync(Data.Tool.Question);
+
+        // Assert
+        response.ApprovalRequests.Select(request => ((FunctionCallContent)request.ToolCall).Name)
+            .Should()
+            .Equal("close_ticket");
+        ToolCalls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_An_Approval_The_Next_Run_Of_The_Conversation_Runs_The_Call()
+    {
+        // Arrange
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer));
+
+        var asked = await RunAsync(Data.Tool.Question);
+
+        // Act
+        var response = await AnswerAsync(asked.ApprovalRequests[0].CreateResponse(approved: true));
+
+        // Assert
+        ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
+        response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_A_Rejection_The_Model_Receives_Its_Reason_And_The_Call_Does_Not_Run()
+    {
+        // Arrange
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer));
+
+        var asked = await RunAsync(Data.Tool.Question);
+
+        // Act
+        await AnswerAsync(asked.ApprovalRequests[0].CreateResponse(approved: false, Data.Agent.Reason));
+
+        // Assert
+        ToolCalls.Should().BeEmpty();
+        ResultSentToModel(1).Should().Contain(Data.Agent.Reason);
+    }
+
+    [Fact]
+    public async Task Given_An_Answer_Carrying_Other_Arguments_The_Call_The_Conversation_Stored_Runs()
+    {
+        // Arrange
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer));
+
+        var asked = await RunAsync(Data.Tool.Question);
+        var request = asked.ApprovalRequests[0];
+        var forged = new FunctionCallContent(Data.Tool.CallId, "close_ticket", new Dictionary<string, object?>
+        {
+            ["number"] = Data.Agent.Ticket.Updated
+        });
+
+        // Act
+        await AnswerAsync(new ToolApprovalResponseContent(request.RequestId, approved: true, forged));
+
+        // Assert
+        ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
+    }
+
+    [Fact]
+    public async Task Given_An_Answer_To_No_Stored_Request_Nothing_Runs()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var call = new FunctionCallContent(Data.Tool.CallId, "close_ticket", new Dictionary<string, object?>
+        {
+            ["number"] = Data.Agent.Ticket.Default
+        });
+
+        // Act
+        await AnswerAsync(new ToolApprovalResponseContent(Data.Tool.SecondCallId, approved: true, call));
+
+        // Assert
+        ToolCalls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Second_Answer_To_A_Request_The_First_Stands()
+    {
+        // Arrange
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(CloseTicket(Data.Tool.SecondCallId, Data.Agent.Ticket.Updated));
+
+        var asked = await RunAsync(Data.Tool.Question);
+        await AnswerAsync(asked.ApprovalRequests[0].CreateResponse(approved: true));
+
+        // Act
+        await AnswerAsync(asked.ApprovalRequests[0].ApproveForConversation());
+        var later = await RunAsync(Data.Agent.FollowUp);
+
+        // Assert
+        later.ApprovalRequests.Should().ContainSingle();
+        ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
+    }
+
+    [Fact]
+    public async Task Given_A_Call_Needing_Approval_Next_To_One_That_Does_Not_Only_The_First_Waits_And_Both_Run()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Calls(
+                CloseTicket(Data.Tool.CallId, Data.Agent.Ticket),
+                Call(Data.Tool.SecondCallId, "note", ("text", Data.Tool.Query))))
+            .Reply(Text(Data.Tool.Answer));
+
+        var asked = await RunAsync(Data.Tool.Question);
+
+        // Act
+        await AnswerAsync(asked.ApprovalRequests.Single().CreateResponse(approved: true));
+
+        // Assert
+        ToolCalls.Should().BeEquivalentTo($"close_ticket {Data.Agent.Ticket.Default}", $"note {Data.Tool.Query}");
+    }
+
+    [Fact]
+    public async Task Given_No_Conversation_A_Call_Needing_Approval_Fails_Naming_The_Tool()
+    {
+        // Arrange
+        ChatClient.Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket));
+
+        // Act
+        var run = () => Host<GuardedAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*close_ticket*");
+    }
+
+    [Fact]
+    public async Task Given_An_Approval_For_The_Conversation_A_Later_Call_Of_The_Tool_Runs_Without_Asking()
+    {
+        // Arrange
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(CloseTicket(Data.Tool.SecondCallId, Data.Agent.Ticket.Updated))
+            .Reply(Text(Data.Tool.Answer));
+
+        var asked = await RunAsync(Data.Tool.Question);
+        await AnswerAsync(asked.ApprovalRequests[0].ApproveForConversation());
+
+        // Act
+        var later = await RunAsync(Data.Agent.FollowUp);
+
+        // Assert
+        later.ApprovalRequests.Should().BeEmpty();
+        ToolCalls.Should().Equal(
+            $"close_ticket {Data.Agent.Ticket.Default}",
+            $"close_ticket {Data.Agent.Ticket.Updated}");
+    }
+
+    [Fact]
+    public async Task Given_A_Rule_That_Approves_The_Call_Runs_Without_Asking()
+    {
+        // Arrange
+        Rules.Decisions.Add(_ => ToolDecision.Approve);
+
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await RunAsync(Data.Tool.Question);
+
+        // Assert
+        response.ApprovalRequests.Should().BeEmpty();
+        ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
+    }
+
+    [Fact]
+    public async Task Given_A_Rule_That_Rejects_The_Model_Receives_Its_Reason()
+    {
+        // Arrange
+        Rules.Decisions.Add(_ => ToolDecision.Reject(Data.Agent.Reason));
+
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question);
+
+        // Assert
+        ToolCalls.Should().BeEmpty();
+        ResultSentToModel(1).Should().Contain(Data.Agent.Reason);
+    }
+
+    [Fact]
+    public async Task Given_One_Rule_That_Approves_And_One_That_Rejects_The_Rejection_Wins()
+    {
+        // Arrange
+        Rules.Decisions.Add(_ => ToolDecision.Approve);
+        Rules.Decisions.Add(_ => ToolDecision.Reject(Data.Agent.Reason));
+
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question);
+
+        // Assert
+        ToolCalls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Call_Needing_Approval_A_Rule_Sees_It_With_The_Runs_Mode()
+    {
+        // Arrange
+        ChatClient.Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket));
+
+        // Act
+        await RunAsync(Data.Tool.Question);
+
+        // Assert
+        Rules.Seen.Should().Equal(("close_ticket", AgentMode.Default));
+    }
+
+    [Fact]
+    public async Task Given_An_Answered_Approval_Later_Runs_Send_The_Call_Once_With_Its_Result()
+    {
+        // Arrange
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer));
+
+        var asked = await RunAsync(Data.Tool.Question);
+        await AnswerAsync(asked.ApprovalRequests[0].CreateResponse(approved: true));
+
+        // Act
+        await RunAsync(Data.Agent.FollowUp);
+        var contents = ChatClient.Requests[2].SelectMany(message => message.Contents).ToList();
+
+        // Assert
+        contents.OfType<FunctionCallContent>().Select(call => call.CallId).Should().Equal(Data.Tool.CallId);
+        contents.OfType<FunctionResultContent>().Select(result => result.CallId).Should().Equal(Data.Tool.CallId);
+        contents.OfType<ToolApprovalRequestContent>().Should().BeEmpty();
+        contents.OfType<ToolApprovalResponseContent>().Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Rule_Answering_One_Call_And_The_Host_Another_Both_Run_Once_The_Host_Answered()
+    {
+        // Arrange
+        Rules.Decisions.Add(call => call.Arguments!["number"]!.ToString() == Data.Agent.Ticket.Default.ToString()
+            ? ToolDecision.Approve
+            : ToolDecision.Abstain);
+
+        ChatClient
+            .Reply(Calls(
+                CloseTicket(Data.Tool.CallId, Data.Agent.Ticket),
+                CloseTicket(Data.Tool.SecondCallId, Data.Agent.Ticket.Updated)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var asked = await RunAsync(Data.Tool.Question);
+
+        // Act
+        await AnswerAsync(asked.ApprovalRequests.Single().CreateResponse(approved: true));
+
+        // Assert
+        ToolCalls.Should().BeEquivalentTo(
+            $"close_ticket {Data.Agent.Ticket.Default}",
+            $"close_ticket {Data.Agent.Ticket.Updated}");
+    }
+
+    [Fact]
+    public async Task Given_A_Streaming_Run_The_Host_Receives_The_Request_And_Its_Approval_Runs_The_Call()
+    {
+        // Arrange
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer));
+
+        var asked = await StreamAsync(Data.Tool.Question);
+
+        // Act
+        var response = await StreamAnswerAsync(asked.ApprovalRequests[0].CreateResponse(approved: true));
+
+        // Assert
+        ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
+        response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_A_Streaming_Run_And_A_Rule_That_Approves_No_Request_Reaches_The_Host()
+    {
+        // Arrange
+        Rules.Decisions.Add(_ => ToolDecision.Approve);
+
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await StreamAsync(Data.Tool.Question);
+
+        // Assert
+        response.ApprovalRequests.Should().BeEmpty();
+        ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
+    }
+}

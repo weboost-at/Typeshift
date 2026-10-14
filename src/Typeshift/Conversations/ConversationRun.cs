@@ -4,11 +4,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Typeshift;
 
-// One run of a conversation: the messages it stored, by reference, since the tool loop hands the same ones on; the
-// steering input waiting for the next model call, and where in the tool loop's messages that input went
+// One run of a conversation: the contents it stored, by reference, since the tool loop hands the same ones on, even
+// in the copies of messages it makes; the steering input waiting for the next model call, and where in the tool
+// loop's messages that input went
 internal sealed class ConversationRun(
     object conversation,
-    string agent,
+    AgentRun run,
     string model,
     IStoreAccess store,
     TimeProvider time,
@@ -16,7 +17,7 @@ internal sealed class ConversationRun(
 {
     private readonly ConcurrentQueue<ChatMessage> _steering = new();
     private readonly List<(int Position, ChatMessage Message)> _injected = [];
-    private readonly HashSet<ChatMessage> _stored = new(ReferenceEqualityComparer.Instance);
+    private readonly HashSet<AIContent> _stored = new(ReferenceEqualityComparer.Instance);
 
     // A streamed response is stored as the updates make it; the tool loop builds its own messages from the same
     // updates, so the first ones it hands on next are those, already stored
@@ -24,7 +25,7 @@ internal sealed class ConversationRun(
 
     public object Conversation { get; } = conversation;
 
-    public string Agent { get; } = agent;
+    public string Agent { get; } = run.Agent.Name;
 
     public string Model { get; } = model;
 
@@ -37,9 +38,9 @@ internal sealed class ConversationRun(
     // The history and the input a run starts from are stored already
     public void MarkStored(IEnumerable<ChatMessage> messages)
     {
-        foreach (var message in messages)
+        foreach (var content in messages.SelectMany(message => message.Contents))
         {
-            _stored.Add(message);
+            _stored.Add(content);
         }
     }
 
@@ -54,7 +55,7 @@ internal sealed class ConversationRun(
             call.Insert(Math.Min(position, call.Count), message);
         }
 
-        var steps = call.Where(message => !_stored.Contains(message)).ToList();
+        var steps = call.Select(Unstored).OfType<ChatMessage>().ToList();
         var streamed = Math.Min(_streamedUnmatched, steps.Count);
 
         MarkStored(steps.Take(streamed));
@@ -75,6 +76,12 @@ internal sealed class ConversationRun(
         return call;
     }
 
+    // D46: the end of a run is an entry of its own, with what went wrong and the mode it ended in (D52)
+    public Task EndAsync(string? error) =>
+        AppendAsync(
+            error is null ? [] : [new ChatMessage(ChatRole.Assistant, [new ErrorContent(error)])],
+            endsRun: true);
+
     public async Task AppendResponseAsync(ChatResponse response, ChatOptions? options, bool streamed)
     {
         await AppendAsync([.. response.Messages], response.ModelId ?? options?.ModelId, response.Usage);
@@ -91,14 +98,16 @@ internal sealed class ConversationRun(
         foreach (var message in messages)
         {
             if (message.Role != ChatRole.User) message.AuthorName ??= Agent;
-            _stored.Add(message);
         }
+
+        MarkStored(messages);
 
         var entry = new ConversationEntry(Agent, messages, time.GetUtcNow())
         {
             Model = model,
             Usage = usage,
-            EndsRun = endsRun
+            EndsRun = endsRun,
+            Mode = endsRun ? run.Mode : null
         };
 
         try
@@ -109,5 +118,16 @@ internal sealed class ConversationRun(
         {
             logger.LogError(exception, "Conversation {Conversation} could not store a step.", Conversation);
         }
+    }
+
+    // The contents of a message not stored yet, as a message of their own; null when all are
+    private ChatMessage? Unstored(ChatMessage message)
+    {
+        if (message.Contents.All(_stored.Contains)) return null;
+        if (!message.Contents.Any(_stored.Contains)) return message;
+
+        var step = message.Clone();
+        step.Contents = [.. message.Contents.Where(content => !_stored.Contains(content))];
+        return step;
     }
 }

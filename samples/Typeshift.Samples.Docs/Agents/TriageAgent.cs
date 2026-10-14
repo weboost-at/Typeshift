@@ -16,6 +16,7 @@ internal partial class TriageAgent : Agent
         WithRunOptions()
             .WithMaxToolIterations(10)
             .WithConcurrentToolCalls(true)
+            .Configurable(r => r.Mode)
             .Configurable(r => r.MaxToolIterations);
         // end-snippet
     }

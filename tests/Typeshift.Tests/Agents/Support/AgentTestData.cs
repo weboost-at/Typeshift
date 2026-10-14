@@ -18,4 +18,9 @@ public class AgentTestData(Faker faker)
     public string FollowUp { get; } = faker.Lorem.Sentence();
 
     public string Steering { get; } = faker.Lorem.Sentence();
+
+    public TestValue<int> Ticket { get; } =
+        new TestValue<int>(faker.Random.Int(1, 4999)).SetUpdated(faker.Random.Int(5000, 9999));
+
+    public string Reason { get; } = faker.Lorem.Sentence();
 }

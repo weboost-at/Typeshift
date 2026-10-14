@@ -10,6 +10,13 @@ public sealed class RunOptionsBuilder
     internal RunOptionsBuilder(Agent agent) => _agent = agent;
 
     /// <summary>
+    /// The mode runs start in; <see cref="AgentMode.Default"/> unless set.
+    /// </summary>
+    /// <param name="mode">The mode.</param>
+    /// <returns>The same chain.</returns>
+    public RunOptionsBuilder WithMode(AgentMode mode) => Set(options => options with { Mode = mode });
+
+    /// <summary>
     /// The most model calls one run's tool loop makes; 40 unless set.
     /// </summary>
     /// <param name="iterations">The calls.</param>
@@ -55,6 +62,11 @@ public sealed class RunOptionsBuilder
 public sealed record RunOptions
 {
     /// <summary>
+    /// The mode runs start in.
+    /// </summary>
+    public AgentMode Mode { get; init; }
+
+    /// <summary>
     /// The most model calls one run's tool loop makes.
     /// </summary>
     public int MaxToolIterations { get; init; } = 40;
@@ -68,4 +80,26 @@ public sealed record RunOptions
     /// Whether the tool calls of one model response run at the same time.
     /// </summary>
     public bool ConcurrentToolCalls { get; init; }
+}
+
+/// <summary>
+/// How a run treats the tools it may not run unasked.
+/// </summary>
+public enum AgentMode
+{
+    /// <summary>
+    /// Tools that require approval ask the host, unless a standing approval or a rule decides.
+    /// </summary>
+    Default,
+
+    /// <summary>
+    /// Only tools marked read-only are offered. The model researches, then presents a plan with
+    /// <c>exit_plan_mode</c>, which asks the host; approving it continues in the mode the host chooses.
+    /// </summary>
+    Plan,
+
+    /// <summary>
+    /// Tools that require approval run without asking, unless a rule rejects the call.
+    /// </summary>
+    Auto
 }

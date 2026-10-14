@@ -3,7 +3,7 @@ using Microsoft.Extensions.AI;
 namespace Typeshift;
 
 // The options ResolveOptionsAsync returns remember what else the run resolved, so the raw path's client gets it too:
-// the run options, the settings id (D26), and once a run begins, its conversation
+// the run options, the settings id (D26), and once a run begins, the run and its conversation
 internal sealed class ResolvedChatOptions : ChatOptions
 {
     public ResolvedChatOptions(ChatOptions options)
@@ -11,11 +11,16 @@ internal sealed class ResolvedChatOptions : ChatOptions
     {
     }
 
-    public RunOptions Run { get; set; } = new();
+    public RunOptions RunOptions { get; set; } = new();
+
+    // D52: a run whose settings name a mode leaves the conversation's mode behind
+    public bool RunSetsMode { get; set; }
 
     public object? SettingsId { get; set; }
 
     public object? Conversation { get; set; }
+
+    public AgentRun? AgentRun { get; set; }
 
     public ConversationRun? ConversationRun { get; set; }
 
@@ -28,9 +33,11 @@ internal sealed class ResolvedChatOptions : ChatOptions
     public override ChatOptions Clone() =>
         new ResolvedChatOptions(this)
         {
-            Run = Run,
+            RunOptions = RunOptions,
+            RunSetsMode = RunSetsMode,
             SettingsId = SettingsId,
             Conversation = Conversation,
+            AgentRun = AgentRun,
             ConversationRun = ConversationRun
         };
 }
