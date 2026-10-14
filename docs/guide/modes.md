@@ -1,13 +1,9 @@
 # Plan and auto modes
 
 Every run is in one of three modes, which decide what the model is offered and what happens to tools that
-[require approval](./tool-approval.md):
-
-| Mode | Offers | Tools that require approval |
-|---|---|---|
-| `Default` | every tool | ask the host, unless a rule or a standing approval decides |
-| `Plan` | read-only tools and `exit_plan_mode` | offered only if also `ReadOnly()`; they still ask |
-| `Auto` | every tool | run without asking, unless a rule rejects the call |
+[require approval](./tool-approval.md). In `Default`, such tools ask the host; in [`Plan`](#plan-mode), the model
+only reads and presents a plan; in [`Auto`](#auto-mode), they run unless a rule rejects the call.
+[`AgentMode`](./builders.md#agentmode) sums the three up.
 
 ## Setting the mode
 

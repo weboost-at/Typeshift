@@ -1,7 +1,8 @@
 # Toolsets
 
 A toolset groups the tools of one domain. The generator reads its constructor at compile time and writes, per tool,
-an `AIFunction` that binds the model's arguments and serializes the result without reflection.
+an `AIFunction` that binds the model's arguments and serializes the result without reflection; see
+[generated members](./generated-members.md#per-toolset).
 
 ## Declaring tools
 
@@ -56,46 +57,31 @@ internal partial class TicketToolset : Toolset
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketToolset.cs#L5-L54' title='Snippet source file'>snippet source</a> | <a href='#snippet-toolset' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-- **The method** is a static method group, `AddTool(SearchTickets)`. Lambdas, instance methods and local functions
-  are [TSH003](./diagnostics.md#tsh003). `AddTool` calls go directly in the constructor
-  ([TSH014](./diagnostics.md#tsh014)), each as one chain ([TSH015](./diagnostics.md#tsh015)).
-- **The name** is the method's in snake_case, without an `Async` suffix: `GetTicketAsync` is `get_ticket`.
-  `WithName(...)` overrides it ([TSH008](./diagnostics.md#tsh008)). Names are unique across everything the host sees
-  ([TSH007](./diagnostics.md#tsh007)).
-- **The description** is the method's `<summary>`, or `WithDescription(...)`. A tool without either is
-  [TSH009](./diagnostics.md#tsh009); summaries need `GenerateDocumentationFile` ([TSH011](./diagnostics.md#tsh011)).
-- **`RequiresApproval()`** pauses a run that calls the tool until the host decides; see
-  [tool approval](./tool-approval.md).
-- **`ReadOnly()`** marks a tool that only reads, without side effects; [plan mode](./modes.md#plan-mode) offers only
-  these.
-- **`WithSettings<T>()`** or **`WithConfigurableSettings<T>()`** come last; see [tool settings](./tool-settings.md).
-- **`WithDisplayName`** names the toolset for people, in a tool picker say.
+`AddTool` takes a static method group, directly in the constructor, one chain per tool. The tool is named after the
+method in snake_case without `Async`, `get_ticket`, and described by its `<summary>` and `<param>` docs, so turn on
+`GenerateDocumentationFile`. Then refine it:
 
-A tool's name keys its stored settings. Renaming the method renames the tool, so pin the old name with `WithName`
+- `WithDescription` describes a method without a summary.
+- `ReadOnly()` marks a tool that only reads, so [plan mode](./modes.md#plan-mode) offers it.
+- `RequiresApproval()` asks the host before each call; see [tool approval](./tool-approval.md).
+- `WithSettings<T>()` gives it values the model must not choose; see [tool settings](./tool-settings.md).
+- `WithDisplayName` names the toolset for people, in a tool picker say.
+
+[Builders](./builders.md#toolbuilder) lists every call and the diagnostics that guard it.
+
+## Renaming a tool
+
+A tool's name keys its stored settings, so renaming the method renames the tool. Pin the old name with `WithName`
 before you rename a method whose settings are stored.
 
-## Parameters
+## Parameters and results
 
-Every parameter is part of the tool's JSON schema, with its `<param>` doc and default value, except these, which the
-call fills:
+The model fills every parameter but four, which the call fills: the tool's settings, `IServiceProvider`,
+`CancellationToken` and `AIFunctionArguments`. Resolve services from the `IServiceProvider`: it is the run's scope,
+so a request's scoped services reach the tool. A tool returns a value, or a task of one, which reaches the model as
+JSON. [Builders](./builders.md#tool-parameters) lists the binding rules.
 
-| Type | Receives |
-|---|---|
-| The record of `WithSettings<T>()` | The tool's resolved settings. |
-| `IServiceProvider` | The run's services: the scope the host runs in. |
-| `CancellationToken` | The call's token. |
-| `AIFunctionArguments` | The raw arguments the model sent. |
-
-These need no `<param>` doc. A missing required argument fails the call with an `ArgumentException`, which the tool
-loop reports to the model; an absent optional one takes its default. A nullable reference parameter is typed as
-nullable in the schema. `ref` and `out` parameters are [TSH004](./diagnostics.md#tsh004).
-
-## Results
-
-A tool returns a value, `Task`, `Task<T>`, `ValueTask` or `ValueTask<T>`. The result reaches the model as JSON,
-serialized through its type's `JsonTypeInfo`.
-
-## What is not generated
+## Sharing code
 
 A generic toolset, or one deriving from another toolset, is [TSH017](./diagnostics.md#tsh017). Share code between
 toolsets through plain static methods.

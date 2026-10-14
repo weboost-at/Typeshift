@@ -19,13 +19,15 @@ The first run starts the conversation; the second resumes it: the stored message
 model sees the whole conversation. The provider never receives the conversation id; Typeshift resends the
 conversation itself. Settings ids and conversation ids are independent of each other; a run may pass either or both.
 
+::: warning
 Typeshift resumes whichever conversation it is given. The host decides who may see a conversation: check the caller
 against your own record of the conversation before you pass its id, as you would for any other id from a request.
+:::
 
 ## What is stored
 
 A conversation is a list of entries, appended as they happen: a run's input, each model response with its model and
-token usage, each tool result, and an entry that ends the run.
+token usage, each tool result, and an entry that ends the run. Load them to show a conversation's history:
 
 <!-- snippet: load-conversation -->
 <a id='snippet-load-conversation'></a>
@@ -38,13 +40,7 @@ Console.WriteLine($"{entries.Count} entries, {entries.Sum(entry => entry.Usage?.
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L22-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-- A failed run ends with an `ErrorContent` entry, then the exception surfaces.
-- A stream that fails, is cancelled or is left early ends with the updates that arrived.
-- A cancelled run is stored too; storing does not observe the run's token.
-- A store that fails to save is logged; the run still returns its answer.
-- A run cut off by a crash has no ending entry; [resume it](#resuming).
-
-On resume, tool calls that never got a result and error messages are left out, since providers reject them.
+[What a run stores](./agent-host.md#what-a-run-stores) lists the entries of failed, cancelled and interrupted runs.
 
 ## Resuming
 
