@@ -1,51 +1,18 @@
 ---
 name: add-runtime-feature
-description: Add or change public behavior of the Typeshift runtime library (src/Typeshift) - agents, the runtime, stores, conversations, JSON. Use for any change a library user can observe, to find where code, tests and docs go.
+description: Add or change public behavior of the Typeshift runtime library (src/Typeshift) - toolsets, tools, and the agents, hosts, stores and conversations the later slices add. Use for any change a library user can observe, to find where code, tests and docs go.
 ---
 
 # Add a runtime feature
 
-## Before writing code
-
-- Find the subject in `docs/contributing/architecture.md` and its decisions (`Dnn` in `docs/contributing/decisions.md`).
-  Code comments starting `// Dnn:` point at the decision that explains odd-looking code; don't undo one without
-  reading it. If you change a decision, edit its entry in the same commit, or add a new one and move the old to the
-  withdrawn table; `DecisionCitationTests` fails on citations of withdrawn or missing decisions.
-- Check `docs/contributing/status.md` for known gaps and next steps on the subject.
-
-## Where things go
-
-| Concern | Place |
-|---|---|
-| Code | `src/Typeshift/<Feature>/`, namespace = folder. Records for values and stored data, classes for behavior. |
-| Typed per-agent API | Generated (`AgentEmitter` runtime extension block) calling a hidden `...Core` method on `AgentRuntime` (D4, D35). |
-| Persistence | Through `ITypeshiftStore<TId>` only, data as `IStorable<TSelf>`; without a store, throw via `Stores.Get` (D26). |
-| Time | Inject `TimeProvider`; never read the clock. |
-| Tests | `tests/Typeshift.Tests/<Area>/`, one class per subject, bases and data in `Testing/` or `<Area>/Support/`. |
-| Docs | The guide page of the feature, its code in `samples/Typeshift.Samples.Docs` (skill `update-docs`). |
-
-## Public API rules
-
-- Full XML docs on every public member: `<summary>`, every `<param>` and `<typeparam>`, `<returns>` for a result,
-  `<exception>` for what a caller can act on. `PublicApiDocumentationTests` fails on a missing tag.
-- No reflection over user types, no static mutable state, JSON through `JsonTypeInfo` (Native AOT).
-- A breaking change goes to `CHANGELOG.md` under `[Unreleased]`.
-
-## Tests
-
-Read the test rules in `AGENTS.md`; the convention tests enforce them. Runtime behavior is tested through a real
-`FunctionInvokingChatClient` loop with the scripted provider of `AgentTestBase`, against toolsets of the second
-assembly (`tests/Typeshift.Tests.Toolsets`) where registration matters. Data comes from `Data` (the catalog), time
-moves only through `FakeTimeProvider.Advance`.
-
-## Done means
-
-```shell
-dotnet build -c Release -warnaserror
-dotnet test -c Release --no-build            # three times, green every time
-dotnet run --project samples/Typeshift.Samples.Docs -c Release --no-build
-dotnet mdsnippets && git diff --exit-code     # when docs changed
-dotnet slopwatch analyze --fail-on warning
-```
-
-plus the AOT publish of the console sample when JSON or generated code changed (see `AGENTS.md`).
+1. **Decide.** Read the decisions the feature touches in `docs/contributing/decisions.md`. A new choice gets an entry
+   (context, decision, alternatives, where); code that only makes sense with it cites it as `// Dnn: ...`.
+2. **Code.** Public types live in the `Typeshift` namespace, what only generated code calls in `Typeshift.Generated`,
+   hidden from editors (D10). Every public member has XML docs with each `param`, `typeparam` and `returns`
+   (`PublicApiDocumentationTests`).
+3. **Tests** in `tests/Typeshift.Tests`, one class per subject, following `AGENTS.md`, "Tests": the scripted
+   `IChatClient` in `Testing/Fakes`, `HostTestBase` for anything that needs services, data from the catalog.
+4. **Docs.** The guide page of the feature, its code from `samples/Typeshift.Samples.Docs` through mdsnippets; see the
+   `update-docs` playbook.
+5. **Status.** Add the behavior and its test to the table in `docs/contributing/status.md`; a known limit goes under
+   "Known gaps", never into a TODO.

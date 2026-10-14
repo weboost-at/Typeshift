@@ -5,23 +5,11 @@ description: Change the Typeshift documentation site (docs/, VitePress), the REA
 
 # Update the docs
 
-`docs/contributing/documentation.md` is the full description; this is the working order.
+Read `docs/contributing/documentation.md` first.
 
-1. **Code first.** C# in the docs is never typed into Markdown. Write it in `samples/Typeshift.Samples.Docs` (or the
-   console sample for getting started and the README), between `// begin-snippet: <name>` and `// end-snippet`.
-   When it shows behavior, make a scenario in `Scenarios/` run it and `Expect.That(...)` the outcome the page claims.
-2. **Run it:** `dotnet run --project samples/Typeshift.Samples.Docs -c Release`. It throws when a scenario breaks.
-3. **Reference it** in the page with a line `snippet: <name>`, or a whole file by its path from the repository root.
-4. **Regenerate:** `dotnet tool restore` once, then `dotnet mdsnippets` from the repository root. It rewrites the
-   blocks between `<!-- snippet: ... -->` and `<!-- endSnippet -->` in every Markdown file. Never edit inside them.
-5. **Build the site:** `npm ci` once, then `npm run docs:build` (fails on dead links) or `npm run docs:dev`.
-6. **Commit** the code and the regenerated Markdown together.
-
-## Writing
-
-- A page per topic: what it is and why in a short paragraph, the code, then what the reader must know about it.
-  No filler, no sentence that only announces the next.
-- Generic types in prose go in backticks; VitePress reads a bare `<T>` as an HTML tag.
-- Link diagnostics as `./diagnostics.md#tsh007` from guide pages; link repository files with full GitHub URLs.
-- New pages go in the sidebar in `docs/.vitepress/config.mts`.
-- The package README (`src/Typeshift/PACKAGE.md`) has no code on purpose (D39).
+1. Change the sample code in `samples/Typeshift.Samples.Docs`, keeping its `begin-snippet` and `end-snippet` markers.
+2. Run `dotnet mdsnippets` from the repository root; never edit between `<!-- snippet: x -->` and
+   `<!-- endSnippet -->` by hand.
+3. A new page goes into the sidebar in `docs/.vitepress/config.mts`. No page may be named `agents.md`: mdsnippets
+   skips files of that name.
+4. Build the site with `npm ci` once, then `npm run docs:build`; it fails on dead links.

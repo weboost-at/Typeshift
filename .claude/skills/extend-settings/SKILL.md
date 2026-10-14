@@ -1,40 +1,16 @@
 ---
 name: extend-settings
-description: Change how Typeshift tool settings and agent settings work - storable member types, configurable chat options, the five settings layers, the generated Settings and Overrides records, or their JSON. Use when a configurable member type is rejected with TSH014 or when settings resolve differently than expected.
+description: Change how Typeshift tool settings work - configurable members, the generated Overrides records and how they apply. Use when a settings member is rejected or when settings resolve differently than expected.
 ---
 
 # Extend settings
 
-Read the "Settings layering" and "Persistence" sections of `docs/contributing/architecture.md` and decisions D25-D28
-first. Settings are a contract stored in hosts' databases: a change to their JSON is a breaking change for stored
-data, and stored documents carry no version (see the known gaps in `docs/contributing/status.md`).
+- A tool's settings record is the user's; the generator reads its settable public properties
+  (`SymbolExtensions.GetPublicProperties`) and writes `{Tool}Overrides` with the configurable ones, nullable.
+- Configurable members are an allow list unless `WithConfigurableSettings` makes them a deny list (D18). Obsolete
+  members stay out unless picked.
+- `{Tool}Overrides.ApplyTo(settings)` replaces each member a layer sets and keeps the others; nested records are
+  replaced whole (D19).
+- A rejected member: TSH013 (no setter) comes from `ToolsetParser.ParseSettings`.
 
-## How a value flows
-
-1. The toolset marks members with `WithSettings<T>().Configurable(s => s.X)`, or all but some with
-   `WithConfigurableSettings<T>().NotConfigurable(s => s.X)` (D43); the agent marks chat options in its
-   `WithChatOptions()` chain with `Configurable(o => o.X)`. The generator reads the picks (D5) and `Parsing/Storage.cs` decides per
-   member which `StorableJson` write and read methods store it, or reports TSH014.
-2. `Emitting/ToolsetEmitter.cs` writes `{Tool}Overrides`; `Emitting/AgentEmitter.cs` writes the agent's `Settings`;
-   `Emitting/StorableEmitter.cs` writes the `Serialize`/`Deserialize` members both share.
-3. At runtime `AgentDefinition.CreateChatOptions` builds `ToolSettingsLayers` per tool and the bindings
-   (`Tools/*ToolBinding.cs`) apply them in order: code defaults, stored tool defaults (skipped when the agent's code
-   sets the tool's settings), the agent's code settings, its stored settings, the run.
-
-## Supporting a new member type
-
-1. `src/Typeshift/Persistence/StorableJson.cs`: a `Write` overload and a `Read...` method. A null value is left out; a
-   missing or mistyped value reads as null and never throws. A numeric type needs none: `WriteNumber<T>` and
-   `ReadNumber<T>` take any `INumber<T>`.
-2. `src/Typeshift.Generators/Parsing/Storage.cs`: map the type (and its nullable form) to the two methods; a numeric
-   type goes into `IsNumber`.
-3. `tests/Typeshift.Tests/Persistence/Support/EveryKind.cs` and `StorableTestData.cs`: add a member of the type;
-   `StorableJsonTests` then round-trips it.
-4. Update the type list in the TSH014 message (`Descriptors.cs`), in `docs/guide/diagnostics.md` (TSH014) and in
-   `docs/guide/tool-settings.md`.
-5. Accept the snapshots only if the generated code changed as intended (skill `change-generated-code`).
-
-## Changing the layers
-
-The layer order is user-facing (`docs/guide/tool-settings.md`, behaviors 25-29 in `docs/contributing/status.md`).
-`SettingsLayeringTests` holds one test per rule; change the rule's test first, then the code, then the docs table.
+Tests: `ToolOverridesTests` (runtime) and the snapshots of `ToolsetGenerationTests` (generator).
