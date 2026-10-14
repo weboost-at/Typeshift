@@ -10,7 +10,8 @@ public sealed partial class TodoToolset : Toolset
     {
         WithDisplayName("Todos");
 
-        AddTool(WriteTodos);
+        AddTool(WriteTodos)
+            .ReadOnly();
     }
 
     /// <summary>

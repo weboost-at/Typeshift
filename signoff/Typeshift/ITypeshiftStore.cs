@@ -149,7 +149,14 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// The updates of a conversation's streaming runs as they happen, until cancelled; needs
     /// <c>WithRealtimeTracking()</c>.
     /// </summary>
-    public IAsyncEnumerable<ChatResponseUpdate> WatchAsync(TId conversation, CancellationToken ct) =>
+    public IAsyncEnumerable<ChatResponseUpdate> WatchAsync(TId conversation, CancellationToken ct) => throw null!;
+
+    /// <summary>
+    /// Steers a run going on in this process: the input reaches the model before its next call, and the run does not
+    /// end before it has. The input is stored with the conversation.
+    /// </summary>
+    /// <returns>False when no run of the conversation is going on here; start a run with the input instead.</returns>
+    public bool TrySteer(TId conversation, string input) =>
         throw null!;
 }
 

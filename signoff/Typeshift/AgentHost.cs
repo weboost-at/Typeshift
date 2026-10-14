@@ -74,6 +74,11 @@ public sealed class AgentRun
     public IServiceProvider Services => throw null!;
 
     /// <summary>
+    /// The mode the run is in.
+    /// </summary>
+    public AgentMode Mode => throw null!;
+
+    /// <summary>
     /// The response, once the run has one; middleware that sets it without calling <c>next</c> answers in place of
     /// the model.
     /// </summary>
@@ -153,18 +158,44 @@ public interface IMcpToolProvider
 }
 
 /// <summary>
-/// Approves tool calls without asking the host: a command the host trusts, a read-only call. Registered with
-/// <c>WithApprovalRule&lt;T&gt;()</c>, resolved from the run's services.
+/// Decides tool calls before the host is asked: approves what the host trusts, rejects what it never allows (the guard
+/// of auto mode). Registered with <c>WithApprovalRule&lt;T&gt;()</c>, resolved from the run's services.
 /// </summary>
 public interface IToolApprovalRule
 {
     /// <summary>
-    /// Whether a call of a tool that requires approval may run without asking.
+    /// Decides a call of a tool that requires approval. A rejection wins over every approval.
     /// </summary>
     /// <param name="call">The call, with the arguments the model sent.</param>
-    /// <param name="run">The run.</param>
+    /// <param name="run">The run, with its mode.</param>
     /// <param name="ct">Cancels the decision.</param>
-    ValueTask<bool> ApprovesAsync(FunctionCallContent call, AgentRun run, CancellationToken ct);
+    ValueTask<ToolDecision> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct);
+}
+
+/// <summary>
+/// A rule's decision on a tool call.
+/// </summary>
+public readonly record struct ToolDecision
+{
+    /// <summary>
+    /// No opinion: the mode decides, asking the host in <see cref="AgentMode.Default"/>, running the call in
+    /// <see cref="AgentMode.Auto"/>.
+    /// </summary>
+    public static ToolDecision Abstain => default;
+
+    /// <summary>
+    /// The call runs.
+    /// </summary>
+    public static ToolDecision Approve => new() { Approved = true };
+
+    /// <summary>
+    /// The call is rejected in every mode; the model receives the reason.
+    /// </summary>
+    public static ToolDecision Reject(string reason) => new() { Rejection = reason };
+
+    public bool Approved { get; private init; }
+
+    public string? Rejection { get; private init; }
 }
 
 /// <summary>
@@ -189,5 +220,12 @@ public static class ChatResponseExtensions
         /// </summary>
         /// <returns>The response to send in the conversation's next run.</returns>
         public ToolApprovalResponseContent ApproveForConversation() => throw null!;
+
+        /// <summary>
+        /// Approves a plan that <c>exit_plan_mode</c> presented and continues in <paramref name="mode"/>.
+        /// </summary>
+        /// <param name="mode"><see cref="AgentMode.Default"/> or <see cref="AgentMode.Auto"/>.</param>
+        /// <returns>The response to send in the conversation's next run.</returns>
+        public ToolApprovalResponseContent ApprovePlan(AgentMode mode) => throw null!;
     }
 }

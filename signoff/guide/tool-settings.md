@@ -33,11 +33,12 @@ names it:
 <a id='snippet-settings-picks'></a>
 ```cs
 AddTool(SearchTickets)
+    .ReadOnly()
     .WithSettings<SearchTicketsSettings>()
     .Configurable(s => s.IncludeClosed)
     .Configurable(s => s.Limit);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Tickets/TicketToolset.cs#L12-L17' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-picks' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Tickets/TicketToolset.cs#L12-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-picks' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `WithConfigurableSettings<T>()` lets every settable member change unless `NotConfigurable(...)` names it:
@@ -108,7 +109,7 @@ public static IReadOnlyList<Ticket> SearchTickets(
     IServiceProvider services) =>
     services.GetRequiredService<ITicketClient>().Search(query, settings.IncludeClosed, settings.Limit);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Tickets/TicketToolset.cs#L28-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-read-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Tickets/TicketToolset.cs#L30-L40' title='Snippet source file'>snippet source</a> | <a href='#snippet-read-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## The generated overrides

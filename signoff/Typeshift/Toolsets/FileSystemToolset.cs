@@ -11,11 +11,14 @@ public sealed partial class FileSystemToolset : Toolset
         WithDisplayName("Files");
 
         AddTool(ReadFileAsync)
+            .ReadOnly()
             .WithSettings<FileSystemSettings>();
 
-        AddTool(ListFiles);
+        AddTool(ListFiles)
+            .ReadOnly();
 
         AddTool(SearchFilesAsync)
+            .ReadOnly()
             .WithSettings<FileSystemSettings>();
 
         AddTool(WriteFileAsync);

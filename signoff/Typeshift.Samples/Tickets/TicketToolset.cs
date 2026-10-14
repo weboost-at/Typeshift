@@ -11,13 +11,15 @@ internal partial class TicketToolset : Toolset
 
         // begin-snippet: settings-picks
         AddTool(SearchTickets)
+            .ReadOnly()
             .WithSettings<SearchTicketsSettings>()
             .Configurable(s => s.IncludeClosed)
             .Configurable(s => s.Limit);
         // end-snippet
 
         AddTool(GetTicketAsync)
-            .WithDescription("Reads one ticket by its number.");
+            .WithDescription("Reads one ticket by its number.")
+            .ReadOnly();
 
         // begin-snippet: approval-tool
         AddTool(CloseTicketAsync)

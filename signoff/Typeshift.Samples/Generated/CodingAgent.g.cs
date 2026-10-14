@@ -13,6 +13,8 @@ partial class CodingAgent
     {
         public string? Model { get; init; }
 
+        public global::Typeshift.AgentMode? Mode { get; init; }
+
         public int? MaxToolIterations { get; init; }
 
         public static string Kind => "CodingAgent";

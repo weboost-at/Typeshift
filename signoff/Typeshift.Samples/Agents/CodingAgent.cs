@@ -14,11 +14,17 @@ internal partial class CodingAgent : Agent
         UseToolset<ShellToolset>();
         UseToolset<WebToolset>().Include(t => t.WebFetch);
 
+        // begin-snippet: background-sub-agent
+        UseAgent<ExploreAgent>().InBackground();
+        // end-snippet
+
         // begin-snippet: long-running-options
         WithRunOptions()
+            .WithMode(AgentMode.Plan)
             .WithMaxToolIterations(500)
             .WithMaxInputTokens(150_000)
             .WithSummaryModel("fast-model")
+            .Configurable(r => r.Mode)
             .Configurable(r => r.MaxToolIterations);
         // end-snippet
 

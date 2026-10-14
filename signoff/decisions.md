@@ -190,9 +190,10 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
   `CreateResponse(approved)` in the next run of the conversation; the stored request is the one that runs. Calls in
   the same response that need no approval run anyway. A run that asks without a conversation throws, naming the tool.
   `request.ApproveForConversation()` approves the tool for the rest of the conversation; the approval is stored with
-  it, so it holds across runs and processes. `IToolApprovalRule`s (`WithApprovalRule<T>()`, scoped) approve calls
-  the host trusts, seeing the exact arguments. A layer above `FunctionInvokingChatClient` answers requests that a
-  standing approval or a rule covers and continues the loop, so only the rest reach the host. Approvals match tools by
+  it, so it holds across runs and processes. `IToolApprovalRule`s (`WithApprovalRule<T>()`, scoped) decide calls
+  before the host is asked, seeing the exact arguments: `Approve`, `Reject(reason)` (wins over every approval) or
+  `Abstain`, which the mode resolves (D52). A layer above `FunctionInvokingChatClient` answers the requests rules and
+  standing approvals decide and continues the loop, so only the rest reach the host. Approvals match tools by
   name, which is unique per agent (TSH007, and a runtime check for MCP tools).
 - **Alternatives:** an approval callback the run awaits, which holds a run open across requests; a Typeshift approval
   type, a second vocabulary.
@@ -238,7 +239,8 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 - **Decision:** outermost first: conversation tracking (resume, run boundaries, live updates), run middleware,
   context providers, the `invoke_agent` span, approval (standing approvals and rules), `FunctionInvokingChatClient`
   (handoff, run options, tool middleware as its `FunctionInvoker`), checkpoints (each step appended before compaction
-  sees it), compaction, `OpenTelemetryChatClient`, the provider's client behind a wrapper that never disposes it.
+  sees it; steering input and background answers injected here), compaction, `OpenTelemetryChatClient`, the
+  provider's client behind a wrapper that never disposes it.
   Checkpoints and compaction sit inside the tool loop, so they act before every model call.
 - **Where:** `AgentHost.cs`.
 
@@ -275,12 +277,19 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
   tokenizer dependency; message-count triggers, which ignore that one tool result may outweigh a hundred messages; a
   separate `WithCompaction()` chain next to the limits.
 
-### D33. An agent as a tool
+### D33. Sub-agents, in the foreground or the background
 
-- **Status:** proposed.
+- **Status:** proposed; background sub-agents decided by the owner in this session.
 - **Decision:** `UseAgent<T>()` offers a tool named like the agent, with its description and one `input` string. A
-  call runs it with the same settings id and no conversation, and returns its text. Its tools may not
-  need approval (TSH024); circles are TSH026.
+  call runs it in a fresh context with the same settings id, the caller's mode, standing approvals and rules, and no
+  conversation of its own, and returns its text. `.InBackground()` makes the tool return at once; the answer reaches
+  the calling run as a message before a later model call, and the run does not end while sub-agents work. A
+  sub-agent cannot ask the host: in the default mode its calls that need approval and that nothing approves are
+  rejected (TSH024 warns). Circles are TSH026.
+- **Alternatives:** passing a sub-agent's approval requests up to the caller's host, which pauses a parent run on a
+  child's call and needs the child's state stored to resume (possible later); MAF's six background-task tools
+  (start, wait, results, continue, clear), where one tool and an injected answer do the job; storing each sub-agent
+  run as a conversation of its own, which needs ids the library may not create.
 
 ### D34. Handoff continues with the agent handed to
 
@@ -309,7 +318,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 - **Decision:** in `Typeshift.Toolsets`, declared with Typeshift's own toolset API:
   - `TodoToolset`: `write_todos` replaces the whole list; the list lives in the conversation (the latest call).
   - `FileSystemToolset`: six tools within an `IFileSystemRoot` the host registers per scope; absolute paths, `..`
-    and escaping links refused; `delete_file` needs approval.
+    and escaping links refused; the three reading tools `ReadOnly()`, `delete_file` behind approval.
   - `ShellToolset`: `run_command` in the root, always behind approval; timeout and output cap as settings.
   - `WebToolset`: `web_search` and `web_fetch` over `IWebSearch` and `IWebFetch`, no provider shipped.
 - **Alternatives:** MAF's five todo tools with state in the session (more tokens, a store per session); file access
@@ -415,6 +424,28 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 - **Alternatives:** one entry per run, rewritten at each step (a whole-run write per model call); re-running the
   interrupted tool call, unsafe for side effects; a `RunAsync` with a null input in place of `ResumeAsync`.
 - **Where:** `Conversations/`, the checkpoint layer of D29.
+
+### D51. Steering a run going on
+
+- **Status:** proposed; steering decided by the owner in this session.
+- **Decision:** `ConversationTracker.TrySteer(conversation, input)` hands input to the run of the conversation going
+  on in this process; the checkpoint layer injects it before the run's next model call and stores it, and the run
+  does not end while steering input waits. It returns false when no run of the conversation is going on in this
+  process, and the host starts a run with the input instead. Stopping a run is cancelling its token.
+- **Alternatives:** a steering queue in the store, which works across processes but reads the store before every
+  model call; queuing input for after the run, which is just the next run.
+
+### D52. Plan and auto modes are built in
+
+- **Status:** proposed; both modes decided by the owner in this session.
+- **Decision:** `AgentMode` `Default`, `Plan`, `Auto`, a run option (`WithMode`, configurable like any run option).
+  `Plan` offers only tools marked `ReadOnly()` (toolset tools, or MCP servers with `UseMcpServer(...).ReadOnly()`),
+  `write_todos` and a built-in `exit_plan_mode(plan)`, which asks the host; `ApprovePlan(mode)` continues in `Default`
+  or `Auto`, a rejection's reason sends the model back to planning. `Auto` runs tools that require approval unless a
+  rule rejects the call. A conversation keeps its mode: a run without one continues in the mode the last run ended
+  in, stored as an entry. Sub-agents run in their caller's mode.
+- **Alternatives:** modes as tools the model calls (MAF's `mode_get`/`mode_set`), which lets the model leave plan
+  mode unasked; a classifier built into auto mode, where a rule the host writes can ask any model it chooses.
 
 ## Repository
 

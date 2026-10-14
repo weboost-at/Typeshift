@@ -18,6 +18,14 @@ internal static class LongRunning
             Console.Write(update.Text);
         // end-snippet
 
+        // begin-snippet: steering
+        var tracker = provider.GetRequiredService<ConversationTracker>();
+        var input = "Keep the old project files, add the new ones next to them.";
+
+        if (!tracker.TrySteer(conversationId, input))
+            await coding.RunAsync(input, settingsId, conversationId);
+        // end-snippet
+
         // begin-snippet: resume
         var resumed = await coding.ResumeAsync(conversationId, settingsId);
         // end-snippet

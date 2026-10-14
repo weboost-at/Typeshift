@@ -57,7 +57,7 @@ internal partial class SupportAgent : Agent
   web search.
 - **`GetInstructions()`** returns the instructions. It runs whenever a run's options are resolved, so the text may be
   computed.
-- **`WithRunOptions()`** sets the tool loop's limits and compaction; see
+- **`WithRunOptions()`** sets the [mode](./modes.md), the tool loop's limits and compaction; see
   [long-running agents](./long-running-agents.md).
 - The rest of the chain adds capabilities: [MCP servers](./mcp.md), [context](./context-providers.md),
   [other agents](./multi-agent.md).

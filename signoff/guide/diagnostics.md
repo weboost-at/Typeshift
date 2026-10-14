@@ -33,7 +33,7 @@ toolset (`t.SearchWeb` is not on that toolset's list) and configuring a tool the
 | [TSH021](#tsh021) | Error | Referenced assembly has another id type |
 | [TSH022](#tsh022) | Error | Two agents share a settings kind |
 | [TSH023](#tsh023) | Error | Agent cannot be a tool or a handoff target |
-| [TSH024](#tsh024) | Error | Agent used as a tool needs approval |
+| [TSH024](#tsh024) | Warning | Sub-agent offers tools that need approval |
 | [TSH025](#tsh025) | Error | Tool is offered twice |
 | [TSH026](#tsh026) | Error | Agents call each other in a circle |
 | [TSH027](#tsh027) | Error | Tool type has no JSON metadata under Native AOT |
@@ -148,8 +148,9 @@ stamp, so `AddTypeshift()` cannot register them. Reference the package in its pr
 
 ## TSH024
 
-**Agent used as a tool needs approval**: it offers a tool that requires approval, and a run called as a tool has
-nobody to ask. Hand off to it instead.
+**Sub-agent offers tools that need approval.** A sub-agent cannot ask the host, so in the default mode its calls of
+such tools are rejected unless a standing approval or a rule approves them. Add a rule, or hand off to the agent
+instead.
 
 ## TSH025
 

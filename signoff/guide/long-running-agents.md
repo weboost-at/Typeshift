@@ -18,10 +18,14 @@ internal partial class CodingAgent : Agent
         UseToolset<ShellToolset>();
         UseToolset<WebToolset>().Include(t => t.WebFetch);
 
+        UseAgent<ExploreAgent>().InBackground();
+
         WithRunOptions()
+            .WithMode(AgentMode.Plan)
             .WithMaxToolIterations(500)
             .WithMaxInputTokens(150_000)
             .WithSummaryModel("fast-model")
+            .Configurable(r => r.Mode)
             .Configurable(r => r.MaxToolIterations);
 
         ConfigureRunCommand()
@@ -36,7 +40,7 @@ internal partial class CodingAgent : Agent
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Agents/CodingAgent.cs#L5-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Agents/CodingAgent.cs#L5-L42' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Run options
@@ -47,16 +51,19 @@ internal partial class CodingAgent : Agent
 <a id='snippet-long-running-options'></a>
 ```cs
 WithRunOptions()
+    .WithMode(AgentMode.Plan)
     .WithMaxToolIterations(500)
     .WithMaxInputTokens(150_000)
     .WithSummaryModel("fast-model")
+    .Configurable(r => r.Mode)
     .Configurable(r => r.MaxToolIterations);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Agents/CodingAgent.cs#L17-L23' title='Snippet source file'>snippet source</a> | <a href='#snippet-long-running-options' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Agents/CodingAgent.cs#L21-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-long-running-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 | Option | Default | Does |
 |---|---|---|
+| `WithMode` | `Default` | The [mode](./modes.md) runs start in: `Default`, `Plan` or `Auto`. |
 | `WithMaxToolIterations` | 40 | The most model calls one run's tool loop makes. |
 | `WithMaxConsecutiveToolErrors` | 3 | The most failed tool calls in a row before the run ends. |
 | `WithConcurrentToolCalls` | off | Runs the tool calls of one model response at the same time. |
@@ -106,17 +113,44 @@ await foreach (var update in coding.RunStreamingAsync("Move the solution to .NET
 ```cs
 var resumed = await coding.ResumeAsync(conversationId, settingsId);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Scenarios/LongRunning.cs#L21-L23' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Scenarios/LongRunning.cs#L29-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A new run on that conversation works too: it starts from the interrupted run's steps, followed by its own input.
 Typeshift runs one run per conversation at a time in a process; across processes, the host makes sure of it.
 
+## Steering
+
+A user can steer a run while it works: `TrySteer` hands input to the run of the conversation going on in this process.
+The model receives it before its next call, the run does not end before it has, and it is stored with the
+conversation like any input. With no run going on here, start a run with the input instead:
+
+<!-- snippet: steering -->
+<a id='snippet-steering'></a>
+```cs
+var tracker = provider.GetRequiredService<ConversationTracker>();
+var input = "Keep the old project files, add the new ones next to them.";
+
+if (!tracker.TrySteer(conversationId, input))
+    await coding.RunAsync(input, settingsId, conversationId);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Scenarios/LongRunning.cs#L21-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-steering' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+To stop a run instead, cancel its token; it is stored up to where it stopped.
+
+## Sub-agents
+
+A long run keeps its context small by handing searches and side quests to [sub-agents](./multi-agent.md#sub-agents),
+which answer in a paragraph; in the background, they work while the run goes on.
+
 ## Approval without interruptions
 
-A long run stops whenever it needs approval. Two ways keep it going: the host approves a tool for the rest of the
-conversation, or a rule approves the calls it trusts; see
-[tool approval](./tool-approval.md#approving-for-the-conversation).
+A long run stops whenever it needs approval. Three ways keep it going: the host approves a tool for the rest of the
+conversation, a rule decides the calls it is sure about
+([tool approval](./tool-approval.md#approving-for-the-conversation)), or the run is in
+[auto mode](./modes.md#auto-mode), where the rules only guard. [Plan mode](./modes.md#plan-mode) lets the host approve
+the whole plan once instead of each step.
 
 ## Watching
 

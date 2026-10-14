@@ -11,7 +11,7 @@ Microsoft.Extensions.AI's approval contents, `ToolApprovalRequestContent` and `T
 AddTool(CloseTicketAsync)
     .RequiresApproval();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Tickets/TicketToolset.cs#L22-L25' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-tool' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Tickets/TicketToolset.cs#L24-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-tool' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## A run that asks
@@ -70,29 +70,41 @@ await support.RunAsync(always, conversationId: conversationId);
 
 ## Approval rules
 
-A rule approves calls the host trusts without asking. Register it with `WithApprovalRule<T>()`; it is resolved from
-the run's services, and any rule that approves suffices:
+A rule decides calls before the host is asked: it approves what the host trusts, rejects what it never allows, and
+abstains on the rest. Register it with `WithApprovalRule<T>()`; it is resolved from the run's services. A rejection
+wins over every approval, and the model receives its reason:
 
 <!-- snippet: approval-rule -->
 <a id='snippet-approval-rule'></a>
 ```cs
-internal sealed class SafeCommands : IToolApprovalRule
+internal sealed class ShellGuard : IToolApprovalRule
 {
-    private static readonly string[] Allowed = ["dotnet build", "dotnet test", "git status", "git diff"];
+    private static readonly string[] Safe = ["dotnet build", "dotnet test", "git status", "git diff"];
 
-    public ValueTask<bool> ApprovesAsync(FunctionCallContent call, AgentRun run, CancellationToken ct) =>
-        ValueTask.FromResult(
-            call is { Name: "run_command", Arguments: { } arguments }
+    private static readonly string[] Never = ["sudo", "rm -rf", "curl", "ssh"];
+
+    public ValueTask<ToolDecision> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct) =>
+        ValueTask.FromResult(call is { Name: "run_command", Arguments: { } arguments }
             && arguments["command"] is string command
-            && command.IndexOfAny([';', '&', '|', '`', '$', '>', '<', '\n']) < 0
-            && Allowed.Any(command.StartsWith));
+                ? Decide(command)
+                : ToolDecision.Abstain);
+
+    private static ToolDecision Decide(string command) =>
+        command switch
+        {
+            _ when Never.Any(command.Contains) => ToolDecision.Reject("This command is never allowed here."),
+            _ when command.IndexOfAny([';', '&', '|', '`', '$', '>', '<', '\n']) >= 0 => ToolDecision.Abstain,
+            _ when Safe.Any(command.StartsWith) => ToolDecision.Approve,
+            _ => ToolDecision.Abstain
+        };
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Hosting/SafeCommands.cs#L5-L17' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Hosting/ShellGuard.cs#L5-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-A rule sees the arguments the model sent, so it decides on exactly the call that runs. Refuse what you cannot read:
-the rule above rejects every command that chains, pipes or substitutes.
+A rule sees the arguments the model sent, so it decides on exactly the call that runs. Abstain on what you cannot
+read: the rule above leaves every command that chains, pipes or redirects to the host. What an abstention means
+depends on the [mode](./modes.md): the host is asked in the default mode, the call runs in auto mode.
 
 ## MCP servers
 

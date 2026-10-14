@@ -45,7 +45,7 @@ internal static class Registration
             .WithFileSystemRoot<CustomerWorkspace>()
             .WithWebSearch<SearchApi>()
             .WithWebFetch<HttpWebFetch>()
-            .WithApprovalRule<SafeCommands>();
+            .WithApprovalRule<ShellGuard>();
         // end-snippet
 
         // begin-snippet: open-telemetry

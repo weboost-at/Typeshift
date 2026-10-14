@@ -59,6 +59,12 @@ public sealed class ToolBuilder
     public ToolBuilder RequiresApproval() => this;
 
     /// <summary>
+    /// Marks the tool as reading only, without side effects, so plan mode offers it.
+    /// </summary>
+    /// <returns>The same chain.</returns>
+    public ToolBuilder ReadOnly() => this;
+
+    /// <summary>
     /// Gives the tool a settings record whose members stay in code unless <c>Configurable</c> names them. The method
     /// receives the resolved settings through a parameter of their type, which the model never sees.
     /// </summary>

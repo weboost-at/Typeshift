@@ -78,7 +78,8 @@ var report = await support.RunAsync<RefundStatus>("Summarize the refund.", setti
 - After a handoff, the agent handed to answers the conversation's later runs (D34).
 - Runs take `settingsId` and `conversationId`, independent of each other (D42).
 - Long-horizon work is in v1: run options with in-loop compaction (D32), checkpoints and `ResumeAsync` (D50),
-  standing approvals and approval rules (D24). See `guide/long-running-agents.md`.
+  standing approvals and approval rules (D24), steering (D51), sub-agents in the background (D33), plan and auto
+  modes (D52). See `guide/long-running-agents.md` and `guide/modes.md`.
 
 ## Open for the sign-off
 

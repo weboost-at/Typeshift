@@ -17,12 +17,14 @@ internal partial class TicketToolset : Toolset
         WithDisplayName("Tickets");
 
         AddTool(SearchTickets)
+            .ReadOnly()
             .WithSettings<SearchTicketsSettings>()
             .Configurable(s => s.IncludeClosed)
             .Configurable(s => s.Limit);
 
         AddTool(GetTicketAsync)
-            .WithDescription("Reads one ticket by its number.");
+            .WithDescription("Reads one ticket by its number.")
+            .ReadOnly();
 
         AddTool(CloseTicketAsync)
             .RequiresApproval();
@@ -51,7 +53,7 @@ internal partial class TicketToolset : Toolset
         services.GetRequiredService<ITicketClient>().CloseAsync(number, reason, ct);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Tickets/TicketToolset.cs#L5-L52' title='Snippet source file'>snippet source</a> | <a href='#snippet-toolset' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Tickets/TicketToolset.cs#L5-L54' title='Snippet source file'>snippet source</a> | <a href='#snippet-toolset' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - **The method** is a public static method group. Lambdas, instance methods and local functions are
@@ -63,6 +65,7 @@ internal partial class TicketToolset : Toolset
   [TSH009](./diagnostics.md#tsh009).
 - **`RequiresApproval()`** pauses a run that calls the tool until the host decides; see
   [tool approval](./tool-approval.md).
+- **`ReadOnly()`** marks a tool that only reads, so [plan mode](./modes.md#plan-mode) offers it.
 - **`WithSettings<T>()`** or **`WithConfigurableSettings<T>()`** come last; see [tool settings](./tool-settings.md).
 - **`WithDisplayName`** names the toolset for people, in a tool picker say.
 

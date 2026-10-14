@@ -17,10 +17,14 @@ internal partial class CodingAgent : Agent
         UseToolset<ShellToolset>();
         UseToolset<WebToolset>().Include(t => t.WebFetch);
 
+        UseAgent<ExploreAgent>().InBackground();
+
         WithRunOptions()
+            .WithMode(AgentMode.Plan)
             .WithMaxToolIterations(500)
             .WithMaxInputTokens(150_000)
             .WithSummaryModel("fast-model")
+            .Configurable(r => r.Mode)
             .Configurable(r => r.MaxToolIterations);
 
         ConfigureRunCommand()
@@ -35,7 +39,7 @@ internal partial class CodingAgent : Agent
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Agents/CodingAgent.cs#L5-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Agents/CodingAgent.cs#L5-L42' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 | Toolset | Tools | Needs |
@@ -56,7 +60,7 @@ services.AddTypeshift()
     .WithFileSystemRoot<CustomerWorkspace>()
     .WithWebSearch<SearchApi>()
     .WithWebFetch<HttpWebFetch>()
-    .WithApprovalRule<SafeCommands>();
+    .WithApprovalRule<ShellGuard>();
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Scenarios/Registration.cs#L41-L49' title='Snippet source file'>snippet source</a> | <a href='#snippet-built-in-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
@@ -82,13 +86,15 @@ internal sealed class CustomerWorkspace(ICurrentCustomer customer) : IFileSystem
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Hosting/CustomerWorkspace.cs#L5-L10' title='Snippet source file'>snippet source</a> | <a href='#snippet-file-system-root' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Paths are relative to the root; absolute paths, `..` and links that lead outside are refused. `delete_file` needs
-approval. For read-only access, include only `read_file`, `list_files` and `search_files`. `FileSystemSettings`
+Paths are relative to the root; absolute paths, `..` and links that lead outside are refused. The three reading tools
+are `ReadOnly()`, so plan mode offers them; `delete_file` needs approval. For read-only access, include only `read_file`, `list_files` and `search_files`. `FileSystemSettings`
 limits how many lines a read or a search returns.
 
 ## Shell
 
-`run_command` runs a command in the root and needs approval for every call. `ShellSettings` set the shell, the
+`run_command` runs a command in the root and needs approval for every call; an
+[approval rule](./tool-approval.md#approval-rules) approves the commands you trust and rejects those you never
+allow. `ShellSettings` set the shell, the
 timeout and how much output the model receives (its start and its end). The root is the working folder, not a
 sandbox: run the host in a container when commands must not reach further.
 

@@ -61,13 +61,12 @@ public abstract class Agent
     protected ToolsetUse<TToolset> UseToolset<TToolset>() where TToolset : Toolset, new() => new();
 
     /// <summary>
-    /// Offers another agent as a tool, named and described like the agent. A call runs it with the same settings id and
-    /// no conversation, and returns its answer's text.
+    /// Offers another agent as a sub-agent: a tool named and described like the agent. A call runs it in a fresh
+    /// context, with the same settings id, mode, standing approvals and rules, and returns its answer's text.
     /// </summary>
     /// <typeparam name="TAgent">The agent to call.</typeparam>
-    protected void UseAgent<TAgent>() where TAgent : Agent
-    {
-    }
+    /// <returns>The use, to run the sub-agent in the background.</returns>
+    protected AgentUse UseAgent<TAgent>() where TAgent : Agent => new();
 
     /// <summary>
     /// Lets the model hand the conversation to another agent through a tool <c>handoff_to_{name}</c>. The other agent
@@ -222,6 +221,27 @@ public sealed class McpServerUse
     /// Pauses a run that calls any of the server's tools until the host approves or rejects the call.
     /// </summary>
     public McpServerUse RequiresApproval() => this;
+
+    /// <summary>
+    /// Marks every tool of the server as reading only, so plan mode offers them.
+    /// </summary>
+    public McpServerUse ReadOnly() => this;
+}
+
+/// <summary>
+/// An agent's use of a sub-agent.
+/// </summary>
+public sealed class AgentUse
+{
+    internal AgentUse()
+    {
+    }
+
+    /// <summary>
+    /// Starts the sub-agent and returns at once; its answer reaches the calling run as a message before a later model
+    /// call. The calling run does not end while its sub-agents work.
+    /// </summary>
+    public AgentUse InBackground() => this;
 }
 
 /// <summary>
@@ -232,6 +252,11 @@ public sealed class RunOptionsBuilder
     internal RunOptionsBuilder()
     {
     }
+
+    /// <summary>
+    /// The mode runs start in; <see cref="AgentMode.Default"/> unless set.
+    /// </summary>
+    public RunOptionsBuilder WithMode(AgentMode mode) => this;
 
     /// <summary>
     /// The most model calls one run's tool loop makes; 40 unless set.
@@ -279,6 +304,8 @@ public sealed class RunOptionsBuilder
 /// </summary>
 public sealed record RunOptions
 {
+    public AgentMode Mode { get; init; }
+
     public int MaxToolIterations { get; init; } = 40;
 
     public int MaxConsecutiveToolErrors { get; init; } = 3;
@@ -290,4 +317,26 @@ public sealed record RunOptions
     public int? TargetInputTokens { get; init; }
 
     public string? SummaryModel { get; init; }
+}
+
+/// <summary>
+/// How a run treats the tools it may not run unasked.
+/// </summary>
+public enum AgentMode
+{
+    /// <summary>
+    /// Tools that require approval ask the host, unless a standing approval or a rule decides.
+    /// </summary>
+    Default,
+
+    /// <summary>
+    /// Only tools marked read-only are offered. The model researches, then presents a plan with
+    /// <c>exit_plan_mode</c>, which asks the host; approving it continues in the mode the host chooses.
+    /// </summary>
+    Plan,
+
+    /// <summary>
+    /// Tools that require approval run without asking, unless a rule rejects the call.
+    /// </summary>
+    Auto
 }

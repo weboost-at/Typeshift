@@ -10,9 +10,11 @@ public sealed partial class WebToolset : Toolset
     {
         WithDisplayName("Web");
 
-        AddTool(WebSearchAsync);
+        AddTool(WebSearchAsync)
+            .ReadOnly();
 
-        AddTool(WebFetchAsync);
+        AddTool(WebFetchAsync)
+            .ReadOnly();
     }
 
     /// <summary>
