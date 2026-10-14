@@ -1,3 +1,8 @@
+---
+title: Architecture
+description: How the generator reads toolsets and agents, what it writes, and how the runtime runs, stores and traces an agent.
+---
+
 # Architecture
 
 Typeshift is one package with two assemblies: the runtime library `Typeshift` and `Typeshift.Generators`, which holds
@@ -5,6 +10,17 @@ the source generator, the analyzer and a diagnostic suppressor and ships as an a
 toolsets and agents as ordinary classes; the generator reads them at compile time and writes everything that would
 otherwise need reflection. The decisions behind each part are in [decisions](./decisions.md),
 cited here as D-numbers.
+
+::: tip The short version
+
+- The generator parses toolsets, agents and `AddTypeshift()` calls into equatable models and writes code from them.
+  The analyzer reports the diagnostics, with the same parsers.
+- At runtime the declaration chains only record values. The generated code is the one truth about tools, agents
+  and settings.
+- A run is a pipeline of chat clients around Microsoft.Extensions.AI's `FunctionInvokingChatClient`.
+- Storage goes through one `ITypeshiftStore<TId>`; the library itself never sees the id type.
+
+:::
 
 ```text
 developer code         compile time                                         runtime
@@ -155,3 +171,9 @@ last (D33, D34).
 them after the agent's own, marked for plan mode or wrapped for approval (D35). The built-in toolsets in `Toolsets/`
 are compiled by the library's own generator, which writes no id-type aliases for it; consumers register the library's
 module like any reference's (D37).
+
+## Related
+
+- [Decisions](./decisions.md): why each part is shaped the way it is, by D-number.
+- [How a run works](../guide/how-a-run-works.md): the run's steps as a user sees them.
+- [Generated members](../guide/generated-members.md): what the emitters write, member by member.

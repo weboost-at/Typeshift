@@ -1,3 +1,8 @@
+---
+title: Decisions
+description: "Why the code is shaped the way it is: each non-obvious choice, the alternatives that lost, and where it lives."
+---
+
 # Decisions
 
 Why the code is shaped the way it is. Each entry gives the context, the decision, the alternatives that lost and where
@@ -557,3 +562,9 @@ commit, or add a new one and withdraw the old.
 
 | ID | Was | Replaced by |
 |---|---|---|
+
+## Related
+
+- [Architecture](./architecture.md): the parts these decisions shape.
+- [Status](./status.md): what is built and what is open.
+- [Why code-defined](../guide/why-code-defined.md): the main decisions from a user's point of view.

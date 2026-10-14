@@ -1,3 +1,8 @@
+---
+title: Releasing
+description: How a version tag becomes a NuGet package and a GitHub release, and what to set up before the first one.
+---
+
 # Releasing
 
 A release is a version tag. The `release` workflow builds and tests the tagged commit, packs it, runs the package
@@ -50,3 +55,8 @@ A tag with a hyphen (`v0.2.0-alpha.1`) creates a prerelease on GitHub; nuget.org
 
 Run the `release` workflow by hand (*Actions > release > Run workflow*). It builds, tests and packs the branch and
 uploads the packages as an artifact, without publishing anything.
+
+## Related
+
+- [Contributing](./index.md): building and testing before you tag.
+- [Changelog](https://github.com/weboost-at/Typeshift/blob/main/CHANGELOG.md): what each release changed.
