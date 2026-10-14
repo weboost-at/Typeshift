@@ -87,6 +87,17 @@ internal static class SymbolExtensions
 
     extension(INamedTypeSymbol type)
     {
+        // TSH016: the generated code outside the class names it, and the module creates it; null when it can
+        public string? GetUnreachableReason() =>
+            !type.IsVisibleInAssembly() ? "it is nested as private or protected"
+            : !type.InstanceConstructors.Any(constructor => constructor is
+            {
+                Parameters.IsEmpty: true,
+                DeclaredAccessibility:
+                    Accessibility.Public or Accessibility.Internal or Accessibility.ProtectedOrInternal
+            }) ? "it has no public or internal parameterless constructor"
+            : null;
+
         public bool DerivesFrom(string metadataName)
         {
             for (var current = type.BaseType; current is not null; current = current.BaseType)

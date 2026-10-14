@@ -8,6 +8,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Typeshift.Generators.Tests/Typeshift.Generators.Tests.csproj" />
+    <Project Path="tests/Typeshift.Tests.Toolsets/Typeshift.Tests.Toolsets.csproj" />
     <Project Path="tests/Typeshift.Tests/Typeshift.Tests.csproj" />
   </Folder>
 </Solution>

@@ -1,0 +1,24 @@
+using Typeshift.Samples.Tickets;
+
+namespace Typeshift.Samples.Agents;
+
+internal partial class TriageAgent : Agent
+{
+    public TriageAgent()
+    {
+        WithChatOptions().WithModel("fast-model");
+
+        // begin-snippet: exclude-tools
+        UseToolset<TicketToolset>().Exclude(t => t.CloseTicket);
+        // end-snippet
+
+        // begin-snippet: run-options
+        WithRunOptions()
+            .WithMaxToolIterations(10)
+            .WithConcurrentToolCalls(true)
+            .Configurable(r => r.MaxToolIterations);
+        // end-snippet
+    }
+
+    protected override string GetInstructions() => "Find out what the customer needs.";
+}

@@ -26,7 +26,7 @@ internal static class TypeEmitter
 
         foreach (var attribute in attributes)
         {
-            writer.Line($"[{attribute}]");
+            writer.Lines($"[{attribute}]");
         }
 
         using (writer.Block($"partial class {type.Name}"))

@@ -40,13 +40,26 @@ internal static class ConstructorChains
         }
     }
 
+    // Like GetChainedCalls, but through the calls that pick from a tool list: in the generator they do not bind, the
+    // list's properties being its own output, so they are invalid operations there
+    public static IEnumerable<IOperation> GetChain(IOperation start)
+    {
+        var current = start;
+
+        while (current.Parent is { } outer && IsCalledOn(outer, current))
+        {
+            yield return outer;
+            current = outer;
+        }
+    }
+
     // A chain the generator reads ends in a statement of its own; one stored or passed on can go on elsewhere
     public static bool EndsInStatement(IInvocationOperation invocation) =>
-        (GetChainedCalls(invocation).LastOrDefault() ?? invocation).Parent is IExpressionStatementOperation;
+        (GetChain(invocation).LastOrDefault() ?? invocation).Parent is IExpressionStatementOperation;
 
     // D4: a declaration under an if or in a loop would run only sometimes, the generated code always
     public static bool IsTopLevelStatement(IInvocationOperation invocation) =>
-        (GetChainedCalls(invocation).LastOrDefault() ?? invocation).Parent is IExpressionStatementOperation
+        (GetChain(invocation).LastOrDefault() ?? invocation).Parent is IExpressionStatementOperation
         {
             Parent: IBlockOperation { Parent: null or IConstructorBodyOperation or IMethodBodyBaseOperation }
         };
@@ -96,4 +109,16 @@ internal static class ConstructorChains
             }
         }
     }
+
+    private static bool IsCalledOn(IOperation outer, IOperation receiver) =>
+        outer switch
+        {
+            IInvocationOperation invocation => invocation.Instance == receiver,
+            IInvalidOperation => outer.Syntax is InvocationExpressionSyntax
+            {
+                Expression: MemberAccessExpressionSyntax access
+            }
+            && access.Expression == receiver.Syntax,
+            _ => false
+        };
 }

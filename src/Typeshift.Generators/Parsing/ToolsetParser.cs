@@ -37,16 +37,11 @@ internal static class ToolsetParser
         if (notPartial is not null)
             reporter.Report(Descriptors.NotPartial, notPartial.Locations.FirstOrDefault(), notPartial.Name);
 
-        var isReachable = toolset.IsVisibleInAssembly();
+        var unreachable = toolset.GetUnreachableReason();
+        var isReachable = unreachable is null;
 
-        if (!isReachable)
-        {
-            reporter.Report(
-                Descriptors.Unreachable,
-                toolset.Locations.FirstOrDefault(),
-                toolset.Name,
-                "it is nested as private or protected");
-        }
+        if (unreachable is not null)
+            reporter.Report(Descriptors.Unreachable, toolset.Locations.FirstOrDefault(), toolset.Name, unreachable);
 
         var tools = new List<ToolModel>();
 

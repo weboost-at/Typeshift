@@ -71,7 +71,12 @@ commit, or add a new one and withdraw the old.
   extension block; per agent the nested `Settings` record, a private `Configure{Tool}()` per offered tool with
   settings and an `{Agent}HostExtensions` extension block; per assembly a module; per project the id aliases. Nested
   classes join their containers' names with `_`; keywords get `@`. A clash with a user member is TSH018.
-- **Where:** `Emitting/Names.cs`.
+- **Agents:** besides those, the hidden `Declaration` override, one private nested class `TypeshiftGenerated` (the
+  declaration, the builders and the per-agent store of `Configure{Tool}()` values) and one private field
+  `_typeshift`, so an agent gains as few names as possible. A tool's member in `Settings` named like an option or a
+  record member gets a `Tool` suffix. A public agent's `Settings` cannot name the overrides of an internal toolset:
+  TSH006, and the generator leaves the member out.
+- **Where:** `Emitting/Names.cs`, `Emitting/AgentEmitter.cs`.
 
 ### D7. Stamps carry the generated names and a version
 
@@ -170,7 +175,7 @@ commit, or add a new one and withdraw the old.
 - **Status:** carried (v0 D30), decided in the brief.
 - **Decision:** a generated private method per offered tool with settings, returning a builder with a `With...` per
   settable member. No better shape fits the one-chain rule: a picker (`Configure(t => t.X)`) still needs a generated
-  builder per tool, one step longer.
+  builder per tool, one step longer. A `Configure{Tool}()` the agent declares itself replaces the generated one.
 
 ### D21. Instructions come from a virtual method
 
@@ -237,7 +242,9 @@ commit, or add a new one and withdraw the old.
 
 - **Status:** decided by the owner in this session; changes v0 D34.
 - **Decision:** `Configurable(o => o.ModelId)` puts `Model` into the agent's `Settings`, overriding `WithModel`;
-  without it the model stays in code. The allow list holds for the model too.
+  without it the model stays in code. The allow list holds for the model too. The options that may be configurable
+  are the model, the instructions, the sampling options, the stop sequences, multiple tool calls and reasoning; the
+  rest belong to the run or have no stored form (TSH012).
 - **Alternatives:** `Model` in every `Settings` (v0, the brief's first sketch), which lets a settings form a
   customer edits pick any model the provider knows.
 

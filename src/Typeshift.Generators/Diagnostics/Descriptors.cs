@@ -36,8 +36,8 @@ internal static class Descriptors
 
     public static readonly DiagnosticDescriptor SettingsLessAccessible = Error(
         "TSH006",
-        "Settings type is less accessible than its toolset",
-        "The settings type '{0}' must be as accessible as the toolset '{1}'");
+        "Settings are less accessible than what exposes them",
+        "'{0}' must be as accessible as '{1}', which exposes its settings");
 
     public static readonly DiagnosticDescriptor DuplicateToolName = Error(
         "TSH007",
@@ -64,6 +64,11 @@ internal static class Descriptors
         "Tool relies on XML docs that are not generated",
         "The tool '{0}' takes its descriptions from XML docs, which the compiler reads only with "
         + "GenerateDocumentationFile");
+
+    public static readonly DiagnosticDescriptor NotStorable = Error(
+        "TSH012",
+        "Configurable member has a type settings cannot store",
+        "'{0}' cannot be configurable: settings cannot store it");
 
     public static readonly DiagnosticDescriptor NotSettable = Error(
         "TSH013",
@@ -94,6 +99,22 @@ internal static class Descriptors
         "TSH018",
         "Member clashes with a generated member",
         "The member '{0}' clashes with a member the generator writes for '{1}'");
+
+    public static readonly DiagnosticDescriptor NotGenerated = Error(
+        "TSH019",
+        "Toolset was not compiled with the generator",
+        "'{0}' was not compiled with the Typeshift generator: reference the Typeshift package in its project");
+
+    public static readonly DiagnosticDescriptor UnstampedReference = Warning(
+        "TSH020",
+        "Referenced assembly was not compiled with the generator",
+        "'{0}' declares toolsets or agents but carries no module of this Typeshift version, so AddTypeshift() "
+        + "cannot register them: reference the Typeshift package in its project, at this version");
+
+    public static readonly DiagnosticDescriptor OfferedTwice = Error(
+        "TSH025",
+        "Tool is offered twice",
+        "{0} is offered twice: use each toolset once and pick each tool once");
 
     private static DiagnosticDescriptor Error(string id, string title, string message) =>
         Create(id, title, message, DiagnosticSeverity.Error);

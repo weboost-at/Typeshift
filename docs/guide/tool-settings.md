@@ -84,3 +84,13 @@ public static IReadOnlyList<Ticket> SearchTickets(
 For a tool with configurable members, the generator writes a `{Tool}Overrides` record into the toolset,
 `TicketToolset.SearchTicketsOverrides`, with each configurable member nullable. Every layer above the code speaks
 through it, and null keeps the layer below.
+
+## The layers
+
+A tool runs with its settings resolved in layers, each over the one below:
+
+1. The record's code defaults, its parameterless constructor.
+2. The agent's code: [`Configure{Tool}()`](./agents.md#tool-settings), which may set any settable member.
+3. The run: the overrides in the [run's settings](./running-agents.md#run-settings), configurable members only.
+
+A layer that leaves a member null keeps the value below it.

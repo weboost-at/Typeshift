@@ -23,7 +23,7 @@ internal static class ToolsetEmitter
     public static string Emit(ToolsetModel toolset) =>
         TypeEmitter.EmitPartial(
             toolset.Type,
-            [],
+            toolset.Tools.Select(tool => Stamp(toolset, tool)),
             writer =>
             {
                 foreach (var tool in toolset.Tools)
@@ -47,6 +47,24 @@ internal static class ToolsetEmitter
             });
 
     private static bool HasOverrides(ToolModel tool) => tool.Settings?.HasConfigurable is true;
+
+    // D7: what an agent in another assembly reads instead of the tool's declaration
+    private static string Stamp(ToolsetModel toolset, ToolModel tool)
+    {
+        var arguments = new List<string>
+        {
+            Names.Literal(tool.Name),
+            Names.Literal(Names.ToolProperty(tool.Name)),
+            Names.Literal(Names.FactoryName(tool.Name))
+        };
+
+        if (tool.Settings is { } settings) arguments.Add($"Settings = typeof({settings.Type})");
+
+        if (HasOverrides(tool))
+            arguments.Add($"Overrides = typeof({toolset.Type.FullName}.{Names.OverridesName(tool.Name)})");
+
+        return $"global::Typeshift.Generated.GeneratedTool(\n    {string.Join(",\n    ", arguments)})";
+    }
 
     // The tool's configurable members, nullable: what a settings form edits, a store keeps and a run passes
     private static void WriteOverrides(SourceWriter writer, ToolModel tool, SettingsModel settings)

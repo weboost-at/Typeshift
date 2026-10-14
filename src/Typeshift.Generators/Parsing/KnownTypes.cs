@@ -11,6 +11,33 @@ internal static class KnownTypes
 
     public const string ConfigurableSettingsBuilder = "Typeshift.ConfigurableSettingsBuilder`1";
 
+    public const string Agent = "Typeshift.Agent";
+
+    public const string ToolsetUse = "Typeshift.ToolsetUse`1";
+
+    public const string ToolInclusion = "Typeshift.ToolInclusion`1";
+
+    public const string ToolExclusion = "Typeshift.ToolExclusion`1";
+
+    public const string ChatOptionsBuilder = "Typeshift.ChatOptionsBuilder";
+
+    public const string RunOptionsBuilder = "Typeshift.RunOptionsBuilder";
+
+    public const string LibraryAssembly = "Typeshift";
+
+    public const string ServiceCollectionExtensions =
+        "Microsoft.Extensions.DependencyInjection.TypeshiftServiceCollectionExtensions";
+
+    public const string RegistrationMethod = "AddTypeshift";
+
+    public const string GeneratedModuleAttribute = "Typeshift.Generated.GeneratedModuleAttribute";
+
+    public const string ModuleToolsetAttribute = "Typeshift.Generated.ModuleToolsetAttribute";
+
+    public const string GeneratedToolAttribute = "Typeshift.Generated.GeneratedToolAttribute";
+
+    public const string JsonSerializerContext = "System.Text.Json.Serialization.JsonSerializerContext";
+
     public const string ServiceProvider = "System.IServiceProvider";
 
     public const string CancellationToken = "System.Threading.CancellationToken";

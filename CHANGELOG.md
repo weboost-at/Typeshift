@@ -15,5 +15,11 @@ The library was rebuilt from the API its owner approved; nothing of the unreleas
 - Tool settings: a settings record passed to the tool as a parameter the model never sees, with configurable members
   as an allow list (`WithSettings<T>().Configurable(s => s.Limit)`) or a deny list
   (`WithConfigurableSettings<T>().NotConfigurable(s => s.Timeout)`), and a generated `{Tool}Overrides` record.
-- An analyzer reports every Typeshift diagnostic (TSH001 to TSH018 so far) at real source locations, so `#pragma`
-  and `.editorconfig` reach them; a suppressor drops CS1573 for tool parameters the model never sees.
+- Agents: chat options, instructions, toolset uses with `Include` and `Exclude`, run options and
+  `Configure{Tool}()`, read at compile time into a generated `Settings` record of what may change at runtime.
+- `AddTypeshift()`: one intercepted call registers the toolsets and agents of the project and its references, an
+  `AgentHost<T>` per agent and the assemblies' JSON contexts. Runs (`RunAsync`, `RunAsync<T>`, `RunStreamingAsync`,
+  the raw `ResolveOptionsAsync` and `CreateChatClientAsync`) use the services of the host's scope and return
+  Microsoft.Extensions.AI's types.
+- An analyzer reports every Typeshift diagnostic at real source locations, so `#pragma` and `.editorconfig` reach
+  them; a suppressor drops CS1573 for tool parameters the model never sees.

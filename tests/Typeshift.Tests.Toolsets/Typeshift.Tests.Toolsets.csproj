@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Toolsets in an assembly of their own: the tests reference it to cover modules, stamps and JSON contexts across
+       assemblies. -->
+  <Import Project="../../build/UseGenerator.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>

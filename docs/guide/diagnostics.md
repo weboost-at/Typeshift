@@ -11,18 +11,22 @@ handle has a diagnostic: generated code never fails with a compiler error of its
 | [TSH003](#tsh003) | Error | Tool is not a static method group |
 | [TSH004](#tsh004) | Error | Tool parameter cannot be bound |
 | [TSH005](#tsh005) | Error | Settings type is not a record with a parameterless constructor |
-| [TSH006](#tsh006) | Error | Settings type is less accessible than its toolset |
+| [TSH006](#tsh006) | Error | Settings are less accessible than what exposes them |
 | [TSH007](#tsh007) | Error | Tool name is not unique |
 | [TSH008](#tsh008) | Error | Tool name is not lower_snake_case |
 | [TSH009](#tsh009) | Warning | Tool has no description |
 | [TSH010](#tsh010) | Warning | Tool does not take its settings |
 | [TSH011](#tsh011) | Warning | Tool relies on XML docs that are not generated |
+| [TSH012](#tsh012) | Error | Configurable member has a type settings cannot store |
 | [TSH013](#tsh013) | Error | Configurable member cannot be set |
 | [TSH014](#tsh014) | Error | Declaration outside the constructor |
 | [TSH015](#tsh015) | Error | Chain the generator cannot read |
 | [TSH016](#tsh016) | Error | Toolset or agent is out of the generated code's reach |
 | [TSH017](#tsh017) | Error | Toolset or agent is generic or derives from another |
 | [TSH018](#tsh018) | Error | Member clashes with a generated member |
+| [TSH019](#tsh019) | Error | Toolset was not compiled with the generator |
+| [TSH020](#tsh020) | Warning | Referenced assembly was not compiled with the generator |
+| [TSH025](#tsh025) | Error | Tool is offered twice |
 
 ## TSH001
 
@@ -49,8 +53,9 @@ defaults.
 
 ## TSH006
 
-**Settings type is less accessible than its toolset.** The generated tool list and `Configure{Tool}()` name it
-wherever the toolset can be named.
+**Settings are less accessible than what exposes them**: a settings record less accessible than its toolset, whose
+generated members name it wherever the toolset can be named, or a toolset with configurable settings less accessible
+than a public agent that offers it, whose `Settings` record names the toolset's overrides.
 
 ## TSH007
 
@@ -74,6 +79,12 @@ reach nothing.
 
 **Tool relies on XML docs that are not generated.** Set `GenerateDocumentationFile`, or describe the tool with
 `WithDescription`.
+
+## TSH012
+
+**Configurable member has a type settings cannot store**, or belongs to the run rather than to settings. Chat options
+that may be configurable are the model, the instructions, the sampling options, the stop sequences, multiple tool calls
+and reasoning; `Tools`, `ConversationId`, `ResponseFormat`, `ToolMode` and the additional properties are not.
 
 ## TSH013
 
@@ -103,3 +114,19 @@ through static methods.
 
 **Member clashes with a generated member**, a toolset member named `Tools` or an agent member named `Settings` or
 `ConfigureSearchTickets`, say.
+
+## TSH019
+
+**Toolset was not compiled with the generator.** Reported on `UseToolset<T>()`: reference the package in the
+toolset's project.
+
+## TSH020
+
+**Referenced assembly was not compiled with the generator.** It declares toolsets or agents but carries no module of
+this Typeshift version, so `AddTypeshift()` cannot register them. Reference the package in its project, at the version
+the rest of the build uses.
+
+## TSH025
+
+**Tool is offered twice** by one agent: one toolset used twice, or one tool picked twice. Offer each toolset's tools in
+one use.

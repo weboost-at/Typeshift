@@ -1,5 +1,6 @@
 using System.Reflection;
 using Typeshift.Generators.Tests.Diagnostics.Support;
+using FluentAssertions;
 using Microsoft.CodeAnalysis;
 
 namespace Typeshift.Generators.Tests.Diagnostics;
@@ -71,6 +72,16 @@ public class DiagnosticTests : GeneratorTestBase
 
         // Assert
         run.Assert.Reports("TSH006", DiagnosticSeverity.Error, "WithSettings<EchoSettings>");
+    }
+
+    [Fact]
+    public void Given_A_Public_Agent_Offering_Internal_Overrides_TSH006_Is_Reported_On_The_Use()
+    {
+        // Act
+        var run = Run(DiagnosticSources.PublicAgentOfInternalSettings);
+
+        // Assert
+        run.Assert.Reports("TSH006", DiagnosticSeverity.Error, "UseToolset<EchoToolset>");
     }
 
     [Fact]
@@ -241,6 +252,155 @@ public class DiagnosticTests : GeneratorTestBase
 
         // Assert
         run.Assert.Reports("TSH018", DiagnosticSeverity.Error, "CreateEcho");
+    }
+
+    [Fact]
+    public void Given_An_Agent_That_Is_Not_Partial_TSH001_Is_Reported_On_Its_Name()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentNotPartial);
+
+        // Assert
+        run.Assert.Reports("TSH001", DiagnosticSeverity.Error, "EchoAgent");
+    }
+
+    [Fact]
+    public void Given_A_Computed_Agent_Name_TSH002_Is_Reported_On_The_Argument()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ComputedAgentName);
+
+        // Assert
+        run.Assert.Reports("TSH002", DiagnosticSeverity.Error, "Prefix + \"_agent\"");
+    }
+
+    [Fact]
+    public void Given_A_Configurable_Chat_Option_Settings_Cannot_Store_TSH012_Is_Reported_On_The_Pick()
+    {
+        // Act
+        var run = Run(DiagnosticSources.UnstorableOption);
+
+        // Assert
+        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, "o => o.Tools");
+    }
+
+    [Fact]
+    public void Given_An_Agent_Declaration_In_A_Helper_Method_TSH014_Is_Reported_On_The_Call()
+    {
+        // Act
+        var run = Run(DiagnosticSources.DeclarationInHelper);
+
+        // Assert
+        run.Assert.Reports("TSH014", DiagnosticSeverity.Error, "UseToolset<EchoToolset>");
+    }
+
+    [Fact]
+    public void Given_An_Agent_Declaration_Under_A_Condition_TSH014_Is_Reported_On_The_Call()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ConditionalDeclaration);
+
+        // Assert
+        run.Assert.Reports("TSH014", DiagnosticSeverity.Error, "UseToolset<EchoToolset>");
+    }
+
+    [Fact]
+    public void Given_A_Toolset_Use_Continued_On_A_Variable_TSH015_Is_Reported_On_The_Continuation()
+    {
+        // Act
+        var run = Run(DiagnosticSources.UseOnVariable);
+
+        // Assert
+        run.Assert.ReportsAmong("TSH015", DiagnosticSeverity.Error, "use.Include(t => t.Echo)");
+    }
+
+    [Fact]
+    public void Given_A_Tool_Pick_That_Computes_TSH015_Is_Reported_On_The_Pick()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ComputedToolPick);
+
+        // Assert
+        run.Assert.Reports("TSH015", DiagnosticSeverity.Error, "t => Pick(t)");
+    }
+
+    [Fact]
+    public void Given_An_Agent_Without_A_Parameterless_Constructor_TSH016_Is_Reported_On_Its_Name()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentWithoutParameterlessConstructor);
+
+        // Assert
+        run.Assert.Reports("TSH016", DiagnosticSeverity.Error, "EchoAgent");
+    }
+
+    [Fact]
+    public void Given_An_Agent_Deriving_From_Another_TSH017_Is_Reported_On_Its_Name()
+    {
+        // Act
+        var run = Run(DiagnosticSources.DerivedAgent);
+
+        // Assert
+        run.Assert.Reports("TSH017", DiagnosticSeverity.Error, "EchoAgent");
+    }
+
+    [Fact]
+    public void Given_An_Agent_Member_Named_Settings_TSH018_Is_Reported_On_It()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentClashingMember);
+
+        // Assert
+        run.Assert.Reports("TSH018", DiagnosticSeverity.Error, "Settings");
+    }
+
+    [Fact]
+    public void Given_A_Toolset_Of_A_Reference_Without_The_Generator_TSH019_Is_Reported_On_Its_Use()
+    {
+        // Arrange
+        var reference = CompileReferenceWithoutGenerator("Plain", ReferenceSources.PlainToolset);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.PlainToolsetAgent));
+
+        // Assert
+        run.Assert.Reports("TSH019", DiagnosticSeverity.Error, "UseToolset<PlainToolset>");
+    }
+
+    [Fact]
+    public void Given_A_Reference_Declaring_Toolsets_Without_The_Generator_TSH020_Is_Reported()
+    {
+        // Arrange
+        var reference = CompileReferenceWithoutGenerator("Plain", ReferenceSources.PlainToolset);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.PlainToolsetAgent));
+
+        // Assert
+        run.Assert.ReportsOnTheCompilation("TSH020", DiagnosticSeverity.Warning).GetMessage().Should().Contain("Plain");
+    }
+
+    [Fact]
+    public void Given_A_Tool_Named_Like_One_Of_A_Reference_TSH007_Is_Reported_On_The_Own()
+    {
+        // Arrange
+        var reference = CompileReference("Companies", ReferenceSources.CompanyToolset);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.SameNamedToolset));
+
+        // Assert
+        run.Assert.Reports("TSH007", DiagnosticSeverity.Error, "AddTool(FindCompanies)");
+    }
+
+    [Fact]
+    public void Given_A_Toolset_Used_Twice_TSH025_Is_Reported_On_The_Second_Use()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToolsetUsedTwice);
+
+        // Assert
+        run.Assert.ReportsAmong("TSH025", DiagnosticSeverity.Error, "UseToolset<EchoToolset>");
     }
 
     [Theory]

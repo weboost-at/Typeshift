@@ -41,6 +41,17 @@ public sealed class GeneratorRunAssertions(GeneratorRun run)
         return reported[0];
     }
 
+    // A diagnostic about the compilation as a whole, at no location
+    public Diagnostic ReportsOnTheCompilation(string id, DiagnosticSeverity severity)
+    {
+        var reported = run.Reported.Where(diagnostic => diagnostic.Id == id).ToList();
+
+        reported.Should().ContainSingle();
+        reported[0].Severity.Should().Be(severity);
+        reported[0].Location.Should().Be(Location.None);
+        return reported[0];
+    }
+
     // A compiler error in the subject, which the generated code makes possible where a diagnostic is not needed
     public Diagnostic DoesNotCompile(string id, string offendingSyntax) =>
         Reports(id, DiagnosticSeverity.Error, offendingSyntax);

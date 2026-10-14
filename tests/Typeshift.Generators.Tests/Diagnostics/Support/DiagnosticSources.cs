@@ -1,6 +1,6 @@
 namespace Typeshift.Generators.Tests.Diagnostics.Support;
 
-// One mistake each, in an otherwise valid toolset
+// One mistake each, in an otherwise valid toolset or agent
 public static class DiagnosticSources
 {
     public const string NotPartial =
@@ -360,6 +360,245 @@ public static class DiagnosticSources
             public static void CreateEcho()
             {
             }
+        }
+        """;
+
+    public const string AgentNotPartial =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal class EchoAgent : Agent
+        {
+            public EchoAgent() => UseToolset<EchoToolset>();
+        }
+        """;
+
+    public const string ComputedAgentName =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            private static readonly string Prefix = "echo";
+
+            public EchoAgent() => WithName(Prefix + "_agent");
+        }
+        """;
+
+    public const string UnstorableOption =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent() => WithChatOptions().Configurable(o => o.Tools);
+        }
+        """;
+
+    public const string DeclarationInHelper =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent() => Declare();
+
+            private void Declare() => UseToolset<EchoToolset>();
+        }
+        """;
+
+    public const string ConditionalDeclaration =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent(bool echo)
+            {
+                if (echo) UseToolset<EchoToolset>();
+            }
+
+            public EchoAgent()
+                : this(true)
+            {
+            }
+        }
+        """;
+
+    public const string UseOnVariable =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent()
+            {
+                var use = UseToolset<EchoToolset>();
+                use.Include(t => t.Echo);
+            }
+        }
+        """;
+
+    public const string ComputedToolPick =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent() => UseToolset<EchoToolset>().Include(t => Pick(t));
+
+            private static ToolName Pick(ToolList<EchoToolset> tools) => tools.Echo;
+        }
+        """;
+
+    public const string AgentWithoutParameterlessConstructor =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent(string model) => WithChatOptions().WithModel(model);
+        }
+        """;
+
+    public const string DerivedAgent =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal abstract class BaseAgent : Agent;
+
+        internal partial class EchoAgent : BaseAgent
+        {
+            public EchoAgent() => UseToolset<EchoToolset>();
+        }
+        """;
+
+    public const string AgentClashingMember =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent() => UseToolset<EchoToolset>();
+
+            public int Settings { get; init; }
+        }
+        """;
+
+    public const string ToolsetUsedTwice =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent()
+            {
+                UseToolset<EchoToolset>();
+
+                UseToolset<EchoToolset>();
+            }
+        }
+        """;
+
+    public const string PublicAgentOfInternalSettings =
+        """
+        #pragma warning disable CS1591
+
+        using Typeshift;
+
+        internal record EchoSettings
+        {
+            public int Repeat { get; init; } = 1;
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Repeat);
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+
+        public partial class EchoAgent : Agent
+        {
+            public EchoAgent() => UseToolset<EchoToolset>();
         }
         """;
 }

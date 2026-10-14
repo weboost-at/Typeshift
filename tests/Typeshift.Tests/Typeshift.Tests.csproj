@@ -19,6 +19,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="../Typeshift.Tests.Toolsets/Typeshift.Tests.Toolsets.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="Bogus" />

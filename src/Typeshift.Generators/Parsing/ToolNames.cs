@@ -10,9 +10,12 @@ internal static class ToolNames
     public static bool IsLowerSnakeCase(string name) => LowerSnakeCase.IsMatch(name);
 
     // D13: SearchTickets is search_tickets, CloseTicketAsync is close_ticket, ParseHTMLPage is parse_html_page
-    public static string FromMethod(string method)
+    public static string FromMethod(string method) =>
+        ToSnakeCase(method.EndsWith("Async") && method.Length > 5 ? method.Substring(0, method.Length - 5) : method);
+
+    // D22: SupportAgent is support_agent
+    public static string ToSnakeCase(string name)
     {
-        var name = method.EndsWith("Async") && method.Length > 5 ? method.Substring(0, method.Length - 5) : method;
         var snake = new StringBuilder();
 
         for (var index = 0; index < name.Length; index++)

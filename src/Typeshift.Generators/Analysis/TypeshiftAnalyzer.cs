@@ -28,12 +28,16 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.MissingDescription,
         Descriptors.UnreadSettings,
         Descriptors.DocumentationOff,
+        Descriptors.NotStorable,
         Descriptors.NotSettable,
         Descriptors.OutsideConstructor,
         Descriptors.UnreadableChain,
         Descriptors.Unreachable,
         Descriptors.NotDirectlyDerived,
-        Descriptors.GeneratedNameClash
+        Descriptors.GeneratedNameClash,
+        Descriptors.NotGenerated,
+        Descriptors.UnstampedReference,
+        Descriptors.OfferedTwice
     ];
 
     public override void Initialize(AnalysisContext context)
@@ -49,17 +53,28 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
         var tools = new ConcurrentBag<(string Name, INamedTypeSymbol Toolset, Location Location)>();
 
-        context.RegisterSymbolStartAction(start => StartToolset(start, tools), SymbolKind.NamedType);
+        context.RegisterSymbolStartAction(start => StartClass(start, tools), SymbolKind.NamedType);
         context.RegisterOperationAction(AnalyzeCall, OperationKind.Invocation);
-        context.RegisterCompilationEndAction(end => ReportClashesAcrossToolsets(end, tools));
+
+        context.RegisterCompilationEndAction(end =>
+        {
+            ReportClashesAcrossToolsets(end, tools);
+            ReportUnstampedReferences(end);
+        });
     }
 
-    private static void StartToolset(
+    private static void StartClass(
         SymbolStartAnalysisContext context,
         ConcurrentBag<(string Name, INamedTypeSymbol Toolset, Location Location)> tools)
     {
         var type = (INamedTypeSymbol)context.Symbol;
-        if (type.IsAbstract || !type.DerivesFrom(KnownTypes.Toolset)) return;
+        if (type.IsAbstract) return;
+
+        var baseType = type.DerivesFrom(KnownTypes.Toolset) ? "Toolset"
+            : type.DerivesFrom(KnownTypes.Agent) ? "Agent"
+            : null;
+
+        if (baseType is null) return;
 
         var constructors = new ConcurrentBag<IOperation>();
 
@@ -77,25 +92,32 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         {
             var reporter = new Reporter(end.ReportDiagnostic);
 
-            if (GetIndirection(type) is { } indirection)
+            if (GetIndirection(type, baseType) is { } indirection)
             {
                 reporter.Report(
                     Descriptors.NotDirectlyDerived,
                     type.Locations.FirstOrDefault(),
                     type.Name,
                     indirection,
-                    "Toolset");
+                    baseType);
+                return;
+            }
+
+            // Constructors come in no particular order; the source order decides which of two clashing
+            // declarations is reported
+            var ordered = constructors
+                .OrderBy(operation => operation.Syntax.SyntaxTree.FilePath)
+                .ThenBy(operation => operation.Syntax.SpanStart)
+                .ToList();
+
+            if (baseType == "Agent")
+            {
+                AgentParser.Parse(type, ordered, reporter, end.CancellationToken);
                 return;
             }
 
             var documented = type.DeclaringSyntaxReferences
                 .Any(reference => reference.SyntaxTree.Options.DocumentationMode != DocumentationMode.None);
-
-            // Constructors come in no particular order; the source order decides which of two clashing tools is
-            // reported
-            var ordered = constructors
-                .OrderBy(operation => operation.Syntax.SyntaxTree.FilePath)
-                .ThenBy(operation => operation.Syntax.SpanStart);
 
             ToolsetParser.Parse(type, ordered, documented, reporter, end.CancellationToken, out var declarations);
 
@@ -106,11 +128,11 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         });
     }
 
-    private static string? GetIndirection(INamedTypeSymbol type) =>
+    private static string? GetIndirection(INamedTypeSymbol type, string baseType) =>
         type switch
         {
             { IsGenericType: true } => "is generic",
-            { BaseType: var baseType } when !baseType.Is(KnownTypes.Toolset) => $"derives from '{baseType!.Name}'",
+            { BaseType: var direct } when !direct.Is($"Typeshift.{baseType}") => $"derives from '{direct!.Name}'",
             _ => null
         };
 
@@ -119,7 +141,9 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         var invocation = (IInvocationOperation)context.Operation;
         var target = invocation.TargetMethod;
 
-        if (ToolsetParser.IsAddTool(invocation) && !IsDirectlyInConstructor(invocation, context.ContainingSymbol))
+        var declares = ToolsetParser.IsAddTool(invocation) || AgentParser.IsDeclaration(invocation);
+
+        if (declares && !IsDirectlyInConstructor(invocation, context.ContainingSymbol))
         {
             context.ReportDiagnostic(Diagnostic.Create(
                 Descriptors.OutsideConstructor,
@@ -135,15 +159,24 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             context.ReportDiagnostic(Diagnostic.Create(
                 Descriptors.UnreadableChain,
                 invocation.Syntax.GetLocation(),
-                "tool chain"));
+                "declaration chain"));
         }
     }
 
+    private static readonly string[] Builders =
+    [
+        KnownTypes.ToolBuilder,
+        KnownTypes.SettingsBuilder,
+        KnownTypes.ConfigurableSettingsBuilder,
+        KnownTypes.ToolsetUse,
+        KnownTypes.ToolInclusion,
+        KnownTypes.ToolExclusion,
+        KnownTypes.ChatOptionsBuilder,
+        KnownTypes.RunOptionsBuilder
+    ];
+
     private static bool IsChainCall(IMethodSymbol target) =>
-        !target.IsStatic
-        && (target.ContainingType.Is(KnownTypes.ToolBuilder)
-            || target.ContainingType.Is(KnownTypes.SettingsBuilder)
-            || target.ContainingType.Is(KnownTypes.ConfigurableSettingsBuilder));
+        !target.IsStatic && Builders.Any(builder => target.ContainingType.Is(builder));
 
     private static bool IsDirectlyInConstructor(IOperation operation, ISymbol containing)
     {
@@ -155,11 +188,17 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         return containing is IMethodSymbol { MethodKind: MethodKind.Constructor };
     }
 
-    // D13: a tool name is unique across everything the host sees; within one toolset the parser reports it
+    // D13: a tool name is unique across everything the host sees, the tools the references stamp too; within one
+    // toolset the parser reports it
     private static void ReportClashesAcrossToolsets(
         CompilationAnalysisContext context,
         IEnumerable<(string Name, INamedTypeSymbol Toolset, Location Location)> tools)
     {
+        var referenced = new HashSet<string>(ReferenceReader.Read(context.Compilation, context.CancellationToken)
+            .Toolsets
+            .SelectMany(toolset => toolset.Tools)
+            .Select(tool => Names.ToPascalCase(tool.Name)));
+
         var ordered = tools
             .OrderBy(tool => tool.Location.SourceTree?.FilePath)
             .ThenBy(tool => tool.Location.SourceSpan.Start);
@@ -168,15 +207,24 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         {
             var first = group.First();
 
-            var clashes = group
-                .Skip(1)
-                .Where(tool => !SymbolEqualityComparer.Default.Equals(tool.Toolset, first.Toolset));
+            var clashes = referenced.Contains(group.Key)
+                ? group
+                : group.Skip(1).Where(tool => !SymbolEqualityComparer.Default.Equals(tool.Toolset, first.Toolset));
 
             foreach (var clash in clashes)
             {
                 context.ReportDiagnostic(
                     Diagnostic.Create(Descriptors.DuplicateToolName, clash.Location, clash.Name, group.Key));
             }
+        }
+    }
+
+    // D9: a reference whose toolsets and agents AddTypeshift() cannot register
+    private static void ReportUnstampedReferences(CompilationAnalysisContext context)
+    {
+        foreach (var assembly in ReferenceReader.GetUnstamped(context.Compilation, context.CancellationToken))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(Descriptors.UnstampedReference, Location.None, assembly.Name));
         }
     }
 }
