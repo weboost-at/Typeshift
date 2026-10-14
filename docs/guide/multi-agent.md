@@ -1,11 +1,40 @@
+---
+title: Multiple agents
+description: Let an agent call another agent as a sub-agent, or hand the conversation to it.
+---
+
 # Multiple agents
 
-An agent can call another agent as a sub-agent, or hand the conversation to it.
+An agent can work with other agents in two ways. It can call one as a sub-agent, a tool that answers with text, or hand
+the conversation to one, which then answers in its place. A sub-agent keeps the caller's context small. A handoff passes
+the conversation to the agent that should answer it, as a triage agent does.
+
+::: tip The short version
+
+- `UseAgent<T>()` offers another agent as a tool. It runs in a fresh context and returns its answer's text.
+- `InBackground()` lets the caller go on while the sub-agent works. Its answer arrives before a later model call.
+- `UseHandoff<T>()` offers `handoff_to_{name}`. The other agent takes over the conversation and answers in the same run.
+- A sub-agent cannot ask the host for approval, and handoffs need a conversation.
+
+:::
+
+## Sub-agent or handoff
+
+A sub-agent's answer goes back to the agent that called it, which goes on working. After a handoff, the other agent
+answers the run itself.
+
+| | Sub-agent | Handoff |
+|---|---|---|
+| Declared with | `UseAgent<T>()` | `UseHandoff<T>()` |
+| The model calls | A tool named like the agent, with one `input` | `handoff_to_{name}` |
+| Works with | A fresh context and no conversation of its own | The whole conversation |
+| Answers | The calling agent, with text | The run, in the calling agent's place |
+| Needs a conversation | No | Yes |
 
 ## Sub-agents
 
-`UseAgent<T>()` offers another agent as a tool named like it, described by its `WithDescription`, with one `input`
-parameter:
+`UseAgent<T>()` offers another agent as a tool. The tool is named like the agent, described by its `WithDescription`,
+and takes one `input` parameter:
 
 <!-- snippet: agent-as-tool -->
 <a id='snippet-agent-as-tool'></a>
@@ -26,11 +55,15 @@ internal partial class ReportAgent : Agent
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/ReportAgent.cs#L5-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-as-tool' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-A call runs the sub-agent in a fresh context: the same settings id, so its own settings stored there apply, the
-caller's mode, standing approvals and rules, and no conversation of its own. It returns its answer's text. Its tool
-calls and tokens stay out of the caller's history, which is what keeps a long run's context small: a sub-agent reads
-twenty files and answers in a paragraph. With `WithConcurrentToolCalls(true)`, the sub-agents of one model response
-work at the same time.
+A call runs the sub-agent in a fresh context, with no conversation of its own. It runs with the caller's settings id, so
+its own settings stored there apply. It also takes the caller's mode, standing approvals and rules. It returns its
+answer's text.
+
+Its tool calls and tokens stay out of the caller's history. That is what keeps a long run's context small: a sub-agent
+reads twenty files and answers in a paragraph. With `WithConcurrentToolCalls(true)`, the sub-agents of one model
+response work at the same time.
+
+Run the calling agent like any other:
 
 <!-- snippet: agent-as-tool-run -->
 <a id='snippet-agent-as-tool-run'></a>
@@ -42,10 +75,14 @@ var report = await reports.RunAsync("Compare the robotics scenes of Vienna and G
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/MultiAgent.cs#L13-L17' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-as-tool-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-A sub-agent cannot ask the host: in the default mode, a call of its that needs approval and that no standing approval
-or rule covers is rejected, and the analyzer warns about such tools ([TSH024](./diagnostics.md#tsh024)). A sub-agent
-needs a description ([TSH023](./diagnostics.md#tsh023)); agents that call each other in a circle are
-[TSH026](./diagnostics.md#tsh026).
+A sub-agent needs a description ([TSH023](./diagnostics.md#tsh023)), since the model reads it to decide when to call it.
+Agents that call each other in a circle are [TSH026](./diagnostics.md#tsh026).
+
+::: warning A sub-agent cannot ask for approval
+A sub-agent has no host to ask. In the default mode, a call of its that needs approval, and that no standing approval or
+rule covers, is rejected. The analyzer warns about such tools ([TSH024](./diagnostics.md#tsh024)): add a rule, or hand
+off to the agent instead.
+:::
 
 ### In the background
 
@@ -59,10 +96,15 @@ UseAgent<ExploreAgent>().InBackground();
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L17-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-background-sub-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-When the sub-agent answers, its answer reaches the calling run as a message before the run's next model call. A run
-does not end while its sub-agents work: once the model stops calling tools, the run waits for the next answer and
-continues with it. A run that ends stops the sub-agents still working, and a sub-agent lost to a crash is reported to
-the model as lost when the run resumes.
+When the sub-agent answers, its answer reaches the calling run as a message before the run's next model call.
+
+- A run does not end while its sub-agents work. Once the model stops calling tools, the run waits for the next answer
+  and continues with it.
+- A run that ends stops the sub-agents still working.
+- A sub-agent lost to a crash is reported to the model as lost when the run resumes.
+
+The sub-agent itself is an agent like any other. This one explores the workspace with a fast model. It offers only file
+tools that read, so none of its calls needs approval:
 
 <!-- snippet: sub-agent -->
 <a id='snippet-sub-agent'></a>
@@ -87,9 +129,9 @@ internal partial class ExploreAgent : Agent
 
 ## Handoff
 
-`UseHandoff<T>()` gives the model a tool `handoff_to_{name}`, described like the other agent. When the model calls
-it, the other agent takes over: it answers in the same run, with the whole conversation, its own instructions, tools
-and stored settings.
+`UseHandoff<T>()` gives the model a tool, `handoff_to_{name}`, described like the other agent. When the model calls it,
+the other agent takes over. It answers in the same run, with the whole conversation and its own instructions, tools and
+stored settings. Like a sub-agent, it needs a description ([TSH023](./diagnostics.md#tsh023)):
 
 <!-- snippet: handoff -->
 <a id='snippet-handoff'></a>
@@ -119,8 +161,8 @@ internal partial class TriageAgent : Agent
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L5-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-handoff' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The conversation remembers who answered last, so its later runs go to that agent when the host's agent reaches it
-through its handoffs, whichever host runs them; each message carries its agent's name as `AuthorName`:
+The conversation remembers which agent answered last. Its later runs go to that agent, whichever host runs them, as long
+as the host's agent reaches it through its handoffs. Each message carries its agent's name as `AuthorName`:
 
 <!-- snippet: handoff-run -->
 <a id='snippet-handoff-run'></a>
@@ -136,5 +178,17 @@ Console.WriteLine($"{second.Messages[^1].AuthorName}: {second.Text}");
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/MultiAgent.cs#L21-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-handoff-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Handoffs need a conversation: a run without one does not offer them. A run's own `Settings` apply to the agent it was
-started on; agents it hands off to run with their settings stored under the same settings id.
+A run's own `Settings` apply to the agent it was started on. Agents it hands off to run with their settings stored under
+the same settings id.
+
+::: warning Handoffs need a conversation
+A run without a conversation id does not offer the handoff tools, so its agent cannot hand off.
+:::
+
+## Related
+
+- [Agents](./defining-agents.md#other-agents): declaring the other agents an agent uses.
+- [Settings layering](./settings-layering.md): which settings sub-agents and handoffs run with.
+- [Tool approval](./tool-approval.md#approval-rules): rules that decide a sub-agent's calls.
+- [Long-running agents](./long-running-agents.md): sub-agents that keep a long run's context small.
+- [Conversations](./conversations.md): where a handoff's conversation is stored.

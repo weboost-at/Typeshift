@@ -1,8 +1,28 @@
+---
+title: Long-running agents
+description: Run an agent for hundreds of model calls, with compaction, crash recovery, sub-agents and fewer approvals.
+---
+
 # Long-running agents
 
-Most runs take a few model calls. An agent that works through a task on its own, a coding agent say, runs hundreds
-of calls in one run, for an hour or more. Typeshift keeps such a run within its context, stores it as it goes and
-lets the host stop asking for every command.
+Most runs take a few model calls. An agent that works through a task on its own, such as a coding agent, makes hundreds
+of calls in one run, for an hour or more. Typeshift keeps such a run within its context, stores it as it goes and lets
+the host stop approving every command.
+
+::: tip The short version
+
+- Raise `WithMaxToolIterations` above its default of 40, and turn compaction on with `WithMaxInputTokens`.
+- Compaction clears old tool results first, then summarizes or drops the oldest turns. The stored conversation keeps
+  everything.
+- Every step is stored as it happens, so a crash loses at most the call in flight. `ResumeAsync` continues the run.
+- Sub-agents keep the run's context small. Standing approvals, rules and auto mode keep it from stopping for approval.
+
+:::
+
+## A coding agent
+
+This agent plans with to-dos, works on files, runs shell commands and fetches web pages. It hands exploring the
+workspace to a sub-agent in the background, and starts in plan mode:
 
 <!-- snippet: coding-agent -->
 <a id='snippet-coding-agent'></a>
@@ -45,7 +65,7 @@ internal partial class CodingAgent : Agent
 
 ## Run options
 
-`WithRunOptions()` sets how a run goes:
+`WithRunOptions()` sets how a run's tool loop goes:
 
 <!-- snippet: long-running-options -->
 <a id='snippet-long-running-options'></a>
@@ -61,90 +81,68 @@ WithRunOptions()
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L21-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-long-running-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-| Option | Default | Does |
-|---|---|---|
-| `WithMode` | `Default` | The [mode](./modes.md) runs start in: `Default`, `Plan` or `Auto`. |
-| `WithMaxToolIterations` | 40 | The most rounds of tool calls one run makes. |
-| `WithMaxConsecutiveToolErrors` | 3 | The most failed tool calls in a row before the run ends. |
-| `WithConcurrentToolCalls` | off | Runs the tool calls of one model response at the same time. |
-| `WithMaxInputTokens` | off | Turns compaction on. |
-| `WithTargetInputTokens` | half the maximum | How far compaction shrinks the history. |
-| `WithSummaryModel` | none | Summarizes what clearing tool results did not free. |
+- **`WithMaxToolIterations(500)`** raises the most rounds of tool calls one run makes, 40 unless set.
+- **`WithMaxInputTokens(150_000)`** turns [compaction](#compaction) on at that many input tokens.
+- **`WithSummaryModel("fast-model")`** names the model that summarizes what clearing tool results did not free.
+- **`WithMode(AgentMode.Plan)`** starts runs in [plan mode](./modes.md#plan-mode).
+- **`Configurable(r => r.MaxToolIterations)`** puts an option into the agent's `Settings`, like a chat option, so stored
+  settings or a run may change it.
 
-`Configurable(r => r.MaxToolIterations)` puts an option into the agent's `Settings`, like a chat option, so stored
-settings or a run may change it.
+[Builders](./builders.md#runoptionsbuilder) lists every run option with its default, such as the limit on failed tool
+calls in a row and running a response's tool calls at the same time.
 
 ## Compaction
 
-Before each model call, also between the calls of one run, Typeshift estimates the call's input tokens: about four
-characters to a token, corrected by the tokens the provider reported for the run's last call. When the estimate
-reaches `WithMaxInputTokens`, it shrinks the history the model sees to `WithTargetInputTokens`:
+Compaction shrinks the history a model call sees, so a long run stays within the model's context. It is off until
+`WithMaxInputTokens` sets a limit.
 
-1. It clears the results of the oldest tool calls the model has already read, keeping the calls, so the model knows
+Before every model call, not only the first of a run, Typeshift estimates the call's input tokens. It counts about four
+characters to a token, corrected by the tokens the provider reported for the run's last call. When the estimate reaches
+`WithMaxInputTokens`, Typeshift shrinks the history the model sees to `WithTargetInputTokens`, half the maximum unless
+set:
+
+1. It clears the results of the oldest tool calls the model has already read. It keeps the calls, so the model knows
    what it did and can call again.
 2. If that is not enough, it summarizes the oldest turns with the summary model, or drops them without one.
 
-The instructions, the latest `write_todos` call and a tool call with its result always stay together. Later calls of
-the run see the same compaction. The stored conversation keeps everything, and what compaction left, the summary
-and the messages after it, is stored as an entry of its own, so later runs start from it instead of summarizing
-again.
+The instructions and the latest `write_todos` call always stay, and a tool call always stays together with its result.
+Later calls of the run see the same compaction.
 
-## Checkpoints
+The stored conversation keeps everything. Compaction also stores what it left, the summary and the messages after it, as
+an entry of its own. Later runs start from that entry instead of summarizing again.
 
-A run is stored as it goes: its input, every model response and every tool result, each the moment it exists. A host
-that crashes mid-run loses at most the call in flight. Tools with side effects should be safe to call twice, since
-a call interrupted while it ran is left out when the run continues.
+## Crashes and steering
 
-## Resuming
-
-`ResumeAsync` continues a conversation's interrupted run from its last stored step, without new input:
-
-<!-- snippet: resume -->
-<a id='snippet-resume'></a>
-```cs
-var resumed = await support.ResumeAsync(interrupted, settingsId);
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L61-L63' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
-
-A new run on that conversation works too: it starts from the interrupted run's steps, followed by its own input.
-Typeshift runs one run per conversation at a time in a process; across processes, the host makes sure of it.
-
-## Steering
-
-A user can steer a run while it works: `TrySteer` hands input to the run of the conversation going on in this
-process. The model receives it before its next call, the run does not end before it has, and it is stored with the
-conversation like any input. With no run going on here, or one that is already ending, start a run with the input
-instead:
-
-<!-- snippet: steering -->
-<a id='snippet-steering'></a>
-```cs
-var input = "Send me the invoice too.";
-
-if (!tracker.TrySteer(conversationId, input))
-    await support.RunAsync(input, settingsId, conversationId);
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L48-L53' title='Snippet source file'>snippet source</a> | <a href='#snippet-steering' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
-
-To stop a run instead, cancel its token; it is stored up to where it stopped.
+A run is stored step by step, so a host that crashes mid-run loses at most the call in flight. `ResumeAsync` continues
+the run from its last stored step, and the model may call an interrupted tool again; see
+[resuming](./conversations.md#resuming). While the run works, a user can [steer](./conversations.md#steering) it with
+new input.
 
 ## Sub-agents
 
 A long run keeps its context small by handing searches and side quests to [sub-agents](./multi-agent.md#sub-agents),
-which answer in a paragraph; in the background, they work while the run goes on.
+which answer in a paragraph. [In the background](./multi-agent.md#in-the-background), they work while the run goes on.
 
 ## Approval without interruptions
 
-A long run stops whenever it needs approval. Three ways keep it going: the host approves a tool for the rest of the
-conversation, a rule decides the calls it is sure about
-([tool approval](./tool-approval.md#approving-for-the-conversation)), or the run is in
-[auto mode](./modes.md#auto-mode), where the rules only guard. [Plan mode](./modes.md#plan-mode) lets the host approve
-the whole plan once instead of each step.
+A long run stops whenever it needs approval. Three ways keep it going:
+
+- The host [approves a tool for the rest of the conversation](./tool-approval.md#approving-for-the-conversation).
+- An [approval rule](./tool-approval.md#approval-rules) decides the calls it is sure about.
+- The run is in [auto mode](./modes.md#auto-mode), where the rules only guard.
+
+[Plan mode](./modes.md#plan-mode) lets the host approve the whole plan once instead of each step.
 
 ## Watching
 
-`RunStreamingAsync` streams the run to the caller, and
-[`ConversationTracker.WatchAsync`](./conversations.md#live-updates) to anyone else watching, a UI in another
-request say. Each model call is traced as its own span; see [observability](./observability.md).
+`RunStreamingAsync` streams the run to its caller. [`ConversationTracker.WatchAsync`](./conversations.md#live-updates)
+streams it to anyone else watching, such as a UI in another request. Each model call is traced as its own span; see
+[Observability](./observability.md).
+
+## Related
+
+- [Conversations](./conversations.md): storing, resuming and steering a run.
+- [Builders](./builders.md#runoptionsbuilder): every run option and its default.
+- [Multiple agents](./multi-agent.md#sub-agents): sub-agents, in the background or not.
+- [Plan and auto modes](./modes.md): fewer approvals in a long run.
+- [Built-in toolsets](./built-in-toolsets.md): the to-dos, files, shell and web tools a coding agent uses.
