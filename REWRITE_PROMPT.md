@@ -5,9 +5,11 @@ art: read it for the lessons, the conventions and the edge cases it found, not a
 what the owner cares about. The API sketches show direction, not the final shape: the shape is settled with the owner
 before any implementation (see [Process](#process)).
 
-Work on the branch `claude/rewrite`. Replace `src/`, `tests/`, `samples/` and the docs content; keep the git history,
-the CI and release workflows, the tooling setup and the repository conventions, rewritten where the new design needs
-it. Ask the owner whenever a choice is theirs to make; be concise with them.
+Work on the branch `claude/rewrite`, created from the branch that holds this brief. Replace `src/`, `tests/`,
+`samples/` and the docs content; keep the git history, the CI and release workflows, the tooling setup (including
+`.claude/hooks/session-start.sh`) and the repository conventions, rewritten where the new design needs it. Ask the
+owner whenever a choice is theirs to make; be concise with them. Work with the [skills](#skills) below from the
+first step.
 
 ## What Typeshift is
 
@@ -246,15 +248,40 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<AppDb> contexts) : ITyp
 - **Fewer concepts overall.** Four settings layers instead of five, one run call instead of three steps, one metadata
   style, one registration chain.
 
+## Skills
+
+The session-start hook installs these into `~/.claude/skills`, pinned to commits the owner reviewed, together with
+the .NET SDK, the repository's tools and packages. If a skill is missing, run `.claude/hooks/session-start.sh` with
+`CLAUDE_CODE_REMOTE=true`, or read its `SKILL.md` there directly.
+
+| Skill | When |
+|---|---|
+| `ponytail`, level full | Load it first; it stays on for the whole session. The owner's scope is not cut; within each feature, take the smallest API and the least code that fully work. |
+| `ponytail-audit` | On v0 in step 1 of the process, as input to what carries over; on the rewrite before the PR. |
+| `ponytail-review` | After every slice and before the PR. Fix every "Must fix" before the next slice. |
+| `ponytail-debt` | At the end of every slice: carry each `shortcut:` comment into `status.md`'s known gaps. |
+| `csharp-test-formatting` | Every test you write or change; its convention tests become the repository's guard tests. |
+| `test-data-catalog` | All test data: `TestValue<T>`, the seeded `Data` catalog, builders. |
+| `git-commit` | Before every commit: the message style, staging by pathspec, the lint script on the draft. |
+| `git-worktree` | Only for parallel work in worktrees (subagents, say). Work lands on `claude/rewrite`, never on `main`. |
+
+Where a skill and this brief or the repository's rules disagree, the brief and the repository win, except:
+
+- `shortcut: <the limit>, <when to upgrade>` comments are allowed, the one marker besides `// Dnn:`. TODOs stay
+  banned; `ponytail-debt` keeps the shortcuts and `status.md` in step.
+- `ponytail`'s "one small test" is a floor. The repository's test rules and the behavior coverage still apply.
+
 ## Process
 
 1. **Read v0.** `AGENTS.md`, `docs/contributing/decisions.md`, `status.md` (its behavior table is a checklist of
-   behaviors to cover again where they still hold) and the guide. List what carries over and what goes.
+   behaviors to cover again where they still hold) and the guide, then run `ponytail-audit` on it. List what carries
+   over and what goes.
 2. **API sign-off.** Before any implementation: compiled usage samples for every scenario of the guide, draft guide
    pages, and decision entries for each open question above. Present them to the owner and wait for approval.
 3. **Build in vertical slices.** Each slice brings code, tests, docs and decision entries together, in commits that
-   each build and pass.
-4. **Review pass**, then update `status.md` and open the PR.
+   each build and pass. End each slice with `ponytail-review` and `ponytail-debt`.
+4. **Review pass:** `ponytail-review` on the whole branch and `ponytail-audit` on the rewrite, fix what they find,
+   then update `status.md` and open the PR.
 
 ## Repository conventions
 
@@ -265,12 +292,11 @@ Keep v0's conventions, rewritten to fit the new code:
   `// Dnn: ...`; carry v0 decisions that still hold into it.
 - Guard tests for the repository's rules: test conventions, public API docs, decision citations, source style, the
   diagnostic catalog, incremental caching.
-- Strict tests, as in v0: one class per subject, one rule per test, `Given_<state>_<outcome>`, only Arrange/Act/Assert
-  comments, one assertion per statement, test data from a seeded Bogus catalog, time only through
-  `FakeTimeProvider`, FluentAssertions 7 pinned.
+- Strict tests, as in v0 and as `csharp-test-formatting` and `test-data-catalog` teach them: xUnit v3,
+  FluentAssertions 7 pinned, time only through `FakeTimeProvider`.
 - A VitePress docs site whose every snippet comes from compiled samples that CI runs (mdsnippets).
-- v0's code style and commit format (`AGENTS.md`), the TSH diagnostic prefix, the Typeshift name, releases by tag
-  through nuget.org trusted publishing.
+- v0's code style (`AGENTS.md`), commits as `git-commit` writes them, the TSH diagnostic prefix, the Typeshift name,
+  releases by tag through nuget.org trusted publishing.
 
 ## Done means
 
