@@ -1,8 +1,0 @@
-{
-  "$schema": "https://raw.githubusercontent.com/SimonCropp/MarkdownSnippets/master/schema.json",
-  "Convention": "InPlaceOverwrite",
-  "LinkFormat": "GitHub",
-  "UrlPrefix": "https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff",
-  "ExcludeDirectories": [ "bin", "obj" ],
-  "TreatMissingAsWarning": false
-}

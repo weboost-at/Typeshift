@@ -1,8 +1,7 @@
 # Status
 
-Where the rewrite stands: what is built, which test covers each behavior, and what is open. Open items live here,
-never as TODOs in code. The approved API is in [`signoff/`](https://github.com/weboost-at/Typeshift/tree/claude/rewrite/signoff);
-the slices build it one at a time.
+Where the library stands: what is built, which test covers each behavior, and what is open. Open items live here,
+never as TODOs in code. The rewrite built the API the owner approved in ten slices, one at a time; all ten are built.
 
 ## Slices
 
@@ -110,7 +109,7 @@ The numbers are the rules of v0's behavior table where they still hold.
   keeps the first; the generated code stays valid.
 - **Generated line length:** generated code is `global::`-qualified and some declarations exceed 120 columns.
 - **Streamed results:** a tool returning `IAsyncEnumerable<T>` compiles, but its result is serialized synchronously
-  and the call fails at runtime. Neither v0 nor the sign-off supports it.
+  and the call fails at runtime. Neither v0 nor the approved API supports it.
 - **Kinds across references:** TSH022 compares the compilation's agents with each other and with those the
   references stamp, not two references' agents with each other.
 - **Live updates of non-streaming runs:** only streaming runs publish.
@@ -122,3 +121,10 @@ The numbers are the rules of v0's behavior table where they still hold.
 - **Compaction across steering:** a steered run's later pass compacts afresh, summarizing again if it needs to.
 - **Agents across references:** TSH023, TSH024 and TSH026 check the agents of the same compilation; a sub-agent of a
   referenced assembly is checked when that assembly builds, not against its callers.
+- **File tools and links:** the root check follows every link on a path, but a link swapped in between the check and
+  the use still escapes; only a sandbox stops that. `edit_file` holds a file whole in memory and refuses files over
+  16 MB.
+- **Web fetch and private addresses:** the model picks the URL; the host's `IWebFetch` decides which addresses it
+  reaches. No fetcher ships with Typeshift.
+- **Shell:** `run_command` runs what the model sends, within the root as its working directory but not a sandbox;
+  it requires approval unless a rule or auto mode answers.

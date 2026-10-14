@@ -8,8 +8,7 @@
     "artifacts",
     "node_modules",
     "bin",
-    "obj",
-    "signoff"
+    "obj"
   ],
   "TreatMissingAsWarning": false
 }
