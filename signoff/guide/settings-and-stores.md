@@ -227,7 +227,7 @@ try
 }
 catch (StoreConflictException)
 {
-    // Someone saved in between: reload, show the form again
+    stored = await support.LoadSettingsAsync(settingsId);
 }
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Scenarios/AgentSettings.cs#L23-L34' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-and-save-settings' title='Start of snippet'>anchor</a></sup>

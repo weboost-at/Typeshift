@@ -29,7 +29,7 @@ internal static class AgentSettings
         }
         catch (StoreConflictException)
         {
-            // Someone saved in between: reload, show the form again
+            stored = await support.LoadSettingsAsync(settingsId);
         }
         // end-snippet
     }

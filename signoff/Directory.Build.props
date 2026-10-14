@@ -7,6 +7,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- The sign-off compiles the API, it does not run it: members are stubs, documented where the shape needs it.
          CS1573 stands in for the suppressor the package ships: the parameters the model never sees need no docs. -->
+    <!-- slopwatch-ignore: SW005 the sign-off compiles stubs that are documented where the shape needs it -->
     <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
   </PropertyGroup>
 
