@@ -27,6 +27,13 @@ export default defineConfig({
           items: [{ text: 'Getting started', link: '/guide/getting-started' }]
         },
         {
+          text: 'Concepts',
+          items: [
+            { text: 'Why code-defined', link: '/guide/why-code-defined' },
+            { text: 'Settings layering', link: '/guide/settings-layering' }
+          ]
+        },
+        {
           text: 'Building agents',
           items: [
             { text: 'Toolsets', link: '/guide/toolsets' },
@@ -50,6 +57,10 @@ export default defineConfig({
         {
           text: 'Reference',
           items: [
+            { text: 'Registration', link: '/guide/registration' },
+            { text: 'Builders', link: '/guide/builders' },
+            { text: 'Generated members', link: '/guide/generated-members' },
+            { text: 'Agent host', link: '/guide/agent-host' },
             { text: 'Diagnostics', link: '/guide/diagnostics' }
           ]
         }
