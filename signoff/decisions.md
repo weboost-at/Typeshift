@@ -2,7 +2,7 @@
 
 The fresh log of the rewrite. Each entry: context, decision, alternatives, where it will live. **Status** says whether
 the owner decided it (in the brief or in this session), whether it carries a v0 decision over (v0's number in
-brackets), or whether it is **proposed** and waits for the sign-off. After the sign-off this file replaces
+brackets), or whether the owner approved it with the sign-off. After the sign-off this file replaces
 `docs/contributing/decisions.md`, and code cites entries as `// Dnn: ...`.
 
 ## Registration and the generator
@@ -18,7 +18,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D2. An analyzer reports the diagnostics; the generator only writes code
 
-- **Status:** proposed (the brief's retrospective).
+- **Status:** approved with the sign-off.
 - **Context:** v0 reported TSH diagnostics without syntax trees, so `#pragma` and `.editorconfig` could not reach
   them, and locations in the models broke caching.
 - **Decision:** a `DiagnosticAnalyzer` in the same package reports every TSH diagnostic at real locations; the parser
@@ -41,7 +41,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D4. Every declaration shape the generator cannot read is diagnosed
 
-- **Status:** proposed (the brief's retrospective, v0 D29 kept).
+- **Status:** approved with the sign-off.
 - **Decision:** `Include(t => t.X)` stays, picked from the generated `ToolList<T>` (v0 D29): a foreign tool does not
   compile. The generator reads the picks from syntax, since the list's properties are its own output; the analyzer
   reports every other shape: a chain split over variables, a pick that is not `t => t.X` (TSH015), a declaration
@@ -68,7 +68,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D7. Stamps carry the generated names and a version
 
-- **Status:** proposed.
+- **Status:** approved with the sign-off.
 - **Context:** v0's stamps carried tool names only, so an agent rebuilt `{Tool}Overrides` names with its own
   generator version.
 - **Decision:** tool stamps name the overrides type and the list property, and every module stamp has a stamp
@@ -77,7 +77,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D8. The generator targets Roslyn 5
 
-- **Status:** proposed.
+- **Status:** approved with the sign-off.
 - **Decision:** consumers need C# 14 for the extension blocks, so the generator uses Roslyn 5 APIs; v0's 4.14 pin and
   its trap go.
 
@@ -184,7 +184,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D24. Tool approval uses Microsoft.Extensions.AI's contents, with standing approvals and rules
 
-- **Status:** proposed; standing approvals and rules decided by the owner in this session.
+- **Status:** approved with the sign-off.
 - **Decision:** `RequiresApproval()` wraps the tool in `ApprovalRequiredAIFunction`; `FunctionInvokingChatClient`
   ends the run with `ToolApprovalRequestContent`s, listed by `response.ApprovalRequests`. The host answers with
   `CreateResponse(approved)` in the next run of the conversation; the stored request is the one that runs. Calls in
@@ -236,7 +236,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D29. The chat client pipeline
 
-- **Status:** proposed.
+- **Status:** approved with the sign-off.
 - **Decision:** outermost first: conversation tracking (resume, run boundaries, live updates), run middleware,
   context providers, the `invoke_agent` span, approval (standing approvals and rules), `FunctionInvokingChatClient`
   (handoff, run options, tool middleware as its `FunctionInvoker`), checkpoints (each step appended before compaction
@@ -257,7 +257,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D31. Context providers
 
-- **Status:** proposed.
+- **Status:** approved with the sign-off.
 - **Decision:** `UseContext<T>()`; `IContextProvider.GetContextAsync(run, ct)` returns an `AgentContext` of
   instructions, messages and tools, appended to the run's. Called once per run after resume; its messages are never
   stored. No after-run hook: run middleware covers it.
@@ -302,14 +302,14 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D35. MCP servers through a host provider
 
-- **Status:** proposed.
+- **Status:** approved with the sign-off.
 - **Decision:** `UseMcpServer(name)` with `.RequiresApproval()`; the host's `IMcpToolProvider` returns the server's
   tools, connected with the MCP client of its choice. Typeshift takes no MCP dependency. Provider-side servers use
   `HostedMcpServerTool` in `WithTools`.
 
 ### D36. OpenTelemetry is always on
 
-- **Status:** proposed.
+- **Status:** approved with the sign-off.
 - **Decision:** source and meter `Typeshift`, GenAI conventions (`invoke_agent`, `chat`, `execute_tool`, operation
   duration, token usage); message content only with `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`. No API.
 
@@ -329,7 +329,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D38. One store of documents and conversations
 
-- **Status:** proposed; updates v0 D25.
+- **Status:** approved with the sign-off.
 - **Decision:** `ITypeshiftStore<TId>` (aliased `ITypeshiftStore`): `LoadAsync` and `SaveAsync` of documents with
   revisions, `LoadConversationAsync` and `AppendConversationAsync` of `ConversationEntry`s keyed by the conversation
   id. Documents stay a closed set (each agent's `Settings`, `ConversationEntry`), so store generators stay
@@ -388,7 +388,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D45. Tool JSON: contexts from the modules, reflection outside AOT
 
-- **Status:** proposed; keeps v0 D44.
+- **Status:** approved with the sign-off.
 - **Decision:** modules register the `JsonSerializerContext`s that list their tools' types (v0 D44). Outside Native
   AOT, Microsoft.Extensions.AI's reflection-based defaults cover the rest, so tools need no context; under AOT
   (`PublishAot` or `IsAotCompatible`), a type no context lists is TSH027.
@@ -405,7 +405,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D47. Live updates are a feed per conversation
 
-- **Status:** proposed (the brief: options for intervals and limits).
+- **Status:** approved with the sign-off.
 - **Decision:** `WithRealtimeTracking(options)` turns publishing on; `ConversationTracker.WatchAsync(conversation)`
   reads a bounded feed that drops its oldest updates when the watcher falls behind. A run never waits
   for a watcher. `PublishInterval` (100 ms) and `MaxPendingUpdates` (256) are options. `Runs` lists the runs of
@@ -414,7 +414,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 ### D50. A conversation is stored step by step and resumes after a crash
 
-- **Status:** proposed; long-horizon scope decided by the owner in this session.
+- **Status:** approved with the sign-off.
 - **Context:** the first draft stored a run when it ended, so a run that died after an hour of work lost all of it.
 - **Decision:** a conversation is a log of `ConversationEntry`s: a run's input, each model response (with model and
   usage), each tool result, compaction summaries; the run's last entry has `EndsRun`. Checkpoints append each step

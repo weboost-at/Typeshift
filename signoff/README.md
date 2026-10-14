@@ -81,17 +81,7 @@ var report = await support.RunAsync<RefundStatus>("Summarize the refund.", setti
   standing approvals and approval rules (D24), steering (D51), sub-agents in the background (D33), plan and auto
   modes (D52). See `guide/long-running-agents.md` and `guide/modes.md`.
 
-## Open for the sign-off
+## Approved
 
-Every entry marked **proposed** in `decisions.md`. The ones with the most weight:
-
-- **D25** runs use the scope the host was resolved from (`AgentHost` transient), replacing v0's scope per tool call.
-- **D24** approval through Microsoft.Extensions.AI's contents, `ApproveForConversation()`, `IToolApprovalRule`.
-- **D28** the model is always in `Settings` (the brief), though a customer-editable form then picks any model.
-- **D38 to D42** the store: four methods, stable kinds, `WithSettingsVersion`, revisions, conversations by their id
-  alone (the host authorizes them).
-- **D32, D50** compaction by reported input tokens before every model call; a conversation as entries appended per
-  step, resumed with `ResumeAsync`.
-- **D2, D3** diagnostics from an analyzer; discovery stays attribute-free.
-- **D13** `Async` is dropped from tool names; renaming a method renames the tool.
-- The draft diagnostic catalog, `guide/diagnostics.md` (TSH001 to TSH028).
+The owner answered every open question and approved the sign-off; `decisions.md` records each answer. Step 3 builds
+the library in vertical slices from here.
