@@ -29,8 +29,9 @@ ended in. A run whose settings name a mode switches the conversation to it.
 
 ## Plan mode
 
-In plan mode the model sees only the tools marked `ReadOnly()` and `exit_plan_mode`, and Typeshift adds a short
-instruction: research, then present the plan. A tool without the mark is hidden in plan mode, whatever it does.
+In plan mode the model sees only the tools marked `ReadOnly()`, a toolset's or an [MCP server's](./mcp.md), and
+`exit_plan_mode`, and Typeshift adds a short instruction: research, then present the plan. A tool without the mark is
+hidden in plan mode, whatever it does.
 `exit_plan_mode(plan)` ends the run with an approval request that carries the plan:
 
 <!-- snippet: plan-mode -->

@@ -35,6 +35,8 @@ public abstract class Agent
 
     internal List<Func<IServiceProvider, IAgentHost>> Handoffs { get; } = [];
 
+    internal List<McpServerUse> McpServers { get; } = [];
+
     // Protected members stay protected, never protected internal, which an assembly that sees the library's internals
     // would have to override as protected internal
     internal AgentDeclaration GeneratedDeclaration => Declaration;
@@ -122,6 +124,18 @@ public abstract class Agent
     /// <typeparam name="TAgent">The agent to hand off to.</typeparam>
     protected void UseHandoff<TAgent>() where TAgent : Agent =>
         Handoffs.Add(services => services.GetRequiredService<AgentHost<TAgent>>());
+
+    /// <summary>
+    /// Offers the tools of an MCP server, which the host's <see cref="IMcpToolProvider"/> connects by name.
+    /// </summary>
+    /// <param name="server">The server's name, as the host knows it.</param>
+    /// <returns>The use, to require approval or mark its tools as reading only.</returns>
+    protected McpServerUse UseMcpServer(string server)
+    {
+        var use = new McpServerUse(server);
+        McpServers.Add(use);
+        return use;
+    }
 
     /// <summary>
     /// Adds instructions, messages or tools to every run from a provider the run's services resolve, or create when

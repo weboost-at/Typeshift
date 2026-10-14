@@ -27,6 +27,7 @@ internal static class Registration
         services.AddKeyedSingleton("reasoning-model", reasoning);
         // end-snippet
 
+        services.AddTypeshift().WithMcpToolProvider<CannedMcpToolProvider>();
         services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite($"Data Source={database}"));
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ITicketClient, InMemoryTicketClient>();
@@ -69,6 +70,14 @@ internal static class Registration
         services.AddOpenTelemetry()
             .WithTracing(tracing => tracing.AddSource("Typeshift"))
             .WithMetrics(metrics => metrics.AddMeter("Typeshift"));
+        // end-snippet
+    }
+
+    public static void ShowMcpRegistration(IServiceCollection services)
+    {
+        // begin-snippet: mcp-registration
+        services.AddTypeshift()
+            .WithMcpToolProvider<McpToolProvider>();
         // end-snippet
     }
 }

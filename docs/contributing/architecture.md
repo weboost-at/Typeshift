@@ -85,7 +85,8 @@ modules' JSON contexts first, then Microsoft.Extensions.AI's defaults, which ref
    calls the host.
 2. `AgentHost<T>` resolves the options: a copy of the agent's chat options, its instructions, then each settings
    layer (the stored settings, loaded through the declaration, then the run's) through the generated declaration
-   (configurable options, run options), then the offered tools, created with their layered settings (D27).
+   (configurable options, run options), then the offered tools, created with their layered settings (D27), the
+   sub-agents (D33) and the MCP servers' tools (D35).
 3. It asks the scope's `IChatClientProvider` for the model's client and builds the pipeline, outermost first: the
    conversation (D46, D50), run middleware (D30), context providers (D31), approval and modes (D24, D52), author
    names on every message (D26),

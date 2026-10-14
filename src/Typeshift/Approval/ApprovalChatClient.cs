@@ -1,7 +1,6 @@
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
-using Typeshift.Generated;
 
 namespace Typeshift;
 
@@ -275,7 +274,8 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
         return answers;
     }
 
-    // D52: plan mode offers the tools that only read and the tool that presents the plan
+    // D52: plan mode offers the tools that only read, a toolset's or an MCP server's, and the tool that presents the
+    // plan
     private static ChatOptions ForMode(ResolvedChatOptions options, AgentMode mode)
     {
         if (mode != AgentMode.Plan) return options;
@@ -284,7 +284,7 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
 
         planning.Tools =
         [
-            .. options.Tools?.Where(tool => tool.GetService<GeneratedToolFunction>() is { IsReadOnly: true }) ?? [],
+            .. options.Tools?.Where(ReadOnlyFunction.IsReadOnly) ?? [],
             ExitPlanModeFunction.Instance
         ];
 

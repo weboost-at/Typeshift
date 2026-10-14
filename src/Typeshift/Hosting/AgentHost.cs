@@ -95,10 +95,11 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
 
         var tools = declaration.CreateTools(Agent, layers, _services.GetRequiredService<ToolJson>());
 
-        // D33: the sub-agents after the toolsets' tools
+        // D33, D35: the sub-agents and the MCP servers' tools after the toolsets'
         var agents = Agent.SubAgents.Select(use => new SubAgentFunction(use, use.Host(_services).Agent));
+        List<AITool> own = [.. tools, .. agents, .. options.Tools ?? []];
 
-        options.Tools = [.. tools, .. agents, .. options.Tools ?? []];
+        options.Tools = [.. own, .. await McpToolsAsync(own, ct)];
         options.RunOptions = run;
         options.RunSetsMode = settings is not null && SetsMode(declaration, settings);
         options.SettingsId = settingsId;
@@ -186,6 +187,37 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
         {
             yield return update;
         }
+    }
+
+    // D35: a server's tool named like one the agent offers would leave the model one of them, unseen
+    private async Task<List<AITool>> McpToolsAsync(IEnumerable<AITool> own, CancellationToken ct)
+    {
+        if (Agent.McpServers.Count == 0) return [];
+
+        var provider = _services.GetService<IMcpToolProvider>()
+            ?? throw new InvalidOperationException(
+                $"The agent '{Agent.Name}' uses MCP servers, and no IMcpToolProvider is registered: call "
+                + "WithMcpToolProvider<T>() after AddTypeshift().");
+
+        var names = own.Select(tool => tool.Name).ToHashSet();
+        var offered = new List<AITool>();
+
+        foreach (var use in Agent.McpServers)
+        {
+            foreach (var tool in await provider.GetToolsAsync(use.Server, ct))
+            {
+                if (!names.Add(tool.Name))
+                {
+                    throw new InvalidOperationException(
+                        $"The MCP server '{use.Server}' offers a tool '{tool.Name}', which the agent '{Agent.Name}' "
+                        + "already offers: rename one of them, or leave the server out.");
+                }
+
+                offered.Add(use.Offer(tool));
+            }
+        }
+
+        return offered;
     }
 
     // A layer sets the mode when it moves two different modes to the same one

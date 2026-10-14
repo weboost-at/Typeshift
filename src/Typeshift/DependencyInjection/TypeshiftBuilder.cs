@@ -97,4 +97,17 @@ public sealed class TypeshiftBuilder
         _services.AddScoped<IToolMiddleware, TMiddleware>();
         return this;
     }
+
+    /// <summary>
+    /// Registers what connects the MCP servers agents use, scoped.
+    /// </summary>
+    /// <typeparam name="TProvider">The provider.</typeparam>
+    /// <returns>The same chain.</returns>
+    public TypeshiftBuilder WithMcpToolProvider<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProvider>()
+        where TProvider : class, IMcpToolProvider
+    {
+        _services.AddScoped<IMcpToolProvider, TProvider>();
+        return this;
+    }
 }

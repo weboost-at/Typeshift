@@ -358,6 +358,10 @@ commit, or add a new one and withdraw the old.
 - **Decision:** `UseMcpServer(name)` with `.RequiresApproval()`; the host's `IMcpToolProvider` returns the server's
   tools, connected with the MCP client of its choice. Typeshift takes no MCP dependency. Provider-side servers use
   `HostedMcpServerTool` in `WithTools`.
+- **As built:** the servers' tools are asked for when a run's options are resolved, after the agent's own;
+  `ReadOnly()` marks them for plan mode, `RequiresApproval()` wraps them in `ApprovalRequiredAIFunction`. A tool
+  named like the agent's own fails the run.
+- **Where:** `Mcp/Mcp.cs`, `Hosting/AgentHost.cs`.
 
 ### D36. OpenTelemetry is always on
 

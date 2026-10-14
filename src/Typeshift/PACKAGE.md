@@ -27,6 +27,7 @@ their descriptions from XML docs, which the compiler reads only then, and withou
 - Long runs that stay within their context: compaction before every model call, with summaries stored.
 - OpenTelemetry traces and metrics after the GenAI conventions, always on.
 - Sub-agents, in the foreground or the background, and handoffs between agents.
+- MCP servers' tools through the MCP client of your choice.
 - Compile-time diagnostics instead of runtime surprises.
 
 ## Learn more

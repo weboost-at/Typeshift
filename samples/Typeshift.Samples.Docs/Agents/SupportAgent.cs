@@ -25,6 +25,10 @@ internal partial class SupportAgent : Agent
         ConfigureSearchTickets()
             .WithLimit(5);
 
+        // begin-snippet: use-mcp-server
+        UseMcpServer("status_page").ReadOnly();
+        // end-snippet
+
         // begin-snippet: use-context
         UseContext<CustomerProfileContext>();
         // end-snippet

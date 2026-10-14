@@ -46,5 +46,7 @@ The library was rebuilt from the API its owner approved; nothing of the unreleas
 - Multiple agents: `UseAgent<T>()` offers an agent as a tool that answers in a fresh context, in the foreground or
   `InBackground()`; `UseHandoff<T>()` hands the conversation to another agent, which answers its later runs. The
   analyzer checks both (TSH023, TSH024, TSH026).
+- MCP: `UseMcpServer(name)` offers a server's tools, which the host's `IMcpToolProvider` connects
+  (`WithMcpToolProvider<T>()`), with `RequiresApproval()` and `ReadOnly()`.
 - An analyzer reports every Typeshift diagnostic at real source locations, so `#pragma` and `.editorconfig` reach
   them; a suppressor drops CS1573 for tool parameters the model never sees.
