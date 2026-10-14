@@ -42,37 +42,6 @@ internal sealed class SourceWriter
         }
     }
 
-    // A member answering per tool: the signature, then a switch on the tool's name that ends in the fallback
-    public void ToolSwitch(
-        string signature,
-        string name,
-        IReadOnlyList<(string Tool, string Value)> arms,
-        string fallback)
-    {
-        Lines(signature);
-
-        using (Indent())
-        {
-            if (arms.Count == 0)
-            {
-                Line($"{fallback};");
-                return;
-            }
-
-            Line($"{name} switch");
-
-            using (Block(close: "};"))
-            {
-                foreach (var (tool, value) in arms)
-                {
-                    Line($"{Names.Literal(tool)} => {value},");
-                }
-
-                Line($"_ => {fallback}");
-            }
-        }
-    }
-
     public IDisposable Block(string? header = null, string open = "{", string close = "}")
     {
         if (header is not null) Line(header);
