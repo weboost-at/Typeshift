@@ -80,7 +80,7 @@ abstains on the rest. Register it with `WithApprovalRule<T>()`; it is resolved f
 services.AddTypeshift()
     .WithApprovalRule<ShellGuard>();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L56-L59' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L60-L63' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Every rule sees every call that requires approval. A rejection wins over every approval, and the model receives its

@@ -146,7 +146,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
         var history = ConversationHistory.From(entries);
         List<ChatMessage> call = [.. history, .. input];
-        var agentRun = new AgentRun(agent, call, runOptions, services, mode);
+        var agentRun = new AgentRun(agent, call, runOptions, services, mode) { InputStart = history.Count };
 
         var logger = (services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance)
             .CreateLogger<ConversationChatClient>();

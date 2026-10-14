@@ -1,5 +1,7 @@
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 using Typeshift.Generated;
 
 namespace Typeshift;
@@ -26,6 +28,8 @@ public abstract class Agent
     internal ChatOptions ChatOptions { get; } = new();
 
     internal RunOptions RunOptions { get; set; } = new();
+
+    internal List<Func<IServiceProvider, IContextProvider>> ContextProviders { get; } = [];
 
     // Protected members stay protected, never protected internal, which an assembly that sees the library's internals
     // would have to override as protected internal
@@ -92,6 +96,16 @@ public abstract class Agent
     /// <returns>The use, to include or exclude tools.</returns>
     protected ToolsetUse<TToolset> UseToolset<TToolset>() where TToolset : Toolset, new() =>
         ToolsetUse<TToolset>.Instance;
+
+    /// <summary>
+    /// Adds instructions, messages or tools to every run from a provider the run's services resolve, or create when
+    /// they have none registered.
+    /// </summary>
+    /// <typeparam name="TProvider">The provider.</typeparam>
+    protected void UseContext<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProvider>()
+        where TProvider : class, IContextProvider =>
+        ContextProviders.Add(services => ActivatorUtilities.GetServiceOrCreateInstance<TProvider>(services));
 
     /// <summary>
     /// Sets how a run goes: its tool loop's limits.

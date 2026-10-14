@@ -19,7 +19,9 @@ internal static class Registration
         services.AddTypeshift()
             .WithStore<EfTypeshiftStore>()
             .WithChatClientProvider<KeyedChatClientProvider>()
-            .WithRealtimeTracking();
+            .WithRealtimeTracking()
+            .WithRunMiddleware<BlockedTopics>()
+            .WithToolMiddleware<AuditToolCalls>();
 
         services.AddKeyedSingleton("fast-model", fast);
         services.AddKeyedSingleton("reasoning-model", reasoning);
@@ -28,6 +30,8 @@ internal static class Registration
         services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite($"Data Source={database}"));
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ITicketClient, InMemoryTicketClient>();
+        services.AddScoped<ICurrentCustomer, SampleCustomer>();
+        services.AddLogging();
 
         return services;
     }

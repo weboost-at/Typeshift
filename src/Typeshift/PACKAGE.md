@@ -23,6 +23,7 @@ their descriptions from XML docs, which the compiler reads only then, and withou
 - Runs that return Microsoft.Extensions.AI's `ChatResponse`, streaming and structured output included.
 - Conversations stored step by step: resume after a crash, steer a run going on, watch it live.
 - Tool approval with standing approvals and rules, and built-in plan and auto modes.
+- Middleware around runs and tool calls, and context providers that add to every run.
 - Compile-time diagnostics instead of runtime surprises.
 
 ## Learn more

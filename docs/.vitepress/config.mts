@@ -36,7 +36,9 @@ export default defineConfig({
             { text: 'Settings and stores', link: '/guide/settings-and-stores' },
             { text: 'Conversations', link: '/guide/conversations' },
             { text: 'Tool approval', link: '/guide/tool-approval' },
-            { text: 'Plan and auto modes', link: '/guide/modes' }
+            { text: 'Plan and auto modes', link: '/guide/modes' },
+            { text: 'Middleware', link: '/guide/middleware' },
+            { text: 'Context providers', link: '/guide/context-providers' }
           ]
         },
         {

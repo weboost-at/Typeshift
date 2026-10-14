@@ -35,5 +35,8 @@ The library was rebuilt from the API its owner approved; nothing of the unreleas
 - Plan and auto modes: `AgentMode` is a run option. Plan mode offers the read-only tools and `exit_plan_mode`, whose
   plan the host approves with `ApprovePlan(mode)`; auto mode runs what requires approval unless a rule rejects it. A
   conversation keeps its mode.
+- Middleware and context: `IRunMiddleware` around every run, streaming or not, `IToolMiddleware` around every tool
+  call (`WithRunMiddleware<T>()`, `WithToolMiddleware<T>()`), and `IContextProvider`s an agent names with
+  `UseContext<T>()`, which add instructions, messages and tools to each run.
 - An analyzer reports every Typeshift diagnostic at real source locations, so `#pragma` and `.editorconfig` reach
   them; a suppressor drops CS1573 for tool parameters the model never sees.

@@ -87,8 +87,10 @@ modules' JSON contexts first, then Microsoft.Extensions.AI's defaults, which ref
    layer (the stored settings, loaded through the declaration, then the run's) through the generated declaration
    (configurable options, run options), then the offered tools, created with their layered settings (D27).
 3. It asks the scope's `IChatClientProvider` for the model's client and builds the pipeline, outermost first: the
-   conversation (D46, D50), approval and modes (D24, D52), author names on every message (D26),
-   `FunctionInvokingChatClient` with the run options, the scope's services and `exit_plan_mode`, the checkpoints, and
+   conversation (D46, D50), run middleware (D30), context providers (D31), approval and modes (D24, D52), author
+   names on every message (D26),
+   `FunctionInvokingChatClient` with the run options, the scope's services, `exit_plan_mode` and the tool
+   middleware as its function invoker, the checkpoints, and
    the provider's client behind a wrapper that never disposes it (D29).
 4. The options are a `ChatOptions` subclass that remembers the run options, so the raw path's client gets them too.
 
@@ -119,3 +121,11 @@ approvals and auto mode decide and sends the tool loop round again; with request
 answers and ends the run. In plan mode it offers the read-only tools and `exit_plan_mode`, appending the planning
 instruction. `AgentRun` carries the mode; the run's ending entry stores it, so the conversation's next run resumes
 in it (D52).
+
+## Middleware and context
+
+`RunMiddlewareChatClient` sits below the conversation and runs the middleware the run's services resolve, around
+each pass of a run; in a streaming run the chain runs alongside the caller's enumeration, handing updates over a
+channel. `ContextChatClient` below it asks the agent's providers and adds their instructions, messages and tools to a
+copy of the options; it marks the messages stored so the checkpoints leave them out. Tool middleware is
+`FunctionInvokingChatClient`'s function invoker (D30, D31).

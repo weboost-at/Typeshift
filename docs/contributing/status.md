@@ -13,7 +13,11 @@ the slices build it one at a time.
 | 3. Settings store, id type | built |
 | 4. Conversations: checkpoints, resume, live updates, steering | built |
 | 5. Approval, rules, plan and auto modes | built |
-| 6. Middleware, context providers, MCP, telemetry, compaction, sub-agents, handoff, built-in toolsets, Native AOT | next |
+| 6. Middleware, context providers | built |
+| 7. Telemetry, compaction | next |
+| 8. Sub-agents, handoff | open |
+| 9. MCP, built-in toolsets | open |
+| 10. Native AOT: the console sample, the package consumer | open |
 
 ## Behavior coverage
 
@@ -69,6 +73,10 @@ The numbers are the rules of v0's behavior table where they still hold.
 | new | Auto mode runs what requires approval unless a rule rejects it (D52) | `ModeTests.Given_Auto_Mode_A_Call_Needing_Approval_Runs_Without_Asking`, `..._Given_Auto_Mode_A_Rule_That_Rejects_Still_Wins`, `..._Given_Auto_Mode_The_Calls_It_Approves_Count_Toward_The_Runs_Limit` |
 | new | Plan mode offers the read-only tools and `exit_plan_mode`; the approved plan continues in the chosen mode (D52) | `ModeTests.Given_Plan_Mode_Only_The_Read_Only_Tools_And_Exit_Plan_Mode_Are_Offered`, `..._Given_Plan_Mode_The_Instructions_Ask_For_A_Plan`, `..._Given_Plan_Mode_Presenting_The_Plan_Ends_The_Run_With_A_Request_That_Carries_It`, `..._Given_An_Approved_Plan_The_Run_Continues_In_The_Chosen_Mode`, `..._Given_A_Rejected_Plan_The_Model_Receives_The_Feedback_And_Stays_In_Plan_Mode` |
 | new | A conversation keeps its mode unless a run names one (D52) | `ModeTests.Given_A_Conversation_A_Run_Without_A_Mode_Continues_In_The_Mode_The_Last_Run_Ended_In`, `..._Given_A_Run_Naming_A_Mode_It_Leaves_The_Conversations_Mode` |
+| new | Run middleware wraps runs in order, may change the messages, and may answer in place of the model (D30) | `RunMiddlewareTests` |
+| new | Streaming runs pass through run middleware, which reads the response once the stream ended (D30) | `RunMiddlewareTests.Given_A_Streaming_Run_The_Middleware_Reads_The_Response_Once_The_Stream_Ended`, `..._Given_A_Streaming_Run_Middleware_That_Answers_Is_Streamed`, `..._Given_A_Streaming_Run_Left_Early_The_Run_Ends_With_What_Arrived` |
+| new | Tool middleware wraps calls in order and may answer in place of the tool (D30) | `ToolMiddlewareTests` |
+| new | Context providers add instructions, unstored messages ahead of the input, and tools (D31) | `ContextProviderTests` |
 
 ## Known gaps
 
@@ -84,10 +92,10 @@ The numbers are the rules of v0's behavior table where they still hold.
 - **Kinds across references:** TSH022 compares the compilation's agents with each other and with those the
   references stamp, not two references' agents with each other.
 - **A tool loop a tool ends:** tool results after which the tool loop makes no model call (a function that sets
-  `Terminate`) are not stored; handoff, which ends the loop this way, stores them in slice 6.
+  `Terminate`) are not stored; handoff, which ends the loop this way, stores them in slice 8.
 - **Live updates of non-streaming runs:** only streaming runs publish.
 - **Storable structs:** a user struct other than the scalars cannot be configurable (TSH012).
 - **Plan mode's other tools:** plan mode offers `ReadOnly()` toolset tools and `exit_plan_mode`; `write_todos`, MCP
-  servers marked `ReadOnly()` and a sub-agent's inherited mode come with slice 6.
+  servers marked `ReadOnly()` and a sub-agent's inherited mode come with slices 8 and 9.
 - **Run limit across approval rounds:** rounds the approval layer continues share the run's `MaxToolIterations`; a
   round that runs tools before it asks again may run one round of tools past it.

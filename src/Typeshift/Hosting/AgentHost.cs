@@ -51,8 +51,8 @@ public sealed class AgentHost<TAgent> where TAgent : Agent
         var client = await provider.GetChatClientAsync(model, ct);
         var run = options is ResolvedChatOptions resolved ? resolved.RunOptions : Agent.RunOptions;
 
-        // D29: outermost the conversation, innermost the provider's client behind a wrapper that never disposes it,
-        // with approval above the tool loop and the checkpoints inside it
+        // D29: outermost the conversation, then run middleware, context and approval above the tool loop, the
+        // checkpoints inside it, and innermost the provider's client behind a wrapper that never disposes it
         var loop = new FunctionInvokingChatClient(
             new CheckpointChatClient(new UndisposedChatClient(client)),
             _services.GetService<ILoggerFactory>(),
@@ -66,8 +66,13 @@ public sealed class AgentHost<TAgent> where TAgent : Agent
             AdditionalTools = [ExitPlanModeFunction.Instance]
         };
 
+        if (_services.GetServices<IToolMiddleware>().ToList() is { Count: > 0 } middleware)
+            loop.FunctionInvoker = (call, ct) => ToolMiddleware.InvokeAsync(middleware, 0, call, ct);
+
         var approval = new ApprovalChatClient(new AuthorNameChatClient(loop, Agent.Name), loop);
-        return new ConversationChatClient(approval, Agent, _services);
+        var context = new ContextChatClient(approval);
+
+        return new ConversationChatClient(new RunMiddlewareChatClient(context), Agent, _services);
     }
 
     // D27: the agent's code, its stored settings, then the run's; values a layer leaves null keep the one below

@@ -71,4 +71,30 @@ public sealed class TypeshiftBuilder
         _services.AddScoped<IToolApprovalRule, TRule>();
         return this;
     }
+
+    /// <summary>
+    /// Adds middleware around every run of every agent, scoped; the first registered is the outermost.
+    /// </summary>
+    /// <typeparam name="TMiddleware">The middleware.</typeparam>
+    /// <returns>The same chain.</returns>
+    public TypeshiftBuilder WithRunMiddleware<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TMiddleware>()
+        where TMiddleware : class, IRunMiddleware
+    {
+        _services.AddScoped<IRunMiddleware, TMiddleware>();
+        return this;
+    }
+
+    /// <summary>
+    /// Adds middleware around every tool call of every agent, scoped; the first registered is the outermost.
+    /// </summary>
+    /// <typeparam name="TMiddleware">The middleware.</typeparam>
+    /// <returns>The same chain.</returns>
+    public TypeshiftBuilder WithToolMiddleware<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TMiddleware>()
+        where TMiddleware : class, IToolMiddleware
+    {
+        _services.AddScoped<IToolMiddleware, TMiddleware>();
+        return this;
+    }
 }

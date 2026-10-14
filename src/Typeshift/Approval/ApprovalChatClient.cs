@@ -30,7 +30,7 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
                 var response = await base.GetResponseAsync(call, ForMode(resolved, run.Mode), cancellationToken);
                 merged = merged is null ? response : ChatResponses.Merge(merged, response);
 
-                var answers = await DecideAsync(response.Messages, run, standing, cancellationToken);
+                var answers = await DecideAsync(response.Messages, resolved, standing, cancellationToken);
                 decided.UnionWith(answers.Select(answer => answer.RequestId));
 
                 if (!await ContinueAsync(response.Messages, answers, resolved)) return Without(merged, decided);
@@ -78,7 +78,7 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
                 }
 
                 var response = updates.ToChatResponse();
-                var answers = await DecideAsync(response.Messages, run, standing, cancellationToken);
+                var answers = await DecideAsync(response.Messages, resolved, standing, cancellationToken);
                 var answered = answers.Select(answer => answer.RequestId).ToHashSet();
 
                 foreach (var update in updates.Where(update => update.Contents.Any(IsRequest)))
@@ -219,14 +219,16 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
     // auto mode
     private static async Task<IReadOnlyList<ToolApprovalResponseContent>> DecideAsync(
         IList<ChatMessage> response,
-        AgentRun run,
+        ResolvedChatOptions options,
         HashSet<string> standing,
         CancellationToken ct)
     {
+        var run = options.AgentRun!;
         var answers = new List<ToolApprovalResponseContent>();
         var rules = run.Services.GetServices<IToolApprovalRule>().ToList();
 
-        var needing = (run.Options.Tools ?? [])
+        // The tools of this call, a context provider's included
+        var needing = (options.Tools ?? [])
             .Where(tool => tool.GetService<ApprovalRequiredAIFunction>() is not null)
             .Select(tool => tool.Name)
             .ToHashSet();

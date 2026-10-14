@@ -277,7 +277,12 @@ commit, or add a new one and withdraw the old.
 - **Decision:** `IRunMiddleware.InvokeAsync(run, next, ct)` serves streaming and non-streaming runs alike: it may
   change messages and options, read `run.Response` after `next`, or set it instead of calling `next`.
   `IToolMiddleware` wraps `FunctionInvocationContext`. Registered in the chain, in order, for every agent; a
-  middleware filters by `run.Agent`.
+  middleware filters by `run.Agent`. Changes to the messages hold for the pass; the conversation keeps what the
+  host sent. A response set without `next` is stored with the conversation. In a streaming
+  run the middleware awaits `next` while the updates go on to the caller through a channel, which reads the model's
+  stream ahead of a slow caller. A steered run passes through again for steering input that arrives after its
+  answer.
+- **Where:** `Middleware/`, `FunctionInvokingChatClient.FunctionInvoker` for tool middleware.
 - **Alternatives:** MAF's separate run and streaming delegates (streaming falls back to non-streaming when one is
   missing); per-agent middleware in the agent's chain, a second place.
 
@@ -285,8 +290,10 @@ commit, or add a new one and withdraw the old.
 
 - **Status:** approved with the sign-off.
 - **Decision:** `UseContext<T>()`; `IContextProvider.GetContextAsync(run, ct)` returns an `AgentContext` of
-  instructions, messages and tools, appended to the run's. Called once per run after resume; its messages are never
-  stored. No after-run hook: run middleware covers it.
+  instructions, messages and tools, appended to the run's. Called after resume, before the model, on each pass of
+  a run (a steered run makes more than one); its messages are never stored. Providers are resolved from the run's
+  services, or created from them when none is registered. No after-run hook: run middleware covers it.
+- **Where:** `Context/`.
 
 ### D32. Run options, with compaction inside the tool loop
 

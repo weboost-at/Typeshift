@@ -1,3 +1,4 @@
+using Typeshift.Samples.Hosting;
 using Typeshift.Samples.Knowledge;
 using Typeshift.Samples.Tickets;
 
@@ -23,6 +24,10 @@ internal partial class SupportAgent : Agent
 
         ConfigureSearchTickets()
             .WithLimit(5);
+
+        // begin-snippet: use-context
+        UseContext<CustomerProfileContext>();
+        // end-snippet
     }
 
     protected override string GetInstructions() =>
