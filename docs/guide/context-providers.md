@@ -1,6 +1,15 @@
+---
+title: Context providers
+description: Add instructions, messages or tools to every run of an agent, such as memory, retrieved documents or the customer's profile.
+---
+
 # Context providers
 
-A context provider adds to every run of the agents that use it: memory, retrieved documents, the customer's profile.
+A context provider adds context to every run of the agents that use it, such as memory, retrieved documents or the
+customer's profile. It adds instructions, messages and tools to the run, and the conversation stores none of them. So
+every run asks the provider again.
+
+## Writing a provider
 
 <!-- snippet: context-provider -->
 <a id='snippet-context-provider'></a>
@@ -17,6 +26,18 @@ internal sealed class CustomerProfileContext(ICurrentCustomer customer) : IConte
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/CustomerProfileContext.cs#L3-L12' title='Snippet source file'>snippet source</a> | <a href='#snippet-context-provider' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+`GetContextAsync` returns an `AgentContext`. Each of its parts is appended to what the run already has:
+
+| Part | Goes |
+|---|---|
+| `Instructions` | After the agent's instructions |
+| `Messages` | Ahead of the input, after the resumed conversation |
+| `Tools` | To this run only |
+
+Typeshift calls the provider after the conversation is resumed, before the model is called.
+
+## Using a provider
+
 The agent names its providers in its constructor:
 
 <!-- snippet: use-context -->
@@ -27,10 +48,21 @@ UseContext<CustomerProfileContext>();
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L32-L34' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-context' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-A provider is resolved from the run's services, or created from them when none is registered, and called after the
-conversation is resumed, before the model is called. What it returns is appended: instructions after the agent's,
-messages ahead of the input, tools to this run only. Its messages are never stored with the conversation, so every
-run asks again.
+Typeshift resolves the provider from the run's services, or creates it from them when none is registered. So a provider
+needs no registration, and its constructor can take scoped services, such as the current customer.
 
-Context tools are offered like the agent's own: one wrapped in `ApprovalRequiredAIFunction` asks for
-[approval](./tool-approval.md), and plan mode hides them, as they carry no `ReadOnly()` mark.
+## Context tools
+
+Context tools are offered like the agent's own. One wrapped in `ApprovalRequiredAIFunction` asks for
+[approval](./tool-approval.md).
+
+::: warning Plan mode hides context tools
+Context tools carry no `ReadOnly()` mark, so [plan mode](./modes.md#plan-mode) hides them.
+:::
+
+## Related
+
+- [Agents](./defining-agents.md): `UseContext<T>()` among the other calls of an agent's constructor.
+- [How a run works](./how-a-run-works.md): when context is added in a run.
+- [Middleware](./middleware.md): changing a run's messages and options, or answering in place of the model.
+- [Tool approval](./tool-approval.md): what happens when a context tool asks.
