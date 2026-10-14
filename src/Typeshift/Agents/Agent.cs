@@ -108,7 +108,8 @@ public abstract class Agent
         ContextProviders.Add(services => ActivatorUtilities.GetServiceOrCreateInstance<TProvider>(services));
 
     /// <summary>
-    /// Sets how a run goes: its tool loop's limits.
+    /// Sets how a run goes: its mode, its tool loop's limits, and when its history is compacted. Long-running agents
+    /// raise the limits and turn compaction on.
     /// </summary>
     /// <returns>The chain of run options.</returns>
     protected RunOptionsBuilder WithRunOptions() => new(this);

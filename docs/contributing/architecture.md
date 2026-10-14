@@ -90,8 +90,8 @@ modules' JSON contexts first, then Microsoft.Extensions.AI's defaults, which ref
    conversation (D46, D50), run middleware (D30), context providers (D31), approval and modes (D24, D52), author
    names on every message (D26),
    `FunctionInvokingChatClient` with the run options, the scope's services, `exit_plan_mode` and the tool
-   middleware as its function invoker, the checkpoints, and
-   the provider's client behind a wrapper that never disposes it (D29).
+   middleware as its function invoker, the checkpoints, compaction (D32), and the provider's client, instrumented
+   (D36), behind a wrapper that never disposes it (D29).
 4. The options are a `ChatOptions` subclass that remembers the run options, so the raw path's client gets them too.
 
 ## Storage
@@ -129,3 +129,12 @@ each pass of a run; in a streaming run the chain runs alongside the caller's enu
 channel. `ContextChatClient` below it asks the agent's providers and adds their instructions, messages and tools to a
 copy of the options; it marks the messages stored so the checkpoints leave them out. Tool middleware is
 `FunctionInvokingChatClient`'s function invoker (D30, D31).
+
+## Telemetry and compaction
+
+`ConversationChatClient` opens each run's `invoke_agent` span; `Telemetry.Instrument` wraps the provider's client
+for the run in Microsoft.Extensions.AI's `OpenTelemetryChatClient`, whose source the tool loop finds for its tool
+spans.
+`CompactingChatClient` sits below the checkpoints, so every step is stored before it shrinks the call. `Compaction`
+holds one run's state: the cleared results, the summary and the message it kept from, and the estimate's
+calibration (D32, D36).

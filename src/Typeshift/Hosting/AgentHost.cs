@@ -52,9 +52,12 @@ public sealed class AgentHost<TAgent> where TAgent : Agent
         var run = options is ResolvedChatOptions resolved ? resolved.RunOptions : Agent.RunOptions;
 
         // D29: outermost the conversation, then run middleware, context and approval above the tool loop, the
-        // checkpoints inside it, and innermost the provider's client behind a wrapper that never disposes it
+        // checkpoints and compaction inside it, and innermost the provider's client, instrumented, behind a wrapper
+        // that never disposes it
+        var provided = Telemetry.Instrument(client);
+
         var loop = new FunctionInvokingChatClient(
-            new CheckpointChatClient(new UndisposedChatClient(client)),
+            new CheckpointChatClient(new CompactingChatClient(provided)),
             _services.GetService<ILoggerFactory>(),
             _services)
         {

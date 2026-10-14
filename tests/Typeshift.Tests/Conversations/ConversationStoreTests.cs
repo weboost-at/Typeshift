@@ -9,7 +9,7 @@ namespace Typeshift.Tests.Conversations;
 public class ConversationStoreTests : AgentTestBase
 {
     [Fact]
-    public void Given_An_Entry_With_Calls_Results_And_Usage_It_Reads_Back_The_Same()
+    public void Given_An_Entry_With_Every_Member_Set_It_Reads_Back_The_Same()
     {
         // Arrange
         var entry = new ConversationEntry(
@@ -25,7 +25,9 @@ public class ConversationStoreTests : AgentTestBase
         {
             Model = ProbeAgent.Model,
             Usage = new UsageDetails { InputTokenCount = 12, OutputTokenCount = 3, TotalTokenCount = 15 },
-            EndsRun = true
+            EndsRun = true,
+            Mode = AgentMode.Auto,
+            IsSummary = true
         };
 
         // Act

@@ -51,6 +51,9 @@ internal static class OptionMembers
         new("Mode", "Mode", "global::Typeshift.AgentMode?", "{0}", Mode),
         new("MaxToolIterations", "MaxToolIterations", "int?", "{0}", Integer),
         new("MaxConsecutiveToolErrors", "MaxConsecutiveToolErrors", "int?", "{0}", Integer),
-        new("ConcurrentToolCalls", "ConcurrentToolCalls", "bool?", "{0}", Flag)
+        new("ConcurrentToolCalls", "ConcurrentToolCalls", "bool?", "{0}", Flag),
+        new("MaxInputTokens", "MaxInputTokens", "int?", "{0}", Integer),
+        new("TargetInputTokens", "TargetInputTokens", "int?", "{0}", Integer),
+        new("SummaryModel", "SummaryModel", "string?", "{0}", Text)
     ];
 }

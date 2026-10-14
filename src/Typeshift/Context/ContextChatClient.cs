@@ -55,7 +55,7 @@ internal sealed class ContextChatClient(IChatClient inner) : DelegatingChatClien
             at += context.Messages.Count;
 
             options.Tools = [.. options.Tools ?? [], .. context.Tools];
-            resolved.ConversationRun?.MarkStored(context.Messages);
+            resolved.ConversationRun?.MarkTransient(context.Messages);
         }
 
         return (call, options);

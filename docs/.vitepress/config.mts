@@ -38,7 +38,9 @@ export default defineConfig({
             { text: 'Tool approval', link: '/guide/tool-approval' },
             { text: 'Plan and auto modes', link: '/guide/modes' },
             { text: 'Middleware', link: '/guide/middleware' },
-            { text: 'Context providers', link: '/guide/context-providers' }
+            { text: 'Context providers', link: '/guide/context-providers' },
+            { text: 'Long-running agents', link: '/guide/long-running-agents' },
+            { text: 'Observability', link: '/guide/observability' }
           ]
         },
         {

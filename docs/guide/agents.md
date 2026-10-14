@@ -52,9 +52,10 @@ a model the agent does not allow. The model, the instructions, the sampling opti
 
 ## Run options
 
-`WithRunOptions()` sets how a run's tool loop goes: the [mode](./modes.md) it starts in, the most model calls a run
-makes (40 unless set), the most tool calls in a row that may fail (3), and whether the calls of one response run at
-the same time. `Configurable` marks those a run may change:
+`WithRunOptions()` sets how a run's tool loop goes: the [mode](./modes.md) it starts in, the most rounds of tool
+calls a run makes (40 unless set), the most tool calls in a row that may fail (3), whether the calls of one response
+run at the same time, and when the history is [compacted](./long-running-agents.md#compaction). `Configurable` marks
+those a run may change:
 
 <!-- snippet: run-options -->
 <!-- endSnippet -->

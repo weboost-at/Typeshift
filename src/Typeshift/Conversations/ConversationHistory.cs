@@ -10,7 +10,9 @@ internal static class ConversationHistory
 {
     public static List<ChatMessage> From(IReadOnlyList<ConversationEntry> entries)
     {
-        var messages = entries.SelectMany(entry => entry.Messages).ToList();
+        // D32: compaction stored what it left of the history; what came before is in it
+        var start = Math.Max(0, entries.ToList().FindLastIndex(entry => entry.IsSummary));
+        var messages = entries.Skip(start).SelectMany(entry => entry.Messages).ToList();
         var contents = messages.SelectMany(message => message.Contents).ToList();
 
         var answered = contents.OfType<FunctionResultContent>().Select(result => result.CallId).ToHashSet();

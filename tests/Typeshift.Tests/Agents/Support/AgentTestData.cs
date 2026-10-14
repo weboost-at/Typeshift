@@ -23,4 +23,8 @@ public class AgentTestData(Faker faker)
         new TestValue<int>(faker.Random.Int(1, 4999)).SetUpdated(faker.Random.Int(5000, 9999));
 
     public string Reason { get; } = faker.Lorem.Sentence();
+
+    public long InputTokens { get; } = faker.Random.Long(100, 100_000);
+
+    public long OutputTokens { get; } = faker.Random.Long(1, 99);
 }

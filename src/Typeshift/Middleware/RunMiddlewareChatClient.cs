@@ -106,7 +106,7 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
 
     // What middleware changed in the messages holds for this pass only: the conversation keeps what the host sent
     private static void Keep(AgentRun run, ResolvedChatOptions options) =>
-        options.ConversationRun?.MarkStored(run.Messages);
+        options.ConversationRun?.MarkTransient(run.Messages);
 
     private static async Task RunChainAsync(
         List<IRunMiddleware> middleware,

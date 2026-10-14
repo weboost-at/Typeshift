@@ -52,8 +52,14 @@ public sealed class AgentRun
     /// </summary>
     public ChatResponse? Response { get; set; }
 
+    // The run's invoke_agent span, when one is recorded (D36)
+    internal System.Diagnostics.Activity? Activity { get; init; }
+
     // Where the input starts in the messages, after the resumed conversation; context goes in ahead of it (D31)
     internal int InputStart { get; init; }
+
+    // What compaction did so far in this run, once it did anything (D32)
+    internal Compaction? Compaction { get; set; }
 
     // The model calls the run made so far, which the tool loop's rounds share (D32)
     internal int ModelCalls { get; set; }

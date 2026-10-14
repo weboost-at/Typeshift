@@ -38,5 +38,10 @@ The library was rebuilt from the API its owner approved; nothing of the unreleas
 - Middleware and context: `IRunMiddleware` around every run, streaming or not, `IToolMiddleware` around every tool
   call (`WithRunMiddleware<T>()`, `WithToolMiddleware<T>()`), and `IContextProvider`s an agent names with
   `UseContext<T>()`, which add instructions, messages and tools to each run.
+- Compaction: `WithMaxInputTokens`, `WithTargetInputTokens` and `WithSummaryModel` shrink a long run's history
+  before each model call, clearing old tool results, then summarizing or dropping the oldest turns; the summary is
+  stored, and later runs start from it.
+- OpenTelemetry: the `Typeshift` source and meter trace each run as `invoke_agent`, with `chat` and `execute_tool`
+  spans inside, after the GenAI semantic conventions.
 - An analyzer reports every Typeshift diagnostic at real source locations, so `#pragma` and `.editorconfig` reach
   them; a suppressor drops CS1573 for tool parameters the model never sees.

@@ -17,7 +17,7 @@ public sealed class RunOptionsBuilder
     public RunOptionsBuilder WithMode(AgentMode mode) => Set(options => options with { Mode = mode });
 
     /// <summary>
-    /// The most model calls one run's tool loop makes; 40 unless set.
+    /// The most rounds of tool calls one run makes; 40 unless set.
     /// </summary>
     /// <param name="iterations">The calls.</param>
     /// <returns>The same chain.</returns>
@@ -39,6 +39,31 @@ public sealed class RunOptionsBuilder
     /// <returns>The same chain.</returns>
     public RunOptionsBuilder WithConcurrentToolCalls(bool concurrent) =>
         Set(options => options with { ConcurrentToolCalls = concurrent });
+
+    /// <summary>
+    /// Turns compaction on: before each model call whose input reaches this many tokens, the history the model sees
+    /// shrinks to <see cref="WithTargetInputTokens"/>.
+    /// </summary>
+    /// <param name="tokens">The input tokens.</param>
+    /// <returns>The same chain.</returns>
+    public RunOptionsBuilder WithMaxInputTokens(int tokens) =>
+        Set(options => options with { MaxInputTokens = tokens });
+
+    /// <summary>
+    /// How far compaction shrinks the history; half of <see cref="WithMaxInputTokens"/> unless set.
+    /// </summary>
+    /// <param name="tokens">The input tokens.</param>
+    /// <returns>The same chain.</returns>
+    public RunOptionsBuilder WithTargetInputTokens(int tokens) =>
+        Set(options => options with { TargetInputTokens = tokens });
+
+    /// <summary>
+    /// The model that summarizes what clearing tool results did not free; without one, the oldest turns are dropped.
+    /// </summary>
+    /// <param name="model">The model, as the chat client provider knows it.</param>
+    /// <returns>The same chain.</returns>
+    public RunOptionsBuilder WithSummaryModel(string model) =>
+        Set(options => options with { SummaryModel = model });
 
     // D5: the generator reads the pick; at runtime the call declares nothing
     /// <summary>
@@ -67,7 +92,7 @@ public sealed record RunOptions
     public AgentMode Mode { get; init; }
 
     /// <summary>
-    /// The most model calls one run's tool loop makes.
+    /// The most rounds of tool calls one run makes.
     /// </summary>
     public int MaxToolIterations { get; init; } = 40;
 
@@ -80,6 +105,21 @@ public sealed record RunOptions
     /// Whether the tool calls of one model response run at the same time.
     /// </summary>
     public bool ConcurrentToolCalls { get; init; }
+
+    /// <summary>
+    /// The input tokens at which the history is compacted; null leaves it whole.
+    /// </summary>
+    public int? MaxInputTokens { get; init; }
+
+    /// <summary>
+    /// The input tokens compaction shrinks the history to; null for half of <see cref="MaxInputTokens"/>.
+    /// </summary>
+    public int? TargetInputTokens { get; init; }
+
+    /// <summary>
+    /// The model that summarizes the oldest turns; null drops them.
+    /// </summary>
+    public string? SummaryModel { get; init; }
 }
 
 /// <summary>

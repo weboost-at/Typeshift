@@ -34,6 +34,12 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
     /// </summary>
     public AgentMode? Mode { get; init; }
 
+    /// <summary>
+    /// Whether the entry holds what compaction left of the history: a summary and the messages kept after it. A
+    /// later run starts from the latest such entry.
+    /// </summary>
+    public bool IsSummary { get; init; }
+
     /// <inheritdoc />
     public static string Kind => "conversation_entry";
 
@@ -57,6 +63,7 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
 
             if (EndsRun) writer.WriteBoolean("endsRun", true);
             if (Mode is { } mode) writer.WriteString("mode", mode.ToString());
+            if (IsSummary) writer.WriteBoolean("isSummary", true);
 
             writer.WriteStartArray("messages");
 
@@ -95,7 +102,8 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
                 ? usage.Deserialize(Contract<UsageDetails>())
                 : null,
             EndsRun = StorableJson.TryRead(StorableJson.Member(root, "endsRun"), out bool ends) && ends,
-            Mode = StorableJson.TryReadEnum(StorableJson.Member(root, "mode"), out AgentMode mode) ? mode : null
+            Mode = StorableJson.TryReadEnum(StorableJson.Member(root, "mode"), out AgentMode mode) ? mode : null,
+            IsSummary = StorableJson.TryRead(StorableJson.Member(root, "isSummary"), out bool summary) && summary
         };
     }
 

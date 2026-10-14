@@ -62,4 +62,13 @@ internal static class Registration
             .WithApprovalRule<ShellGuard>();
         // end-snippet
     }
+
+    public static void ShowOpenTelemetry(IServiceCollection services)
+    {
+        // begin-snippet: open-telemetry
+        services.AddOpenTelemetry()
+            .WithTracing(tracing => tracing.AddSource("Typeshift"))
+            .WithMetrics(metrics => metrics.AddMeter("Typeshift"));
+        // end-snippet
+    }
 }

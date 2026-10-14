@@ -24,6 +24,8 @@ their descriptions from XML docs, which the compiler reads only then, and withou
 - Conversations stored step by step: resume after a crash, steer a run going on, watch it live.
 - Tool approval with standing approvals and rules, and built-in plan and auto modes.
 - Middleware around runs and tool calls, and context providers that add to every run.
+- Long runs that stay within their context: compaction before every model call, with summaries stored.
+- OpenTelemetry traces and metrics after the GenAI conventions, always on.
 - Compile-time diagnostics instead of runtime surprises.
 
 ## Learn more

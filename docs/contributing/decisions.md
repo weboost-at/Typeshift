@@ -263,8 +263,8 @@ commit, or add a new one and withdraw the old.
 ### D29. The chat client pipeline
 
 - **Status:** approved with the sign-off.
-- **Decision:** outermost first: conversation tracking (resume, run boundaries, live updates), run middleware,
-  context providers, the `invoke_agent` span, approval (standing approvals and rules), `FunctionInvokingChatClient`
+- **Decision:** outermost first: conversation tracking (resume, run boundaries, live updates, the `invoke_agent`
+  span), run middleware, context providers, approval (standing approvals and rules), `FunctionInvokingChatClient`
   (handoff, run options, tool middleware as its `FunctionInvoker`), checkpoints (each step appended before compaction
   sees it; steering input and background answers injected here), compaction, `OpenTelemetryChatClient`, the
   provider's client behind a wrapper that never disposes it.
@@ -307,6 +307,13 @@ commit, or add a new one and withdraw the old.
   cleared first (calls kept), then the oldest turns summarized (or dropped without a summary model). Instructions,
   the latest `write_todos` call and call/result pairs stay; the summary is stored as an entry later runs start from.
   Without reported usage, tokens are estimated from the text.
+- **As built:** the estimate counts characters (four to a token) over the messages, the instructions and the tool
+  schemas, calibrated by the tokens the provider reported for the run's last call. Only results the model already
+  answered after are cleared. What compaction did holds for the rest of the run: the tool loop keeps the whole
+  history, so each later call gets the same cleared results and summary. The summary entry holds the summary, the
+  kept todo list and copies of the kept messages, so a later run starts from that entry alone. Rounds the approval
+  layer continues share `MaxToolIterations`.
+- **Where:** `Compaction/`, `Approval/ApprovalChatClient.cs` for the shared limit.
 - **Alternatives:** MAF's strategy pipeline and trigger combinators, more concepts for the same two steps; a
   tokenizer dependency; message-count triggers, which ignore that one tool result may outweigh a hundred messages; a
   separate `WithCompaction()` chain next to the limits.
@@ -345,6 +352,12 @@ commit, or add a new one and withdraw the old.
 - **Status:** approved with the sign-off.
 - **Decision:** source and meter `Typeshift`, GenAI conventions (`invoke_agent`, `chat`, `execute_tool`, operation
   duration, token usage); message content only with `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`. No API.
+- **As built:** the conversation layer opens the `invoke_agent` span, so it covers middleware and context too.
+  Microsoft.Extensions.AI's `OpenTelemetryChatClient` writes the chat spans and the metrics, one per run, disposed
+  with it, since a provider may hand out a client per call; the tool loop writes `execute_tool` spans with its
+  source. A store that fails records
+  the exception on the run's span.
+- **Where:** `Telemetry/Telemetry.cs`.
 
 ### D37. The built-in toolsets
 

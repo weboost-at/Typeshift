@@ -14,8 +14,8 @@ the slices build it one at a time.
 | 4. Conversations: checkpoints, resume, live updates, steering | built |
 | 5. Approval, rules, plan and auto modes | built |
 | 6. Middleware, context providers | built |
-| 7. Telemetry, compaction | next |
-| 8. Sub-agents, handoff | open |
+| 7. Telemetry, compaction | built |
+| 8. Sub-agents, handoff | next |
 | 9. MCP, built-in toolsets | open |
 | 10. Native AOT: the console sample, the package consumer | open |
 
@@ -77,6 +77,9 @@ The numbers are the rules of v0's behavior table where they still hold.
 | new | Streaming runs pass through run middleware, which reads the response once the stream ended (D30) | `RunMiddlewareTests.Given_A_Streaming_Run_The_Middleware_Reads_The_Response_Once_The_Stream_Ended`, `..._Given_A_Streaming_Run_Middleware_That_Answers_Is_Streamed`, `..._Given_A_Streaming_Run_Left_Early_The_Run_Ends_With_What_Arrived` |
 | new | Tool middleware wraps calls in order and may answer in place of the tool (D30) | `ToolMiddlewareTests` |
 | new | Context providers add instructions, unstored messages ahead of the input, and tools (D31) | `ContextProviderTests` |
+| new | A run is an `invoke_agent` span around its chat and tool spans, with usage and errors (D36) | `TelemetryTests` |
+| new | Compaction clears the oldest read results, then summarizes or drops the oldest turns, by calibrated estimate (D32) | `CompactionTests` |
+| new | A summary is stored, and later runs start from it (D32) | `CompactionTests.Given_A_Summary_Later_Runs_Start_From_It` |
 
 ## Known gaps
 
@@ -99,3 +102,6 @@ The numbers are the rules of v0's behavior table where they still hold.
   servers marked `ReadOnly()` and a sub-agent's inherited mode come with slices 8 and 9.
 - **Run limit across approval rounds:** rounds the approval layer continues share the run's `MaxToolIterations`; a
   round that runs tools before it asks again may run one round of tools past it.
+- **Compaction's estimate:** about four characters to a token, corrected by the provider's report of the run's
+  last call; a run's first call trusts the estimate alone. The summary model reads results cut to 2,000 characters.
+- **Compaction across steering:** a steered run's later pass compacts afresh, summarizing again if it needs to.

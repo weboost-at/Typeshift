@@ -19,6 +19,9 @@ internal sealed class ConversationRun(
     private readonly List<(int Position, ChatMessage Message)> _injected = [];
     private readonly HashSet<AIContent> _stored = new(ReferenceEqualityComparer.Instance);
 
+    // What context providers and run middleware added, which the conversation never stores
+    private readonly HashSet<AIContent> _transient = new(ReferenceEqualityComparer.Instance);
+
     // A streamed response is stored as the updates make it; the tool loop builds its own messages from the same
     // updates, so the first ones it hands on next are those, already stored
     private int _streamedUnmatched;
@@ -43,6 +46,18 @@ internal sealed class ConversationRun(
             _stored.Add(content);
         }
     }
+
+    public void MarkTransient(IEnumerable<ChatMessage> messages)
+    {
+        var added = messages.SelectMany(message => message.Contents).Where(content => !_stored.Contains(content));
+
+        foreach (var content in added)
+        {
+            _transient.Add(content);
+        }
+    }
+
+    public bool IsTransient(ChatMessage message) => message.Contents.Any(_transient.Contains);
 
     // The tool loop's list with the steering input put back where it went in; the steps not stored yet (tool results)
     // are stored, then the steering input waiting is taken in and stored (D51)
@@ -82,6 +97,9 @@ internal sealed class ConversationRun(
             error is null ? [] : [new ChatMessage(ChatRole.Assistant, [new ErrorContent(error)])],
             endsRun: true);
 
+    // D32: what compaction left of the history, which later runs start from
+    public Task AppendSummaryAsync(IReadOnlyList<ChatMessage> messages) => AppendAsync(messages, summary: true);
+
     public async Task AppendResponseAsync(ChatResponse response, ChatOptions? options, bool streamed)
     {
         await AppendAsync([.. response.Messages], response.ModelId ?? options?.ModelId, response.Usage);
@@ -93,7 +111,8 @@ internal sealed class ConversationRun(
         IReadOnlyList<ChatMessage> messages,
         string? model = null,
         UsageDetails? usage = null,
-        bool endsRun = false)
+        bool endsRun = false,
+        bool summary = false)
     {
         foreach (var message in messages)
         {
@@ -107,7 +126,8 @@ internal sealed class ConversationRun(
             Model = model,
             Usage = usage,
             EndsRun = endsRun,
-            Mode = endsRun ? run.Mode : null
+            Mode = endsRun ? run.Mode : null,
+            IsSummary = summary
         };
 
         try
@@ -117,17 +137,20 @@ internal sealed class ConversationRun(
         catch (Exception exception)
         {
             logger.LogError(exception, "Conversation {Conversation} could not store a step.", Conversation);
+            run.Activity?.AddException(exception);
         }
     }
 
     // The contents of a message not stored yet, as a message of their own; null when all are
     private ChatMessage? Unstored(ChatMessage message)
     {
-        if (message.Contents.All(_stored.Contains)) return null;
-        if (!message.Contents.Any(_stored.Contains)) return message;
+        if (message.Contents.All(IsKnown)) return null;
+        if (!message.Contents.Any(IsKnown)) return message;
 
         var step = message.Clone();
-        step.Contents = [.. message.Contents.Where(content => !_stored.Contains(content))];
+        step.Contents = [.. message.Contents.Where(content => !IsKnown(content))];
         return step;
     }
+
+    private bool IsKnown(AIContent content) => _stored.Contains(content) || _transient.Contains(content);
 }

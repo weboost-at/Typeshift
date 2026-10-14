@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,9 +7,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Typeshift;
 
-// D46, D50: outermost, around the tool loop. It begins every run (its AgentRun and mode), and for a run with a
-// conversation resumes it, marks where the run begins and ends, keeps a steered run going until its input was
-// answered, and publishes the updates of streaming runs (D47). The provider never receives the conversation id
+// D46, D50: outermost, around the tool loop. It begins every run (its AgentRun, mode and invoke_agent span, D36),
+// and for a run with a conversation resumes it, marks where the run begins and ends, keeps a steered run going until
+// its input was answered, and publishes the updates of streaming runs (D47). The provider never receives the
+// conversation id
 internal sealed class ConversationChatClient(IChatClient inner, Agent agent, IServiceProvider services)
     : DelegatingChatClient(inner)
 {
@@ -17,7 +19,62 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        var (run, call, runOptions) = await BeginAsync(messages, options, cancellationToken);
+        using var activity = Telemetry.StartRun(agent, options);
+
+        try
+        {
+            var response = await RunAsync(messages, options, activity, cancellationToken);
+            Telemetry.Answered(activity, response.Usage);
+            return response;
+        }
+        catch (Exception exception)
+        {
+            Telemetry.Failed(activity, exception);
+            throw;
+        }
+    }
+
+    public override async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+        IEnumerable<ChatMessage> messages,
+        ChatOptions? options = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        using var activity = Telemetry.StartRun(agent, options);
+        var usage = new UsageDetails();
+
+        await using var updates = RunStreamingAsync(messages, options, activity, cancellationToken)
+            .GetAsyncEnumerator(cancellationToken);
+
+        while (true)
+        {
+            try
+            {
+                if (!await updates.MoveNextAsync()) break;
+            }
+            catch (Exception exception)
+            {
+                Telemetry.Failed(activity, exception);
+                throw;
+            }
+
+            foreach (var content in updates.Current.Contents.OfType<UsageContent>())
+            {
+                usage.Add(content.Details);
+            }
+
+            yield return updates.Current;
+        }
+
+        Telemetry.Answered(activity, usage);
+    }
+
+    private async Task<ChatResponse> RunAsync(
+        IEnumerable<ChatMessage> messages,
+        ChatOptions? options,
+        Activity? activity,
+        CancellationToken cancellationToken)
+    {
+        var (run, call, runOptions) = await BeginAsync(messages, options, activity, cancellationToken);
 
         if (run is null) return await base.GetResponseAsync(call, runOptions, cancellationToken);
 
@@ -48,12 +105,13 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         }
     }
 
-    public override async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+    private async IAsyncEnumerable<ChatResponseUpdate> RunStreamingAsync(
         IEnumerable<ChatMessage> messages,
-        ChatOptions? options = null,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        ChatOptions? options,
+        Activity? activity,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        var (run, call, runOptions) = await BeginAsync(messages, options, cancellationToken);
+        var (run, call, runOptions) = await BeginAsync(messages, options, activity, cancellationToken);
 
         if (run is null)
         {
@@ -119,6 +177,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     private async Task<(ConversationRun? Run, List<ChatMessage> Call, ResolvedChatOptions Options)> BeginAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options,
+        Activity? activity,
         CancellationToken ct)
     {
         var input = messages.ToList();
@@ -127,7 +186,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
         if (GetConversation(runOptions) is not { } conversation)
         {
-            runOptions.AgentRun = new AgentRun(agent, input, runOptions, services, mode);
+            runOptions.AgentRun = new AgentRun(agent, input, runOptions, services, mode) { Activity = activity };
             return (null, input, runOptions);
         }
 
@@ -146,7 +205,11 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
         var history = ConversationHistory.From(entries);
         List<ChatMessage> call = [.. history, .. input];
-        var agentRun = new AgentRun(agent, call, runOptions, services, mode) { InputStart = history.Count };
+        var agentRun = new AgentRun(agent, call, runOptions, services, mode)
+        {
+            InputStart = history.Count,
+            Activity = activity
+        };
 
         var logger = (services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance)
             .CreateLogger<ConversationChatClient>();
