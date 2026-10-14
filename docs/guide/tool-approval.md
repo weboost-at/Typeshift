@@ -104,13 +104,10 @@ internal sealed class ShellGuard : IToolApprovalRule
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/ShellGuard.cs#L5-L17' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-A rule sees the arguments the model sent, so it decides on exactly the call that runs. What an abstention means
-depends on the [mode](./modes.md): the host is asked in the default mode, the call runs in auto mode.
-
-::: warning
-Approve only what you can read in full: a command that looks harmless may run code the model wrote, so the rule
-above only rejects, and leaves the rest to the host ([the shell](./built-in-toolsets.md#shell)).
-:::
+A rule sees the arguments the model sent, so it decides on exactly the call that runs. Approve only what you can
+read in full: a command that looks harmless may run code the model wrote, so the rule above only rejects, and leaves
+the rest to the host ([the shell](./built-in-toolsets.md#shell)). What an abstention means depends on the
+[mode](./modes.md): the host is asked in the default mode, the call runs in auto mode.
 
 ## MCP servers
 

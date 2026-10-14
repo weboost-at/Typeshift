@@ -91,25 +91,19 @@ Paths are relative to the root; absolute paths, `..` and links that lead outside
 why. The three reading tools are `ReadOnly()`, so plan mode offers them; `delete_file` needs approval. For read-only
 access, include only `read_file`, `list_files` and `search_files`. `FileSystemSettings` limits how many lines, how
 long a line and how many characters a read or a search returns. A search pattern is a .NET regular expression,
-matched in linear time where it allows it.
-
-::: warning
-Like the shell's, the root is not a sandbox: a link swapped in while a tool runs still leads outside, so give each
-customer a container when the workspace holds what others must not reach.
-:::
+matched in linear time where it allows it. Like the shell's, the root is not a sandbox: a link swapped in while a
+tool runs still leads outside, so give each customer a container when the workspace holds what others must not
+reach.
 
 ## Shell
 
 `run_command` runs a command in the root and needs approval for every call; an
-[approval rule](./tool-approval.md#approval-rules) rejects the commands you never allow. `ShellSettings` set the
-shell, the timeout and how much output the model receives (its start and its end). A process a command leaves
-running in the background outlives the call, which returns at the timeout.
-
-::: warning
-Approving a command without asking is rarely safe: while `write_file` runs unasked, the model can write the
-configuration or the code that `git status` or `dotnet test` then runs. The root is the working folder, not a
-sandbox: run the host in a container when commands must not reach further.
-:::
+[approval rule](./tool-approval.md#approval-rules) rejects the commands you never allow. Approving a command
+without asking is rarely safe: while `write_file` runs unasked, the model can write the configuration or the code that
+`git status` or `dotnet test` then runs. `ShellSettings` set the shell, the timeout and how much output the model
+receives (its start and its end). A process a command leaves running in the background outlives the call, which
+returns at the timeout. The root is the working folder, not a sandbox: run the host in a container when commands must
+not reach further.
 
 ## Web
 
@@ -133,10 +127,6 @@ internal sealed class SearchApi(HttpClient http) : IWebSearch
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/SearchApi.cs#L7-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-web-search' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`web_fetch` takes absolute http and https URLs only.
-
-::: warning
-The model picks the URLs, so a fetcher on the host's network must refuse loopback, private and link-local addresses
-where it connects (`SocketsHttpHandler.ConnectCallback`), or the model reads the cloud's metadata service. Search
-results and fetched pages are untrusted text, never instructions.
-:::
+`web_fetch` takes absolute http and https URLs only, and the model picks them: a fetcher on the host's network
+refuses loopback, private and link-local addresses where it connects (`SocketsHttpHandler.ConnectCallback`), or the
+model reads the cloud's metadata service. Search results and fetched pages are untrusted text, never instructions.

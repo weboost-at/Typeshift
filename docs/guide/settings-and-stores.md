@@ -5,8 +5,23 @@ Both go through one interface you implement once, with your id type.
 
 ## The id type
 
-Ids are of the build's [id type](./registration.md#the-id-type), `Guid` unless `TypeshiftIdType` names another. The
-store implements `ITypeshiftStore`, the alias the generator writes for it; the library never creates ids.
+The id type is `Guid` unless `Directory.Build.props` names another:
+
+<!-- snippet: id-type -->
+<a id='snippet-id-type'></a>
+```csproj
+<PropertyGroup>
+  <TypeshiftIdType>int</TypeshiftIdType>
+</PropertyGroup>
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Typeshift.Samples.Docs.csproj#L5-L9' title='Snippet source file'>snippet source</a> | <a href='#snippet-id-type' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Every project that uses Typeshift sees it: generated members take it (`RunAsync(input, settingsId: 42)`), and
+`ITypeshiftStore`, `InMemoryTypeshiftStore`, `ConversationTracker` and `LiveRun` are aliases the generator writes
+for it. A referenced project built
+with another id type is [TSH021](./diagnostics.md#tsh021); a store of another is [TSH028](./diagnostics.md#tsh028).
+The library never creates ids.
 
 ## The store
 
@@ -21,13 +36,15 @@ store implements `ITypeshiftStore`, the alias the generator writes for it; the l
 
 Documents serialize themselves: `Serialize()` and `TData.Deserialize(json, version)`. Next to the JSON, a store keeps:
 
-- **the kind**, `TData.Kind`: a stable name, the agent's class name unless `WithStorageKind` pins another;
+- **the kind**, `TData.Kind`: a stable name. For an agent's settings it is the class name, so moving an agent to
+  another namespace keeps its data; `WithStorageKind("support")` in the agent pins it, so renaming the class keeps it
+  too. Two agents of one kind are [TSH022](./diagnostics.md#tsh022);
 - **the version**, `TData.Version`, handed back to `Deserialize`, which refuses a version newer than its code's. A
   store migrates older documents if it needs to;
 - **the revision**, for optimistic concurrency.
 
-Key documents by kind and id: under one settings id, each agent has its own document, since each agent's `Settings`
-is its own kind. [Generated members](./generated-members.md#settings) describes the kind and the version.
+What a settings id stands for is the host's choice: a customer, a team, a user, or a settings profile of its own.
+Under one settings id, each agent has its own document, since each agent's `Settings` is its own kind.
 
 ## Registering a store
 
@@ -233,6 +250,23 @@ catch (StoreConflictException)
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L23-L34' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-and-save-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-What is stored is the record's JSON. `System.Text.Json` writes and reads the same JSON, so an endpoint that binds
-`SupportAgent.Settings` speaks the stored shape; [generated members](./generated-members.md#settings) shows it, and
-how renamed or removed members read.
+What is stored is the record's JSON: camelCase, tools nested under `"tools"` by name, nulls left out.
+
+```json
+{
+  "model": "reasoning-model",
+  "instructions": "Answer in German.",
+  "tools": {
+    "search_tickets": {
+      "limit": 20
+    }
+  }
+}
+```
+
+`System.Text.Json` writes and reads the same JSON, so an endpoint that binds `SupportAgent.Settings` speaks the stored
+shape. A member that does not read, mistyped or unknown, keeps the layer below; a stored record or class is replaced
+as a whole, its missing members taking their defaults.
+
+A configurable member renamed or removed reads as missing. When that matters, raise the agent's settings version with
+`WithSettingsVersion(2)` and migrate the documents of the older version in the store.

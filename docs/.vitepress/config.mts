@@ -49,6 +49,7 @@ export default defineConfig({
             { text: 'MCP servers', link: '/guide/mcp' },
             { text: 'Multiple agents', link: '/guide/multi-agent' },
             { text: 'Long-running agents', link: '/guide/long-running-agents' },
+            { text: 'Observability', link: '/guide/observability' },
             { text: 'Built-in toolsets', link: '/guide/built-in-toolsets' },
             { text: 'Native AOT', link: '/guide/native-aot' }
           ]
@@ -60,7 +61,6 @@ export default defineConfig({
             { text: 'Builders', link: '/guide/builders' },
             { text: 'Generated members', link: '/guide/generated-members' },
             { text: 'Agent host', link: '/guide/agent-host' },
-            { text: 'Observability', link: '/guide/observability' },
             { text: 'Diagnostics', link: '/guide/diagnostics' }
           ]
         }

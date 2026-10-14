@@ -61,9 +61,15 @@ WithRunOptions()
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L21-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-long-running-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Runs start in [plan mode](./modes.md#plan-mode), may make 500 rounds of tool calls instead of 40, and are
-[compacted](#compaction) at 150,000 input tokens, with `fast-model` summarizing what clearing old tool results does
-not free. [Builders](./builders.md#runoptionsbuilder) lists every run option with its default.
+| Option | Default | Does |
+|---|---|---|
+| `WithMode` | `Default` | The [mode](./modes.md) runs start in: `Default`, `Plan` or `Auto`. |
+| `WithMaxToolIterations` | 40 | The most rounds of tool calls one run makes. |
+| `WithMaxConsecutiveToolErrors` | 3 | The most failed tool calls in a row before the run ends. |
+| `WithConcurrentToolCalls` | off | Runs the tool calls of one model response at the same time. |
+| `WithMaxInputTokens` | off | Turns compaction on. |
+| `WithTargetInputTokens` | half the maximum | How far compaction shrinks the history. |
+| `WithSummaryModel` | none | Summarizes what clearing tool results did not free. |
 
 `Configurable(r => r.MaxToolIterations)` puts an option into the agent's `Settings`, like a chat option, so stored
 settings or a run may change it.
@@ -83,13 +89,46 @@ the run see the same compaction. The stored conversation keeps everything, and w
 and the messages after it, is stored as an entry of its own, so later runs start from it instead of summarizing
 again.
 
-## Crashes and steering
+## Checkpoints
 
-A run is stored as it goes, each step the moment it exists, so a host that crashes mid-run loses at most the call in
-flight, and [`ResumeAsync`](./conversations.md#resuming) continues the run from its last stored step. Tools with side
-effects should be safe to call twice, since a call interrupted while it ran is left out when the run continues.
+A run is stored as it goes: its input, every model response and every tool result, each the moment it exists. A host
+that crashes mid-run loses at most the call in flight. Tools with side effects should be safe to call twice, since
+a call interrupted while it ran is left out when the run continues.
 
-A user can [steer](./conversations.md#steering) a run while it works, or stop it by cancelling its token.
+## Resuming
+
+`ResumeAsync` continues a conversation's interrupted run from its last stored step, without new input:
+
+<!-- snippet: resume -->
+<a id='snippet-resume'></a>
+```cs
+var resumed = await support.ResumeAsync(interrupted, settingsId);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L61-L63' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+A new run on that conversation works too: it starts from the interrupted run's steps, followed by its own input.
+Typeshift runs one run per conversation at a time in a process; across processes, the host makes sure of it.
+
+## Steering
+
+A user can steer a run while it works: `TrySteer` hands input to the run of the conversation going on in this
+process. The model receives it before its next call, the run does not end before it has, and it is stored with the
+conversation like any input. With no run going on here, or one that is already ending, start a run with the input
+instead:
+
+<!-- snippet: steering -->
+<a id='snippet-steering'></a>
+```cs
+var input = "Send me the invoice too.";
+
+if (!tracker.TrySteer(conversationId, input))
+    await support.RunAsync(input, settingsId, conversationId);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L48-L53' title='Snippet source file'>snippet source</a> | <a href='#snippet-steering' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+To stop a run instead, cancel its token; it is stored up to where it stopped.
 
 ## Sub-agents
 

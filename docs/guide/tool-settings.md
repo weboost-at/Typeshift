@@ -58,9 +58,11 @@ The generator reads the picks; their lambdas never run, and a pick must be `s =>
 ([TSH015](./diagnostics.md#tsh015)). Obsolete members stay out on their own. A configurable member needs a public
 `set` or `init` accessor ([TSH013](./diagnostics.md#tsh013)).
 
-A configurable member's type is one settings can store: scalars, enums, records and classes of storable members,
-collections and dictionaries of them. [Builders](./builders.md#configurable-members) lists them
-([TSH012](./diagnostics.md#tsh012)).
+A configurable member's type is one settings can store ([TSH012](./diagnostics.md#tsh012)): strings, Booleans,
+numbers, enums (stored by name), `Guid`, `DateTime`, `DateTimeOffset`, `TimeSpan`, `DateOnly`, `TimeOnly` and `Uri`;
+records and classes with a public parameterless constructor whose settable members are storable, replaced as a whole,
+never merged; arrays, lists and sets of storable values; dictionaries keyed by `string` or an enum. A type that
+contains itself is not storable.
 
 ## Receiving settings in the tool
 
@@ -83,16 +85,20 @@ public static IReadOnlyList<Ticket> SearchTickets(
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketToolset.cs#L30-L40' title='Snippet source file'>snippet source</a> | <a href='#snippet-read-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-## Changing settings at runtime
+## The generated overrides
 
 For a tool with configurable members, the generator writes a `{Tool}Overrides` record into the toolset,
-`TicketToolset.SearchTicketsOverrides`, with each configurable member nullable; see
-[generated members](./generated-members.md#tool-overrides). Each agent that offers the tool holds one in its
-`Settings`. Set the values:
+`TicketToolset.SearchTicketsOverrides`, with each configurable member nullable. Every layer above the code speaks
+through it, and null keeps the layer below.
 
-- for every run of one agent, in its code: [`Configure{Tool}()`](./defining-agents.md#tool-settings), which may set
-  any settable member;
-- for every run with a settings id: [stored settings](./settings-and-stores.md#agent-settings);
-- for one run: the [run's settings](./running-agents.md#run-settings).
+## The layers
 
-A value left null keeps the one below; [settings layering](./settings-layering.md) shows the order.
+A tool runs with its settings resolved in layers, each over the one below:
+
+1. The record's code defaults, its parameterless constructor.
+2. The agent's code: [`Configure{Tool}()`](./defining-agents.md#tool-settings), which may set any settable member.
+3. The agent's stored settings, under a [settings id](./settings-and-stores.md#agent-settings): the overrides,
+   configurable members only.
+4. The run: the overrides in the [run's settings](./running-agents.md#run-settings).
+
+A layer that leaves a member null keeps the value below it.

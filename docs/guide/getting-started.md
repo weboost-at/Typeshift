@@ -5,15 +5,13 @@ and a run.
 
 ## Install
 
-In a .NET 10 project, add the package and set `GenerateDocumentationFile` to `true`: tools take their descriptions
-from XML docs.
+Typeshift targets .NET 10 and C# 14. Add the package to every project that declares toolsets or agents, or calls
+`AddTypeshift()`: it carries the source generator, and NuGet does not pass a generator on to the projects that
+reference yours ([TSH020](./diagnostics.md#tsh020)). Turn on `GenerateDocumentationFile` too: tools take their
+descriptions from XML docs ([TSH011](./diagnostics.md#tsh011)).
 
-```bash
-dotnet add package Typeshift --prerelease
-```
-
-A settings id names an agent's stored settings, a conversation id its conversation. This page uses `int` ids, set
-once for the build in `Directory.Build.props`:
+Ids are yours: a settings id names an agent's stored settings, a conversation id its conversation, and Typeshift never
+creates either. They are `Guid`s unless the build says otherwise, once, in `Directory.Build.props`:
 
 <!-- snippet: id-type -->
 <a id='snippet-id-type'></a>
@@ -24,8 +22,6 @@ once for the build in `Directory.Build.props`:
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Typeshift.Samples.Docs.csproj#L5-L9' title='Snippet source file'>snippet source</a> | <a href='#snippet-id-type' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
-
-[Registration](./registration.md#project-setup) lists what every project needs and the id types it takes.
 
 ## A toolset
 
@@ -138,8 +134,8 @@ await using var provider = services.BuildServiceProvider(validateScopes: true);
 ## Stored settings
 
 The generator gives `ResearchAgent` a nested `Settings` record holding exactly what may change: the configurable
-chat options and the configurable settings of its tools. `AgentHost<ResearchAgent>` stores them under a settings id,
-one per customer say.
+chat options and the configurable settings of its tools. `AgentHost<ResearchAgent>` stores them under a settings id.
+What a settings id stands for is the host's choice: one per customer, per team or per user.
 
 <!-- snippet: quickstart-settings -->
 <a id='snippet-quickstart-settings'></a>
@@ -172,8 +168,7 @@ Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L32-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-A run can also pass settings for itself alone, here streamed. [Settings layering](./settings-layering.md) follows
-the limit of `find_companies` through every layer:
+A run can also pass settings for itself alone, here streamed:
 
 <!-- snippet: quickstart-run-settings -->
 <a id='snippet-quickstart-run-settings'></a>
@@ -195,6 +190,3 @@ await foreach (var update in research.RunStreamingAsync("Vienna", settingsId, se
 - [Agents](./defining-agents.md) and [running them](./running-agents.md) with real providers.
 - [Settings and stores](./settings-and-stores.md): implementing `ITypeshiftStore` for your database.
 - [Conversations](./conversations.md): resuming, steering and watching runs.
-- [Why code-defined](./why-code-defined.md): what the generator buys and what it costs.
-- The reference: [registration](./registration.md), [builders](./builders.md),
-  [generated members](./generated-members.md) and the [agent host](./agent-host.md).

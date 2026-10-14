@@ -20,11 +20,13 @@ services.AddKeyedSingleton("reasoning-model", reasoning);
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L18-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`AddTypeshift()` registers every toolset and agent of the project and of the projects it references, with a host
-per agent. `WithChatClientProvider<T>()` maps model names to clients, `WithStore<T>()` turns persistence on (see
-[settings and stores](./settings-and-stores.md)), and `WithRealtimeTracking()` publishes the updates of streaming runs
-to watchers (see [live updates](./conversations.md#live-updates)). [Registration](./registration.md) lists what the
-call registers and every `With...`.
+`AddTypeshift()` registers every toolset and agent of the project and of the projects it references, each agent's
+host, and the JSON contexts of their assemblies, which tools ask before the defaults. `WithStore<T>()` turns
+persistence on; see [settings and stores](./settings-and-stores.md). `WithRealtimeTracking()` publishes the updates of
+streaming runs to watchers; see [live updates](./conversations.md#live-updates). The generator intercepts the
+call, so it works only in a project that references the package; a library that calls it in its own `AddX()`
+registers only its own toolsets and agents and those of its references. `WithChatClientProvider<T>()` maps model
+names to clients.
 
 ## Chat clients
 
@@ -109,7 +111,7 @@ var thorough = await support.RunAsync("Where is my refund?", settingsId, setting
 <!-- endSnippet -->
 
 Values a run leaves null keep what the stored settings or the agent's code set; see
-[settings layering](./settings-layering.md).
+[the layers](./tool-settings.md#the-layers).
 
 ## Structured output
 
