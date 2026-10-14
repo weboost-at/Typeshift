@@ -10,8 +10,8 @@ them into reflection-free `AIFunction`s, a typed settings record per agent, and 
 [Diagnostics](https://weboost-at.github.io/Typeshift/guide/diagnostics) ·
 [Changelog](CHANGELOG.md)
 
-> **Being rebuilt.** The library is being rewritten in vertical slices; `signoff/` holds the approved API and
-> [`docs/contributing/status.md`](docs/contributing/status.md) what is built so far.
+> **Alpha:** the API may change between releases. [`docs/contributing/status.md`](docs/contributing/status.md) lists
+> what is open.
 
 ## A toolset
 
