@@ -14,6 +14,14 @@ internal partial class CodingAgent : Agent
         UseToolset<ShellToolset>();
         UseToolset<WebToolset>().Include(t => t.WebFetch);
 
+        // begin-snippet: long-running-options
+        WithRunOptions()
+            .WithMaxToolIterations(500)
+            .WithMaxInputTokens(150_000)
+            .WithSummaryModel("fast-model")
+            .Configurable(r => r.MaxToolIterations);
+        // end-snippet
+
         ConfigureRunCommand()
             .WithShell("/bin/bash")
             .WithTimeout(TimeSpan.FromMinutes(2));

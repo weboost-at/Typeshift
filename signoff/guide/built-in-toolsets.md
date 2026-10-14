@@ -17,6 +17,12 @@ internal partial class CodingAgent : Agent
         UseToolset<ShellToolset>();
         UseToolset<WebToolset>().Include(t => t.WebFetch);
 
+        WithRunOptions()
+            .WithMaxToolIterations(500)
+            .WithMaxInputTokens(150_000)
+            .WithSummaryModel("fast-model")
+            .Configurable(r => r.MaxToolIterations);
+
         ConfigureRunCommand()
             .WithShell("/bin/bash")
             .WithTimeout(TimeSpan.FromMinutes(2));
@@ -29,7 +35,7 @@ internal partial class CodingAgent : Agent
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Agents/CodingAgent.cs#L5-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Agents/CodingAgent.cs#L5-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 | Toolset | Tools | Needs |
@@ -49,15 +55,16 @@ services.AddSingleton<HttpClient>();
 services.AddTypeshift()
     .WithFileSystemRoot<CustomerWorkspace>()
     .WithWebSearch<SearchApi>()
-    .WithWebFetch<HttpWebFetch>();
+    .WithWebFetch<HttpWebFetch>()
+    .WithApprovalRule<SafeCommands>();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Scenarios/Registration.cs#L41-L48' title='Snippet source file'>snippet source</a> | <a href='#snippet-built-in-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Scenarios/Registration.cs#L41-L49' title='Snippet source file'>snippet source</a> | <a href='#snippet-built-in-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Todos
 
 `write_todos` replaces the model's todo list, a list of titles with a status each. The list lives in the conversation:
-the latest call holds it, and compaction never drops that call.
+the latest call holds it, and [compaction](./long-running-agents.md#compaction) never drops that call.
 
 ## Files
 

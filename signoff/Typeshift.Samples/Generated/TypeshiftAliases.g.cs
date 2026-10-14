@@ -5,4 +5,4 @@
 global using ITypeshiftStore = global::Typeshift.ITypeshiftStore<int>;
 global using InMemoryTypeshiftStore = global::Typeshift.InMemoryTypeshiftStore<int>;
 global using ConversationTracker = global::Typeshift.ConversationTracker<int>;
-global using LiveSession = global::Typeshift.LiveSession<int>;
+global using LiveRun = global::Typeshift.LiveRun<int>;

@@ -19,16 +19,16 @@ internal static class Conversations
 
         // begin-snippet: load-conversation
         var store = provider.GetRequiredService<ITypeshiftStore>();
-        var sessions = await store.LoadConversationAsync(conversationId, ct);
+        var entries = await store.LoadConversationAsync(conversationId, ct);
 
-        Console.WriteLine($"{sessions.Count} sessions, {sessions.Sum(s => s.Usage?.TotalTokenCount)} tokens");
+        Console.WriteLine($"{entries.Count} entries, {entries.Sum(entry => entry.Usage?.TotalTokenCount)} tokens");
         // end-snippet
 
         // begin-snippet: live-sessions
         var tracker = provider.GetRequiredService<ConversationTracker>();
 
-        foreach (var session in tracker.Sessions)
-            Console.WriteLine($"{session.Agent} is answering conversation {session.Conversation} on {session.Model}");
+        foreach (var run in tracker.Runs)
+            Console.WriteLine($"{run.Agent} is answering conversation {run.Conversation} on {run.Model}");
         // end-snippet
 
         // begin-snippet: watch-conversation

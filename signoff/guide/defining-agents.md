@@ -32,8 +32,8 @@ internal partial class SupportAgent : Agent
 
         UseContext<CustomerProfileContext>();
 
-        WithCompaction()
-            .WithMaxMessages(40)
+        WithRunOptions()
+            .WithMaxInputTokens(60_000)
             .WithSummaryModel("fast-model");
 
         ConfigureSearchTickets()
@@ -57,8 +57,10 @@ internal partial class SupportAgent : Agent
   web search.
 - **`GetInstructions()`** returns the instructions. It runs whenever a run's options are resolved, so the text may be
   computed.
+- **`WithRunOptions()`** sets the tool loop's limits and compaction; see
+  [long-running agents](./long-running-agents.md).
 - The rest of the chain adds capabilities: [MCP servers](./mcp.md), [context](./context-providers.md),
-  [compaction](./compaction.md), [other agents](./multi-agent.md).
+  [other agents](./multi-agent.md).
 
 An agent derives from `Agent` directly ([TSH017](./diagnostics.md#tsh017)); share declarations through plain static
 methods and constants.
@@ -101,6 +103,7 @@ Every agent gets a nested `Settings` record, `SupportAgent.Settings`, holding ex
 |---|---|
 | `Model` | Always there; overrides `WithModel`. |
 | One per configurable chat option | `Instructions` and `Temperature` above. |
+| One per configurable run option | `MaxToolIterations` of the [coding agent](./long-running-agents.md#run-options). |
 | One per offered tool with configurable settings | `SearchTickets`, `SearchArticles`: their [overrides](./tool-settings.md#the-generated-overrides). |
 
 Every value is nullable, and null keeps the layer below. The record is the agent's settings contract: store it

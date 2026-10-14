@@ -96,7 +96,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 - **Context:** ids are typed end to end and the library is compiled before the host chooses its id type.
 - **Decision:** `<TypeshiftIdType>int</TypeshiftIdType>`, set once in `Directory.Build.props`, `Guid` by default.
   The library's id-carrying types are generic (`ITypeshiftStore<TId>`); the generator writes per project
-  `global using` aliases (`ITypeshiftStore`, `InMemoryTypeshiftStore`, `ConversationTracker`, `LiveSession`) and
+  `global using` aliases (`ITypeshiftStore`, `InMemoryTypeshiftStore`, `ConversationTracker`, `LiveRun`) and
   generates typed members with the concrete type. A reference built with another id type is TSH021; a store of
   another is TSH028.
 - **Alternatives:** `AddTypeshift().WithIdType<int>()`, known only in the registering project, with generic run
@@ -107,8 +107,8 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 - **Status:** carried (v0 D4).
 - **Decision:** `extension(AgentHost<TAgent> host)` per agent, in the agent's assembly, with `RunAsync`,
-  `RunAsync<T>`, `RunStreamingAsync`, `LoadSettingsAsync`, `SaveSettingsAsync`, `ConfigureAsync` and
-  `ResolveOptionsAsync`. They call hidden library methods, so the logic lives and is tested in the library.
+  `RunAsync<T>`, `RunStreamingAsync`, `ResumeAsync`, `ResumeStreamingAsync`, `LoadSettingsAsync`,
+  `SaveSettingsAsync`, `ConfigureAsync` and `ResolveOptionsAsync`. They call hidden library methods, so the logic lives and is tested in the library.
 
 ## Declarations
 
@@ -182,14 +182,18 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
   from static methods and constants. A preset class folded into agents (`UsePreset<T>()`) was considered and
   deferred.
 
-### D24. Tool approval uses Microsoft.Extensions.AI's contents
+### D24. Tool approval uses Microsoft.Extensions.AI's contents, with standing approvals and rules
 
-- **Status:** proposed.
+- **Status:** proposed; standing approvals and rules decided by the owner in this session.
 - **Decision:** `RequiresApproval()` wraps the tool in `ApprovalRequiredAIFunction`; `FunctionInvokingChatClient`
   ends the run with `ToolApprovalRequestContent`s, listed by `response.ApprovalRequests`. The host answers with
   `CreateResponse(approved)` in the next run of the conversation; the stored request is the one that runs. Calls in
   the same response that need no approval run anyway. A run that asks without a conversation throws, naming the tool.
-  Standing approvals and auto-approval rules (MAF) are not in v1.
+  `request.ApproveForConversation()` approves the tool for the rest of the conversation; the approval is stored with
+  it, so it holds across runs and processes. `IToolApprovalRule`s (`WithApprovalRule<T>()`, scoped) approve calls
+  the host trusts, seeing the exact arguments. A layer above `FunctionInvokingChatClient` answers requests that a
+  standing approval or a rule covers and continues the loop, so only the rest reach the host. Approvals match tools by
+  name, which is unique per agent (TSH007, and a runtime check for MCP tools).
 - **Alternatives:** an approval callback the run awaits, which holds a run open across requests; a Typeshift approval
   type, a second vocabulary.
 
@@ -231,9 +235,11 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 ### D29. The chat client pipeline
 
 - **Status:** proposed.
-- **Decision:** outermost first: conversation tracking (resume, store, live updates), run middleware, context
-  providers, compaction, the `invoke_agent` span, `FunctionInvokingChatClient` (approval, handoff, tool middleware as
-  its `FunctionInvoker`), `OpenTelemetryChatClient`, the provider's client behind a wrapper that never disposes it.
+- **Decision:** outermost first: conversation tracking (resume, run boundaries, live updates), run middleware,
+  context providers, the `invoke_agent` span, approval (standing approvals and rules), `FunctionInvokingChatClient`
+  (handoff, run options, tool middleware as its `FunctionInvoker`), checkpoints (each step appended before compaction
+  sees it), compaction, `OpenTelemetryChatClient`, the provider's client behind a wrapper that never disposes it.
+  Checkpoints and compaction sit inside the tool loop, so they act before every model call.
 - **Where:** `AgentHost.cs`.
 
 ### D30. Middleware: one interface around runs, one around tool calls
@@ -253,14 +259,21 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
   instructions, messages and tools, appended to the run's. Called once per run after resume; its messages are never
   stored. No after-run hook: run middleware covers it.
 
-### D32. Compaction by message count, with an optional stored summary
+### D32. Run options, with compaction inside the tool loop
 
-- **Status:** proposed.
-- **Decision:** `WithCompaction().WithMaxMessages(n).WithSummaryModel(model)`. At resume, history beyond `n`
-  messages is dropped in whole tool-call groups, or summarized into a session marked `IsSummary` that later resumes
-  start from. Instructions and the latest `write_todos` call stay. Not inside one run's tool loop.
-- **Alternatives:** MAF's token triggers and strategy pipeline (needs a tokenizer; possible later from the usage the
-  provider reports); `IChatReducer` instances in the agent, which cannot reach a chat client from the constructor.
+- **Status:** proposed; long-horizon scope decided by the owner in this session.
+- **Context:** the first draft compacted only when a conversation resumed, so one long run outgrew its context, and
+  the tool loop's limits were Microsoft.Extensions.AI's constants (40 iterations).
+- **Decision:** `WithRunOptions()`: `WithMaxToolIterations`, `WithMaxConsecutiveToolErrors`,
+  `WithConcurrentToolCalls`, `WithMaxInputTokens`, `WithTargetInputTokens`, `WithSummaryModel`, and `Configurable`
+  over the `RunOptions` record, so a run option joins `Settings` like a chat option. Before each model call, when the
+  last call's reported input tokens reached the maximum, the history shrinks to the target: oldest tool results
+  cleared first (calls kept), then the oldest turns summarized (or dropped without a summary model). Instructions,
+  the latest `write_todos` call and call/result pairs stay; the summary is stored as an entry later runs start from.
+  Without reported usage, tokens are estimated from the text.
+- **Alternatives:** MAF's strategy pipeline and trigger combinators, more concepts for the same two steps; a
+  tokenizer dependency; message-count triggers, which ignore that one tool result may outweigh a hundred messages; a
+  separate `WithCompaction()` chain next to the limits.
 
 ### D33. An agent as a tool
 
@@ -273,7 +286,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 - **Status:** decided by the owner in this session.
 - **Decision:** `UseHandoff<T>()` adds a declaration-only tool `handoff_to_{name}`. Calling it ends the current
-  agent's loop; the target answers in the same run with the whole conversation. The conversation's last session names
+  agent's loop; the target answers in the same run with the whole conversation. The conversation's last entry names
   the agent that answers its next run, if it is reachable through the host agent's handoffs. Handoff needs a
   conversation; run settings apply to the host's agent only.
 
@@ -308,15 +321,16 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 
 - **Status:** proposed; updates v0 D25.
 - **Decision:** `ITypeshiftStore<TId>` (aliased `ITypeshiftStore`): `LoadAsync` and `SaveAsync` of documents with
-  revisions, `LoadConversationAsync` and `AppendConversationAsync` of sessions keyed by the conversation id.
-  Documents stay a closed set (each agent's `Settings`, `ConversationSession`), so store generators stay possible.
+  revisions, `LoadConversationAsync` and `AppendConversationAsync` of `ConversationEntry`s keyed by the conversation
+  id. Documents stay a closed set (each agent's `Settings`, `ConversationEntry`), so store generators stay
+  possible.
 - **Alternatives:** v0's load and save only, which rewrote a whole conversation per turn; a generic append for any
   kind, a concept with one user.
 
 ### D39. Kinds are stable names
 
 - **Status:** proposed.
-- **Decision:** `IStorable.Kind`: the agent's class name for its `Settings`, `conversation_session` for sessions.
+- **Decision:** `IStorable.Kind`: the agent's class name for its `Settings`, `conversation_entry` for conversation entries.
   Moving an agent to another namespace keeps its data; renaming its class does not. Two agents of one class name are
   TSH022.
 - **Alternatives:** the agent's name, which would need unique names (out of scope); an explicit `WithStorageKind`.
@@ -345,7 +359,7 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 - **Decision:** runs take `settingsId` (which stored `Settings` apply) and `conversationId` (which conversation
   resumes), independent of each other; either may be left out. What a settings id stands for (a customer, a team, a
   user, a profile) is the host's choice. A conversation is keyed by its id alone: the host authorizes it before
-  passing it, as any id from a request, and the guide says so. Each run appends one session; no locks, no second
+  passing it, as any id from a request, and the guide says so. Runs append entries (D50); no locks, no second
   read.
 - **Alternatives:** an explicit `ownerId` on conversation runs, a third id whose authorization the host still owns;
   keying conversations by settings id, which ties two unrelated choices of the host.
@@ -374,7 +388,8 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 ### D46. Tracking, carried and fixed
 
 - **Status:** carried (v0 D18), with the audit's fixes.
-- **Decision:** tracking wraps the tool loop, so one run is one session. The provider never receives the
+- **Decision:** tracking wraps the tool loop and marks where a run begins and ends; checkpoints inside it store
+  each step (D50). The provider never receives the
   conversation id. On resume, unanswered calls and error messages are left out. A failed save is logged and traced,
   and the answer returns. The agent's name goes on `AuthorName`, never into `AdditionalProperties`.
 
@@ -383,9 +398,23 @@ brackets), or whether it is **proposed** and waits for the sign-off. After the s
 - **Status:** proposed (the brief: options for intervals and limits).
 - **Decision:** `WithRealtimeTracking(options)` turns publishing on; `ConversationTracker.WatchAsync(conversation)`
   reads a bounded feed that drops its oldest updates when the watcher falls behind. A run never waits
-  for a watcher. `PublishInterval` (100 ms) and `MaxPendingUpdates` (256) are options. `Sessions` lists the running
-  conversations.
+  for a watcher. `PublishInterval` (100 ms) and `MaxPendingUpdates` (256) are options. `Runs` lists the runs of
+  conversations going on in this process.
 - **Alternatives:** v0's process-wide events, awaited up to 5 s per model call.
+
+### D50. A conversation is stored step by step and resumes after a crash
+
+- **Status:** proposed; long-horizon scope decided by the owner in this session.
+- **Context:** the first draft stored a run when it ended, so a run that died after an hour of work lost all of it.
+- **Decision:** a conversation is a log of `ConversationEntry`s: a run's input, each model response (with model and
+  usage), each tool result, compaction summaries; the run's last entry has `EndsRun`. Checkpoints append each step
+  the moment it exists, tool results before the next model call. A run without an ending entry was interrupted:
+  `ResumeAsync(conversationId)` (and `ResumeStreamingAsync`) continues it without new input, leaving out a call that
+  was in flight; a new run on the conversation also starts from its steps. One run per conversation at a time in a
+  process; across processes it is the host's to ensure.
+- **Alternatives:** one entry per run, rewritten at each step (a whole-run write per model call); re-running the
+  interrupted tool call, unsafe for side effects; a `RunAsync` with a null input in place of `ResumeAsync`.
+- **Where:** `Conversations/`, the checkpoint layer of D29.
 
 ## Repository
 

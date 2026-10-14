@@ -19,7 +19,7 @@ Runtime:
 4. **Every model call awaits event handlers** (up to 5 s per session event, 250 ms per publish). Live updates go through
    a buffered feed the subscriber reads at its own pace; a run never waits for a subscriber.
 5. **Each turn reads the conversation twice and rewrites it whole** (quadratic in its length). The store appends one
-   session per turn.
+   entry per step (D50).
 6. **The agent's name rides to the provider** in `ChatOptions.AdditionalProperties`. It goes on `ChatMessage.AuthorName`
    and the tracker's own state instead.
 7. **Disposing an agent's client disposes the provider's shared client.** The provider's client is wrapped so it is

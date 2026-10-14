@@ -40,6 +40,11 @@ public sealed class TypeshiftBuilder
     public TypeshiftBuilder WithToolMiddleware<TMiddleware>() where TMiddleware : class, IToolMiddleware => this;
 
     /// <summary>
+    /// Adds a rule that approves tool calls without asking the host, scoped; any rule that approves suffices.
+    /// </summary>
+    public TypeshiftBuilder WithApprovalRule<TRule>() where TRule : class, IToolApprovalRule => this;
+
+    /// <summary>
     /// Registers what connects the MCP servers agents use, scoped.
     /// </summary>
     public TypeshiftBuilder WithMcpToolProvider<TProvider>() where TProvider : class, IMcpToolProvider => this;

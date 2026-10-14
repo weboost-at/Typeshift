@@ -13,6 +13,8 @@ partial class CodingAgent
     {
         public string? Model { get; init; }
 
+        public int? MaxToolIterations { get; init; }
+
         public static string Kind => "CodingAgent";
 
         public static int Version => 1;
@@ -100,6 +102,13 @@ internal static class CodingAgentHostExtensions
         public global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate> RunStreamingAsync(string input, int? settingsId = null, int? conversationId = null, global::Typeshift.Samples.Agents.CodingAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) => throw null!;
 
         public global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate> RunStreamingAsync(global::Microsoft.Extensions.AI.ChatMessage input, int? settingsId = null, int? conversationId = null, global::Typeshift.Samples.Agents.CodingAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) => throw null!;
+
+        /// <summary>
+        /// Continues the conversation's run that was interrupted, from its last stored step, without new input.
+        /// </summary>
+        public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse> ResumeAsync(int conversationId, int? settingsId = null, global::Typeshift.Samples.Agents.CodingAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) => throw null!;
+
+        public global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate> ResumeStreamingAsync(int conversationId, int? settingsId = null, global::Typeshift.Samples.Agents.CodingAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) => throw null!;
 
         public global::System.Threading.Tasks.Task<global::Typeshift.Stored<global::Typeshift.Samples.Agents.CodingAgent.Settings>> LoadSettingsAsync(int settingsId, global::System.Threading.CancellationToken ct = default) => throw null!;
 

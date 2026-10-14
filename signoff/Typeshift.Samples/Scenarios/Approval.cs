@@ -27,5 +27,11 @@ internal static class Approval
 
         var resumed = await support.RunAsync(approval, conversationId: conversationId);
         // end-snippet
+
+        // begin-snippet: approval-for-conversation
+        var always = new ChatMessage(ChatRole.User, [answer.ApprovalRequests[0].ApproveForConversation()]);
+
+        await support.RunAsync(always, conversationId: conversationId);
+        // end-snippet
     }
 }

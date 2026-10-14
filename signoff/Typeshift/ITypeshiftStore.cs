@@ -26,14 +26,14 @@ public interface ITypeshiftStore<TId> where TId : notnull
         where TData : class, IStorable<TData>;
 
     /// <summary>
-    /// Loads the sessions of a conversation, oldest first.
+    /// Loads the entries of a conversation, oldest first.
     /// </summary>
-    Task<IReadOnlyList<ConversationSession>> LoadConversationAsync(TId conversation, CancellationToken ct);
+    Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(TId conversation, CancellationToken ct);
 
     /// <summary>
-    /// Appends a finished session to a conversation, creating it on the first.
+    /// Appends an entry to a conversation, creating it on the first.
     /// </summary>
-    Task AppendConversationAsync(TId conversation, ConversationSession session, CancellationToken ct);
+    Task AppendConversationAsync(TId conversation, ConversationEntry entry, CancellationToken ct);
 }
 
 /// <summary>
@@ -42,7 +42,7 @@ public interface ITypeshiftStore<TId> where TId : notnull
 public sealed record Stored<TData>(TData Data, long Revision);
 
 /// <summary>
-/// A document Typeshift stores: the agents' <c>Settings</c> and <see cref="ConversationSession"/>, a closed set.
+/// A document Typeshift stores: the agents' <c>Settings</c> and <see cref="ConversationEntry"/>, a closed set.
 /// </summary>
 /// <typeparam name="TSelf">The document type.</typeparam>
 public interface IStorable<TSelf> where TSelf : class, IStorable<TSelf>
@@ -76,29 +76,39 @@ public interface IStorable<TSelf> where TSelf : class, IStorable<TSelf>
 public sealed class StoreConflictException(string message, Exception? inner = null) : Exception(message, inner);
 
 /// <summary>
-/// One finished exchange of a conversation: the input and everything the model and the tools wrote.
+/// One step of a conversation, appended as it happens: the input of a run, a model response, a tool result, or a
+/// summary. A conversation is its entries in order; a run whose last entry does not end it was interrupted.
 /// </summary>
-public sealed record ConversationSession(
-    string Agent,
-    string Model,
-    IReadOnlyList<ChatMessage> Messages,
-    UsageDetails? Usage,
-    ChatFinishReason? FinishReason,
-    DateTimeOffset StartedAt,
-    DateTimeOffset FinishedAt) : IStorable<ConversationSession>
+public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> Messages, DateTimeOffset At)
+    : IStorable<ConversationEntry>
 {
     /// <summary>
-    /// Whether this session is a compaction summary that stands for every session before it.
+    /// The model that wrote the messages, for a model response.
+    /// </summary>
+    public string? Model { get; init; }
+
+    /// <summary>
+    /// The tokens of the model call, for a model response.
+    /// </summary>
+    public UsageDetails? Usage { get; init; }
+
+    /// <summary>
+    /// Whether the run ended with this entry: answered, failed, cancelled or waiting for approval.
+    /// </summary>
+    public bool EndsRun { get; init; }
+
+    /// <summary>
+    /// Whether this entry is a compaction summary that stands for every entry before it.
     /// </summary>
     public bool IsSummary { get; init; }
 
-    public static string Kind => "conversation_session";
+    public static string Kind => "conversation_entry";
 
     public static int Version => 1;
 
     public string Serialize() => throw null!;
 
-    public static ConversationSession Deserialize(string json, int version) => throw null!;
+    public static ConversationEntry Deserialize(string json, int version) => throw null!;
 }
 
 /// <summary>
@@ -114,10 +124,10 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId> where TId
         where TData : class, IStorable<TData> =>
         throw null!;
 
-    public Task<IReadOnlyList<ConversationSession>> LoadConversationAsync(TId conversation, CancellationToken ct) =>
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(TId conversation, CancellationToken ct) =>
         throw null!;
 
-    public Task AppendConversationAsync(TId conversation, ConversationSession session, CancellationToken ct) =>
+    public Task AppendConversationAsync(TId conversation, ConversationEntry entry, CancellationToken ct) =>
         throw null!;
 }
 
@@ -131,9 +141,9 @@ public sealed class ConversationTracker<TId> where TId : notnull
     }
 
     /// <summary>
-    /// The sessions running now.
+    /// The runs of conversations going on now.
     /// </summary>
-    public IReadOnlyList<LiveSession<TId>> Sessions => throw null!;
+    public IReadOnlyList<LiveRun<TId>> Runs => throw null!;
 
     /// <summary>
     /// The updates of a conversation's streaming runs as they happen, until cancelled; needs
@@ -144,6 +154,6 @@ public sealed class ConversationTracker<TId> where TId : notnull
 }
 
 /// <summary>
-/// A session running now.
+/// A run going on now.
 /// </summary>
-public sealed record LiveSession<TId>(TId Conversation, string Agent, string Model, DateTimeOffset StartedAt);
+public sealed record LiveRun<TId>(TId Conversation, string Agent, string Model, DateTimeOffset StartedAt);

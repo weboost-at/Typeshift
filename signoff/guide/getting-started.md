@@ -191,3 +191,4 @@ await foreach (var update in research.RunStreamingAsync("Vienna", settingsId, se
 - [Settings and stores](./settings-and-stores.md): implementing `ITypeshiftStore` for your database.
 - [Tool approval](./tool-approval.md), [multiple agents](./multi-agent.md) and the
   [built-in toolsets](./built-in-toolsets.md).
+- [Long-running agents](./long-running-agents.md): a coding agent that works for an hour.

@@ -1,6 +1,6 @@
 # Conversations
 
-A run with a conversation id resumes the conversation and stores its exchange as one session of it.
+A run with a conversation id resumes the conversation and stores everything it does in it, step by step.
 
 ## Tracking a conversation
 
@@ -24,39 +24,40 @@ against your own record of the conversation before you pass its id, as you would
 
 ## What is stored
 
-Each session holds the agent that answered, the model, the input and every message the model and the tools wrote,
-the token usage and why the model stopped.
+A conversation is a list of entries, appended as they happen: a run's input, each model response with its model and
+token usage, each tool result, and compaction summaries. The last entry of a run says it ended.
 
 <!-- snippet: load-conversation -->
 <a id='snippet-load-conversation'></a>
 ```cs
 var store = provider.GetRequiredService<ITypeshiftStore>();
-var sessions = await store.LoadConversationAsync(conversationId, ct);
+var entries = await store.LoadConversationAsync(conversationId, ct);
 
-Console.WriteLine($"{sessions.Count} sessions, {sessions.Sum(s => s.Usage?.TotalTokenCount)} tokens");
+Console.WriteLine($"{entries.Count} entries, {entries.Sum(entry => entry.Usage?.TotalTokenCount)} tokens");
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Scenarios/Conversations.cs#L20-L25' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-- A failed run is stored with an `ErrorContent`, then the exception surfaces.
-- A stream that fails, is cancelled or is left early is stored with the updates that arrived.
+- A failed run ends with an `ErrorContent` entry, then the exception surfaces.
+- A stream that fails, is cancelled or is left early ends with the updates that arrived.
 - A cancelled run is stored too; storing does not observe the run's token.
 - A store that fails to save is logged and traced; the run still returns its answer.
+- A run cut off by a crash has no ending entry; [resume it](./long-running-agents.md#resuming).
 
 On resume, tool calls that never got a result and error messages are left out, since providers reject them.
-[Compaction](./compaction.md) shortens long conversations.
+[Compaction](./long-running-agents.md#compaction) shortens long conversations.
 
-## Live sessions
+## Live runs
 
-`ConversationTracker` lists the sessions running in this process:
+`ConversationTracker` lists the runs of conversations going on in this process:
 
 <!-- snippet: live-sessions -->
 <a id='snippet-live-sessions'></a>
 ```cs
 var tracker = provider.GetRequiredService<ConversationTracker>();
 
-foreach (var session in tracker.Sessions)
-    Console.WriteLine($"{session.Agent} is answering conversation {session.Conversation} on {session.Model}");
+foreach (var run in tracker.Runs)
+    Console.WriteLine($"{run.Agent} is answering conversation {run.Conversation} on {run.Model}");
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/claude/rewrite/signoff/Typeshift.Samples/Scenarios/Conversations.cs#L27-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-live-sessions' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->

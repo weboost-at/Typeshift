@@ -44,7 +44,8 @@ internal static class Registration
         services.AddTypeshift()
             .WithFileSystemRoot<CustomerWorkspace>()
             .WithWebSearch<SearchApi>()
-            .WithWebFetch<HttpWebFetch>();
+            .WithWebFetch<HttpWebFetch>()
+            .WithApprovalRule<SafeCommands>();
         // end-snippet
 
         // begin-snippet: open-telemetry

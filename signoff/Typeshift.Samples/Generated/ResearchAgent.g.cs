@@ -69,6 +69,13 @@ internal static class ResearchAgentHostExtensions
 
         public global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate> RunStreamingAsync(global::Microsoft.Extensions.AI.ChatMessage input, int? settingsId = null, int? conversationId = null, global::Typeshift.Samples.Quickstart.ResearchAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) => throw null!;
 
+        /// <summary>
+        /// Continues the conversation's run that was interrupted, from its last stored step, without new input.
+        /// </summary>
+        public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse> ResumeAsync(int conversationId, int? settingsId = null, global::Typeshift.Samples.Quickstart.ResearchAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) => throw null!;
+
+        public global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate> ResumeStreamingAsync(int conversationId, int? settingsId = null, global::Typeshift.Samples.Quickstart.ResearchAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) => throw null!;
+
         public global::System.Threading.Tasks.Task<global::Typeshift.Stored<global::Typeshift.Samples.Quickstart.ResearchAgent.Settings>> LoadSettingsAsync(int settingsId, global::System.Threading.CancellationToken ct = default) => throw null!;
 
         public global::System.Threading.Tasks.Task<long> SaveSettingsAsync(int settingsId, global::Typeshift.Samples.Quickstart.ResearchAgent.Settings settings, long revision, global::System.Threading.CancellationToken ct = default) => throw null!;

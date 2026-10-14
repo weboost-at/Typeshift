@@ -94,10 +94,11 @@ public abstract class Agent
     }
 
     /// <summary>
-    /// Shortens the history a resumed conversation sends to the model.
+    /// Sets how a run goes: its tool loop's limits and when its history is compacted. Long-running agents raise the
+    /// limits and turn compaction on.
     /// </summary>
-    /// <returns>The chain of compaction options.</returns>
-    protected CompactionBuilder WithCompaction() => new();
+    /// <returns>The chain of run options.</returns>
+    protected RunOptionsBuilder WithRunOptions() => new();
 
     /// <summary>
     /// The agent's instructions, its system prompt; called whenever a run's options are resolved.
@@ -224,23 +225,69 @@ public sealed class McpServerUse
 }
 
 /// <summary>
-/// How an agent shortens a long conversation before it reaches the model. The stored conversation keeps everything.
+/// The run options an agent starts every run from, and those that may change at runtime.
 /// </summary>
-public sealed class CompactionBuilder
+public sealed class RunOptionsBuilder
 {
-    internal CompactionBuilder()
+    internal RunOptionsBuilder()
     {
     }
 
     /// <summary>
-    /// Sends at most this many of the latest messages, never splitting a tool call from its result; the instructions
-    /// always go.
+    /// The most model calls one run's tool loop makes; 40 unless set.
     /// </summary>
-    public CompactionBuilder WithMaxMessages(int messages) => this;
+    public RunOptionsBuilder WithMaxToolIterations(int iterations) => this;
 
     /// <summary>
-    /// Summarizes the messages that no longer fit with this model instead of dropping them. The summary is stored
-    /// with the conversation, so it is written once.
+    /// The most tool calls in a row that may fail before the run ends; 3 unless set.
     /// </summary>
-    public CompactionBuilder WithSummaryModel(string model) => this;
+    public RunOptionsBuilder WithMaxConsecutiveToolErrors(int errors) => this;
+
+    /// <summary>
+    /// Runs the tool calls of one model response at the same time instead of one after the other.
+    /// </summary>
+    public RunOptionsBuilder WithConcurrentToolCalls(bool concurrent) => this;
+
+    /// <summary>
+    /// Turns compaction on: before a model call, when the last call's input reached this many tokens (as the provider
+    /// reported them), the history is compacted down to <see cref="WithTargetInputTokens"/>.
+    /// </summary>
+    public RunOptionsBuilder WithMaxInputTokens(int tokens) => this;
+
+    /// <summary>
+    /// How small compaction makes the history; half of <see cref="WithMaxInputTokens"/> unless set.
+    /// </summary>
+    public RunOptionsBuilder WithTargetInputTokens(int tokens) => this;
+
+    /// <summary>
+    /// Summarizes, with this model, what clearing old tool results did not free; without it, the oldest turns are
+    /// dropped instead.
+    /// </summary>
+    public RunOptionsBuilder WithSummaryModel(string model) => this;
+
+    /// <summary>
+    /// Lets a run option change at runtime. The lambda never runs.
+    /// </summary>
+    /// <typeparam name="TOption">The option's type.</typeparam>
+    /// <param name="option">The option, <c>r => r.MaxToolIterations</c>.</param>
+    /// <returns>The same chain.</returns>
+    public RunOptionsBuilder Configurable<TOption>(Func<RunOptions, TOption> option) => this;
+}
+
+/// <summary>
+/// How an agent's runs go; the options <see cref="RunOptionsBuilder"/> sets, as configurable picks name them.
+/// </summary>
+public sealed record RunOptions
+{
+    public int MaxToolIterations { get; init; } = 40;
+
+    public int MaxConsecutiveToolErrors { get; init; } = 3;
+
+    public bool ConcurrentToolCalls { get; init; }
+
+    public int? MaxInputTokens { get; init; }
+
+    public int? TargetInputTokens { get; init; }
+
+    public string? SummaryModel { get; init; }
 }

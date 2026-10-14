@@ -49,7 +49,7 @@ internal partial class SupportAgent : Agent
         UseMcpServer("status_page");
         UseContext<CustomerProfileContext>();
         UseHandoff<BillingAgent>();
-        WithCompaction().WithMaxMessages(40);
+        WithRunOptions().WithMaxInputTokens(60_000);
 
         ConfigureSearchTickets().WithLimit(5);
     }
@@ -76,17 +76,21 @@ var report = await support.RunAsync<RefundStatus>("Summarize the refund.", setti
 - Tools get services through `IServiceProvider` only (D15).
 - No composition block in v1 (D23).
 - After a handoff, the agent handed to answers the conversation's later runs (D34).
+- Runs take `settingsId` and `conversationId`, independent of each other (D42).
+- Long-horizon work is in v1: run options with in-loop compaction (D32), checkpoints and `ResumeAsync` (D50),
+  standing approvals and approval rules (D24). See `guide/long-running-agents.md`.
 
 ## Open for the sign-off
 
 Every entry marked **proposed** in `decisions.md`. The ones with the most weight:
 
 - **D25** runs use the scope the host was resolved from (`AgentHost` transient), replacing v0's scope per tool call.
-- **D24** approval through Microsoft.Extensions.AI's contents; no standing approvals or auto-approval rules in v1.
+- **D24** approval through Microsoft.Extensions.AI's contents, `ApproveForConversation()`, `IToolApprovalRule`.
 - **D28** the model is always in `Settings` (the brief), though a customer-editable form then picks any model.
 - **D38 to D42** the store: four methods, stable kinds, `WithSettingsVersion`, revisions, conversations by their id
   alone (the host authorizes them).
-- **D32** compaction by message count with a stored summary, no token triggers yet.
+- **D32, D50** compaction by reported input tokens before every model call; a conversation as entries appended per
+  step, resumed with `ResumeAsync`.
 - **D2, D3** diagnostics from an analyzer; discovery stays attribute-free.
 - **D13** `Async` is dropped from tool names; renaming a method renames the tool.
 - The draft diagnostic catalog, `guide/diagnostics.md` (TSH001 to TSH028).

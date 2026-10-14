@@ -28,8 +28,9 @@ referenced project built with another id type is [TSH021](./diagnostics.md#tsh02
 - `LoadAsync<TData>(id)` returns the document of kind `TData.Kind` under an id with its revision, or null;
 - `SaveAsync<TData>(id, data, revision)` saves it if the stored revision is still `revision` (0 for none), returns the
   new revision, and throws a `StoreConflictException` when another save came first;
-- `LoadConversationAsync(conversation)` returns a conversation's sessions, oldest first;
-- `AppendConversationAsync(conversation, session)` appends one finished session.
+- `LoadConversationAsync(conversation)` returns a conversation's entries, oldest first;
+- `AppendConversationAsync(conversation, entry)` appends one entry: a run's input, a model response, a tool result.
+  Runs append as they go, so this is the hot path; a row per entry keeps it cheap.
 
 Documents serialize themselves: `Serialize()` and `TData.Deserialize(json, version)`. Next to the JSON, a store keeps:
 
@@ -72,13 +73,13 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
 {
     public DbSet<DocumentRow> Documents => Set<DocumentRow>();
 
-    public DbSet<SessionRow> Sessions => Set<SessionRow>();
+    public DbSet<EntryRow> Entries => Set<EntryRow>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.Entity<DocumentRow>().HasKey(document => new { document.Kind, document.Id });
         model.Entity<DocumentRow>().Property(document => document.Revision).IsConcurrencyToken();
-        model.Entity<SessionRow>().HasIndex(session => session.Conversation);
+        model.Entity<EntryRow>().HasIndex(entry => entry.Conversation);
     }
 }
 
@@ -95,7 +96,7 @@ internal sealed class DocumentRow
     public required string Json { get; set; }
 }
 
-internal sealed class SessionRow
+internal sealed class EntryRow
 {
     public long Sequence { get; init; }
 
@@ -156,27 +157,27 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         }
     }
 
-    public async Task<IReadOnlyList<ConversationSession>> LoadConversationAsync(int conversation, CancellationToken ct)
+    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(int conversation, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
-        var rows = await db.Sessions
-            .Where(session => session.Conversation == conversation)
-            .OrderBy(session => session.Sequence)
+        var rows = await db.Entries
+            .Where(entry => entry.Conversation == conversation)
+            .OrderBy(entry => entry.Sequence)
             .ToListAsync(ct);
 
-        return [.. rows.Select(row => ConversationSession.Deserialize(row.Json, row.Version))];
+        return [.. rows.Select(row => ConversationEntry.Deserialize(row.Json, row.Version))];
     }
 
-    public async Task AppendConversationAsync(int conversation, ConversationSession session, CancellationToken ct)
+    public async Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
-        db.Sessions.Add(new SessionRow
+        db.Entries.Add(new EntryRow
         {
             Conversation = conversation,
-            Version = ConversationSession.Version,
-            Json = session.Serialize()
+            Version = ConversationEntry.Version,
+            Json = entry.Serialize()
         });
 
         await db.SaveChangesAsync(ct);

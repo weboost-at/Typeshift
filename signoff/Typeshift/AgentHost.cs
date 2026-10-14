@@ -6,8 +6,8 @@ namespace Typeshift;
 /// Runs <typeparamref name="TAgent"/> with the services of the scope it was resolved from: its tools, context
 /// providers, middleware and chat client provider all resolve there. Registered as transient by
 /// <c>AddTypeshift()</c>. The generator adds the agent's typed members: <c>RunAsync</c>, <c>RunAsync&lt;T&gt;</c>,
-/// <c>RunStreamingAsync</c>, <c>LoadSettingsAsync</c>, <c>SaveSettingsAsync</c>, <c>ConfigureAsync</c> and
-/// <c>ResolveOptionsAsync</c>.
+/// <c>RunStreamingAsync</c>, <c>ResumeAsync</c>, <c>ResumeStreamingAsync</c>, <c>LoadSettingsAsync</c>,
+/// <c>SaveSettingsAsync</c>, <c>ConfigureAsync</c> and <c>ResolveOptionsAsync</c>.
 /// </summary>
 /// <typeparam name="TAgent">The agent.</typeparam>
 public sealed class AgentHost<TAgent> where TAgent : Agent
@@ -24,7 +24,7 @@ public sealed class AgentHost<TAgent> where TAgent : Agent
     /// <summary>
     /// The raw path: creates the client of a run whose options <c>ResolveOptionsAsync</c> resolved. It asks the
     /// <see cref="IChatClientProvider"/> for the options' model and wraps the client in conversation tracking, run
-    /// middleware, context, compaction, telemetry and the tool loop.
+    /// middleware, context, approval rules, the tool loop, checkpoints, compaction and telemetry.
     /// </summary>
     /// <param name="options">The resolved options; call the client with them.</param>
     /// <param name="ct">Cancels the creation.</param>
@@ -153,6 +153,21 @@ public interface IMcpToolProvider
 }
 
 /// <summary>
+/// Approves tool calls without asking the host: a command the host trusts, a read-only call. Registered with
+/// <c>WithApprovalRule&lt;T&gt;()</c>, resolved from the run's services.
+/// </summary>
+public interface IToolApprovalRule
+{
+    /// <summary>
+    /// Whether a call of a tool that requires approval may run without asking.
+    /// </summary>
+    /// <param name="call">The call, with the arguments the model sent.</param>
+    /// <param name="run">The run.</param>
+    /// <param name="ct">Cancels the decision.</param>
+    ValueTask<bool> ApprovesAsync(FunctionCallContent call, AgentRun run, CancellationToken ct);
+}
+
+/// <summary>
 /// What runs return beyond Microsoft.Extensions.AI.
 /// </summary>
 public static class ChatResponseExtensions
@@ -164,5 +179,15 @@ public static class ChatResponseExtensions
         /// next run of the conversation.
         /// </summary>
         public IReadOnlyList<ToolApprovalRequestContent> ApprovalRequests => throw null!;
+    }
+
+    extension(ToolApprovalRequestContent request)
+    {
+        /// <summary>
+        /// Approves this call and every later call of the same tool in the conversation. The approval is stored with
+        /// the conversation, so it holds across runs and processes.
+        /// </summary>
+        /// <returns>The response to send in the conversation's next run.</returns>
+        public ToolApprovalResponseContent ApproveForConversation() => throw null!;
     }
 }

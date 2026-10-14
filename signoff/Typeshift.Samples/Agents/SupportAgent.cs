@@ -33,8 +33,8 @@ internal partial class SupportAgent : Agent
         // end-snippet
 
         // begin-snippet: compaction
-        WithCompaction()
-            .WithMaxMessages(40)
+        WithRunOptions()
+            .WithMaxInputTokens(60_000)
             .WithSummaryModel("fast-model");
         // end-snippet
 
