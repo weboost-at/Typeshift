@@ -1,3 +1,4 @@
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Typeshift.Samples.Hosting;
 
@@ -12,7 +13,9 @@ internal static class Quickstart
 
         services.AddTypeshift()
             .WithStore<InMemoryTypeshiftStore>()
-            .WithChatClientProvider<CannedChatClientProvider>();
+            .WithChatClientProvider<KeyedChatClientProvider>();
+
+        services.AddKeyedSingleton<IChatClient>("fast-model", new CannedChatClient());
 
         await using var provider = services.BuildServiceProvider(validateScopes: true);
         // end-snippet

@@ -32,11 +32,13 @@ var services = new ServiceCollection();
 
 services.AddTypeshift()
     .WithStore<InMemoryTypeshiftStore>()
-    .WithChatClientProvider<CannedChatClientProvider>();
+    .WithChatClientProvider<KeyedChatClientProvider>();
+
+services.AddKeyedSingleton<IChatClient>("fast-model", new CannedChatClient());
 
 await using var provider = services.BuildServiceProvider(validateScopes: true);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L10-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L11-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `WithStore<T>()` registers the store as a singleton. `InMemoryTypeshiftStore` is for tests and samples.

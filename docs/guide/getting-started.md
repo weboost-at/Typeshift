@@ -166,17 +166,33 @@ var services = new ServiceCollection();
 
 services.AddTypeshift()
     .WithStore<InMemoryTypeshiftStore>()
-    .WithChatClientProvider<CannedChatClientProvider>();
+    .WithChatClientProvider<KeyedChatClientProvider>();
+
+services.AddKeyedSingleton<IChatClient>("fast-model", new CannedChatClient());
 
 await using var provider = services.BuildServiceProvider(validateScopes: true);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L10-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L11-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`InMemoryTypeshiftStore` keeps everything in memory, for tests and samples. `CannedChatClientProvider` is the samples'
-stand-in for a real model, so this tutorial runs without a network. In your app, you implement `ITypeshiftStore` over
-your database and `IChatClientProvider` over your model clients. [Settings and stores](./settings-and-stores.md) and
-[Running agents](./running-agents.md) show how.
+The provider is yours, and a few lines cover most apps. This one returns the client registered under the model's name:
+
+<!-- snippet: chat-client-provider -->
+<a id='snippet-chat-client-provider'></a>
+```cs
+internal sealed class KeyedChatClientProvider(IServiceProvider services) : IChatClientProvider
+{
+    public ValueTask<IChatClient> GetChatClientAsync(string model, CancellationToken ct) =>
+        ValueTask.FromResult(services.GetRequiredKeyedService<IChatClient>(model));
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/KeyedChatClientProvider.cs#L6-L12' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client-provider' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+`CannedChatClient` is the samples' stand-in for a real model, so this tutorial runs without a network. In your app,
+register your provider's `IChatClient` under the model's name instead. `InMemoryTypeshiftStore` keeps everything in
+memory, for tests and samples; in your app, you implement `ITypeshiftStore` over your database.
+[Settings and stores](./settings-and-stores.md) and [Running agents](./running-agents.md#chat-clients) show how.
 
 ## 6. Store settings
 
@@ -197,7 +213,7 @@ await research.ConfigureAsync(settingsId, settings => settings with
     FindCompanies = settings.FindCompanies with { Limit = 2 }
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L20-L30' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L23-L33' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The host comes from a scope, because it runs with that scope's services. `ConfigureAsync` loads the settings stored
@@ -216,7 +232,7 @@ var answer = await research.RunAsync("Vienna", settingsId, conversationId: 1);
 
 Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L32-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L35-L39' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A run can also pass settings for itself alone. This one finds at most one company and streams the answer:
@@ -232,7 +248,7 @@ var run = new ResearchAgent.Settings
 await foreach (var update in research.RunStreamingAsync("Vienna", settingsId, settings: run))
     Console.Write(update.Text);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L38-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L41-L49' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The run leaves `Temperature` null, so the stored 0.4 still holds.
