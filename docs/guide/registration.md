@@ -5,9 +5,8 @@ description: What a project needs, the id type, and every service AddTypeshift()
 
 # Registration
 
-`services.AddTypeshift()` registers every toolset and agent of your project and of the projects it references. It
-returns `TypeshiftBuilder`, the chain that registers the rest. This page lists what a project needs, the id type, and
-every service the registration adds; [Getting started](./getting-started.md) walks through the steps.
+`services.AddTypeshift()` registers every toolset and agent of your project and the projects it references. It returns
+`TypeshiftBuilder`, the chain that registers the rest.
 
 ## Project setup
 
@@ -25,24 +24,24 @@ dotnet add package Typeshift --prerelease
 ## XML docs of parameter types
 
 The package brings [Weboost.SchemaAnnotations](https://github.com/weboost-at/SchemaAnnotations), which turns the XML
-docs of a project's types into the descriptions of the properties a tool's parameters hold. Its build adds a hidden
-class to every project with `GenerateDocumentationFile`, and the project's module registers the docs it collects. To
-leave them out, set:
+docs of your types into descriptions of the properties a tool's parameters hold. It adds a hidden class to every
+project with `GenerateDocumentationFile`, and the project's module registers the docs it collects. To leave them out,
+set:
 
 ```xml
 <TypeshiftSchemaAnnotations>false</TypeshiftSchemaAnnotations>
 ```
 
 ::: warning Delete your own `[SchemaAnnotations]` class
-A project that marked a class with `[SchemaAnnotations]` itself now has two. Weboost.SchemaAnnotations then writes no
-`AIJsonSchemaCreateOptions.Annotated`, so code using it stops compiling. Delete your class: the one the package adds
-brings `Annotated` back.
+A project that marked a class with `[SchemaAnnotations]` itself now has two, so Weboost.SchemaAnnotations writes no
+`AIJsonSchemaCreateOptions.Annotated` and code using it stops compiling. Delete your class, and the one the package
+adds brings `Annotated` back.
 :::
 
 ## The id type
 
 Settings ids and conversation ids share one type across the whole build. It is `Guid` unless `TypeshiftIdType` names
-another. Set it once, in `Directory.Build.props`:
+another, set once in `Directory.Build.props`:
 
 <!-- snippet: id-type -->
 <a id='snippet-id-type'></a>
@@ -57,12 +56,10 @@ another. Set it once, in `Directory.Build.props`:
 `TypeshiftIdType` takes a C# keyword (`int`, `long`, `string`), a type of `System`, or a full type name
 ([TSH029](./diagnostics.md#tsh029)).
 
-- Generated members take the id type: `RunAsync(input, settingsId: 42)`.
-- `ITypeshiftStore`, `InMemoryTypeshiftStore`, `ConversationTracker` and `LiveRun` are aliases the generator writes for
-  it.
-- A referenced project built with another id type is [TSH021](./diagnostics.md#tsh021). A store of another id type is
-  [TSH028](./diagnostics.md#tsh028).
-- The library never creates ids. Your code chooses them.
+Generated members take the id type, as in `RunAsync(input, settingsId: 42)`, and `ITypeshiftStore`,
+`InMemoryTypeshiftStore`, `ConversationTracker` and `LiveRun` are aliases the generator writes for it. The library
+never creates ids; your code chooses them. A referenced project built with another id type is
+[TSH021](./diagnostics.md#tsh021), and a store of another id type is [TSH028](./diagnostics.md#tsh028).
 
 ## What `AddTypeshift()` registers
 
@@ -90,15 +87,15 @@ services.AddKeyedSingleton("reasoning-model", reasoning);
 |---|---|
 | Each toolset | Singleton |
 | Each agent | Singleton |
-| `AgentHost<TAgent>` per agent | Transient: it runs with the services of the scope it was resolved from |
+| `AgentHost<TAgent>` per agent | Transient, so it runs with the services of the scope it was resolved from |
 | The JSON contexts of each assembly, which tools ask before the defaults | Singleton |
 | `ConversationTracker` and the core services runs need | Singleton |
 
-The registrations come in modules, from three places: this project, every project it references that declares toolsets
+The registrations come in modules from three places: this project, every project it references that declares toolsets
 or agents, and the library's [built-in toolsets](./built-in-toolsets.md). Each module registers once per service
 collection, so a second call of `AddTypeshift()` only returns another chain.
 
-The generator intercepts the call. So it works only in a project that references the package, and only written as
+Because the generator intercepts the call, it works only in a project that references the package, and only written as
 `services.AddTypeshift()`. A call the generator did not intercept throws an `InvalidOperationException` that says what
 to check.
 
@@ -122,8 +119,8 @@ references. The host's toolsets and agents need the host's own call.
 | `WithWebSearch<TSearch>()` | `IWebSearch` | Scoped | `web_search`. |
 | `WithWebFetch<TFetch>()` | `IWebFetch` | Scoped | `web_fetch`. |
 
-Scoped services resolve from the run's scope, so they can differ per request. For example, they can use the current
-customer's credentials, folder or rules.
+Scoped services resolve from the run's scope, so they can differ per request and use the current customer's
+credentials, folder or rules, for example.
 
 ## Related
 

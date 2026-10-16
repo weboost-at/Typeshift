@@ -5,10 +5,8 @@ description: Every TSHnnn error and warning the Typeshift analyzer reports, what
 
 # Diagnostics
 
-An analyzer in the Typeshift package reports these errors and warnings while you type. The generator itself only writes
-code: every shape it cannot handle has a diagnostic, so generated code never fails with a compiler error of its own. You
-suppress them or change their severity as for any analyzer; see
-[Severities and suppression](#severities-and-suppression).
+The analyzer reports these errors and warnings while you type. Every mistake the generator cannot handle has one, so you
+never debug a compiler error inside generated code.
 
 | ID | Severity | Title |
 |---|---|---|
@@ -44,19 +42,19 @@ suppress them or change their severity as for any analyzer; see
 
 ## Severities and suppression
 
-An error fails the build. A warning lets it pass, but points at code that does not do what it seems to, such as settings
-that reach no parameter ([TSH010](#tsh010)). Each diagnostic's help link leads to its section on this page.
+An error fails the build. A warning lets it pass, but points at code that does not do what it seems to, such as
+settings that reach no parameter ([TSH010](#tsh010)). Each diagnostic's help link leads to its section on this page.
 
-Most diagnostics sit at the declaration they are about, so the usual
+Most diagnostics sit on the declaration they are about, so the usual
 [suppression](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/suppress-warnings) reaches them:
 `#pragma warning disable TSH009` around one declaration, or a `dotnet_diagnostic.TSH009.severity` entry in
-`.editorconfig`. The exceptions are [TSH020](#tsh020), [TSH021](#tsh021) and [TSH029](#tsh029): they concern the whole
-build and have no source location, so no `#pragma` reaches them.
+`.editorconfig`. [TSH020](#tsh020), [TSH021](#tsh021) and [TSH029](#tsh029) concern the whole build and have no
+source location, so no `#pragma` reaches them.
 
 ## TSH001
 
-**Toolset or agent is not partial.** The generator adds members to every toolset and agent, so the class must be
-`partial`, and so must every class it is nested in.
+**Toolset or agent is not partial.** The generator adds members to every toolset and agent, so the class and every
+class it is nested in must be `partial`.
 
 ## TSH002
 
@@ -65,37 +63,38 @@ build and have no source location, so no `#pragma` reaches them.
 
 ## TSH003
 
-**Tool is not a static method group.** Pass a static method, of any accessibility: `AddTool(Find)`. Lambdas, instance
-methods, local functions and delegate variables cannot be generated without reflection.
+**Tool is not a static method group.** Lambdas, instance methods, local functions and delegate variables need
+reflection to call. Pass a static method, of any accessibility: `AddTool(Find)`.
 
 ## TSH004
 
-**Tool parameter cannot be bound.** A model's JSON arguments cannot fill the parameter, for example a `ref` or `out`
-parameter, a pointer, or a ref struct such as `Span<T>`.
+**Tool parameter cannot be bound.** The model's JSON arguments cannot fill a `ref` or `out` parameter, a pointer, or
+a ref struct such as `Span<T>`.
 
 ## TSH005
 
-**Settings type is not a record with a parameterless constructor.** The parameterless constructor sets the code
-defaults, and each layer of settings applies to a `with` copy of them.
+**Settings type is not a record with a parameterless constructor.** That constructor sets the code defaults, and each
+layer of settings applies to a `with` copy of them.
 
 ## TSH006
 
 **Settings are less accessible than what exposes them.** Make the record or the toolset as accessible as what exposes
 it. There are two cases:
 
-- A settings record is less accessible than its toolset. The toolset's generated members name the record wherever the
-  toolset can be named.
+- A settings record is less accessible than its toolset. The toolset's generated members name the record wherever
+  the toolset can be named.
 - A toolset with configurable settings is less accessible than a public agent that offers it. The agent's `Settings`
   record names the toolset's overrides.
 
 ## TSH007
 
 **Tool name is not unique** across everything the host sees. Names that differ only in their underscores, such as
-`get_v2` and `get_v_2`, count as the same, since they map to the same generated property.
+`get_v2` and `get_v_2`, count as the same, because they map to the same generated property.
 
 ## TSH008
 
-**Tool name is not lower_snake_case**, the convention of the providers' function names. It is reported on `WithName`.
+**Tool name is not lower_snake_case**, the convention of the providers' function names. It is reported on
+`WithName`, or on the method when the name derived from it breaks the convention.
 
 ## TSH009
 
@@ -109,9 +108,9 @@ reach nothing. Add the parameter to the method.
 
 ## TSH011
 
-**Tool relies on XML docs that are not generated.** The compiler reads XML docs only with `GenerateDocumentationFile`.
-Set it in the project. Describing the tool with `WithDescription` helps only when its parameters have no `<param>` docs,
-since it replaces only the `<summary>`.
+**Tool relies on XML docs that are not generated.** The compiler reads XML docs only with
+`GenerateDocumentationFile`, so set it in the project. `WithDescription` is a way around it only when the parameters
+have no `<param>` docs, since it replaces only the `<summary>`.
 
 ## TSH012
 
@@ -119,37 +118,37 @@ since it replaces only the `<summary>`.
 
 - [Tool settings](./tool-settings.md#configurable-members) lists the types a configurable settings member may have.
 - Of the chat options, the model, the instructions, the sampling options, the stop sequences, multiple tool calls and
-  reasoning may be configurable. `Tools`, `ConversationId`, `ResponseFormat`, `ToolMode` and the additional properties
-  may not; see [Builders](./builders.md#chatoptionsbuilder).
+  reasoning may be configurable. `Tools`, `ConversationId`, `ResponseFormat`, `ToolMode` and the additional
+  properties may not, as [Builders](./builders.md#chatoptionsbuilder) shows.
 
 ## TSH013
 
-**Configurable member cannot be set.** It has no public `set` or `init` accessor.
+**Configurable member cannot be set.** Give it a public `set` or `init` accessor.
 
 ## TSH014
 
-**Declaration outside the constructor.** `AddTool`, `UseToolset` and the other declarations go directly in the
-constructor, not in a helper method it calls.
+**Declaration outside the constructor.** The generator reads `AddTool`, `UseToolset` and the other declarations only
+directly in the constructor, not in a helper method, a lambda or a local function.
 
 ## TSH015
 
-**Chain the generator cannot read.** Keep each declaration one expression. The generator cannot read a chain split over
-variables, such as `var u = UseToolset<T>(); u.Include(...)`, or a pick that is not `t => t.Tool`.
+**Chain the generator cannot read.** Keep each declaration one expression. The generator cannot follow a chain split
+over variables, such as `var u = UseToolset<T>(); u.Include(...)`, or a pick that is not `t => t.Tool`.
 
 ## TSH016
 
-**Toolset or agent is out of the generated code's reach.** It is `private` or `protected` nested, or it has no
-accessible parameterless constructor.
+**Toolset or agent is out of the generated code's reach.** Generated code names the class and the module creates it,
+so it cannot be nested as `private` or `protected`, and needs a public or internal parameterless constructor.
 
 ## TSH017
 
-**Toolset or agent is generic or derives from another.** Each toolset derives from `Toolset` directly, and each agent
-from `Agent`, without type parameters. Share code through static methods.
+**Toolset or agent is generic or derives from another.** Derive each toolset from `Toolset` and each agent from
+`Agent` directly, without type parameters. Share code through static methods.
 
 ## TSH018
 
-**Member clashes with a generated member.** A member of yours has a name the generator writes, such as `Settings` in an
-agent, or `CreateSearchTickets`, a tool's factory, in a toolset. Rename your member;
+**Member clashes with a generated member.** A member of yours has a name the generator writes, such as `Settings` in
+an agent, or `CreateSearchTickets`, a tool's factory, in a toolset. Rename your member.
 [Generated members](./generated-members.md) lists the names.
 
 ## TSH019
@@ -159,62 +158,62 @@ toolset's project.
 
 ## TSH020
 
-**Referenced assembly was not compiled with the generator.** The assembly declares toolsets or agents but carries no
-module of this Typeshift version, so `AddTypeshift()` cannot register them. Reference the package in its project, at the
+**Referenced assembly was not compiled with the generator.** It declares toolsets or agents but carries no module of
+this Typeshift version, so `AddTypeshift()` cannot register them. Reference the package in its project, at the
 version the rest of the build uses.
 
 ## TSH021
 
-**Referenced assembly has another id type.** Every project of a build shares one id type. Set `TypeshiftIdType` once, in
-`Directory.Build.props`.
+**Referenced assembly has another id type.** Every project of a build shares one id type. Set `TypeshiftIdType`
+once, in `Directory.Build.props`.
 
 ## TSH022
 
-**Two agents share a settings kind.** Two agent classes have one name in different namespaces, or two agents have the
-same `WithStorageKind`. Their settings would overwrite each other in the store. Give one of them a `WithStorageKind` of
-its own.
+**Two agents share a settings kind**, so their settings would overwrite each other in the store. It happens when two
+agent classes have one name in different namespaces, or two agents set the same `WithStorageKind`. Give one of them
+a `WithStorageKind` of its own.
 
 ## TSH023
 
-**Agent cannot be a tool or a handoff target.** It has no `WithDescription`, which the model reads to decide when to
-call it, or its name is not lower_snake_case. The analyzer checks this for agents of the same project.
+**Agent cannot be a tool or a handoff target.** The model needs the agent's `WithDescription` to decide when to call
+it, and a lower_snake_case name to call it by. The analyzer checks agents of the same project.
 
 ## TSH024
 
-**Sub-agent offers tools that need approval.** A sub-agent cannot ask the host. So in the default mode, its calls of
+**Sub-agent offers tools that need approval.** A sub-agent cannot ask the host, so in the default mode its calls of
 such tools are rejected unless a standing approval or a rule approves them. Add an
 [approval rule](./tool-approval.md#approval-rules), or hand off to the agent instead.
 
 ## TSH025
 
-**Tool is offered twice** by one agent. Offer each toolset's tools in one use, and leave out one of two tools of a name.
-An agent offers a tool twice when:
+**Tool is offered twice** by one agent, which happens when it:
 
-- it uses one toolset twice;
-- it picks one tool twice;
-- it uses one agent twice as a sub-agent, or twice as a handoff target;
-- two of its toolsets have a tool of one name, a built-in toolset's included.
+- uses one toolset twice;
+- picks one tool twice;
+- uses one agent twice as a sub-agent, or twice as a handoff target;
+- uses two toolsets with a tool of one name, a built-in toolset's included. Leave one of the two tools out.
 
 ## TSH026
 
-**Agents call each other in a circle** through `UseAgent`, so a call could never end. Handoffs may form circles.
+**Agents call each other in a circle** through `UseAgent`, so a call could never end. Break the circle, or turn one
+link into a handoff: handoffs may form circles.
 
 ## TSH027
 
 **Tool type has no JSON metadata under Native AOT.** In a project that publishes with Native AOT or sets
 `IsAotCompatible`, every parameter and result type of a tool needs source-generated metadata. List the type in a
-`JsonSerializerContext` of the toolset's assembly; see [Native AOT](./native-aot.md). Strings, numbers, `bool`, dates,
-`TimeSpan` and JSON elements need none.
+`JsonSerializerContext` of the toolset's assembly ([Native AOT](./native-aot.md)). Strings, numbers,
+`bool`, `char`, dates, `TimeSpan`, `IEnumerable<string>` and the JSON element and node types need none.
 
 ## TSH028
 
-**Store has another id type.** `WithStore<T>()` takes an `ITypeshiftStore` of the build's id type: the alias the
-generator writes.
+**Store has another id type.** `WithStore<T>()` takes a store of the build's id type. Implement `ITypeshiftStore`,
+the alias the generator writes for it.
 
 ## TSH029
 
-**Id type cannot be found.** `TypeshiftIdType` names a type the build does not know. Give a C# keyword (`int`, `long`,
-`string`), a type of `System` (`Guid`), or the type's full name with its namespace.
+**Id type cannot be found.** `TypeshiftIdType` names a type the build does not know. Give a C# keyword (`int`,
+`long`, `string`), a type of `System` (`Guid`), or the type's full name with its namespace.
 
 ## Related
 
