@@ -22,9 +22,15 @@ internal sealed class LivePublisher(
         }
 
         if (_pending is null)
-            _pending = new ChatResponseUpdate(update.Role, [.. update.Contents]) { AuthorName = update.AuthorName };
+        {
+            // A copy with the first update's ids, so a watcher groups the merged text as the run's caller does
+            _pending = update.Clone();
+            _pending.Contents = [.. update.Contents];
+        }
         else
+        {
             _pending.Contents = [.. _pending.Contents, .. update.Contents];
+        }
 
         if (time.GetUtcNow() - _published >= options.PublishInterval) Flush();
     }

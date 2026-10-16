@@ -450,6 +450,29 @@ public class ConversationRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_Text_Within_The_Interval_The_Merged_Update_Keeps_The_First_Updates_Ids()
+    {
+        // Arrange
+        var second = new ChatResponseUpdate(ChatRole.Assistant, "b") { MessageId = Data.Tool.CallId };
+        ChatClient.Reply(Text("a"), second, Text("c"));
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        await using var watch = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token).GetAsyncEnumerator(Ct);
+        var first = watch.MoveNextAsync();
+
+        // Act
+        await Host<ProbeAgent>()
+            .RunStreamingAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct)
+            .ToListAsync(Ct);
+
+        // Assert
+        (await first).Should().BeTrue();
+        (await watch.MoveNextAsync()).Should().BeTrue();
+        watch.Current.Text.Should().Be("bc");
+        watch.Current.MessageId.Should().Be(Data.Tool.CallId);
+    }
+
+    [Fact]
     public async Task Given_A_Conversation_Id_In_The_Options_The_Raw_Path_Stores_The_Run()
     {
         // Arrange
