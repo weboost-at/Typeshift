@@ -46,7 +46,10 @@ internal static class FileSystemRoot
             refused = $"'{path}' is absolute; give a path relative to the workspace.";
         else if (segments.Contains(".."))
             refused = $"'{path}' leads up with '..'; give a path within the workspace.";
-        else if (Follow(root, segments, ref hops) is { } resolved && Within(root, resolved))
+        // Compared as the operating system opens it: Windows drops the trailing dots and spaces of a last segment
+        else if (Follow(root, segments, ref hops) is { } followed
+                 && Path.GetFullPath(followed) is var resolved
+                 && Within(root, resolved))
             return resolved;
         else
             refused = $"'{path}' leads outside the workspace.";
