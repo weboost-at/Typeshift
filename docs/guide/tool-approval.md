@@ -46,7 +46,7 @@ AddTool(CloseTicketAsync)
 <!-- endSnippet -->
 
 `UseMcpServer(...).RequiresApproval()` does the same for every tool of an [MCP server](./mcp.md). A tool that a
-[context provider](./context-providers.md) adds asks when it is wrapped in `ApprovalRequiredAIFunction`.
+[context provider](./middleware.md#context-providers) adds asks when it is wrapped in `ApprovalRequiredAIFunction`.
 
 ## A run that asks
 

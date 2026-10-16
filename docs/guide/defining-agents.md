@@ -60,7 +60,7 @@ The tools and their settings have sections of their own below. The other calls d
 | `WithDescription(...)` | What the agent does. The model of an agent that calls this one reads it. |
 | `WithChatOptions()` | The options every run starts from: `WithModel`, `WithTemperature`, `WithMaxOutputTokens` and a `With...` per other option. `WithTools` adds tools of no toolset, such as a hosted web search. |
 | `UseMcpServer(...)` | The tools of an [MCP server](./mcp.md). `ReadOnly()` lets plan mode offer them. |
-| `UseContext<T>()` | A [context provider](./context-providers.md), whose instructions, messages and tools join every run. |
+| `UseContext<T>()` | A [context provider](./middleware.md#context-providers), whose instructions, messages and tools join every run. |
 | `UseAgent<T>()`, `UseHandoff<T>()` | Another agent as a tool, or one the model can hand the conversation to. See [Multiple agents](./multi-agent.md). |
 | `GetInstructions()` | The instructions, as an override. It runs whenever a run's options are resolved, so the text may be computed. |
 

@@ -226,7 +226,7 @@ that uses them:
 | `IChatClientProvider` | Every run. It returns the `IChatClient` for a model's name. | [Chat clients](./running-agents.md#chat-clients) |
 | `ITypeshiftStore` | Settings ids and conversation ids. `InMemoryTypeshiftStore` serves tests and samples. | [Settings and stores](./settings-and-stores.md) |
 | `IFileSystemRoot`, `IWebSearch`, `IWebFetch` | The built-in file, shell and web tools. | [Built-in toolsets](./built-in-toolsets.md#what-each-needs) |
-| `IContextProvider` | Memory, documents or other data added to every run of an agent. | [Context providers](./context-providers.md) |
+| `IContextProvider` | Memory, documents or other data added to every run of an agent. | [Context providers](./middleware.md#context-providers) |
 | `IToolApprovalRule`, `IRunMiddleware`, `IToolMiddleware`, `IMcpToolProvider` | Approval rules, middleware and MCP servers. | [The chain](./registration.md#the-chain) |
 
 ## Related

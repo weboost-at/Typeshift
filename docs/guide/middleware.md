@@ -1,23 +1,16 @@
 ---
-title: Middleware
-description: Wrap every run or every tool call of every agent, for logging, guardrails, auditing or limits.
+title: Middleware and context
+description: Wrap every run or tool call for logging, guardrails or audits, and add memory, documents or the customer's profile to an agent's runs.
 ---
 
-# Middleware
+# Middleware and context
 
-Middleware wraps every run or every tool call of every agent. Use it for logging, guardrails, auditing or limits.
-Typeshift resolves it from the run's services, so scoped services, such as the current customer, reach it.
+Middleware wraps every run or tool call, for logging, guardrails or limits. A context provider adds instructions,
+messages or tools to the runs of the agents that use it, such as a memory.
 
-::: tip The short version
+## Middleware
 
-- An `IRunMiddleware` wraps a run. It may change the run's messages and options, then calls `next`.
-- An `IToolMiddleware` wraps each tool call. What it returns is the result the model receives.
-- Either answers in place of the model or the tool when it does not call `next`.
-- `WithRunMiddleware<T>()` and `WithToolMiddleware<T>()` register them. The first registered is the outermost.
-
-:::
-
-## Around runs
+### Around runs
 
 <!-- snippet: run-middleware -->
 <a id='snippet-run-middleware'></a>
@@ -39,28 +32,27 @@ internal sealed class BlockedTopics : IRunMiddleware
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/BlockedTopics.cs#L5-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-middleware' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`InvokeAsync` sees the run's agent, messages, options and mode. It may change the messages and the options before it
-calls `next`. After `next` returns, `run.Response` holds the answer.
+An `IRunMiddleware` sees the run's agent, messages, options and mode. It may change the messages and the options
+before it calls `next`, and once `next` returns, `run.Response` holds the answer. The changes hold for this run only,
+because the conversation keeps the messages the host sent. Middleware runs for every agent, so check `run.Agent` when
+it should act on some of them only.
 
-The changes hold for this run only: a conversation keeps the messages the host sent. Middleware runs for every agent, so
-check `run.Agent` when it should act on some agents only.
+### Answering in place of the model
 
-## Answering in place of the model
+Set `run.Response` and skip `next`, as `BlockedTopics` does above, and the middleware answers in place of the model.
+The conversation stores that answer. Middleware that neither calls `next` nor sets `run.Response` fails the run.
 
-Middleware that sets `run.Response` without calling `next` answers in place of the model, as `BlockedTopics` does above.
-A conversation stores that answer. Middleware that neither calls `next` nor sets `run.Response` fails the run.
+### Streaming runs
 
-## Streaming runs
-
-The same `InvokeAsync` serves streaming runs. The updates stream on to the caller while `next` runs, and `next` returns
-when the stream ends. A response set in place of the model is streamed as it is.
+The same `InvokeAsync` serves streaming runs. The updates stream on to the caller while `next` runs, and `next`
+returns when the stream ends. A response set in place of the model is streamed as it is.
 
 ::: warning A steered run passes through middleware again
 Steering input that arrives after a run's answer starts another pass of the run, and that pass goes through the
-middleware again. So middleware can see one run more than once. See [Conversations](./conversations.md).
+middleware again, so middleware can see one run more than once. See [Conversations](./conversations.md#steering).
 :::
 
-## Around tool calls
+### Around tool calls
 
 <!-- snippet: tool-middleware -->
 <a id='snippet-tool-middleware'></a>
@@ -81,16 +73,14 @@ internal sealed class AuditToolCalls(ICurrentCustomer customer, ILogger<AuditToo
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/AuditToolCalls.cs#L6-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-tool-middleware' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`call` is Microsoft.Extensions.AI's `FunctionInvocationContext`: the function, its arguments and the messages so far.
-What `InvokeAsync` returns is the result the model receives.
+An `IToolMiddleware` receives Microsoft.Extensions.AI's `FunctionInvocationContext`: the function, its arguments and
+the messages so far. What it returns is the result the model receives, so returning without calling `next` answers
+in place of the tool. Setting `call.Terminate` ends the tool loop.
 
-- Return without calling `next` to answer in place of the tool.
-- Set `call.Terminate` to end the tool loop.
+### Registering
 
-## Registering
-
-`WithRunMiddleware<T>()` and `WithToolMiddleware<T>()` add middleware, scoped. Middleware runs in the order you register
-it: the first registered is the outermost.
+`WithRunMiddleware<T>()` and `WithToolMiddleware<T>()` register middleware as scoped, so it sees the run's services,
+such as the current customer. It runs in the order you register it, the first registered outermost:
 
 <!-- snippet: registration -->
 <a id='snippet-registration'></a>
@@ -108,9 +98,63 @@ services.AddKeyedSingleton("reasoning-model", reasoning);
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L18-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+## Context providers
+
+### Writing a provider
+
+<!-- snippet: context-provider -->
+<a id='snippet-context-provider'></a>
+```cs
+internal sealed class CustomerProfileContext(ICurrentCustomer customer) : IContextProvider
+{
+    public ValueTask<AgentContext> GetContextAsync(AgentRun run, CancellationToken ct) =>
+        ValueTask.FromResult(new AgentContext
+        {
+            Instructions = $"The customer is {customer.Name}, on the {customer.Plan} plan."
+        });
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/CustomerProfileContext.cs#L3-L12' title='Snippet source file'>snippet source</a> | <a href='#snippet-context-provider' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+`GetContextAsync` returns an `AgentContext`, and each of its parts is appended to what the run already has:
+
+| Part | Goes |
+|---|---|
+| `Instructions` | After the agent's instructions |
+| `Messages` | Ahead of the input, after the resumed conversation |
+| `Tools` | To this run only |
+
+Typeshift asks the provider after it resumes the conversation and before it calls the model. The conversation stores
+none of what the provider adds, so every run asks again.
+
+### Using a provider
+
+The agent names its providers in its constructor:
+
+<!-- snippet: use-context -->
+<a id='snippet-use-context'></a>
+```cs
+UseContext<CustomerProfileContext>();
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L34-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-context' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+A provider needs no registration. Typeshift resolves it from the run's services, or creates it from them when none
+is registered, so its constructor can take scoped services.
+
+### Context tools
+
+Context tools are offered like the agent's own, and one wrapped in `ApprovalRequiredAIFunction` asks for
+[approval](./tool-approval.md).
+
+::: warning Plan mode hides context tools
+Context tools carry no `ReadOnly()` mark, so [plan mode](./tool-approval.md#plan-mode) hides them.
+:::
+
 ## Related
 
-- [How a run works](./running-agents.md#how-a-run-works): where middleware sits among a run's steps, and what each step can change.
-- [Context providers](./context-providers.md): adding instructions, messages or tools to every run.
+- [How a run works](./running-agents.md#how-a-run-works): where middleware and context sit among a run's steps.
+- [Agents](./defining-agents.md): `UseContext<T>()` among the other calls of an agent's constructor.
 - [Tool approval](./tool-approval.md#approval-rules): rules, which decide tool calls before the host is asked.
 - [Registration](./registration.md): the other calls of the `AddTypeshift()` chain.

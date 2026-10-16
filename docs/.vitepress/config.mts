@@ -37,8 +37,7 @@ const sidebar = {
       text: 'Controlling runs',
       items: [
         { text: 'Approval and modes', link: '/guide/tool-approval' },
-        { text: 'Middleware', link: '/guide/middleware' },
-        { text: 'Context providers', link: '/guide/context-providers' }
+        { text: 'Middleware and context', link: '/guide/middleware' }
       ]
     },
     {

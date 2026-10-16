@@ -216,7 +216,7 @@ conversation stores how the run ended, and middleware sees the response.
    ([Conversations](./conversations.md)).
 3. **Run middleware.** Each `IRunMiddleware` wraps the rest of the run ([Middleware](./middleware.md)).
 4. **Context providers.** Each provider the agent uses adds to this run. Nothing it adds is stored with the
-   conversation, so every run asks again ([Context providers](./context-providers.md)).
+   conversation, so every run asks again ([Context providers](./middleware.md#context-providers)).
 5. **Approval and mode.** The run matches the host's answers to the approval requests the conversation stored, and in
    plan mode offers only the read-only tools and `exit_plan_mode`. After each pass of the tool loop, rules, standing
    approvals and auto mode decide the calls they can. When calls are left that only the host can decide, the run
