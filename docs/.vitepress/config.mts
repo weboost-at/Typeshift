@@ -47,7 +47,6 @@ const sidebar = {
         { text: 'Registration', link: '/guide/registration' },
         { text: 'Builders', link: '/guide/builders' },
         { text: 'Generated members', link: '/guide/generated-members' },
-        { text: 'Agent host', link: '/guide/agent-host' },
         { text: 'Diagnostics', link: '/guide/diagnostics' },
         { text: 'Glossary', link: '/guide/glossary' }
       ]

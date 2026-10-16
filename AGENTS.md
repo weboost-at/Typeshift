@@ -95,8 +95,7 @@ style; the essentials:
 | The order of a run's steps | `guide/running-agents.md#how-a-run-works` | `contributing/architecture.md#a-run` (the code's side) |
 | The store contract, kinds, versions, revisions, the `Settings` JSON | `guide/settings-and-stores.md` | `generated-members.md#settings` |
 | Conversations: storage, resume, steering, live updates, compaction | `guide/conversations.md` | |
-| Generated members | `guide/generated-members.md` | `agent-host.md` |
-| `AgentHost` members and signatures | `guide/agent-host.md` | `running-agents.md` |
+| Generated members, `AgentHost` members and signatures | `guide/generated-members.md` | `running-agents.md` |
 | Spans and metrics, Native AOT | `guide/production.md` | |
 | Diagnostics | `guide/diagnostics.md` | every page, linked by ID |
 | Terms | `guide/glossary.md` | |

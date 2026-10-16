@@ -244,7 +244,7 @@ provider's client ([Observability](./production.md#observability)).
 
 ## Related
 
-- [Agent host](./agent-host.md): every member of the host and its signature.
+- [Agent host](./generated-members.md#the-agent-host): every member of the host and its signature.
 - [Registration](./registration.md#the-chain): the chain calls and their lifetimes.
 - [Conversations](./conversations.md): storing, resuming and steering runs.
 - [Settings and stores](./settings-and-stores.md#settings-layering): where each of a run's values comes from.
