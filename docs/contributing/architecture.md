@@ -92,8 +92,9 @@ parameters of a tool the model never sees (D14).
 3. The result is serialized through `JsonTypeInfo` into a `JsonElement`.
 
 The schema of each function type is built once and cached in `ToolJson`: one `AIJsonUtilities.CreateJsonSchema` per
-parameter with its description and default, nullable references widened to `[type, "null"]`. `ToolJson` asks the
-modules' JSON contexts first, then Microsoft.Extensions.AI's defaults, which reflect outside Native AOT (D45).
+parameter with its description and default, nullable references widened to `[type, "null"]`, and the properties
+described by the XML docs the modules registered (D55). `ToolJson` asks the modules' JSON contexts first, then
+Microsoft.Extensions.AI's defaults, which reflect outside Native AOT (D45).
 
 ## A run
 

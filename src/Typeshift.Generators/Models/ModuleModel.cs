@@ -7,7 +7,8 @@ internal sealed record ModuleModel(
     string IdType,
     EquatableArray<string> Toolsets,
     EquatableArray<ModuleAgent> Agents,
-    EquatableArray<string> JsonContexts);
+    EquatableArray<string> JsonContexts,
+    EquatableArray<string> SchemaAnnotations);
 
 // D39: an agent and the kind its stored Settings go by
 internal sealed record ModuleAgent(string Type, string Kind);

@@ -146,6 +146,24 @@ commit, or add a new one and withdraw the old.
 - **Status:** carried (v0), `WithDescription` overrides; parameters the model never sees need no `<param>` (D2's
   suppressor).
 
+### D55. The types tools take describe themselves with their XML docs
+
+- **Status:** decided by the owner in this session.
+- **Context:** a `<param>` doc described a parameter, but nothing described the properties of the record it took,
+  so a command's ids and codes reached the model without the docs that say how to fill them.
+- **Decision:** the package depends on Weboost.SchemaAnnotations and passes its generator to every consumer. The
+  package's build adds a hidden `[SchemaAnnotations]` class to each project with `GenerateDocumentationFile`, named
+  after the assembly, and the module registers the docs collected for every marked class of its assembly. Tool
+  schemas are built through an annotator over all of them. `TypeshiftSchemaAnnotations=false` leaves the class out.
+- **As built:** the annotator never replaces a description, so a `<param>` doc keeps describing its parameter. A
+  project that marked its own class has two, and Weboost.SchemaAnnotations then writes no
+  `AIJsonSchemaCreateOptions.Annotated`; deleting its own brings `Annotated` back from the added class.
+- **Where:** `buildTransitive/Typeshift.props`, `Parsing/Discovery.cs`, `Emitting/ModuleEmitter.cs`,
+  `Generated/ToolJson.cs`.
+- **Alternatives:** a chain call taking `AIJsonSchemaCreateOptions`, which every host would have to make; the
+  generator reading the docs itself, a second copy of Weboost.SchemaAnnotations; finding a class the project marked,
+  one more line of setup per project.
+
 ### D15. Tools receive services through `IServiceProvider`
 
 - **Status:** decided by the owner in this session.

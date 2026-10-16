@@ -226,8 +226,9 @@ Every agent also gets:
 
 | Member | Triggered by | Is |
 |---|---|---|
-| `{Assembly}Module` (hidden) | A toolset or an agent in the assembly | Registers the assembly's toolsets, agents, hosts and JSON contexts; see [Registration](./registration.md#what-addtypeshift-registers). |
+| `{Assembly}Module` (hidden) | A toolset or an agent in the assembly | Registers the assembly's toolsets, agents, hosts, JSON contexts and XML docs; see [Registration](./registration.md#what-addtypeshift-registers). |
 | `[GeneratedModule]` (hidden) | The same | Stamps the module, its version and the id type for the projects that reference the assembly. |
+| `TypeshiftSchemaAnnotations_{Assembly}` (hidden) | `GenerateDocumentationFile` | Added by the package's build: the class whose XML docs Weboost.SchemaAnnotations collects; see [Registration](./registration.md#xml-docs-of-parameter-types). |
 | `ITypeshiftStore`, `InMemoryTypeshiftStore`, `ConversationTracker`, `LiveRun` | A reference to the package | `global using` aliases that close the library's types over the [id type](./registration.md#the-id-type). |
 | The `AddTypeshift()` interceptor | A call of `services.AddTypeshift()` | See [Registration](./registration.md). |
 

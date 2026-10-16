@@ -79,6 +79,11 @@ internal static class ModuleEmitter
                 {
                     writer.Line($"{Registration}.AddJsonContext(services, {context}.Default);");
                 }
+
+                foreach (var annotations in model.SchemaAnnotations)
+                {
+                    writer.Line($"{Registration}.AddSchemaAnnotations(services, {annotations}.Source);");
+                }
             }
         }
 

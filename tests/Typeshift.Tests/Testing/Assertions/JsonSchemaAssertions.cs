@@ -27,6 +27,14 @@ public sealed class JsonSchemaAssertions(JsonElement schema)
         return schema;
     }
 
+    // A property of the objects an array parameter holds
+    public JsonElement ItemPropertyDescription(string parameter, string property, string description)
+    {
+        var item = Parameter(parameter).GetProperty("items").GetProperty("properties").GetProperty(property);
+        item.GetProperty("description").GetString().Should().Be(description);
+        return schema;
+    }
+
     public JsonElement ParameterSchema(string parameter, string json) => Equivalent(Parameter(parameter), json);
 
     public JsonElement ParameterDefault(string parameter, string json) =>

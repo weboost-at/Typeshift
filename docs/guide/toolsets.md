@@ -122,6 +122,9 @@ request's scoped services, such as the current customer, reach the tool.
   the model.
 - An optional argument the model leaves out takes its default.
 - A nullable reference parameter is nullable in the schema.
+- The properties of a record or class parameter take their descriptions from their XML docs, a positional record's
+  `<param>` docs included. Say there how the model fills a property, such as the format of a code. See
+  [Registration](./registration.md#xml-docs-of-parameter-types) for how the docs are collected.
 - `ref` and `out` parameters are [TSH004](./diagnostics.md#tsh004).
 
 ## Results

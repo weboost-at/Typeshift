@@ -7,6 +7,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- The properties of the types tools take are described by their XML docs: the package brings
+  Weboost.SchemaAnnotations and adds the class it collects docs for to every project with
+  `GenerateDocumentationFile`. `TypeshiftSchemaAnnotations=false` turns it off. A project that marked its own
+  `[SchemaAnnotations]` class deletes it.
 - `ConversationTracker.WatchRunsAsync(ct)` yields the runs going on, then each run as it starts and ends
   (`LiveRun.Ended`), so a list of running conversations needs no polling.
 

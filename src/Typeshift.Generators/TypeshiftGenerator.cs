@@ -5,6 +5,7 @@ using Typeshift.Generators.Emitting;
 using Typeshift.Generators.Models;
 using Typeshift.Generators.Parsing;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Typeshift.Generators;
 
@@ -28,6 +29,15 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
 
         var contexts = context.SyntaxProvider
             .CreateSyntaxProvider(Discovery.IsJsonContext, Discovery.ClassifyJsonContext)
+            .Where(static name => name is not null)
+            .Select(static (name, _) => name!)
+            .Collect();
+
+        var annotations = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                KnownTypes.SchemaAnnotationsAttribute,
+                static (node, _) => node is ClassDeclarationSyntax,
+                Discovery.ClassifySchemaAnnotations)
             .Where(static name => name is not null)
             .Select(static (name, _) => name!)
             .Collect();
@@ -67,10 +77,12 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             .Collect()
             .Combine(agents.Collect())
             .Combine(contexts)
+            .Combine(annotations)
             .Combine(assemblyName)
             .Combine(idType)
             .Select(static (pair, _) => CreateModule(
-                pair.Left.Left.Left.Left,
+                pair.Left.Left.Left.Left.Left,
+                pair.Left.Left.Left.Left.Right,
                 pair.Left.Left.Left.Right,
                 pair.Left.Left.Right,
                 pair.Left.Right,
@@ -117,6 +129,7 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
         ImmutableArray<ToolsetModel> toolsets,
         ImmutableArray<AgentModel> agents,
         ImmutableArray<string> contexts,
+        ImmutableArray<string> annotations,
         string assemblyName,
         string idType)
     {
@@ -131,7 +144,8 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
                 .Where(agent => agent.IsReachable)
                 .Select(agent => new ModuleAgent(agent.Type.FullName, agent.Kind))
                 .ToEquatableArray(),
-            contexts.Distinct().ToEquatableArray());
+            contexts.Distinct().ToEquatableArray(),
+            annotations.ToEquatableArray());
     }
 
     private static void EmitInterceptor(

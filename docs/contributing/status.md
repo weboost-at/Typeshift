@@ -54,6 +54,7 @@ The numbers are the rules of v0's behavior table where they still hold.
 | new | Structured output and the raw path | `AgentRunTests.Given_A_Result_Type_The_Run_Returns_The_Models_Json_Typed`, `..._Given_Resolved_Options_The_Created_Client_Runs_The_Agent` |
 | new | A run without a model or a provider fails, saying how to fix it | `AgentRunTests.Given_No_Model_The_Run_Fails_Saying_How_To_Set_One`, `AddTypeshiftTests.Given_No_Chat_Client_Provider_A_Run_Fails_Naming_The_Registration` |
 | new | Disposing a run's client leaves the provider's client alone | `AgentRunTests.Given_A_Run_The_Providers_Client_Outlives_It` |
+| new | The XML docs of a parameter's type describe its properties; the module registers a marked class's docs (D55) | `AddTypeshiftTests.Given_Xml_Docs_On_A_Parameters_Type_Its_Schema_Describes_Its_Properties`, `ToolsetGenerationTests.Given_A_Schema_Annotations_Class_The_Module_Registers_Its_Docs`, `..._Given_A_Schema_Annotations_Class_That_Is_Not_Partial_The_Module_Leaves_It_Out` |
 | new | Toolsets of referenced assemblies: stamps, settings, JSON contexts (D7, D45) | `AgentRunTests.Given_A_Toolset_Of_A_Referenced_Assembly_Its_Tool_Runs_With_Its_Settings`, `AddTypeshiftTests.Given_A_Json_Context_In_A_Toolsets_Assembly_Tools_Ask_It_Before_The_Defaults`, `AgentGenerationTests` |
 | new | An agent's output is generated again only when what it offers changes | `IncrementalTests` |
 | 16 | Stored settings apply under their id, run settings over them, tool overrides included | `StoredSettingsTests.Given_Stored_Settings_A_Run_With_Their_Id_Applies_Them`, `..._Given_Stored_And_Run_Settings_The_Runs_Apply_Over_The_Stored`, `..._Given_Stored_Tool_Overrides_The_Tool_Runs_With_Them_Over_The_Agents_Settings` |
@@ -120,6 +121,8 @@ The numbers are the rules of v0's behavior table where they still hold.
 - **Kinds across references:** TSH022 compares the compilation's agents with each other and with those the
   references stamp, not two references' agents with each other.
 - **Live updates of non-streaming runs:** only streaming runs publish.
+- **Docs of types in assemblies without toolsets or agents:** such an assembly has no module, so the XML docs
+  collected for it reach no schema. A tool whose parameter type lives there gets that type's properties undescribed.
 - **Storable structs:** a user struct other than the scalars cannot be configurable (TSH012).
 - **Run limit across approval rounds:** rounds the approval layer continues share the run's `MaxToolIterations`; a
   round that runs tools before it asks again may run one round of tools past it.

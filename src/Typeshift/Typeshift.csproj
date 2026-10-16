@@ -24,6 +24,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.AI" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <!-- D55: its generator reaches every consumer, which collects the XML docs the tools' schemas carry -->
+    <PackageReference Include="Weboost.SchemaAnnotations" PrivateAssets="none" />
   </ItemGroup>
 
   <ItemGroup>

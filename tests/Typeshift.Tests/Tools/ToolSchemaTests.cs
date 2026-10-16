@@ -7,7 +7,7 @@ namespace Typeshift.Tests.Tools;
 
 public class ToolSchemaTests : UnitTestBase
 {
-    private ToolJson Json { get; } = new([]);
+    private ToolJson Json { get; } = new([], []);
 
     [Fact]
     public void Given_A_Struct_Parameter_Defaulting_To_Default_Its_Schema_Carries_The_Default()

@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.AI;
+using Weboost.SchemaAnnotations;
 
 namespace Typeshift.Generated;
 
@@ -15,12 +16,14 @@ namespace Typeshift.Generated;
 public sealed class ToolJson
 {
     private readonly ConcurrentDictionary<Type, JsonElement> _schemas = [];
+    private readonly AIJsonSchemaCreateOptions _schemaOptions;
 
     /// <summary>
-    /// Creates the options from the resolvers that come first.
+    /// Creates the options from the resolvers that come first, and the schemas from the docs of the modules.
     /// </summary>
     /// <param name="resolvers">The JSON contexts the modules register, asked in order.</param>
-    public ToolJson(IEnumerable<IJsonTypeInfoResolver> resolvers)
+    /// <param name="annotations">The XML docs the modules register, which describe the parameters' properties.</param>
+    public ToolJson(IEnumerable<IJsonTypeInfoResolver> resolvers, IEnumerable<ISchemaAnnotationSource> annotations)
     {
         // D45: outside Native AOT the defaults reflect, so tools need no context of their own
         var options = new JsonSerializerOptions(AIJsonUtilities.DefaultOptions)
@@ -31,6 +34,12 @@ public sealed class ToolJson
 
         options.MakeReadOnly();
         SerializerOptions = options;
+
+        // D55: a <param> doc still describes the parameter itself, since the annotator keeps a description it finds
+        _schemaOptions = new AIJsonSchemaCreateOptions
+        {
+            TransformSchemaNode = new SchemaAnnotator(annotations).Transform
+        };
     }
 
     /// <summary>
@@ -85,7 +94,8 @@ public sealed class ToolJson
             parameter.Description,
             parameter.HasDefaultValue,
             parameter.DefaultValue,
-            SerializerOptions);
+            SerializerOptions,
+            _schemaOptions);
 
         // A type that takes any JSON gets the schema true, which {} matches
         var schema = element.ValueKind is JsonValueKind.Object ? JsonObject.Create(element)! : new JsonObject();

@@ -157,4 +157,36 @@ public class ToolsetGenerationTests : GeneratorTestBase
         // Assert
         run.Source("Demo.TicketToolset.g.cs").Should().Contain("public override string Name => \"search_tickets\";");
     }
+
+    [Fact]
+    public void Given_A_Schema_Annotations_Class_The_Module_Registers_Its_Docs()
+    {
+        // Act
+        var run = Run(ToolsetSources.Tickets, ToolsetSources.SchemaAnnotations);
+
+        // Assert
+        run.Source("Typeshift.Generated.SubjectModule.g.cs")
+            .Should()
+            .Contain("AddSchemaAnnotations(services, global::Demo.TicketAnnotations.Source);");
+    }
+
+    [Fact]
+    public void Given_A_Schema_Annotations_Class_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(ToolsetSources.Tickets, ToolsetSources.SchemaAnnotations);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
+    public void Given_A_Schema_Annotations_Class_That_Is_Not_Partial_The_Module_Leaves_It_Out()
+    {
+        // Act
+        var run = Run(ToolsetSources.Tickets, ToolsetSources.SchemaAnnotationsNotPartial);
+
+        // Assert
+        run.Source("Typeshift.Generated.SubjectModule.g.cs").Should().NotContain("AddSchemaAnnotations");
+    }
 }

@@ -338,4 +338,27 @@ public static class ToolsetSources
             private static string Reveal(string name) => name;
         }
         """;
+
+    // The class Typeshift's build adds, with the Source that Weboost.SchemaAnnotations' generator writes for it
+    public const string SchemaAnnotations =
+        """
+        namespace Demo;
+
+        [Weboost.SchemaAnnotations.SchemaAnnotations(IncludeInternal = true)]
+        internal static partial class TicketAnnotations;
+
+        internal static partial class TicketAnnotations
+        {
+            public static Weboost.SchemaAnnotations.FrozenSchemaAnnotationSource Source { get; } = new([]);
+        }
+        """;
+
+    // Weboost.SchemaAnnotations reports a marked class that is not partial and writes no Source for it
+    public const string SchemaAnnotationsNotPartial =
+        """
+        namespace Demo;
+
+        [Weboost.SchemaAnnotations.SchemaAnnotations]
+        internal static class TicketAnnotations;
+        """;
 }

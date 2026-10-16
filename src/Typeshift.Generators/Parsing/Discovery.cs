@@ -41,6 +41,19 @@ internal static class Discovery
             ? type.ToTypeOf()
             : null;
 
+    // D55: the module registers the docs Weboost.SchemaAnnotations collects for a marked class, which gets a Source
+    // only when it is partial and not generic
+    public static string? ClassifySchemaAnnotations(GeneratorAttributeSyntaxContext context, CancellationToken ct) =>
+        context is
+            {
+                TargetNode: ClassDeclarationSyntax declaration,
+                TargetSymbol: INamedTypeSymbol { IsGenericType: false } type
+            }
+        && declaration.Modifiers.Any(SyntaxKind.PartialKeyword)
+        && type.IsVisibleInAssembly()
+            ? type.ToTypeOf()
+            : null;
+
     private static bool HasBase(SyntaxNode node, string baseName) =>
         node is ClassDeclarationSyntax { BaseList: { } bases } declaration
         && !declaration.Modifiers.Any(SyntaxKind.AbstractKeyword)

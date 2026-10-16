@@ -1,5 +1,6 @@
 using Typeshift.Generated;
 using Typeshift.Tests.Agents.Support;
+using Typeshift.Tests.Tools.Support;
 using Typeshift.Tests.Toolsets;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,6 +39,16 @@ public class AddTypeshiftTests : AgentTestBase
 
         // Assert
         contract.OriginatingResolver.Should().BeOfType<CompanyJsonContext>();
+    }
+
+    [Fact]
+    public void Given_Xml_Docs_On_A_Parameters_Type_Its_Schema_Describes_Its_Properties()
+    {
+        // Act
+        var search = SchemaToolset.CreateSearchCompanies(Services.GetRequiredService<ToolJson>());
+
+        // Assert
+        search.JsonSchema.Assert.ItemPropertyDescription("known", "country", "Two-letter ISO country code.");
     }
 
     [Fact]

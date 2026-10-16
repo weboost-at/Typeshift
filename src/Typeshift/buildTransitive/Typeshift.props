@@ -5,6 +5,8 @@
     <InterceptorsNamespaces>$(InterceptorsNamespaces);Typeshift.Generated</InterceptorsNamespaces>
     <!-- D11: the type of every settings and conversation id; set it once, in Directory.Build.props. -->
     <TypeshiftIdType Condition="'$(TypeshiftIdType)' == ''">Guid</TypeshiftIdType>
+    <!-- D55: the XML docs of the types tools take describe their schemas; false leaves them out. -->
+    <TypeshiftSchemaAnnotations Condition="'$(TypeshiftSchemaAnnotations)' == ''">true</TypeshiftSchemaAnnotations>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,5 +15,26 @@
     <CompilerVisibleProperty Include="PublishAot" />
     <CompilerVisibleProperty Include="IsAotCompatible" />
   </ItemGroup>
+
+  <!-- D55: Weboost.SchemaAnnotations collects docs for a class marked in source, so each project gets one, named after
+       its assembly so that a reference granting InternalsVisibleTo never brings a second of the same name. -->
+  <Target Name="TypeshiftSchemaAnnotations"
+          BeforeTargets="CoreCompile"
+          Condition="'$(TypeshiftSchemaAnnotations)' == 'true' and '$(GenerateDocumentationFile)' == 'true' and '$(Language)' == 'C#'">
+    <PropertyGroup>
+      <_TypeshiftAnnotationsClass>TypeshiftSchemaAnnotations_$([System.Text.RegularExpressions.Regex]::Replace('$(AssemblyName)', '[^A-Za-z0-9_]', '_'))</_TypeshiftAnnotationsClass>
+      <_TypeshiftAnnotationsFile>$(IntermediateOutputPath)$(AssemblyName).TypeshiftSchemaAnnotations.g.cs</_TypeshiftAnnotationsFile>
+    </PropertyGroup>
+
+    <WriteLinesToFile File="$(_TypeshiftAnnotationsFile)"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true"
+                      Lines="// &lt;auto-generated/&gt;;[global::Weboost.SchemaAnnotations.SchemaAnnotations(IncludeInternal = true)];[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)];internal static partial class $(_TypeshiftAnnotationsClass);{;}" />
+
+    <ItemGroup>
+      <Compile Include="$(_TypeshiftAnnotationsFile)" />
+      <FileWrites Include="$(_TypeshiftAnnotationsFile)" />
+    </ItemGroup>
+  </Target>
 
 </Project>

@@ -23,7 +23,7 @@ public abstract class HostTestBase : UnitTestBase, IAsyncDisposable
     // The scope a request or a job would run in
     protected IServiceProvider Scope => _scope.Value.ServiceProvider;
 
-    protected ToolJson Json { get; } = new([]);
+    protected ToolJson Json { get; } = new([], []);
 
     protected ScriptedChatClient ChatClient { get; } = new();
 

@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Weboost.SchemaAnnotations;
 
 namespace Typeshift.Generated;
 
@@ -24,7 +25,8 @@ public static class ModuleRegistration
         where TId : notnull
     {
         services.TryAddSingleton(provider => new ToolJson(
-            provider.GetServices<JsonContextRegistration>().Select(registration => registration.Resolver)));
+            provider.GetServices<JsonContextRegistration>().Select(registration => registration.Resolver),
+            provider.GetServices<SchemaAnnotationsRegistration>().Select(registration => registration.Source)));
 
         services.TryAddSingleton<IStoreAccess>(provider => new StoreAccess<TId>(provider, parse));
         services.TryAddSingleton<LiveRuns>();
@@ -87,7 +89,17 @@ public static class ModuleRegistration
     public static void AddJsonContext(IServiceCollection services, IJsonTypeInfoResolver context) =>
         services.AddSingleton(new JsonContextRegistration(context));
 
+    /// <summary>
+    /// Registers the XML docs of the module's assembly, which describe what the tools' parameters hold.
+    /// </summary>
+    /// <param name="services">The services.</param>
+    /// <param name="source">The docs Weboost.SchemaAnnotations collected.</param>
+    public static void AddSchemaAnnotations(IServiceCollection services, ISchemaAnnotationSource source) =>
+        services.AddSingleton(new SchemaAnnotationsRegistration(source));
+
     private sealed record RegisteredModule(Type Module);
 
     private sealed record JsonContextRegistration(IJsonTypeInfoResolver Resolver);
+
+    private sealed record SchemaAnnotationsRegistration(ISchemaAnnotationSource Source);
 }

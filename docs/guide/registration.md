@@ -19,8 +19,25 @@ dotnet add package Typeshift --prerelease
 |---|---|
 | .NET 10 and C# 14 | Generated members are extension blocks. |
 | The package in every project that declares toolsets or agents, or calls `AddTypeshift()` | The package carries the generator, and NuGet does not pass a generator on to the projects that reference yours ([TSH019](./diagnostics.md#tsh019), [TSH020](./diagnostics.md#tsh020)). |
-| `GenerateDocumentationFile` | Tools take their descriptions from XML docs ([TSH011](./diagnostics.md#tsh011)). |
+| `GenerateDocumentationFile` | Tools and the types they take get their descriptions from XML docs ([TSH011](./diagnostics.md#tsh011)). |
 | `Typeshift.Generated` in `InterceptorsNamespaces` | The generator intercepts `AddTypeshift()` from that namespace. The package adds it for you. |
+
+## XML docs of parameter types
+
+The package brings [Weboost.SchemaAnnotations](https://github.com/weboost-at/SchemaAnnotations), which turns the XML
+docs of a project's types into the descriptions of the properties a tool's parameters hold. Its build adds a hidden
+class to every project with `GenerateDocumentationFile`, and the project's module registers the docs it collects. To
+leave them out, set:
+
+```xml
+<TypeshiftSchemaAnnotations>false</TypeshiftSchemaAnnotations>
+```
+
+::: warning Delete your own `[SchemaAnnotations]` class
+A project that marked a class with `[SchemaAnnotations]` itself now has two. Weboost.SchemaAnnotations then writes no
+`AIJsonSchemaCreateOptions.Annotated`, so code using it stops compiling. Delete your class: the one the package adds
+brings `Annotated` back.
+:::
 
 ## The id type
 

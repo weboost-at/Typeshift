@@ -8,6 +8,8 @@ public enum SearchMode
     Thorough
 }
 
+/// <param name="Name">The company's registered name.</param>
+/// <param name="Country">Two-letter ISO country code.</param>
 public record Company(string Name, string? Country);
 
 public readonly record struct GeoPoint(double Latitude, double Longitude);
