@@ -106,7 +106,7 @@ var thorough = await support.RunAsync("Where is my refund?", settingsId, setting
 <!-- endSnippet -->
 
 Values the run leaves null keep what the stored settings or the agent's code set, as
-[settings layering](./settings-layering.md) explains.
+[settings layering](./settings-and-stores.md#settings-layering) explains.
 
 ## Conversations
 
@@ -208,7 +208,7 @@ conversation stores how the run ended, and middleware sees the response.
 1. **Resolve the options.** The host builds the run's `ChatOptions` from the agent's code, then the settings stored
    under the settings id, then the run's own settings. It creates the tools the agent offers, their settings resolved
    through the same layers, and adds the sub-agents and the tools of MCP servers after them. The layers resolve once,
-   when the run starts ([settings layering](./settings-layering.md)).
+   when the run starts ([settings layering](./settings-and-stores.md#settings-layering)).
 2. **Resume the conversation.** With a conversation id, the run puts the stored entries ahead of the new input, so the
    model sees the whole conversation, and stores the input. It keeps the conversation's mode unless the run's settings
    name one, and a conversation that was handed off goes to the agent that answered last. Without a conversation id,
@@ -247,5 +247,5 @@ provider's client ([Observability](./observability.md)).
 - [Agent host](./agent-host.md): every member of the host and its signature.
 - [Registration](./registration.md#the-chain): the chain calls and their lifetimes.
 - [Conversations](./conversations.md): storing, resuming and steering runs.
-- [Settings and stores](./settings-layering.md): where each of a run's values comes from.
+- [Settings and stores](./settings-and-stores.md#settings-layering): where each of a run's values comes from.
 - [Architecture](../contributing/architecture.md#a-run): the same pipeline from the code's side.

@@ -119,7 +119,7 @@ full.
 
 ## The layers
 
-A tool's settings resolve through four [settings layers](./settings-layering.md): the record's
+A tool's settings resolve through four [settings layers](./settings-and-stores.md#settings-layering): the record's
 code defaults, the agent's [`Configure{Tool}()`](./defining-agents.md#tool-settings), the
 [stored settings](./settings-and-stores.md#agent-settings) and the [run's settings](./running-agents.md#run-settings).
 The last two speak through the overrides, which is why they reach only the configurable members.
@@ -127,6 +127,6 @@ The last two speak through the overrides, which is why they reach only the confi
 ## Related
 
 - [Toolsets](./toolsets.md): declaring the tools that take settings.
-- [Settings layering](./settings-layering.md): which layer wins, and what a layer cannot do.
+- [Settings layering](./settings-and-stores.md#settings-layering): which layer wins, and what a layer cannot do.
 - [Agents](./defining-agents.md#tool-settings): setting a tool's settings in one agent.
 - [Builders](./builders.md#toolbuilder): every call of a tool's declaration.

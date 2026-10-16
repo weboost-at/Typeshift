@@ -80,6 +80,6 @@ Each agent gets a `Settings` record with exactly what its code marks configurabl
 ## Related
 
 - [Getting started](./getting-started.md): how the pieces fit, and a working agent.
-- [Settings layering](./settings-layering.md): how the settings contract resolves in a run.
+- [Settings layering](./settings-and-stores.md#settings-layering): how the settings contract resolves in a run.
 - [Diagnostics](./diagnostics.md): every mistake the generator reports.
 - [Decisions](../contributing/decisions.md): the same choices from the code's side.

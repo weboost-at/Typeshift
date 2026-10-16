@@ -135,7 +135,7 @@ runtime:
 | One per offered tool with configurable settings | `SearchTickets`, `SearchArticles`: their [overrides](./tool-settings.md#the-generated-overrides). |
 
 Option values are nullable, and so are the values in a tool's overrides. A null keeps the
-[layer below](./settings-layering.md). A tool member named like an option, or like a member of
+[layer below](./settings-and-stores.md#settings-layering). A tool member named like an option, or like a member of
 the record itself, gets a `Tool` suffix.
 
 Store the record [under a settings id](./settings-and-stores.md#agent-settings), pass it

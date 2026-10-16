@@ -91,7 +91,7 @@ style; the essentials:
 | Storable types of configurable members | `guide/tool-settings.md#configurable-members` | `builders.md` (link) |
 | Chat options and run options, their defaults | `guide/builders.md` | `defining-agents.md`, `long-running-agents.md` |
 | Modes | `guide/modes.md` | `tool-approval.md`, `builders.md` (link) |
-| Settings layers and precedence | `guide/settings-layering.md` | `tool-settings.md`, `defining-agents.md`, `running-agents.md` |
+| Settings layers and precedence | `guide/settings-and-stores.md#settings-layering` | `tool-settings.md`, `defining-agents.md`, `running-agents.md` |
 | The order of a run's steps | `guide/running-agents.md#how-a-run-works` | `contributing/architecture.md#a-run` (the code's side) |
 | The store contract, kinds, versions, revisions, the `Settings` JSON | `guide/settings-and-stores.md` | `generated-members.md#settings` |
 | Conversations: storage, resume, steering, live updates | `guide/conversations.md` | `long-running-agents.md` |

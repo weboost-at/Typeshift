@@ -65,7 +65,7 @@ last.
 Runs the agent on one message: a `string`, or a `ChatMessage`, which can carry images or approval answers.
 
 - **Layers** the agent's code, the settings stored under `settingsId`, the mode the conversation's last run ended in,
-  then `settings`; see [Settings layering](./settings-layering.md).
+  then `settings`; see [Settings layering](./settings-and-stores.md#settings-layering).
 - **Stores** the run in the conversation as it goes, when you pass a `conversationId`; see
   [What a run stores](#what-a-run-stores). Without one, it stores nothing, offers no handoffs, and throws when a tool
   asks for approval.
@@ -119,5 +119,5 @@ and [compaction](./long-running-agents.md#compaction) what a compacted run store
 - [Running agents](./running-agents.md): resolving a host and running an agent.
 - [Conversations](./conversations.md): storing, resuming and steering a conversation.
 - [Settings and stores](./settings-and-stores.md#agent-settings): loading, saving and configuring an agent's settings.
-- [Settings layering](./settings-layering.md): the order in which settings apply.
+- [Settings layering](./settings-and-stores.md#settings-layering): the order in which settings apply.
 - [Generated members](./generated-members.md): where the typed members come from.

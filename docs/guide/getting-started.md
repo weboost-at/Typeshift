@@ -183,7 +183,7 @@ Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
 <!-- endSnippet -->
 
 The limit came from three layers: 5 in the record, 3 in the agent and 2 in the stored settings.
-[Settings layering](./settings-layering.md) explains how they combine.
+[Settings layering](./settings-and-stores.md#settings-layering) explains how they combine.
 
 ## How the pieces fit
 

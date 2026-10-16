@@ -23,7 +23,7 @@ features:
     linkText: Declare a toolset
   - title: Typed, layered settings
     details: Code defaults, the agent's code, stored settings and the run layer on each other. Only what the code marks configurable can change.
-    link: /guide/settings-layering
+    link: /guide/settings-and-stores#settings-layering
     linkText: Follow a value through the layers
   - title: A settings contract per agent
     details: Every agent gets a generated Settings record with exactly its configurable values, ready to back a settings form or an API.

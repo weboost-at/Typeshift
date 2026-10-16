@@ -180,7 +180,7 @@ A run without a conversation id does not offer the handoff tools, so its agent c
 ## Related
 
 - [Agents](./defining-agents.md#declaring-an-agent): declaring the other agents an agent uses.
-- [Settings layering](./settings-layering.md): which settings sub-agents and handoffs run with.
+- [Settings layering](./settings-and-stores.md#settings-layering): which settings sub-agents and handoffs run with.
 - [Tool approval](./tool-approval.md#approval-rules): rules that decide a sub-agent's calls.
 - [Compaction](./long-running-agents.md#compaction): sub-agents that keep a long run's context small.
 - [Conversations](./conversations.md): where a handoff's conversation is stored.

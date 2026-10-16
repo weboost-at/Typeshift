@@ -152,7 +152,7 @@ internal partial class SupportAgent : Agent
 | `WithRunOptions().Configurable(r => r.X)` | `X`, nullable: `AgentMode? Mode`, `int? MaxToolIterations`. |
 | `UseToolset<T>()` offering a tool with `{Tool}Overrides` | `{Tool}`, its overrides, never null. A name taken by an option or by one of the record's own members, such as `Kind`, gets a `Tool` suffix. |
 
-Every value is nullable, and null keeps the layer below; see [Settings layering](./settings-layering.md). The options
+Every value is nullable, and null keeps the layer below; see [Settings layering](./settings-and-stores.md#settings-layering). The options
 that may be configurable are listed in [Builders](./builders.md#chatoptionsbuilder).
 
 The record is also the document a store keeps under a settings id:
