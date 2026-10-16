@@ -19,9 +19,8 @@
 
 </div>
 
-Write tools as plain static methods and agents as a few lines in a constructor. A source generator turns them into
-reflection-free tools, a typed settings contract per agent and one registration call, and catches mistakes before you
-run anything.
+Declare a tool in one line and an agent in a few. Typeshift generates the plumbing and catches mistakes at compile
+time.
 
 > [!WARNING]
 > Typeshift is in alpha: the API may change between releases. [Status](docs/contributing/status.md) lists what is
@@ -29,14 +28,15 @@ run anything.
 
 ## Why Typeshift?
 
-- **Plain C#.** A toolset is a class of static methods, and your XML docs become the descriptions the model reads.
-- **Mistakes fail the build.** Configuring a tool an agent does not offer does not compile, and the analyzer reports
+- **A tool is a method.** `AddTool(FindCompanies)` turns a static method into a tool, and its XML docs become what
+  the model reads.
+- **An agent is a constructor.** A few chained calls pick the model, the tools and their settings.
+- **Mistakes fail the build.** Configuring a tool the agent does not offer does not compile, and the analyzer reports
   the rest as [diagnostics](https://weboost-at.github.io/Typeshift/guide/diagnostics).
-- **A settings contract per agent.** Each agent gets a generated `Settings` record with exactly what you mark
-  configurable. Store it per customer, bind a form to it, and nothing else can change.
-- **Your ids, your database.** One store interface, keyed by the id type you already use.
-- **No reflection, all Microsoft.Extensions.AI.** Any `IChatClient` serves a model, runs return `ChatResponse`, and a
-  host publishes with Native AOT.
+- **A settings contract per agent.** Each agent gets a generated `Settings` record of what you mark configurable.
+  Store it per customer, under the id type you already use.
+- **All Microsoft.Extensions.AI.** Any `IChatClient` serves a model, nothing uses reflection, and a host publishes
+  with Native AOT.
 
 ## Quick start
 
@@ -140,10 +140,10 @@ internal partial class ResearchAgent : Agent
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/ResearchAgent.cs#L3-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-### 3. Register Typeshift
+### 3. Run it
 
-`AddTypeshift()` registers every toolset and agent. You bring a chat client provider, which returns the `IChatClient`
-for a model's name, and a store once you keep settings or conversations:
+`AddTypeshift()` registers every toolset and agent. You bring a chat client provider, which returns the model's
+`IChatClient`, and a store for settings and conversations:
 
 <!-- snippet: quickstart-registration -->
 <a id='snippet-quickstart-registration'></a>
@@ -177,8 +177,6 @@ internal sealed class KeyedChatClientProvider(IServiceProvider services) : IChat
 <!-- endSnippet -->
 
 </details>
-
-### 4. Run it
 
 Store settings under an id you own, then run the agent:
 
