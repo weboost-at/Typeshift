@@ -33,7 +33,7 @@ call fills and the [results](./toolsets.md#results) it may return are on [Toolse
 | `WithName(string name)` | Replaces the name derived from the method. It must be lower_snake_case ([TSH008](./diagnostics.md#tsh008)). |
 | `WithDescription(string description)` | Replaces the `<summary>`. A tool with neither is [TSH009](./diagnostics.md#tsh009). |
 | `RequiresApproval()` | Pauses a run that calls the tool until the host approves or rejects the call. See [Tool approval](./tool-approval.md). |
-| `ReadOnly()` | Marks a tool that only reads and changes nothing. [Plan mode](./modes.md#plan-mode) offers only these. |
+| `ReadOnly()` | Marks a tool that only reads and changes nothing. [Plan mode](./tool-approval.md#plan-mode) offers only these. |
 | `WithSettings<TSettings>()` | Gives the tool a settings record that stays in code, except the members `Configurable` names. Returns `ToolBuilder<TSettings>`. |
 | `WithConfigurableSettings<TSettings>()` | Gives the tool a settings record whose settable members may all change, except those `NotConfigurable` names. Returns `ConfigurableSettingsBuilder<TSettings>`. |
 
@@ -105,7 +105,7 @@ puts it into the agent's `Settings`, like a chat option.
 
 | Call | Default | Does |
 |---|---|---|
-| `WithMode(AgentMode mode)` | `Default` | Sets the [mode](./modes.md) runs start in: `Default`, `Plan` or `Auto`. |
+| `WithMode(AgentMode mode)` | `Default` | Sets the [mode](./tool-approval.md#the-three-modes) runs start in: `Default`, `Plan` or `Auto`. |
 | `WithMaxToolIterations(int iterations)` | 40 | Sets the most rounds of tool calls one run makes. |
 | `WithMaxConsecutiveToolErrors(int errors)` | 3 | Sets the most failed tool calls in a row before the run ends. |
 | `WithConcurrentToolCalls(bool concurrent)` | off | Runs the tool calls of one model response at the same time. |

@@ -57,7 +57,7 @@ Context tools are offered like the agent's own. One wrapped in `ApprovalRequired
 [approval](./tool-approval.md).
 
 ::: warning Plan mode hides context tools
-Context tools carry no `ReadOnly()` mark, so [plan mode](./modes.md#plan-mode) hides them.
+Context tools carry no `ReadOnly()` mark, so [plan mode](./tool-approval.md#plan-mode) hides them.
 :::
 
 ## Related

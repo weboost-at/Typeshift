@@ -73,7 +73,7 @@ providers and plan mode then append to whatever the layers resolved.
 
 A run with a conversation id continues in the mode the conversation's last run ended in, so that mode sits between the
 stored settings and the run. A run whose own settings name a mode switches it, and so does an approved plan
-([Plan and auto modes](./modes.md)).
+([Plan and auto modes](./tool-approval.md#the-three-modes)).
 
 ### Sub-agents and handoffs
 

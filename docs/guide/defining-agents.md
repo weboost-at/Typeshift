@@ -112,7 +112,7 @@ WithRunOptions()
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L16-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Run options set the [mode](./modes.md) a run starts in, the limits of its tool loop, whether
+Run options set the [mode](./tool-approval.md#the-three-modes) a run starts in, the limits of its tool loop, whether
 the calls of one response run at the same time, and when the history is [compacted](./conversations.md#compaction).
 [Builders](./builders.md#runoptionsbuilder) lists each one with its default.
 

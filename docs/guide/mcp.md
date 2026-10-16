@@ -74,7 +74,7 @@ credentials, and the scope disposes it along with its connections.
 
 The servers' tools come after the agent's own. `UseMcpServer(...).RequiresApproval()` asks the host before every call
 of the server's tools, as [tool approval](./tool-approval.md) describes. `ReadOnly()` marks them as reading only, so
-[plan mode](./modes.md#plan-mode) offers them.
+[plan mode](./tool-approval.md#plan-mode) offers them.
 
 Two mistakes fail the run. A server tool named like one of the agent's own tools fails it, naming both, because the
 model would otherwise see only one of them. An agent with servers but no registered provider fails it too.
@@ -105,6 +105,6 @@ mark, so plan mode hides it.
 ## Related
 
 - [Tool approval](./tool-approval.md): asking before a server's tools run.
-- [Plan and auto modes](./modes.md#plan-mode): which tools plan mode offers.
+- [Plan and auto modes](./tool-approval.md#plan-mode): which tools plan mode offers.
 - [Agents](./defining-agents.md#selecting-tools): offering toolsets next to servers.
 - [Builders](./builders.md): `UseMcpServer` among the other calls of an agent's constructor.

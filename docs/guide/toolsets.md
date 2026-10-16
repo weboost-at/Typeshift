@@ -66,7 +66,7 @@ The calls chained onto `AddTool` describe the tool:
 
 | Call | Means |
 |---|---|
-| `ReadOnly()` | The tool changes nothing. [Plan mode](./modes.md#plan-mode) offers only these. |
+| `ReadOnly()` | The tool changes nothing. [Plan mode](./tool-approval.md#plan-mode) offers only these. |
 | `RequiresApproval()` | A run that calls the tool waits until the host decides. See [Tool approval](./tool-approval.md). |
 | `WithSettings<T>()` | The tool gets [settings](./tool-settings.md) the model never sees, such as a search's limit. It comes last; `WithConfigurableSettings<T>()` works the same way. |
 | `WithDisplayName(...)` | On the toolset: a name for people, for example in a tool picker. |

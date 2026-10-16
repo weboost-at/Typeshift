@@ -221,7 +221,7 @@ lists [what your app implements](https://weboost-at.github.io/Typeshift/guide/ge
 | [Conversations](https://weboost-at.github.io/Typeshift/guide/conversations) | Resume after a crash, steer a run while it works, watch it live |
 | [Built-in toolsets](https://weboost-at.github.io/Typeshift/guide/built-in-toolsets) | To-dos, files, the shell and the web |
 | [Tool approval](https://weboost-at.github.io/Typeshift/guide/tool-approval) | Pause a run until the host approves a call |
-| [Plan and auto modes](https://weboost-at.github.io/Typeshift/guide/modes) | Let the agent plan first, or run without interruptions |
+| [Plan and auto modes](https://weboost-at.github.io/Typeshift/guide/tool-approval#the-three-modes) | Let the agent plan first, or run without interruptions |
 | [Middleware](https://weboost-at.github.io/Typeshift/guide/middleware) | Wrap every run or tool call |
 | [Context providers](https://weboost-at.github.io/Typeshift/guide/context-providers) | Add memory, documents or other data to every run |
 | [MCP servers](https://weboost-at.github.io/Typeshift/guide/mcp) | Offer an MCP server's tools to an agent |

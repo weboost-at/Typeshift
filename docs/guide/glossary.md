@@ -28,7 +28,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can, so a run retur
 | **Kind** | The stable name a store keeps a document under, such as an agent's class name. |
 | **Layer** | One source of settings: the code defaults, the agent's code, the stored settings or the run. A higher layer overrides a lower one. |
 | **Middleware** | An `IRunMiddleware` around every run, or an `IToolMiddleware` around every tool call. |
-| **Mode** | `Default`, `Plan` or `Auto`, which decides what a run offers the model and what happens to tools that require approval. See [Plan and auto modes](./modes.md). |
+| **Mode** | `Default`, `Plan` or `Auto`, which decides what a run offers the model and what happens to tools that require approval. See [Plan and auto modes](./tool-approval.md#the-three-modes). |
 | **Module** | The registration the generator writes for each assembly that declares toolsets or agents. `AddTypeshift()` registers the modules of the project and its references. |
 | **Overrides** | The generated `{Tool}Overrides` record, a tool's configurable settings with each one nullable. Null keeps the layer below. |
 | **Raw path** | Resolving a run's options and creating its `IChatClient` yourself, for a host that needs the client. See [Running agents](./running-agents.md#the-raw-path). |
