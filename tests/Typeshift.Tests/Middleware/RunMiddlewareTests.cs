@@ -167,6 +167,31 @@ public class RunMiddlewareTests : MiddlewareTestBase
     }
 
     [Fact]
+    public async Task Given_Middleware_That_Prepends_A_Message_An_Approval_Still_Runs_The_Stored_Call()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "close_ticket", ("number", Data.Agent.Ticket.Default)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var asked = await RunAsync(Data.Tool.Question);
+
+        Script.Runs[0] = (run, next) =>
+        {
+            run.Messages.Insert(0, new ChatMessage(ChatRole.User, Data.Agent.FollowUp));
+            return next();
+        };
+
+        var approval = new ChatMessage(ChatRole.User, [asked.ApprovalRequests[0].CreateResponse(approved: true)]);
+
+        // Act
+        await Host<ContextAgent>().RunAsync(approval, conversationId: Data.Agent.ConversationId, ct: Ct);
+
+        // Assert
+        ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
+    }
+
+    [Fact]
     public async Task Given_Run_Middleware_That_Neither_Calls_Next_Nor_Answers_The_Run_Fails()
     {
         // Arrange

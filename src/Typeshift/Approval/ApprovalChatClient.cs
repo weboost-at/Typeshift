@@ -164,7 +164,7 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
         var run = options.AgentRun!;
         var list = messages.ToList();
         var contents = list.SelectMany(message => message.Contents).ToList();
-        var requests = Requested(list.Take(run.InputStart));
+        var requests = Requested(list);
         var answers = contents.OfType<ToolApprovalResponseContent>()
             .Where(answer => requests.ContainsKey(answer.RequestId))
             .DistinctBy(answer => answer.RequestId)
@@ -172,7 +172,7 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
         var results = contents.OfType<FunctionResultContent>().Select(result => result.CallId).ToHashSet();
 
         // The conversation's standing approvals, this run's answers', and a sub-agent's caller's (D33)
-        standing = [.. run.Standing, .. StandingIn(list.Take(run.InputStart), answers)];
+        standing = [.. run.Standing, .. StandingIn(list, answers)];
         if (options.Caller is { } caller) standing.UnionWith(caller.Standing);
         run.Standing = standing;
 
@@ -224,8 +224,8 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
         ];
     }
 
-    // The requests the conversation stored, never one an input carries; a store that retried an append may hold one
-    // twice
+    // The requests the conversation stored, read from the whole call since middleware may move the history: an input's
+    // requests are dropped before anything stores them. A store that retried an append may hold one twice
     private static Dictionary<string, ToolApprovalRequestContent> Requested(IEnumerable<ChatMessage> stored) =>
         stored.SelectMany(message => message.Contents)
             .OfType<ToolApprovalRequestContent>()
