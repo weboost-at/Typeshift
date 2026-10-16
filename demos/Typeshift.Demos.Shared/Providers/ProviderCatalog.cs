@@ -57,7 +57,9 @@ public sealed partial class ProviderCatalog
         var definition = this[provider];
         if (definition.Kind != "openai") return [];
 
-        using var http = new HttpClient { BaseAddress = new Uri(definition.Endpoint ?? "https://api.openai.com/v1/") };
+        // A base address keeps its last segment only with a trailing slash
+        var endpoint = (definition.Endpoint ?? "https://api.openai.com/v1").TrimEnd('/') + "/";
+        using var http = new HttpClient { BaseAddress = new Uri(endpoint) };
         http.DefaultRequestHeaders.Authorization = new("Bearer", Expand(definition.ApiKey));
 
         var models = await http.GetFromJsonAsync<ModelList>("models", Json, ct);

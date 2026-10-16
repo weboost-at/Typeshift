@@ -83,9 +83,26 @@ foreach (var request in first.ApprovalRequests)
         Demo.Note($"approval needed: {call.Name}({Demo.Arguments(call)})");
 
 Demo.Heading("The host approves the refund for the rest of the conversation");
-var approval = new ChatMessage(ChatRole.User, [.. first.ApprovalRequests.Select(request => request.ApproveForConversation())]);
-var refunded = await triage.RunAsync(approval, ada, conversation);
-Console.WriteLine($"{refunded.Messages[^1].AuthorName}> {refunded.Text}");
+
+if (first.ApprovalRequests.Count > 0)
+{
+    var approvals = first.ApprovalRequests.Select(request => request.ApproveForConversation());
+    var refunded = await triage.RunAsync(new ChatMessage(ChatRole.User, [.. approvals]), ada, conversation);
+    Console.WriteLine($"{refunded.Messages[^1].AuthorName}> {refunded.Text}");
+}
+else
+{
+    // A small model asks the customer instead of calling issue_refund; then there is nothing to approve
+    var confirmed = await triage.RunAsync("Yes, please refund the duplicate charge.", ada, conversation);
+    Console.WriteLine($"{confirmed.Messages[^1].AuthorName}> {confirmed.Text}");
+
+    if (confirmed.ApprovalRequests.Count > 0)
+    {
+        var approvals = confirmed.ApprovalRequests.Select(request => request.ApproveForConversation());
+        var refunded = await triage.RunAsync(new ChatMessage(ChatRole.User, [.. approvals]), ada, conversation);
+        Console.WriteLine($"{refunded.Messages[^1].AuthorName}> {refunded.Text}");
+    }
+}
 
 Demo.Heading("A follow-up reaches the agent that answered last, which hands back to support");
 var followUp = await triage.RunAsync("Thanks! Also, my ticket about logging in: is there a fix?", ada, conversation);
