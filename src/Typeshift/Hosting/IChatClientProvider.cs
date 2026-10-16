@@ -9,7 +9,8 @@ namespace Typeshift;
 public interface IChatClientProvider
 {
     /// <summary>
-    /// Returns the client of a model. Typeshift never disposes it.
+    /// Returns the client of a model, the same instance for the same model where possible, since Typeshift
+    /// instruments each instance once and keeps that as long as the instance lives. Typeshift never disposes it.
     /// </summary>
     /// <param name="model">The model's name, as the agent's options or settings name it.</param>
     /// <param name="ct">Cancels the lookup.</param>

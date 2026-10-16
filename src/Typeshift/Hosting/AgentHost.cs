@@ -55,7 +55,7 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
         // D29: outermost the conversation, then run middleware, context and approval above the tool loop, the
         // checkpoints and compaction inside it, and innermost the provider's client, instrumented, behind a wrapper
         // that never disposes it
-        var provided = Telemetry.Instrument(client);
+        var provided = _services.GetRequiredService<InstrumentedClients>().Instrument(client);
 
         var loop = new FunctionInvokingChatClient(
             new CheckpointChatClient(new CompactingChatClient(provided)),

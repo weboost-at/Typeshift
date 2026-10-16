@@ -12,10 +12,6 @@ internal static class Telemetry
 
     private static readonly ActivitySource Source = new(SourceName);
 
-    // A provider's client, instrumented for one run: disposing it disposes its source and meter, never the client
-    public static IChatClient Instrument(IChatClient client) =>
-        new OpenTelemetryChatClient(new UndisposedChatClient(client), sourceName: SourceName);
-
     public static Activity? StartRun(Agent agent, ChatOptions? options)
     {
         var activity = Source.StartActivity($"invoke_agent {agent.Name}", ActivityKind.Internal);

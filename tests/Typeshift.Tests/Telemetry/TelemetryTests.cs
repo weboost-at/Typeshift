@@ -93,6 +93,27 @@ public sealed class TelemetryTests : AgentTestBase
         Activities.Run(Data.Agent.ConversationId).Events.Select(@event => @event.Name).Should().Contain("exception");
     }
 
+    [Fact]
+    public async Task Given_Two_Runs_On_One_Provider_Client_Their_Chat_Spans_Come_From_One_Source()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync();
+        await RunAsync();
+
+        // Assert
+        Activities.Runs(Data.Agent.ConversationId)
+            .SelectMany(Activities.Inside)
+            .Select(activity => activity.Source)
+            .Distinct()
+            .Should()
+            .ContainSingle();
+    }
+
     private Task<ChatResponse> RunAsync() =>
         Host<ProbeAgent>().RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
 }

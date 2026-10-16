@@ -21,10 +21,14 @@ public sealed class RecordedActivities
     }
 
     // The run of a conversation, tests running alongside have their own
-    public Activity Run(Guid conversation) =>
-        _stopped.Single(activity =>
+    public Activity Run(Guid conversation) => Runs(conversation).Single();
+
+    public IReadOnlyList<Activity> Runs(Guid conversation) =>
+    [
+        .. _stopped.Where(activity =>
             activity.GetTagItem("gen_ai.operation.name") is "invoke_agent"
-            && activity.GetTagItem("gen_ai.conversation.id") as string == conversation.ToString());
+            && activity.GetTagItem("gen_ai.conversation.id") as string == conversation.ToString())
+    ];
 
     public IReadOnlyList<Activity> Inside(Activity run) =>
         [.. _stopped.Where(activity => activity.TraceId == run.TraceId && activity != run)];

@@ -30,6 +30,7 @@ public static class ModuleRegistration
 
         services.TryAddSingleton<IStoreAccess>(provider => new StoreAccess<TId>(provider, parse));
         services.TryAddSingleton<LiveRuns>();
+        services.TryAddSingleton<InstrumentedClients>();
         services.TryAddSingleton(provider => new ConversationTracker<TId>(
             provider.GetRequiredService<LiveRuns>(),
             provider.GetService<RealtimeTrackingOptions>()));

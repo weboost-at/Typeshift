@@ -201,7 +201,8 @@ internal sealed class Compaction
         CancellationToken ct)
     {
         var provider = run.Services.GetRequiredService<IChatClientProvider>();
-        using var client = Telemetry.Instrument(await provider.GetChatClientAsync(model, ct));
+        var instrumented = run.Services.GetRequiredService<InstrumentedClients>();
+        using var client = instrumented.Instrument(await provider.GetChatClientAsync(model, ct));
 
         var response = await client.GetResponseAsync(
             [new ChatMessage(ChatRole.System, SummaryInstructions), new ChatMessage(ChatRole.User, Transcript(region))],
