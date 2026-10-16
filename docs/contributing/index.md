@@ -57,4 +57,4 @@ when a cited decision is withdrawn.
 
 - [Architecture](./architecture.md): how the generator and the runtime fit together.
 - [Documentation](./documentation.md): snippets, checks and templates.
-- [Overview](../guide/index.md): the library as its users see it.
+- [Getting started](../guide/getting-started.md): the library as its users see it.

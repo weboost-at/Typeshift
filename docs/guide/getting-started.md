@@ -1,23 +1,72 @@
 ---
 title: Getting started
-description: Build a working agent step by step, from a toolset with one tool to stored settings and a run.
+description: How the pieces of Typeshift fit together, what your app implements, and a working agent built step by step.
 ---
 
 # Getting started
 
-In this tutorial you build an agent that finds the companies of a city. You write a toolset with one tool and an agent
-that offers it, register both, store settings under a settings id and run the agent. Every snippet comes from a sample
-that CI runs, so the code compiles and works as shown.
+Typeshift is a .NET 10 library for agents and tools on
+[Microsoft.Extensions.AI](https://learn.microsoft.com/dotnet/ai/microsoft-extensions-ai). You declare toolsets and
+agents in C# constructors, and a source generator turns them into tool functions, a settings record per agent and one
+registration call, without reflection. This page shows how the pieces fit, then builds an agent that finds the
+companies of a city. Every snippet comes from a sample that CI runs, so the code compiles and works as shown.
 
 ::: tip The short version
 
+- A **toolset** declares tools: static methods the model can call. An **agent** picks tools and sets a model and
+  instructions. `AgentHost<TAgent>` runs the agent.
 - Add the `Typeshift` package to every project that declares toolsets or agents, and turn on XML docs.
-- A toolset declares tools: static methods the model can call. Their settings live in a record the model never sees.
-- An agent declares its chat options, its tools and their settings in its constructor, and returns its instructions from
-  `GetInstructions()`.
-- `AddTypeshift()` registers everything. `AgentHost<TAgent>` stores an agent's settings and runs it.
+- Your app implements a chat client provider, and a store once it keeps settings or conversations.
+- Settings the code marks **configurable** can change per settings id and per run. Everything else stays in code.
+- `AddTypeshift()` registers everything. Mistakes are compile errors and [diagnostics](./diagnostics.md).
 
 :::
+
+## How the pieces fit
+
+```mermaid
+flowchart LR
+  subgraph compile [Compile time]
+    toolset[Toolset] --> generator[Source generator]
+    agent[Agent] --> generator
+    generator --> functions[An AIFunction per tool]
+    generator --> settings[A Settings record per agent]
+    generator --> registration["AddTypeshift()"]
+  end
+  subgraph runtime [Runtime]
+    host["AgentHost&lt;TAgent&gt;"] --> client[The model's IChatClient]
+    host --> store[Your ITypeshiftStore]
+  end
+  registration --> host
+```
+
+Your toolsets and agents go into the generator. Out come the functions the model calls, the `Settings` record that holds
+what may change at runtime, and the code behind `services.AddTypeshift()`. That call registers an `AgentHost<TAgent>`
+per agent, which runs it: it resolves the settings, calls the model, runs the tools and stores the conversation.
+
+| Piece | What it is | Read |
+|---|---|---|
+| Toolset | A `partial` class deriving from `Toolset`, declaring the tools of one domain | [Toolsets](./toolsets.md) |
+| Tool settings | A record of values a tool needs that the model must not choose | [Tool settings](./tool-settings.md) |
+| Agent | A `partial` class deriving from `Agent`: chat options, instructions, tools | [Agents](./defining-agents.md) |
+| Agent host | `AgentHost<TAgent>`, which runs one agent in the scope it was resolved from | [Running agents](./running-agents.md) |
+| Store | Your `ITypeshiftStore`, which keeps settings and conversations | [Settings and stores](./settings-and-stores.md) |
+
+The [glossary](./glossary.md) defines every term these docs use.
+
+## What your app implements
+
+Typeshift leaves a few things to your app: which model client to call, where to store data, and what the built-in
+tools may reach. Each is an interface you implement. Only the chat client provider is needed for every run; the rest
+come in with the feature that uses them.
+
+| Interface | Needed for | Read |
+|---|---|---|
+| `IChatClientProvider` | Every run. It returns the `IChatClient` for a model's name. | [Chat clients](./running-agents.md#chat-clients) |
+| `ITypeshiftStore` | Settings ids and conversation ids. `InMemoryTypeshiftStore` serves tests and samples. | [Settings and stores](./settings-and-stores.md) |
+| `IFileSystemRoot`, `IWebSearch`, `IWebFetch` | The built-in file, shell and web tools. | [Built-in toolsets](./built-in-toolsets.md#what-each-needs) |
+| `IContextProvider` | Memory, documents or other data added to every run of an agent. | [Context providers](./context-providers.md) |
+| `IToolApprovalRule`, `IRunMiddleware`, `IToolMiddleware`, `IMcpToolProvider` | Approval rules, middleware and MCP servers. | [The chain](./registration.md#the-chain) |
 
 ## 1. Install the package
 
@@ -270,3 +319,5 @@ for the streamed run. [Settings layering](./settings-layering.md) explains how t
 - [Agents](./defining-agents.md): everything an agent's constructor can declare.
 - [Running agents](./running-agents.md): real chat clients, structured output and streaming.
 - [Conversations](./conversations.md): resuming, steering and watching runs.
+- [Comparison](./comparison.md): how Typeshift compares with `AIFunctionFactory` and Microsoft Agent Framework.
+- [Glossary](./glossary.md): the words these docs use.

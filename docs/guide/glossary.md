@@ -49,5 +49,5 @@ an `IChatClient`. The words below are Typeshift's own, or have a narrower meanin
 
 ## Related
 
-- [Overview](./index.md): how the pieces fit together.
+- [Getting started](./getting-started.md#how-the-pieces-fit): how the pieces fit together.
 - [Writing style](../contributing/writing.md): how the docs use these words.

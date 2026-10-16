@@ -609,4 +609,4 @@ commit, or add a new one and withdraw the old.
 
 - [Architecture](./architecture.md): the parts these decisions shape.
 - [Status](./status.md): what is built and what is open.
-- [Why code-defined](../guide/why-code-defined.md): the main decisions from a user's point of view.
+- [Comparison](../guide/comparison.md): the main decisions from a user's point of view.

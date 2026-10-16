@@ -53,8 +53,7 @@ used by its path from the repository root.
 1. Copy a template from `docs/contributing/templates/`: a guide, a concept or a reference page.
 2. Add it to the sidebar in `docs/.vitepress/config.mts`, in reading order. The check fails on a page the sidebar
    leaves out.
-3. Link it from the `## Related` of its neighbours, and from the [overview](../guide/index.md) when it starts a new
-   group.
+3. Link it from the `## Related` of its neighbours.
 4. When it becomes the home of a kind of fact, add a row to the fact map in `AGENTS.md`.
 
 ::: warning No page may be named agents.md

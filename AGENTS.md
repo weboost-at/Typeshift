@@ -98,7 +98,7 @@ style; the essentials:
 | Spans and metrics | `guide/observability.md` | |
 | Diagnostics | `guide/diagnostics.md` | every page, linked by ID |
 | Terms | `guide/glossary.md` | |
-| Why the code is shaped this way | `contributing/decisions.md` | `guide/why-code-defined.md` (the user's view) |
+| Why the code is shaped this way | `contributing/decisions.md` | `guide/comparison.md` (the user's view) |
 | What is built, what is open | `contributing/status.md` | |
 
 | Change | Touch |
@@ -108,7 +108,7 @@ style; the essentials:
 | New or changed diagnostic | `diagnostics.md` row and section (a guard test checks), the guide page that states the rule |
 | Changed default or limit | The reference table, then every page that states it: grep for the old value |
 | Change in the run pipeline | `how-a-run-works.md` and its diagram, `contributing/architecture.md#a-run`, D29 |
-| New page | A template from `docs/contributing/templates/`, the sidebar, `guide/index.md` when a section changes, the neighbours' `## Related` |
+| New page | A template from `docs/contributing/templates/`, the sidebar, the neighbours' `## Related` |
 
 ## Guard tests
 

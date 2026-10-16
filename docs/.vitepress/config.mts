@@ -10,9 +10,8 @@ const sidebar = {
     {
       text: 'Introduction',
       items: [
-        { text: 'Overview', link: '/guide/' },
         { text: 'Getting started', link: '/guide/getting-started' },
-        { text: 'Why code-defined', link: '/guide/why-code-defined' }
+        { text: 'Comparison', link: '/guide/comparison' }
       ]
     },
     {
@@ -107,7 +106,7 @@ export default withMermaid(
     },
     themeConfig: {
       nav: [
-        { text: 'Guide', link: '/guide/', activeMatch: '/guide/' },
+        { text: 'Guide', link: '/guide/getting-started', activeMatch: '/guide/' },
         { text: 'Diagnostics', link: '/guide/diagnostics' },
         { text: 'Contributing', link: '/contributing/', activeMatch: '/contributing/' },
         { text: 'Changelog', link: `${repository}/blob/main/CHANGELOG.md` }
