@@ -41,7 +41,9 @@ internal partial class SupportAgent : Agent
             .Configurable(o => o.Instructions)
             .Configurable(o => o.Temperature);
 
-        UseToolset<TicketToolset>().Include(t => t.SearchTickets).Include(t => t.CloseTicket);
+        UseToolset<TicketToolset>()
+            .Include(t => t.SearchTickets)
+            .Include(t => t.CloseTicket);
 
         UseToolset<KnowledgeToolset>().Exclude(t => t.DeleteArticle);
 
@@ -59,7 +61,7 @@ internal partial class SupportAgent : Agent
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L42' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L44' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - **`WithName`** is optional. Without it, the agent goes by its class name in snake_case, here `support_agent`. Messages

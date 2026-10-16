@@ -18,7 +18,9 @@ internal partial class SupportAgent : Agent
             .Configurable(o => o.Instructions)
             .Configurable(o => o.Temperature);
 
-        UseToolset<TicketToolset>().Include(t => t.SearchTickets).Include(t => t.CloseTicket);
+        UseToolset<TicketToolset>()
+            .Include(t => t.SearchTickets)
+            .Include(t => t.CloseTicket);
 
         UseToolset<KnowledgeToolset>().Exclude(t => t.DeleteArticle);
 

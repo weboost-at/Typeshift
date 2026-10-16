@@ -45,7 +45,7 @@ The agent names its providers in its constructor:
 ```cs
 UseContext<CustomerProfileContext>();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L32-L34' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-context' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L34-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-context' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Typeshift resolves the provider from the run's services, or creates it from them when none is registered. So a provider

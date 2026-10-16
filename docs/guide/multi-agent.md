@@ -117,14 +117,17 @@ internal partial class ExploreAgent : Agent
 
         WithChatOptions().WithModel("fast-model");
 
-        UseToolset<FileSystemToolset>().Include(t => t.ReadFile).Include(t => t.ListFiles).Include(t => t.SearchFiles);
+        UseToolset<FileSystemToolset>()
+            .Include(t => t.ReadFile)
+            .Include(t => t.ListFiles)
+            .Include(t => t.SearchFiles);
     }
 
     protected override string GetInstructions() =>
         "Answer the question from the files. Read only what you need; quote the lines you rely on.";
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/ExploreAgent.cs#L5-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-sub-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/ExploreAgent.cs#L5-L23' title='Snippet source file'>snippet source</a> | <a href='#snippet-sub-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Handoff

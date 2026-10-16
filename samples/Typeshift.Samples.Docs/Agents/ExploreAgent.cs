@@ -11,7 +11,10 @@ internal partial class ExploreAgent : Agent
 
         WithChatOptions().WithModel("fast-model");
 
-        UseToolset<FileSystemToolset>().Include(t => t.ReadFile).Include(t => t.ListFiles).Include(t => t.SearchFiles);
+        UseToolset<FileSystemToolset>()
+            .Include(t => t.ReadFile)
+            .Include(t => t.ListFiles)
+            .Include(t => t.SearchFiles);
     }
 
     protected override string GetInstructions() =>
