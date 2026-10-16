@@ -5,27 +5,28 @@ description: "Where the library stands: the slices of the rewrite, the test that
 
 # Status
 
-Where the library stands: what is built, which test covers each behavior, and what is open. Open items live here,
-never as TODOs in code. The rewrite built the API the owner approved in ten slices, one at a time; all ten are built.
+What is built, which test covers each behavior, and what is still open. Open items live here, never as TODOs in
+code.
 
 ## Slices
 
-| Slice | State |
-|---|---|
-| 1. Toolsets and tools: generated functions, overrides, tool lists, the analyzer | built |
-| 2. Agents, registration, `AgentHost` runs | built |
-| 3. Settings store, id type | built |
-| 4. Conversations: checkpoints, resume, live updates, steering | built |
-| 5. Approval, rules, plan and auto modes | built |
-| 6. Middleware, context providers | built |
-| 7. Telemetry, compaction | built |
-| 8. Sub-agents, handoff | built |
-| 9. MCP, built-in toolsets | built |
-| 10. Native AOT: the console sample, the package consumer | built |
+The rewrite built the API the owner approved in ten slices, one at a time, and all ten are done:
+
+1. Toolsets and tools: generated functions, overrides, tool lists, the analyzer.
+2. Agents, registration, `AgentHost` runs.
+3. Settings store, id type.
+4. Conversations: checkpoints, resume, live updates, steering.
+5. Approval, rules, plan and auto modes.
+6. Middleware, context providers.
+7. Telemetry, compaction.
+8. Sub-agents, handoff.
+9. MCP, built-in toolsets.
+10. Native AOT: the console sample, the package consumer.
 
 ## Behavior coverage
 
-The numbers are the rules of v0's behavior table where they still hold.
+A number is the rule's row in v0's behavior table, where that rule still holds. Rows marked "new" came with the
+rewrite.
 
 | # | Behavior | Test |
 |---|---|---|
@@ -99,7 +100,7 @@ The numbers are the rules of v0's behavior table where they still hold.
 | new | MCP servers' tools follow the agent's own, read-only or behind approval; a clash or no provider fails (D35) | `McpTests` |
 | new | The file tools stay within the root, links included, and read, list, search, write, edit and delete (D37) | `FileSystemToolsetTests` |
 | new | `run_command` runs in the root, with a timeout and an output limit (D37) | `ShellToolsetTests` |
-| new | The built-in tools that change things ask first; the readers are read-only (D37) | `FileSystemToolsetTests.Given_The_File_And_Shell_Tools_Those_That_Change_Things_Ask_And_The_Readers_Only_Read` |
+| new | `delete_file` and `run_command` ask first; the three file readers are read-only (D37) | `FileSystemToolsetTests.Given_The_File_And_Shell_Tools_Those_That_Change_Things_Ask_And_The_Readers_Only_Read` |
 | new | The web tools refuse other schemes and name a missing registration (D37) | `WebToolsetTests` |
 | new | A consumer's agent configures a built-in tool across the assembly boundary (D7, D37) | `FileSystemToolsetTests.Given_An_Agent_Using_The_Built_In_Toolset_Its_Configuration_Reaches_The_Tool` |
 | new | A reference without agents has no id type to clash (D11) | `DiagnosticTests.Given_A_Reference_Of_Toolsets_Only_Built_With_Another_Id_Type_TSH021_Is_Not_Reported` |
@@ -109,35 +110,36 @@ The numbers are the rules of v0's behavior table where they still hold.
 
 ## Known gaps
 
-- **Recursive parameter types:** each parameter's schema is created on its own and nested under the function's
+- **Recursive parameter types.** Each parameter's schema is created on its own and nested under the function's
   `properties`, so a `$ref` that `AIJsonUtilities.CreateJsonSchema` emits for a recursive type is relative to the
-  parameter. Untested; non-recursive types are unaffected.
-- **Tool names across references:** TSH007 compares the compilation's tools with each other and with the tools the
-  references stamp, not two references' tools with each other. An agent offering two referenced tools of one name
-  keeps the first; the generated code stays valid.
-- **Generated line length:** generated code is `global::`-qualified and some declarations exceed 120 columns.
-- **Streamed results:** a tool returning `IAsyncEnumerable<T>` compiles, but its result is serialized synchronously
+  parameter. This is untested, and non-recursive types are unaffected.
+- **Tool names across references.** TSH007 compares the compilation's tools with each other and with the tools the
+  references stamp, but not two references' tools with each other. An agent offering two referenced tools of one
+  name keeps the first, and the generated code stays valid.
+- **Generated line length.** Generated code is `global::`-qualified, and some declarations exceed 120 columns.
+- **Streamed results.** A tool returning `IAsyncEnumerable<T>` compiles, but its result is serialized synchronously
   and the call fails at runtime. Neither v0 nor the approved API supports it.
-- **Kinds across references:** TSH022 compares the compilation's agents with each other and with those the
-  references stamp, not two references' agents with each other.
-- **Live updates of non-streaming runs:** only streaming runs publish.
-- **Docs of types in assemblies without toolsets or agents:** such an assembly has no module, so the XML docs
+- **Kinds across references.** TSH022 compares the compilation's agents with each other and with those the
+  references stamp, but not two references' agents with each other.
+- **Live updates of non-streaming runs.** Only streaming runs publish.
+- **Docs of types in assemblies without toolsets or agents.** Such an assembly has no module, so the XML docs
   collected for it reach no schema. A tool whose parameter type lives there gets that type's properties undescribed.
-- **Storable structs:** a user struct other than the scalars cannot be configurable (TSH012).
-- **Run limit across approval rounds:** rounds the approval layer continues share the run's `MaxToolIterations`; a
-  round that runs tools before it asks again may run one round of tools past it.
-- **Compaction's estimate:** about four characters to a token, corrected by the provider's report of the run's
-  last call; a run's first call trusts the estimate alone. The summary model reads results cut to 2,000 characters.
-- **Compaction across steering:** a steered run's later pass compacts afresh, summarizing again if it needs to.
-- **Agents across references:** TSH023, TSH024 and TSH026 check the agents of the same compilation; a sub-agent of a
+- **Storable structs.** A user struct other than the scalars cannot be configurable (TSH012).
+- **Run limit across approval rounds.** The rounds the approval layer continues share the run's
+  `MaxToolIterations`, so a round that runs tools before it asks again may run one round of tools past it.
+- **Compaction's estimate.** About four characters make a token, corrected by the provider's report of the run's
+  last call, so a run's first call trusts the estimate alone. The summary model reads results cut to 2,000
+  characters.
+- **Compaction across steering.** A steered run's later pass compacts afresh and summarizes again if it needs to.
+- **Agents across references.** TSH023, TSH024 and TSH026 check the agents of the same compilation. A sub-agent of a
   referenced assembly is checked when that assembly builds, not against its callers.
-- **File tools and links:** the root check follows every link on a path, but a link swapped in between the check and
-  the use still escapes; only a sandbox stops that. `edit_file` holds a file whole in memory and refuses files over
-  16 MB.
-- **Web fetch and private addresses:** the model picks the URL; the host's `IWebFetch` decides which addresses it
-  reaches. No fetcher ships with Typeshift.
-- **Shell:** `run_command` runs what the model sends, within the root as its working directory but not a sandbox;
-  it requires approval unless a rule or auto mode answers.
+- **File tools and links.** The root check follows every link on a path, but a link swapped in between the check
+  and the use still escapes, and only a sandbox stops that. `edit_file` holds a file whole in memory and refuses
+  files over 16 MB.
+- **Web fetch and private addresses.** The model picks the URL, and the host's `IWebFetch` decides which addresses
+  it reaches. No fetcher ships with Typeshift.
+- **Shell.** `run_command` runs what the model sends. The root is its working directory but not a sandbox, and the
+  tool requires approval unless a rule or auto mode answers.
 
 ## Related
 
