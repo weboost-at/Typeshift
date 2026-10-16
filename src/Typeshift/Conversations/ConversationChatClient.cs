@@ -82,10 +82,12 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         Activity? activity,
         CancellationToken ct)
     {
-        if (await AnsweringAgentAsync(options, ct) is { } answering)
-            return await answering.RunAsync(messages, SettingsId(options), GetConversation(options!), null, ct);
+        var (conversation, entries) = await LoadAsync(options, ct);
 
-        var (run, call, runOptions) = await BeginAsync(messages, options, activity, ct);
+        if (AnsweringAgent(entries) is { } answering)
+            return await answering.RunAsync(messages, SettingsId(options), conversation, null, ct);
+
+        var (run, call, runOptions) = await BeginAsync(messages, options, conversation, entries, activity);
         var handedOff = false;
 
         try
@@ -135,10 +137,10 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         Activity? activity,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        if (await AnsweringAgentAsync(options, ct) is { } answering)
-        {
-            var conversation = GetConversation(options!);
+        var (conversation, entries) = await LoadAsync(options, ct);
 
+        if (AnsweringAgent(entries) is { } answering)
+        {
             await foreach (var update in answering.RunStreamingAsync(messages, SettingsId(options), conversation, ct))
             {
                 yield return update;
@@ -147,7 +149,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             yield break;
         }
 
-        var (run, call, runOptions) = await BeginAsync(messages, options, activity, ct);
+        var (run, call, runOptions) = await BeginAsync(messages, options, conversation, entries, activity);
 
         var publisher = run.Conversation is not null && services.GetService<RealtimeTrackingOptions>() is { } realtime
             ? new LivePublisher(Runs, run.Conversation, realtime, Time)
@@ -230,18 +232,20 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         return further;
     }
 
-    // D34: the agent that answered the conversation last answers its next run, if this agent's handoffs reach it
-    private async Task<IAgentHost?> AnsweringAgentAsync(ChatOptions? options, CancellationToken ct)
+    // The run's conversation and its entries, loaded once: for the agent that answers and for the run's history
+    private async Task<(object? Conversation, IReadOnlyList<ConversationEntry> Entries)> LoadAsync(
+        ChatOptions? options,
+        CancellationToken ct)
     {
-        if (agent.Handoffs.Count == 0 || options is null || GetConversation(options) is not { } conversation)
-            return null;
+        var conversation = options is null ? null : GetConversation(options);
+        return (conversation, conversation is null ? [] : await Store.LoadConversationAsync(conversation, ct));
+    }
 
-        var entries = await Store.LoadConversationAsync(conversation, ct);
-
-        return entries.Count > 0 && entries[^1].Agent != agent.Name
+    // D34: the agent that answered the conversation last answers its next run, if this agent's handoffs reach it
+    private IAgentHost? AnsweringAgent(IReadOnlyList<ConversationEntry> entries) =>
+        agent.Handoffs.Count > 0 && entries.Count > 0 && entries[^1].Agent != agent.Name
             ? Reachable().GetValueOrDefault(entries[^1].Agent)
             : null;
-    }
 
     private Dictionary<string, IAgentHost> Reachable()
     {
@@ -289,7 +293,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             [new FunctionResultContent(call.CallId, $"Handed off to {target.Agent.Name}.")]);
 
         await run.AppendHandoffAsync(result, target.Agent.Name);
-        await run.CloseAsync();
+        await run.CloseAsync(target.Agent.Name);
         Runs.End(run);
 
         return (result, target);
@@ -298,15 +302,18 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     private async Task<(ConversationRun Run, List<ChatMessage> Call, ResolvedChatOptions Options)> BeginAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options,
-        Activity? activity,
-        CancellationToken ct)
+        object? conversation,
+        IReadOnlyList<ConversationEntry> entries,
+        Activity? activity)
     {
         // D24: a request is the model's, never the host's; one in the input is dropped before anything stores it
         var input = messages.Select(WithoutRequests).OfType<ChatMessage>().ToList();
         var runOptions = ResolvedChatOptions.From(options ?? new ChatOptions());
+
+        // Options the raw path made itself run with the agent's run options, as its tool loop does
+        if (options is not ResolvedChatOptions) runOptions.RunOptions = agent.RunOptions;
+
         var mode = runOptions.RunOptions.Mode;
-        var conversation = GetConversation(runOptions);
-        var entries = conversation is null ? [] : await Store.LoadConversationAsync(conversation, ct);
 
         // D50: a run without input continues the conversation's interrupted run
         if (conversation is not null && input.Count == 0 && (entries.Count == 0 || entries[^1].EndsRun))

@@ -93,8 +93,9 @@ internal sealed class ConversationRun(
         }
     }
 
-    // The input the run took and no model received, stored as the conversation's; the run takes no more
-    public async Task CloseAsync()
+    // The input the run took and no model received, stored for the agent that answers next, after a handoff the one
+    // handed to; the run takes no more
+    public async Task CloseAsync(string? answering = null)
     {
         List<ChatMessage> waiting;
 
@@ -105,7 +106,7 @@ internal sealed class ConversationRun(
             _steering.Clear();
         }
 
-        if (waiting.Count > 0) await AppendAsync(waiting);
+        if (waiting.Count > 0) await AppendAsync(waiting, answering: answering);
     }
 
     // D33: a sub-agent working while the run goes on; its answer joins the run as a message before a later model
@@ -120,7 +121,7 @@ internal sealed class ConversationRun(
             {
                 var answer = await AnswerAsync(agent, work);
 
-                if (!_stopping.IsCancellationRequested)
+                if (answer is not null && !_stopping.IsCancellationRequested)
                 {
                     var message = new ChatMessage(ChatRole.User, answer)
                     {
@@ -278,7 +279,8 @@ internal sealed class ConversationRun(
 
     private bool IsKnown(AIContent content) => _stored.Contains(content) || _transient.Contains(content);
 
-    private async Task<string> AnswerAsync(string agent, Func<CancellationToken, Task<ChatResponse>> work)
+    // Null once the run stopped: it cancelled the sub-agent, nothing hears its answer, and the task must not fault
+    private async Task<string?> AnswerAsync(string agent, Func<CancellationToken, Task<ChatResponse>> work)
     {
         try
         {
@@ -287,6 +289,10 @@ internal sealed class ConversationRun(
         catch (Exception exception) when (!_stopping.IsCancellationRequested)
         {
             return $"The background agent {agent} failed: {exception.Message}";
+        }
+        catch (Exception)
+        {
+            return null;
         }
     }
 }

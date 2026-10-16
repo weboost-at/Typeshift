@@ -93,6 +93,30 @@ public class HandoffTests : MultiAgentTestBase
         updates.ToChatResponse().Text.Should().EndWith(Data.Tool.Answer);
     }
 
+    [Fact]
+    public async Task Given_Steering_Input_Waiting_At_A_Handoff_The_Agent_Handed_To_Answers_It()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(gate, Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer));
+
+        var run = RunAsync(Data.Tool.Question);
+        await ChatClient.Requested;
+
+        // Act
+        Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+        gate.SetResult();
+        var response = await run;
+
+        // Assert
+        response.Messages[^1].AuthorName.Should().Be("back_agent");
+        ChatClient.Requests[1].Select(message => message.Text).Should().Contain(Data.Agent.Steering);
+        ChatClient.Requests[1][^1].Text.Should().Be(Data.Agent.Steering);
+    }
+
     private Task<ChatResponse> RunAsync(string input) =>
         Host<FrontAgent>().RunAsync(input, conversationId: Data.Agent.ConversationId, ct: Ct);
 }
