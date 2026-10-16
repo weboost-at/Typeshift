@@ -63,6 +63,6 @@ Context tools carry no `ReadOnly()` mark, so [plan mode](./modes.md#plan-mode) h
 ## Related
 
 - [Agents](./defining-agents.md): `UseContext<T>()` among the other calls of an agent's constructor.
-- [How a run works](./how-a-run-works.md): when context is added in a run.
+- [How a run works](./running-agents.md#how-a-run-works): when context is added in a run.
 - [Middleware](./middleware.md): changing a run's messages and options, or answering in place of the model.
 - [Tool approval](./tool-approval.md): what happens when a context tool asks.

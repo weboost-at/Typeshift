@@ -190,7 +190,7 @@ conversation.
 ## Related
 
 - [Running agents](./running-agents.md): passing a conversation id to a run.
-- [How a run works](./how-a-run-works.md): where a run resumes and stores its steps.
+- [How a run works](./running-agents.md#how-a-run-works): where a run resumes and stores its steps.
 - [Settings and stores](./settings-and-stores.md#the-store): the store methods that keep conversations.
 - [Long-running agents](./long-running-agents.md): runs of hundreds of model calls, and compaction.
 - [Multiple agents](./multi-agent.md#handoff): handoffs, which need a conversation.

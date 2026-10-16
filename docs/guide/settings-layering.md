@@ -101,4 +101,4 @@ See [Multiple agents](./multi-agent.md).
 - [Tool settings](./tool-settings.md): declaring a tool's settings and opening members to the layers.
 - [The `Settings` record](./generated-members.md#settings): what the stored layer holds and how it is serialized.
 - [Running agents](./running-agents.md#run-settings): passing a settings id and run settings.
-- [How a run works](./how-a-run-works.md): where resolving the settings sits in a run.
+- [How a run works](./running-agents.md#how-a-run-works): where resolving the settings sits in a run.

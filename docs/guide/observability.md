@@ -77,6 +77,6 @@ customers wrote. Turn it on only where your tracing backend may keep that data.
 
 ## Related
 
-- [How a run works](./how-a-run-works.md): the steps the spans of a run cover.
+- [How a run works](./running-agents.md#how-a-run-works): the steps the spans of a run cover.
 - [Long-running agents](./long-running-agents.md): watching a run that makes hundreds of model calls.
 - [Conversations](./conversations.md#live-updates): live updates of a run, for a UI.

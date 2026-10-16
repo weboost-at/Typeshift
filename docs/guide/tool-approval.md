@@ -178,4 +178,4 @@ host. See [the shell](./built-in-toolsets.md#shell).
 - [Built-in toolsets](./built-in-toolsets.md#shell): the shell, which asks before every command.
 - [Conversations](./conversations.md): where the requests and the standing approvals are stored.
 - [Long-running agents](./long-running-agents.md): keeping a long run going without asking for every call.
-- [How a run works](./how-a-run-works.md): where approval sits among a run's steps.
+- [How a run works](./running-agents.md#how-a-run-works): where approval sits among a run's steps.

@@ -110,7 +110,7 @@ services.AddKeyedSingleton("reasoning-model", reasoning);
 
 ## Related
 
-- [How a run works](./how-a-run-works.md): where middleware sits among a run's steps, and what each step can change.
+- [How a run works](./running-agents.md#how-a-run-works): where middleware sits among a run's steps, and what each step can change.
 - [Context providers](./context-providers.md): adding instructions, messages or tools to every run.
 - [Tool approval](./tool-approval.md#approval-rules): rules, which decide tool calls before the host is asked.
 - [Registration](./registration.md): the other calls of the `AddTypeshift()` chain.

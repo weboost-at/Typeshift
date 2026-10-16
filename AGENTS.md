@@ -92,7 +92,7 @@ style; the essentials:
 | Chat options and run options, their defaults | `guide/builders.md` | `defining-agents.md`, `long-running-agents.md` |
 | Modes | `guide/modes.md` | `tool-approval.md`, `builders.md` (link) |
 | Settings layers and precedence | `guide/settings-layering.md` | `tool-settings.md`, `defining-agents.md`, `running-agents.md` |
-| The order of a run's steps | `guide/how-a-run-works.md` | `contributing/architecture.md#a-run` (the code's side) |
+| The order of a run's steps | `guide/running-agents.md#how-a-run-works` | `contributing/architecture.md#a-run` (the code's side) |
 | The store contract, kinds, versions, revisions, the `Settings` JSON | `guide/settings-and-stores.md` | `generated-members.md#settings` |
 | Conversations: storage, resume, steering, live updates | `guide/conversations.md` | `long-running-agents.md` |
 | Generated members | `guide/generated-members.md` | `agent-host.md` |
@@ -109,7 +109,7 @@ style; the essentials:
 | New builder or `AddTypeshift()` chain call | `builders.md` or `registration.md#the-chain`, the guide page that teaches it |
 | New or changed diagnostic | `diagnostics.md` row and section (a guard test checks), the guide page that states the rule |
 | Changed default or limit | The reference table, then every page that states it: grep for the old value |
-| Change in the run pipeline | `how-a-run-works.md` and its diagram, `contributing/architecture.md#a-run`, D29 |
+| Change in the run pipeline | `running-agents.md#how-a-run-works` and its diagram, `contributing/architecture.md#a-run`, D29 |
 | New page | First a section of an existing page; otherwise a template from `docs/contributing/templates/`, the sidebar, the neighbours' `## Related` |
 
 ## Guard tests
