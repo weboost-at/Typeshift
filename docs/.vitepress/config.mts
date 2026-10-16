@@ -119,7 +119,8 @@ export default withMermaid(
       }
     },
     mermaid: {
-      theme: 'neutral'
+      theme: 'neutral',
+      look: 'handDrawn'
     },
     // Mermaid alone is a chunk of several megabytes, loaded only by pages with a diagram
     vite: {
