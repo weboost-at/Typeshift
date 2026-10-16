@@ -1,0 +1,4 @@
+# The demos are apps, not a package: CS1591 (missing XML comment) is noise on their public members and is turned
+# off here. Everything else follows the repository's .editorconfig.
+[*.cs]
+dotnet_diagnostic.CS1591.severity = none

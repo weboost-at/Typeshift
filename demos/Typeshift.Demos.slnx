@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="../src/Typeshift.Generators/Typeshift.Generators.csproj" />
+    <Project Path="../src/Typeshift/Typeshift.csproj" />
+  </Folder>
+  <Folder Name="/demos/">
+    <Project Path="Typeshift.Demos.Shared/Typeshift.Demos.Shared.csproj" />
+    <Project Path="Typeshift.Demos.MultiProvider/Typeshift.Demos.MultiProvider.csproj" />
+    <Project Path="Typeshift.Demos.Coder/Typeshift.Demos.Coder.csproj" />
+    <Project Path="Typeshift.Demos.Support/Typeshift.Demos.Support.csproj" />
+  </Folder>
+</Solution>

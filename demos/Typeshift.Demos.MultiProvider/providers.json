@@ -1,0 +1,9 @@
+{
+  "default": "canned/echo",
+  "providers": [
+    { "name": "canned", "kind": "canned" },
+    { "name": "lmstudio", "kind": "openai", "endpoint": "http://localhost:1234/v1", "apiKey": "lm-studio" },
+    { "name": "openai", "kind": "openai", "apiKey": "${OPENAI_API_KEY}" },
+    { "name": "anthropic", "kind": "anthropic", "apiKey": "${ANTHROPIC_API_KEY}" }
+  ]
+}
