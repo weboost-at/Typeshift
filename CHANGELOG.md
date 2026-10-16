@@ -5,6 +5,23 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The metrics `gen_ai.client.token.usage` and `gen_ai.client.operation.duration` no longer reset after every run:
+  the provider's client is instrumented once and kept so as long as it lives, instead of a source and a meter per
+  run. Return the same client instance per model from `IChatClientProvider` where you can.
+- Steering input waiting when the model hands the conversation to another agent is stored for that agent, so the
+  conversation's next run goes to it instead of back to the agent that handed off.
+- An approval still finds its stored request when run middleware adds or removes messages ahead of the input.
+- Merging the rounds of a run no longer adds the later rounds' usage into the first response's `Usage`.
+- The merged text updates `ConversationTracker.WatchAsync` publishes keep the first update's ids, so a watcher
+  groups them into messages as the run's caller does.
+- A background sub-agent that its run's end cancelled no longer faults an unobserved task.
+- The file tools compare a path as the operating system opens it, so on Windows a last segment's trailing dots and
+  spaces cannot lead above the root.
+- Options the raw path builds itself run with the agent's run options through the whole pipeline.
+- A run of an agent with handoffs loads its conversation once instead of twice.
+
 ## [0.1.0-alpha.2] - 2026-10-16
 
 ### Added

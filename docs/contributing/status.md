@@ -135,7 +135,19 @@ rewrite.
   referenced assembly is checked when that assembly builds, not against its callers.
 - **File tools and links.** The root check follows every link on a path, but a link swapped in between the check
   and the use still escapes, and only a sandbox stops that. `edit_file` holds a file whole in memory and refuses
-  files over 16 MB.
+  files over 16 MB. Paths compare as the operating system opens them, which on Windows drops a last segment's
+  trailing dots and spaces; CI runs on Linux, so that is untested.
+- **Sub-agents in plan mode.** A sub-agent's tool carries no `ReadOnly()` mark, so plan mode hides every sub-agent,
+  even one that only reads. A sub-agent run in plan mode would be asked for a plan it has no host to present to.
+- **The raw path's client under concurrent calls.** The client `CreateChatClientAsync` returns holds one tool loop,
+  whose iteration limit the approval layer sets per call, so the client serves one call at a time.
+- **A conversation loads whole.** `LoadConversationAsync` returns every entry of a conversation, and a run reads all
+  of them although its history starts at the last summary; standing approvals and lost background agents are read
+  from the whole conversation too.
+- **A provider client per call.** A provider that returns a new client instance per call gets a new instrumented
+  wrapper per call, with a meter that lives as long as the instance. Return one instance per model.
+- **`ConfigureAsync` under a store that always conflicts.** Each conflict is read as another save that won, so the
+  retry has no cap and ends only when the token is cancelled.
 - **Web fetch and private addresses.** The model picks the URL, and the host's `IWebFetch` decides which addresses
   it reaches. No fetcher ships with Typeshift.
 - **Shell.** `run_command` runs what the model sends. The root is its working directory but not a sandbox, and the
