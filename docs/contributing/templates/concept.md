@@ -5,11 +5,7 @@ description: One sentence that says what the reader will understand, for search 
 
 # The idea, as people would say it
 
-<!-- Lead: 2-4 sentences. What it is, why it is shaped this way, who depends on it. -->
-
-::: tip The short version
-<!-- 3-5 bullets a reader can stop after. -->
-:::
+<!-- Lead: 2-3 sentences. What it is, why it is shaped this way, who depends on it. -->
 
 <!-- A diagram, when a picture explains it faster: a mermaid block with at most ten nodes, described in the text. -->
 

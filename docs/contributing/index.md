@@ -15,7 +15,7 @@ alike.
 - Build warning-free, run the tests three times, run the docs program. The commands are below.
 - Something looks odd? It is probably deliberate: [Decisions](./decisions.md) says why.
 - Open work and known gaps live in [Status](./status.md), never as TODOs in code.
-- A change people can see changes the docs in the same commit: see [Documentation](./documentation.md).
+- A change people can see changes the docs in the same commit: see [Documentation](./writing.md#where-the-code-comes-from).
 
 :::
 
@@ -50,11 +50,11 @@ when a cited decision is withdrawn.
 | [Decisions](./decisions.md) | Something looks odd. It is probably deliberate, and the entry says why and what lost. |
 | [Status](./status.md) | You look for open work, known gaps, or which test covers a behavior. |
 | [Releasing](./releasing.md) | You publish a version to NuGet. |
-| [Documentation](./documentation.md) | You change a guide page or the code it shows. |
+| [Documentation](./writing.md#where-the-code-comes-from) | You change a guide page or the code it shows. |
 | [Writing style](./writing.md) | You write or review a page. |
 
 ## Related
 
 - [Architecture](./architecture.md): how the generator and the runtime fit together.
-- [Documentation](./documentation.md): snippets, checks and templates.
+- [Documentation](./writing.md#where-the-code-comes-from): snippets, checks and templates.
 - [Getting started](../guide/getting-started.md): the library as its users see it.

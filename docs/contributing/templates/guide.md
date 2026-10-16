@@ -5,11 +5,7 @@ description: One sentence that says what the reader can do after reading, for se
 
 # The feature, as people would say it
 
-<!-- Lead: 2-4 sentences. What the feature does, why you would use it, what it builds on. Answer first. -->
-
-::: tip The short version
-<!-- 3-5 bullets a reader can stop after. Leave the box out on a page shorter than a screen. -->
-:::
+<!-- Lead: 2-3 sentences. What the feature does, why you would use it, what it builds on. Answer first. -->
 
 ## The common case
 

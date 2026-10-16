@@ -12,7 +12,7 @@ the playbook. That is meant to be enough; if you had to dig for something, add i
 | Change what the generator reads or writes | `docs/contributing/architecture.md`, "The generator and the analyzer" | `.claude/skills/change-generated-code` |
 | Tool settings: configurable members, overrides | `docs/guide/tool-settings.md`; D18, D19 | `.claude/skills/extend-settings` |
 | Runtime behavior or public API | `docs/contributing/architecture.md`; the subject's decisions | `.claude/skills/add-runtime-feature` |
-| Docs, README, the code they show | `docs/contributing/writing.md`, `documentation.md`; "Docs" below | `.claude/skills/update-docs` |
+| Docs, README, the code they show | `docs/contributing/writing.md`; "Docs" below | `.claude/skills/update-docs` |
 | Audit the docs for drift and rule breaks | "Docs" below | `.claude/skills/review-docs` |
 | A release | `docs/contributing/releasing.md` | none: a person pushes the tag |
 
@@ -72,9 +72,11 @@ dotnet mdsnippets && git diff --exit-code
 The guide is for library users, `docs/contributing/` for this repository. `docs/contributing/writing.md` holds the
 style; the essentials:
 
-- Every page: `title` and `description` frontmatter, an H1 equal to the title, a lead that answers first, "The short
-  version" tip on pages longer than a screen, one idea per section, `## Related` last.
-- Short sentences, present tense, "you" for the reader. Say why. No trailing "say" for examples: "for example".
+- Every page: `title` and `description` frontmatter, an H1 equal to the title, a lead of two or three sentences that
+  answers first, no summary box, one idea per section, `## Related` last.
+- Present tense, "you" for the reader, sentences of varied length that read like a person wrote them. Say why, once.
+  No filler, no em dashes, no trailing "say" for examples: "for example".
+- Keep it compact: a new topic is a section of an existing page before it is a page of its own.
 - C# only from `samples/Typeshift.Samples.Docs` through mdsnippets. Callouts carry meaning and a title. Mermaid for
   flows, at most about ten nodes.
 - One fact, one page: change the canonical page below and link to it elsewhere. A snippet may repeat; its
@@ -108,7 +110,7 @@ style; the essentials:
 | New or changed diagnostic | `diagnostics.md` row and section (a guard test checks), the guide page that states the rule |
 | Changed default or limit | The reference table, then every page that states it: grep for the old value |
 | Change in the run pipeline | `how-a-run-works.md` and its diagram, `contributing/architecture.md#a-run`, D29 |
-| New page | A template from `docs/contributing/templates/`, the sidebar, the neighbours' `## Related` |
+| New page | First a section of an existing page; otherwise a template from `docs/contributing/templates/`, the sidebar, the neighbours' `## Related` |
 
 ## Guard tests
 

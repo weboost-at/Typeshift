@@ -5,7 +5,7 @@ description: Change the Typeshift documentation site (docs/, VitePress), the REA
 
 # Update the docs
 
-Read `docs/contributing/writing.md` (the style) and `docs/contributing/documentation.md` (the mechanics) first.
+Read `docs/contributing/writing.md` first: the voice, the page anatomy, and the mechanics of snippets and checks.
 
 1. Find where the fact lives: the fact map under "Docs" in `AGENTS.md` names the canonical page. Change it there and
    link to it from elsewhere. For a change to the library, the change checklist next to it names every page to touch.
@@ -13,7 +13,7 @@ Read `docs/contributing/writing.md` (the style) and `docs/contributing/documenta
    and run its program: `dotnet run --project samples/Typeshift.Samples.Docs -c Release`.
 3. Run `dotnet mdsnippets` from the repository root; never edit between `<!-- snippet: x -->` and
    `<!-- endSnippet -->` by hand. C# never goes into a hand-written block.
-4. Write the prose to `writing.md`: a lead that answers first, short sentences, the reason for each rule, callouts
+4. Write the prose to `writing.md`: a lead that answers first, varied sentences, the reason for each rule, callouts
    with a title, `## Related` last. Read a neighbouring page and match it.
 5. A new page starts from `docs/contributing/templates/`, goes into the sidebar in `docs/.vitepress/config.mts` and
    into the `## Related` of its neighbours. No page may be named `agents.md`: mdsnippets skips files of that name.

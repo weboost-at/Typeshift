@@ -34,8 +34,9 @@ differently.
 
 Read each section in sidebar order against `docs/contributing/writing.md`:
 
-- a lead that answers what and why, and "The short version" on pages longer than a screen;
-- short sentences, the reason for each rule, no filler, no trailing "say";
+- a lead that answers what and why, and no summary box;
+- varied sentences that read like a person wrote them, the reason for each rule, no filler, no trailing "say";
+- no fact a page explains that another page owns, and no page longer than its topic needs;
 - callouts for what they mean: security cautions as `danger`, silent surprises as `warning`;
 - `## Related` that links forward to details and back to the concept;
 - every term used as the glossary defines it.
