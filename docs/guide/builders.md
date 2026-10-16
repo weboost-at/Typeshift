@@ -109,7 +109,7 @@ puts it into the agent's `Settings`, like a chat option.
 | `WithMaxToolIterations(int iterations)` | 40 | Sets the most rounds of tool calls one run makes. |
 | `WithMaxConsecutiveToolErrors(int errors)` | 3 | Sets the most failed tool calls in a row before the run ends. |
 | `WithConcurrentToolCalls(bool concurrent)` | off | Runs the tool calls of one model response at the same time. |
-| `WithMaxInputTokens(int tokens)` | off | Turns [compaction](./long-running-agents.md#compaction) on at this many input tokens. |
+| `WithMaxInputTokens(int tokens)` | off | Turns [compaction](./conversations.md#compaction) on at this many input tokens. |
 | `WithTargetInputTokens(int tokens)` | half the maximum | Sets how far compaction shrinks the history. |
 | `WithSummaryModel(string model)` | none | Sets the model that summarizes what clearing tool results did not free. Without one, compaction drops the oldest turns. |
 

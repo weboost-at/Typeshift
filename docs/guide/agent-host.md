@@ -112,7 +112,7 @@ again until its save wins. It returns what it saved.
 
 A run with a conversation id stores its input, each model response, each tool result and an entry that ends the run.
 [Conversations](./conversations.md#what-is-stored) lists what is stored when a run fails, is cancelled or is cut off,
-and [compaction](./long-running-agents.md#compaction) what a compacted run stores.
+and [compaction](./conversations.md#compaction) what a compacted run stores.
 
 ## Related
 

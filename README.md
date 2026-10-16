@@ -225,7 +225,7 @@ lists [what your app implements](https://weboost-at.github.io/Typeshift/guide/ge
 | [Middleware](https://weboost-at.github.io/Typeshift/guide/middleware) | Wrap every run or tool call |
 | [Context providers](https://weboost-at.github.io/Typeshift/guide/context-providers) | Add memory, documents or other data to every run |
 | [MCP servers](https://weboost-at.github.io/Typeshift/guide/mcp) | Offer an MCP server's tools to an agent |
-| [Long-running agents](https://weboost-at.github.io/Typeshift/guide/long-running-agents) | Compaction and crash recovery for hundreds of model calls |
+| [Long-running agents](https://weboost-at.github.io/Typeshift/guide/conversations#compaction) | Compaction and crash recovery for hundreds of model calls |
 | [Observability](https://weboost-at.github.io/Typeshift/guide/observability) | OpenTelemetry spans and metrics for every run |
 | [Native AOT](https://weboost-at.github.io/Typeshift/guide/native-aot) | Publish a host without reflection or trim warnings |
 

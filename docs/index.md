@@ -43,7 +43,7 @@ features:
     linkText: Approve tool calls
   - title: Long runs and many agents
     details: Compaction keeps a long run within its context. Sub-agents work in the foreground or the background, and a handoff passes the conversation on.
-    link: /guide/long-running-agents
+    link: /guide/conversations#compaction
     linkText: Run for hours
   - title: Built-in toolsets
     details: To-dos, files within a workspace, the shell and the web, declared like your own. MCP servers plug in through the client of your choice.

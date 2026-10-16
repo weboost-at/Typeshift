@@ -52,7 +52,7 @@ internal partial class CodingAgent : Agent
 <!-- endSnippet -->
 
 This agent offers all four toolsets, but only `web_fetch` of the web tools, and `ConfigureRunCommand()` sets the
-shell's settings for it. Its run options make it a [long-running agent](./long-running-agents.md#compaction).
+shell's settings for it. Its run options make it a [long-running agent](./conversations.md#compaction).
 
 ## What each needs
 
@@ -84,7 +84,7 @@ services.AddTypeshift()
 
 `write_todos` replaces the model's to-do list, a list of titles, each `Pending`, `InProgress` or `Completed`. The
 list lives in the conversation: the latest call holds it, and
-[compaction](./long-running-agents.md#compaction) never drops that call. Plan mode offers it.
+[compaction](./conversations.md#compaction) never drops that call. Plan mode offers it.
 
 ## Files
 
@@ -182,5 +182,5 @@ Search results and fetched pages are untrusted text, never instructions. Anyone 
 - [Toolsets](./toolsets.md): declaring your own toolsets the same way.
 - [Agents](./defining-agents.md#selecting-tools): picking a toolset's tools with `Include` and `Exclude`.
 - [Tool approval](./tool-approval.md#approval-rules): the rules that guard the shell.
-- [Compaction](./long-running-agents.md#compaction): the coding agent's run options and compaction.
+- [Compaction](./conversations.md#compaction): the coding agent's run options and compaction.
 - [Generated members](./generated-members.md): `ConfigureRunCommand()` and the other `Configure{Tool}()` methods.

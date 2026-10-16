@@ -113,7 +113,7 @@ WithRunOptions()
 <!-- endSnippet -->
 
 Run options set the [mode](./modes.md) a run starts in, the limits of its tool loop, whether
-the calls of one response run at the same time, and when the history is [compacted](./long-running-agents.md#compaction).
+the calls of one response run at the same time, and when the history is [compacted](./conversations.md#compaction).
 [Builders](./builders.md#runoptionsbuilder) lists each one with its default.
 
 ## Tool settings

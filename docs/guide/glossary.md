@@ -16,7 +16,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can, so a run retur
 | **Approval rule** | An `IToolApprovalRule` that approves, rejects or abstains on a call before the host is asked. |
 | **Chat client provider** | The host's `IChatClientProvider`, which returns the `IChatClient` for a model name. |
 | **Code defaults** | The values a settings record's parameterless constructor sets, the lowest [layer](./settings-and-stores.md#settings-layering). |
-| **Compaction** | Shrinking the history a model call sees once it nears a token limit. See [Compaction](./long-running-agents.md#compaction). |
+| **Compaction** | Shrinking the history a model call sees once it nears a token limit. See [Compaction](./conversations.md#compaction). |
 | **Configurable** | A settings member or option the code lets stored settings or a run change. Everything else stays what the code says. |
 | **Context provider** | An `IContextProvider` that adds instructions, messages or tools to every run of the agents that use it. |
 | **Conversation** | The entries a run stores under a conversation id: inputs, model responses, tool results and run endings. See [Conversations](./conversations.md). |

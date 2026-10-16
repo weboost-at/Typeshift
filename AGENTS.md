@@ -89,12 +89,12 @@ style; the essentials:
 | Builder calls of toolsets and agents | `guide/builders.md` | `toolsets.md`, `tool-settings.md`, `defining-agents.md` |
 | Parameters the call fills, tool results | `guide/toolsets.md` | `builders.md` (link) |
 | Storable types of configurable members | `guide/tool-settings.md#configurable-members` | `builders.md` (link) |
-| Chat options and run options, their defaults | `guide/builders.md` | `defining-agents.md`, `long-running-agents.md` |
+| Chat options and run options, their defaults | `guide/builders.md` | `defining-agents.md`, `conversations.md#compaction` |
 | Modes | `guide/modes.md` | `tool-approval.md`, `builders.md` (link) |
 | Settings layers and precedence | `guide/settings-and-stores.md#settings-layering` | `tool-settings.md`, `defining-agents.md`, `running-agents.md` |
 | The order of a run's steps | `guide/running-agents.md#how-a-run-works` | `contributing/architecture.md#a-run` (the code's side) |
 | The store contract, kinds, versions, revisions, the `Settings` JSON | `guide/settings-and-stores.md` | `generated-members.md#settings` |
-| Conversations: storage, resume, steering, live updates | `guide/conversations.md` | `long-running-agents.md` |
+| Conversations: storage, resume, steering, live updates, compaction | `guide/conversations.md` | |
 | Generated members | `guide/generated-members.md` | `agent-host.md` |
 | `AgentHost` members and signatures | `guide/agent-host.md` | `running-agents.md` |
 | Spans and metrics | `guide/observability.md` | |

@@ -102,5 +102,5 @@ asks a model.
 
 - [Tool approval](./tool-approval.md): requests, standing approvals and rules.
 - [Agents](./defining-agents.md#run-options): the run options that set the mode runs start in.
-- [Long-running agents](./long-running-agents.md): plan and auto mode in a run that works on its own.
+- [Long-running agents](./conversations.md#compaction): plan and auto mode in a run that works on its own.
 - [MCP servers](./mcp.md): marking a server's tools read-only, so plan mode offers them.
