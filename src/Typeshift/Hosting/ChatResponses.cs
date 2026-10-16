@@ -4,17 +4,20 @@ namespace Typeshift;
 
 internal static class ChatResponses
 {
-    // Two responses of one run, as one: the messages in order, the usage added up
+    // Two responses of one run, as one: the messages in order, the usage added up in a sum of its own
     public static ChatResponse Merge(ChatResponse first, ChatResponse next)
     {
         var merged = new ChatResponse([.. first.Messages, .. next.Messages])
         {
             ModelId = next.ModelId ?? first.ModelId,
-            FinishReason = next.FinishReason,
-            Usage = first.Usage
+            FinishReason = next.FinishReason
         };
 
-        if (next.Usage is { } usage) (merged.Usage ??= new UsageDetails()).Add(usage);
+        foreach (var usage in new[] { first.Usage, next.Usage }.OfType<UsageDetails>())
+        {
+            (merged.Usage ??= new UsageDetails()).Add(usage);
+        }
+
         return merged;
     }
 }
