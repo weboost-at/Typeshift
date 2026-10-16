@@ -272,6 +272,42 @@ public class ConversationRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Run_Watcher_It_Hears_The_Run_Start_And_End()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var changes = Tracker.WatchRunsAsync(Ct).Take(2).ToListAsync(Ct);
+
+        // Act
+        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+
+        // Assert
+        (await changes).Select(run => (run.Conversation, run.Ended))
+            .Should()
+            .Equal((Data.Agent.ConversationId, false), (Data.Agent.ConversationId, true));
+    }
+
+    [Fact]
+    public async Task Given_A_Run_Going_On_A_Run_Watcher_Hears_It_Once_Then_Its_End()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+        ChatClient.Reply(gate, Text(Data.Tool.Answer));
+
+        var run = Host<ProbeAgent>().RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+        await ChatClient.Requested;
+
+        // Act
+        var changes = Tracker.WatchRunsAsync(Ct).Take(2).ToListAsync(Ct);
+        gate.SetResult();
+        await run;
+
+        // Assert
+        (await changes).Select(change => change.Ended).Should().Equal(false, true);
+    }
+
+    [Fact]
     public async Task Given_Steering_Input_The_Run_Answers_It_Before_It_Ends()
     {
         // Arrange

@@ -5,6 +5,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `ConversationTracker.WatchRunsAsync(ct)` yields the runs going on, then each run as it starts and ends
+  (`LiveRun.Ended`), so a list of running conversations needs no polling.
+
 ### Changed
 
 - A failed tool call reaches the model with its exception's message, so the model can correct the call.

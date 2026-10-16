@@ -557,6 +557,19 @@ commit, or add a new one and withdraw the old.
 - **Alternatives:** modes as tools the model calls (MAF's `mode_get`/`mode_set`), which lets the model leave plan
   mode unasked; a classifier built into auto mode, where a rule the host writes can ask any model it chooses.
 
+### D54. Runs starting and ending are a feed too
+
+- **Status:** decided by the owner in this session.
+- **Context:** a list of running conversations, or a dot on each, had to poll `Runs` every second.
+- **Decision:** `ConversationTracker.WatchRunsAsync(ct)` yields the runs going on, then each run as it starts and as
+  it ends (`LiveRun.Ended`), from a bounded feed per watcher like D47's, sized by `MaxPendingUpdates`. It works
+  without `WithRealtimeTracking()`, as `Runs` does.
+- **As built:** the watch subscribes before it lists the runs going on, so a run starting at that moment is listed or
+  fed, and its start is not reported twice.
+- **Where:** `Conversations/LiveRuns.cs`, `Conversations/ConversationTracker.cs`.
+- **Alternatives:** C# events, where a slow or throwing handler runs inside the run; a separate change record, which
+  needs one more id-type alias.
+
 ## Repository
 
 ### D48. Carried as they were

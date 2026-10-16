@@ -21,8 +21,17 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// <summary>
     /// The runs of conversations going on now.
     /// </summary>
-    public IReadOnlyList<LiveRun<TId>> Runs =>
-        [.. _runs.Runs.Select(run => new LiveRun<TId>((TId)run.Conversation!, run.Agent, run.Model, run.StartedAt))];
+    public IReadOnlyList<LiveRun<TId>> Runs => [.. _runs.Runs.Select(Live)];
+
+    /// <summary>
+    /// The runs of conversations going on now, then each run as it starts and as it ends, until cancelled. Needs no
+    /// live updates. A watcher that falls behind loses its oldest changes.
+    /// </summary>
+    /// <param name="ct">Ends the watch.</param>
+    /// <returns>The runs; one that ended has <see cref="LiveRun{TId}.Ended"/> set.</returns>
+    public IAsyncEnumerable<LiveRun<TId>> WatchRunsAsync(CancellationToken ct) =>
+        _runs.WatchRunsAsync((_realtime ?? new RealtimeTrackingOptions()).MaxPendingUpdates, ct)
+            .Select(change => Live(change.Run) with { Ended = change.Ended });
 
     /// <summary>
     /// The updates of a conversation's streaming runs as they happen, until cancelled. A watcher that falls behind
@@ -51,17 +60,26 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// False when no run of the conversation is going on here, or it is ending; start a run with the input instead.
     /// </returns>
     public bool TrySteer(TId conversation, string input) => _runs.TrySteer(conversation, input);
+
+    private static LiveRun<TId> Live(ConversationRun run) =>
+        new((TId)run.Conversation!, run.Agent, run.Model, run.StartedAt);
 }
 
 /// <summary>
-/// A run going on now.
+/// A run of a conversation in this process.
 /// </summary>
 /// <param name="Conversation">The conversation's id.</param>
 /// <param name="Agent">The name of the agent that answers.</param>
 /// <param name="Model">The model it answers with.</param>
 /// <param name="StartedAt">When the run started.</param>
 /// <typeparam name="TId">The id type.</typeparam>
-public sealed record LiveRun<TId>(TId Conversation, string Agent, string Model, DateTimeOffset StartedAt);
+public sealed record LiveRun<TId>(TId Conversation, string Agent, string Model, DateTimeOffset StartedAt)
+{
+    /// <summary>
+    /// Whether the run has ended; only <see cref="ConversationTracker{TId}.WatchRunsAsync"/> reports runs that ended.
+    /// </summary>
+    public bool Ended { get; init; }
+}
 
 /// <summary>
 /// How live updates are published.
@@ -74,7 +92,8 @@ public sealed record RealtimeTrackingOptions
     public TimeSpan PublishInterval { get; init; } = TimeSpan.FromMilliseconds(100);
 
     /// <summary>
-    /// The updates a watcher may fall behind by; beyond it, the oldest are dropped. A run never waits for a watcher.
+    /// The updates, or run starts and ends, a watcher may fall behind by; beyond it, the oldest are dropped. A run
+    /// never waits for a watcher.
     /// </summary>
     public int MaxPendingUpdates { get; init; } = 256;
 }

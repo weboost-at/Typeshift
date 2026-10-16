@@ -14,8 +14,8 @@ While a run works, a user can steer it with new input, and a UI can watch its up
 - Pass a `conversationId` to a run. It resumes the conversation and appends every step to your store.
 - Typeshift resends the stored conversation to the model on every run. The provider never sees the id.
 - `ResumeAsync` continues a run a crash cut off, from its last stored step.
-- `ConversationTracker` lists the runs going on in this process, steers them with `TrySteer` and, with
-  `WithRealtimeTracking()`, streams their updates to watchers.
+- `ConversationTracker` lists the runs going on in this process, reports each start and end to `WatchRunsAsync`,
+  steers them with `TrySteer` and, with `WithRealtimeTracking()`, streams their updates to watchers.
 - Typeshift resumes any conversation it is given. You decide who may see one.
 
 :::
@@ -81,7 +81,7 @@ last stored step, without new input:
 ```cs
 var resumed = await support.ResumeAsync(interrupted, settingsId);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L61-L63' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L63-L65' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 On a conversation whose last run ended, `ResumeAsync` throws an `InvalidOperationException`. A new run on an interrupted
@@ -114,6 +114,19 @@ foreach (var run in tracker.Runs)
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L31-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-live-sessions' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+`WatchRunsAsync` tells a UI when that list changes, so a list of running conversations needs no polling. It yields the
+runs going on, then each run as it starts and as it ends, with `Ended` set, until you cancel it. It needs no
+`WithRealtimeTracking()`:
+
+<!-- snippet: watch-runs -->
+<a id='snippet-watch-runs'></a>
+```cs
+await foreach (var run in tracker.WatchRunsAsync(ct))
+    Console.WriteLine($"Conversation {run.Conversation} is {(run.Ended ? "idle" : "running")}");
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L90-L93' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-runs' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
 ## Steering
 
 A user can steer a run while it works. `TrySteer` hands input to the run of the conversation going on in this process.
@@ -131,7 +144,7 @@ var input = "Send me the invoice too.";
 if (!tracker.TrySteer(conversationId, input))
     await support.RunAsync(input, settingsId, conversationId);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L48-L53' title='Snippet source file'>snippet source</a> | <a href='#snippet-steering' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L50-L55' title='Snippet source file'>snippet source</a> | <a href='#snippet-steering' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 To stop a run instead, cancel its token. It is stored up to where it stopped.
@@ -147,7 +160,7 @@ updates of one conversation until you cancel it. A UI can forward them over Sign
 await foreach (var update in tracker.WatchAsync(conversationId, ct))
     Console.Write(update.Text);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L73-L76' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L75-L78' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Text, reasoning and usage updates are merged and published at most every 100 ms. Other updates go out at once. A watcher

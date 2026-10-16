@@ -37,6 +37,7 @@ internal static class Conversations
 
         using var watching = CancellationTokenSource.CreateLinkedTokenSource(ct);
         var watcher = WatchAsync(tracker, conversationId, watching.Token);
+        var runWatcher = WatchRunsAsync(tracker, watching.Token);
 
         await foreach (var update in support.RunStreamingAsync("Thanks!", settingsId, conversationId, ct: ct))
             Console.Write(update.Text);
@@ -44,6 +45,7 @@ internal static class Conversations
         Console.WriteLine();
         await watching.CancelAsync();
         await watcher;
+        await runWatcher;
 
         // begin-snippet: steering
         var input = "Send me the invoice too.";
@@ -78,6 +80,21 @@ internal static class Conversations
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             Console.WriteLine();
+        }
+    }
+
+    private static async Task WatchRunsAsync(ConversationTracker tracker, CancellationToken ct)
+    {
+        try
+        {
+            // begin-snippet: watch-runs
+            await foreach (var run in tracker.WatchRunsAsync(ct))
+                Console.WriteLine($"Conversation {run.Conversation} is {(run.Ended ? "idle" : "running")}");
+            // end-snippet
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            Console.WriteLine("Stopped watching runs.");
         }
     }
 }
