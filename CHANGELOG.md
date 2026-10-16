@@ -5,6 +5,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-alpha.2] - 2026-10-16
+
 ### Added
 
 - The properties of the types tools take are described by their XML docs: the package brings
