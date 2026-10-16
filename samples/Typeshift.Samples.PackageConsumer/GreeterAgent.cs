@@ -10,7 +10,8 @@ public partial class GreeterAgent : Agent
     /// </summary>
     public GreeterAgent()
     {
-        WithChatOptions().WithModel("any-model");
+        WithChatOptions()
+            .WithModel("any-model");
 
         UseToolset<GreetingToolset>();
 

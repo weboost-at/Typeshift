@@ -22,13 +22,15 @@ internal partial class SupportAgent : Agent
             .Include(t => t.SearchTickets)
             .Include(t => t.CloseTicket);
 
-        UseToolset<KnowledgeToolset>().Exclude(t => t.DeleteArticle);
+        UseToolset<KnowledgeToolset>()
+            .Exclude(t => t.DeleteArticle);
 
         ConfigureSearchTickets()
             .WithLimit(5);
 
         // begin-snippet: use-mcp-server
-        UseMcpServer("status_page").ReadOnly();
+        UseMcpServer("status_page")
+            .ReadOnly();
         // end-snippet
 
         // begin-snippet: use-context

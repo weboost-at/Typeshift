@@ -27,7 +27,8 @@ internal static class Registration
         services.AddKeyedSingleton("reasoning-model", reasoning);
         // end-snippet
 
-        services.AddTypeshift().WithMcpToolProvider<CannedMcpToolProvider>();
+        services.AddTypeshift()
+            .WithMcpToolProvider<CannedMcpToolProvider>();
         services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite($"Data Source={database}"));
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ITicketClient, InMemoryTicketClient>();

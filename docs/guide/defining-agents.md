@@ -33,12 +33,14 @@ internal partial class SupportAgent : Agent
             .Include(t => t.SearchTickets)
             .Include(t => t.CloseTicket);
 
-        UseToolset<KnowledgeToolset>().Exclude(t => t.DeleteArticle);
+        UseToolset<KnowledgeToolset>()
+            .Exclude(t => t.DeleteArticle);
 
         ConfigureSearchTickets()
             .WithLimit(5);
 
-        UseMcpServer("status_page").ReadOnly();
+        UseMcpServer("status_page")
+            .ReadOnly();
 
         UseContext<CustomerProfileContext>();
     }
@@ -49,7 +51,7 @@ internal partial class SupportAgent : Agent
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L44' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The tools and their settings have sections of their own below. The other calls declare the rest:
@@ -80,9 +82,10 @@ offer all but some:
 <!-- snippet: exclude-tools -->
 <a id='snippet-exclude-tools'></a>
 ```cs
-UseToolset<TicketToolset>().Exclude(t => t.CloseTicket);
+UseToolset<TicketToolset>()
+    .Exclude(t => t.CloseTicket);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L12-L14' title='Snippet source file'>snippet source</a> | <a href='#snippet-exclude-tools' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L13-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-exclude-tools' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The lambda picks from a list the generator writes for each toolset, with one property per tool: `search_tickets` is
@@ -112,7 +115,7 @@ WithRunOptions()
     .Configurable(r => r.Mode)
     .Configurable(r => r.MaxToolIterations);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L16-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-options' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L18-L24' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Run options set the [mode](./tool-approval.md#the-three-modes) a run starts in, the limits of its tool loop, whether

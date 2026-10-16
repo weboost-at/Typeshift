@@ -9,7 +9,8 @@ internal partial class ExploreAgent : Agent
     {
         WithDescription("Explores the workspace and answers one question about it, citing files and lines.");
 
-        WithChatOptions().WithModel("fast-model");
+        WithChatOptions()
+            .WithModel("fast-model");
 
         UseToolset<FileSystemToolset>()
             .Include(t => t.ReadFile)

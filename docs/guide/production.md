@@ -24,7 +24,7 @@ services.AddOpenTelemetry()
     .WithTracing(tracing => tracing.AddSource("Typeshift"))
     .WithMetrics(metrics => metrics.AddMeter("Typeshift"));
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L69-L73' title='Snippet source file'>snippet source</a> | <a href='#snippet-open-telemetry' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L70-L74' title='Snippet source file'>snippet source</a> | <a href='#snippet-open-telemetry' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ### Spans

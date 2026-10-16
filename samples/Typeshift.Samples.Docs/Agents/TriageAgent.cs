@@ -7,10 +7,12 @@ internal partial class TriageAgent : Agent
 {
     public TriageAgent()
     {
-        WithChatOptions().WithModel("fast-model");
+        WithChatOptions()
+            .WithModel("fast-model");
 
         // begin-snippet: exclude-tools
-        UseToolset<TicketToolset>().Exclude(t => t.CloseTicket);
+        UseToolset<TicketToolset>()
+            .Exclude(t => t.CloseTicket);
         // end-snippet
 
         // begin-snippet: run-options

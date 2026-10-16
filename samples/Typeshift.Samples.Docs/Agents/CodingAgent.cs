@@ -7,15 +7,18 @@ internal partial class CodingAgent : Agent
 {
     public CodingAgent()
     {
-        WithChatOptions().WithModel("reasoning-model");
+        WithChatOptions()
+            .WithModel("reasoning-model");
 
         UseToolset<TodoToolset>();
         UseToolset<FileSystemToolset>();
         UseToolset<ShellToolset>();
-        UseToolset<WebToolset>().Include(t => t.WebFetch);
+        UseToolset<WebToolset>()
+            .Include(t => t.WebFetch);
 
         // begin-snippet: background-sub-agent
-        UseAgent<ExploreAgent>().InBackground();
+        UseAgent<ExploreAgent>()
+            .InBackground();
         // end-snippet
 
         // begin-snippet: long-running-options

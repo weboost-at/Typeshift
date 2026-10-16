@@ -11,10 +11,18 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
 
     protected override void OnModelCreating(ModelBuilder model)
     {
-        model.Entity<DocumentRow>().HasKey(document => new { document.Kind, document.Id });
-        model.Entity<DocumentRow>().Property(document => document.Revision).IsConcurrencyToken();
-        model.Entity<EntryRow>().HasKey(entry => entry.Sequence);
-        model.Entity<EntryRow>().HasIndex(entry => entry.Conversation);
+        model.Entity<DocumentRow>()
+            .HasKey(document => new { document.Kind, document.Id });
+
+        model.Entity<DocumentRow>()
+            .Property(document => document.Revision)
+            .IsConcurrencyToken();
+
+        model.Entity<EntryRow>()
+            .HasKey(entry => entry.Sequence);
+
+        model.Entity<EntryRow>()
+            .HasIndex(entry => entry.Conversation);
     }
 }
 

@@ -237,14 +237,17 @@ internal partial class CodingAgent : Agent
 {
     public CodingAgent()
     {
-        WithChatOptions().WithModel("reasoning-model");
+        WithChatOptions()
+            .WithModel("reasoning-model");
 
         UseToolset<TodoToolset>();
         UseToolset<FileSystemToolset>();
         UseToolset<ShellToolset>();
-        UseToolset<WebToolset>().Include(t => t.WebFetch);
+        UseToolset<WebToolset>()
+            .Include(t => t.WebFetch);
 
-        UseAgent<ExploreAgent>().InBackground();
+        UseAgent<ExploreAgent>()
+            .InBackground();
 
         WithRunOptions()
             .WithMode(AgentMode.Plan)
@@ -266,7 +269,7 @@ internal partial class CodingAgent : Agent
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L42' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 > [!CAUTION]

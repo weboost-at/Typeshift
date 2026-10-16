@@ -84,9 +84,10 @@ AddTool(CloseTicketAsync)
 <!-- snippet: exclude-tools -->
 <a id='snippet-exclude-tools'></a>
 ```cs
-UseToolset<TicketToolset>().Exclude(t => t.CloseTicket);
+UseToolset<TicketToolset>()
+    .Exclude(t => t.CloseTicket);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L12-L14' title='Snippet source file'>snippet source</a> | <a href='#snippet-exclude-tools' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L13-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-exclude-tools' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `TicketToolsetToolList` gives `ToolList<TicketToolset>` the properties `SearchTickets`, `GetTicket` and
@@ -126,12 +127,14 @@ internal partial class SupportAgent : Agent
             .Include(t => t.SearchTickets)
             .Include(t => t.CloseTicket);
 
-        UseToolset<KnowledgeToolset>().Exclude(t => t.DeleteArticle);
+        UseToolset<KnowledgeToolset>()
+            .Exclude(t => t.DeleteArticle);
 
         ConfigureSearchTickets()
             .WithLimit(5);
 
-        UseMcpServer("status_page").ReadOnly();
+        UseMcpServer("status_page")
+            .ReadOnly();
 
         UseContext<CustomerProfileContext>();
     }
@@ -142,7 +145,7 @@ internal partial class SupportAgent : Agent
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L44' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 | Declaration | Member |

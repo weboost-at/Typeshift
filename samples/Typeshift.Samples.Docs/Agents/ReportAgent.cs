@@ -7,7 +7,8 @@ internal partial class ReportAgent : Agent
 {
     public ReportAgent()
     {
-        WithChatOptions().WithModel("reasoning-model");
+        WithChatOptions()
+            .WithModel("reasoning-model");
 
         UseAgent<ResearchAgent>();
     }

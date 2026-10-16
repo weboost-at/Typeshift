@@ -19,14 +19,17 @@ internal partial class CodingAgent : Agent
 {
     public CodingAgent()
     {
-        WithChatOptions().WithModel("reasoning-model");
+        WithChatOptions()
+            .WithModel("reasoning-model");
 
         UseToolset<TodoToolset>();
         UseToolset<FileSystemToolset>();
         UseToolset<ShellToolset>();
-        UseToolset<WebToolset>().Include(t => t.WebFetch);
+        UseToolset<WebToolset>()
+            .Include(t => t.WebFetch);
 
-        UseAgent<ExploreAgent>().InBackground();
+        UseAgent<ExploreAgent>()
+            .InBackground();
 
         WithRunOptions()
             .WithMode(AgentMode.Plan)
@@ -48,7 +51,7 @@ internal partial class CodingAgent : Agent
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L42' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 This agent offers all four toolsets, but only `web_fetch` of the web tools, and `ConfigureRunCommand()` sets the
@@ -77,7 +80,7 @@ services.AddTypeshift()
     .WithWebFetch<HttpWebFetch>()
     .WithApprovalRule<ShellGuard>();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L86-L94' title='Snippet source file'>snippet source</a> | <a href='#snippet-built-in-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L87-L95' title='Snippet source file'>snippet source</a> | <a href='#snippet-built-in-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Todos

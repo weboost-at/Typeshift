@@ -152,10 +152,18 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
 
     protected override void OnModelCreating(ModelBuilder model)
     {
-        model.Entity<DocumentRow>().HasKey(document => new { document.Kind, document.Id });
-        model.Entity<DocumentRow>().Property(document => document.Revision).IsConcurrencyToken();
-        model.Entity<EntryRow>().HasKey(entry => entry.Sequence);
-        model.Entity<EntryRow>().HasIndex(entry => entry.Conversation);
+        model.Entity<DocumentRow>()
+            .HasKey(document => new { document.Kind, document.Id });
+
+        model.Entity<DocumentRow>()
+            .Property(document => document.Revision)
+            .IsConcurrencyToken();
+
+        model.Entity<EntryRow>()
+            .HasKey(entry => entry.Sequence);
+
+        model.Entity<EntryRow>()
+            .HasIndex(entry => entry.Conversation);
     }
 }
 
@@ -183,7 +191,7 @@ internal sealed class EntryRow
     public required string Json { get; init; }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/TypeshiftDb.cs#L5-L44' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-db' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/TypeshiftDb.cs#L5-L52' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-db' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The store maps the four methods onto it. A save that another save beat becomes a `StoreConflictException`, and any
@@ -286,7 +294,7 @@ Register the context factory the store takes, next to `WithStore<EfTypeshiftStor
 ```cs
 services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite("Data Source=typeshift.db"));
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L42-L44' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L43-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Agent settings

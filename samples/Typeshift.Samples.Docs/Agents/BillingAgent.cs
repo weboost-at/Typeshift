@@ -6,7 +6,8 @@ internal partial class BillingAgent : Agent
     {
         WithDescription("Settles charges and invoices.");
 
-        WithChatOptions().WithModel("fast-model");
+        WithChatOptions()
+            .WithModel("fast-model");
     }
 
     protected override string GetInstructions() => "Settle the customer's charges and invoices.";

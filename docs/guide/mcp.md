@@ -15,9 +15,10 @@ client.
 <!-- snippet: use-mcp-server -->
 <a id='snippet-use-mcp-server'></a>
 ```cs
-UseMcpServer("status_page").ReadOnly();
+UseMcpServer("status_page")
+    .ReadOnly();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L30-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-mcp-server' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L31-L34' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-mcp-server' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The host connects it by implementing `IMcpToolProvider`, whose `GetToolsAsync` returns the tools of the server the
@@ -64,7 +65,7 @@ Register the provider with `WithMcpToolProvider<T>()`:
 services.AddTypeshift()
     .WithMcpToolProvider<McpToolProvider>();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L78-L81' title='Snippet source file'>snippet source</a> | <a href='#snippet-mcp-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L79-L82' title='Snippet source file'>snippet source</a> | <a href='#snippet-mcp-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Typeshift resolves it from the run's services, scoped. That lets it connect each customer with their own

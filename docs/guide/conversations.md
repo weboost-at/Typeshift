@@ -164,7 +164,7 @@ services.AddTypeshift()
         MaxPendingUpdates = 1024
     });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L49-L56' title='Snippet source file'>snippet source</a> | <a href='#snippet-realtime-options' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L50-L57' title='Snippet source file'>snippet source</a> | <a href='#snippet-realtime-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Without `WithRealtimeTracking()`, `WatchAsync` throws an `InvalidOperationException`.
@@ -191,7 +191,7 @@ WithRunOptions()
     .Configurable(r => r.Mode)
     .Configurable(r => r.MaxToolIterations);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L21-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-long-running-options' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L24-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-long-running-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Before every model call, Typeshift estimates the call's input tokens at about four characters per token, corrected by

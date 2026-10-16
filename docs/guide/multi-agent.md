@@ -30,7 +30,8 @@ internal partial class ReportAgent : Agent
 {
     public ReportAgent()
     {
-        WithChatOptions().WithModel("reasoning-model");
+        WithChatOptions()
+            .WithModel("reasoning-model");
 
         UseAgent<ResearchAgent>();
     }
@@ -39,7 +40,7 @@ internal partial class ReportAgent : Agent
         "Write a market report. Ask research_agent for the companies of each city you cover.";
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/ReportAgent.cs#L5-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-as-tool' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/ReportAgent.cs#L5-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-as-tool' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A call runs the sub-agent in a fresh context, with no conversation of its own, and returns its answer's text. It
@@ -79,9 +80,10 @@ rule, or hand off to the agent instead.
 <!-- snippet: background-sub-agent -->
 <a id='snippet-background-sub-agent'></a>
 ```cs
-UseAgent<ExploreAgent>().InBackground();
+UseAgent<ExploreAgent>()
+    .InBackground();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L17-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-background-sub-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L19-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-background-sub-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The sub-agent's answer reaches the calling run as a message before the run's next model call.
@@ -103,7 +105,8 @@ internal partial class ExploreAgent : Agent
     {
         WithDescription("Explores the workspace and answers one question about it, citing files and lines.");
 
-        WithChatOptions().WithModel("fast-model");
+        WithChatOptions()
+            .WithModel("fast-model");
 
         UseToolset<FileSystemToolset>()
             .Include(t => t.ReadFile)
@@ -115,7 +118,7 @@ internal partial class ExploreAgent : Agent
         "Answer the question from the files. Read only what you need; quote the lines you rely on.";
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/ExploreAgent.cs#L5-L23' title='Snippet source file'>snippet source</a> | <a href='#snippet-sub-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/ExploreAgent.cs#L5-L24' title='Snippet source file'>snippet source</a> | <a href='#snippet-sub-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Handoff
@@ -132,9 +135,11 @@ internal partial class TriageAgent : Agent
 {
     public TriageAgent()
     {
-        WithChatOptions().WithModel("fast-model");
+        WithChatOptions()
+            .WithModel("fast-model");
 
-        UseToolset<TicketToolset>().Exclude(t => t.CloseTicket);
+        UseToolset<TicketToolset>()
+            .Exclude(t => t.CloseTicket);
 
         WithRunOptions()
             .WithMaxToolIterations(10)
@@ -150,7 +155,7 @@ internal partial class TriageAgent : Agent
         "Find out what the customer needs, then hand off to support or billing.";
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L5-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-handoff' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L5-L33' title='Snippet source file'>snippet source</a> | <a href='#snippet-handoff' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The conversation remembers which agent answered last. Its later runs go to that agent, whichever host runs them, as
