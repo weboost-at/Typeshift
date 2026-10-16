@@ -14,7 +14,7 @@ internal static class ModuleEmitter
     public static string GetName(string assemblyName)
     {
         var name = string.Concat(assemblyName.Select(character => char.IsLetterOrDigit(character) ? character : '_'));
-        return char.IsDigit(name[0]) ? $"_{name}Module" : $"{name}Module";
+        return name.Length == 0 || char.IsDigit(name[0]) ? $"_{name}Module" : $"{name}Module";
     }
 
     public static string Emit(ModuleModel model)
