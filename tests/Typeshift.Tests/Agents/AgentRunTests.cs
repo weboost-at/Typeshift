@@ -164,6 +164,22 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Failing_Tool_Call_The_Model_Reads_Why_It_Failed()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe"))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var result = response.Assert.ToolResult(Data.Tool.CallId).Result;
+
+        // Assert
+        result.As<string>().Should().Contain("The tool 'probe' requires the argument 'query'.");
+    }
+
+    [Fact]
     public async Task Given_Two_Tool_Calls_Of_A_Run_Both_Resolve_From_The_Hosts_Scope()
     {
         // Arrange

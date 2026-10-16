@@ -130,6 +130,9 @@ A tool returns a value, `Task`, `Task<T>`, `ValueTask` or `ValueTask<T>`. The re
 serialized through its type's `JsonTypeInfo`. Under Native AOT, that type needs JSON metadata; see
 [Native AOT](./native-aot.md).
 
+A tool that throws fails the call, and the model reads the exception's message. Say in it what the model should do
+instead, so it can correct the call, and keep secrets out of it: the provider receives it.
+
 ## What a toolset cannot be
 
 A toolset is not generic and derives from `Toolset` directly. A generic toolset, or one deriving from another

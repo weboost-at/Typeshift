@@ -66,6 +66,9 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
             MaximumConsecutiveErrorsPerRequest = run.MaxConsecutiveToolErrors,
             AllowConcurrentInvocation = run.ConcurrentToolCalls,
 
+            // D53: the model fixes a failed call only when it reads why it failed
+            IncludeDetailedErrors = true,
+
             // An approved plan runs whatever mode the run continues in
             AdditionalTools = [ExitPlanModeFunction.Instance]
         };

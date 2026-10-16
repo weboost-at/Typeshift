@@ -400,6 +400,17 @@ commit, or add a new one and withdraw the old.
 - **Alternatives:** MAF's five todo tools with state in the session (more tokens, a store per session); file access
   in a store abstraction.
 
+### D53. A failed tool call reports its exception's message
+
+- **Status:** decided by the owner in this session.
+- **Context:** Microsoft.Extensions.AI's tool loop hides why a call failed unless `IncludeDetailedErrors` is on, so
+  the model read only "Error: Function failed." and could not correct a missing argument or an unknown id.
+- **Decision:** the tool loop always passes the exception's message to the model. Tool authors write messages that
+  say what to do instead, and keep secrets out of them, since the provider receives them.
+- **Where:** `Hosting/AgentHost.cs`.
+- **Alternatives:** a run option, off by default, which every agent would have to turn on to recover from its errors;
+  catching exceptions in tool middleware, which hides the failure from `MaxConsecutiveToolErrors`.
+
 ## Storage
 
 ### D38. One store of documents and conversations
