@@ -59,6 +59,8 @@ const sidebar = {
         { text: 'Architecture', link: '/contributing/architecture' },
         { text: 'Decisions', link: '/contributing/decisions' },
         { text: 'Status', link: '/contributing/status' },
+        { text: 'Audit', link: '/contributing/audit' },
+        { text: 'Retrospective', link: '/contributing/retrospective' },
         { text: 'Releasing', link: '/contributing/releasing' },
         { text: 'Writing the docs', link: '/contributing/writing' }
       ]
