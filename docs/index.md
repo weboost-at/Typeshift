@@ -4,7 +4,7 @@ layout: home
 hero:
   name: Typeshift
   text: Agents and tools, defined in code
-  tagline: A .NET 10 library on Microsoft.Extensions.AI. A source generator turns your toolsets and agents into reflection-free functions, typed settings and one registration call, ready for Native AOT.
+  tagline: Declare a tool in one line and an agent in a few. Typeshift generates the plumbing and catches mistakes at compile time.
   actions:
     - theme: brand
       text: Get started
