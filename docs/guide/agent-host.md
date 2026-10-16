@@ -73,7 +73,7 @@ Runs the agent on one message: a `string`, or a `ChatMessage`, which can carry i
   agent's name as `AuthorName`.
 
 `RunAsync<TResult>` asks the model for JSON of `TResult`'s schema, and returns it typed in `Result`. Under
-[Native AOT](./native-aot.md), `TResult` needs JSON metadata.
+[Native AOT](./production.md#native-aot), `TResult` needs JSON metadata.
 
 ### `RunStreamingAsync`
 

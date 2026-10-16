@@ -202,7 +202,7 @@ link into a handoff: handoffs may form circles.
 
 **Tool type has no JSON metadata under Native AOT.** In a project that publishes with Native AOT or sets
 `IsAotCompatible`, every parameter and result type of a tool needs source-generated metadata. List the type in a
-`JsonSerializerContext` of the toolset's assembly ([Native AOT](./native-aot.md)). Strings, numbers,
+`JsonSerializerContext` of the toolset's assembly ([Native AOT](./production.md#native-aot)). Strings, numbers,
 `bool`, `char`, dates, `TimeSpan`, `IEnumerable<string>` and the JSON element and node types need none.
 
 ## TSH028
@@ -221,4 +221,4 @@ the alias the generator writes for it.
 - [Agents](./defining-agents.md): the rules of an agent's declarations.
 - [Builders](./builders.md): every call the analyzer checks.
 - [Registration](./registration.md): the package, the id type and what each project needs.
-- [Native AOT](./native-aot.md): the JSON metadata [TSH027](#tsh027) asks for.
+- [Native AOT](./production.md#native-aot): the JSON metadata [TSH027](#tsh027) asks for.

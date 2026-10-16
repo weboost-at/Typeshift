@@ -142,7 +142,7 @@ internal enum RefundState
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L76-L85' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output-type' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Under [Native AOT](./native-aot.md), `T` needs JSON metadata.
+Under [Native AOT](./production.md#native-aot), `T` needs JSON metadata.
 
 ## Streaming
 
@@ -231,7 +231,7 @@ the call in flight.
 
 When compaction is on and a call would exceed the token limit, the run compacts what the model sees, while the stored
 conversation keeps everything ([compaction](./conversations.md#compaction)). Typeshift traces every call to the
-provider's client ([Observability](./observability.md)).
+provider's client ([Observability](./production.md#observability)).
 
 ### What each step can change
 

@@ -39,7 +39,7 @@ differs:
 |---|---|---|
 | Built | At runtime, through reflection | At compile time, by the source generator |
 | Tools from | Any delegate | Static methods |
-| Arguments bind | Through reflection | Through generated code and `JsonTypeInfo`, ready for [Native AOT](./native-aot.md) |
+| Arguments bind | Through reflection | Through generated code and `JsonTypeInfo`, ready for [Native AOT](./production.md#native-aot) |
 | Left out of the schema | `IServiceProvider`, `CancellationToken`, `AIFunctionArguments` | The same, plus the tool's [settings](./tool-settings.md) |
 | Names | The method's name | The method's name in snake_case |
 

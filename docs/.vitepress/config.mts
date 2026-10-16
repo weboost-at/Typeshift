@@ -30,7 +30,8 @@ const sidebar = {
       items: [
         { text: 'Running agents', link: '/guide/running-agents' },
         { text: 'Settings and stores', link: '/guide/settings-and-stores' },
-        { text: 'Conversations', link: '/guide/conversations' }
+        { text: 'Conversations', link: '/guide/conversations' },
+        { text: 'In production', link: '/guide/production' }
       ]
     },
     {
@@ -38,13 +39,6 @@ const sidebar = {
       items: [
         { text: 'Approval and modes', link: '/guide/tool-approval' },
         { text: 'Middleware and context', link: '/guide/middleware' }
-      ]
-    },
-    {
-      text: 'In production',
-      items: [
-        { text: 'Observability', link: '/guide/observability' },
-        { text: 'Native AOT', link: '/guide/native-aot' }
       ]
     },
     {

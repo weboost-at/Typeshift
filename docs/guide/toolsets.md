@@ -119,7 +119,7 @@ every tool of its run.
 ## Results
 
 A tool returns a value, `Task`, `Task<T>`, `ValueTask` or `ValueTask<T>`. The model receives the result as JSON,
-serialized through its type's `JsonTypeInfo`, so under [Native AOT](./native-aot.md) that type needs JSON
+serialized through its type's `JsonTypeInfo`, so under [Native AOT](./production.md#native-aot) that type needs JSON
 metadata.
 
 When a tool throws, the model reads the exception's message. Write it as a hint, such as "No ticket 4711 exists.

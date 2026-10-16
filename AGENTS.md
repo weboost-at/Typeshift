@@ -97,7 +97,7 @@ style; the essentials:
 | Conversations: storage, resume, steering, live updates, compaction | `guide/conversations.md` | |
 | Generated members | `guide/generated-members.md` | `agent-host.md` |
 | `AgentHost` members and signatures | `guide/agent-host.md` | `running-agents.md` |
-| Spans and metrics | `guide/observability.md` | |
+| Spans and metrics, Native AOT | `guide/production.md` | |
 | Diagnostics | `guide/diagnostics.md` | every page, linked by ID |
 | Terms | `guide/glossary.md` | |
 | Why the code is shaped this way | `contributing/decisions.md` | `guide/comparison.md` (the user's view) |
