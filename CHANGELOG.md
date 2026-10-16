@@ -5,6 +5,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-alpha.1] - 2026-10-16
+
 The library was rebuilt from the API its owner approved; nothing of the unreleased first alpha shipped.
 
 ### Added
