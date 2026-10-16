@@ -236,5 +236,4 @@ that uses them:
 - [Agents](./defining-agents.md): everything an agent's constructor can declare.
 - [Running agents](./running-agents.md): real chat clients, structured output and streaming.
 - [Conversations](./conversations.md): resuming, steering and watching runs.
-- [Comparison](./comparison.md): Typeshift next to `AIFunctionFactory` and Microsoft Agent Framework.
 - [Glossary](./glossary.md): the words these docs use.

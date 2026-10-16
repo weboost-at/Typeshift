@@ -99,7 +99,7 @@ style; the essentials:
 | Spans and metrics, Native AOT | `guide/production.md` | |
 | Diagnostics | `guide/diagnostics.md` | every page, linked by ID |
 | Terms | `guide/glossary.md` | |
-| Why the code is shaped this way | `contributing/decisions.md` | `guide/comparison.md` (the user's view) |
+| Why the code is shaped this way | `contributing/decisions.md` | |
 | What is built, what is open | `contributing/status.md` | |
 
 | Change | Touch |

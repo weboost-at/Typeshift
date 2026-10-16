@@ -95,7 +95,7 @@ store, so it cannot be configurable ([TSH012](./diagnostics.md#tsh012)).
 | `WithReasoning(ReasoningOptions reasoning)` | `Reasoning` | Yes |
 | `WithResponseFormat(ChatResponseFormat format)` | `ResponseFormat` | No |
 | `WithToolMode(ChatToolMode mode)` | `ToolMode` | No |
-| `WithTools(params AITool[] tools)` | Adds tools of no toolset to `Tools`, such as a `HostedWebSearchTool` | No |
+| `WithTools(params AITool[] tools)` | Adds tools of no toolset to `Tools`, such as a `HostedWebSearchTool` or a function from `AIFunctionFactory` | No |
 | `WithAdditionalProperty<TValue>(string key, TValue value)` | A provider-specific option in `AdditionalProperties` | No |
 
 ## RunOptionsBuilder

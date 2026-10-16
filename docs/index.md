@@ -10,9 +10,6 @@ hero:
       text: Get started
       link: /guide/getting-started
     - theme: alt
-      text: How it compares
-      link: /guide/comparison
-    - theme: alt
       text: View on GitHub
       link: https://github.com/weboost-at/Typeshift
 

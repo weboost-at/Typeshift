@@ -616,4 +616,3 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - [Architecture](./architecture.md): the parts these decisions shape.
 - [Status](./status.md): what is built and what is open.
-- [Comparison](../guide/comparison.md): the main decisions from a user's point of view.

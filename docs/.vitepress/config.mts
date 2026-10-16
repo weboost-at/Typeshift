@@ -10,8 +10,7 @@ const sidebar = {
     {
       text: 'Introduction',
       items: [
-        { text: 'Getting started', link: '/guide/getting-started' },
-        { text: 'Comparison', link: '/guide/comparison' }
+        { text: 'Getting started', link: '/guide/getting-started' }
       ]
     },
     {

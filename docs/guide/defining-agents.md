@@ -69,6 +69,9 @@ Because the generator reads the constructor rather than running it, `WithName` a
 ([TSH014](./diagnostics.md#tsh014), [TSH015](./diagnostics.md#tsh015)). An agent derives from `Agent` directly
 ([TSH017](./diagnostics.md#tsh017)), so share declarations through static methods and constants instead.
 
+The flip side is that an agent is code, not data. You cannot define one at runtime, and stored settings change only
+what its code marks configurable.
+
 ## Selecting tools
 
 `UseToolset<T>()` offers every tool of a toolset. Chain `Include` to offer only some, in that order, or `Exclude` to

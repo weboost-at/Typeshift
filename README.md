@@ -14,7 +14,6 @@
 
 **[Documentation](https://weboost-at.github.io/Typeshift/)** ·
 [Getting started](https://weboost-at.github.io/Typeshift/guide/getting-started) ·
-[Comparison](https://weboost-at.github.io/Typeshift/guide/comparison) ·
 [Changelog](CHANGELOG.md)
 
 </div>
