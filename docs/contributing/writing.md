@@ -63,7 +63,7 @@ Every page has the same shape, so readers always know where to look.
 | Kind | Answers | Lives in | Template |
 |---|---|---|---|
 | Tutorial | "Show me it working." Only [Getting started](../guide/getting-started.md). | `docs/guide/` | none |
-| Concept | "How does this fit together, and why?" | `docs/guide/`, the Concepts group | [concept](#concept) |
+| Concept | "How does this fit together, and why?" | `docs/guide/`, next to the guides it explains | [concept](#concept) |
 | Guide | "How do I use this feature?" | `docs/guide/` | [guide](#guide) |
 | Reference | "What exactly does this call take and do?" | `docs/guide/`, the Reference group | [reference](#reference) |
 | Contributing | "How do I work on the repository?" | `docs/contributing/` | [concept](#concept) |

@@ -15,13 +15,6 @@ const sidebar = {
       ]
     },
     {
-      text: 'Concepts',
-      items: [
-        { text: 'How a run works', link: '/guide/how-a-run-works' },
-        { text: 'Settings layering', link: '/guide/settings-layering' }
-      ]
-    },
-    {
       text: 'Building agents',
       items: [
         { text: 'Toolsets', link: '/guide/toolsets' },
@@ -36,7 +29,9 @@ const sidebar = {
       text: 'Running agents',
       items: [
         { text: 'Running agents', link: '/guide/running-agents' },
+        { text: 'How a run works', link: '/guide/how-a-run-works' },
         { text: 'Settings and stores', link: '/guide/settings-and-stores' },
+        { text: 'Settings layering', link: '/guide/settings-layering' },
         { text: 'Conversations', link: '/guide/conversations' },
         { text: 'Long-running agents', link: '/guide/long-running-agents' }
       ]
