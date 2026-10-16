@@ -43,7 +43,7 @@ jobs:
     needs: pack
     runs-on: ubuntu-latest
     # Protection rules on this environment (required reviewers, say) gate every publish
-    environment: nuget
+    environment: release
     permissions:
       contents: write
       id-token: write

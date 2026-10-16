@@ -24,9 +24,9 @@ These need someone with admin rights on the repository and the nuget.org account
    badge to `README.md`. Reserving the `Typeshift.*` prefix on nuget.org keeps later packages under the name.
 2. **Set up trusted publishing on nuget.org.** Under the account's *Trusted Publishing*, add a policy for the
    repository owner `weboost-at`, the repository `Typeshift`, the workflow file `release.yml` and the environment
-   `nuget`. Then add the repository secret `NUGET_USER` with the nuget.org user name (not the email). No API key is
+   `release`. Then add the repository secret `NUGET_USER` with the nuget.org user name (not the email). No API key is
    stored: each run exchanges its GitHub identity for a key that lives one hour.
-3. **Protect the `nuget` environment** under *Settings > Environments*, with required reviewers or a rule that only
+3. **Protect the `release` environment** under *Settings > Environments*, with required reviewers or a rule that only
    `v*` tags may deploy.
 4. **Turn on GitHub Pages** under *Settings > Pages*, with *GitHub Actions* as the source, so the docs workflow can
    deploy the site.
@@ -36,7 +36,8 @@ These need someone with admin rights on the repository and the nuget.org account
 1. On `main`, with CI green: in `CHANGELOG.md`, rename `[Unreleased]` to the version and date, and open a new empty
    `[Unreleased]` above it.
 2. Move the rows of `src/Typeshift.Generators/AnalyzerReleases.Unshipped.md` to `AnalyzerReleases.Shipped.md` under a
-   `## Release <version>` heading. From then on, a shipped diagnostic ID is never reused or renumbered.
+   `## Release <version>` heading. From then on, a shipped diagnostic ID is never reused or renumbered. A prerelease
+   skips this step: the heading takes only a plain version (RS2007), so the rules ship with the next stable release.
 3. After the first release, set `PackageValidationBaselineVersion` in `src/Typeshift/Typeshift.csproj` to the released
    version, so the next pack fails on a breaking change that was not meant. Keep it on the latest release.
 4. Commit, then tag and push the tag:
@@ -46,7 +47,7 @@ These need someone with admin rights on the repository and the nuget.org account
    git push origin v0.2.0
    ```
 
-5. Approve the `nuget` environment if it asks, and check the package on nuget.org and the GitHub release. When the
+5. Approve the `release` environment if it asks, and check the package on nuget.org and the GitHub release. When the
    GitHub release fails, rerun the failed job: the push skips packages nuget.org already has.
 
 A tag with a hyphen (`v0.2.0-alpha.1`) creates a prerelease on GitHub; nuget.org marks it prerelease from its version.
