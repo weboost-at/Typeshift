@@ -5,18 +5,8 @@ description: Offer the tools of MCP servers to an agent, connected by the host's
 
 # MCP servers
 
-An agent can offer the tools of an MCP server next to its toolsets. Either the host connects the server with the MCP
-client of its choice, or the model's provider calls the server itself. Typeshift takes no MCP dependency.
-
-::: tip The short version
-
-- `UseMcpServer("name")` in the agent's constructor names a server. Your `IMcpToolProvider` connects it.
-- `IMcpToolProvider` is scoped, so it may connect each customer with their own credentials.
-- `RequiresApproval()` asks before every call of the server's tools. `ReadOnly()` lets plan mode offer them.
-- A server's tool descriptions and results are untrusted text, never instructions.
-- For a provider that calls MCP servers itself, put a `HostedMcpServerTool` in the chat options.
-
-:::
+An agent can offer an MCP server's tools next to its toolsets. Typeshift takes no MCP dependency, so you pick the
+client.
 
 ## Servers the host connects
 
@@ -30,8 +20,8 @@ UseMcpServer("status_page").ReadOnly();
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L30-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-mcp-server' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The host connects it by implementing `IMcpToolProvider`, with the MCP client of its choice. `GetToolsAsync` returns the
-tools of the server the agent names. This provider uses the official `ModelContextProtocol.Core` client:
+The host connects it by implementing `IMcpToolProvider`, whose `GetToolsAsync` returns the tools of the server the
+agent names. This provider uses the official `ModelContextProtocol.Core` client:
 
 <!-- snippet: mcp-tool-provider -->
 <a id='snippet-mcp-tool-provider'></a>
@@ -77,19 +67,17 @@ services.AddTypeshift()
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L78-L81' title='Snippet source file'>snippet source</a> | <a href='#snippet-mcp-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Typeshift resolves it from the run's services, scoped. So it may connect each customer with their own credentials, and
-the scope disposes it with its connections.
+Typeshift resolves it from the run's services, scoped. That lets it connect each customer with their own
+credentials, and the scope disposes it along with its connections.
 
 ## How the agent offers the tools
 
-The servers' tools come after the agent's own.
+The servers' tools come after the agent's own. `UseMcpServer(...).RequiresApproval()` asks the host before every call
+of the server's tools, as [tool approval](./tool-approval.md) describes. `ReadOnly()` marks them as reading only, so
+[plan mode](./modes.md#plan-mode) offers them.
 
-- `UseMcpServer(...).RequiresApproval()` asks the host before every call of the server's tools. See [tool
-  approval](./tool-approval.md).
-- `ReadOnly()` marks them as reading only, so [plan mode](./modes.md#plan-mode) offers them.
-
-Two mistakes fail the run. A server tool named like one of the agent's own tools fails it, naming both, since the model
-would otherwise see only one of them. An agent with servers but no provider fails it too.
+Two mistakes fail the run. A server tool named like one of the agent's own tools fails it, naming both, because the
+model would otherwise see only one of them. An agent with servers but no registered provider fails it too.
 
 ::: danger A server's tools are untrusted
 Treat a server's tool descriptions and results as untrusted text, never as instructions. The model reads both, so a
@@ -98,8 +86,8 @@ server you do not control puts its words into the model's context.
 
 ## Servers the provider connects
 
-Some model providers call MCP servers themselves. For those, put Microsoft.Extensions.AI's `HostedMcpServerTool` in the
-chat options:
+Some model providers call MCP servers themselves. For those, put Microsoft.Extensions.AI's `HostedMcpServerTool` in
+the chat options:
 
 <!-- snippet: hosted-mcp -->
 <a id='snippet-hosted-mcp'></a>
@@ -111,8 +99,8 @@ WithChatOptions()
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/StatusAgent.cs#L9-L13' title='Snippet source file'>snippet source</a> | <a href='#snippet-hosted-mcp' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The provider then connects the server, and no `IMcpToolProvider` takes part. A hosted tool carries no `ReadOnly()` mark,
-so plan mode hides it.
+The provider then connects the server, and no `IMcpToolProvider` takes part. A hosted tool carries no `ReadOnly()`
+mark, so plan mode hides it.
 
 ## Related
 

@@ -5,24 +5,13 @@ description: Declare the tools of one domain as static methods, and let the gene
 
 # Toolsets
 
-A toolset groups the tools of one domain, such as a customer's support tickets. Each tool is a static method. The
-generator reads the toolset's constructor at compile time and writes an `AIFunction` per tool, which binds the
-model's arguments and serializes the result without reflection.
-
-::: tip The short version
-
-- A toolset is a `partial` class deriving from `Toolset`. Its constructor declares each tool with `AddTool`.
-- A tool is a static method. Its name is the method's in snake_case, its description the method's `<summary>`.
-- The parameters become the tool's JSON schema, except the settings, the services, the token and the raw arguments,
-  which the call fills.
-- `ReadOnly()` and `RequiresApproval()` say what a tool may do; `WithSettings<T>()` gives it settings.
-
-:::
+A toolset holds the tools of one domain, such as your support tickets. Each tool is a static method, and the generator
+turns it into an `AIFunction` at compile time, without reflection.
 
 ## Declaring tools
 
-A toolset is a `partial`, non-generic class deriving from `Toolset`. Each `AddTool` call in its constructor declares
-one tool:
+A toolset is a `partial` class deriving from `Toolset`. This one searches tickets, reads one, and closes one, which
+cannot be undone:
 
 <!-- snippet: toolset -->
 <a id='snippet-toolset'></a>
@@ -73,40 +62,40 @@ internal partial class TicketToolset : Toolset
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketToolset.cs#L5-L54' title='Snippet source file'>snippet source</a> | <a href='#snippet-toolset' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-- **`AddTool(SearchTickets)`** takes a static method group. Lambdas, instance methods and local functions are
-  [TSH003](./diagnostics.md#tsh003): the generated function calls the method directly, without reflection.
-- **`ReadOnly()`** marks a tool that only reads and has no side effects. [Plan mode](./modes.md#plan-mode) offers
-  only these.
-- **`RequiresApproval()`** pauses a run that calls the tool until the host decides. See
-  [Tool approval](./tool-approval.md).
-- **`WithSettings<T>()`** or **`WithConfigurableSettings<T>()`** gives the tool settings the model never sees. It
-  comes last in the chain. See [Tool settings](./tool-settings.md).
-- **`WithDisplayName(...)`** names the toolset for people, for example in a tool picker.
+The calls chained onto `AddTool` describe the tool:
 
-The generator reads these chains as you write them. So each `AddTool` sits directly in the constructor
-([TSH014](./diagnostics.md#tsh014)), and each declaration is one chain ([TSH015](./diagnostics.md#tsh015)).
-[Builders](./builders.md#toolbuilder) lists every call.
+| Call | Means |
+|---|---|
+| `ReadOnly()` | The tool changes nothing. [Plan mode](./modes.md#plan-mode) offers only these. |
+| `RequiresApproval()` | A run that calls the tool waits until the host decides. See [Tool approval](./tool-approval.md). |
+| `WithSettings<T>()` | The tool gets [settings](./tool-settings.md) the model never sees, such as a search's limit. It comes last; `WithConfigurableSettings<T>()` works the same way. |
+| `WithDisplayName(...)` | On the toolset: a name for people, for example in a tool picker. |
+
+`AddTool` takes a static method group, so the generated function can call it directly
+([TSH003](./diagnostics.md#tsh003)). The generator reads these chains from your source and never runs the
+constructor. That is why each `AddTool` sits directly in the constructor ([TSH014](./diagnostics.md#tsh014)), as one
+chain ([TSH015](./diagnostics.md#tsh015)). [Builders](./builders.md#toolbuilder) lists every call.
 
 ## Names and descriptions
 
-A tool's name is its method's name in snake_case, without an `Async` suffix: `GetTicketAsync` becomes `get_ticket`.
-`WithName(...)` sets another name, in lower_snake_case ([TSH008](./diagnostics.md#tsh008)). Names are unique across
-every tool the host sees ([TSH007](./diagnostics.md#tsh007)).
+A tool is named after its method in snake_case, without `Async`: `GetTicketAsync` becomes `get_ticket`.
+`WithName(...)` picks another name, which must be lower_snake_case ([TSH008](./diagnostics.md#tsh008)) and unique
+across the host ([TSH007](./diagnostics.md#tsh007)).
 
-A tool's description is its method's `<summary>`, or what `WithDescription(...)` sets. The model reads it to decide
-when to call the tool, and reads each `<param>` to fill the arguments. A tool without a description is
-[TSH009](./diagnostics.md#tsh009). Summaries need `GenerateDocumentationFile` in the project
-([TSH011](./diagnostics.md#tsh011)).
+The description matters more than the name. The model reads it to decide when to call the tool, and reads each
+`<param>` to fill in the arguments. It comes from the method's `<summary>` or from `WithDescription(...)`, and a
+tool with neither is [TSH009](./diagnostics.md#tsh009). Your XML docs reach the generator only when the project sets
+`GenerateDocumentationFile` ([TSH011](./diagnostics.md#tsh011)).
 
 ::: warning Renaming a method renames its tool
-A tool's name keys its stored settings. Rename the method, and the settings stored under the old name no longer
-apply. Pin the old name with `WithName` before you rename a method whose settings are stored.
+Stored settings are keyed by the tool's name. Rename `SearchTickets`, and what your customers stored for
+`search_tickets` stops applying. Pin the old name with `WithName` before you rename.
 :::
 
 ## Parameters
 
-Every parameter is part of the tool's JSON schema, with its `<param>` doc and its default value. The call fills
-these four itself, and leaves them out of the schema:
+Parameters become the tool's JSON schema, with their `<param>` docs and default values. Four kinds are filled by the
+call instead. The model never sees them, and they need no doc:
 
 | Type | Receives |
 |---|---|
@@ -115,31 +104,32 @@ these four itself, and leaves them out of the schema:
 | `CancellationToken` | The call's token. |
 | `AIFunctionArguments` | The raw arguments the model sent. |
 
-They need no `<param>` doc. Resolve services from the `IServiceProvider` parameter: since it is the run's scope, a
-request's scoped services, such as the current customer, reach the tool.
+Because the services are the host's scope, a web request's scoped services, such as the current customer, reach
+every tool of its run.
 
-- A required argument the model leaves out fails the call with an `ArgumentException`. The tool loop reports it to
-  the model.
-- An optional argument the model leaves out takes its default.
-- A nullable reference parameter is nullable in the schema.
-- The properties of a record or class parameter take their descriptions from their XML docs, a positional record's
-  `<param>` docs included. Say there how the model fills a property, such as the format of a code. See
-  [Registration](./registration.md#xml-docs-of-parameter-types) for how the docs are collected.
+- A required argument the model leaves out fails the call with an `ArgumentException`. The tool loop reports it
+  back to the model.
+- An optional argument the model leaves out takes its default. A nullable reference parameter is nullable in the
+  schema.
+- The properties of a record or class parameter are described by their XML docs, a positional record's `<param>`
+  docs included. Tell the model there how to fill a property, such as the format of a code.
+  [Registration](./registration.md#xml-docs-of-parameter-types) shows how those docs are collected.
 - `ref` and `out` parameters are [TSH004](./diagnostics.md#tsh004).
 
 ## Results
 
-A tool returns a value, `Task`, `Task<T>`, `ValueTask` or `ValueTask<T>`. The result reaches the model as JSON,
-serialized through its type's `JsonTypeInfo`. Under Native AOT, that type needs JSON metadata; see
-[Native AOT](./native-aot.md).
+A tool returns a value, `Task`, `Task<T>`, `ValueTask` or `ValueTask<T>`. The model receives the result as JSON,
+serialized through its type's `JsonTypeInfo`, so under [Native AOT](./native-aot.md) that type needs JSON
+metadata.
 
-A tool that throws fails the call, and the model reads the exception's message. Say in it what the model should do
-instead, so it can correct the call, and keep secrets out of it: the provider receives it.
+When a tool throws, the model reads the exception's message. Write it as a hint, such as "No ticket 4711 exists.
+Search for it first.", and the model can correct its call. Keep secrets out of it, because the message goes to the
+model provider.
 
 ## What a toolset cannot be
 
-A toolset is not generic and derives from `Toolset` directly. A generic toolset, or one deriving from another
-toolset, is [TSH017](./diagnostics.md#tsh017). Share code between toolsets through plain static methods.
+A toolset derives from `Toolset` directly and has no type parameters ([TSH017](./diagnostics.md#tsh017)). Share code
+between toolsets through static methods rather than a base class.
 
 ## Related
 

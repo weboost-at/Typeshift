@@ -5,19 +5,8 @@ description: The to-do, file, shell and web toolsets that ship with Typeshift, w
 
 # Built-in toolsets
 
-Typeshift ships four toolsets in `Typeshift.Toolsets`: to-dos, files, the shell and the web. They are declared like your
-own toolsets, so an agent picks and configures their tools the same way. Together they make a coding agent. Each needs a
-service from the host, except the to-dos.
-
-::: tip The short version
-
-- `TodoToolset`, `FileSystemToolset`, `ShellToolset` and `WebToolset` are toolsets like yours.
-- The file tools and the shell work in the folder your `IFileSystemRoot` gives. That folder is not a sandbox.
-- `run_command` and `delete_file` need approval. Let rules reject what you never allow, and leave the rest to the host.
-- `web_search` and `web_fetch` call services you register. Your fetcher must refuse private addresses.
-- Search results and fetched pages are untrusted text, never instructions.
-
-:::
+Typeshift ships four toolsets for a coding agent: to-dos, files, the shell and the web. An agent offers and configures
+them like your own.
 
 ## Offering them
 
@@ -62,8 +51,8 @@ internal partial class CodingAgent : Agent
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L42' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-This agent offers all four toolsets, but only `web_fetch` of the web tools. `ConfigureRunCommand()` sets the shell's
-settings for this agent. The run options make it a [long-running agent](./long-running-agents.md).
+This agent offers all four toolsets, but only `web_fetch` of the web tools, and `ConfigureRunCommand()` sets the
+shell's settings for it. Its run options make it a [long-running agent](./long-running-agents.md#compaction).
 
 ## What each needs
 
@@ -74,7 +63,8 @@ settings for this agent. The run options make it a [long-running agent](./long-r
 | `ShellToolset` | `run_command` | `WithFileSystemRoot<T>()` |
 | `WebToolset` | `web_search`, `web_fetch` | `WithWebSearch<T>()`, `WithWebFetch<T>()` |
 
-Register the services after `AddTypeshift()`:
+Register the services after `AddTypeshift()`. A tool whose service is missing fails its call with a message that
+names the registration:
 
 <!-- snippet: built-in-registration -->
 <a id='snippet-built-in-registration'></a>
@@ -90,18 +80,16 @@ services.AddTypeshift()
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L86-L94' title='Snippet source file'>snippet source</a> | <a href='#snippet-built-in-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-A tool whose service is missing fails its call with a message naming the registration.
-
 ## Todos
 
-`write_todos` replaces the model's to-do list: a list of titles, each with a status of `Pending`, `InProgress` or
-`Completed`. The list lives in the conversation. The latest call holds it, and
+`write_todos` replaces the model's to-do list, a list of titles, each `Pending`, `InProgress` or `Completed`. The
+list lives in the conversation: the latest call holds it, and
 [compaction](./long-running-agents.md#compaction) never drops that call. Plan mode offers it.
 
 ## Files
 
-The file tools work within the root an `IFileSystemRoot` gives. Typeshift resolves it from the run's services, so each
-customer can have a folder of their own:
+The file tools work within the root an `IFileSystemRoot` gives. Typeshift resolves it from the run's services, so
+each customer can have a folder of their own:
 
 <!-- snippet: file-system-root -->
 <a id='snippet-file-system-root'></a>
@@ -114,7 +102,8 @@ internal sealed class CustomerWorkspace(ICurrentCustomer customer) : IFileSystem
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/CustomerWorkspace.cs#L5-L10' title='Snippet source file'>snippet source</a> | <a href='#snippet-file-system-root' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Paths are relative to the root. Absolute paths, `..` and links that lead outside are refused, and the model reads why.
+Paths are relative to the root. Absolute paths, `..` and links that lead outside are refused, and the model reads
+why.
 
 | Tool | Does | Marked |
 |---|---|---|
@@ -125,10 +114,10 @@ Paths are relative to the root. Absolute paths, `..` and links that lead outside
 | `edit_file` | Replaces one exact occurrence of a text in a file. | |
 | `delete_file` | Deletes a file. | `RequiresApproval()` |
 
-- Plan mode offers the three `ReadOnly()` tools. For read-only access, include only those three; see [selecting
-  tools](./defining-agents.md#selecting-tools).
-- `FileSystemSettings` limits how many lines, how long a line and how many characters a read or a search returns.
-- A search pattern is a .NET regular expression, matched in linear time where the pattern allows it.
+Plan mode offers the three `ReadOnly()` tools, and an agent that should only read
+[includes](./defining-agents.md#selecting-tools) only those. `FileSystemSettings` caps what one call returns:
+2,000 lines, matches or entries, 2,000 characters per line and 65,536 characters in all. A search pattern is a .NET
+regular expression, matched in linear time where the pattern allows it.
 
 ::: danger The root is not a sandbox
 A link swapped in while a tool runs still leads outside the root. Give each customer a container when the workspace
@@ -137,22 +126,21 @@ holds what others must not reach.
 
 ## Shell
 
-`run_command` runs a command in the root and needs approval for every call. An [approval
-rule](./tool-approval.md#approval-rules) rejects the commands you never allow. `ShellSettings` set the shell, the
-timeout and how much output the model receives: its start and its end.
+`run_command` runs a command in the root and needs approval for every call, so an
+[approval rule](./tool-approval.md#approval-rules) can reject the commands you never allow. A process the command
+leaves running in the background outlives the call, which returns at the timeout.
 
-::: danger Approving commands unasked is rarely safe
-A rule that approves the commands that look harmless approves the model's code too. While `write_file` runs unasked, the
-model can write the configuration or the code that `git status` or `dotnet test` then runs.
-:::
+`ShellSettings` set the shell (`/bin/sh`), the timeout (30 seconds) and how much of each stream the model receives:
+65,536 characters, from its start and its end.
 
 ::: danger The working folder is not a sandbox
-The root is the working folder of each command, nothing more. Run the host in a container when commands must not reach
-further.
+The root is the working folder of each command, nothing more. Run the host in a container when commands must not
+reach further.
 :::
 
-::: warning A background process outlives the call
-A process a command leaves running in the background outlives the call, which returns at the timeout.
+::: danger Approving commands unasked is rarely safe
+A rule that approves the commands that look harmless approves the model's code too. While `write_file` runs unasked,
+the model can write the configuration or the code that `git status` or `dotnet test` then runs.
 :::
 
 ## Web
@@ -180,9 +168,9 @@ internal sealed class SearchApi(HttpClient http) : IWebSearch
 Both tools are `ReadOnly()`, so plan mode offers them. `web_fetch` takes absolute http and https URLs only.
 
 ::: danger Your fetcher must refuse private addresses
-The model picks the URLs `web_fetch` reads. A fetcher on the host's network must refuse loopback, private and link-local
-addresses where it connects (`SocketsHttpHandler.ConnectCallback`). Otherwise the model reads the cloud's metadata
-service. Check the address there, not the host name, which a DNS answer can change.
+The model picks the URLs `web_fetch` reads. A fetcher on the host's network must refuse loopback, private and
+link-local addresses where it connects (`SocketsHttpHandler.ConnectCallback`), or the model reads the cloud's
+metadata service. Check the address there, not the host name, which a DNS answer can change.
 :::
 
 ::: danger What the web returns is untrusted
@@ -194,5 +182,5 @@ Search results and fetched pages are untrusted text, never instructions. Anyone 
 - [Toolsets](./toolsets.md): declaring your own toolsets the same way.
 - [Agents](./defining-agents.md#selecting-tools): picking a toolset's tools with `Include` and `Exclude`.
 - [Tool approval](./tool-approval.md#approval-rules): the rules that guard the shell.
-- [Long-running agents](./long-running-agents.md): the coding agent's run options and compaction.
+- [Compaction](./long-running-agents.md#compaction): the coding agent's run options and compaction.
 - [Generated members](./generated-members.md): `ConfigureRunCommand()` and the other `Configure{Tool}()` methods.
