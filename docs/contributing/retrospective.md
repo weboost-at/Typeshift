@@ -24,9 +24,15 @@ model names to clients, a cache for those clients, a store, and a loop that turn
 run's answers. `Typeshift.Demos.Shared` holds that code once; the proposals below move most of it into the
 library.
 
-Live runs against the local LM Studio server could not be verified in this session, because the server went down
-while loading a model and could not be restarted from the command line. Every demo takes `lmstudio/<model>` as an
-argument for when it is back.
+Live runs went through the local LM Studio server with a small model, `qwen/qwen3-vl-4b`, once the server came
+back from a crash while loading a 27B one. The plumbing held: the composite name routed to the server, the response
+named the wire model, tools were called and answered, streaming merged, the handoff and the hand-back ran, the MCP
+tool answered and the typed JSON summary parsed. The model's judgment did not: it asked the customer whether to
+refund instead of calling `issue_refund`, so nothing waited for approval, and in the coding demo it looped in text
+for 6,000 tokens in plan mode without presenting a plan. Two things for the proposals came out of that. LM Studio
+served `lmstudio/does-not-exist` with whatever model it had loaded, so without a catalog a typo is not even an
+error. And a run needs `WithMaxOutputTokens` as a guard against a looping model, which a host should set and the
+guide should say.
 
 ## Choosing a model from a provider at runtime
 
