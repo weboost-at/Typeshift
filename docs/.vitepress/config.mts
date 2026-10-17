@@ -3,6 +3,9 @@ import { withMermaid } from 'vitepress-plugin-mermaid'
 
 const repository = 'https://github.com/weboost-at/Typeshift'
 
+// GitHub Pages serves a project site under the repository's name; the Pages workflow passes the real base
+const base = process.env.DOCS_BASE ?? '/Typeshift/'
+
 // The sidebar order is the reading order: the big picture first, then building, running and controlling agents,
 // then the reference. docs/.vitepress/lint.mjs fails on a page the sidebar leaves out.
 const sidebar = {
@@ -71,8 +74,13 @@ export default withMermaid(
   defineConfig({
     title: 'Typeshift',
     description: 'Code-defined agents and toolsets for .NET on Microsoft.Extensions.AI',
-    // GitHub Pages serves a project site under the repository's name; the Pages workflow passes the real base
-    base: process.env.DOCS_BASE ?? '/Typeshift/',
+    base,
+    // VitePress leaves head links alone, so they carry the base themselves
+    head: [
+      ['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}brand/favicon.svg` }],
+      ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: `${base}brand/favicon-32.png` }],
+      ['link', { rel: 'apple-touch-icon', href: `${base}brand/apple-touch-icon.png` }]
+    ],
     cleanUrls: true,
     lastUpdated: true,
     // The page templates are shown on the writing page, never served as pages
@@ -82,6 +90,7 @@ export default withMermaid(
       languageAlias: { csproj: 'xml' }
     },
     themeConfig: {
+      logo: { light: '/brand/mark.svg', dark: '/brand/mark-dark.svg', alt: 'Typeshift' },
       nav: [
         { text: 'Guide', link: '/guide/getting-started', activeMatch: '/guide/' },
         { text: 'Diagnostics', link: '/guide/diagnostics' },
