@@ -71,21 +71,24 @@ var coder = scope.ServiceProvider.GetRequiredService<AgentHost<CoderAgent>>();
 
 // The settings of this workspace: the model the user picked, and limits a host might raise per customer
 var settingsId = Guid.Parse("00000000-0000-0000-0000-000000000007");
+var coding = ModelRef.Parse(model ?? "canned/coder");
+var exploring = ModelRef.Parse(model ?? "canned/explorer");
 
 await coder.ConfigureAsync(settingsId, settings => settings with
 {
-    Model = model ?? "canned/coder",
+    Provider = coding.Provider,
+    Model = coding.Model,
     MaxToolIterations = 150
 });
 
 // The explorer is a separate agent with settings of its own under the same id
 await scope.ServiceProvider.GetRequiredService<AgentHost<ExplorerAgent>>()
-    .ConfigureAsync(settingsId, settings => settings with { Model = model ?? "canned/explorer" });
+    .ConfigureAsync(settingsId, settings => settings with { Provider = exploring.Provider, Model = exploring.Model });
 
 var conversationId = Demo.Option(args, "--resume") is { } resume ? Guid.Parse(resume) : Guid.CreateVersion7();
 
 Demo.Heading($"Workspace {workspace}");
-Demo.Note($"model {(await coder.LoadSettingsAsync(settingsId)).Data.Model}, conversation {conversationId}");
+Demo.Note($"model {coding}, conversation {conversationId}");
 Demo.Note("type a task; while the agent works, what you type steers it; an empty line quits");
 
 // One thread reads the console for the whole session: a line is the next task when the agent is idle, and steering

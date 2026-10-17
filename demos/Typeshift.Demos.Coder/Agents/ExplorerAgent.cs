@@ -1,4 +1,3 @@
-using Typeshift.Demos.Providers;
 using Typeshift.Toolsets;
 
 namespace Typeshift.Demos.Coder.Agents;
@@ -11,7 +10,6 @@ internal partial class ExplorerAgent : Agent
         WithDescription("Explores the workspace and answers one question about it, citing files and lines.");
 
         WithChatOptions()
-            .WithModel(ProviderCatalog.Default)
             .Configurable(o => o.ModelId);
 
         UseToolset<FileSystemToolset>()

@@ -31,10 +31,6 @@ public sealed partial class ProviderCatalog
         _file = File.Exists(path) ? JsonSerializer.Deserialize<ProviderFile>(File.ReadAllText(path), Json)! : new("", []);
     }
 
-    // CLUNKY 2: an agent must name a model in code, so the demo's agents name "default", a sentinel this catalog
-    // resolves. Typeshift has no notion of a default model or of a model the host chooses at runtime.
-    public const string Default = "default";
-
     public string DefaultModel => _file.Default;
 
     public IReadOnlyList<ProviderDefinition> Providers => _file.Providers;
@@ -42,8 +38,6 @@ public sealed partial class ProviderCatalog
     public ProviderDefinition this[string name] =>
         Providers.FirstOrDefault(provider => provider.Name == name)
         ?? throw new InvalidOperationException($"No provider '{name}' is defined; add it to {_path}.");
-
-    public string Resolve(string model) => model == Default ? DefaultModel : model;
 
     public void Add(ProviderDefinition provider) =>
         Save(_file with { Providers = [.. Providers.Where(known => known.Name != provider.Name), provider] });

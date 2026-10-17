@@ -1,5 +1,3 @@
-using Typeshift.Demos.Providers;
-
 namespace Typeshift.Demos.MultiProvider;
 
 internal partial class AssistantAgent : Agent
@@ -8,10 +6,8 @@ internal partial class AssistantAgent : Agent
     {
         WithDescription("Answers questions, telling the time where it helps.");
 
-        // CLUNKY 2: the code must name a model, so it names the catalog's sentinel; the user's choice comes through
-        // the configurable ModelId, stored per user
+        // No model in code: the user's choice comes through the configurable ModelId, stored per user
         WithChatOptions()
-            .WithModel(ProviderCatalog.Default)
             .WithTemperature(0.3f)
             .Configurable(o => o.ModelId)
             .Configurable(o => o.Temperature);

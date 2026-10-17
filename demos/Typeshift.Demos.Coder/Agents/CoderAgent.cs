@@ -1,5 +1,4 @@
 using Typeshift.Demos.Coder.Hosting;
-using Typeshift.Demos.Providers;
 using Typeshift.Toolsets;
 
 namespace Typeshift.Demos.Coder.Agents;
@@ -11,7 +10,6 @@ internal partial class CoderAgent : Agent
         WithDescription("Changes the code of a workspace: plans first, edits, then runs the tests.");
 
         WithChatOptions()
-            .WithModel(ProviderCatalog.Default)
             .WithTemperature(0.2f)
             .Configurable(o => o.ModelId)
             .Configurable(o => o.Instructions);
@@ -34,7 +32,6 @@ internal partial class CoderAgent : Agent
             .WithMaxToolIterations(120)
             .WithMaxInputTokens(24_000)
             .WithTargetInputTokens(12_000)
-            .WithSummaryModel(ProviderCatalog.Default)
             .Configurable(r => r.Mode)
             .Configurable(r => r.MaxToolIterations)
             .Configurable(r => r.MaxInputTokens);

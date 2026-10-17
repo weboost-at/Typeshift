@@ -72,32 +72,37 @@ await using var provider = services.BuildServiceProvider(new ServiceProviderOpti
 await using var scope = provider.CreateAsyncScope();
 var assistant = scope.ServiceProvider.GetRequiredService<AgentHost<AssistantAgent>>();
 var userId = Guid.Parse("00000000-0000-0000-0000-000000000042");
-var chosen = args.FirstOrDefault(argument => !argument.StartsWith("--", StringComparison.Ordinal)) ?? catalog.DefaultModel;
+var chosen = ModelRef.Parse(
+    args.FirstOrDefault(argument => !argument.StartsWith("--", StringComparison.Ordinal)) ?? catalog.DefaultModel);
 
 Demo.Heading($"The user picks '{chosen}' in the settings UI");
 
-// CLUNKY 5: ConfigureAsync stores any string; a provider that does not exist, or a model the provider lacks, fails
-// at the next run, not here
-var settings = await assistant.ConfigureAsync(userId, settings => settings with { Model = chosen });
-Demo.Note($"stored Settings.Model = {settings.Model}");
+// CLUNKY 5: ConfigureAsync stores any provider and model; a provider that does not exist, or a model the provider
+// lacks, fails at the next run, not here
+var settings = await assistant.ConfigureAsync(userId, settings => settings with
+{
+    Provider = chosen.Provider,
+    Model = chosen.Model
+});
+Demo.Note($"stored Settings.Provider = {settings.Provider}, Settings.Model = {settings.Model}");
 
 Demo.Heading("A run routes through the user's provider");
 var response = await assistant.RunAsync("What time is it in Vienna?", userId);
 Console.WriteLine($"{response.Messages[^1].AuthorName}> {response.Text}");
-Demo.Note($"the provider reported model '{response.ModelId}' for the name '{chosen}'");
+Demo.Note($"the provider reported model '{response.ModelId}' for '{chosen}'");
 
 Demo.Heading("One run on another provider, the stored choice untouched");
-var oneRun = new AssistantAgent.Settings { Model = "canned/echo" };
+var oneRun = new AssistantAgent.Settings { Provider = "canned", Model = "echo" };
 var canned1 = await assistant.RunAsync("What time is it in Vienna?", userId, settings: oneRun);
 Console.WriteLine($"{canned1.Messages[^1].AuthorName}> {canned1.Text}");
-Demo.Note($"stored Settings.Model is still {(await assistant.LoadSettingsAsync(userId)).Data.Model}");
+var kept = (await assistant.LoadSettingsAsync(userId)).Data;
+Demo.Note($"stored Settings are still {kept.Provider}/{kept.Model}");
 
 Demo.Heading("Streaming goes through the same provider");
 await Demo.StreamAsync(assistant.RunStreamingAsync("And in Tokyo?", userId), CancellationToken.None);
 
 Demo.Heading("A mistyped model fails at run time, not when it was stored");
-var mistyped = $"{ModelRef.Parse(chosen).Provider}/does-not-exist";
-await assistant.ConfigureAsync(userId, settings => settings with { Model = mistyped });
+await assistant.ConfigureAsync(userId, settings => settings with { Model = "does-not-exist" });
 
 try
 {
@@ -109,20 +114,17 @@ catch (Exception exception)
     Demo.Note($"{exception.GetType().Name}: {exception.Message.ReplaceLineEndings(" ")[..Math.Min(160, exception.Message.Length)]}");
 }
 
-await assistant.ConfigureAsync(userId, settings => settings with { Model = chosen });
+await assistant.ConfigureAsync(userId, settings => settings with { Model = chosen.Model });
 
 Demo.Heading("What a settings UI can offer the user");
-var offered = await catalog.ListModelsAsync(ModelRef.Parse(chosen).Provider, CancellationToken.None);
+var offered = await catalog.ListModelsAsync(chosen.Provider, CancellationToken.None);
 Demo.Note(offered.Count == 0
-    ? $"'{ModelRef.Parse(chosen).Provider}' lists no models here: the UI needs a hand-kept list"
-    : $"{offered.Count} models, named by the app as {ModelRef.Parse(chosen).Provider}/<id>: {string.Join(", ", offered.Take(4))}…");
+    ? $"'{chosen.Provider}' lists no models here: the UI needs a hand-kept list"
+    : $"{offered.Count} models of {chosen.Provider}: {string.Join(", ", offered.Take(4))}…");
 
 Demo.Heading("Where the current library gets in the way");
-Demo.Note("1  one string names a model, so the app invents 'provider/model' and parses it everywhere");
-Demo.Note("2  an agent must name a model in code, so 'default' is a sentinel the provider resolves");
 Demo.Note("3  no model catalog: a settings UI asks each provider itself, and only some can answer");
 Demo.Note("4  the provider is scoped but clients must live long: a second singleton holds them");
-Demo.Note("5  nothing validates a stored model name; a typo surfaces in the middle of a run");
-Demo.Note("6  ChatOptions.ModelId reaches the wire with the composite name: every client is wrapped to put the id back");
+Demo.Note("5  nothing validates a stored model; a typo surfaces in the middle of a run");
 
 return 0;

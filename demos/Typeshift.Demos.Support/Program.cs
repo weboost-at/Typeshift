@@ -59,14 +59,19 @@ var report = scope.ServiceProvider.GetRequiredService<AgentHost<ReportAgent>>();
 Demo.Heading("Each customer has settings per agent, under one settings id");
 var ada = CrmData.Ada;
 
-await triage.ConfigureAsync(ada, settings => settings with { Model = model ?? "canned/triage" });
-await billing.ConfigureAsync(ada, settings => settings with { Model = model ?? "canned/billing" });
-await knowledge.ConfigureAsync(ada, settings => settings with { Model = model ?? "canned/knowledge" });
-await report.ConfigureAsync(ada, settings => settings with { Model = model ?? "canned/report" });
+// The command line names one provider and model for every agent; offline each agent has a canned model of its own
+var pick = model is null ? (ModelRef?)null : ModelRef.Parse(model);
+var picked = pick?.Provider ?? "canned";
+
+await triage.ConfigureAsync(ada, settings => settings with { Provider = picked, Model = pick?.Model ?? "triage" });
+await billing.ConfigureAsync(ada, settings => settings with { Provider = picked, Model = pick?.Model ?? "billing" });
+await knowledge.ConfigureAsync(ada, settings => settings with { Provider = picked, Model = pick?.Model ?? "knowledge" });
+await report.ConfigureAsync(ada, settings => settings with { Provider = picked, Model = pick?.Model ?? "report" });
 
 var configured = await support.ConfigureAsync(ada, settings => settings with
 {
-    Model = model ?? "canned/support",
+    Provider = picked,
+    Model = pick?.Model ?? "support",
     Instructions = "Answer in short sentences and address the customer by name.",
     SearchTickets = settings.SearchTickets with { Limit = 3, IncludeClosed = true }
 });

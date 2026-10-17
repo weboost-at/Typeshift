@@ -33,13 +33,14 @@ public sealed class ClientCache : IDisposable
 }
 
 /// <summary>
-/// Maps the app's model names to clients of the providers the user defined.
+/// Maps a provider the user defined and one of its models to a client.
 /// </summary>
+// This library runs no generator, so it names the provider id type itself instead of the IChatClientProvider alias
 public sealed class RoutingChatClientProvider(ProviderCatalog catalog, ClientCache cache, CannedModels canned)
-    : IChatClientProvider
+    : IChatClientProvider<string>
 {
-    public ValueTask<IChatClient> GetChatClientAsync(string model, CancellationToken ct) =>
-        ValueTask.FromResult(cache.GetOrAdd(ModelRef.Parse(catalog.Resolve(model)), Create));
+    public ValueTask<IChatClient> GetChatClientAsync(string provider, string model, CancellationToken ct) =>
+        ValueTask.FromResult(cache.GetOrAdd(new ModelRef(provider, model), Create));
 
     private IChatClient Create(ModelRef model)
     {
@@ -48,7 +49,7 @@ public sealed class RoutingChatClientProvider(ProviderCatalog catalog, ClientCac
 
         // CLUNKY 5: a mistyped model fails here, in the middle of a run, long after the settings UI saved it; nothing
         // validates a model name when ConfigureAsync stores it
-        IChatClient client = provider.Kind switch
+        return provider.Kind switch
         {
             "openai" => OpenAi(provider, key).GetChatClient(model.Model).AsIChatClient(),
             "anthropic" => new AnthropicClient { ApiKey = key }.AsIChatClient(model.Model),
@@ -56,8 +57,6 @@ public sealed class RoutingChatClientProvider(ProviderCatalog catalog, ClientCac
                 ?? throw new InvalidOperationException($"No canned model '{model.Model}' exists in this demo."),
             _ => throw new InvalidOperationException($"The provider kind '{provider.Kind}' is unknown.")
         };
-
-        return new WireModelChatClient(client, model.Model);
     }
 
     private static OpenAIClient OpenAi(ProviderDefinition provider, string key) =>
@@ -67,34 +66,4 @@ public sealed class RoutingChatClientProvider(ProviderCatalog catalog, ClientCac
                 Endpoint = new Uri(endpoint)
             })
             : new OpenAIClient(new ApiKeyCredential(key));
-}
-
-/// <summary>
-/// Puts the provider's model id back into each request.
-/// </summary>
-// CLUNKY 6: the provider's client sends ChatOptions.ModelId as the request's model, and Typeshift puts the app's
-// composite name there ("lmstudio/qwen/qwen3.8-27b"), which no server knows. Without this wrapper every request
-// fails with "model not found". The spans still show the composite name as gen_ai.request.model.
-public sealed class WireModelChatClient(IChatClient inner, string model) : DelegatingChatClient(inner)
-{
-    public override Task<ChatResponse> GetResponseAsync(
-        IEnumerable<ChatMessage> messages,
-        ChatOptions? options = null,
-        CancellationToken cancellationToken = default) =>
-        base.GetResponseAsync(messages, OnTheWire(options), cancellationToken);
-
-    public override IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
-        IEnumerable<ChatMessage> messages,
-        ChatOptions? options = null,
-        CancellationToken cancellationToken = default) =>
-        base.GetStreamingResponseAsync(messages, OnTheWire(options), cancellationToken);
-
-    private ChatOptions? OnTheWire(ChatOptions? options)
-    {
-        if (options is null) return null;
-
-        var request = options.Clone();
-        request.ModelId = model;
-        return request;
-    }
 }

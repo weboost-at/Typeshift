@@ -1,4 +1,3 @@
-using Typeshift.Demos.Providers;
 using Typeshift.Demos.Support.Hosting;
 using Typeshift.Demos.Support.Toolsets;
 
@@ -12,7 +11,6 @@ internal partial class TriageAgent : Agent
         WithDescription("Finds out what the customer needs and hands the conversation to support or billing.");
 
         WithChatOptions()
-            .WithModel(ProviderCatalog.Default)
             .Configurable(o => o.ModelId);
 
         UseContext<CustomerContext>();
@@ -34,7 +32,6 @@ internal partial class SupportAgent : Agent
         WithDescription("Answers customers from their tickets, the help center and the service status.");
 
         WithChatOptions()
-            .WithModel(ProviderCatalog.Default)
             .WithTemperature(0.3f)
             .Configurable(o => o.ModelId)
             .Configurable(o => o.Instructions)
@@ -68,7 +65,6 @@ internal partial class BillingAgent : Agent
         WithDescription("Settles the customer's invoices and refunds.");
 
         WithChatOptions()
-            .WithModel(ProviderCatalog.Default)
             .Configurable(o => o.ModelId);
 
         UseToolset<BillingToolset>();
@@ -94,7 +90,6 @@ internal partial class KnowledgeAgent : Agent
         WithDescription("Answers one question from the help center, quoting the article.");
 
         WithChatOptions()
-            .WithModel(ProviderCatalog.Default)
             .Configurable(o => o.ModelId);
 
         UseToolset<KnowledgeToolset>();
@@ -111,7 +106,6 @@ internal partial class ReportAgent : Agent
         WithDescription("Summarizes a support conversation.");
 
         WithChatOptions()
-            .WithModel(ProviderCatalog.Default)
             .WithTemperature(0)
             .Configurable(o => o.ModelId);
     }
