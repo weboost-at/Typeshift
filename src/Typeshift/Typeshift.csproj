@@ -10,6 +10,7 @@
     <Description>Code-defined agents and toolsets for Microsoft.Extensions.AI. A source generator turns them into reflection-free AIFunctions, a typed settings record per agent and one AddTypeshift() registration.</Description>
     <PackageTags>ai;agents;tools;source-generator;microsoft.extensions.ai;llm;aot</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon-128.png</PackageIcon>
     <PackageReleaseNotes>https://github.com/weboost-at/Typeshift/blob/main/CHANGELOG.md</PackageReleaseNotes>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
@@ -35,6 +36,7 @@
     <!-- D48: NuGet imports buildTransitive/{PackageId}.props only, so the file is packed under the package's ID -->
     <None Include="buildTransitive/Typeshift.props" Pack="true" PackagePath="buildTransitive/$(PackageId).props" />
     <None Include="PACKAGE.md" Pack="true" PackagePath="README.md" />
+    <None Include="../../docs/public/brand/icon-128.png" Pack="true" PackagePath="/" Visible="false" />
   </ItemGroup>
 
   <ItemGroup>
