@@ -11,7 +11,8 @@ Read `docs/contributing/writing.md` first: the voice, the page anatomy, and the 
    link to it from elsewhere. For a change to the library, the change checklist next to it names every page to touch.
 2. Change the sample code in `samples/Typeshift.Samples.Docs`, keeping its `begin-snippet` and `end-snippet` markers,
    and run its program: `dotnet run --project samples/Typeshift.Samples.Docs -c Release`.
-3. Run `dotnet mdsnippets` from the repository root; never edit between `<!-- snippet: x -->` and
+3. Check `git status` for Markdown you did not change (the mdsnippets trap in `AGENTS.md`), then run
+   `dotnet mdsnippets` from the repository root; never edit between `<!-- snippet: x -->` and
    `<!-- endSnippet -->` by hand. C# never goes into a hand-written block.
 4. Write the prose to `writing.md`: a lead that answers first, varied sentences, the reason for each rule, callouts
    with a title, `## Related` last. Read a neighbouring page and match it.
