@@ -3,10 +3,24 @@ name: ci
 on:
   push:
     branches: [main]
+    # Docs-only changes skip CI, except the pages the repository tests read. A later pattern overrides an earlier one
+    paths: &code
+      - '**'
+      - '!docs/**'
+      - '!*.md'
+      - 'docs/contributing/decisions.md'
+      - 'docs/guide/diagnostics.md'
+      - 'docs/**/agents.md'
   pull_request:
+    paths: *code
 
 permissions:
   contents: read
+
+# A new push to a pull request cancels its running check; every commit on main keeps its own
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -40,8 +54,3 @@ jobs:
 
       - name: Build and run a consumer of the package, not of the projects
         run: dotnet run --project samples/Typeshift.Samples.PackageConsumer -c Release
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: packages
-          path: artifacts/packages/*.nupkg
