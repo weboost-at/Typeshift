@@ -42,7 +42,7 @@ public class HandoffTests : MultiAgentTestBase
         var response = await RunAsync(Data.Agent.FollowUp);
 
         // Assert
-        Models[^1].Should().Be("back-model");
+        Models[^1].Model.Should().Be("back-model");
         response.Messages[^1].AuthorName.Should().Be("back_agent");
     }
 

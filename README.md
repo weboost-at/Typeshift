@@ -119,7 +119,7 @@ internal partial class ResearchAgent : Agent
         WithDescription("Researches the companies of a city.");
 
         WithChatOptions()
-            .WithModel("fast-model")
+            .WithModel("openai", "gpt-5-mini")
             .WithTemperature(0.2f)
             .Configurable(o => o.Instructions)
             .Configurable(o => o.Temperature);
@@ -141,8 +141,8 @@ internal partial class ResearchAgent : Agent
 
 ### 3. Run it
 
-`AddTypeshift()` registers every toolset and agent. You bring a chat client provider, which returns the model's
-`IChatClient`, and a store for settings and conversations:
+`AddTypeshift()` registers every toolset and agent. You bring a chat client provider, which returns the `IChatClient`
+of a provider's model, and a store for settings and conversations:
 
 <!-- snippet: quickstart-registration -->
 <a id='snippet-quickstart-registration'></a>
@@ -153,7 +153,7 @@ services.AddTypeshift()
     .WithStore<InMemoryTypeshiftStore>()
     .WithChatClientProvider<KeyedChatClientProvider>();
 
-services.AddKeyedSingleton<IChatClient>("fast-model", new CannedChatClient());
+services.AddKeyedSingleton<IChatClient>("openai", new CannedChatClient());
 
 await using var provider = services.BuildServiceProvider(validateScopes: true);
 ```
@@ -168,11 +168,12 @@ await using var provider = services.BuildServiceProvider(validateScopes: true);
 ```cs
 internal sealed class KeyedChatClientProvider(IServiceProvider services) : IChatClientProvider
 {
-    public ValueTask<IChatClient> GetChatClientAsync(string model, CancellationToken ct) =>
-        ValueTask.FromResult(services.GetRequiredKeyedService<IChatClient>(model));
+    // One client per provider serves all its models: Typeshift puts the model into every request
+    public ValueTask<IChatClient> GetChatClientAsync(string provider, string model, CancellationToken ct) =>
+        ValueTask.FromResult(services.GetRequiredKeyedService<IChatClient>(provider));
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/KeyedChatClientProvider.cs#L6-L12' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client-provider' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/KeyedChatClientProvider.cs#L6-L13' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client-provider' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 </details>
@@ -238,7 +239,7 @@ internal partial class CodingAgent : Agent
     public CodingAgent()
     {
         WithChatOptions()
-            .WithModel("reasoning-model");
+            .WithModel("anthropic", "claude-sonnet-5-5");
 
         UseToolset<TodoToolset>();
         UseToolset<FileSystemToolset>();
@@ -253,9 +254,10 @@ internal partial class CodingAgent : Agent
             .WithMode(AgentMode.Plan)
             .WithMaxToolIterations(500)
             .WithMaxInputTokens(150_000)
-            .WithSummaryModel("fast-model")
+            .WithSummaryModel("claude-haiku-5-5")
             .Configurable(r => r.Mode)
-            .Configurable(r => r.MaxToolIterations);
+            .Configurable(r => r.MaxToolIterations)
+            .Configurable(r => r.SummaryModel);
 
         ConfigureRunCommand()
             .WithShell("/bin/bash")
@@ -269,7 +271,7 @@ internal partial class CodingAgent : Agent
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 > [!CAUTION]

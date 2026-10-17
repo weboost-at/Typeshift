@@ -14,13 +14,14 @@ public class StoredSettingsTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         var host = Host<ProbeAgent>();
-        await host.SaveSettingsAsync(Data.Persistence.SettingsId, new() { Model = Data.Agent.Model }, 0, Ct);
+        var stored = new ProbeAgent.Settings { Provider = Data.Agent.Provider, Model = Data.Agent.Model };
+        await host.SaveSettingsAsync(Data.Persistence.SettingsId, stored, 0, Ct);
 
         // Act
         await host.RunAsync(Data.Tool.Question, Data.Persistence.SettingsId, ct: Ct);
 
         // Assert
-        Models.Should().Equal(Data.Agent.Model);
+        Models.Should().Equal(new ProvidedModel(Data.Agent.Provider, Data.Agent.Model));
     }
 
     [Fact]
@@ -41,7 +42,7 @@ public class StoredSettingsTests : AgentTestBase
             ct: Ct);
 
         // Assert
-        Models.Should().Equal(Data.Agent.Model);
+        Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, Data.Agent.Model));
         ChatClient.Options[0]!.Temperature.Should().Be(Data.Agent.Temperature);
     }
 

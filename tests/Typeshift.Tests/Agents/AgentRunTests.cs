@@ -20,7 +20,7 @@ public class AgentRunTests : AgentTestBase
         var options = ChatClient.Options[0]!;
 
         // Assert
-        Models.Should().Equal(ProbeAgent.Model);
+        Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, ProbeAgent.Model));
         options.Temperature.Should().Be(ProbeAgent.Temperature);
         options.Instructions.Should().Be(ProbeAgent.Prompt);
         options.StopSequences.Should().Equal(ProbeAgent.Stop);
@@ -34,6 +34,7 @@ public class AgentRunTests : AgentTestBase
 
         var settings = new ProbeAgent.Settings
         {
+            Provider = Data.Agent.Provider,
             Model = Data.Agent.Model,
             Temperature = Data.Agent.Temperature,
             Instructions = Data.Agent.Instructions
@@ -44,7 +45,7 @@ public class AgentRunTests : AgentTestBase
         var options = ChatClient.Options[0]!;
 
         // Assert
-        Models.Should().Equal(Data.Agent.Model);
+        Models.Should().Equal(new ProvidedModel(Data.Agent.Provider, Data.Agent.Model));
         options.Temperature.Should().Be(Data.Agent.Temperature);
         options.Instructions.Should().Be(Data.Agent.Instructions);
     }
@@ -61,8 +62,23 @@ public class AgentRunTests : AgentTestBase
         await Host<ProbeAgent>().RunAsync(Data.Tool.Question, settings: settings, ct: Ct);
 
         // Assert
-        Models.Should().Equal(ProbeAgent.Model);
+        Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, ProbeAgent.Model));
         ChatClient.Options[0]!.StopSequences.Should().Equal(ProbeAgent.Stop);
+    }
+
+    [Fact]
+    public async Task Given_A_Provider_And_A_Model_The_Request_Names_Only_The_Model()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var settings = new ProbeAgent.Settings { Provider = Data.Agent.Provider, Model = Data.Agent.Model };
+
+        // Act
+        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, settings: settings, ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.ModelId.Should().Be(Data.Agent.Model);
     }
 
     [Fact]
@@ -282,7 +298,24 @@ public class AgentRunTests : AgentTestBase
         var response = await client.GetResponseAsync([new(ChatRole.User, Data.Tool.Question)], options, Ct);
 
         // Assert
-        Models.Should().Equal(Data.Agent.Model);
+        Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, Data.Agent.Model));
         response.Messages.Should().OnlyContain(message => message.AuthorName == "probe_agent");
+    }
+
+    [Fact]
+    public async Task Given_Options_Of_Its_Own_The_Created_Client_Asks_The_Agents_Provider()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>();
+        var options = new ChatOptions { ModelId = Data.Agent.Model };
+
+        // Act
+        using var client = await host.CreateChatClientAsync(options, Ct);
+        await client.GetResponseAsync([new(ChatRole.User, Data.Tool.Question)], options, Ct);
+
+        // Assert
+        Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, Data.Agent.Model));
     }
 }

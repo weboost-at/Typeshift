@@ -20,9 +20,13 @@ public partial class ReadingToolset : Toolset
 // Compacts once a test's run settings turn it on
 public partial class CompactingAgent : Agent
 {
+    public const string ModelProvider = "compacting-provider";
+
+    public const string Model = "compacting-model";
+
     public CompactingAgent()
     {
-        WithChatOptions().WithModel("compacting-model");
+        WithChatOptions().WithModel(ModelProvider, Model);
 
         WithRunOptions()
             .Configurable(r => r.MaxInputTokens)

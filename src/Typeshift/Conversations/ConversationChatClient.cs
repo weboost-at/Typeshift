@@ -310,8 +310,12 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         var input = messages.Select(WithoutRequests).OfType<ChatMessage>().ToList();
         var runOptions = ResolvedChatOptions.From(options ?? new ChatOptions());
 
-        // Options the raw path made itself run with the agent's run options, as its tool loop does
-        if (options is not ResolvedChatOptions) runOptions.RunOptions = agent.RunOptions;
+        // Options the raw path made itself run with the agent's provider and run options, as its tool loop does
+        if (options is not ResolvedChatOptions)
+        {
+            runOptions.Provider = agent.Provider;
+            runOptions.RunOptions = agent.RunOptions;
+        }
 
         var mode = runOptions.RunOptions.Mode;
 

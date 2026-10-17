@@ -3,17 +3,21 @@ using Microsoft.Extensions.AI;
 namespace Typeshift;
 
 /// <summary>
-/// Maps a model name to the client that serves it. Resolved from the run's services, so it may pick a customer's own
-/// credentials.
+/// Returns the client of a provider's model. Resolved scoped from the run's services, so it may serve each customer
+/// with their own credentials. Implement <c>IChatClientProvider</c>, the alias the generator writes for the build's
+/// provider id type.
 /// </summary>
-public interface IChatClientProvider
+/// <typeparam name="TProviderId">The build's provider id type, <c>TypeshiftProviderIdType</c>.</typeparam>
+public interface IChatClientProvider<TProviderId> where TProviderId : notnull
 {
     /// <summary>
-    /// Returns the client of a model, the same instance for the same model where possible, since Typeshift
-    /// instruments each instance once and keeps that as long as the instance lives. Typeshift never disposes it.
+    /// Returns the client that serves a provider's model, the same instance for the same pair where possible, since
+    /// Typeshift instruments each instance once and keeps that as long as the instance lives. Typeshift sends the
+    /// model as <see cref="ChatOptions.ModelId"/> and never disposes the client.
     /// </summary>
-    /// <param name="model">The model's name, as the agent's options or settings name it.</param>
+    /// <param name="provider">The provider, as the agent's code or settings name it.</param>
+    /// <param name="model">The model, as the provider's API names it.</param>
     /// <param name="ct">Cancels the lookup.</param>
     /// <returns>The client.</returns>
-    ValueTask<IChatClient> GetChatClientAsync(string model, CancellationToken ct);
+    ValueTask<IChatClient> GetChatClientAsync(TProviderId provider, string model, CancellationToken ct);
 }

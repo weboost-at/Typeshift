@@ -53,6 +53,11 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             .Combine(context.CompilationProvider)
             .Select(static (pair, _) => IdTypes.Display(IdTypes.Read(pair.Left.GlobalOptions), pair.Right));
 
+        // D56: the provider id type of the Settings members, the alias and the core services
+        var providerId = context.AnalyzerConfigOptionsProvider
+            .Combine(context.CompilationProvider)
+            .Select(static (pair, _) => IdTypes.Provider(pair.Left.GlobalOptions, pair.Right));
+
         // Every edit makes a new compilation; the stamps it yields compare equal, so what depends on them is cached
         var references = context.CompilationProvider
             .Select(ReferenceReader.Read)
@@ -92,14 +97,18 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(toolsets, static (output, toolset) =>
             output.AddSource(Names.HintName(toolset.Type.FullName), ToolsetEmitter.Emit(toolset)));
 
-        context.RegisterSourceOutput(outputs.Combine(idType), static (output, pair) =>
-            output.AddSource(Names.HintName(pair.Left.Agent.Type.FullName), AgentEmitter.Emit(pair.Left, pair.Right)));
+        context.RegisterSourceOutput(outputs.Combine(idType).Combine(providerId), static (output, pair) =>
+            output.AddSource(
+                Names.HintName(pair.Left.Left.Agent.Type.FullName),
+                AgentEmitter.Emit(pair.Left.Left, pair.Left.Right, pair.Right)));
 
-        context.RegisterSourceOutput(idType.Combine(assemblyName), static (output, pair) =>
+        context.RegisterSourceOutput(idType.Combine(providerId).Combine(assemblyName), static (output, pair) =>
         {
             if (pair.Right == KnownTypes.LibraryAssembly) return;
 
-            output.AddSource(Names.HintName($"{Names.GeneratedNamespace}.Aliases"), AliasEmitter.Emit(pair.Left));
+            output.AddSource(
+                Names.HintName($"{Names.GeneratedNamespace}.Aliases"),
+                AliasEmitter.Emit(pair.Left.Left, pair.Left.Right.Type));
         });
 
         context.RegisterSourceOutput(module, static (output, model) =>
@@ -114,14 +123,15 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             .Select(static (pair, _) => IdTypes.Parser(IdTypes.Read(pair.Left.GlobalOptions), pair.Right));
 
         context.RegisterSourceOutput(
-            calls.Combine(module).Combine(references).Combine(idType).Combine(idParser),
+            calls.Combine(module).Combine(references).Combine(idType).Combine(idParser).Combine(providerId),
             static (output, pair) => EmitInterceptor(
                 output,
-                pair.Left.Left.Left.Left,
+                pair.Left.Left.Left.Left.Left,
+                pair.Left.Left.Left.Left.Right,
                 pair.Left.Left.Left.Right,
                 pair.Left.Left.Right,
                 pair.Left.Right,
-                pair.Right));
+                pair.Right.Type));
     }
 
     // Null for an assembly that declares neither toolsets nor agents; its contexts serve no generated tool
@@ -154,7 +164,8 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
         ModuleModel? module,
         ReferenceModel references,
         string idType,
-        string idParser)
+        string idParser,
+        string providerIdType)
     {
         if (calls.IsEmpty) return;
 
@@ -162,6 +173,6 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
 
         output.AddSource(
             Names.HintName($"{Names.GeneratedNamespace}.{KnownTypes.RegistrationMethod}Interceptor"),
-            InterceptorEmitter.Emit(calls, [.. own, .. references.Modules], idType, idParser));
+            InterceptorEmitter.Emit(calls, [.. own, .. references.Modules], idType, idParser, providerIdType));
     }
 }

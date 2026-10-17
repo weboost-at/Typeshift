@@ -283,12 +283,35 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D28. The model is a configurable option like any other
 
 - **Status:** owner; changes v0 D34.
-- **Decision:** `Configurable(o => o.ModelId)` puts `Model` into the agent's `Settings`, overriding `WithModel`;
-  without it the model stays in code. The allow list holds for the model too. The options that may be configurable
-  are the model, the instructions, the sampling options, the stop sequences, multiple tool calls and reasoning; the
-  rest belong to the run or have no stored form (TSH012).
+- **Decision:** `Configurable(o => o.ModelId)` puts `Model`, and its `Provider` (D56), into the agent's `Settings`,
+  overriding `WithModel`; without it the model stays in code. The allow list holds for the model too. The options
+  that may be configurable are the model, the instructions, the sampling options, the stop sequences, multiple tool
+  calls and reasoning; the rest belong to the run or have no stored form (TSH012).
 - **Alternatives:** `Model` in every `Settings` (v0, the brief's first sketch), which lets a settings form a
   customer edits pick any model the provider knows.
+
+### D56. A model is a provider and a model, one interface serves both
+
+- **Status:** owner.
+- **Context:** a model was one string the host's provider read, so a host with several providers invented composite
+  names such as `lmstudio/qwen/qwen3-8b`, split them again, and wrapped each client to put the provider's own id back
+  into the request.
+- **Decision:** `WithModel(provider, model)`. `IChatClientProvider<TProviderId>` has one method,
+  `GetChatClientAsync(provider, model, ct)`, resolved scoped from the run's services, and `ChatOptions.ModelId`
+  carries the model alone. The provider id type is the MSBuild property `TypeshiftProviderIdType`, `string` by
+  default, a type settings store as one value (a string, a number, a `Guid` or an enum), with a generated alias as D11
+  has for ids. The summary model is the run's model unless named, and its provider the run's provider: the agent's
+  code names a summary model only, and only settings (`SummaryProvider`) name another provider for it.
+- **As built:** the library keeps providers boxed (`Agent.Provider`, `ResolvedChatOptions.Provider` and
+  `SummaryProvider`), and `ChatClients<TProviderId>`, which the interceptor's `AddCoreServices<TId, TProviderId>`
+  registers, unboxes them for the host's provider. Generated `ApplySettings` sets the providers through
+  `SetProvider` and `SetSummaryProvider`. A provider of another type at `WithModel` or `WithChatClientProvider<T>()`
+  is TSH030; a provider id type that cannot be used is TSH029.
+- **Where:** `Hosting/IChatClientProvider.cs`, `Hosting/ChatClients.cs`, `Agents/ChatOptionsBuilder.cs`,
+  `Compaction/Compaction.cs`, `Parsing/IdTypes.cs`, `Emitting/OptionMembers.cs`.
+- **Alternatives:** a model record with a request type, a client cache and a catalog, more surface than the problem
+  needs; methods that list providers and their models, which Typeshift never calls; a summary provider in code, tied
+  to a provider the user may switch away from; compaction that drops turns without a summary model.
 
 ### D29. The chat client pipeline
 
@@ -335,9 +358,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `WithConcurrentToolCalls`, `WithMaxInputTokens`, `WithTargetInputTokens`, `WithSummaryModel`, and `Configurable`
   over the `RunOptions` record, so a run option joins `Settings` like a chat option. Before each model call, when the
   last call's reported input tokens reached the maximum, the history shrinks to the target: oldest tool results
-  cleared first (calls kept), then the oldest turns summarized (or dropped without a summary model). Instructions,
-  the latest `write_todos` call and call/result pairs stay; the summary is stored as an entry later runs start from.
-  Without reported usage, tokens are estimated from the text.
+  cleared first (calls kept), then the oldest turns summarized, by the run's model unless one is named (D56).
+  Instructions, the latest `write_todos` call and call/result pairs stay; the summary is stored as an entry later
+  runs start from. Without reported usage, tokens are estimated from the text.
 - **As built:** the estimate counts characters (four to a token) over the messages, the instructions and the tool
   schemas, calibrated by the tokens the provider reported for the run's last call. Only results the model already
   answered after are cleared. What compaction did holds for the rest of the run: the tool loop keeps the whole

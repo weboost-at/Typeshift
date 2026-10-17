@@ -93,7 +93,7 @@ internal partial class ResearchAgent : Agent
         WithDescription("Researches the companies of a city.");
 
         WithChatOptions()
-            .WithModel("fast-model")
+            .WithModel("openai", "gpt-5-mini")
             .WithTemperature(0.2f)
             .Configurable(o => o.Instructions)
             .Configurable(o => o.Temperature);
@@ -130,7 +130,7 @@ services.AddTypeshift()
     .WithStore<InMemoryTypeshiftStore>()
     .WithChatClientProvider<KeyedChatClientProvider>();
 
-services.AddKeyedSingleton<IChatClient>("fast-model", new CannedChatClient());
+services.AddKeyedSingleton<IChatClient>("openai", new CannedChatClient());
 
 await using var provider = services.BuildServiceProvider(validateScopes: true);
 ```
@@ -138,18 +138,19 @@ await using var provider = services.BuildServiceProvider(validateScopes: true);
 <!-- endSnippet -->
 
 `CannedChatClient` stands in for a real model, and `InMemoryTypeshiftStore` for your database. The provider returns the
-client for a model's name:
+client for a provider and a model:
 
 <!-- snippet: chat-client-provider -->
 <a id='snippet-chat-client-provider'></a>
 ```cs
 internal sealed class KeyedChatClientProvider(IServiceProvider services) : IChatClientProvider
 {
-    public ValueTask<IChatClient> GetChatClientAsync(string model, CancellationToken ct) =>
-        ValueTask.FromResult(services.GetRequiredKeyedService<IChatClient>(model));
+    // One client per provider serves all its models: Typeshift puts the model into every request
+    public ValueTask<IChatClient> GetChatClientAsync(string provider, string model, CancellationToken ct) =>
+        ValueTask.FromResult(services.GetRequiredKeyedService<IChatClient>(provider));
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/KeyedChatClientProvider.cs#L6-L12' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client-provider' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/KeyedChatClientProvider.cs#L6-L13' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client-provider' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Store settings under a settings id, for example one per customer:
@@ -223,7 +224,7 @@ that uses them:
 
 | Interface | Needed for | Read |
 |---|---|---|
-| `IChatClientProvider` | Every run. It returns the `IChatClient` for a model's name. | [Chat clients](./running-agents.md#chat-clients) |
+| `IChatClientProvider` | Every run. It returns the `IChatClient` for a provider and a model. | [Models and providers](./models.md) |
 | `ITypeshiftStore` | Settings ids and conversation ids. `InMemoryTypeshiftStore` serves tests and samples. | [Settings and stores](./settings-and-stores.md) |
 | `IFileSystemRoot`, `IWebSearch`, `IWebFetch` | The built-in file, shell and web tools. | [Built-in toolsets](./built-in-toolsets.md#what-each-needs) |
 | `IContextProvider` | Memory, documents or other data added to every run of an agent. | [Context providers](./middleware.md#context-providers) |

@@ -23,8 +23,8 @@ internal static class Registration
             .WithRunMiddleware<BlockedTopics>()
             .WithToolMiddleware<AuditToolCalls>();
 
-        services.AddKeyedSingleton("fast-model", fast);
-        services.AddKeyedSingleton("reasoning-model", reasoning);
+        services.AddKeyedSingleton("openai", fast);
+        services.AddKeyedSingleton("anthropic", reasoning);
         // end-snippet
 
         services.AddTypeshift()

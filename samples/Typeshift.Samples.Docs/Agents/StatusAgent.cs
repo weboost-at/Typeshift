@@ -8,7 +8,7 @@ internal partial class StatusAgent : Agent
     {
         // begin-snippet: hosted-mcp
         WithChatOptions()
-            .WithModel("reasoning-model")
+            .WithModel("anthropic", "claude-sonnet-5-5")
             .WithTools(new HostedMcpServerTool("status_page", new Uri("https://mcp.example.com/status")));
         // end-snippet
     }

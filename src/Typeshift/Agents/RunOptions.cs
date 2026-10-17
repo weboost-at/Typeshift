@@ -58,9 +58,10 @@ public sealed class RunOptionsBuilder
         Set(options => options with { TargetInputTokens = tokens });
 
     /// <summary>
-    /// The model that summarizes what clearing tool results did not free; without one, the oldest turns are dropped.
+    /// The model that summarizes what clearing tool results did not free, served by the run's provider; without one,
+    /// the run's model summarizes. Stored settings or a run may name another provider for it.
     /// </summary>
-    /// <param name="model">The model, as the chat client provider knows it.</param>
+    /// <param name="model">The model, as the run's provider names it.</param>
     /// <returns>The same chain.</returns>
     public RunOptionsBuilder WithSummaryModel(string model) =>
         Set(options => options with { SummaryModel = model });
@@ -117,7 +118,8 @@ public sealed record RunOptions
     public int? TargetInputTokens { get; init; }
 
     /// <summary>
-    /// The model that summarizes the oldest turns; null drops them.
+    /// The model that summarizes the oldest turns, served by the run's provider unless settings name another; null for
+    /// the run's model.
     /// </summary>
     public string? SummaryModel { get; init; }
 }

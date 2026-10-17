@@ -28,6 +28,7 @@ const sidebar = {
       text: 'Running agents',
       items: [
         { text: 'Running agents', link: '/guide/running-agents' },
+        { text: 'Models and providers', link: '/guide/models' },
         { text: 'Settings and stores', link: '/guide/settings-and-stores' },
         { text: 'Conversations', link: '/guide/conversations' },
         { text: 'In production', link: '/guide/production' }

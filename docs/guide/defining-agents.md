@@ -23,7 +23,7 @@ internal partial class SupportAgent : Agent
         WithDescription("Answers customers from their tickets and the help center.");
 
         WithChatOptions()
-            .WithModel("fast-model")
+            .WithModel("openai", "gpt-5-mini")
             .WithTemperature(0.3f)
             .Configurable(o => o.ModelId)
             .Configurable(o => o.Instructions)
@@ -51,7 +51,7 @@ internal partial class SupportAgent : Agent
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L48' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The tools and their settings have sections of their own below. The other calls declare the rest:
@@ -135,7 +135,7 @@ runtime:
 
 | Member | From |
 |---|---|
-| `Model` | When `Configurable(o => o.ModelId)` allows it; overrides `WithModel`. |
+| `Provider`, `Model` | When `Configurable(o => o.ModelId)` allows them; override `WithModel`. |
 | One per configurable chat option | `Instructions` and `Temperature` above. |
 | One per configurable run option | `MaxToolIterations` of the triage agent above. |
 | One per offered tool with configurable settings | `SearchTickets`, `SearchArticles`: their [overrides](./tool-settings.md#the-generated-overrides). |

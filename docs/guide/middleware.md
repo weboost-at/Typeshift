@@ -92,8 +92,8 @@ services.AddTypeshift()
     .WithRunMiddleware<BlockedTopics>()
     .WithToolMiddleware<AuditToolCalls>();
 
-services.AddKeyedSingleton("fast-model", fast);
-services.AddKeyedSingleton("reasoning-model", reasoning);
+services.AddKeyedSingleton("openai", fast);
+services.AddKeyedSingleton("anthropic", reasoning);
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L18-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
@@ -137,7 +137,7 @@ The agent names its providers in its constructor:
 ```cs
 UseContext<CustomerProfileContext>();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L36-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-context' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L38-L40' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-context' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A provider needs no registration. Typeshift resolves it from the run's services, or creates it from them when none

@@ -14,7 +14,8 @@ internal static class AgentSettings
         // begin-snippet: configure-settings
         await support.ConfigureAsync(settingsId, settings => settings with
         {
-            Model = "reasoning-model",
+            Provider = "anthropic",
+            Model = "claude-sonnet-5-5",
             Instructions = "Answer in German.",
             SearchTickets = settings.SearchTickets with { Limit = 20 }
         });

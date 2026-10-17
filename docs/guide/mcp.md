@@ -18,7 +18,7 @@ client.
 UseMcpServer("status_page")
     .ReadOnly();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L31-L34' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-mcp-server' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L33-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-mcp-server' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The host connects it by implementing `IMcpToolProvider`, whose `GetToolsAsync` returns the tools of the server the
@@ -94,7 +94,7 @@ the chat options:
 <a id='snippet-hosted-mcp'></a>
 ```cs
 WithChatOptions()
-    .WithModel("reasoning-model")
+    .WithModel("anthropic", "claude-sonnet-5-5")
     .WithTools(new HostedMcpServerTool("status_page", new Uri("https://mcp.example.com/status")));
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/StatusAgent.cs#L9-L13' title='Snippet source file'>snippet source</a> | <a href='#snippet-hosted-mcp' title='Start of snippet'>anchor</a></sup>

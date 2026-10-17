@@ -20,35 +20,20 @@ services.AddTypeshift()
     .WithRunMiddleware<BlockedTopics>()
     .WithToolMiddleware<AuditToolCalls>();
 
-services.AddKeyedSingleton("fast-model", fast);
-services.AddKeyedSingleton("reasoning-model", reasoning);
+services.AddKeyedSingleton("openai", fast);
+services.AddKeyedSingleton("anthropic", reasoning);
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L18-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `AddTypeshift()` registers the toolsets and agents of this project and the projects it references, plus a host per
-agent. This page needs two calls of the chain: `WithChatClientProvider<T>()` maps model names to clients, and
+agent. This page needs two calls of the chain: `WithChatClientProvider<T>()` returns the client of a provider's model, and
 `WithStore<T>()` keeps settings and conversations. [Registration](./registration.md#the-chain) covers the rest.
 
 ## Chat clients
 
-Your `IChatClientProvider` returns the `IChatClient` for a model's name. Provider packages register their clients with
-DI, so a provider over keyed registrations covers most hosts:
-
-<!-- snippet: chat-client-provider -->
-<a id='snippet-chat-client-provider'></a>
-```cs
-internal sealed class KeyedChatClientProvider(IServiceProvider services) : IChatClientProvider
-{
-    public ValueTask<IChatClient> GetChatClientAsync(string model, CancellationToken ct) =>
-        ValueTask.FromResult(services.GetRequiredKeyedService<IChatClient>(model));
-}
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/KeyedChatClientProvider.cs#L6-L12' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client-provider' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
-
-Typeshift resolves the provider from the run's services, so it can pick a customer's own credentials. It never
-disposes the client the provider returns.
+Your `IChatClientProvider` returns the `IChatClient` for a provider and a model, and Typeshift resolves it from the
+run's services. [Models and providers](./models.md) shows how to write one and how an agent names its model.
 
 ## The run's services
 
@@ -94,7 +79,8 @@ A run can also pass the agent's `Settings` for itself. They override the stored 
 ```cs
 var run = new SupportAgent.Settings
 {
-    Model = "reasoning-model",
+    Provider = "anthropic",
+    Model = "claude-sonnet-5-5",
     Temperature = 0,
     SearchTickets = new TicketToolset.SearchTicketsOverrides { IncludeClosed = true },
     SearchArticles = new KnowledgeToolset.SearchArticlesOverrides { Language = "de" }
@@ -102,7 +88,7 @@ var run = new SupportAgent.Settings
 
 var thorough = await support.RunAsync("Where is my refund?", settingsId, settings: run);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L30-L40' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L30-L41' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Values the run leaves null keep what the stored settings or the agent's code set, as
@@ -124,7 +110,7 @@ var report = await support.RunAsync<RefundStatus>("Summarize the refund.", setti
 
 Console.WriteLine($"{report.Result.Invoice}: {report.Result.State}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L44-L48' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L45-L49' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 <!-- snippet: structured-output-type -->
@@ -139,7 +125,7 @@ internal enum RefundState
     Paid
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L76-L85' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output-type' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L77-L86' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output-type' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Under [Native AOT](./production.md#native-aot), `T` needs JSON metadata.
@@ -154,7 +140,7 @@ Under [Native AOT](./production.md#native-aot), `T` needs JSON metadata.
 await foreach (var update in support.RunStreamingAsync("Where is my refund?", settingsId))
     Console.Write(update.Text);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L52-L55' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L53-L56' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 With `WithRealtimeTracking()`, anyone [watching the conversation](./conversations.md#live-updates) sees the updates
@@ -173,7 +159,7 @@ var options = await support.ResolveOptionsAsync(settingsId, run);
 using var client = await support.CreateChatClientAsync(options);
 var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "Where is my refund?")], options);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L59-L64' title='Snippet source file'>snippet source</a> | <a href='#snippet-raw-path' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L60-L65' title='Snippet source file'>snippet source</a> | <a href='#snippet-raw-path' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The client is the run's whole pipeline, the tool loop and the agent's run options included. Disposing it leaves the
@@ -244,6 +230,7 @@ provider's client ([Observability](./production.md#observability)).
 
 ## Related
 
+- [Models and providers](./models.md): the chat client provider and how agents name their models.
 - [Agent host](./generated-members.md#the-agent-host): every member of the host and its signature.
 - [Registration](./registration.md#the-chain): the chain calls and their lifetimes.
 - [Conversations](./conversations.md): storing, resuming and steering runs.

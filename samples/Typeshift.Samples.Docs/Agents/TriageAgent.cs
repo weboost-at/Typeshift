@@ -8,7 +8,7 @@ internal partial class TriageAgent : Agent
     public TriageAgent()
     {
         WithChatOptions()
-            .WithModel("fast-model");
+            .WithModel("openai", "gpt-5-mini");
 
         // begin-snippet: exclude-tools
         UseToolset<TicketToolset>()

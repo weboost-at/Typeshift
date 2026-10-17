@@ -1,3 +1,4 @@
+using Typeshift.Samples.Chat;
 using Typeshift.Toolsets;
 
 namespace Typeshift.Samples.Companies;
@@ -9,7 +10,7 @@ internal partial class ResearchAgent : Agent
         WithDescription("Researches the companies of a city.");
 
         WithChatOptions()
-            .WithModel("scripted-model")
+            .WithModel(Provider.Scripted, "scripted-model")
             .WithTemperature(0.2f)
             .Configurable(o => o.Temperature);
 

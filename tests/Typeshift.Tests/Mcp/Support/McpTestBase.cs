@@ -37,7 +37,7 @@ public partial class McpAgent : Agent
 {
     public McpAgent()
     {
-        WithChatOptions().WithModel("mcp-model");
+        WithChatOptions().WithModel("scripted", "mcp-model");
 
         WithRunOptions().Configurable(r => r.Mode);
 

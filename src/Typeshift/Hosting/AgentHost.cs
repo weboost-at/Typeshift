@@ -32,25 +32,27 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
 
     /// <summary>
     /// The raw path: creates the client of a run whose options <c>ResolveOptionsAsync</c> resolved. It asks the
-    /// <see cref="IChatClientProvider"/> for the options' model and wraps the client in the tool loop.
+    /// <see cref="IChatClientProvider{TProviderId}"/> for the options' provider and model and wraps the client in the
+    /// tool loop.
     /// </summary>
     /// <param name="options">The resolved options; call the client with them.</param>
     /// <param name="ct">Cancels the creation.</param>
     /// <returns>The client; disposing it leaves the provider's client alone.</returns>
-    /// <exception cref="InvalidOperationException">The options name no model, or no provider is registered.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// The options name no provider or no model, or no chat client provider is registered.
+    /// </exception>
     public async Task<IChatClient> CreateChatClientAsync(ChatOptions options, CancellationToken ct = default)
     {
-        var model = options.ModelId
-            ?? throw new InvalidOperationException(
-                $"The agent '{Agent.Name}' has no model: set one with WithChatOptions().WithModel(...), or make it "
-                + "configurable and pass it in the settings.");
+        var resolved = options as ResolvedChatOptions;
+        var provider = resolved is null ? Agent.Provider : resolved.Provider;
 
-        var provider = _services.GetService<IChatClientProvider>()
-            ?? throw new InvalidOperationException(
-                "No IChatClientProvider is registered: call WithChatClientProvider<T>() after AddTypeshift().");
+        if (provider is null || options.ModelId is not { } model)
+            throw new InvalidOperationException(
+                $"The agent '{Agent.Name}' has no model: set one with WithChatOptions().WithModel(provider, model), "
+                + "or make it configurable and pass a provider and a model in the settings.");
 
-        var client = await provider.GetChatClientAsync(model, ct);
-        var run = options is ResolvedChatOptions resolved ? resolved.RunOptions : Agent.RunOptions;
+        var client = await _services.GetRequiredService<ChatClients>().GetAsync(_services, provider, model, ct);
+        var run = resolved?.RunOptions ?? Agent.RunOptions;
 
         // D29: outermost the conversation, then run middleware, context and approval above the tool loop, the
         // checkpoints and compaction inside it, and innermost the provider's client, instrumented, behind a wrapper
@@ -89,7 +91,11 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
         var stored = settingsId is null ? null : await declaration.LoadSettingsAsync(Store, settingsId, ct);
         IReadOnlyList<object> layers = [.. new[] { stored, settings }.OfType<object>()];
 
-        var options = new ResolvedChatOptions(Agent.ChatOptions) { Instructions = Agent.Instructions };
+        var options = new ResolvedChatOptions(Agent.ChatOptions)
+        {
+            Instructions = Agent.Instructions,
+            Provider = Agent.Provider
+        };
         var run = Agent.RunOptions;
 
         foreach (var layer in layers)

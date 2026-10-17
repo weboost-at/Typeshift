@@ -7,17 +7,24 @@ namespace Typeshift;
 /// </summary>
 public sealed class ChatOptionsBuilder
 {
-    private readonly ChatOptions _options;
+    private readonly Agent _agent;
 
-    internal ChatOptionsBuilder(ChatOptions options) => _options = options;
+    internal ChatOptionsBuilder(Agent agent) => _agent = agent;
 
     /// <summary>
-    /// Sets the model, as the host's <see cref="IChatClientProvider"/> names it. <c>Configurable(o => o.ModelId)</c>
-    /// lets stored settings or a run choose another.
+    /// Sets the model and the provider that serves it, both of which the host's
+    /// <see cref="IChatClientProvider{TProviderId}"/> receives. <c>Configurable(o => o.ModelId)</c> lets stored
+    /// settings or a run choose another of each.
     /// </summary>
-    /// <param name="model">The model's name.</param>
+    /// <typeparam name="TProviderId">The build's provider id type (TSH030).</typeparam>
+    /// <param name="provider">The provider.</param>
+    /// <param name="model">The model, as the provider's API names it.</param>
     /// <returns>The same chain.</returns>
-    public ChatOptionsBuilder WithModel(string model) => Set(options => options.ModelId = model);
+    public ChatOptionsBuilder WithModel<TProviderId>(TProviderId provider, string model) where TProviderId : notnull
+    {
+        _agent.Provider = provider;
+        return Set(options => options.ModelId = model);
+    }
 
     /// <summary>
     /// Sets the sampling temperature.
@@ -138,7 +145,7 @@ public sealed class ChatOptionsBuilder
 
     private ChatOptionsBuilder Set(Action<ChatOptions> set)
     {
-        set(_options);
+        set(_agent.ChatOptions);
         return this;
     }
 }

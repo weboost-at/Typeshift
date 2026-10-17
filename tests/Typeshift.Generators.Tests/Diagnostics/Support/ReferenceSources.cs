@@ -84,7 +84,7 @@ public static class ReferenceSources
             public ResearchAgent()
             {
                 WithChatOptions()
-                    .WithModel("fast-model")
+                    .WithModel("openai", "fast-model")
                     .Configurable(o => o.Temperature);
 
                 UseToolset<CompanyToolset>().Include(t => t.FindCompanies);

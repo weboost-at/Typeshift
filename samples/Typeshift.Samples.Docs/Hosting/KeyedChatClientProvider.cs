@@ -6,7 +6,8 @@ namespace Typeshift.Samples.Hosting;
 // begin-snippet: chat-client-provider
 internal sealed class KeyedChatClientProvider(IServiceProvider services) : IChatClientProvider
 {
-    public ValueTask<IChatClient> GetChatClientAsync(string model, CancellationToken ct) =>
-        ValueTask.FromResult(services.GetRequiredKeyedService<IChatClient>(model));
+    // One client per provider serves all its models: Typeshift puts the model into every request
+    public ValueTask<IChatClient> GetChatClientAsync(string provider, string model, CancellationToken ct) =>
+        ValueTask.FromResult(services.GetRequiredKeyedService<IChatClient>(provider));
 }
 // end-snippet

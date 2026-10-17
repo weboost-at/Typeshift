@@ -15,7 +15,7 @@ internal static class Quickstart
             .WithStore<InMemoryTypeshiftStore>()
             .WithChatClientProvider<KeyedChatClientProvider>();
 
-        services.AddKeyedSingleton<IChatClient>("fast-model", new CannedChatClient());
+        services.AddKeyedSingleton<IChatClient>("openai", new CannedChatClient());
 
         await using var provider = services.BuildServiceProvider(validateScopes: true);
         // end-snippet

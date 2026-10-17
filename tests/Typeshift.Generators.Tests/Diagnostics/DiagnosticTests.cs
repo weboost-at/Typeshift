@@ -466,6 +466,26 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Model_Of_A_Provider_Of_Another_Type_TSH030_Is_Reported_On_The_Provider()
+    {
+        // Act
+        var run = Run(DiagnosticSources.OtherProviderIdTypeModel);
+
+        // Assert
+        run.Assert.Reports("TSH030", DiagnosticSeverity.Error, "42");
+    }
+
+    [Fact]
+    public void Given_A_Chat_Client_Provider_Of_Another_Type_TSH030_Is_Reported_On_WithChatClientProvider()
+    {
+        // Act
+        var run = Run(DiagnosticSources.OtherProviderIdTypeProvider);
+
+        // Assert
+        run.Assert.Reports("TSH030", DiagnosticSeverity.Error, "WithChatClientProvider<NumberedClients>");
+    }
+
+    [Fact]
     public void Given_A_Toolset_Used_Twice_TSH025_Is_Reported_On_The_Second_Use()
     {
         // Act
@@ -586,6 +606,40 @@ public class DiagnosticTests : GeneratorTestBase
             .GetMessage()
             .Should()
             .Contain("TenantId");
+        run.Assert.GeneratesValidCode();
+    }
+
+    [Fact]
+    public void Given_A_Provider_Id_Type_The_Build_Cannot_Find_TSH029_Is_Reported_On_The_Compilation()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.ToolTypeWithoutJsonMetadata);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.WithProviderIdType("ProviderKey"));
+
+        // Assert
+        run.Assert.ReportsOnTheCompilation("TSH029", DiagnosticSeverity.Error)
+            .GetMessage()
+            .Should()
+            .Contain("TypeshiftProviderIdType names 'ProviderKey', which the build cannot find");
+        run.Assert.GeneratesValidCode();
+    }
+
+    [Fact]
+    public void Given_A_Provider_Id_Type_Of_More_Than_One_Value_TSH029_Is_Reported_On_The_Compilation()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.ToolTypeWithoutJsonMetadata);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.WithProviderIdType("System.Version"));
+
+        // Assert
+        run.Assert.ReportsOnTheCompilation("TSH029", DiagnosticSeverity.Error)
+            .GetMessage()
+            .Should()
+            .Contain("which settings cannot store as one value");
         run.Assert.GeneratesValidCode();
     }
 

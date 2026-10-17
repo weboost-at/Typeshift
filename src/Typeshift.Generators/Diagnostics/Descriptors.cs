@@ -154,11 +154,23 @@ internal static class Descriptors
         "Store has another id type",
         "'{0}' is no ITypeshiftStore<{1}>, a store of the build's id type");
 
+    // {2} is NotFound or NotOneValue
     public static readonly DiagnosticDescriptor UnknownIdType = Error(
         "TSH029",
-        "Id type cannot be found",
-        "TypeshiftIdType names '{0}', which the build cannot find: give a C# keyword such as int, or the type's full "
-        + "name with its namespace");
+        "Id type cannot be used",
+        "{0} names '{1}', {2}");
+
+    public const string NotFound =
+        "which the build cannot find: give a C# keyword such as int, or the type's full name with its namespace";
+
+    public const string NotOneValue =
+        "which settings cannot store as one value: give a string, a number, a Guid or an enum";
+
+    // {0} is the type of a WithModel provider, or the provider id type of a WithChatClientProvider<T>() class
+    public static readonly DiagnosticDescriptor OtherProviderIdType = Error(
+        "TSH030",
+        "Provider has another id type",
+        "{0} is not '{1}', the build's provider id type");
 
     private static DiagnosticDescriptor Error(string id, string title, string message) =>
         Create(id, title, message, DiagnosticSeverity.Error);

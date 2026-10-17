@@ -104,7 +104,7 @@ to offer the tool.
 ### `Settings`
 
 **Triggered by** every agent. The record is a `public sealed record` nested in the agent, and holds exactly what may
-change at runtime. This agent gets `SupportAgent.Settings` with `Model`, `Instructions`, `Temperature`,
+change at runtime. This agent gets `SupportAgent.Settings` with `Provider`, `Model`, `Instructions`, `Temperature`,
 `SearchTickets` and `SearchArticles`:
 
 <!-- snippet: agent -->
@@ -117,7 +117,7 @@ internal partial class SupportAgent : Agent
         WithDescription("Answers customers from their tickets and the help center.");
 
         WithChatOptions()
-            .WithModel("fast-model")
+            .WithModel("openai", "gpt-5-mini")
             .WithTemperature(0.3f)
             .Configurable(o => o.ModelId)
             .Configurable(o => o.Instructions)
@@ -145,12 +145,13 @@ internal partial class SupportAgent : Agent
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L48' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 | Declaration | Member |
 |---|---|
-| `WithChatOptions().Configurable(o => o.ModelId)` | `string? Model`, over `WithModel`. |
+| `WithChatOptions().Configurable(o => o.ModelId)` | `Provider`, of the [provider id type](./models.md#the-provider-id-type), and `string? Model`, over `WithModel`. |
+| `WithRunOptions().Configurable(r => r.SummaryModel)` | `SummaryProvider`, of the provider id type, and `string? SummaryModel`; null at the end for the run's own. |
 | `WithChatOptions().Configurable(o => o.X)` | `X`, nullable: `float? Temperature`, `string? Instructions`. |
 | `WithRunOptions().Configurable(r => r.X)` | `X`, nullable: `AgentMode? Mode`, `int? MaxToolIterations`. |
 | `UseToolset<T>()` offering a tool with `{Tool}Overrides` | `{Tool}`, its overrides, never null. A name taken by an option or by one of the record's own members, such as `Kind`, gets a `Tool` suffix. |
@@ -233,7 +234,7 @@ what `WithName` and `WithDescription` declared.
 `Task<IChatClient> CreateChatClientAsync(ChatOptions options, CancellationToken ct = default)`
 
 Creates the client of the [raw path](./running-agents.md#the-raw-path) for options that `ResolveOptionsAsync`
-returned. It asks the `IChatClientProvider` for the options' model and wraps that client in the run's pipeline, with
+returned. It asks the `IChatClientProvider` for the options' provider and model and wraps that client in the run's pipeline, with
 the agent's run options and the tool loop.
 
 Calling the client with those options runs and stores like `RunAsync`. `ChatOptions.ConversationId` names the

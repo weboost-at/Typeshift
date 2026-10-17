@@ -45,6 +45,8 @@ internal static class KnownTypes
 
     public const string Store = "Typeshift.ITypeshiftStore`1";
 
+    public const string ChatClientProvider = "Typeshift.IChatClientProvider`1";
+
     public const string JsonSerializerContext = "System.Text.Json.Serialization.JsonSerializerContext";
 
     public const string JsonSerializableAttribute = "System.Text.Json.Serialization.JsonSerializableAttribute";

@@ -61,6 +61,9 @@ Generated members take the id type, as in `RunAsync(input, settingsId: 42)`, and
 never creates ids; your code chooses them. A referenced project built with another id type is
 [TSH021](./diagnostics.md#tsh021), and a store of another id type is [TSH028](./diagnostics.md#tsh028).
 
+Providers have an id type of their own, `TypeshiftProviderIdType`, which is `string` unless set. See
+[the provider id type](./models.md#the-provider-id-type).
+
 ## What `AddTypeshift()` registers
 
 A typical registration, with the chain:
@@ -75,8 +78,8 @@ services.AddTypeshift()
     .WithRunMiddleware<BlockedTopics>()
     .WithToolMiddleware<AuditToolCalls>();
 
-services.AddKeyedSingleton("fast-model", fast);
-services.AddKeyedSingleton("reasoning-model", reasoning);
+services.AddKeyedSingleton("openai", fast);
+services.AddKeyedSingleton("anthropic", reasoning);
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L18-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
@@ -109,7 +112,7 @@ references. The host's toolsets and agents need the host's own call.
 | Call | Registers | Lifetime | Needed by |
 |---|---|---|---|
 | `WithStore<TStore>()` | `TStore`, and `ITypeshiftStore` as it | Singleton | Settings ids, conversation ids, approval and handoffs. Without a store, every call that loads or saves throws, naming this method. |
-| `WithChatClientProvider<TProvider>()` | `IChatClientProvider` | Scoped | Every run. |
+| `WithChatClientProvider<TProvider>()` | `TProvider`, and `IChatClientProvider` as it | Scoped | Every run. |
 | `WithRealtimeTracking(RealtimeTrackingOptions? options = null)` | The options. By default, `PublishInterval` is 100 ms and `MaxPendingUpdates` 256. | Singleton | `ConversationTracker.WatchAsync`. |
 | `WithApprovalRule<TRule>()` | One more `IToolApprovalRule` | Scoped | Deciding calls before the host is asked. |
 | `WithRunMiddleware<TMiddleware>()` | One more `IRunMiddleware`. The first registered is the outermost. | Scoped | Wrapping every run. |

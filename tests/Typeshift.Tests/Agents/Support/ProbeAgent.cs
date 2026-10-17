@@ -7,6 +7,8 @@ namespace Typeshift.Tests.Agents.Support;
 // Offers the probe, which returns the settings it ran with, so a test reads back what a run resolved
 public partial class ProbeAgent : Agent
 {
+    public const string ModelProvider = "probe-provider";
+
     public const string Model = "probe-model";
 
     public const float Temperature = 0.5f;
@@ -25,7 +27,7 @@ public partial class ProbeAgent : Agent
         WithDescription("Probes what a run resolves.");
 
         WithChatOptions()
-            .WithModel(Model)
+            .WithModel(ModelProvider, Model)
             .WithTemperature(Temperature)
             .WithStopSequences(Stop)
             .WithTools(new HostedWebSearchTool())

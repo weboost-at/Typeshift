@@ -38,7 +38,8 @@ never debug a compiler error inside generated code.
 | [TSH026](#tsh026) | Error | Agents call each other in a circle |
 | [TSH027](#tsh027) | Error | Tool type has no JSON metadata under Native AOT |
 | [TSH028](#tsh028) | Error | Store has another id type |
-| [TSH029](#tsh029) | Error | Id type cannot be found |
+| [TSH029](#tsh029) | Error | Id type cannot be used |
+| [TSH030](#tsh030) | Error | Provider has another id type |
 
 ## Severities and suppression
 
@@ -212,8 +213,16 @@ the alias the generator writes for it.
 
 ## TSH029
 
-**Id type cannot be found.** `TypeshiftIdType` names a type the build does not know. Give a C# keyword (`int`,
-`long`, `string`), a type of `System` (`Guid`), or the type's full name with its namespace.
+**Id type cannot be used.** `TypeshiftIdType` or `TypeshiftProviderIdType` names a type the build does not know.
+Give a C# keyword (`int`, `long`, `string`), a type of `System` (`Guid`), or the type's full name with its namespace.
+A provider id is stored in the agent's `Settings` as one value, so `TypeshiftProviderIdType` also has to be a string,
+a number, a `Guid` or an enum.
+
+## TSH030
+
+**Provider has another id type.** `WithModel(provider, model)` takes a provider of the build's
+[provider id type](./models.md#the-provider-id-type), and `WithChatClientProvider<T>()` a class that serves that
+type. Pass a provider of that type, or implement `IChatClientProvider`, the alias the generator writes for it.
 
 ## Related
 

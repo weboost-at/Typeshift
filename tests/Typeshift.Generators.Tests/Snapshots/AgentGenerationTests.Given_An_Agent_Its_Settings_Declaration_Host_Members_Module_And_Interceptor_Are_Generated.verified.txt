@@ -14,6 +14,11 @@ partial class SupportAgent
         : global::Typeshift.IStorable<Settings>, global::Typeshift.Generated.IJsonStorable<Settings>
     {
         /// <summary>
+        /// The provider of the model, over <c>WithModel</c>. Null keeps the layer below.
+        /// </summary>
+        public string? Provider { get; init; }
+
+        /// <summary>
         /// The model, over <c>WithModel</c>. Null keeps the layer below.
         /// </summary>
         public string? Model { get; init; }
@@ -65,34 +70,40 @@ partial class SupportAgent
         {
             writer.WriteStartObject();
 
-            if (Model is { } member0)
+            if (Provider is { } member0)
             {
-                writer.WritePropertyName("model");
+                writer.WritePropertyName("provider");
                 global::Typeshift.Generated.StorableJson.Write(writer, member0);
             }
 
-            if (Temperature is { } member1)
+            if (Model is { } member1)
+            {
+                writer.WritePropertyName("model");
+                global::Typeshift.Generated.StorableJson.Write(writer, member1);
+            }
+
+            if (Temperature is { } member2)
             {
                 writer.WritePropertyName("temperature");
-                global::Typeshift.Generated.StorableJson.WriteNumber(writer, member1);
+                global::Typeshift.Generated.StorableJson.WriteNumber(writer, member2);
             }
 
-            if (StopSequences is { } member2)
+            if (StopSequences is { } member3)
             {
                 writer.WritePropertyName("stopSequences");
-                WriteStored0(writer, member2);
+                WriteStored0(writer, member3);
             }
 
-            if (Reasoning is { } member3)
+            if (Reasoning is { } member4)
             {
                 writer.WritePropertyName("reasoning");
-                global::Typeshift.Generated.StorableJson.Write(writer, member3);
+                global::Typeshift.Generated.StorableJson.Write(writer, member4);
             }
 
-            if (MaxToolIterations is { } member4)
+            if (MaxToolIterations is { } member5)
             {
                 writer.WritePropertyName("maxToolIterations");
-                global::Typeshift.Generated.StorableJson.WriteNumber(writer, member4);
+                global::Typeshift.Generated.StorableJson.WriteNumber(writer, member5);
             }
 
             var tool0 = SearchTickets is { } set0 && set0 != new global::Demo.TicketToolset.SearchTicketsOverrides() ? set0 : null;
@@ -122,11 +133,12 @@ partial class SupportAgent
 
             value = new()
             {
-                Model = global::Typeshift.Generated.StorableJson.TryRead(global::Typeshift.Generated.StorableJson.Member(element, "model"), out string member0) ? member0 : null,
-                Temperature = global::Typeshift.Generated.StorableJson.TryReadNumber<float>(global::Typeshift.Generated.StorableJson.Member(element, "temperature"), out float member1) ? member1 : null,
-                StopSequences = TryReadStored0(global::Typeshift.Generated.StorableJson.Member(element, "stopSequences"), out global::System.Collections.Generic.IReadOnlyList<string> member2) ? member2 : null,
-                Reasoning = global::Typeshift.Generated.StorableJson.TryRead(global::Typeshift.Generated.StorableJson.Member(element, "reasoning"), out global::Microsoft.Extensions.AI.ReasoningOptions member3) ? member3 : null,
-                MaxToolIterations = global::Typeshift.Generated.StorableJson.TryReadNumber<int>(global::Typeshift.Generated.StorableJson.Member(element, "maxToolIterations"), out int member4) ? member4 : null,
+                Provider = global::Typeshift.Generated.StorableJson.TryRead(global::Typeshift.Generated.StorableJson.Member(element, "provider"), out string member0) ? member0 : null,
+                Model = global::Typeshift.Generated.StorableJson.TryRead(global::Typeshift.Generated.StorableJson.Member(element, "model"), out string member1) ? member1 : null,
+                Temperature = global::Typeshift.Generated.StorableJson.TryReadNumber<float>(global::Typeshift.Generated.StorableJson.Member(element, "temperature"), out float member2) ? member2 : null,
+                StopSequences = TryReadStored0(global::Typeshift.Generated.StorableJson.Member(element, "stopSequences"), out global::System.Collections.Generic.IReadOnlyList<string> member3) ? member3 : null,
+                Reasoning = global::Typeshift.Generated.StorableJson.TryRead(global::Typeshift.Generated.StorableJson.Member(element, "reasoning"), out global::Microsoft.Extensions.AI.ReasoningOptions member4) ? member4 : null,
+                MaxToolIterations = global::Typeshift.Generated.StorableJson.TryReadNumber<int>(global::Typeshift.Generated.StorableJson.Member(element, "maxToolIterations"), out int member5) ? member5 : null,
                 SearchTickets = global::Demo.TicketToolset.SearchTicketsOverrides.TryReadJson(global::Typeshift.Generated.StorableJson.Member(global::Typeshift.Generated.StorableJson.Member(element, "tools"), "search_tickets"), out var tool0) ? tool0 : new()
             };
 
@@ -179,6 +191,7 @@ partial class SupportAgent
             global::Typeshift.RunOptions run,
             Settings settings)
         {
+            if (settings.Provider is { } provider) SetProvider(options, provider);
             if (settings.Model is { } model) options.ModelId = model;
             if (settings.Temperature is { } temperature) options.Temperature = temperature;
             if (settings.StopSequences is { } stopSequences) options.StopSequences = [.. stopSequences];
@@ -649,10 +662,10 @@ namespace Typeshift.Generated
 {
     file static class AddTypeshiftInterceptor
     {
-        [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "1zUgx46dpUaHSawyOUaoC60DAABTb3VyY2UxLmNz")]
+        [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "cAi6IyEGN3BAKwRhJH0Ph7cDAABTb3VyY2UxLmNz")]
         public static global::Typeshift.TypeshiftBuilder AddTypeshift(this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)
         {
-            var builder = global::Typeshift.Generated.ModuleRegistration.AddCoreServices<global::System.Guid>(services, static text => global::System.Guid.Parse(text, global::System.Globalization.CultureInfo.InvariantCulture));
+            var builder = global::Typeshift.Generated.ModuleRegistration.AddCoreServices<global::System.Guid, string>(services, static text => global::System.Guid.Parse(text, global::System.Globalization.CultureInfo.InvariantCulture));
 
             global::Typeshift.Generated.SubjectModule.Register(services);
             global::Typeshift.Generated.TypeshiftModule.Register(services);
@@ -681,6 +694,7 @@ global using ITypeshiftStore = global::Typeshift.ITypeshiftStore<global::System.
 global using InMemoryTypeshiftStore = global::Typeshift.InMemoryTypeshiftStore<global::System.Guid>;
 global using ConversationTracker = global::Typeshift.ConversationTracker<global::System.Guid>;
 global using LiveRun = global::Typeshift.LiveRun<global::System.Guid>;
+global using IChatClientProvider = global::Typeshift.IChatClientProvider<string>;
 
 // HintName: Typeshift.Generated.SubjectModule.g.cs
 // <auto-generated/>

@@ -8,7 +8,7 @@ internal partial class ResearchAgent : Agent
         WithDescription("Researches the companies of a city.");
 
         WithChatOptions()
-            .WithModel("fast-model")
+            .WithModel("openai", "gpt-5-mini")
             .WithTemperature(0.2f)
             .Configurable(o => o.Instructions)
             .Configurable(o => o.Temperature);

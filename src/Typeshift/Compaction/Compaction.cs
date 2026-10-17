@@ -98,15 +98,20 @@ internal sealed class Compaction
         call = [.. call.Select(Clear)];
         if (total <= limit) return call;
 
-        // Then the oldest turns, summarized or dropped, up to where the rest fits with room for the summary
+        // Then the oldest turns, summarized, up to where the rest fits with room for the summary
         if (Cut(call, options, limit * 0.9) is not { } cut) return call;
 
         var region = call.Take(cut).ToList();
-        var summary = options.RunOptions.SummaryModel is { } model
-            ? await SummarizeAsync(region, model, options.AgentRun!, ct)
-            : null;
 
-        _summary = [.. summary is null ? [] : new[] { summary }, .. TodosOf(region)];
+        // D56: the run's provider and model unless the settings or the agent name others; a run has both
+        var summary = await SummarizeAsync(
+            region,
+            options.SummaryProvider ?? options.Provider!,
+            options.RunOptions.SummaryModel ?? options.ModelId!,
+            options.AgentRun!,
+            ct);
+
+        _summary = [summary, .. TodosOf(region)];
         _keptFrom = call[cut].Contents[0];
 
         var kept = call.Skip(cut).ToList();
@@ -196,13 +201,14 @@ internal sealed class Compaction
 
     private static async Task<ChatMessage> SummarizeAsync(
         List<ChatMessage> region,
+        object provider,
         string model,
         AgentRun run,
         CancellationToken ct)
     {
-        var provider = run.Services.GetRequiredService<IChatClientProvider>();
+        var clients = run.Services.GetRequiredService<ChatClients>();
         var instrumented = run.Services.GetRequiredService<InstrumentedClients>();
-        using var client = instrumented.Instrument(await provider.GetChatClientAsync(model, ct));
+        using var client = instrumented.Instrument(await clients.GetAsync(run.Services, provider, model, ct));
 
         var response = await client.GetResponseAsync(
             [new ChatMessage(ChatRole.System, SummaryInstructions), new ChatMessage(ChatRole.User, Transcript(region))],

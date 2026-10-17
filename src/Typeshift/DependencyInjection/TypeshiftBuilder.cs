@@ -10,13 +10,16 @@ public sealed class TypeshiftBuilder
 {
     private readonly IServiceCollection _services;
     private readonly Action<IServiceCollection, Func<IServiceProvider, object>> _addStore;
+    private readonly Action<IServiceCollection, Func<IServiceProvider, object>> _addChatClientProvider;
 
     internal TypeshiftBuilder(
         IServiceCollection services,
-        Action<IServiceCollection, Func<IServiceProvider, object>> addStore)
+        Action<IServiceCollection, Func<IServiceProvider, object>> addStore,
+        Action<IServiceCollection, Func<IServiceProvider, object>> addChatClientProvider)
     {
         _services = services;
         _addStore = addStore;
+        _addChatClientProvider = addChatClientProvider;
     }
 
     /// <summary>
@@ -35,15 +38,16 @@ public sealed class TypeshiftBuilder
     }
 
     /// <summary>
-    /// Registers the provider that maps model names to clients, scoped.
+    /// Registers the provider that returns the client of a provider's model, scoped.
     /// </summary>
-    /// <typeparam name="TProvider">The provider.</typeparam>
+    /// <typeparam name="TProvider">An <c>IChatClientProvider</c> of the build's provider id type (TSH030).</typeparam>
     /// <returns>The same chain.</returns>
     public TypeshiftBuilder WithChatClientProvider<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProvider>()
-        where TProvider : class, IChatClientProvider
+        where TProvider : class
     {
-        _services.AddScoped<IChatClientProvider, TProvider>();
+        _services.AddScoped<TProvider>();
+        _addChatClientProvider(_services, provider => provider.GetRequiredService<TProvider>());
         return this;
     }
 

@@ -77,6 +77,31 @@ public class AgentGenerationTests : GeneratorTestBase
         run.Output.GetTypeByMetadataName("Demo.Outer_HiddenAgentHostExtensions").Should().BeNull();
     }
 
+    [Theory]
+    [InlineData("Demo.Provider", "global::Demo.Provider", "Provider.LmStudio")]
+    [InlineData("Guid", "global::System.Guid", "System.Guid.Empty")]
+    [InlineData("int", "int", "7")]
+    public void Given_A_Provider_Id_Type_The_Alias_The_Settings_And_The_Core_Services_Use_It(
+        string property,
+        string type,
+        string provider)
+    {
+        // Arrange
+        var compilation = Compile(AgentSources.Routed(type, provider));
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.WithProviderIdType(property));
+
+        var sources = run.Result.GeneratedTrees.Select(tree => tree.ToString()).ToList();
+
+        // Assert
+        run.Assert.CompilesCleanly();
+        sources.Should().Contain(source => source.Contains($"global::Typeshift.IChatClientProvider<{type}>;"));
+        sources.Should().Contain(source => source.Contains($"public {type}? Provider {{ get; init; }}"));
+        sources.Should().Contain(source => source.Contains($"public {type}? SummaryProvider {{ get; init; }}"));
+        sources.Should().Contain(source => source.Contains($"AddCoreServices<global::System.Guid, {type}>"));
+    }
+
     [Fact]
     public void Given_An_Id_Type_The_Aliases_And_The_Host_Members_Use_It()
     {

@@ -31,7 +31,7 @@ internal partial class ReportAgent : Agent
     public ReportAgent()
     {
         WithChatOptions()
-            .WithModel("reasoning-model");
+            .WithModel("anthropic", "claude-sonnet-5-5");
 
         UseAgent<ResearchAgent>();
     }
@@ -106,7 +106,7 @@ internal partial class ExploreAgent : Agent
         WithDescription("Explores the workspace and answers one question about it, citing files and lines.");
 
         WithChatOptions()
-            .WithModel("fast-model");
+            .WithModel("openai", "gpt-5-mini");
 
         UseToolset<FileSystemToolset>()
             .Include(t => t.ReadFile)
@@ -136,7 +136,7 @@ internal partial class TriageAgent : Agent
     public TriageAgent()
     {
         WithChatOptions()
-            .WithModel("fast-model");
+            .WithModel("openai", "gpt-5-mini");
 
         UseToolset<TicketToolset>()
             .Exclude(t => t.CloseTicket);

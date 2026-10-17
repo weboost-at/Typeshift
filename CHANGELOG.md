@@ -5,6 +5,22 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- `TypeshiftProviderIdType` sets the type of provider ids for the build, `string` by default, and the generator writes
+  the `IChatClientProvider` alias for it. A string, a number, a `Guid` or an enum works.
+- TSH030 reports a provider of another type than the build's at `WithModel` and at `WithChatClientProvider<T>()`.
+
+### Changed
+
+- An agent names its model by a provider and a model: `WithModel(provider, model)`. `GetChatClientAsync` receives
+  both, and a request carries the model alone as `ChatOptions.ModelId`, so composite names and the client wrappers
+  that undid them go. A configurable model brings `Provider` into the agent's `Settings`, a configurable summary model
+  `SummaryProvider`.
+- Compaction always summarizes: without a summary model the run's model does it, and `WithSummaryModel(model)` names
+  a model the run's provider serves. It no longer drops the oldest turns.
+- TSH029 is "Id type cannot be used" and covers `TypeshiftProviderIdType` too.
+
 ### Fixed
 
 - The metrics `gen_ai.client.token.usage` and `gen_ai.client.operation.duration` no longer reset after every run:

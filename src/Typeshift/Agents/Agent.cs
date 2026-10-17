@@ -27,6 +27,9 @@ public abstract class Agent
     // D4: the values the chains record; what they declare is in the generated declaration
     internal ChatOptions ChatOptions { get; } = new();
 
+    // D56: boxed, of the build's provider id type
+    internal object? Provider { get; set; }
+
     internal RunOptions RunOptions { get; set; } = new();
 
     internal List<Func<IServiceProvider, IContextProvider>> ContextProviders { get; } = [];
@@ -92,7 +95,7 @@ public abstract class Agent
     /// Sets the chat options every run starts from and marks those a run or stored settings may change.
     /// </summary>
     /// <returns>The chain of chat options.</returns>
-    protected ChatOptionsBuilder WithChatOptions() => new(ChatOptions);
+    protected ChatOptionsBuilder WithChatOptions() => new(this);
 
     /// <summary>
     /// Offers the tools of a toolset: all of them, or those <c>Include</c> picks, or all but those <c>Exclude</c>

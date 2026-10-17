@@ -8,7 +8,7 @@ internal partial class CodingAgent : Agent
     public CodingAgent()
     {
         WithChatOptions()
-            .WithModel("reasoning-model");
+            .WithModel("anthropic", "claude-sonnet-5-5");
 
         UseToolset<TodoToolset>();
         UseToolset<FileSystemToolset>();
@@ -26,9 +26,10 @@ internal partial class CodingAgent : Agent
             .WithMode(AgentMode.Plan)
             .WithMaxToolIterations(500)
             .WithMaxInputTokens(150_000)
-            .WithSummaryModel("fast-model")
+            .WithSummaryModel("claude-haiku-5-5")
             .Configurable(r => r.Mode)
-            .Configurable(r => r.MaxToolIterations);
+            .Configurable(r => r.MaxToolIterations)
+            .Configurable(r => r.SummaryModel);
         // end-snippet
 
         ConfigureRunCommand()

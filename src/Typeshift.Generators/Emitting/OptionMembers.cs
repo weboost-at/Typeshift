@@ -3,8 +3,14 @@ using Typeshift.Generators.Models;
 namespace Typeshift.Generators.Emitting;
 
 // A chat or run option a Configurable pick may name: its member in the agent's Settings, that member's type, how a
-// set value is applied ({0} standing for it), and how the member is stored
-internal sealed record OptionMember(string Option, string Setting, string Type, string Apply, StorageModel Storage);
+// set value is applied ({0} standing for it), how the member is stored, and for a model the member of its provider
+internal sealed record OptionMember(
+    string Option,
+    string Setting,
+    string Type,
+    string Apply,
+    StorageModel Storage,
+    string? Provider = null);
 
 internal static class OptionMembers
 {
@@ -18,11 +24,11 @@ internal static class OptionMembers
 
     private static readonly StorageModel Mode = new(StorageKind.Enum, "global::Typeshift.AgentMode");
 
-    // D28: the model is Model in Settings. Options of the run itself (ConversationId, Tools, AdditionalProperties) and
-    // types settings cannot store (ResponseFormat, ToolMode) are left out
+    // D28: the model is Model in Settings, with its Provider (D56). Options of the run itself (ConversationId, Tools,
+    // AdditionalProperties) and types settings cannot store (ResponseFormat, ToolMode) are left out
     public static readonly OptionMember[] Chat =
     [
-        new("ModelId", "Model", "string?", "{0}", Text),
+        new("ModelId", "Model", "string?", "{0}", Text, Provider: "Provider"),
         new("Instructions", "Instructions", "string?", "{0}", Text),
         new("Temperature", "Temperature", "float?", "{0}", Single),
         new("MaxOutputTokens", "MaxOutputTokens", "int?", "{0}", Integer),
@@ -54,6 +60,6 @@ internal static class OptionMembers
         new("ConcurrentToolCalls", "ConcurrentToolCalls", "bool?", "{0}", Flag),
         new("MaxInputTokens", "MaxInputTokens", "int?", "{0}", Integer),
         new("TargetInputTokens", "TargetInputTokens", "int?", "{0}", Integer),
-        new("SummaryModel", "SummaryModel", "string?", "{0}", Text)
+        new("SummaryModel", "SummaryModel", "string?", "{0}", Text, Provider: "SummaryProvider")
     ];
 }

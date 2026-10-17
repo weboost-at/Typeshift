@@ -43,6 +43,55 @@ public static class AgentSources
         }
         """;
 
+    // An agent whose model and summary model are configurable, in a build of the given provider id type
+    public static string Routed(string providerIdType, string provider) =>
+        $$"""
+        #pragma warning disable CS1591
+
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Typeshift;
+        using Microsoft.Extensions.AI;
+        using Microsoft.Extensions.DependencyInjection;
+
+        namespace Demo;
+
+        public enum Provider
+        {
+            OpenAI,
+            LmStudio
+        }
+
+        public partial class RoutedAgent : Agent
+        {
+            public RoutedAgent()
+            {
+                WithChatOptions()
+                    .WithModel({{provider}}, "gpt-5-mini")
+                    .Configurable(o => o.ModelId);
+
+                WithRunOptions()
+                    .WithSummaryModel("gpt-5-nano")
+                    .Configurable(r => r.SummaryModel);
+            }
+        }
+
+        public sealed class Clients : IChatClientProvider
+        {
+            public ValueTask<IChatClient> GetChatClientAsync(
+                {{providerIdType}} provider,
+                string model,
+                CancellationToken ct) =>
+                throw new System.NotSupportedException();
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithChatClientProvider<Clients>();
+        }
+        """;
+
     public const string Support =
         """
         #pragma warning disable CS1591
@@ -59,7 +108,7 @@ public static class AgentSources
                 WithDescription("Answers customers.");
 
                 WithChatOptions()
-                    .WithModel("fast-model")
+                    .WithModel("openai", "fast-model")
                     .WithTemperature(0.3f)
                     .Configurable(o => o.ModelId)
                     .Configurable(o => o.Temperature)
@@ -138,7 +187,7 @@ public static class AgentSources
         {
             private partial class HiddenAgent : Agent
             {
-                public HiddenAgent() => WithChatOptions().WithModel("fast-model");
+                public HiddenAgent() => WithChatOptions().WithModel("openai", "fast-model");
             }
         }
         """;

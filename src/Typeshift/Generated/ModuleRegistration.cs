@@ -16,13 +16,17 @@ public static class ModuleRegistration
     /// Registers the services every module needs, once.
     /// </summary>
     /// <typeparam name="TId">The build's id type, <c>TypeshiftIdType</c>.</typeparam>
+    /// <typeparam name="TProviderId">The build's provider id type, <c>TypeshiftProviderIdType</c>.</typeparam>
     /// <param name="services">The services.</param>
     /// <param name="parse">
     /// Reads an id from text, for the raw path's <c>ChatOptions.ConversationId</c>; null for an id type without one.
     /// </param>
     /// <returns>The registration chain <c>AddTypeshift()</c> returns.</returns>
-    public static TypeshiftBuilder AddCoreServices<TId>(IServiceCollection services, Func<string, TId>? parse)
+    public static TypeshiftBuilder AddCoreServices<TId, TProviderId>(
+        IServiceCollection services,
+        Func<string, TId>? parse)
         where TId : notnull
+        where TProviderId : notnull
     {
         services.TryAddSingleton(provider => new ToolJson(
             provider.GetServices<JsonContextRegistration>().Select(registration => registration.Resolver),
@@ -31,15 +35,22 @@ public static class ModuleRegistration
         services.TryAddSingleton<IStoreAccess>(provider => new StoreAccess<TId>(provider, parse));
         services.TryAddSingleton<LiveRuns>();
         services.TryAddSingleton<InstrumentedClients>();
+        services.TryAddSingleton<ChatClients, ChatClients<TProviderId>>();
         services.TryAddSingleton(provider => new ConversationTracker<TId>(
             provider.GetRequiredService<LiveRuns>(),
             provider.GetService<RealtimeTrackingOptions>()));
 
-        return new TypeshiftBuilder(services, static (services, store) =>
-            services.AddSingleton<ITypeshiftStore<TId>>(provider =>
+        return new TypeshiftBuilder(
+            services,
+            static (services, store) => services.AddSingleton<ITypeshiftStore<TId>>(provider =>
                 store(provider) as ITypeshiftStore<TId>
                 ?? throw new InvalidOperationException(
-                    $"The store is no ITypeshiftStore<{typeof(TId).Name}>, the build's id type (TSH028).")));
+                    $"The store is no ITypeshiftStore<{typeof(TId).Name}>, the build's id type (TSH028).")),
+            static (services, clients) => services.AddScoped<IChatClientProvider<TProviderId>>(provider =>
+                clients(provider) as IChatClientProvider<TProviderId>
+                ?? throw new InvalidOperationException(
+                    $"The chat client provider is no IChatClientProvider<{typeof(TProviderId).Name}>, of the build's "
+                    + "provider id type (TSH030).")));
     }
 
     /// <summary>

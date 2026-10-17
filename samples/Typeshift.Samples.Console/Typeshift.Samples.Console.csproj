@@ -16,6 +16,13 @@
     <RootNamespace>Typeshift.Samples</RootNamespace>
   </PropertyGroup>
 
+  <!-- An enum, so the Native AOT build covers a provider id type other than string -->
+  <!-- begin-snippet: provider-id-type -->
+  <PropertyGroup>
+    <TypeshiftProviderIdType>Typeshift.Samples.Chat.Provider</TypeshiftProviderIdType>
+  </PropertyGroup>
+  <!-- end-snippet -->
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
   </ItemGroup>

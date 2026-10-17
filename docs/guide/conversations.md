@@ -187,11 +187,12 @@ WithRunOptions()
     .WithMode(AgentMode.Plan)
     .WithMaxToolIterations(500)
     .WithMaxInputTokens(150_000)
-    .WithSummaryModel("fast-model")
+    .WithSummaryModel("claude-haiku-5-5")
     .Configurable(r => r.Mode)
-    .Configurable(r => r.MaxToolIterations);
+    .Configurable(r => r.MaxToolIterations)
+    .Configurable(r => r.SummaryModel);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L24-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-long-running-options' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L24-L33' title='Snippet source file'>snippet source</a> | <a href='#snippet-long-running-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Before every model call, Typeshift estimates the call's input tokens at about four characters per token, corrected by
@@ -200,7 +201,8 @@ what the provider reported for the run's last call. When the estimate reaches th
 
 1. It clears the results of the oldest tool calls the model has already read. It keeps the calls, so the model knows
    what it did and can call again.
-2. If that is not enough, it summarizes the oldest turns with the summary model, or drops them when there is none.
+2. If that is not enough, it summarizes the oldest turns with the [summary model](./models.md#the-summary-model), the
+   run's own unless you name another.
 
 The instructions and the latest `write_todos` call always stay, and a cut never separates a tool call from its
 result. Later calls of the run see the same compaction.
@@ -214,4 +216,5 @@ entry of its own, and later runs start from that entry instead of summarizing ag
 - [How a run works](./running-agents.md#how-a-run-works): where a run resumes and stores its steps.
 - [Settings and stores](./settings-and-stores.md#the-store): the store methods that keep conversations.
 - [Builders](./builders.md#runoptionsbuilder): the run options of compaction and their defaults.
+- [Models and providers](./models.md#the-summary-model): which model summarizes, and its provider.
 - [Multiple agents](./multi-agent.md#handoff): handoffs, which need a conversation.

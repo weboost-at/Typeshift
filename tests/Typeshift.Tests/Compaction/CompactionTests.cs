@@ -64,20 +64,21 @@ public class CompactionTests : AgentTestBase
         await RunAsync(Data.Agent.FollowUp, settings);
 
         // Assert
-        Models.Should().Contain(SummaryModel);
+        Models.Should().Contain(new ProvidedModel(CompactingAgent.ModelProvider, SummaryModel));
         Texts(2).Should().HaveCount(3);
         Texts(2)[0].Should().EndWith(Data.Agent.Reason);
         Texts(2)[1..].Should().Equal(Data.Tool.Answer, Data.Agent.FollowUp);
     }
 
     [Fact]
-    public async Task Given_No_Summary_Model_The_Oldest_Turns_Are_Dropped()
+    public async Task Given_No_Summary_Model_The_Runs_Model_Summarizes()
     {
         // Arrange
         var settings = new CompactingAgent.Settings { MaxInputTokens = 1_000 };
 
         ChatClient
             .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason))
             .Reply(Text(Data.Tool.Answer));
 
         await RunAsync(new string('x', Page), settings);
@@ -86,7 +87,33 @@ public class CompactionTests : AgentTestBase
         await RunAsync(Data.Agent.FollowUp, settings);
 
         // Assert
-        Texts(1).Should().Equal(Data.Tool.Answer, Data.Agent.FollowUp);
+        Models.Should().AllBeEquivalentTo(new ProvidedModel(CompactingAgent.ModelProvider, CompactingAgent.Model));
+        Texts(2)[0].Should().EndWith(Data.Agent.Reason);
+    }
+
+    [Fact]
+    public async Task Given_A_Summary_Provider_It_Serves_The_Summary_Model()
+    {
+        // Arrange
+        var settings = new CompactingAgent.Settings
+        {
+            MaxInputTokens = 1_000,
+            SummaryProvider = Data.Agent.Provider,
+            SummaryModel = SummaryModel
+        };
+
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        await RunAsync(new string('x', Page), settings);
+
+        // Act
+        await RunAsync(Data.Agent.FollowUp, settings);
+
+        // Assert
+        Models.Should().Contain(new ProvidedModel(Data.Agent.Provider, SummaryModel));
     }
 
     [Fact]
@@ -148,6 +175,7 @@ public class CompactionTests : AgentTestBase
             .Reply(
                 Read(Data.Tool.CallId, Page / 2),
                 new ChatResponseUpdate(ChatRole.Assistant, [new UsageContent(reported)]))
+            .Reply(Text(Data.Agent.Reason))
             .Reply(Read(Data.Tool.SecondCallId, 4))
             .Reply(Text(Data.Tool.Answer));
 
@@ -155,7 +183,7 @@ public class CompactionTests : AgentTestBase
         await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 1_500, TargetInputTokens = 1_000 });
 
         // Assert
-        Results(2)[0].Should().Be(Typeshift.Compaction.ClearedResult);
+        Results(3)[0].Should().Be(Typeshift.Compaction.ClearedResult);
     }
 
     [Fact]
@@ -168,6 +196,7 @@ public class CompactionTests : AgentTestBase
             .Reply(
                 Read(Data.Tool.CallId, Page / 2),
                 new ChatResponseUpdate(ChatRole.Assistant, [new UsageContent(reported)]))
+            .Reply(Text(Data.Agent.Reason))
             .Reply(Read(Data.Tool.SecondCallId, 4))
             .Reply(Text(Data.Tool.Answer));
 
@@ -181,7 +210,7 @@ public class CompactionTests : AgentTestBase
             .ToListAsync(Ct);
 
         // Assert
-        Results(2)[0].Should().Be(Typeshift.Compaction.ClearedResult);
+        Results(3)[0].Should().Be(Typeshift.Compaction.ClearedResult);
     }
 
     private Task<ChatResponse> RunAsync(string input, CompactingAgent.Settings? settings = null) =>

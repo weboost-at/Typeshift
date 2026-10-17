@@ -46,7 +46,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.OfferedTwice,
         Descriptors.NoJsonMetadata,
         Descriptors.OtherStoreIdType,
-        Descriptors.UnknownIdType
+        Descriptors.UnknownIdType,
+        Descriptors.OtherProviderIdType
     ];
 
     public override void Initialize(AnalysisContext context)
@@ -64,13 +65,25 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         var kinds = new ConcurrentBag<(string Kind, INamedTypeSymbol Agent)>();
         var found = new Found();
 
-        var property = IdTypes.Read(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
+        var options = context.Options.AnalyzerConfigOptionsProvider.GlobalOptions;
+        var property = IdTypes.Read(options);
         var idType = IdTypes.Resolve(property, context.Compilation);
 
-        if (idType is null)
+        // D56: a provider id type the build finds but settings cannot store as one value is TSH029 too
+        var providerProperty = IdTypes.Read(options, IdTypes.ProviderProperty);
+        var providerIdType = IdTypes.ResolveProvider(providerProperty, context.Compilation);
+        var unknown = new List<Diagnostic>();
+
+        if (idType is null) unknown.Add(UnknownIdType("TypeshiftIdType", property, Descriptors.NotFound));
+
+        if (providerIdType is null)
         {
-            context.RegisterCompilationEndAction(end =>
-                end.ReportDiagnostic(Diagnostic.Create(Descriptors.UnknownIdType, Location.None, property)));
+            unknown.Add(UnknownIdType(
+                "TypeshiftProviderIdType",
+                providerProperty,
+                IdTypes.Resolve(providerProperty, context.Compilation, "string") is null
+                    ? Descriptors.NotFound
+                    : Descriptors.NotOneValue));
         }
 
         context.RegisterSymbolStartAction(start => StartClass(start, tools, kinds, found), SymbolKind.NamedType);
@@ -79,10 +92,17 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         var aot = IsAot(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
         // The library's own builders make the calls a user may not; its built-in toolsets are checked as declarations
         if (context.Compilation.AssemblyName != KnownTypes.LibraryAssembly)
-            context.RegisterOperationAction(call => AnalyzeCall(call, idType), OperationKind.Invocation);
+            context.RegisterOperationAction(
+                call => AnalyzeCall(call, idType, providerIdType),
+                OperationKind.Invocation);
 
         context.RegisterCompilationEndAction(end =>
         {
+            foreach (var diagnostic in unknown)
+            {
+                end.ReportDiagnostic(diagnostic);
+            }
+
             ReportClashesAcrossToolsets(end, tools);
             ReportUnstampedReferences(end);
             ReportOtherIdTypes(end, idType);
@@ -175,10 +195,28 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             _ => null
         };
 
-    private static void AnalyzeCall(OperationAnalysisContext context, ITypeSymbol? idType)
+    private static Diagnostic UnknownIdType(string name, string? property, string reason) =>
+        Diagnostic.Create(Descriptors.UnknownIdType, Location.None, name, property, reason);
+
+    private static void AnalyzeCall(
+        OperationAnalysisContext context,
+        ITypeSymbol? idType,
+        ITypeSymbol? providerIdType)
     {
         var invocation = (IInvocationOperation)context.Operation;
         var target = invocation.TargetMethod;
+
+        // D56: providers are of the build's provider id type; one that cannot be used is TSH029 already
+        if (providerIdType is not null && OtherProviderIdType(invocation, providerIdType) is { } other)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                Descriptors.OtherProviderIdType,
+                other.Location,
+                other.Subject,
+                providerIdType.ToDisplayString()));
+
+            return;
+        }
 
         // D11: the store serves ids of the build's type; an id type the build cannot find is TSH029 already
         if (idType is not null
@@ -284,6 +322,39 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         {
             context.ReportDiagnostic(Diagnostic.Create(Descriptors.UnstampedReference, Location.None, assembly.Name));
         }
+    }
+
+    // WithModel(provider, model) with a provider of another type, or WithChatClientProvider<T>() with a T that serves
+    // no IChatClientProvider of the build's provider id type
+    private static (string Subject, Location Location)? OtherProviderIdType(
+        IInvocationOperation invocation,
+        ITypeSymbol providerIdType)
+    {
+        var target = invocation.TargetMethod;
+        if (target.TypeArguments.Length != 1) return null;
+
+        var argument = target.TypeArguments[0];
+
+        if (target.Name == "WithModel"
+            && target.ContainingType.Is(KnownTypes.ChatOptionsBuilder)
+            && !SymbolEqualityComparer.Default.Equals(argument, providerIdType))
+        {
+            return (
+                $"The provider's type '{argument.ToDisplayString()}'",
+                invocation.Arguments[0].Syntax.GetLocation());
+        }
+
+        if (target.Name == "WithChatClientProvider"
+            && target.ContainingType.Is(KnownTypes.TypeshiftBuilder)
+            && !argument.AllInterfaces.Any(contract => contract.Is(KnownTypes.ChatClientProvider)
+                && SymbolEqualityComparer.Default.Equals(contract.TypeArguments[0], providerIdType)))
+        {
+            return (
+                $"The provider id type of '{argument.Name}'",
+                ConstructorChains.GetCalledName(invocation).GetLocation());
+        }
+
+        return null;
     }
 
     private static void ReportOtherIdTypes(CompilationAnalysisContext context, ITypeSymbol? idType)

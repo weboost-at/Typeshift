@@ -513,7 +513,7 @@ public static class DiagnosticSources
 
         internal partial class EchoAgent : Agent
         {
-            public EchoAgent(string model) => WithChatOptions().WithModel(model);
+            public EchoAgent(string model) => WithChatOptions().WithModel("openai", model);
         }
         """;
 
@@ -652,7 +652,7 @@ public static class DiagnosticSources
         {
             internal partial class HelpAgent : Agent
             {
-                public HelpAgent() => WithChatOptions().WithModel("fast-model");
+                public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
             }
         }
 
@@ -660,7 +660,7 @@ public static class DiagnosticSources
         {
             internal partial class HelpAgent : Agent
             {
-                public HelpAgent() => WithChatOptions().WithModel("fast-model");
+                public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
             }
         }
         """;
@@ -671,7 +671,7 @@ public static class DiagnosticSources
 
         internal partial class HelpAgent : Agent
         {
-            public HelpAgent() => WithChatOptions().WithModel("fast-model");
+            public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
         }
 
         internal partial class LeadAgent : Agent
@@ -862,6 +862,38 @@ public static class DiagnosticSources
         {
             public static void Register(IServiceCollection services) =>
                 services.AddTypeshift().WithStore<InMemoryTypeshiftStore<int>>();
+        }
+        """;
+
+    // The build's provider id type is string
+    public const string OtherProviderIdTypeModel =
+        """
+        using Typeshift;
+
+        public partial class HelpAgent : Agent
+        {
+            public HelpAgent() => WithChatOptions().WithModel(42, "fast-model");
+        }
+        """;
+
+    public const string OtherProviderIdTypeProvider =
+        """
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Typeshift;
+        using Microsoft.Extensions.AI;
+        using Microsoft.Extensions.DependencyInjection;
+
+        public sealed class NumberedClients : IChatClientProvider<int>
+        {
+            public ValueTask<IChatClient> GetChatClientAsync(int provider, string model, CancellationToken ct) =>
+                throw new System.NotSupportedException();
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithChatClientProvider<NumberedClients>();
         }
         """;
 }

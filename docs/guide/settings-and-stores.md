@@ -64,7 +64,8 @@ Null keeps the layer below, so neither stored settings nor a run can take away a
 ### The model and the instructions
 
 The model is a value like any other. It stays in code unless `Configurable(o => o.ModelId)` lets the layers above
-choose it, so stored settings never pick a model the agent does not allow.
+choose it, so stored settings never pick a model the agent does not allow. Its provider is a value of its own, so a
+layer that sets only `Model` keeps the provider of the layer below.
 
 Instructions replace, then grow. Stored or run `Instructions` replace those of `GetInstructions()`, and context
 providers and plan mode then append to whatever the layers resolved.
@@ -94,7 +95,7 @@ services.AddTypeshift()
     .WithStore<InMemoryTypeshiftStore>()
     .WithChatClientProvider<KeyedChatClientProvider>();
 
-services.AddKeyedSingleton<IChatClient>("fast-model", new CannedChatClient());
+services.AddKeyedSingleton<IChatClient>("openai", new CannedChatClient());
 
 await using var provider = services.BuildServiceProvider(validateScopes: true);
 ```
@@ -307,12 +308,13 @@ loads them again and reapplies your change until its save wins:
 ```cs
 await support.ConfigureAsync(settingsId, settings => settings with
 {
-    Model = "reasoning-model",
+    Provider = "anthropic",
+    Model = "claude-sonnet-5-5",
     Instructions = "Answer in German.",
     SearchTickets = settings.SearchTickets with { Limit = 20 }
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L14-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-configure-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L14-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-configure-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A settings form does it in two steps: it loads the settings with their revision and saves them back with it. A
@@ -332,7 +334,7 @@ catch (StoreConflictException)
     stored = await support.LoadSettingsAsync(settingsId);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L23-L34' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-and-save-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L24-L35' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-and-save-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## The stored JSON
@@ -341,7 +343,8 @@ What is stored is the record's JSON: camelCase, with the tools nested under `"to
 
 ```json
 {
-  "model": "reasoning-model",
+  "provider": "anthropic",
+  "model": "claude-sonnet-5-5",
   "instructions": "Answer in German.",
   "tools": {
     "search_tickets": {

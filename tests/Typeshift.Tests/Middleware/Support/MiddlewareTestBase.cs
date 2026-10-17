@@ -43,7 +43,7 @@ public partial class ContextAgent : Agent
 
     public ContextAgent()
     {
-        WithChatOptions().WithModel("context-model");
+        WithChatOptions().WithModel("scripted", "context-model");
 
         UseToolset<GuardedToolset>();
 

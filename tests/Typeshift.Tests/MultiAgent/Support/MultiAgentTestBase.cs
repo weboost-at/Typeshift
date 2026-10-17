@@ -29,9 +29,9 @@ public sealed record HelperChatClient(ScriptedChatClient Client);
 public sealed class TwoClientProvider(ScriptedChatClient client, HelperChatClient helper, ProvidedModels models)
     : IChatClientProvider
 {
-    public ValueTask<IChatClient> GetChatClientAsync(string model, CancellationToken ct)
+    public ValueTask<IChatClient> GetChatClientAsync(string provider, string model, CancellationToken ct)
     {
-        models.Add(model);
+        models.Add(new(provider, model));
         return ValueTask.FromResult<IChatClient>(model == HelperAgent.Model ? helper.Client : client);
     }
 }
@@ -47,7 +47,7 @@ public partial class HelperAgent : Agent
     {
         WithDescription(About);
 
-        WithChatOptions().WithModel(Model);
+        WithChatOptions().WithModel("scripted", Model);
 
         UseToolset<GuardedToolset>();
     }
@@ -59,7 +59,7 @@ public partial class LeadAgent : Agent
 {
     public LeadAgent()
     {
-        WithChatOptions().WithModel("lead-model");
+        WithChatOptions().WithModel("scripted", "lead-model");
 
         WithRunOptions().Configurable(r => r.Mode);
 
@@ -72,7 +72,7 @@ public partial class TrustingLeadAgent : Agent
 {
     public TrustingLeadAgent()
     {
-        WithChatOptions().WithModel("lead-model");
+        WithChatOptions().WithModel("scripted", "lead-model");
 
         UseToolset<GuardedToolset>().Include(t => t.CloseTicket);
 
@@ -84,7 +84,7 @@ public partial class BackgroundLeadAgent : Agent
 {
     public BackgroundLeadAgent()
     {
-        WithChatOptions().WithModel("lead-model");
+        WithChatOptions().WithModel("scripted", "lead-model");
 
         UseAgent<HelperAgent>().InBackground();
     }
@@ -97,7 +97,7 @@ public partial class FrontAgent : Agent
     {
         WithDescription("Finds out what the customer needs.");
 
-        WithChatOptions().WithModel("front-model");
+        WithChatOptions().WithModel("scripted", "front-model");
 
         UseHandoff<BackAgent>();
     }
@@ -113,7 +113,7 @@ public partial class BackAgent : Agent
     {
         WithDescription("Settles billing.");
 
-        WithChatOptions().WithModel("back-model");
+        WithChatOptions().WithModel("scripted", "back-model");
 
         UseHandoff<FrontAgent>();
     }

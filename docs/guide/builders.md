@@ -81,7 +81,7 @@ store, so it cannot be configurable ([TSH012](./diagnostics.md#tsh012)).
 
 | Call | Sets | May be configurable |
 |---|---|---|
-| `WithModel(string model)` | `ModelId`, as the `IChatClientProvider` names models | Yes, as `Model` |
+| `WithModel(TProviderId provider, string model)` | `ModelId`, and the [provider](./models.md) that serves it | Yes, as `Provider` and `Model` |
 | `GetInstructions()`, overridden in the agent | `Instructions` | Yes |
 | `WithTemperature(float temperature)` | `Temperature` | Yes |
 | `WithMaxOutputTokens(int tokens)` | `MaxOutputTokens` | Yes |
@@ -111,7 +111,7 @@ puts it into the agent's `Settings`, like a chat option.
 | `WithConcurrentToolCalls(bool concurrent)` | off | Runs the tool calls of one model response at the same time. |
 | `WithMaxInputTokens(int tokens)` | off | Turns [compaction](./conversations.md#compaction) on at this many input tokens. |
 | `WithTargetInputTokens(int tokens)` | half the maximum | Sets how far compaction shrinks the history. |
-| `WithSummaryModel(string model)` | none | Sets the model that summarizes what clearing tool results did not free. Without one, compaction drops the oldest turns. |
+| `WithSummaryModel(string model)` | the run's model | Sets the model that summarizes what clearing tool results did not free, served by the run's provider. Configurable, it brings `SummaryProvider` ([the summary model](./models.md#the-summary-model)). |
 
 ## Related
 

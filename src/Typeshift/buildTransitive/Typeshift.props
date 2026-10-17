@@ -5,12 +5,15 @@
     <InterceptorsNamespaces>$(InterceptorsNamespaces);Typeshift.Generated</InterceptorsNamespaces>
     <!-- D11: the type of every settings and conversation id; set it once, in Directory.Build.props. -->
     <TypeshiftIdType Condition="'$(TypeshiftIdType)' == ''">Guid</TypeshiftIdType>
+    <!-- D56: the type of every provider id; set it once, in Directory.Build.props. -->
+    <TypeshiftProviderIdType Condition="'$(TypeshiftProviderIdType)' == ''">string</TypeshiftProviderIdType>
     <!-- D55: the XML docs of the types tools take describe their schemas; false leaves them out. -->
     <TypeshiftSchemaAnnotations Condition="'$(TypeshiftSchemaAnnotations)' == ''">true</TypeshiftSchemaAnnotations>
   </PropertyGroup>
 
   <ItemGroup>
     <CompilerVisibleProperty Include="TypeshiftIdType" />
+    <CompilerVisibleProperty Include="TypeshiftProviderIdType" />
     <!-- D45: TSH027 holds for projects that publish with Native AOT or declare themselves compatible -->
     <CompilerVisibleProperty Include="PublishAot" />
     <CompilerVisibleProperty Include="IsAotCompatible" />

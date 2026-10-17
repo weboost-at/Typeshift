@@ -51,7 +51,7 @@ public partial class WorkspaceAgent : Agent
 {
     public WorkspaceAgent()
     {
-        WithChatOptions().WithModel("workspace-model");
+        WithChatOptions().WithModel("scripted", "workspace-model");
 
         UseToolset<FileSystemToolset>();
 
@@ -66,7 +66,7 @@ public partial class ReaderAgent : Agent
 
     public ReaderAgent()
     {
-        WithChatOptions().WithModel("reader-model");
+        WithChatOptions().WithModel("scripted", "reader-model");
 
         UseToolset<FileSystemToolset>().Include(t => t.ReadFile);
 

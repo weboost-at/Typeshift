@@ -30,7 +30,8 @@ internal static class RunningAgents
         // begin-snippet: run-settings
         var run = new SupportAgent.Settings
         {
-            Model = "reasoning-model",
+            Provider = "anthropic",
+            Model = "claude-sonnet-5-5",
             Temperature = 0,
             SearchTickets = new TicketToolset.SearchTicketsOverrides { IncludeClosed = true },
             SearchArticles = new KnowledgeToolset.SearchArticlesOverrides { Language = "de" }

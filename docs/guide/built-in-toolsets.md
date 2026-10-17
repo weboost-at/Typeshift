@@ -20,7 +20,7 @@ internal partial class CodingAgent : Agent
     public CodingAgent()
     {
         WithChatOptions()
-            .WithModel("reasoning-model");
+            .WithModel("anthropic", "claude-sonnet-5-5");
 
         UseToolset<TodoToolset>();
         UseToolset<FileSystemToolset>();
@@ -35,9 +35,10 @@ internal partial class CodingAgent : Agent
             .WithMode(AgentMode.Plan)
             .WithMaxToolIterations(500)
             .WithMaxInputTokens(150_000)
-            .WithSummaryModel("fast-model")
+            .WithSummaryModel("claude-haiku-5-5")
             .Configurable(r => r.Mode)
-            .Configurable(r => r.MaxToolIterations);
+            .Configurable(r => r.MaxToolIterations)
+            .Configurable(r => r.SummaryModel);
 
         ConfigureRunCommand()
             .WithShell("/bin/bash")
@@ -51,7 +52,7 @@ internal partial class CodingAgent : Agent
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 This agent offers all four toolsets, but only `web_fetch` of the web tools, and `ConfigureRunCommand()` sets the

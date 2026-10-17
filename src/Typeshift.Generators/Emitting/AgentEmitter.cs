@@ -31,7 +31,7 @@ internal static class AgentEmitter
         "Serialize", "Settings", "ToString", "TryReadJson", "Version", "WriteJson"
     ];
 
-    public static string Emit(AgentOutput output, string idType)
+    public static string Emit(AgentOutput output, string idType, ProviderIdModel providerId)
     {
         var agent = output.Agent;
         var configured = output.Tools.Where(tool => HasConfigure(agent, tool.Tool)).ToList();
@@ -41,7 +41,7 @@ internal static class AgentEmitter
             [],
             writer =>
             {
-                WriteSettings(writer, output);
+                WriteSettings(writer, output, providerId);
                 writer.Line();
                 writer.Line("/// <inheritdoc />");
                 writer.Line(Names.Hidden);
@@ -97,20 +97,27 @@ internal static class AgentEmitter
     private static IEnumerable<OptionMember> Picked(EquatableArray<string> picks, OptionMember[] options) =>
         options.Where(option => picks.Contains(option.Option));
 
+    // D56: a configurable model brings the member of its provider, first
+    private static IEnumerable<string> Members(OptionMember option) =>
+        option.Provider is { } provider ? [provider, option.Setting] : [option.Setting];
+
+    private static string Local(string member) =>
+        Names.Identifier(char.ToLowerInvariant(member[0]) + member.Substring(1));
+
     // D6: a tool member named like an option or one of the record's own gets a suffix instead of clashing with it
     private static string SettingsMember(AgentModel agent, ToolSummary tool)
     {
         string[] reserved =
         [
             .. RecordMembers,
-            .. Picked(agent.ChatOptions, OptionMembers.Chat).Select(option => option.Setting),
-            .. Picked(agent.RunOptions, OptionMembers.Run).Select(option => option.Setting)
+            .. Picked(agent.ChatOptions, OptionMembers.Chat).SelectMany(Members),
+            .. Picked(agent.RunOptions, OptionMembers.Run).SelectMany(Members)
         ];
 
         return Names.Identifier(Names.Unreserved(Names.ToPascalCase(tool.Name), "Tool", reserved));
     }
 
-    private static void WriteSettings(SourceWriter writer, AgentOutput output)
+    private static void WriteSettings(SourceWriter writer, AgentOutput output, ProviderIdModel providerId)
     {
         var agent = output.Agent;
         var chat = Picked(agent.ChatOptions, OptionMembers.Chat).ToList();
@@ -141,11 +148,26 @@ internal static class AgentEmitter
                     ? "The model, over <c>WithModel</c>. Null keeps the layer below."
                     : $"The chat option <c>{option.Option}</c>. Null keeps the layer below.";
 
+                if (option.Provider is { } provider)
+                {
+                    members.Add((
+                        "The provider of the model, over <c>WithModel</c>. Null keeps the layer below.",
+                        $"public {providerId.Type}? {provider} {{ get; init; }}"));
+                }
+
                 members.Add((summary, $"public {option.Type} {option.Setting} {{ get; init; }}"));
             }
 
             foreach (var option in run)
             {
+                if (option.Provider is { } provider)
+                {
+                    members.Add((
+                        $"The provider of <c>{option.Setting}</c>, the run's provider unless a layer sets it. Null "
+                        + "keeps the layer below.",
+                        $"public {providerId.Type}? {provider} {{ get; init; }}"));
+                }
+
                 members.Add((
                     $"The run option <c>{option.Option}</c>. Null keeps the layer below.",
                     $"public {option.Type} {option.Setting} {{ get; init; }}"));
@@ -186,7 +208,10 @@ internal static class AgentEmitter
                 """);
 
             var stored = chat.Concat(run)
-                .Select(option => (option.Setting, Parsing.Storage.JsonName(option.Setting), option.Storage));
+                .SelectMany(option => Members(option).Select(member => (
+                    member,
+                    Parsing.Storage.JsonName(member),
+                    member == option.Setting ? option.Storage : providerId.Storage)));
 
             StorageEmitter.WriteRecordJson(
                 writer,
@@ -292,13 +317,22 @@ internal static class AgentEmitter
         {
             foreach (var option in chat)
             {
-                var value = Names.Identifier(char.ToLowerInvariant(option.Setting[0]) + option.Setting.Substring(1));
+                if (option.Provider is { } provider) WriteSetProvider(writer, provider);
+
+                var value = Local(option.Setting);
                 var applied = string.Format(option.Apply, value);
 
                 writer.Line($"if (settings.{option.Setting} is {{ }} {value}) options.{option.Option} = {applied};");
             }
 
-            if (chat.Count > 0) writer.Line();
+            var providers = run.Select(option => option.Provider).OfType<string>().ToList();
+
+            foreach (var provider in providers)
+            {
+                WriteSetProvider(writer, provider);
+            }
+
+            if (chat.Count > 0 || providers.Count > 0) writer.Line();
 
             if (run.Count == 0)
             {
@@ -318,6 +352,10 @@ internal static class AgentEmitter
             }
         }
     }
+
+    // D56: the providers ride on the resolved options, where the library reads them boxed
+    private static void WriteSetProvider(SourceWriter writer, string provider) =>
+        writer.Line($"if (settings.{provider} is {{ }} {Local(provider)}) Set{provider}(options, {Local(provider)});");
 
     // D27: the agent's Configure{Tool}() over the record's defaults, then each layer's overrides
     private static void WriteCreateTools(

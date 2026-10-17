@@ -54,7 +54,7 @@ public partial class GuardedAgent : Agent
 {
     public GuardedAgent()
     {
-        WithChatOptions().WithModel("guarded-model");
+        WithChatOptions().WithModel("scripted", "guarded-model");
 
         WithRunOptions()
             .Configurable(r => r.Mode)

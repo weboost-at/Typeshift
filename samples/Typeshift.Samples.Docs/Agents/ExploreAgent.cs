@@ -10,7 +10,7 @@ internal partial class ExploreAgent : Agent
         WithDescription("Explores the workspace and answers one question about it, citing files and lines.");
 
         WithChatOptions()
-            .WithModel("fast-model");
+            .WithModel("openai", "gpt-5-mini");
 
         UseToolset<FileSystemToolset>()
             .Include(t => t.ReadFile)

@@ -65,6 +65,26 @@ public abstract class AgentDeclaration<TAgent, TSettings> : AgentDeclaration
     protected abstract RunOptions ApplySettings(ChatOptions options, RunOptions run, TSettings settings);
 
     /// <summary>
+    /// Sets the provider of the run's model, as a settings layer names it.
+    /// </summary>
+    /// <param name="options">The chat options being resolved.</param>
+    /// <param name="provider">The provider, of the build's provider id type.</param>
+    protected static void SetProvider(ChatOptions options, object provider)
+    {
+        if (options is ResolvedChatOptions resolved) resolved.Provider = provider;
+    }
+
+    /// <summary>
+    /// Sets the provider of the summary model, as a settings layer names it.
+    /// </summary>
+    /// <param name="options">The chat options being resolved.</param>
+    /// <param name="provider">The provider, of the build's provider id type.</param>
+    protected static void SetSummaryProvider(ChatOptions options, object provider)
+    {
+        if (options is ResolvedChatOptions resolved) resolved.SummaryProvider = provider;
+    }
+
+    /// <summary>
     /// Creates the offered tools with their settings: the agent's <c>Configure{Tool}()</c>, then each layer.
     /// </summary>
     /// <param name="agent">The agent.</param>
