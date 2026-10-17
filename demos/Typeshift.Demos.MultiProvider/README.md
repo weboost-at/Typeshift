@@ -19,5 +19,4 @@ dotnet run --project demos/Typeshift.Demos.MultiProvider -- --list lmstudio
 dotnet run --project demos/Typeshift.Demos.MultiProvider -- --add groq openai https://api.groq.com/openai/v1 '${GROQ_API_KEY}'
 ```
 
-The `CLUNKY n` comments in the code mark where the current library makes this harder than it should be. The
-retrospective in `docs/contributing/retrospective.md` proposes what to change.
+The `CLUNKY n` comments in the code mark where the current library makes this harder than it should be.

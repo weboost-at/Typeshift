@@ -157,5 +157,3 @@ rewrite.
 
 - [Decisions](./decisions.md): why the built behavior is shaped the way it is.
 - [Architecture](./architecture.md): where each behavior lives in the code.
-- [Audit](./audit.md): the October 2026 audit that fixed nine findings and listed the gaps above.
-- [Retrospective](./retrospective.md): the proposals that would close the gaps, and what to add before v1.

@@ -124,6 +124,5 @@ Demo.Note("3  no model catalog: a settings UI asks each provider itself, and onl
 Demo.Note("4  the provider is scoped but clients must live long: a second singleton holds them");
 Demo.Note("5  nothing validates a stored model name; a typo surfaces in the middle of a run");
 Demo.Note("6  ChatOptions.ModelId reaches the wire with the composite name: every client is wrapped to put the id back");
-Demo.Note("   see docs/contributing/retrospective.md for the proposals");
 
 return 0;
