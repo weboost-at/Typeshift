@@ -2,7 +2,10 @@
 
 <div align="center">
 
-# Typeshift
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/public/brand/logo-dark.svg">
+  <img src="docs/public/brand/logo.svg" alt="Typeshift by weboost" height="56">
+</picture>
 
 **Code-defined agents and toolsets for .NET 10, built on [Microsoft.Extensions.AI](https://learn.microsoft.com/dotnet/ai/microsoft-extensions-ai).**
 
