@@ -32,12 +32,26 @@ three times. Read the page aloud. If it sounds like a spec, rewrite it.
   retrying is what `ConfigureAsync` does".
 - **Concrete over abstract.** Name the example in the prose: "closing a ticket", not "an operation with side
   effects".
+- **Short paragraphs** of whole sentences that make sense on their own. Several facts about a snippet become a list,
+  not one long paragraph.
 - **Say why once.** A rule without a reason gets broken, and a reason given three times gets skipped.
 - **Examples say so.** "for example" or "such as", never a trailing "say".
 - **No filler.** No "basically", "simply", "just", "note that", "it's worth noting", "seamlessly", "robust", no em
   dashes, no rhetorical questions, no sentence that only announces the next one, and no closing summary.
 - **The words of the [glossary](../guide/glossary.md)**, used the same way everywhere: a *toolset* declares *tools*,
   an *agent* offers them, a *host* runs it.
+
+## The pitch
+
+The README and the home page sell Typeshift and get a reader running. The guide holds the details, so the README
+stays light: a short pitch, a quick start, and a table of links into the guide.
+
+- **Lead with what the reader writes.** A tool is a method, an agent is a constructor. What the generator emits, such
+  as functions, records, one registration call or Native AOT support, backs the pitch but never leads it.
+- **Never "plain C#".** It reads as classes without a base class, and toolsets and agents derive from `Toolset` and
+  `Agent`.
+- **Getting started stays at about four steps**, because Typeshift is meant to be easy and a long first page says
+  otherwise.
 
 ## Page anatomy
 

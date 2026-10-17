@@ -35,6 +35,7 @@ differently.
 Read each section in sidebar order against `docs/contributing/writing.md`:
 
 - a lead that answers what and why, and no summary box;
+- pitch lines and the README following "The pitch" in `writing.md`, and short paragraphs;
 - varied sentences that read like a person wrote them, the reason for each rule, no filler, no trailing "say";
 - no fact a page explains that another page owns, and no page longer than its topic needs;
 - callouts for what they mean: security cautions as `danger`, silent surprises as `warning`;
