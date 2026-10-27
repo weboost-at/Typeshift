@@ -158,6 +158,30 @@ public class ModeTests : ApprovalTestBase
     }
 
     [Fact]
+    public async Task Given_A_Compaction_In_Plan_Mode_Its_Summary_Keeps_The_Mode()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        await RunAsync(new string('x', Page), AgentMode.Plan);
+
+        // Act
+        await Host<GuardedAgent>().RunAsync(
+            Data.Agent.FollowUp,
+            conversationId: Data.Agent.ConversationId,
+            settings: new() { Mode = AgentMode.Plan, MaxInputTokens = 1_000 },
+            ct: Ct);
+
+        var summary = (await EntriesAsync(Data.Agent.ConversationId)).Single(entry => entry.IsSummary);
+
+        // Assert
+        summary.Mode.Should().Be(AgentMode.Plan);
+    }
+
+    [Fact]
     public async Task Given_A_Run_Naming_A_Mode_It_Leaves_The_Conversations_Mode()
     {
         // Arrange

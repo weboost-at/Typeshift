@@ -10,9 +10,7 @@ internal static class ConversationHistory
 {
     public static List<ChatMessage> From(IReadOnlyList<ConversationEntry> entries)
     {
-        // D32: compaction stored what it left of the history; what came before is in it
-        var start = Math.Max(0, entries.ToList().FindLastIndex(entry => entry.IsSummary));
-        var messages = entries.Skip(start).SelectMany(entry => entry.Messages).ToList();
+        var messages = SinceSummary(entries).SelectMany(entry => entry.Messages).ToList();
         var contents = messages.SelectMany(message => message.Contents).ToList();
 
         var answered = contents.OfType<FunctionResultContent>().Select(result => result.CallId).ToHashSet();
@@ -40,6 +38,13 @@ internal static class ConversationHistory
         }
 
         return usable;
+    }
+
+    // D32: compaction stored what it left of the history; what came before is in it
+    public static IReadOnlyList<ConversationEntry> SinceSummary(IReadOnlyList<ConversationEntry> entries)
+    {
+        var start = entries.ToList().FindLastIndex(entry => entry.IsSummary);
+        return [.. entries.Skip(Math.Max(start, 0))];
     }
 
     private static ChatMessage? Usable(ChatMessage message, Func<string, bool> keepsCall)

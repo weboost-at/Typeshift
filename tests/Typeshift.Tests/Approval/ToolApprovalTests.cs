@@ -181,6 +181,37 @@ public class ToolApprovalTests : ApprovalTestBase
     }
 
     [Fact]
+    public async Task Given_An_Approval_For_The_Conversation_The_Summary_Keeps_It_For_Later_Runs()
+    {
+        // Arrange
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(CloseTicket(Data.Tool.SecondCallId, Data.Agent.Ticket.Updated))
+            .Reply(Text(Data.Tool.Answer));
+
+        var asked = await RunAsync(Data.Tool.Question);
+        await AnswerAsync(asked.ApprovalRequests[0].ApproveForConversation());
+
+        await Host<GuardedAgent>().RunAsync(
+            new string('x', Page),
+            conversationId: Data.Agent.ConversationId,
+            settings: new() { MaxInputTokens = 1_000 },
+            ct: Ct);
+
+        var summary = (await EntriesAsync(Data.Agent.ConversationId)).Single(entry => entry.IsSummary);
+
+        // Act
+        var later = await RunAsync(Data.Agent.FollowUp);
+
+        // Assert
+        summary.StandingApprovals.Should().Equal("close_ticket");
+        later.ApprovalRequests.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Given_A_Streaming_Run_A_Rule_Approves_Its_Text_Is_Stored_Once_And_The_Call_Before_Its_Result()
     {
         // Arrange

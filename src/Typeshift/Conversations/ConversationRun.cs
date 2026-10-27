@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
@@ -23,10 +24,10 @@ internal sealed class ConversationRun(
     // What context providers and run middleware added, which the conversation never stores
     private readonly HashSet<AIContent> _transient = new(ReferenceEqualityComparer.Instance);
 
-    // D33: the background sub-agents still working, and a signal for each answer or steering input
+    // D33: the background sub-agents still working by call id, and a signal for each answer or steering input
+    private readonly ConcurrentDictionary<string, string> _background = [];
     private readonly SemaphoreSlim _arrived = new(0);
     private readonly CancellationTokenSource _stopping = new();
-    private int _background;
 
     // D51: once the run decided to end, it takes no more steering input, which then starts a run of its own
     private bool _closed;
@@ -76,13 +77,13 @@ internal sealed class ConversationRun(
         while (true)
         {
             // Read before the queue: a sub-agent queues its answer before it counts itself done
-            var working = Volatile.Read(ref _background);
+            var working = !_background.IsEmpty;
 
             lock (_steering)
             {
                 if (_steering.Count > 0) return true;
 
-                if (working == 0)
+                if (!working)
                 {
                     _closed = true;
                     return false;
@@ -113,7 +114,7 @@ internal sealed class ConversationRun(
     // call, or what went wrong, unless the run stopped
     public void StartBackground(string agent, string callId, Func<CancellationToken, Task<ChatResponse>> work)
     {
-        Interlocked.Increment(ref _background);
+        _background[callId] = agent;
 
         _ = Task.Run(async () =>
         {
@@ -134,7 +135,7 @@ internal sealed class ConversationRun(
             }
             finally
             {
-                Interlocked.Decrement(ref _background);
+                _background.TryRemove(callId, out _);
                 _arrived.Release();
             }
         });
@@ -220,7 +221,7 @@ internal sealed class ConversationRun(
     // D34: the result of a handoff call names the agent handed to, which answers from here on
     public Task AppendHandoffAsync(ChatMessage result, string target) => AppendAsync([result], answering: target);
 
-    // D32: what compaction left of the history, which later runs start from
+    // D32: what compaction left of the history, which later runs start from without reading what came before
     public Task AppendSummaryAsync(IReadOnlyList<ChatMessage> messages) => AppendAsync(messages, summary: true);
 
     public async Task AppendResponseAsync(ChatResponse response, ChatOptions? options, bool streamed)
@@ -251,8 +252,10 @@ internal sealed class ConversationRun(
             Model = model,
             Usage = usage,
             EndsRun = endsRun,
-            Mode = endsRun ? run.Mode : null,
-            IsSummary = summary
+            Mode = endsRun || summary ? run.Mode : null,
+            IsSummary = summary,
+            StandingApprovals = summary ? [.. run.Standing] : null,
+            BackgroundCalls = summary ? new Dictionary<string, string>(_background) : null
         };
 
         try
