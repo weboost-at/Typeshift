@@ -66,6 +66,7 @@ rewrite.
 | 19 | Settings of every storable kind read back equivalent; nulls left out; mistyped members read as null | `SettingsJsonTests` |
 | new | `System.Text.Json` writes and reads the stored shape (D44) | `SettingsJsonTests.Given_Settings_System_Text_Json_Writes_What_The_Store_Keeps`, `..._Given_Stored_Json_System_Text_Json_Reads_The_Settings` |
 | new | Kinds and versions (D39, D40) | `SettingsJsonTests.Given_WithStorageKind_And_WithSettingsVersion_The_Settings_Carry_Them`, `..._Given_A_Version_Newer_Than_The_Codes_Reading_Throws_A_JsonException` |
+| new | A kind is unique, two referenced projects' agents included (TSH022, D39) | `DiagnosticTests.Given_Two_Agents_Of_One_Class_Name_TSH022_Is_Reported_On_The_Second`, `..._Given_Two_References_With_Agents_Of_One_Kind_TSH022_Is_Reported` |
 | new | The id type reaches the aliases and the typed members (D11) | `AgentGenerationTests.Given_An_Id_Type_The_Aliases_And_The_Host_Members_Use_It` |
 | 20 | A conversation's next run starts from its stored messages; the provider never sees its id | `ConversationRunTests.Given_A_Conversation_A_Second_Run_Starts_From_The_First`, `..._Given_A_Conversation_The_Provider_Never_Receives_Its_Id` |
 | 21 | Each step is stored as it happens; the last entry ends the run (D50) | `ConversationRunTests.Given_A_Run_Its_Input_Responses_And_Tool_Results_Are_Stored_Step_By_Step`, `..._Given_A_Run_Only_Its_Last_Entry_Ends_It`, `..._Given_A_Model_Response_Its_Entry_Carries_The_Model_And_The_Agent` |
@@ -128,8 +129,6 @@ rewrite.
 - **Generated line length.** Generated code is `global::`-qualified, and some declarations exceed 120 columns.
 - **Streamed results.** A tool returning `IAsyncEnumerable<T>` compiles, but its result is serialized synchronously
   and the call fails at runtime. Neither v0 nor the approved API supports it.
-- **Kinds across references.** TSH022 compares the compilation's agents with each other and with those the
-  references stamp, but not two references' agents with each other.
 - **Live updates of non-streaming runs.** Only streaming runs publish.
 - **Docs of types in assemblies without toolsets or agents.** Such an assembly has no module, so the XML docs
   collected for it reach no schema. A tool whose parameter type lives there gets that type's properties undescribed.
