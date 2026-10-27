@@ -26,7 +26,7 @@ package, which builds the service provider.
 
 Turn on XML docs in `Directory.Build.props`, since tools take their descriptions from them; without them the build
 warns with [TSH011](./diagnostics.md#tsh011). The same file sets `TypeshiftIdType`, the type of the settings ids and
-conversation ids you pass to runs. Leave it out, and ids are `Guid`s, so step 4 would pass `Guid`s instead of 42 and
+conversation ids you pass to runs. Leave it out, and ids are `Guid`s, so step 4 does not compile with the ids 42 and
 1:
 
 ```xml
@@ -104,7 +104,8 @@ internal record FindCompaniesSettings
 
 ## 3. Write an agent
 
-An agent picks a model, its instructions and its tools:
+An agent is a `partial` class too, for the same reason, and derives from `Agent`. It picks a model, its instructions
+and its tools:
 
 <!-- snippet: quickstart-agent -->
 <a id='snippet-quickstart-agent'></a>
@@ -177,7 +178,9 @@ services.AddKeyedSingleton("openai", openAi);
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L25-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The key `"openai"` is a name you choose: it is the provider the agent names in `WithModel("openai", "gpt-5-mini")`.
+`OpenAIClient` is in the `OpenAI` namespace, and `apiKey` comes from your app's configuration, for example an
+environment variable. The key `"openai"` is a name you choose: it is the provider the agent names in
+`WithModel("openai", "gpt-5-mini")`.
 [A real client](./models.md#a-real-client) shows a local server and other providers. `InMemoryTypeshiftStore` comes
 with Typeshift and stands in for your database.
 

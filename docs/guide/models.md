@@ -73,7 +73,7 @@ services.AddKeyedSingleton("openai", openAi);
 
 - Typeshift names the model in every request as `ChatOptions.ModelId`, so this one client serves every OpenAI model
   your agents name. The model you pass to `GetChatClient` only names the client.
-- Read the API key from your app's configuration, never from code.
+- `OpenAIClient` is in the `OpenAI` namespace. Read the API key from your app's configuration, never from code.
 - Register the bare client. Typeshift runs the tool loop itself, so a client you wrap with `UseFunctionInvocation()`
   runs a second loop inside it, and a run that answers an [approval request](./tool-approval.md) fails.
 
