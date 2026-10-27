@@ -24,7 +24,8 @@ await support.RunAsync("When will it arrive?", conversationId: conversationId);
 The first run starts the conversation and the second resumes it. Typeshift puts the stored messages ahead of the new
 input, so the model sees the whole conversation. Because Typeshift sends the history itself, it never passes the
 conversation id on to the provider. Settings ids and conversation ids are independent, and a run may pass either or
-both.
+both. A conversation does not remember a settings id, so pass it to every run of the conversation that should use the
+stored settings, the run that answers an approval included.
 
 Typeshift never creates ids ([the id type](./registration.md#the-id-type)). You choose the conversation id, for
 example the key of your own record of the conversation, and pass the same id to every run of that conversation.
@@ -37,8 +38,12 @@ against your own record of the conversation, as you would for any other id from 
 ## What is stored
 
 A conversation is a list of entries, appended as they happen: each run's input, every model response with its model
-and token usage, every tool result, and an entry that ends the run and records its mode. Your store receives each
-entry through `AppendConversationAsync` ([the store](./settings-and-stores.md#the-store)).
+and token usage, the tool results of each round of calls, and an entry that ends the run and records its mode. Your
+store receives each entry through `AppendConversationAsync` ([the store](./settings-and-stores.md#the-store)).
+
+Each entry is a `ConversationEntry`: the name of the agent, the entry's `Messages` and the time it was stored, plus
+the `Model` and `Usage` of a model response, `EndsRun` on the entry that ends a run, and `IsSummary` on a
+[compaction](#compaction) summary.
 
 <!-- snippet: load-conversation -->
 <a id='snippet-load-conversation'></a>
@@ -208,8 +213,8 @@ WithRunOptions()
 <!-- endSnippet -->
 
 Before every model call, Typeshift estimates the call's input tokens at about four characters per token, corrected by
-what the provider reported for the run's last call, or for the conversation's last call before the run. When the estimate reaches the maximum, it shrinks the history to
-`WithTargetInputTokens`, half the maximum unless set:
+what the provider reported for the run's last call, or for the conversation's last call before the run. When the
+estimate reaches the maximum, it shrinks the history to `WithTargetInputTokens`, half the maximum unless set:
 
 1. It clears the results of the oldest tool calls the model has already read. It keeps the calls, so the model knows
    what it did and can call again.

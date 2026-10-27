@@ -53,8 +53,8 @@ AddTool(CloseTicketAsync)
 
 ## A run that asks
 
-When the model calls such a tool, the run ends without making the call. `ApprovalRequests` on the response lists each
-waiting call, with the tool's name and the arguments the model sent:
+When the model calls such a tool, the run ends without making the call. `ApprovalRequests`, which Typeshift adds to
+`ChatResponse`, lists each waiting call, with the tool's name and the arguments the model sent:
 
 <!-- snippet: approval-run -->
 <a id='snippet-approval-run'></a>
@@ -91,7 +91,8 @@ var resumed = await support.RunAsync(approval, conversationId: conversationId);
 <!-- endSnippet -->
 
 Approved calls run. A rejected call reaches the model as rejected, and the run goes on. To tell the model why, pass a
-reason with the rejection: `CreateResponse(approved: false, reason)`.
+reason with the rejection: `CreateResponse(approved: false, reason)`. A conversation does not remember a settings
+id, so the run that answers passes the same settings id as the run that asked, or it runs on the agent's code alone.
 
 `WithMaxToolIterations` limits how many rounds of tool calls one run makes. The calls you approve run in the next run,
 because the run that asked for approval has ended. The next run starts its own count, so those calls run even when the
