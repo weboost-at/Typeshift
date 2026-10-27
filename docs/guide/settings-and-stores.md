@@ -25,16 +25,16 @@ flowchart BT
   run --> tool["find_companies runs with Limit = 1"]
 ```
 
-**1. The code's defaults.** `FindCompaniesSettings` sets `Limit = 5` in its parameterless constructor. This layer sets
-every member, so a tool always receives a whole record.
+**1. The code's defaults.** `FindCompaniesSettings` initializes `Limit` to 5, so a record made with its parameterless
+constructor holds 5. This layer sets every member, so a tool always receives a whole record.
 
-**2. The agent's code.** `ResearchAgent` calls `ConfigureFindCompanies().WithLimit(3)`, so every run searches with 3.
-Its chat and run options, such as `WithTemperature(0.2f)`, live here too. Because this layer is reviewed, compiled
-code, it may set any settable member, configurable or not.
+**2. The agent's code.** `ResearchAgent` calls `ConfigureFindCompanies().WithLimit(3)`, so every run of the agent
+searches with 3 unless a layer above sets another limit. Its chat and run options, such as `WithTemperature(0.2f)`,
+live here too. Because this layer is reviewed, compiled code, it may set any settable member, configurable or not.
 
 **3. The stored settings.** `ConfigureAsync(42, ...)` stores `Limit = 2` and `Temperature = 0.4f`, so every run with
-settings id 42 searches with 2, at 0.4. `IncludeInactive` cannot be stored, because `ResearchAgent.Settings` has only
-the configurable members.
+settings id 42 searches with 2, at a temperature of 0.4. `IncludeInactive` cannot be stored, because
+`ResearchAgent.Settings` has only the configurable members.
 
 **4. The run.** A run that passes `FindCompanies = new() { Limit = 1 }` in its settings searches with 1, for that run
 only. It leaves `Temperature` null, so the stored 0.4 holds.
@@ -52,7 +52,7 @@ The highest layer that sets a value wins:
 
 Because the layers resolve when a run starts, settings saved during a run apply from the next run on.
 
-### Null keeps, records replace
+### Null values and nested records
 
 A layer either replaces a value below it or leaves it alone. It never merges, so a configurable member that is itself
 a record or a class is replaced as a whole.
@@ -63,18 +63,20 @@ Null keeps the layer below, so neither stored settings nor a run can take away a
 
 ### The model and the instructions
 
-The model is a value like any other. It stays in code unless `Configurable(o => o.ModelId)` lets the layers above
-choose it, so stored settings never pick a model the agent does not allow. Its provider is a value of its own, so a
-layer that sets only `Model` keeps the provider of the layer below.
+The model resolves through the layers like any other value. It stays as the code sets it unless
+`Configurable(o => o.ModelId)` lets the layers above choose it, so stored settings can change the model only when the
+agent's code allows that. Its provider is a value of its own, so a layer that sets only `Model` keeps the provider of
+the layer below.
 
-Instructions replace, then grow. Stored or run `Instructions` replace those of `GetInstructions()`, and context
-providers and plan mode then append to whatever the layers resolved.
+Stored or run `Instructions` replace the text that `GetInstructions()` returns. Context providers and plan mode then
+append to whatever instructions the layers resolved.
 
 ### The mode of a conversation
 
-A run with a conversation id continues in the mode the conversation's last run ended in, so that mode sits between the
-stored settings and the run. A run whose own settings name a mode switches it, and so does an approved plan
-([Plan and auto modes](./tool-approval.md#the-three-modes)).
+A run with a conversation id continues in the mode (`Default`, `Plan` or `Auto`) that the conversation's last run
+ended in. That mode overrides the agent's code and the stored settings, but not the run's own settings. A run whose
+own settings name a mode switches the conversation to it, and so does an approved plan
+([The three modes](./tool-approval.md#the-three-modes)).
 
 ### Sub-agents and handoffs
 
@@ -104,8 +106,9 @@ await using var provider = services.BuildServiceProvider(validateScopes: true);
 
 `WithStore<T>()` registers the store as a singleton. `InMemoryTypeshiftStore` is for tests and samples.
 
-Without a store, agents run from their code. A run without a settings id or a conversation id works, tools included,
-but every call that loads or saves throws an `InvalidOperationException` that names `WithStore<T>()`.
+Without a store, agents run from their code alone. A run that passes neither a settings id nor a conversation id
+works, tools included. Every call that loads or saves, such as a run with either id or `ConfigureAsync`, throws an
+`InvalidOperationException` that names `WithStore<T>()`.
 
 ## The store
 
@@ -118,20 +121,21 @@ but every call that loads or saves throws an `InvalidOperationException` that na
 | `SaveAsync<TData>(id, data, revision)` | Saves the document if the stored revision is still `revision` (0 for none) and returns the new revision. Throws a `StoreConflictException` when another save came first. |
 | `LoadConversationAsync(conversation)` | Returns a conversation's entries, oldest first. |
 | `LoadConversationSinceCompactionAsync(conversation)` | Returns the conversation's last [summary](./conversations.md#compaction) and the entries after it, which is all a run reads. By default it loads the whole conversation and drops what came before; override it to leave those entries in the database. |
-| `AppendConversationAsync(conversation, entry)` | Appends one entry: a run's input, a model response or tool results. |
+| `AppendConversationAsync(conversation, entry)` | Appends one entry: a run's input, a model response, tool results, steering input, the end of a run, or a compaction summary. |
 
 Runs append as they go, so `AppendConversationAsync` is the hot path, and a row per entry keeps it cheap.
 
 ## What a store keeps
 
-Documents serialize themselves, with `Serialize()` and `TData.Deserialize(json, version)`. Next to the JSON, a store
-keeps three things:
+The documents that `LoadAsync` and `SaveAsync` handle are the agents' `Settings` records. Each serializes itself, with
+`Serialize()` and `TData.Deserialize(json, version)`. Next to the JSON, a store keeps three things:
 
 - **The kind**, `TData.Kind`, a stable name. For an agent's settings it is the class name, so moving the agent to
   another namespace keeps its data. `WithStorageKind("support")` in the agent pins it, so renaming the class keeps the
-  data too. Two agents of one kind are [TSH022](./diagnostics.md#tsh022).
+  data too. For two agents with the same kind, the analyzer reports [TSH022](./diagnostics.md#tsh022).
 - **The version**, `TData.Version`, which the store hands back to `Deserialize`. `Deserialize` refuses a version newer
-  than its code's, and a store migrates older documents when it needs to.
+  than its code's. Migrating older documents is your store's job, for example in `LoadAsync`, before it hands the
+  JSON of an older version to `TData.Deserialize`.
 - **The revision**, for optimistic concurrency. A save names the revision it loaded, so it fails when another save came
   first.
 
@@ -199,7 +203,7 @@ internal sealed class EntryRow
 <!-- endSnippet -->
 
 The store maps the five methods onto it, and a run reads a conversation from its last summary only. A save that
-another save beat becomes a `StoreConflictException`, and any other database failure surfaces as it is:
+another save beat becomes a `StoreConflictException`, and any other database exception reaches the caller unchanged:
 
 <!-- snippet: ef-core-store -->
 <a id='snippet-ef-core-store'></a>
@@ -312,7 +316,8 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L5-L110' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-store' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Register the context factory the store takes, next to `WithStore<EfTypeshiftStore>()`:
+The store is a singleton, so it cannot take a scoped `DbContext`. It takes an `IDbContextFactory<TypeshiftDb>`
+instead and creates a context for each call. Register the factory next to `WithStore<EfTypeshiftStore>()`:
 
 <!-- snippet: ef-core-registration -->
 <a id='snippet-ef-core-registration'></a>
@@ -362,6 +367,10 @@ catch (StoreConflictException)
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L24-L35' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-and-save-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+Saving `Instructions = null` removes the stored instructions, so runs with this settings id use those of
+`GetInstructions()` again. After a conflict, the sample loads the settings again, so you can show the user the current
+values before they save.
+
 ## The stored JSON
 
 What is stored is the record's JSON: camelCase, with the tools nested under `"tools"` by name and nulls left out.
@@ -379,9 +388,11 @@ What is stored is the record's JSON: camelCase, with the tools nested under `"to
 }
 ```
 
-`System.Text.Json` writes and reads the same JSON, so an endpoint that binds `SupportAgent.Settings` speaks the stored
-shape. A member that does not read, because it is mistyped or unknown, keeps the layer below. A stored record or class
-takes the defaults for the members it lacks.
+`System.Text.Json` writes and reads the same JSON, so an endpoint that binds `SupportAgent.Settings` accepts and
+returns the JSON the store keeps. A stored member that cannot be read, because its value has the wrong type or its
+name is unknown, counts as missing, so the layer below applies. When a configurable member is itself a record or a
+class, a stored value replaces the whole object, so members missing from its stored JSON take that type's defaults,
+not the values of the layer below.
 
 ::: warning A renamed member loses its stored value
 A configurable member that is renamed or removed reads as missing, so its stored value no longer applies. When that
