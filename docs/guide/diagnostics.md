@@ -93,7 +93,7 @@ id type as accessible as what exposes it. There are four cases:
   [provider id type](./models.md#the-provider-id-type) is less accessible. The agent's `Settings` record names the
   type for the model's provider.
 - The build's [id type](./registration.md#the-id-type) is less accessible than a public agent. The agent's host
-  members take settings and conversation ids of it, so the generator keeps them internal.
+  members take settings ids and conversation ids of that type, so the generator keeps those members internal.
 
 ## TSH007
 

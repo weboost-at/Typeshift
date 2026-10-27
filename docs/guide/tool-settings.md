@@ -86,11 +86,11 @@ A configurable member needs a type settings can store ([TSH012](./diagnostics.md
   `TimeOnly`, `Uri` and `ReasoningOptions`;
 - the numbers `byte`, `short`, `int`, `long`, `float`, `double` and `decimal`;
 - non-generic classes and records with a public parameterless constructor, no `required` members and storable
-  settable members, replaced as a whole and never merged, and record structs of the same;
+  settable members, replaced as a whole and never merged, and record structs that meet the same rules;
 - arrays, lists and sets of storable values, and dictionaries keyed by `string` or an enum.
 
 Items and dictionary values cannot be nullable value types, and a type that contains itself is not storable. Other
-structs are not storable, since most keep their state where no setter reaches.
+structs are not storable, because most keep their state in fields that no public setter writes.
 
 ## Receiving settings in the tool
 
