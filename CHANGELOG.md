@@ -12,6 +12,7 @@ All notable changes to this project are documented here. The format follows
 - TSH030 reports a provider of another type than the build's at `WithModel` and at `WithChatClientProvider<T>()`.
 - `ITypeshiftStore.LoadConversationSinceCompactionAsync` returns a conversation's last summary and the entries after it.
   Its default loads the whole conversation; a store overrides it to leave the entries before the summary unread.
+- A tool may return `IAsyncEnumerable<T>`: the call reads it to its end, and the model receives its items as one array.
 
 ### Changed
 
@@ -51,6 +52,8 @@ All notable changes to this project are documented here. The format follows
 - TSH023 and TSH024 check a sub-agent or handoff target of a referenced project too: its module stamp carries the
   agent's name, whether it has a description and the tools it offers that require approval, at stamp version 3.
 - Options the raw path builds itself run with the agent's run options through the whole pipeline.
+- The client `CreateChatClientAsync` returns serves concurrent calls, each with its own options' iteration limit,
+  where a second call changed the first one's limit.
 - A run of an agent with handoffs loads its conversation once instead of twice.
 - TSH022 reports two agents of one kind in two referenced projects too, on the project that references both.
 - `run_command` keeps what a command wrote just before its timeout: it reads the output to its end once the timeout
@@ -58,6 +61,10 @@ All notable changes to this project are documented here. The format follows
   reading at once.
 - `ConfigureAsync` gives up after ten conflicts in a row and throws the last `StoreConflictException`, where a store
   that conflicted every time kept it going until its token was cancelled.
+- A streaming run that compacted keeps its summary when steering input or a background answer starts another pass,
+  where the pass lost it and could summarize the same turns again.
+- A public agent of a less accessible `TypeshiftIdType` is TSH006 on the agent, instead of CS0051 in its generated
+  host members, which the generator keeps internal.
 
 ## [0.1.0-alpha.2] - 2026-10-16
 

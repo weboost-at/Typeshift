@@ -162,8 +162,8 @@ var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "Wh
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L60-L65' title='Snippet source file'>snippet source</a> | <a href='#snippet-raw-path' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The client is the run's whole pipeline, the tool loop and the agent's run options included. Disposing it leaves the
-provider's client alone. `ChatOptions.ConversationId` names the conversation to run in, as a string of the build's id
+The client is the run's whole pipeline, the tool loop and the agent's run options included. It serves concurrent
+calls, each with its own options' limits. Disposing it leaves the provider's client alone. `ChatOptions.ConversationId` names the conversation to run in, as a string of the build's id
 type, and never reaches the provider.
 
 ## How a run works

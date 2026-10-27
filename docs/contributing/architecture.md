@@ -97,7 +97,8 @@ Microsoft.Extensions.AI's defaults, which reflect outside Native AOT (D45).
    - the conversation (D46, D50), run middleware (D30), context providers (D31), approval and modes (D24, D52),
      and author names on every message (D26);
    - `FunctionInvokingChatClient`, with the run options, the scope's services, `exit_plan_mode` and the tool
-     middleware as its function invoker;
+     middleware as its function invoker, built anew for each round with what is left of the run's limit, so one
+     client serves concurrent calls;
    - the checkpoints, compaction (D32), and the provider's client, instrumented (D36), behind a wrapper that never
      disposes it (D29).
 4. The options are a `ChatOptions` subclass that remembers the run options, so the raw path's client gets them too.

@@ -50,8 +50,8 @@ internal sealed class Compaction
             _calibration = Math.Clamp(reported / (double)estimate, 0.25, 4);
     }
 
-    // The call as the model saw it last: the summary in place of what it stands for, the cleared results cleared. A
-    // call without the message the summary kept from (a steered run's later pass) is compacted afresh
+    // The call as the model saw it last: the summary in place of what it stands for, the cleared results cleared, in
+    // each pass of the run. A call without the message the summary kept from is compacted afresh
     private List<ChatMessage> Apply(IEnumerable<ChatMessage> messages)
     {
         var call = messages.ToList();
@@ -112,7 +112,10 @@ internal sealed class Compaction
             ct);
 
         _summary = [summary, .. TodosOf(region)];
-        _keptFrom = call[cut].Contents[0];
+        var keptContents = call[cut].Contents;
+
+        // A streamed pass is rebuilt from its updates, with text merged into new contents; calls keep their instances
+        _keptFrom = keptContents.OfType<FunctionCallContent>().FirstOrDefault() ?? keptContents[0];
 
         var kept = call.Skip(cut).ToList();
 

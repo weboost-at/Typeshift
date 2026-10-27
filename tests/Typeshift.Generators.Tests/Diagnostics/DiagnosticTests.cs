@@ -99,6 +99,20 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Public_Agent_Of_An_Internal_Id_Type_TSH006_Is_Reported_On_The_Agent()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.PublicAgentOfInternalIdType);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.WithIdType("Demo.TenantId"));
+
+        // Assert
+        run.Assert.Reports("TSH006", DiagnosticSeverity.Error, "SupportAgent");
+        run.Assert.GeneratesValidCode();
+    }
+
+    [Fact]
     public void Given_Two_Tools_Mapping_To_One_Member_TSH007_Is_Reported_On_The_Second()
     {
         // Act
@@ -644,6 +658,22 @@ public class DiagnosticTests : GeneratorTestBase
             .GetMessage()
             .Should()
             .Contain("global::System.Guid");
+    }
+
+    [Fact]
+    public void Given_A_Stream_Whose_List_No_Context_Lists_Under_Native_Aot_TSH027_Is_Reported_On_Its_Tool()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.StreamWithoutJsonMetadata);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.PublishingAot());
+
+        // Assert
+        run.Assert.Reports("TSH027", DiagnosticSeverity.Error, "AddTool(List)")
+            .GetMessage()
+            .Should()
+            .Contain("global::System.Collections.Generic.List<global::Company>");
     }
 
     [Fact]

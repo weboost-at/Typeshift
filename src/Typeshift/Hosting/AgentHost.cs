@@ -59,29 +59,35 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
         // that never disposes it
         var provided = _services.GetRequiredService<InstrumentedClients>().Instrument(client, provider, model);
 
-        var loop = new FunctionInvokingChatClient(
-            new CheckpointChatClient(new CompactingChatClient(provided)),
-            _services.GetService<ILoggerFactory>(),
-            _services)
-        {
-            MaximumIterationsPerRequest = run.MaxToolIterations,
-            MaximumConsecutiveErrorsPerRequest = run.MaxConsecutiveToolErrors,
-            AllowConcurrentInvocation = run.ConcurrentToolCalls,
+        var checkpoints = new CheckpointChatClient(new CompactingChatClient(provided));
+        var middleware = _services.GetServices<IToolMiddleware>().ToList();
 
-            // D53: the model fixes a failed call only when it reads why it failed
-            IncludeDetailedErrors = true,
-
-            // An approved plan runs whatever mode the run continues in
-            AdditionalTools = [ExitPlanModeFunction.Instance]
-        };
-
-        if (_services.GetServices<IToolMiddleware>().ToList() is { Count: > 0 } middleware)
-            loop.FunctionInvoker = (call, ct) => ToolMiddleware.InvokeAsync(middleware, 0, call, ct);
-
-        var approval = new ApprovalChatClient(new AuthorNameChatClient(loop, Agent.Name), loop);
+        var approval = new ApprovalChatClient(Loop(run.MaxToolIterations), Loop);
         var context = new ContextChatClient(approval);
 
         return new ConversationChatClient(new RunMiddlewareChatClient(context), Agent, _services);
+
+        // D32: a tool loop per call with that call's iteration limit, so concurrent calls never share one
+        IChatClient Loop(int iterations)
+        {
+            var loop = new FunctionInvokingChatClient(checkpoints, _services.GetService<ILoggerFactory>(), _services)
+            {
+                MaximumIterationsPerRequest = iterations,
+                MaximumConsecutiveErrorsPerRequest = run.MaxConsecutiveToolErrors,
+                AllowConcurrentInvocation = run.ConcurrentToolCalls,
+
+                // D53: the model fixes a failed call only when it reads why it failed
+                IncludeDetailedErrors = true,
+
+                // An approved plan runs whatever mode the run continues in
+                AdditionalTools = [ExitPlanModeFunction.Instance]
+            };
+
+            if (middleware.Count > 0)
+                loop.FunctionInvoker = (call, ct) => ToolMiddleware.InvokeAsync(middleware, 0, call, ct);
+
+            return new AuthorNameChatClient(loop, Agent.Name);
+        }
     }
 
     // D27: the agent's code, its stored settings, then the run's; values a layer leaves null keep the one below

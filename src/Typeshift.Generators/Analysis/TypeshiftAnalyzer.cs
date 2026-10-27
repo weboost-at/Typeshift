@@ -109,6 +109,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             ReportClashesAcrossToolsets(end, tools);
             ReportUnstampedReferences(end);
             ReportOtherIdTypes(end, idType, providerIdType);
+            ReportHiddenIdType(end, idType, found);
             ReportSharedKinds(end, kinds);
             ReportAgentUses(end, found);
             if (aot) ReportMissingJsonMetadata(end, found);
@@ -399,6 +400,21 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             name,
             other.ToDisplayString(),
             own?.ToDisplayString()));
+
+    // D6: a public agent's host members take settings and conversation ids of the build's id type
+    private static void ReportHiddenIdType(CompilationAnalysisContext context, ITypeSymbol? idType, Found found)
+    {
+        if (idType is null || idType.IsEffectivelyPublic()) return;
+
+        foreach (var agent in found.Agents.Where(agent => agent.Type.IsEffectivelyPublic()))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                Descriptors.SettingsLessAccessible,
+                agent.Type.Locations.FirstOrDefault(),
+                idType.Name,
+                agent.Type.Name));
+        }
+    }
 
     // D39: the kinds of this compilation's agents, and those its references stamp
     private static void ReportSharedKinds(

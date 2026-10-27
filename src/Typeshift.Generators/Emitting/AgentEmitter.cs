@@ -31,7 +31,7 @@ internal static class AgentEmitter
         "Serialize", "Settings", "ToString", "TryReadJson", "Version", "WriteJson"
     ];
 
-    public static string Emit(AgentOutput output, string idType, ProviderIdModel providerId)
+    public static string Emit(AgentOutput output, string idType, bool idTypeIsPublic, ProviderIdModel providerId)
     {
         var agent = output.Agent;
         var configured = output.Tools.Where(tool => HasConfigure(agent, tool.Tool)).ToList();
@@ -73,7 +73,7 @@ internal static class AgentEmitter
             },
             writer =>
             {
-                if (agent.IsReachable) WriteHostMembers(writer, agent, idType);
+                if (agent.IsReachable) WriteHostMembers(writer, agent, idType, idTypeIsPublic);
             });
     }
 
@@ -464,8 +464,11 @@ internal static class AgentEmitter
     }
 
     // D12: the typed members of the agent's host, next to the agent in its namespace
-    private static void WriteHostMembers(SourceWriter writer, AgentModel agent, string idType)
+    private static void WriteHostMembers(SourceWriter writer, AgentModel agent, string idType, bool idTypeIsPublic)
     {
+        // D6: a public agent's host members cannot take ids of a less accessible type (TSH006)
+        var access = idTypeIsPublic ? agent.Type.Accessibility : "internal";
+
         var host = $"global::Typeshift.AgentHost<{agent.Type.FullName}>";
         var settings = $"{agent.Type.FullName}.Settings";
         var response = "global::Microsoft.Extensions.AI.ChatResponse";
@@ -477,7 +480,7 @@ internal static class AgentEmitter
         writer.Line();
         Docs.WriteSummary(writer, $"The runs and stored settings of <see cref=\"{agent.Type.FullName}\"/>.");
 
-        using (writer.Block($"{agent.Type.Accessibility} static class {agent.Type.FlatName}HostExtensions"))
+        using (writer.Block($"{access} static class {agent.Type.FlatName}HostExtensions"))
         using (writer.Block($"extension({host} host)"))
         {
             run.Write(writer, "Runs the agent on a message", $"{Task}<{response}>", "RunAsync", "string",

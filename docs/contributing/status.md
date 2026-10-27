@@ -35,6 +35,7 @@ rewrite.
 | 4 | A call receives its arguments, its settings, the run's services and the call's token; the result reaches the model as JSON | `ToolInvocationTests.Given_A_Scripted_Call_The_Tool_Receives_Its_Arguments`, `..._Given_Settings_The_Tool_Runs_With_Them`, `..._Given_Two_Calls_Of_One_Run_Both_Resolve_From_The_Runs_Scope`, `..._Given_A_Call_The_Tool_Receives_The_Calls_Token`, `..._Given_A_Scripted_Call_The_Result_Reaches_The_Model_As_Json` |
 | 5 | A missing required argument fails the call; an absent optional one takes its default | `ToolInvocationTests.Given_A_Missing_Required_Argument_The_Call_Fails_With_An_ArgumentException`, `..._Given_An_Absent_Optional_Argument_The_Tool_Takes_Its_Default` |
 | 6 | A struct parameter defaulting to `default` | `ToolInvocationTests.Given_A_Struct_Parameter_Defaulting_To_Default_The_Tool_Runs_Without_It`, `ToolSchemaTests.Given_A_Struct_Parameter_Defaulting_To_Default_Its_Schema_Carries_The_Default` |
+| new | A tool returning `IAsyncEnumerable<T>` gives the model its items as one array; under AOT the list needs JSON metadata (D45) | `ToolInvocationTests.Given_A_Tool_That_Streams_Its_Results_The_Model_Receives_Them_As_One_Array`, `DiagnosticTests.Given_A_Stream_Whose_List_No_Context_Lists_Under_Native_Aot_TSH027_Is_Reported_On_Its_Tool` |
 | 7 | A nullable reference parameter is typed nullable | `ToolSchemaTests.Given_A_Nullable_Reference_Parameter_It_Is_Typed_As_Nullable` |
 | 8 | The schema matches `AIFunctionFactory`'s | `ToolSchemaTests.Given_The_Same_Method_The_Schema_Matches_AIFunctionFactory_Without_Descriptions` |
 | new | A recursive parameter type's `$ref`s point into its parameter, as `AIFunctionFactory`'s do | `ToolSchemaTests.Given_A_Recursive_Parameter_Type_The_Schema_Matches_AIFunctionFactory` |
@@ -72,6 +73,7 @@ rewrite.
 | new | Kinds and versions (D39, D40) | `SettingsJsonTests.Given_WithStorageKind_And_WithSettingsVersion_The_Settings_Carry_Them`, `..._Given_A_Version_Newer_Than_The_Codes_Reading_Throws_A_JsonException` |
 | new | A kind is unique, two referenced projects' agents included (TSH022, D39) | `DiagnosticTests.Given_Two_Agents_Of_One_Class_Name_TSH022_Is_Reported_On_The_Second`, `..._Given_Two_References_With_Agents_Of_One_Kind_TSH022_Is_Reported` |
 | new | The id type reaches the aliases and the typed members (D11) | `AgentGenerationTests.Given_An_Id_Type_The_Aliases_And_The_Host_Members_Use_It` |
+| new | A public agent of a less accessible id type is TSH006, and its host members stay internal (D6) | `DiagnosticTests.Given_A_Public_Agent_Of_An_Internal_Id_Type_TSH006_Is_Reported_On_The_Agent` |
 | 20 | A conversation's next run starts from its stored messages; the provider never sees its id | `ConversationRunTests.Given_A_Conversation_A_Second_Run_Starts_From_The_First`, `..._Given_A_Conversation_The_Provider_Never_Receives_Its_Id` |
 | 21 | Each step is stored as it happens; the last entry ends the run (D50) | `ConversationRunTests.Given_A_Run_Its_Input_Responses_And_Tool_Results_Are_Stored_Step_By_Step`, `..._Given_A_Run_Only_Its_Last_Entry_Ends_It`, `..._Given_A_Model_Response_Its_Entry_Carries_The_Model_And_The_Agent` |
 | 22 | A failed run ends with its error, which the next run leaves out; a stream left early is stored (D46) | `ConversationRunTests.Given_A_Failing_Run_It_Ends_With_Its_Error_And_The_Exception_Surfaces`, `..._Given_A_Failed_Run_The_Next_Run_Leaves_Out_Its_Error`, `..._Given_A_Stream_Left_Early_The_Run_Ends_With_The_Updates_That_Arrived` |
@@ -83,6 +85,7 @@ rewrite.
 | new | Watchers receive streamed updates (D47) | `ConversationRunTests.Given_A_Watcher_It_Receives_The_Updates_Of_A_Streaming_Run` |
 | new | Text streamed within the publish interval reaches watchers merged, ahead of the next call (D47) | `ConversationRunTests.Given_Text_Within_The_Interval_A_Watcher_Receives_It_Merged_Ahead_Of_The_Next_Call` |
 | new | The raw path names its conversation in `ChatOptions.ConversationId` | `ConversationRunTests.Given_A_Conversation_Id_In_The_Options_The_Raw_Path_Stores_The_Run` |
+| new | Concurrent calls on one created client each keep their own iteration limit (D29, D32) | `AgentRunTests.Given_Two_Calls_On_One_Created_Client_Each_Keeps_Its_Own_Limit` |
 | new | A call that requires approval ends the run with its request; the next run's answer runs or rejects it (D24) | `ToolApprovalTests.Given_A_Call_That_Needs_Approval_The_Run_Ends_With_Its_Request_And_It_Does_Not_Run`, `..._Given_An_Approval_The_Next_Run_Of_The_Conversation_Runs_The_Call`, `..._Given_A_Rejection_The_Model_Receives_Its_Reason_And_The_Call_Does_Not_Run`, `..._Given_A_Streaming_Run_The_Host_Receives_The_Request_And_Its_Approval_Runs_The_Call` |
 | new | The stored request is the call that runs; stray and second answers change nothing (D24) | `ToolApprovalTests.Given_An_Answer_Carrying_Other_Arguments_The_Call_The_Conversation_Stored_Runs`, `..._Given_An_Answer_To_No_Stored_Request_Nothing_Runs`, `..._Given_A_Second_Answer_To_A_Request_The_First_Stands`, `..._Given_An_Answered_Approval_Later_Runs_Send_The_Call_Once_With_Its_Result` |
 | new | Calls next to one that requires approval wait with it; without a conversation a run that asks fails | `ToolApprovalTests.Given_A_Call_Needing_Approval_Next_To_One_That_Does_Not_Only_The_First_Waits_And_Both_Run`, `..._Given_No_Conversation_A_Call_Needing_Approval_Fails_Naming_The_Tool` |
@@ -100,6 +103,7 @@ rewrite.
 | new | The summary runs on the run's provider and model unless the agent or the settings name others (D56) | `CompactionTests.Given_No_Summary_Model_The_Runs_Model_Summarizes`, `..._Given_Clearing_Is_Not_Enough_The_Oldest_Turns_Are_Summarized`, `..._Given_A_Summary_Provider_It_Serves_The_Summary_Model` |
 | new | A summary is stored, and later runs start from it (D32) | `CompactionTests.Given_A_Summary_Later_Runs_Start_From_It` |
 | new | A run loads its conversation from the last summary on, which keeps the mode, the standing approvals and the background calls still working (D24, D32, D33, D52) | `ConversationStoreTests.Given_A_Summary_The_Next_Run_Never_Loads_The_Whole_Conversation`, `..._Given_A_Summary_The_Store_Loads_It_And_The_Entries_After_It`, `ToolApprovalTests.Given_An_Approval_For_The_Conversation_The_Summary_Keeps_It_For_Later_Runs`, `ModeTests.Given_A_Compaction_In_Plan_Mode_Its_Summary_Keeps_The_Mode`, `SubAgentTests.Given_A_Compaction_While_A_Background_Sub_Agent_Works_Its_Summary_Keeps_The_Call`, `..._Given_A_Summary_That_Left_A_Background_Sub_Agent_Working_The_Next_Run_Hears_It_Was_Lost` |
+| new | A steered run's later pass starts from the summary its first pass made (D32, D51) | `CompactionTests.Given_A_Steered_Streaming_Run_Its_Later_Pass_Starts_From_The_Summary` |
 | new | Summarizing keeps the latest `write_todos` call with its result (D32, D37) | `CompactionTests.Given_Summarized_Turns_The_Latest_Todo_List_Stays_With_Its_Result` |
 | new | A sub-agent is a tool of its description and one input, answering in a fresh context in its caller's mode (D33) | `SubAgentTests` |
 | new | A sub-agent's calls that need approval are rejected unless something approves them (D33) | `SubAgentTests.Given_A_Sub_Agent_In_The_Default_Mode_A_Call_That_Needs_Approval_Is_Rejected` |
@@ -130,8 +134,6 @@ rewrite.
   `properties`, so a `$ref` that `AIJsonUtilities.CreateJsonSchema` emits for a recursive type is relative to the
   parameter. This is untested, and non-recursive types are unaffected.
 - **Generated line length.** Generated code is `global::`-qualified, and some declarations exceed 120 columns.
-- **Streamed results.** A tool returning `IAsyncEnumerable<T>` compiles, but its result is serialized synchronously
-  and the call fails at runtime. Neither v0 nor the approved API supports it.
 - **Live updates of non-streaming runs.** Only streaming runs publish.
 - **Docs of types in assemblies without toolsets or agents.** Such an assembly has no module, so the XML docs
   collected for it reach no schema. A tool whose parameter type lives there gets that type's properties undescribed.
@@ -142,15 +144,12 @@ rewrite.
 - **Compaction's estimate.** About four characters make a token, corrected by the provider's report of the run's
   last call, so a run's first call trusts the estimate alone. The summary model reads results cut to 2,000
   characters.
-- **Compaction across steering.** A steered run's later pass compacts afresh and summarizes again if it needs to.
 - **File tools and links.** The root check follows every link on a path, but a link swapped in between the check
   and the use still escapes, and only a sandbox stops that. `edit_file` holds a file whole in memory and refuses
   files over 16 MB. Paths compare as the operating system opens them, which on Windows drops a last segment's
   trailing dots and spaces; CI runs on Linux, so that is untested.
 - **Sub-agents in plan mode.** A sub-agent's tool carries no `ReadOnly()` mark, so plan mode hides every sub-agent,
   even one that only reads. A sub-agent run in plan mode would be asked for a plan it has no host to present to.
-- **The raw path's client under concurrent calls.** The client `CreateChatClientAsync` returns holds one tool loop,
-  whose iteration limit the approval layer sets per call, so the client serves one call at a time.
 - **Web fetch and private addresses.** The model picks the URL, and the host's `IWebFetch` decides which addresses
   it reaches. No fetcher ships with Typeshift.
 - **Shell.** `run_command` runs what the model sends. The root is its working directory but not a sandbox, and the

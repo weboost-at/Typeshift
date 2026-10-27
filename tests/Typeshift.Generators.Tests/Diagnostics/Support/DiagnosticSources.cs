@@ -624,6 +624,27 @@ public static class DiagnosticSources
         }
         """;
 
+    // Built with the id type Demo.TenantId
+    public const string PublicAgentOfInternalIdType =
+        """
+        #pragma warning disable CS1591
+
+        using Typeshift;
+
+        namespace Demo;
+
+        internal enum TenantId
+        {
+            North,
+            South
+        }
+
+        public partial class SupportAgent : Agent
+        {
+            public SupportAgent() => WithChatOptions().WithModel("openai", "fast-model");
+        }
+        """;
+
     public const string UnstorablePick =
         """
         using System;
@@ -753,6 +774,39 @@ public static class DiagnosticSources
 
                 UseAgent<AskAgent>();
             }
+        }
+        """;
+
+    public const string StreamWithoutJsonMetadata =
+        """
+        using System.Collections.Generic;
+        using System.Text.Json.Serialization;
+        using Typeshift;
+
+        internal sealed record Company(string Name);
+
+        internal partial class CompanyToolset : Toolset
+        {
+            public CompanyToolset()
+            {
+                AddTool(List).WithDescription("Lists companies.");
+            }
+
+            public static async IAsyncEnumerable<Company> List(string name)
+            {
+                yield return new(name);
+            }
+        }
+
+        // The System.Text.Json generator does not run here; what it would write is stubbed
+        [JsonSerializable(typeof(Company))]
+        internal partial class CompanyJson() : JsonSerializerContext(null)
+        {
+            public static CompanyJson Default { get; } = new();
+
+            protected override System.Text.Json.JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type) => null;
         }
         """;
 
