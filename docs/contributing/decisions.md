@@ -501,7 +501,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Decision:** `SaveAsync` takes the revision the caller loaded, 0 for none, and throws `StoreConflictException`
   when the stored one differs. `ConfigureAsync` reloads and reapplies until it wins (each conflict means another
-  save won). `SaveSettingsAsync` takes the revision from `LoadSettingsAsync`.
+  save won), at most ten times, so a store that conflicts every time fails instead of spinning. `SaveSettingsAsync`
+  takes the revision from `LoadSettingsAsync`.
 
 ### D42. Settings ids and conversation ids are separate; conversations grow by appending
 

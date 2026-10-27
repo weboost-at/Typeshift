@@ -50,6 +50,8 @@ All notable changes to this project are documented here. The format follows
 - `run_command` keeps what a command wrote just before its timeout: it reads the output to its end once the timeout
   killed the command, and for a second past the timeout while a process left behind holds it open, where it stopped
   reading at once.
+- `ConfigureAsync` gives up after ten conflicts in a row and throws the last `StoreConflictException`, where a store
+  that conflicted every time kept it going until its token was cancelled.
 
 ## [0.1.0-alpha.2] - 2026-10-16
 
