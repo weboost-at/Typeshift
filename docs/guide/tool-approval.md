@@ -142,15 +142,17 @@ internal sealed class ShellGuard : IToolApprovalRule
 {
     private static readonly string[] Never = ["sudo", "rm -rf", "curl", "wget", "ssh"];
 
+    // A provider sends each argument as a JsonElement, whose ToString() is the string itself
     public ValueTask<ToolDecision> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct) =>
         ValueTask.FromResult(call is { Name: "run_command", Arguments: { } arguments }
-            && arguments["command"] is string command
+            && arguments.TryGetValue("command", out var value)
+            && value?.ToString() is { } command
             && Never.Any(command.Contains)
                 ? ToolDecision.Reject("This command is never allowed here.")
                 : ToolDecision.Abstain);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/ShellGuard.cs#L5-L17' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/ShellGuard.cs#L5-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 | Decision | Means |
