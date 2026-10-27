@@ -86,6 +86,8 @@ public partial class BackgroundLeadAgent : Agent
     {
         WithChatOptions().WithModel("scripted", "lead-model");
 
+        WithRunOptions().Configurable(r => r.MaxInputTokens);
+
         UseAgent<HelperAgent>().InBackground();
     }
 }

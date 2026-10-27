@@ -8,9 +8,6 @@ namespace Typeshift.Tests.Compaction;
 
 public class CompactionTests : AgentTestBase
 {
-    // About a thousand tokens of text, at four characters to a token
-    private const int Page = 4_000;
-
     private const string SummaryModel = "summary-model";
 
     [Fact]
