@@ -53,6 +53,11 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             .Combine(context.CompilationProvider)
             .Select(static (pair, _) => IdTypes.Display(IdTypes.Read(pair.Left.GlobalOptions), pair.Right));
 
+        // D6: whether a public agent's host members may stay public
+        var idTypeIsPublic = context.AnalyzerConfigOptionsProvider
+            .Combine(context.CompilationProvider)
+            .Select(static (pair, _) => IdTypes.IsPublic(IdTypes.Read(pair.Left.GlobalOptions), pair.Right));
+
         // D56: the provider id type of the Settings members, the alias and the core services
         var providerId = context.AnalyzerConfigOptionsProvider
             .Combine(context.CompilationProvider)
@@ -99,10 +104,11 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(toolsets, static (output, toolset) =>
             output.AddSource(Names.HintName(toolset.Type.FullName), ToolsetEmitter.Emit(toolset)));
 
-        context.RegisterSourceOutput(outputs.Combine(idType).Combine(providerId), static (output, pair) =>
-            output.AddSource(
-                Names.HintName(pair.Left.Left.Agent.Type.FullName),
-                AgentEmitter.Emit(pair.Left.Left, pair.Left.Right, pair.Right)));
+        context.RegisterSourceOutput(
+            outputs.Combine(idType).Combine(idTypeIsPublic).Combine(providerId),
+            static (output, pair) => output.AddSource(
+                Names.HintName(pair.Left.Left.Left.Agent.Type.FullName),
+                AgentEmitter.Emit(pair.Left.Left.Left, pair.Left.Left.Right, pair.Left.Right, pair.Right)));
 
         context.RegisterSourceOutput(idType.Combine(providerId).Combine(assemblyName), static (output, pair) =>
         {

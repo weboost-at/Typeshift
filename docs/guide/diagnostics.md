@@ -79,8 +79,8 @@ layer of settings applies to a `with` copy of them.
 
 ## TSH006
 
-**Settings are less accessible than what exposes them.** Make the record, the toolset or the provider id type as
-accessible as what exposes it. There are three cases:
+**Settings are less accessible than what exposes them.** Make the record, the toolset, the provider id type or the
+id type as accessible as what exposes it. There are four cases:
 
 - A settings record is less accessible than its toolset. The toolset's generated members name the record wherever
   the toolset can be named.
@@ -89,6 +89,8 @@ accessible as what exposes it. There are three cases:
 - A public agent makes its model or its summary model configurable, and the
   [provider id type](./models.md#the-provider-id-type) is less accessible. The agent's `Settings` record names the
   type for the model's provider.
+- The build's [id type](./registration.md#the-id-type) is less accessible than a public agent. The agent's host
+  members take settings and conversation ids of it, so the generator keeps them internal.
 
 ## TSH007
 

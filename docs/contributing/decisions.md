@@ -87,7 +87,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   record member gets a `Tool` suffix. A public agent's `Settings` cannot name the overrides of an internal toolset:
   TSH006, and the generator leaves the member out. Nor can it name a less accessible provider id type, which a
   configurable model or summary model brings in: TSH006 on the pick, and the generator writes the provider members
-  internal.
+  internal. Its host members take ids of the build's id type, so a less accessible id type is TSH006 on the agent,
+  and the generator writes the host members internal.
 - **Where:** `Emitting/Names.cs`, `Emitting/AgentEmitter.cs`.
 
 ### D7. Stamps carry the generated names and a version
