@@ -414,6 +414,23 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_Two_References_With_A_Tool_Of_One_Name_TSH007_Is_Reported()
+    {
+        // Arrange
+        var companies = CompileReference("Companies", ReferenceSources.CompanyToolset);
+        var search = CompileReference("Search", ReferenceSources.SameNamedToolset);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [companies, search]));
+
+        // Assert
+        run.Assert.ReportsOnTheCompilation("TSH007", DiagnosticSeverity.Error)
+            .GetMessage()
+            .Should()
+            .Contain("find_companies");
+    }
+
+    [Fact]
     public void Given_A_Reference_Of_Toolsets_Only_Built_With_Another_Id_Type_TSH021_Is_Not_Reported()
     {
         // Arrange
@@ -453,6 +470,20 @@ public class DiagnosticTests : GeneratorTestBase
 
         // Assert
         run.Assert.Reports("TSH022", DiagnosticSeverity.Error, "HelpAgent").GetMessage().Should().Contain("Billing");
+    }
+
+    [Fact]
+    public void Given_Two_References_With_Agents_Of_One_Kind_TSH022_Is_Reported()
+    {
+        // Arrange
+        var billing = CompileReference("Billing", ReferenceSources.BillingHelpAgent);
+        var support = CompileReference("Support", ReferenceSources.SupportHelpAgent);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [billing, support]));
+
+        // Assert
+        run.Assert.ReportsOnTheCompilation("TSH022", DiagnosticSeverity.Error).GetMessage().Should().Contain("Billing");
     }
 
     [Fact]

@@ -99,4 +99,28 @@ public static class ReferenceSources
             public static void Register(IServiceCollection services) => services.AddTypeshift();
         }
         """;
+
+    public const string BillingHelpAgent =
+        """
+        using Typeshift;
+
+        namespace Billing;
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
+        }
+        """;
+
+    public const string SupportHelpAgent =
+        """
+        using Typeshift;
+
+        namespace Support;
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
+        }
+        """;
 }
