@@ -10,8 +10,10 @@ the companies of a city.
 
 ## 1. Install
 
-Typeshift needs .NET 10. Add the package to every project that declares toolsets or agents
-([TSH020](./diagnostics.md#tsh020)) or calls `AddTypeshift()`:
+Typeshift needs the .NET 10 SDK and C# 14, its default language version. Add the package to every project that
+declares toolsets or agents or calls `AddTypeshift()`. The package carries the source generator, and NuGet does not
+pass a generator on to the projects that reference yours, so each of them needs the package itself
+([TSH020](./diagnostics.md#tsh020)):
 
 ```bash
 dotnet add package Typeshift --prerelease
@@ -22,8 +24,10 @@ The types on this page are in the `Typeshift` namespace, which the package does 
 `using Microsoft.Extensions.DependencyInjection;`, and in a console app the `Microsoft.Extensions.DependencyInjection`
 package, which builds the service provider.
 
-Turn on XML docs in `Directory.Build.props`, since tools take their descriptions from them. The same file sets
-`TypeshiftIdType`, the type of the settings ids and conversation ids you pass to runs in step 4:
+Turn on XML docs in `Directory.Build.props`, since tools take their descriptions from them; without them the build
+warns with [TSH011](./diagnostics.md#tsh011). The same file sets `TypeshiftIdType`, the type of the settings ids and
+conversation ids you pass to runs. Leave it out, and ids are `Guid`s, so step 4 would pass `Guid`s instead of 42 and
+1:
 
 ```xml
 <PropertyGroup>
@@ -35,7 +39,8 @@ Turn on XML docs in `Directory.Build.props`, since tools take their descriptions
 
 ## 2. Write a toolset
 
-A toolset declares tools in its constructor. Each tool is a static method:
+A toolset is a `partial` class, so the generator can add members to it ([TSH001](./diagnostics.md#tsh001)). It
+declares its tools in its constructor, and each tool is a static method:
 
 <!-- snippet: quickstart-toolset -->
 <a id='snippet-quickstart-toolset'></a>
@@ -157,8 +162,23 @@ await using var provider = services.BuildServiceProvider(validateScopes: true);
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L11-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`CannedChatClient` is a fake client from the docs samples that stands in for a real model. Register your provider's
-`IChatClient` under `"openai"` instead, as [Models and providers](./models.md) shows. `InMemoryTypeshiftStore` comes
+`CannedChatClient` is a fake client from the docs samples, so they run without a network. In your app, register your
+provider's client instead. With the `Microsoft.Extensions.AI.OpenAI` package and an OpenAI API key, that is:
+
+<!-- snippet: openai-client -->
+<a id='snippet-openai-client'></a>
+```cs
+var openAi = new OpenAIClient(apiKey)
+    .GetChatClient("gpt-5-mini")
+    .AsIChatClient();
+
+services.AddKeyedSingleton("openai", openAi);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L25-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-client' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+The key `"openai"` is a name you choose: it is the provider the agent names in `WithModel("openai", "gpt-5-mini")`.
+[A real client](./models.md#a-real-client) shows a local server and other providers. `InMemoryTypeshiftStore` comes
 with Typeshift and stands in for your database.
 
 `KeyedChatClientProvider` is your `IChatClientProvider`. For each run, Typeshift asks it for the client of the
@@ -198,8 +218,9 @@ await research.ConfigureAsync(settingsId, settings => settings with
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L23-L33' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Every run with settings id 42 now finds at most 2 companies. The conversation id is optional. With it, Typeshift
-stores the run under conversation 1, and a later run with the same id continues the conversation:
+Every run with settings id 42 now finds at most 2 companies. Both ids are optional: a run without a settings id uses
+the agent's code alone, and a run with neither id needs no store. With the conversation id, Typeshift stores the run
+under conversation 1, and a later run with the same id continues the conversation:
 
 <!-- snippet: quickstart-run -->
 <a id='snippet-quickstart-run'></a>
@@ -211,8 +232,9 @@ Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L35-L39' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The limit passes through three layers: 5 in the record, 3 in the agent and 2 in the stored settings. The highest
-layer that sets a value wins, as [Settings layering](./settings-and-stores.md#settings-layering) explains.
+The limit passes through three layers: 5 in the record, 3 in the agent and 2 in the stored settings. Each layer
+overrides the one before, so the stored 2 applies. A run can pass settings of its own, a fourth layer over the stored
+ones, as [Settings layering](./settings-and-stores.md#settings-layering) explains.
 
 ## How the pieces fit
 
@@ -226,7 +248,8 @@ flowchart LR
     generator --> registration["AddTypeshift()"]
   end
   subgraph runtime [Runtime]
-    host["AgentHost&lt;TAgent&gt;"] --> client[The model's IChatClient]
+    host["AgentHost&lt;TAgent&gt;"] --> provider[Your IChatClientProvider]
+    provider --> client[The model's IChatClient]
     host --> store[Your ITypeshiftStore]
   end
   registration --> host
