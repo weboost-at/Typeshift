@@ -6,7 +6,8 @@ description: What a project needs, the id type, and every service AddTypeshift()
 # Registration
 
 `services.AddTypeshift()` registers every toolset and agent of your project and the projects it references. It returns
-`TypeshiftBuilder`, the chain that registers the rest.
+a `TypeshiftBuilder`, whose `With...` calls register what your app supplies, such as the store and the chat client
+provider.
 
 ## Project setup
 
@@ -24,19 +25,21 @@ dotnet add package Typeshift --prerelease
 ## XML docs of parameter types
 
 The package brings [Weboost.SchemaAnnotations](https://github.com/weboost-at/SchemaAnnotations), which turns the XML
-docs of your types into descriptions of the properties a tool's parameters hold. It adds a hidden class to every
-project with `GenerateDocumentationFile`, and the project's module registers the docs it collects. A project of
-contracts with no toolsets or agents gets a module too, so the tools of the projects that reference it describe its
-types; it needs the package and `GenerateDocumentationFile` like any other. To leave the docs out, set:
+docs of your types into descriptions of the properties a tool's parameters hold. Typeshift adds a hidden class to
+every project that sets `GenerateDocumentationFile`. Weboost.SchemaAnnotations collects the project's XML docs in that
+class, and the project's [registration module](#what-addtypeshift-registers) registers them when `AddTypeshift()`
+runs. A project of contracts with no toolsets or agents gets a module too, so the tools of the projects that
+reference it describe its types; it needs the package and `GenerateDocumentationFile` like any other. To leave these
+descriptions out, set:
 
 ```xml
 <TypeshiftSchemaAnnotations>false</TypeshiftSchemaAnnotations>
 ```
 
 ::: warning Delete your own `[SchemaAnnotations]` class
-A project that marked a class with `[SchemaAnnotations]` itself now has two, so Weboost.SchemaAnnotations writes no
-`AIJsonSchemaCreateOptions.Annotated` and code using it stops compiling. Delete your class, and the one the package
-adds brings `Annotated` back.
+If your project already marks a class with `[SchemaAnnotations]`, adding the Typeshift package gives it a second one.
+Weboost.SchemaAnnotations then generates no `AIJsonSchemaCreateOptions.Annotated`, and code that uses it stops
+compiling. Delete your own class, and the one the package adds brings `Annotated` back.
 :::
 
 ## The id type
@@ -54,14 +57,15 @@ another, set once in `Directory.Build.props`:
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Typeshift.Samples.Docs.csproj#L5-L9' title='Snippet source file'>snippet source</a> | <a href='#snippet-id-type' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`TypeshiftIdType` takes a C# keyword (`int`, `long`, `string`), a type of `System`, or a full type name
-([TSH029](./diagnostics.md#tsh029)). A public agent needs a public id type, since its host members take ids of it
-([TSH006](./diagnostics.md#tsh006)).
+`TypeshiftIdType` takes a C# keyword (`int`, `long`, `string`), the name of a type in the `System` namespace, such as
+`Guid`, or any other type's full name with its namespace ([TSH029](./diagnostics.md#tsh029)). A public agent needs a
+public id type, since its host members take ids of it ([TSH006](./diagnostics.md#tsh006)).
 
-Generated members take the id type, as in `RunAsync(input, settingsId: 42)`, and `ITypeshiftStore`,
-`InMemoryTypeshiftStore`, `ConversationTracker` and `LiveRun` are aliases the generator writes for it. The library
-never creates ids; your code chooses them. A referenced project built with another id type is
-[TSH021](./diagnostics.md#tsh021), and a store of another id type is [TSH028](./diagnostics.md#tsh028).
+Generated members take the id type, as in `RunAsync(input, settingsId: 42)`. The generator also writes aliases that
+close `ITypeshiftStore`, `InMemoryTypeshiftStore`, `ConversationTracker` and `LiveRun` over it, so you use these names
+without a type argument. The library never creates ids; your code chooses them. If a referenced project was built
+with another id type, the analyzer reports [TSH021](./diagnostics.md#tsh021), and for a store of another id type it
+reports [TSH028](./diagnostics.md#tsh028).
 
 Providers have an id type of their own, `TypeshiftProviderIdType`, which is `string` unless set. See
 [the provider id type](./models.md#the-provider-id-type).
@@ -86,6 +90,10 @@ services.AddKeyedSingleton("anthropic", reasoning);
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L18-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+`fast` and `reasoning` are `IChatClient`s your app creates. The last two lines register them under the keys `openai`
+and `anthropic`, and `KeyedChatClientProvider` returns the client registered under a run's provider
+([the chat client provider](./models.md#the-chat-client-provider)).
+
 `AddTypeshift()` itself registers these:
 
 | Service | Lifetime |
@@ -96,27 +104,28 @@ services.AddKeyedSingleton("anthropic", reasoning);
 | The JSON contexts of each assembly, which tools ask before the defaults | Singleton |
 | `ConversationTracker` and the core services runs need | Singleton |
 
-The registrations come in modules from three places: this project, every project it references that declares toolsets
-or agents, and the library's [built-in toolsets](./built-in-toolsets.md). Each module registers once per service
-collection, so a second call of `AddTypeshift()` only returns another chain.
+The generator writes a registration module for each project that declares toolsets or agents. `AddTypeshift()` runs
+the modules from three places: the project that calls it, every project it references that declares toolsets or agents,
+and the library's [built-in toolsets](./built-in-toolsets.md). Each module registers once per service collection, so a
+second call to `AddTypeshift()` only returns another chain.
 
-Because the generator intercepts the call, it works only in a project that references the package, and only written as
-`services.AddTypeshift()`. A call the generator did not intercept throws an `InvalidOperationException` that says what
-to check.
+Because the generator intercepts the call, it works only in a project that references the package, and only when you
+call it on the service collection, such as `services.AddTypeshift()` or `builder.Services.AddTypeshift()`. A call the
+generator did not intercept throws an `InvalidOperationException` that says what to check.
 
-::: warning A library's call registers the library's agents, not the host's
+::: warning A library's call registers the library's agents, not your app's
 A library that calls `AddTypeshift()` in its own `AddX()` registers its own toolsets and agents and those of its
-references. The host's toolsets and agents need the host's own call.
+references. Your app's own toolsets and agents need a call to `AddTypeshift()` in your app.
 :::
 
 ## The chain
 
 | Call | Registers | Lifetime | Needed by |
 |---|---|---|---|
-| `WithStore<TStore>()` | `TStore`, and `ITypeshiftStore` as it | Singleton | Settings ids, conversation ids, approval and handoffs. Without a store, every call that loads or saves throws, naming this method. |
-| `WithChatClientProvider<TProvider>()` | `TProvider`, and `IChatClientProvider` as it | Scoped | Every run. |
+| `WithStore<TStore>()` | `TStore`, and `ITypeshiftStore` resolving to it | Singleton | Settings ids, conversation ids, approval and handoffs. Without a store, every call that loads or saves throws, naming this method. |
+| `WithChatClientProvider<TProvider>()` | `TProvider`, and `IChatClientProvider` resolving to it | Scoped | Every run. |
 | `WithRealtimeTracking(RealtimeTrackingOptions? options = null)` | The options. By default, `PublishInterval` is 100 ms and `MaxPendingUpdates` 256. | Singleton | `ConversationTracker.WatchAsync`. |
-| `WithApprovalRule<TRule>()` | One more `IToolApprovalRule` | Scoped | Deciding calls before the host is asked. |
+| `WithApprovalRule<TRule>()` | One more `IToolApprovalRule` | Scoped | Deciding calls before your app is asked. |
 | `WithRunMiddleware<TMiddleware>()` | One more `IRunMiddleware`. The first registered is the outermost. | Scoped | Wrapping every run. |
 | `WithToolMiddleware<TMiddleware>()` | One more `IToolMiddleware`. The first registered is the outermost. | Scoped | Wrapping every tool call. |
 | `WithMcpToolProvider<TProvider>()` | `IMcpToolProvider` | Scoped | Agents with `UseMcpServer`. |
