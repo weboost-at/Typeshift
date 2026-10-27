@@ -6,18 +6,24 @@ description: How the pages of these docs are written and shaped, where their cod
 # Writing the docs
 
 These docs are for .NET developers who want to get something done, and are often written by coding agents. If you
-remember one thing: **lead with the answer, say why, and keep it short.**
+remember one thing: **lead with the answer, explain why, and talk to the reader.**
 
 ## Voice
 
-Write like a colleague explaining the library at a whiteboard: direct, friendly, precise, and willing to say what
-they think. The [Marten](https://martendb.io) and [Wolverine](https://wolverinefx.net) docs are the model.
+Write like a colleague who sits next to the reader and walks them through the library: direct, friendly and precise.
+Talk about the reader's code, explain what each step is for, and say so when a choice is theirs. The
+[Marten](https://martendb.io) and [Wolverine](https://wolverinefx.net) docs are the model.
 
-The trap is sounding generated: every sentence the same length, every section the same shape, and the same fact said
-three times. Read the page aloud. If it sounds like a spec, rewrite it.
+Two habits make a page sound generated. One is compression: sentences so short and clever that the reader has to
+decode them, such as "An agent is a constructor". The other is sameness: every sentence the same length, every
+section the same shape, and the same fact said three times. Read the page aloud. If it sounds like a spec or a
+slogan, rewrite it.
 
 | Do | Don't |
 |---|---|
+| "You create an agent in its constructor: a few chained calls pick the model, the instructions and the tools." | "An agent is a constructor." |
+| "You may group tools by feature, by domain or by permission level. How you group them is up to you." | A rule where the choice is the reader's: "Each toolset holds one domain." |
+| "The analyzer rejects `ref` and `out` parameters with TSH004." | "`ref` and `out` parameters are TSH004." |
 | "A tool is named after its method in snake_case, without `Async`." | "The name is, by default, derived from the method in snake_case form." |
 | "Stored settings are keyed by the tool's name, so renaming the method orphans them." | "A tool's name keys its stored settings. Rename the method. The settings no longer apply." |
 | "Write the exception's message as a hint, and the model can correct its call." | "It's worth noting that exception messages are seamlessly surfaced to the model." |
@@ -25,7 +31,13 @@ three times. Read the page aloud. If it sounds like a spec, rewrite it.
 
 - **Present tense**, describing what the library does today. What is not built yet belongs in
   [Status](./status.md), not in the guide.
-- **"You"** for instructions, **"Typeshift"** for what the library does, **"we"** only for the project's own choices.
+- **"You"** for instructions, **"your app"** for the application that uses Typeshift, **"Typeshift"** for what the
+  library does, **"we"** only for the project's own choices. "The host" is always `AgentHost<TAgent>`, never your app.
+- **Explain the step between two facts.** Spell out what a call does for the reader and what follows from it. If the
+  reader has to read a sentence twice, it is too short, however correct it is. A term gets a few words of
+  explanation or a link the first time a page uses it.
+- **Leave the reader their choices.** Where Typeshift leaves a decision to the reader, say so and name the common
+  options, as the toolset example above does.
 - **Vary the rhythm.** Join two short sentences that belong together with "so", "because" or "but", and split one
   that needs a colon and a semicolon. Most sentences stay under 25 words.
 - **The subject first.** "`ConfigureAsync` retries on a conflict", not "On a conflict, which another save causes,
@@ -36,8 +48,12 @@ three times. Read the page aloud. If it sounds like a spec, rewrite it.
   not one long paragraph.
 - **Say why once.** A rule without a reason gets broken, and a reason given three times gets skipped.
 - **Examples say so.** "for example" or "such as", never a trailing "say".
-- **No filler.** No "basically", "simply", "just", "note that", "it's worth noting", "seamlessly", "robust", no em
-  dashes, no rhetorical questions, no sentence that only announces the next one, and no closing summary.
+- **No filler.** No "basically", "simply", "note that", "it's worth noting", "seamlessly", "robust", no "just" as a
+  softener ("just call `RunAsync`"), no em dashes, no rhetorical questions, no sentence that only announces the next
+  one, and no closing summary. "Just" in the sense of "only" is fine: "with just a few lines of code".
+- **No staging.** No "not X but Y" contrast with something nobody claimed, no one-line paragraph that repeats the one
+  before, no list of three when the meaning has two, and no "serves as" or "acts as" where "is" works. The
+  [Humanizer](https://github.com/blader/humanizer) skill lists more of these tells.
 - **The words of the [glossary](../guide/glossary.md)**, used the same way everywhere: a *toolset* declares *tools*,
   an *agent* offers them, a *host* runs it.
 
@@ -46,8 +62,11 @@ three times. Read the page aloud. If it sounds like a spec, rewrite it.
 The README and the home page sell Typeshift and get a reader running. The guide holds the details, so the README
 stays light: a short pitch, a quick start, and a table of links into the guide.
 
-- **Lead with what the reader writes.** A tool is a method, an agent is a constructor. What the generator emits, such
-  as functions, records, one registration call or Native AOT support, backs the pitch but never leads it.
+- **Lead with what the reader does.** Name the task, such as "Create an agent" or "Design your toolsets", and say
+  how little it takes. What the generator emits, such as functions, records, one registration call or Native AOT
+  support, backs the pitch but never leads it.
+- **Plain words over slogans.** A tagline or a feature title says what Typeshift does in words a .NET developer
+  would use. A title such as "A tool is a method" makes the reader decode it first.
 - **Never "plain C#".** It reads as classes without a base class, and toolsets and agents derive from `Toolset` and
   `Agent`.
 - **Getting started stays at about four steps**, because Typeshift is meant to be easy and a long first page says

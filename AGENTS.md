@@ -77,12 +77,14 @@ style; the essentials:
 
 - Every page: `title` and `description` frontmatter, an H1 equal to the title, a lead of two or three sentences that
   answers first, no summary box, one idea per section, `## Related` last.
-- Present tense, "you" for the reader, sentences of varied length that read like a person wrote them. Say why, once.
-  No filler, no em dashes, no trailing "say" for examples: "for example".
+- Present tense, "you" for the reader and "your app" for their application; "the host" is only `AgentHost<TAgent>`.
+  Explain rather than compress: spell out the step between two facts, in sentences of varied length that read like a
+  person wrote them. Say why, once. No filler, no em dashes, no trailing "say" for examples: "for example".
 - Keep it compact: a new topic is a section of an existing page before it is a page of its own. Short paragraphs;
   facts about a snippet as a list.
-- Pitch lines (README, home page, leads) sell the declaration syntax, not what the generator emits, and never say
-  "plain C#". Getting started stays at about four steps.
+- Pitch lines (README, home page, leads) name what the reader does, such as "Create an agent", in plain words rather
+  than slogans. They never lead with what the generator emits and never say "plain C#". Getting started stays at
+  about four steps.
 - C# only from `samples/Typeshift.Samples.Docs` through mdsnippets. Callouts carry meaning and a title. Mermaid for
   flows, at most about ten nodes.
 - One fact, one page: change the canonical page below and link to it elsewhere. A snippet may repeat; its
