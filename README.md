@@ -45,14 +45,17 @@ Build AI agents for .NET with just a few lines of code, and let the compiler cat
 dotnet add package Typeshift --prerelease
 ```
 
-The types are in the `Typeshift` namespace, so add `using Typeshift;` to your files. Turn on XML docs and pick your id type once, in `Directory.Build.props`:
+The types are in the `Typeshift` namespace, so add `using Typeshift;` to your files. Turn on XML docs and pick your id
+type once, in a `Directory.Build.props` next to your solution:
 
 ```xml
-<PropertyGroup>
-  <GenerateDocumentationFile>true</GenerateDocumentationFile>
-  <!-- Ids are Guids unless you name another type -->
-  <TypeshiftIdType>int</TypeshiftIdType>
-</PropertyGroup>
+<Project>
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Ids are Guids unless you name another type -->
+    <TypeshiftIdType>int</TypeshiftIdType>
+  </PropertyGroup>
+</Project>
 ```
 
 ### 1. Write a toolset
