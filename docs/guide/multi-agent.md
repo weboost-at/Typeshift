@@ -93,8 +93,8 @@ When the sub-agent finishes, its answer reaches the calling run as a message bef
 - A run does not end while its sub-agents work. Once the model stops calling tools, the run waits for the next
   answer and continues with it.
 - A run that ends some other way, for example with an error, stops the sub-agents still working.
-- When a background sub-agent never answered, because its run ended or the process crashed, the conversation's next
-  run tells the model it was lost, so the model can call it again.
+- When a background sub-agent never answered, because the calling run ended first or the process crashed, the
+  conversation's next run tells the model it was lost, so the model can call it again.
 
 The sub-agent itself is an agent like any other. This one explores the workspace with a fast model and offers only
 the file tools that read, so none of its calls needs approval:

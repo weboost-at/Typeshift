@@ -99,8 +99,9 @@ tools take their descriptions from XML docs ([TSH011](./diagnostics.md#tsh011)):
 ### Tool parameter and result types
 
 Under Native AOT, the types your tools take and return need source-generated metadata: a `JsonSerializerContext` in
-the toolset's assembly that lists them. Outside Native AOT, serialization falls back to reflection, so a project that
-neither publishes with Native AOT nor sets `IsAotCompatible` needs no context.
+the toolset's assembly that lists them. Outside Native AOT, serialization falls back to reflection, so an app that does
+not publish with Native AOT needs no context. Set `IsAotCompatible` in a toolset library that such apps use, so the
+analyzer checks it.
 
 <!-- snippet: json-context -->
 <a id='snippet-json-context'></a>

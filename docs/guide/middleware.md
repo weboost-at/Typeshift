@@ -105,7 +105,7 @@ services.AddKeyedSingleton("anthropic", reasoning);
 <!-- endSnippet -->
 
 The other lines register the store, the chat clients and live updates, which
-[Registration](./registration.md#what-addtypeshift-registers) explains.
+[the chain](./registration.md#the-chain) explains.
 
 ## Context providers
 

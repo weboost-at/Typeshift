@@ -18,8 +18,9 @@ dotnet add package Typeshift --prerelease
 ```
 
 The types on this page are in the `Typeshift` namespace, which the package does not import for you, so add
-`using Typeshift;` to your files. In a console app, also add the `Microsoft.Extensions.DependencyInjection` package,
-which builds the service provider in step 4.
+`using Typeshift;` to your files. Step 4 also needs `using Microsoft.Extensions.AI;` and
+`using Microsoft.Extensions.DependencyInjection;`, and in a console app the `Microsoft.Extensions.DependencyInjection`
+package, which builds the service provider.
 
 Turn on XML docs in `Directory.Build.props`, since tools take their descriptions from them. The same file sets
 `TypeshiftIdType`, the type of the settings ids and conversation ids you pass to runs in step 4:

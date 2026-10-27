@@ -187,8 +187,8 @@ that require approval:
 
 The mode is a [run option](./defining-agents.md#run-options). `WithMode(mode)` in the agent's `WithRunOptions()` sets
 the mode runs start in, `Default` unless set. Add `Configurable(r => r.Mode)` to the same chain, and the agent's
-generated `Settings` gets a `Mode`, so stored settings or a run can change it. `TriageAgent` does this, so this run
-starts in plan mode:
+generated `Settings` gets a `Mode`, so stored settings or a run can change it. `TriageAgent` makes `Mode` configurable,
+so this run can pass `Mode = AgentMode.Plan` and start in plan mode:
 
 <!-- snippet: switch-mode -->
 <a id='snippet-switch-mode'></a>

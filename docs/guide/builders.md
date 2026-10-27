@@ -34,7 +34,7 @@ each agent from `Agent` directly ([TSH017](./diagnostics.md#tsh017)).
 |---|---|
 | `WithName(string name)` | Replaces the name derived from the method. It must be lower_snake_case ([TSH008](./diagnostics.md#tsh008)). |
 | `WithDescription(string description)` | Replaces the `<summary>`. For a tool with neither, the analyzer reports [TSH009](./diagnostics.md#tsh009). |
-| `RequiresApproval()` | Makes every call to the tool wait for approval: the run ends, and the call runs once your app approves it in the conversation's next run. See [Approval and modes](./tool-approval.md). |
+| `RequiresApproval()` | Makes the tool's calls need approval. Unless a rule, a standing approval or auto mode decides a call, the run ends, and the call runs once your app approves it in the conversation's next run. See [Approval and modes](./tool-approval.md). |
 | `ReadOnly()` | Marks a tool that only reads and changes nothing. [Plan mode](./tool-approval.md#plan-mode) offers only these. |
 | `WithSettings<TSettings>()` | Gives the tool a settings record that stays in code, except the members `Configurable` names. Returns `ToolBuilder<TSettings>`. |
 | `WithConfigurableSettings<TSettings>()` | Gives the tool a settings record whose settable members may all change, except those `NotConfigurable` names. Returns `ConfigurableSettingsBuilder<TSettings>`. |

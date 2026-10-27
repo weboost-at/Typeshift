@@ -189,8 +189,8 @@ runs the conversation.
 A coding agent can make hundreds of model calls in one run, and its history soon outgrows the model's context.
 Compaction shrinks the history each call sees. It is off until `WithMaxInputTokens` sets a limit, and the other
 [run options](./builders.md#runoptionsbuilder) let such a run go on for long enough: here `WithMaxToolIterations(500)`
-raises the limit on rounds of tool calls to 500. `WithMode(AgentMode.Plan)` starts this coding agent in
-[plan mode](./tool-approval.md#plan-mode), which compaction does not need:
+raises the limit on rounds of tool calls to 500. The agent also starts in [plan mode](./tool-approval.md#plan-mode),
+which has nothing to do with compaction:
 
 <!-- snippet: long-running-options -->
 <a id='snippet-long-running-options'></a>
