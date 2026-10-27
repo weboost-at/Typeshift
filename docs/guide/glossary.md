@@ -35,7 +35,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | **Provider id type** | The type of every provider id in a build, such as the provider in `WithModel(provider, model)`: `string` unless `TypeshiftProviderIdType` names another. See [Models and providers](./models.md#the-provider-id-type). |
 | **Raw path** | Resolving a run's options and creating its `IChatClient` yourself, for when your app needs the client. See [Running agents](./running-agents.md#the-raw-path). |
 | **Revision** | The number a store raises on every save of a document. A save passes the revision it loaded, so it fails when another save came first. |
-| **Run** | One call of `RunAsync`, `RunStreamingAsync`, `ResumeAsync`, `ResumeStreamingAsync` or the raw path's client: the model calls and tool calls until the model answers. |
+| **Run** | One call of `RunAsync`, `RunAsync<T>`, `RunStreamingAsync`, `ResumeAsync`, `ResumeStreamingAsync` or the raw path's client: the model calls and tool calls until the model answers. |
 | **Run options** | How a run's tool loop goes, with its mode, its limits and compaction. Set with `WithRunOptions()`. |
 | **Settings** | An agent's generated `Settings` record, with exactly the values that may change at runtime. Stored under a settings id, or passed for one run. |
 | **Settings id** | The id your app stores an agent's `Settings` under, such as one per customer, team or user. |
