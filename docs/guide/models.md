@@ -29,7 +29,8 @@ internal sealed class KeyedChatClientProvider(IServiceProvider services) : IChat
 
 Typeshift puts the model into every request as `ChatOptions.ModelId`, which is why the sample ignores its `model`
 parameter and returns one client per provider. Register the provider on the chain, and register your clients however
-you like. Here `openAi` and `anthropic` stand for the `IChatClient` instances your app creates, one per provider:
+you like, as long as each is the provider's bare client ([a real client](#a-real-client) says why). Here `openAi` and
+`anthropic` stand for the `IChatClient` instances your app creates, one per provider:
 
 <!-- snippet: chat-client-provider-registration -->
 <a id='snippet-chat-client-provider-registration'></a>
@@ -52,6 +53,55 @@ create for a single run is yours to dispose.
 
 If no provider is registered, a run throws an `InvalidOperationException` that tells you to call
 `WithChatClientProvider<T>()`.
+
+## A real client
+
+Each provider's client library has an adapter to `IChatClient` for Microsoft.Extensions.AI. For OpenAI, add the
+`Microsoft.Extensions.AI.OpenAI` package and register one client for the provider:
+
+<!-- snippet: openai-client -->
+<a id='snippet-openai-client'></a>
+```cs
+var openAi = new OpenAIClient(apiKey)
+    .GetChatClient("gpt-5-mini")
+    .AsIChatClient();
+
+services.AddKeyedSingleton("openai", openAi);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L25-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-client' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- Typeshift names the model in every request as `ChatOptions.ModelId`, so this one client serves every OpenAI model
+  your agents name. The model you pass to `GetChatClient` only names the client.
+- Read the API key from your app's configuration, never from code.
+- Register the bare client. Typeshift runs the tool loop itself, so a client you wrap with `UseFunctionInvocation()`
+  runs a second loop inside it, and a run that answers an [approval request](./tool-approval.md) fails.
+
+A local server with an OpenAI-compatible API, such as LM Studio or Ollama, works with the same package. Point the
+client at its endpoint, and name its models in `WithModel`:
+
+<!-- snippet: local-chat-client -->
+<a id='snippet-local-chat-client'></a>
+```cs
+var options = new OpenAIClientOptions
+{
+    Endpoint = new Uri("http://localhost:1234/v1")
+};
+
+var local = new OpenAIClient(new ApiKeyCredential("none"), options)
+    .GetChatClient("qwen3-8b")
+    .AsIChatClient();
+
+services.AddKeyedSingleton("local", local);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L36-L47' title='Snippet source file'>snippet source</a> | <a href='#snippet-local-chat-client' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+For other providers, such as Anthropic or Azure OpenAI, register the `IChatClient` of their own package.
+[Microsoft.Extensions.AI](https://learn.microsoft.com/dotnet/ai/microsoft-extensions-ai) lists them. A fake client for
+tests reads the same requests: the model in `ChatOptions.ModelId`, the agent's instructions in
+`ChatOptions.Instructions` and the run's tools in `ChatOptions.Tools`. It calls a tool by answering with a
+`FunctionCallContent`, and Typeshift runs the call.
 
 ## The provider id type
 
