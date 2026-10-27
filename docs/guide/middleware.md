@@ -32,8 +32,18 @@ internal sealed class BlockedTopics : IRunMiddleware
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/BlockedTopics.cs#L5-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-middleware' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-An `IRunMiddleware` sees the run's agent, messages, options and mode. It may change the messages and the options
-before it calls `next`, and once `next` returns, `run.Response` holds the answer. Changes to the messages hold for this
+An `IRunMiddleware` receives the run as an `AgentRun`:
+
+| Member | Holds |
+|---|---|
+| `Agent` | The agent that runs, such as its `Name`. |
+| `Messages` | What the model receives: the resumed conversation, then the input. |
+| `Options` | The run's resolved `ChatOptions`, with every layer of settings applied. |
+| `Mode` | The mode the run is in. |
+| `Services` | The run's services. |
+| `Response` | The answer, once `next` returns. |
+
+Middleware may change the messages and the options before it calls `next`. Changes to the messages hold for this
 run only, because the conversation stores the messages you sent. Middleware runs for every agent, so check `run.Agent`
 when it should act on some of them only.
 
