@@ -8,9 +8,6 @@ namespace Typeshift.Tests.Compaction;
 
 public class CompactionTests : AgentTestBase
 {
-    // About a thousand tokens of text, at four characters to a token
-    private const int Page = 4_000;
-
     private const string SummaryModel = "summary-model";
 
     [Fact]
@@ -138,6 +135,38 @@ public class CompactionTests : AgentTestBase
         Texts(3)[0].Should().EndWith(Data.Agent.Reason);
         Texts(3)[1..].Should().Equal(Data.Tool.Answer, Data.Agent.FollowUp, Data.Tool.Answer, Data.Agent.Steering);
         (await EntriesAsync(Data.Agent.ConversationId)).Should().ContainSingle(entry => entry.IsSummary);
+    }
+
+    [Fact]
+    public async Task Given_A_Steered_Streaming_Run_Its_Later_Pass_Starts_From_The_Summary()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+        var settings = new CompactingAgent.Settings { MaxInputTokens = 1_000, SummaryModel = SummaryModel };
+
+        ChatClient
+            .Reply(Text(Data.Agent.CompanyName), Text(Data.Agent.Instructions), Read(Data.Tool.CallId, Page))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(gate, Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.FollowUp));
+
+        var run = Host<CompactingAgent>()
+            .RunStreamingAsync(
+                Data.Tool.Question,
+                conversationId: Data.Agent.ConversationId,
+                settings: settings,
+                ct: Ct)
+            .ToListAsync(Ct);
+
+        await ChatClient.RequestedAsync(3);
+
+        // Act
+        Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+        gate.SetResult();
+        await run;
+
+        // Assert
+        Texts(3)[0].Should().EndWith(Data.Agent.Reason);
     }
 
     [Fact]

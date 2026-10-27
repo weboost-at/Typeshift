@@ -6,5 +6,6 @@ internal enum ReturnKind
     Void,
     Value,
     Awaitable,
-    AwaitableValue
+    AwaitableValue,
+    Stream
 }

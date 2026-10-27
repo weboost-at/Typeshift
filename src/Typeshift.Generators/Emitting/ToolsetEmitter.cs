@@ -15,6 +15,8 @@ internal static class ToolsetEmitter
 
     private const string ApprovalRequired = "global::Microsoft.Extensions.AI.ApprovalRequiredAIFunction";
 
+    private const string ToList = "global::System.Linq.AsyncEnumerable.ToListAsync";
+
     // The members of a record the overrides' properties must not be named like
     private static readonly string[] RecordMembers =
     [
@@ -246,8 +248,8 @@ internal static class ToolsetEmitter
     private static void WriteInvoke(SourceWriter writer, ToolModel tool)
     {
         var kind = tool.Return;
-        var isAsync = kind is ReturnKind.Awaitable or ReturnKind.AwaitableValue;
-        var isExpression = kind is ReturnKind.Value or ReturnKind.AwaitableValue;
+        var isAsync = kind is ReturnKind.Awaitable or ReturnKind.AwaitableValue or ReturnKind.Stream;
+        var isExpression = kind is ReturnKind.Value or ReturnKind.AwaitableValue or ReturnKind.Stream;
         var call = $"{tool.Target}.{tool.Method}";
         var arguments = tool.Parameters.Select(GetArgument).ToList();
 
@@ -265,6 +267,12 @@ internal static class ToolsetEmitter
         {
             if (kind == ReturnKind.Value) WriteCall(writer, "new(GetResult(", call, arguments, ")));");
             if (kind == ReturnKind.AwaitableValue) WriteCall(writer, "GetResult(await ", call, arguments, "));");
+
+            // The model takes one result per call, so a stream reaches it as the list of its items
+            if (kind == ReturnKind.Stream)
+            {
+                WriteCall(writer, $"GetResult(await {ToList}(", call, arguments, "), ct));");
+            }
         }
 
         if (isExpression) return;

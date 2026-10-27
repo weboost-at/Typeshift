@@ -35,6 +35,7 @@ rewrite.
 | 4 | A call receives its arguments, its settings, the run's services and the call's token; the result reaches the model as JSON | `ToolInvocationTests.Given_A_Scripted_Call_The_Tool_Receives_Its_Arguments`, `..._Given_Settings_The_Tool_Runs_With_Them`, `..._Given_Two_Calls_Of_One_Run_Both_Resolve_From_The_Runs_Scope`, `..._Given_A_Call_The_Tool_Receives_The_Calls_Token`, `..._Given_A_Scripted_Call_The_Result_Reaches_The_Model_As_Json` |
 | 5 | A missing required argument fails the call; an absent optional one takes its default | `ToolInvocationTests.Given_A_Missing_Required_Argument_The_Call_Fails_With_An_ArgumentException`, `..._Given_An_Absent_Optional_Argument_The_Tool_Takes_Its_Default` |
 | 6 | A struct parameter defaulting to `default` | `ToolInvocationTests.Given_A_Struct_Parameter_Defaulting_To_Default_The_Tool_Runs_Without_It`, `ToolSchemaTests.Given_A_Struct_Parameter_Defaulting_To_Default_Its_Schema_Carries_The_Default` |
+| new | A tool returning `IAsyncEnumerable<T>` gives the model its items as one array; under AOT the list needs JSON metadata (D45) | `ToolInvocationTests.Given_A_Tool_That_Streams_Its_Results_The_Model_Receives_Them_As_One_Array`, `DiagnosticTests.Given_A_Stream_Whose_List_No_Context_Lists_Under_Native_Aot_TSH027_Is_Reported_On_Its_Tool` |
 | 7 | A nullable reference parameter is typed nullable | `ToolSchemaTests.Given_A_Nullable_Reference_Parameter_It_Is_Typed_As_Nullable` |
 | 8 | The schema matches `AIFunctionFactory`'s | `ToolSchemaTests.Given_The_Same_Method_The_Schema_Matches_AIFunctionFactory_Without_Descriptions` |
 | new | A recursive parameter type's `$ref`s point into its parameter, as `AIFunctionFactory`'s do | `ToolSchemaTests.Given_A_Recursive_Parameter_Type_The_Schema_Matches_AIFunctionFactory` |
@@ -99,6 +100,8 @@ rewrite.
 | new | Compaction clears the oldest read results, then summarizes the oldest turns, by calibrated estimate (D32) | `CompactionTests` |
 | new | The summary runs on the run's provider and model unless the agent or the settings name others (D56) | `CompactionTests.Given_No_Summary_Model_The_Runs_Model_Summarizes`, `..._Given_Clearing_Is_Not_Enough_The_Oldest_Turns_Are_Summarized`, `..._Given_A_Summary_Provider_It_Serves_The_Summary_Model` |
 | new | A summary is stored, and later runs start from it (D32) | `CompactionTests.Given_A_Summary_Later_Runs_Start_From_It` |
+| new | A run loads its conversation from the last summary on, which keeps the mode, the standing approvals and the background calls still working (D24, D32, D33, D52) | `ConversationStoreTests.Given_A_Summary_The_Next_Run_Never_Loads_The_Whole_Conversation`, `..._Given_A_Summary_The_Store_Loads_It_And_The_Entries_After_It`, `ToolApprovalTests.Given_An_Approval_For_The_Conversation_The_Summary_Keeps_It_For_Later_Runs`, `ModeTests.Given_A_Compaction_In_Plan_Mode_Its_Summary_Keeps_The_Mode`, `SubAgentTests.Given_A_Compaction_While_A_Background_Sub_Agent_Works_Its_Summary_Keeps_The_Call`, `..._Given_A_Summary_That_Left_A_Background_Sub_Agent_Working_The_Next_Run_Hears_It_Was_Lost` |
+| new | A steered run's later pass starts from the summary its first pass made (D32, D51) | `CompactionTests.Given_A_Steered_Streaming_Run_Its_Later_Pass_Starts_From_The_Summary` |
 | new | Summarizing keeps the latest `write_todos` call with its result (D32, D37) | `CompactionTests.Given_Summarized_Turns_The_Latest_Todo_List_Stays_With_Its_Result` |
 | new | A sub-agent is a tool of its description and one input, answering in a fresh context in its caller's mode (D33) | `SubAgentTests` |
 | new | A sub-agent's calls that need approval are rejected unless something approves them (D33) | `SubAgentTests.Given_A_Sub_Agent_In_The_Default_Mode_A_Call_That_Needs_Approval_Is_Rejected` |
@@ -129,8 +132,6 @@ rewrite.
   `properties`, so a `$ref` that `AIJsonUtilities.CreateJsonSchema` emits for a recursive type is relative to the
   parameter. This is untested, and non-recursive types are unaffected.
 - **Generated line length.** Generated code is `global::`-qualified, and some declarations exceed 120 columns.
-- **Streamed results.** A tool returning `IAsyncEnumerable<T>` compiles, but its result is serialized synchronously
-  and the call fails at runtime. Neither v0 nor the approved API supports it.
 - **Live updates of non-streaming runs.** Only streaming runs publish.
 - **Docs of types in assemblies without toolsets or agents.** Such an assembly has no module, so the XML docs
   collected for it reach no schema. A tool whose parameter type lives there gets that type's properties undescribed.
@@ -141,7 +142,6 @@ rewrite.
 - **Compaction's estimate.** About four characters make a token, corrected by the provider's report of the run's
   last call, so a run's first call trusts the estimate alone. The summary model reads results cut to 2,000
   characters.
-- **Compaction across steering.** A steered run's later pass compacts afresh and summarizes again if it needs to.
 - **File tools and links.** The root check follows every link on a path, but a link swapped in between the check
   and the use still escapes, and only a sandbox stops that. `edit_file` holds a file whole in memory and refuses
   files over 16 MB. Paths compare as the operating system opens them, which on Windows drops a last segment's
@@ -150,9 +150,6 @@ rewrite.
   even one that only reads. A sub-agent run in plan mode would be asked for a plan it has no host to present to.
 - **The raw path's client under concurrent calls.** The client `CreateChatClientAsync` returns holds one tool loop,
   whose iteration limit the approval layer sets per call, so the client serves one call at a time.
-- **A conversation loads whole.** `LoadConversationAsync` returns every entry of a conversation, and a run reads all
-  of them although its history starts at the last summary; standing approvals and lost background agents are read
-  from the whole conversation too.
 - **A provider client per call.** A provider that returns a new client instance per call gets a new instrumented
   wrapper per call, with a meter that lives as long as the instance. Return one instance per model.
 - **Web fetch and private addresses.** The model picks the URL, and the host's `IWebFetch` decides which addresses

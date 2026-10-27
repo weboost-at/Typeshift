@@ -67,5 +67,7 @@ internal static class KnownTypes
 
     public const string ValueTaskOfT = "System.Threading.Tasks.ValueTask`1";
 
+    public const string AsyncEnumerableOfT = "System.Collections.Generic.IAsyncEnumerable`1";
+
     public const string Obsolete = "System.ObsoleteAttribute";
 }
