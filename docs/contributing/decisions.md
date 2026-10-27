@@ -617,7 +617,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   or `Auto`, a rejection's reason sends the model back to planning. `Auto` runs tools that require approval unless a
   rule rejects the call. A conversation keeps its mode: a run without one continues in the mode the last run ended in,
   stored on the run's ending entry and on a summary; a run whose settings name a mode switches it. Plan mode appends a
-  short instruction to research, then call `exit_plan_mode`. Sub-agents run in their caller's mode.
+  short instruction to research, then call `exit_plan_mode`. Sub-agents run in their caller's mode; plan mode offers
+  them, and in it a sub-agent gets its read-only tools and no `exit_plan_mode`, and answers its caller.
 - **Where:** `Agents/RunOptions.cs`, `Approval/ExitPlanModeFunction.cs`, the approval layer of D29.
 - **Alternatives:** modes as tools the model calls (MAF's `mode_get`/`mode_set`), which lets the model leave plan
   mode unasked; a classifier built into auto mode, where a rule the host writes can ask any model it chooses.
