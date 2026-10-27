@@ -37,8 +37,10 @@ rewrite.
 | 6 | A struct parameter defaulting to `default` | `ToolInvocationTests.Given_A_Struct_Parameter_Defaulting_To_Default_The_Tool_Runs_Without_It`, `ToolSchemaTests.Given_A_Struct_Parameter_Defaulting_To_Default_Its_Schema_Carries_The_Default` |
 | 7 | A nullable reference parameter is typed nullable | `ToolSchemaTests.Given_A_Nullable_Reference_Parameter_It_Is_Typed_As_Nullable` |
 | 8 | The schema matches `AIFunctionFactory`'s | `ToolSchemaTests.Given_The_Same_Method_The_Schema_Matches_AIFunctionFactory_Without_Descriptions` |
+| new | A recursive parameter type's `$ref`s point into its parameter, as `AIFunctionFactory`'s do | `ToolSchemaTests.Given_A_Recursive_Parameter_Type_The_Schema_Matches_AIFunctionFactory` |
 | 9 | Docs become descriptions | `ToolSchemaTests.Given_Param_Docs_They_Become_The_Parameter_Descriptions`, `..._Given_No_WithDescription_The_Summary_Is_The_Tool_Description` |
 | 10 | Tool names are unique | `DiagnosticTests.Given_Two_Tools_Mapping_To_One_Member_TSH007_Is_Reported_On_The_Second`, `..._Given_Two_Toolsets_With_A_Tool_Of_One_Name_TSH007_Is_Reported_On_The_Second` |
+| new | A tool name is unique across the host, two references' tools included (TSH007) | `DiagnosticTests.Given_A_Tool_Named_Like_One_Of_A_Reference_TSH007_Is_Reported_On_The_Own`, `..._Given_Two_References_With_A_Tool_Of_One_Name_TSH007_Is_Reported` |
 | new | Tool names derive from the method, without `Async` (D13) | `ToolSchemaTests.Given_An_Async_Method_Without_WithName_The_Tool_Is_Named_Without_The_Suffix`, `ToolNamesTests` |
 | new | A call without services fails, saying how to run the tool | `ToolInvocationTests.Given_No_Services_The_Call_Fails_Saying_How_To_Run_It` |
 | new | Every shape the generator cannot handle is a diagnostic, and the generated code holds no error | `DiagnosticTests`, `DiagnosticTests.Given_Any_Mistake_The_Generated_Code_Holds_No_Error` |
@@ -54,6 +56,7 @@ rewrite.
 | new | Run options limit the tool loop and may be configurable (D32) | `AgentRunTests.Given_Run_Settings_Of_A_Run_Option_The_Tool_Loop_Stops_After_It` |
 | new | A run asks the chat client provider for the provider and model of code, stored settings or the run; the request names the model alone (D56) | `AgentRunTests.Given_Run_Settings_They_Override_The_Configurable_Options`, `..._Given_A_Provider_And_A_Model_The_Request_Names_Only_The_Model`, `..._Given_Options_Of_Its_Own_The_Created_Client_Asks_The_Agents_Provider`, `StoredSettingsTests.Given_Stored_Settings_A_Run_With_Their_Id_Applies_Them` |
 | new | The provider id type types the alias, the `Provider` members and the core services (D56) | `AgentGenerationTests.Given_A_Provider_Id_Type_The_Alias_The_Settings_And_The_Core_Services_Use_It` |
+| new | A public agent's configurable model needs a provider id type as accessible (TSH006, D6) | `DiagnosticTests.Given_A_Public_Agent_Of_An_Internal_Provider_Id_Type_TSH006_Is_Reported_On_The_Model_Pick` |
 | new | Structured output and the raw path | `AgentRunTests.Given_A_Result_Type_The_Run_Returns_The_Models_Json_Typed`, `..._Given_Resolved_Options_The_Created_Client_Runs_The_Agent` |
 | new | A run without a model or a provider fails, saying how to fix it | `AgentRunTests.Given_No_Model_The_Run_Fails_Saying_How_To_Set_One`, `AddTypeshiftTests.Given_No_Chat_Client_Provider_A_Run_Fails_Naming_The_Registration` |
 | new | Disposing a run's client leaves the provider's client alone | `AgentRunTests.Given_A_Run_The_Providers_Client_Outlives_It` |
@@ -66,6 +69,7 @@ rewrite.
 | 19 | Settings of every storable kind read back equivalent; nulls left out; mistyped members read as null | `SettingsJsonTests` |
 | new | `System.Text.Json` writes and reads the stored shape (D44) | `SettingsJsonTests.Given_Settings_System_Text_Json_Writes_What_The_Store_Keeps`, `..._Given_Stored_Json_System_Text_Json_Reads_The_Settings` |
 | new | Kinds and versions (D39, D40) | `SettingsJsonTests.Given_WithStorageKind_And_WithSettingsVersion_The_Settings_Carry_Them`, `..._Given_A_Version_Newer_Than_The_Codes_Reading_Throws_A_JsonException` |
+| new | A kind is unique, two referenced projects' agents included (TSH022, D39) | `DiagnosticTests.Given_Two_Agents_Of_One_Class_Name_TSH022_Is_Reported_On_The_Second`, `..._Given_Two_References_With_Agents_Of_One_Kind_TSH022_Is_Reported` |
 | new | The id type reaches the aliases and the typed members (D11) | `AgentGenerationTests.Given_An_Id_Type_The_Aliases_And_The_Host_Members_Use_It` |
 | 20 | A conversation's next run starts from its stored messages; the provider never sees its id | `ConversationRunTests.Given_A_Conversation_A_Second_Run_Starts_From_The_First`, `..._Given_A_Conversation_The_Provider_Never_Receives_Its_Id` |
 | 21 | Each step is stored as it happens; the last entry ends the run (D50) | `ConversationRunTests.Given_A_Run_Its_Input_Responses_And_Tool_Results_Are_Stored_Step_By_Step`, `..._Given_A_Run_Only_Its_Last_Entry_Ends_It`, `..._Given_A_Model_Response_Its_Entry_Carries_The_Model_And_The_Agent` |
@@ -104,9 +108,11 @@ rewrite.
 | new | MCP servers' tools follow the agent's own, read-only or behind approval; a clash or no provider fails (D35) | `McpTests` |
 | new | The file tools stay within the root, links included, and read, list, search, write, edit and delete (D37) | `FileSystemToolsetTests` |
 | new | `run_command` runs in the root, with a timeout and an output limit (D37) | `ShellToolsetTests` |
+| new | `run_command` reads a command's output to its end after the timeout kills it, and a second past it for what a process left behind writes (D37) | `ShellToolsetTests.Given_A_Process_Left_Behind_What_It_Writes_Just_After_The_Timeout_Is_Kept`, `..._Given_A_Command_That_Leaves_A_Process_Behind_It_Returns_At_The_Timeout` |
 | new | `delete_file` and `run_command` ask first; the three file readers are read-only (D37) | `FileSystemToolsetTests.Given_The_File_And_Shell_Tools_Those_That_Change_Things_Ask_And_The_Readers_Only_Read` |
 | new | The web tools refuse other schemes and name a missing registration (D37) | `WebToolsetTests` |
 | new | A consumer's agent configures a built-in tool across the assembly boundary (D7, D37) | `FileSystemToolsetTests.Given_An_Agent_Using_The_Built_In_Toolset_Its_Configuration_Reaches_The_Tool` |
+| new | A reference with agents built with another provider id type is TSH021 (D56) | `DiagnosticTests.Given_A_Reference_With_Agents_Built_With_Another_Provider_Id_Type_TSH021_Is_Reported` |
 | new | A reference without agents has no id type to clash (D11) | `DiagnosticTests.Given_A_Reference_Of_Toolsets_Only_Built_With_Another_Id_Type_TSH021_Is_Not_Reported` |
 | new | Under Native AOT, a tool type no context lists is TSH027 (D45) | `DiagnosticTests.Given_A_Tool_Type_No_Context_Lists_Under_Native_Aot_TSH027_Is_Reported_On_Its_Tool` |
 | new | Tools, settings, conversations, streaming and structured output run published as Native AOT | `samples/Typeshift.Samples.Console`, run by CI |
@@ -114,22 +120,15 @@ rewrite.
 
 ## Known gaps
 
-- **Recursive parameter types.** Each parameter's schema is created on its own and nested under the function's
-  `properties`, so a `$ref` that `AIJsonUtilities.CreateJsonSchema` emits for a recursive type is relative to the
-  parameter. This is untested, and non-recursive types are unaffected.
 - **Tool names across references.** TSH007 compares the compilation's tools with each other and with the tools the
   references stamp, but not two references' tools with each other. An agent offering two referenced tools of one
   name keeps the first, and the generated code stays valid.
-- **Provider id types across references.** The module stamps carry the id type but not the provider id type, so a
-  referenced project built with another `TypeshiftProviderIdType` compiles, and a run of its agents fails with an
-  `InvalidOperationException` that names both types.
-- **A public agent with a less accessible provider id type.** A configurable model puts the provider id type into the
-  agent's public `Settings`, so an internal enum fails with CS0053 instead of a Typeshift diagnostic.
+- **Recursive parameter types.** Each parameter's schema is created on its own and nested under the function's
+  `properties`, so a `$ref` that `AIJsonUtilities.CreateJsonSchema` emits for a recursive type is relative to the
+  parameter. This is untested, and non-recursive types are unaffected.
 - **Generated line length.** Generated code is `global::`-qualified, and some declarations exceed 120 columns.
 - **Streamed results.** A tool returning `IAsyncEnumerable<T>` compiles, but its result is serialized synchronously
   and the call fails at runtime. Neither v0 nor the approved API supports it.
-- **Kinds across references.** TSH022 compares the compilation's agents with each other and with those the
-  references stamp, but not two references' agents with each other.
 - **Live updates of non-streaming runs.** Only streaming runs publish.
 - **Docs of types in assemblies without toolsets or agents.** Such an assembly has no module, so the XML docs
   collected for it reach no schema. A tool whose parameter type lives there gets that type's properties undescribed.
