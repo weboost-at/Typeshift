@@ -56,6 +56,7 @@ rewrite.
 | new | Run options limit the tool loop and may be configurable (D32) | `AgentRunTests.Given_Run_Settings_Of_A_Run_Option_The_Tool_Loop_Stops_After_It` |
 | new | A run asks the chat client provider for the provider and model of code, stored settings or the run; the request names the model alone (D56) | `AgentRunTests.Given_Run_Settings_They_Override_The_Configurable_Options`, `..._Given_A_Provider_And_A_Model_The_Request_Names_Only_The_Model`, `..._Given_Options_Of_Its_Own_The_Created_Client_Asks_The_Agents_Provider`, `StoredSettingsTests.Given_Stored_Settings_A_Run_With_Their_Id_Applies_Them` |
 | new | The provider id type types the alias, the `Provider` members and the core services (D56) | `AgentGenerationTests.Given_A_Provider_Id_Type_The_Alias_The_Settings_And_The_Core_Services_Use_It` |
+| new | A public agent's configurable model needs a provider id type as accessible (TSH006, D6) | `DiagnosticTests.Given_A_Public_Agent_Of_An_Internal_Provider_Id_Type_TSH006_Is_Reported_On_The_Model_Pick` |
 | new | Structured output and the raw path | `AgentRunTests.Given_A_Result_Type_The_Run_Returns_The_Models_Json_Typed`, `..._Given_Resolved_Options_The_Created_Client_Runs_The_Agent` |
 | new | A run without a model or a provider fails, saying how to fix it | `AgentRunTests.Given_No_Model_The_Run_Fails_Saying_How_To_Set_One`, `AddTypeshiftTests.Given_No_Chat_Client_Provider_A_Run_Fails_Naming_The_Registration` |
 | new | Disposing a run's client leaves the provider's client alone | `AgentRunTests.Given_A_Run_The_Providers_Client_Outlives_It` |
@@ -126,8 +127,6 @@ rewrite.
 - **Provider id types across references.** The module stamps carry the id type but not the provider id type, so a
   referenced project built with another `TypeshiftProviderIdType` compiles, and a run of its agents fails with an
   `InvalidOperationException` that names both types.
-- **A public agent with a less accessible provider id type.** A configurable model puts the provider id type into the
-  agent's public `Settings`, so an internal enum fails with CS0053 instead of a Typeshift diagnostic.
 - **Generated line length.** Generated code is `global::`-qualified, and some declarations exceed 120 columns.
 - **Streamed results.** A tool returning `IAsyncEnumerable<T>` compiles, but its result is serialized synchronously
   and the call fails at runtime. Neither v0 nor the approved API supports it.

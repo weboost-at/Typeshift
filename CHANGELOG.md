@@ -36,6 +36,8 @@ All notable changes to this project are documented here. The format follows
 - The merged text updates `ConversationTracker.WatchAsync` publishes keep the first update's ids, so a watcher
   groups them into messages as the run's caller does.
 - A background sub-agent that its run's end cancelled no longer faults an unobserved task.
+- A public agent with a configurable model and a less accessible provider id type is TSH006 on the pick, instead of
+  CS0053 in the generated `Settings`.
 - The file tools compare a path as the operating system opens it, so on Windows a last segment's trailing dots and
   spaces cannot lead above the root.
 - Options the raw path builds itself run with the agent's run options through the whole pipeline.
