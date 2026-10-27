@@ -439,11 +439,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** source and meter `Typeshift`, GenAI conventions (`invoke_agent`, `chat`, `execute_tool`, operation
   duration, token usage); message content only with `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`. No API.
 - **As built:** the conversation layer opens the `invoke_agent` span, so it covers middleware and context too.
-  Microsoft.Extensions.AI's `OpenTelemetryChatClient` writes the chat spans and the metrics: one per provider client,
-  created the first time a run uses that client and kept as long as the client lives (`InstrumentedClients`). One
-  per run, disposed with it, reset the metrics after every run, since the OpenTelemetry SDK ends the instruments of
-  a disposed meter. The tool loop writes `execute_tool` spans with its source. A store that fails records the
-  exception on the run's span.
+  Microsoft.Extensions.AI's `OpenTelemetryChatClient` writes the chat spans and the metrics: one per provider and model,
+  created the first time a run uses them and kept as long as the host (`InstrumentedClients`), which passes each call on
+  to the client its run got. One per run, disposed with it, reset the metrics after every run, since the OpenTelemetry
+  SDK ends the instruments of a disposed meter; one per client instance did the same for a provider that hands out a
+  client per run or per tenant. The tool loop writes `execute_tool` spans with its source. A store that fails records
+  the exception on the run's span.
 - **Where:** `Telemetry/Telemetry.cs`, `Telemetry/InstrumentedClients.cs`.
 
 ### D37. The built-in toolsets

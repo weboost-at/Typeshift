@@ -32,8 +32,9 @@ All notable changes to this project are documented here. The format follows
 ### Fixed
 
 - The metrics `gen_ai.client.token.usage` and `gen_ai.client.operation.duration` no longer reset after every run:
-  the provider's client is instrumented once and kept so as long as it lives, instead of a source and a meter per
-  run. Return the same client instance per model from `IChatClientProvider` where you can.
+  each provider and model is instrumented once and kept as long as the host, instead of a source and a meter per
+  run, and each call goes on to the client its run got, so a provider may return a new client per run or per
+  tenant.
 - Steering input waiting when the model hands the conversation to another agent is stored for that agent, so the
   conversation's next run goes to it instead of back to the agent that handed off.
 - An approval still finds its stored request when run middleware adds or removes messages ahead of the input.

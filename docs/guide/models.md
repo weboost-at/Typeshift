@@ -43,9 +43,9 @@ services.AddKeyedSingleton("anthropic", anthropic);
 
 ::: info The provider is scoped
 Typeshift resolves your provider from each run's scope, so it can use that request's services, such as the current
-customer's credentials or your `DbContext`. Clients must outlive it, because Typeshift instruments each client
-instance once and never disposes it. Keep them in singletons, keyed registrations for example, and return the same
-instance every time.
+customer's credentials or your `DbContext`. Typeshift never disposes a client it gets, and it instruments each
+provider and model once, whatever instance you return. A client per customer works; one you create per run is yours
+to dispose.
 :::
 
 A run without a registered provider throws, naming `WithChatClientProvider<T>()`.
