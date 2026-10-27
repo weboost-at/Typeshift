@@ -446,6 +446,27 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Reference_With_Agents_Built_With_Another_Provider_Id_Type_TSH021_Is_Reported()
+    {
+        // Arrange
+        var properties = BuildProperties.WithProviderIdType("int");
+        var reference = CompileReference(
+            "Companies",
+            properties,
+            ReferenceSources.CompanyToolset,
+            ReferenceSources.CompanyAgent);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.SameNamedToolset));
+
+        // Assert
+        run.Assert.ReportsOnTheCompilation("TSH021", DiagnosticSeverity.Error)
+            .GetMessage()
+            .Should()
+            .Contain("TypeshiftProviderIdType");
+    }
+
+    [Fact]
     public void Given_Two_Agents_Of_One_Class_Name_TSH022_Is_Reported_On_The_Second()
     {
         // Act

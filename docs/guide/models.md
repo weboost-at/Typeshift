@@ -69,8 +69,9 @@ The agent's `Settings` store a provider as one value, so the type is a string, a
 are rows in your database, or an enum for providers known in code. With an enum like the one above, the compiler
 checks every provider you name, as in `WithModel(Provider.Scripted, "scripted-model")`. You implement
 `IChatClientProvider`, the alias the
-generator writes for the type. A provider of another type is [TSH030](./diagnostics.md#tsh030), and a type that
-cannot be used is [TSH029](./diagnostics.md#tsh029).
+generator writes for the type. A provider of another type is [TSH030](./diagnostics.md#tsh030), a type that cannot be
+used is [TSH029](./diagnostics.md#tsh029), and a referenced project built with another is
+[TSH021](./diagnostics.md#tsh021).
 
 ## Naming a model
 

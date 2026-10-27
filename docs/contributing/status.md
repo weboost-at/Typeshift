@@ -106,6 +106,7 @@ rewrite.
 | new | `delete_file` and `run_command` ask first; the three file readers are read-only (D37) | `FileSystemToolsetTests.Given_The_File_And_Shell_Tools_Those_That_Change_Things_Ask_And_The_Readers_Only_Read` |
 | new | The web tools refuse other schemes and name a missing registration (D37) | `WebToolsetTests` |
 | new | A consumer's agent configures a built-in tool across the assembly boundary (D7, D37) | `FileSystemToolsetTests.Given_An_Agent_Using_The_Built_In_Toolset_Its_Configuration_Reaches_The_Tool` |
+| new | A reference with agents built with another provider id type is TSH021 (D56) | `DiagnosticTests.Given_A_Reference_With_Agents_Built_With_Another_Provider_Id_Type_TSH021_Is_Reported` |
 | new | A reference without agents has no id type to clash (D11) | `DiagnosticTests.Given_A_Reference_Of_Toolsets_Only_Built_With_Another_Id_Type_TSH021_Is_Not_Reported` |
 | new | Under Native AOT, a tool type no context lists is TSH027 (D45) | `DiagnosticTests.Given_A_Tool_Type_No_Context_Lists_Under_Native_Aot_TSH027_Is_Reported_On_Its_Tool` |
 | new | Tools, settings, conversations, streaming and structured output run published as Native AOT | `samples/Typeshift.Samples.Console`, run by CI |
@@ -119,9 +120,6 @@ rewrite.
 - **Tool names across references.** TSH007 compares the compilation's tools with each other and with the tools the
   references stamp, but not two references' tools with each other. An agent offering two referenced tools of one
   name keeps the first, and the generated code stays valid.
-- **Provider id types across references.** The module stamps carry the id type but not the provider id type, so a
-  referenced project built with another `TypeshiftProviderIdType` compiles, and a run of its agents fails with an
-  `InvalidOperationException` that names both types.
 - **A public agent with a less accessible provider id type.** A configurable model puts the provider id type into the
   agent's public `Settings`, so an internal enum fails with CS0053 instead of a Typeshift diagnostic.
 - **Generated line length.** Generated code is `global::`-qualified, and some declarations exceed 120 columns.

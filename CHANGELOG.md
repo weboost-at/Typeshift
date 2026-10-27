@@ -20,6 +20,8 @@ All notable changes to this project are documented here. The format follows
 - Compaction always summarizes: without a summary model the run's model does it, and `WithSummaryModel(model)` names
   a model the run's provider serves. It no longer drops the oldest turns.
 - TSH029 is "Id type cannot be used" and covers `TypeshiftProviderIdType` too.
+- TSH021 covers `TypeshiftProviderIdType` too, so a referenced project with agents built with another provider id
+  type fails the build instead of its runs. Module stamps carry the provider id type, at stamp version 2.
 
 ### Fixed
 

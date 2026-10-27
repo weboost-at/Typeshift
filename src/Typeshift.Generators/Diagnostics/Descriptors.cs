@@ -114,8 +114,7 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor OtherIdType = Error(
         "TSH021",
         "Referenced assembly has another id type",
-        "'{0}' was built with the id type '{1}', this project with '{2}': set TypeshiftIdType once, in "
-        + "Directory.Build.props");
+        "'{0}' was built with {1} '{2}', this project with '{3}': set {1} once, in Directory.Build.props");
 
     public static readonly DiagnosticDescriptor SharedKind = Error(
         "TSH022",

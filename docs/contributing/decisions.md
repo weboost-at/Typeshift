@@ -306,9 +306,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `SummaryProvider`), and `ChatClients<TProviderId>`, which the interceptor's `AddCoreServices<TId, TProviderId>`
   registers, unboxes them for the host's provider. Generated `ApplySettings` sets the providers through
   `SetProvider` and `SetSummaryProvider`. A provider of another type at `WithModel` or `WithChatClientProvider<T>()`
-  is TSH030; a provider id type that cannot be used is TSH029.
+  is TSH030; a provider id type that cannot be used is TSH029. Module stamps carry the provider id type next to the
+  id type, and a reference with agents built with another is TSH021.
 - **Where:** `Hosting/IChatClientProvider.cs`, `Hosting/ChatClients.cs`, `Agents/ChatOptionsBuilder.cs`,
-  `Compaction/Compaction.cs`, `Parsing/IdTypes.cs`, `Emitting/OptionMembers.cs`.
+  `Compaction/Compaction.cs`, `Parsing/IdTypes.cs`, `Emitting/OptionMembers.cs`, `Generated/Stamps.cs`,
+  `Emitting/ModuleEmitter.cs`, `Parsing/ReferenceReader.cs`.
 - **Alternatives:** a model record with a request type, a client cache and a catalog, more surface than the problem
   needs; methods that list providers and their models, which Typeshift never calls; a summary provider in code, tied
   to a provider the user may switch away from; compaction that drops turns without a summary model.

@@ -165,8 +165,8 @@ version the rest of the build uses.
 
 ## TSH021
 
-**Referenced assembly has another id type.** Every project of a build shares one id type. Set `TypeshiftIdType`
-once, in `Directory.Build.props`.
+**Referenced assembly has another id type.** Every project of a build shares one id type and one provider id type.
+Set `TypeshiftIdType` and `TypeshiftProviderIdType` once, in `Directory.Build.props`.
 
 ## TSH022
 
