@@ -68,14 +68,17 @@ A provider is a string unless you choose another type. Set `TypeshiftProviderIdT
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Typeshift.Samples.Console.csproj#L20-L24' title='Snippet source file'>snippet source</a> | <a href='#snippet-provider-id-type' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The agent's `Settings` store a provider as one value, so the type is a string, a number, a `Guid` for providers that
-are rows in your database, or an enum for providers known in code. With an enum like the one above, the compiler
-checks every provider you name, as in `WithModel(Provider.Scripted, "scripted-model")`. You implement
-`IChatClientProvider`, the alias the
-generator writes for the type. A provider of another type is [TSH030](./diagnostics.md#tsh030), a type that cannot be
-used is [TSH029](./diagnostics.md#tsh029), and a referenced project built with another is
-[TSH021](./diagnostics.md#tsh021). A public agent with a configurable model names the type in its `Settings`, so the
-type is public too ([TSH006](./diagnostics.md#tsh006)).
+Because the agent's `Settings` store a provider as a single value, the type must be a string, a number, a `Guid` or
+an enum. A `Guid` suits providers that are rows in your database, and an enum suits providers known in code: the
+snippet names the enum `Typeshift.Samples.Chat.Provider`, so the compiler checks every provider you name, as in
+`WithModel(Provider.Scripted, "scripted-model")`.
+
+Your provider class still implements `IChatClientProvider`. The generator writes that name as an alias for your
+provider id type, so `GetChatClientAsync` takes a provider of your type instead of a string. A public agent with a
+configurable model names the type in its `Settings`, so the type must be public too
+([TSH006](./diagnostics.md#tsh006)). The analyzer reports a provider of another type
+([TSH030](./diagnostics.md#tsh030)), a type it cannot use ([TSH029](./diagnostics.md#tsh029)), and a referenced
+project built with another provider id type ([TSH021](./diagnostics.md#tsh021)).
 
 ## Naming a model
 
