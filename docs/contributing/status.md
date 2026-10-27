@@ -131,12 +131,6 @@ rewrite.
 
 ## Known gaps
 
-- **Tool names across references.** TSH007 compares the compilation's tools with each other and with the tools the
-  references stamp, but not two references' tools with each other. An agent offering two referenced tools of one
-  name keeps the first, and the generated code stays valid.
-- **Recursive parameter types.** Each parameter's schema is created on its own and nested under the function's
-  `properties`, so a `$ref` that `AIJsonUtilities.CreateJsonSchema` emits for a recursive type is relative to the
-  parameter. This is untested, and non-recursive types are unaffected.
 - **Generated line length.** Generated code is `global::`-qualified, and some declarations exceed 120 columns.
 - **Storable structs.** A user struct other than the scalars cannot be configurable (TSH012).
 - **Run limit across approval rounds.** The rounds the approval layer continues, after a rule, a standing approval or
