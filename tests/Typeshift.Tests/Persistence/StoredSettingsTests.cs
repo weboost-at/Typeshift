@@ -140,6 +140,33 @@ public class StoredSettingsTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Save_Between_Every_Load_And_Save_Configuring_Gives_Up_After_Ten_Attempts()
+    {
+        // Arrange
+        var host = Host<ProbeAgent>();
+        var calls = 0;
+
+        async Task<ProbeAgent.Settings> Interrupt(ProbeAgent.Settings settings)
+        {
+            calls++;
+            var stored = await host.LoadSettingsAsync(Data.Persistence.SettingsId, Ct);
+            await host.SaveSettingsAsync(Data.Persistence.SettingsId, stored.Data, stored.Revision, Ct);
+
+            return settings with { Temperature = Data.Agent.Temperature };
+        }
+
+        // Act
+        var configure = () => host.ConfigureAsync(
+            Data.Persistence.SettingsId,
+            settings => Interrupt(settings).GetAwaiter().GetResult(),
+            Ct);
+
+        // Assert
+        await configure.Should().ThrowAsync<StoreConflictException>();
+        calls.Should().Be(10);
+    }
+
+    [Fact]
     public async Task Given_No_Store_A_Run_With_A_Settings_Id_Fails_Naming_WithStore()
     {
         // Arrange
