@@ -113,7 +113,8 @@ works, tools included. Every call that loads or saves, such as a run with either
 ## The store
 
 `ITypeshiftStore` has four methods, plus a fifth that a store may override. The ids they take have the build's
-[id type](./registration.md#the-id-type), which is `Guid` unless `TypeshiftIdType` names another.
+[id type](./registration.md#the-id-type), which is `Guid` unless `TypeshiftIdType` names another, and each method takes
+a `CancellationToken` last.
 
 | Method | Does |
 |---|---|
