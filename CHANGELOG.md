@@ -30,6 +30,8 @@ All notable changes to this project are documented here. The format follows
   conversation's next run goes to it instead of back to the agent that handed off.
 - An approval still finds its stored request when run middleware adds or removes messages ahead of the input.
 - Merging the rounds of a run no longer adds the later rounds' usage into the first response's `Usage`.
+- A tool parameter of a recursive type gets `$ref`s that resolve: they point into the parameter's schema instead of
+  the function's root.
 - The merged text updates `ConversationTracker.WatchAsync` publishes keep the first update's ids, so a watcher
   groups them into messages as the run's caller does.
 - A background sub-agent that its run's end cancelled no longer faults an unobserved task.
