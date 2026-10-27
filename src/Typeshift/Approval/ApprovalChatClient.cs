@@ -290,19 +290,22 @@ internal sealed class ApprovalChatClient(IChatClient inner, Func<int, IChatClien
         return answers;
     }
 
-    // D52: plan mode offers the tools that only read, a toolset's or an MCP server's, and the tool that presents the
-    // plan
+    // D52: plan mode offers the tools that only read, a toolset's or an MCP server's, the sub-agents, which plan too,
+    // and the tool that presents the plan; a sub-agent presents none, it answers its caller
     private static ChatOptions ForMode(ResolvedChatOptions options, AgentMode mode)
     {
         if (mode != AgentMode.Plan) return options;
 
         var planning = (ResolvedChatOptions)options.Clone();
+        var tools = options.Tools?.Where(IsPlanningTool) ?? [];
 
-        planning.Tools =
-        [
-            .. options.Tools?.Where(ReadOnlyFunction.IsReadOnly) ?? [],
-            ExitPlanModeFunction.Instance
-        ];
+        if (options.Caller is not null)
+        {
+            planning.Tools = [.. tools];
+            return planning;
+        }
+
+        planning.Tools = [.. tools, ExitPlanModeFunction.Instance];
 
         planning.Instructions = options.Instructions is { } instructions
             ? $"{instructions}\n\n{ExitPlanModeFunction.Instructions}"
@@ -310,6 +313,8 @@ internal sealed class ApprovalChatClient(IChatClient inner, Func<int, IChatClien
 
         return planning;
     }
+
+    private static bool IsPlanningTool(AITool tool) => ReadOnlyFunction.IsReadOnly(tool) || tool is SubAgentFunction;
 
     private static ChatResponse Without(ChatResponse response, HashSet<string> answered)
     {

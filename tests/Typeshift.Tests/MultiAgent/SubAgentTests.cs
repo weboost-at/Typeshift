@@ -112,6 +112,36 @@ public class SubAgentTests : MultiAgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Caller_In_Plan_Mode_Its_Sub_Agents_Are_Offered()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<LeadAgent>().RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal("helper_agent", "exit_plan_mode");
+    }
+
+    [Fact]
+    public async Task Given_A_Caller_In_Plan_Mode_Its_Sub_Agent_Is_Offered_Only_Its_Read_Only_Tools()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Tool.Answer));
+
+        HelperClient.Reply(Text(Data.Agent.Reason));
+
+        // Act
+        await Host<LeadAgent>().RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, ct: Ct);
+
+        // Assert
+        HelperClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal("read_ticket");
+    }
+
+    [Fact]
     public async Task Given_A_Background_Sub_Agent_The_Caller_Works_On_And_Receives_Its_Answer_Before_It_Ends()
     {
         // Arrange

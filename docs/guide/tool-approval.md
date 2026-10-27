@@ -202,8 +202,9 @@ whatever mode the agent's code starts runs in. Pass a mode in a run's settings t
 
 Plan mode lets the model research and propose a plan before it changes anything, so the host approves the whole plan
 once instead of each step. The model sees only the tools marked `ReadOnly()`, a toolset's or an
-[MCP server's](./mcp.md), plus `exit_plan_mode`, and Typeshift adds a short instruction to research, then present the
-plan.
+[MCP server's](./mcp.md), plus its [sub-agents](./multi-agent.md#sub-agents) and `exit_plan_mode`, and Typeshift adds
+a short instruction to research, then present the plan. A sub-agent called in plan mode sees only its own read-only
+tools and answers its caller, which presents the plan.
 
 `exit_plan_mode(plan)` ends the run with an approval request that carries the plan:
 

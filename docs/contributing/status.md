@@ -109,6 +109,7 @@ rewrite.
 | new | A run's first estimate is calibrated by the conversation's last reported call (D32) | `CompactionTests.Given_A_Report_Of_The_Last_Run_The_Next_Runs_First_Call_Compacts_By_It` |
 | new | Summarizing keeps the latest `write_todos` call with its result (D32, D37) | `CompactionTests.Given_Summarized_Turns_The_Latest_Todo_List_Stays_With_Its_Result` |
 | new | A sub-agent is a tool of its description and one input, answering in a fresh context in its caller's mode (D33) | `SubAgentTests` |
+| new | Plan mode offers the sub-agents, which plan with their read-only tools and no `exit_plan_mode` (D33, D52) | `SubAgentTests.Given_A_Caller_In_Plan_Mode_Its_Sub_Agents_Are_Offered`, `..._Given_A_Caller_In_Plan_Mode_Its_Sub_Agent_Is_Offered_Only_Its_Read_Only_Tools` |
 | new | A sub-agent's calls that need approval are rejected unless something approves them (D33) | `SubAgentTests.Given_A_Sub_Agent_In_The_Default_Mode_A_Call_That_Needs_Approval_Is_Rejected` |
 | new | A sub-agent inherits the standing approvals of its caller's conversation (D24, D33) | `SubAgentTests.Given_A_Tool_Approved_For_The_Callers_Conversation_The_Sub_Agents_Call_Of_It_Runs` |
 | new | A background sub-agent's answer joins the run, which waits for it; a lost one is reported on resume (D33) | `SubAgentTests.Given_A_Background_Sub_Agent_The_Caller_Works_On_And_Receives_Its_Answer_Before_It_Ends`, `..._Given_An_Interrupted_Run_With_A_Background_Sub_Agent_The_Model_Hears_It_Was_Lost` |
@@ -148,8 +149,6 @@ rewrite.
   and the use still escapes, and only a sandbox stops that. `edit_file` holds a file whole in memory and refuses
   files over 16 MB. Paths compare as the operating system opens them, which on Windows drops a last segment's
   trailing dots and spaces; CI runs on Linux, so that is untested.
-- **Sub-agents in plan mode.** A sub-agent's tool carries no `ReadOnly()` mark, so plan mode hides every sub-agent,
-  even one that only reads. A sub-agent run in plan mode would be asked for a plan it has no host to present to.
 - **Web fetch and private addresses.** The model picks the URL, and the host's `IWebFetch` decides which addresses
   it reaches. No fetcher ships with Typeshift.
 - **Shell.** `run_command` runs what the model sends. The root is its working directory but not a sandbox, and the

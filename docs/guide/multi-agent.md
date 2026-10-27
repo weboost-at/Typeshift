@@ -45,7 +45,8 @@ internal partial class ReportAgent : Agent
 
 A call runs the sub-agent in a fresh context, with no conversation of its own, and returns its answer's text. It
 runs with the caller's settings id, so its own settings stored there apply, and it takes the caller's mode, standing
-approvals and rules.
+approvals and rules. In [plan mode](./tool-approval.md#plan-mode) it researches with its read-only tools and answers
+the caller, which presents the plan.
 
 Its tool calls and tokens stay out of the caller's history. That is what keeps a long run's context small: a
 sub-agent reads twenty files and answers in a paragraph. With `WithConcurrentToolCalls(true)`, the sub-agents of one
