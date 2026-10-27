@@ -35,6 +35,7 @@ rewrite.
 | 4 | A call receives its arguments, its settings, the run's services and the call's token; the result reaches the model as JSON | `ToolInvocationTests.Given_A_Scripted_Call_The_Tool_Receives_Its_Arguments`, `..._Given_Settings_The_Tool_Runs_With_Them`, `..._Given_Two_Calls_Of_One_Run_Both_Resolve_From_The_Runs_Scope`, `..._Given_A_Call_The_Tool_Receives_The_Calls_Token`, `..._Given_A_Scripted_Call_The_Result_Reaches_The_Model_As_Json` |
 | 5 | A missing required argument fails the call; an absent optional one takes its default | `ToolInvocationTests.Given_A_Missing_Required_Argument_The_Call_Fails_With_An_ArgumentException`, `..._Given_An_Absent_Optional_Argument_The_Tool_Takes_Its_Default` |
 | 6 | A struct parameter defaulting to `default` | `ToolInvocationTests.Given_A_Struct_Parameter_Defaulting_To_Default_The_Tool_Runs_Without_It`, `ToolSchemaTests.Given_A_Struct_Parameter_Defaulting_To_Default_Its_Schema_Carries_The_Default` |
+| new | A project that only documents types gets a module, so a referencing host registers its docs (D55) | `ToolsetGenerationTests.Given_A_Schema_Annotations_Class_And_No_Toolsets_Or_Agents_A_Module_Registers_Its_Docs`, `AgentGenerationTests.Given_A_Reference_Of_Docs_Only_The_Interceptor_Registers_Its_Module` |
 | new | A tool returning `IAsyncEnumerable<T>` gives the model its items as one array; under AOT the list needs JSON metadata (D45) | `ToolInvocationTests.Given_A_Tool_That_Streams_Its_Results_The_Model_Receives_Them_As_One_Array`, `DiagnosticTests.Given_A_Stream_Whose_List_No_Context_Lists_Under_Native_Aot_TSH027_Is_Reported_On_Its_Tool` |
 | 7 | A nullable reference parameter is typed nullable | `ToolSchemaTests.Given_A_Nullable_Reference_Parameter_It_Is_Typed_As_Nullable` |
 | 8 | The schema matches `AIFunctionFactory`'s | `ToolSchemaTests.Given_The_Same_Method_The_Schema_Matches_AIFunctionFactory_Without_Descriptions` |
@@ -134,8 +135,6 @@ rewrite.
   parameter. This is untested, and non-recursive types are unaffected.
 - **Generated line length.** Generated code is `global::`-qualified, and some declarations exceed 120 columns.
 - **Live updates of non-streaming runs.** Only streaming runs publish.
-- **Docs of types in assemblies without toolsets or agents.** Such an assembly has no module, so the XML docs
-  collected for it reach no schema. A tool whose parameter type lives there gets that type's properties undescribed.
 - **Storable structs.** A user struct other than the scalars cannot be configurable (TSH012).
 - **Run limit across approval rounds.** The rounds the approval layer continues, after a rule, a standing approval or
   auto mode approved calls, share the run's `MaxToolIterations`, so a round that runs tools before it asks again may

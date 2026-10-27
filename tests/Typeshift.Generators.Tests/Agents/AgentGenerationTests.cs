@@ -1,5 +1,6 @@
 using Typeshift.Generators.Tests.Agents.Support;
 using Typeshift.Generators.Tests.Diagnostics.Support;
+using Typeshift.Generators.Tests.Toolsets.Support;
 using FluentAssertions;
 
 namespace Typeshift.Generators.Tests.Agents;
@@ -37,6 +38,21 @@ public class AgentGenerationTests : GeneratorTestBase
 
         // Assert
         Snapshot.Verify(run.Result);
+    }
+
+    [Fact]
+    public void Given_A_Reference_Of_Docs_Only_The_Interceptor_Registers_Its_Module()
+    {
+        // Arrange
+        var reference = CompileReference("Contracts", ToolsetSources.SchemaAnnotations);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.EmptyHost));
+
+        // Assert
+        run.Source("Typeshift.Generated.AddTypeshiftInterceptor.g.cs")
+            .Should()
+            .Contain("global::Typeshift.Generated.ContractsModule.Register(services);");
     }
 
     [Fact]

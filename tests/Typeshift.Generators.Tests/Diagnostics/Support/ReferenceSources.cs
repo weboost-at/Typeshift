@@ -100,6 +100,19 @@ public static class ReferenceSources
         }
         """;
 
+    public const string EmptyHost =
+        """
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        namespace Host;
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) => services.AddTypeshift();
+        }
+        """;
+
     public const string BillingHelpAgent =
         """
         using Typeshift;

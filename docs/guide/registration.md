@@ -25,8 +25,9 @@ dotnet add package Typeshift --prerelease
 
 The package brings [Weboost.SchemaAnnotations](https://github.com/weboost-at/SchemaAnnotations), which turns the XML
 docs of your types into descriptions of the properties a tool's parameters hold. It adds a hidden class to every
-project with `GenerateDocumentationFile`, and the project's module registers the docs it collects. To leave them out,
-set:
+project with `GenerateDocumentationFile`, and the project's module registers the docs it collects. A project of
+contracts with no toolsets or agents gets a module too, so the tools of the projects that reference it describe its
+types; it needs the package and `GenerateDocumentationFile` like any other. To leave the docs out, set:
 
 ```xml
 <TypeshiftSchemaAnnotations>false</TypeshiftSchemaAnnotations>
