@@ -21,8 +21,7 @@
 
 </div>
 
-Declare a tool in one line and an agent in a few. Typeshift generates the plumbing and catches mistakes at compile
-time.
+Build AI agents for .NET with just a few lines of code, and let the compiler catch your mistakes.
 
 > [!WARNING]
 > Typeshift is in alpha: the API may change between releases. [Status](docs/contributing/status.md) lists what is
@@ -30,15 +29,15 @@ time.
 
 ## Why Typeshift?
 
-- **A tool is a method.** `AddTool(FindCompanies)` turns a static method into a tool, and its XML docs become what
-  the model reads.
-- **An agent is a constructor.** A few chained calls pick the model, the tools and their settings.
-- **Mistakes fail the build.** Configuring a tool the agent does not offer does not compile, and the analyzer reports
-  the rest as [diagnostics](https://weboost-at.github.io/Typeshift/guide/diagnostics).
-- **A settings contract per agent.** Each agent gets a generated `Settings` record of what you mark configurable.
-  Store it per customer, under the id type you already use.
-- **All Microsoft.Extensions.AI.** Any `IChatClient` serves a model, nothing uses reflection, and a host publishes
-  with Native AOT.
+- **Design your toolsets.** `AddTool(FindCompanies)` turns a static method into a tool, and its XML docs become what
+  the model reads. Group your tools by feature, domain or permission level, as you like.
+- **Create an agent.** A few chained calls in its constructor pick the model, the tools and their settings.
+- **Catch mistakes at compile time.** Configuring a tool the agent does not offer does not compile, and the analyzer
+  reports the rest as [diagnostics](https://weboost-at.github.io/Typeshift/guide/diagnostics).
+- **Store settings per customer.** Each agent gets a generated `Settings` record of what you mark configurable. Store
+  it in your database, under the id type you already use.
+- **Stay on Microsoft.Extensions.AI.** Any `IChatClient` serves a model, nothing uses reflection, and your app
+  publishes with Native AOT.
 
 ## Quick start
 
@@ -46,7 +45,7 @@ time.
 dotnet add package Typeshift --prerelease
 ```
 
-Turn on XML docs and pick your id type once, in `Directory.Build.props`:
+The types are in the `Typeshift` namespace, so add `using Typeshift;` to your files. Turn on XML docs and pick your id type once, in `Directory.Build.props`:
 
 ```xml
 <PropertyGroup>
@@ -221,14 +220,14 @@ lists [what your app implements](https://weboost-at.github.io/Typeshift/guide/ge
 | [One store](https://weboost-at.github.io/Typeshift/guide/settings-and-stores) | Settings and conversations in your database, behind four methods |
 | [Conversations](https://weboost-at.github.io/Typeshift/guide/conversations) | Resume after a crash, steer a run while it works, watch it live |
 | [Built-in toolsets](https://weboost-at.github.io/Typeshift/guide/built-in-toolsets) | To-dos, files, the shell and the web |
-| [Tool approval](https://weboost-at.github.io/Typeshift/guide/tool-approval) | Pause a run until the host approves a call |
+| [Tool approval](https://weboost-at.github.io/Typeshift/guide/tool-approval) | Let your app approve a call before it runs |
 | [Plan and auto modes](https://weboost-at.github.io/Typeshift/guide/tool-approval#the-three-modes) | Let the agent plan first, or run without interruptions |
 | [Middleware](https://weboost-at.github.io/Typeshift/guide/middleware) | Wrap every run or tool call |
 | [Context providers](https://weboost-at.github.io/Typeshift/guide/middleware#context-providers) | Add memory, documents or other data to every run |
 | [MCP servers](https://weboost-at.github.io/Typeshift/guide/mcp) | Offer an MCP server's tools to an agent |
 | [Long-running agents](https://weboost-at.github.io/Typeshift/guide/conversations#compaction) | Compaction and crash recovery for hundreds of model calls |
 | [Observability](https://weboost-at.github.io/Typeshift/guide/production#observability) | OpenTelemetry spans and metrics for every run |
-| [Native AOT](https://weboost-at.github.io/Typeshift/guide/production#native-aot) | Publish a host without reflection or trim warnings |
+| [Native AOT](https://weboost-at.github.io/Typeshift/guide/production#native-aot) | Publish your app without reflection or trim warnings |
 
 ### A coding agent in one class
 
@@ -278,7 +277,7 @@ internal partial class CodingAgent : Agent
 <!-- endSnippet -->
 
 > [!CAUTION]
-> The workspace folder is not a sandbox. Run a host whose agents use the shell in a container.
+> The workspace folder is not a sandbox. Run an app whose agents use the shell in a container.
 
 ## Contributing
 
