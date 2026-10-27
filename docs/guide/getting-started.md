@@ -11,13 +11,18 @@ the companies of a city.
 ## 1. Install
 
 Typeshift needs .NET 10. Add the package to every project that declares toolsets or agents
-([TSH020](./diagnostics.md#tsh020)):
+([TSH020](./diagnostics.md#tsh020)) or calls `AddTypeshift()`:
 
 ```bash
 dotnet add package Typeshift --prerelease
 ```
 
-Turn on XML docs in `Directory.Build.props`, since tools take their descriptions from them:
+The types on this page are in the `Typeshift` namespace, which the package does not import for you, so add
+`using Typeshift;` to your files. In a console app, also add the `Microsoft.Extensions.DependencyInjection` package,
+which builds the service provider in step 4.
+
+Turn on XML docs in `Directory.Build.props`, since tools take their descriptions from them. The same file sets
+`TypeshiftIdType`, the type of the settings ids and conversation ids you pass to runs in step 4:
 
 ```xml
 <PropertyGroup>
@@ -61,8 +66,10 @@ internal partial class CompanyToolset : Toolset
 <!-- endSnippet -->
 
 - The model calls the tool as `find_companies` and reads its XML docs.
-- The model never sees `FindCompaniesSettings`, which Typeshift fills in. `Configurable` lets `Limit` change at
-  runtime.
+- The model never sees the `FindCompaniesSettings` parameter. Typeshift fills it with the tool's settings when it
+  calls the tool.
+- `Configurable(s => s.Limit)` lets stored settings and runs change `Limit`, while `IncludeInactive` stays as your
+  code sets it.
 
 The settings record sets the defaults:
 
@@ -113,13 +120,15 @@ internal partial class ResearchAgent : Agent
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/ResearchAgent.cs#L3-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-- `Configurable` lets stored settings change the instructions and the temperature. The model stays as coded.
-- `ConfigureFindCompanies()` exists because the agent uses `CompanyToolset`. Configuring a tool the agent does not
-  offer fails the build.
+- `Configurable` lets stored settings and runs change the instructions and the temperature. The model stays as the
+  code sets it.
+- The generator writes `ConfigureFindCompanies()` because the agent uses `CompanyToolset`, and `WithLimit(3)` sets
+  this agent's limit over the record's 5. Configuring a tool the agent does not offer fails the build.
 
 ## 4. Run it
 
-`AddTypeshift()` registers every toolset and agent. You add a store and a chat client provider:
+`AddTypeshift()` registers every toolset and agent. Chain a store, which keeps settings and conversations, and a chat
+client provider, which returns the `IChatClient` that serves each model:
 
 <!-- snippet: quickstart-registration -->
 <a id='snippet-quickstart-registration'></a>
@@ -137,8 +146,13 @@ await using var provider = services.BuildServiceProvider(validateScopes: true);
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L11-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`CannedChatClient` stands in for a real model, and `InMemoryTypeshiftStore` for your database. The provider returns the
-client for a provider and a model:
+`CannedChatClient` is a fake client from the docs samples that stands in for a real model. Register your provider's
+`IChatClient` under `"openai"` instead, as [Models and providers](./models.md) shows. `InMemoryTypeshiftStore` comes
+with Typeshift and stands in for your database.
+
+`KeyedChatClientProvider` is your `IChatClientProvider`. For each run, Typeshift asks it for the client of the
+provider and model the agent names, here `"openai"` and `"gpt-5-mini"`, and it returns the `IChatClient` registered
+under the provider's key:
 
 <!-- snippet: chat-client-provider -->
 <a id='snippet-chat-client-provider'></a>
@@ -153,7 +167,9 @@ internal sealed class KeyedChatClientProvider(IServiceProvider services) : IChat
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/KeyedChatClientProvider.cs#L6-L13' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client-provider' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Store settings under a settings id, for example one per customer:
+A settings id is an id you choose, for example one per customer. The store keeps the agent's settings under it, and
+every run that passes the id uses them. `ConfigureAsync` loads the agent's generated `ResearchAgent.Settings` record,
+which holds only what the code marked `Configurable`, applies your change and saves it:
 
 <!-- snippet: quickstart-settings -->
 <a id='snippet-quickstart-settings'></a>
@@ -171,7 +187,8 @@ await research.ConfigureAsync(settingsId, settings => settings with
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L23-L33' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Every run with settings id 42 now finds at most 2 companies:
+Every run with settings id 42 now finds at most 2 companies. The conversation id is optional. With it, Typeshift
+stores the run under conversation 1, and a later run with the same id continues the conversation:
 
 <!-- snippet: quickstart-run -->
 <a id='snippet-quickstart-run'></a>
@@ -183,8 +200,8 @@ Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L35-L39' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The limit came from three layers: 5 in the record, 3 in the agent and 2 in the stored settings.
-[Settings layering](./settings-and-stores.md#settings-layering) explains how they combine.
+The limit passes through three layers: 5 in the record, 3 in the agent and 2 in the stored settings. The highest
+layer that sets a value wins, as [Settings layering](./settings-and-stores.md#settings-layering) explains.
 
 ## How the pieces fit
 
