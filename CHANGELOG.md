@@ -12,6 +12,7 @@ All notable changes to this project are documented here. The format follows
 - TSH030 reports a provider of another type than the build's at `WithModel` and at `WithChatClientProvider<T>()`.
 - `ITypeshiftStore.LoadConversationSinceCompactionAsync` returns a conversation's last summary and the entries after it.
   Its default loads the whole conversation; a store overrides it to leave the entries before the summary unread.
+- A tool may return `IAsyncEnumerable<T>`: the call reads it to its end, and the model receives its items as one array.
 
 ### Changed
 

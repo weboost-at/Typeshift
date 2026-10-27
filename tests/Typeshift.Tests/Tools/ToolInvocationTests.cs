@@ -126,6 +126,19 @@ public class ToolInvocationTests : HostTestBase
     }
 
     [Fact]
+    public async Task Given_A_Tool_That_Streams_Its_Results_The_Model_Receives_Them_As_One_Array()
+    {
+        // Arrange
+        var split = StreamingToolset.CreateSplitWords(Json);
+
+        // Act
+        var result = ReadResult<string[]>(await split.InvokeAsync(Arguments(("text", "one two three")), Ct));
+
+        // Assert
+        result.Should().Equal("one", "two", "three");
+    }
+
+    [Fact]
     public async Task Given_A_Missing_Required_Argument_The_Call_Fails_With_An_ArgumentException()
     {
         // Arrange
