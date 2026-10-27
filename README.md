@@ -75,7 +75,7 @@ internal partial class CompanyToolset : Toolset
     }
 
     /// <summary>
-    /// Finds the companies of a city, best matches first.
+    /// Finds the companies of a city.
     /// </summary>
     /// <param name="city">The city the companies are based in.</param>
     public static IReadOnlyList<Company> FindCompanies(string city, FindCompaniesSettings settings) =>
@@ -95,7 +95,7 @@ internal partial class CompanyToolset : Toolset
 ```json
 {
   "name": "find_companies",
-  "description": "Finds the companies of a city, best matches first.",
+  "description": "Finds the companies of a city.",
   "parameters": {
     "type": "object",
     "properties": {
