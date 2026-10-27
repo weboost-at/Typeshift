@@ -6,12 +6,13 @@ description: Name an agent's model by provider and model, return its client from
 # Models and providers
 
 An agent names its model by a provider and a model, and your `IChatClientProvider` returns the client for that pair.
-Typeshift sends each provider its own model id, so your host never builds composite names like `openai/gpt-5-mini`.
+Typeshift sends each provider its own model id, so your app never builds composite names like `openai/gpt-5-mini`.
 A model a user picks is stored like any other setting.
 
 ## The chat client provider
 
-You implement one method. Typeshift calls it for every run with the provider and the model the run resolved:
+You implement one method. Typeshift calls it for every run with the provider and the model the run resolved, and again
+when [compaction](./conversations.md#compaction) needs the summary model:
 
 <!-- snippet: chat-client-provider -->
 <a id='snippet-chat-client-provider'></a>
@@ -26,8 +27,9 @@ internal sealed class KeyedChatClientProvider(IServiceProvider services) : IChat
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/KeyedChatClientProvider.cs#L6-L13' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client-provider' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Typeshift puts the model into every request as `ChatOptions.ModelId`, so one client per provider serves all its
-models. Register the provider on the chain, and your clients however you like:
+Typeshift puts the model into every request as `ChatOptions.ModelId`, which is why the sample ignores its `model`
+parameter and returns one client per provider. Register the provider on the chain, and register your clients however
+you like. Here `openAi` and `anthropic` stand for the `IChatClient` instances your app creates, one per provider:
 
 <!-- snippet: chat-client-provider-registration -->
 <a id='snippet-chat-client-provider-registration'></a>
@@ -43,12 +45,13 @@ services.AddKeyedSingleton("anthropic", anthropic);
 
 ::: info The provider is scoped
 Typeshift resolves your provider from each run's scope, so it can use that request's services, such as the current
-customer's credentials or your `DbContext`. Typeshift never disposes a client it gets, and it instruments each
-provider and model once, whatever instance you return. A client per customer works; one you create per run is yours
-to dispose.
+customer's credentials or your `DbContext`. Typeshift never disposes a client you return, and it instruments each
+provider and model once, whatever instance you return. So you may return a client per customer, and a client you
+create for a single run is yours to dispose.
 :::
 
-A run without a registered provider throws, naming `WithChatClientProvider<T>()`.
+If no provider is registered, a run throws an `InvalidOperationException` that tells you to call
+`WithChatClientProvider<T>()`.
 
 ## The provider id type
 
@@ -91,14 +94,15 @@ WithChatOptions()
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L14-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-model' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`Configurable(o => o.ModelId)` lets stored settings or a run pick another, so the agent's
-[`Settings`](./generated-members.md#settings) get `Provider` and `Model`. Each
-[layers](./settings-and-stores.md#settings-layering) on its own, so a layer that sets only `Model` keeps the
-provider below.
+`Configurable(o => o.ModelId)` adds `Provider` and `Model` to the agent's
+[`Settings`](./generated-members.md#settings), so stored settings or a run can pick another model. The two values
+[layer](./settings-and-stores.md#settings-layering) separately: a layer that sets only `Model` keeps the provider of
+the layer below, so set both when you switch providers.
 
-Leave out `WithModel` and the choice is the user's. Every run then needs a stored or passed pick, and one without
-throws, naming the agent. Store the pick under a settings id, from a settings page that offers your providers and
-their models, for example:
+Leave out `WithModel` but keep `Configurable(o => o.ModelId)`, and the choice is the user's. Every run then needs a
+provider and a model from stored settings or from the run's own settings, and a run without them throws an
+`InvalidOperationException` that names the agent. Store the pick under a settings id, from a settings page that
+offers your providers and their models, for example:
 
 <!-- snippet: configure-settings -->
 <a id='snippet-configure-settings'></a>
@@ -155,9 +159,9 @@ var settings = new CodingAgent.Settings
 | `SummaryProvider` and `SummaryModel` in settings | That provider, that model |
 
 ::: warning The summary model follows the run's provider
-The run's provider is the one the run resolved. When a user switches the agent to another provider, the code's
-summary model is asked of that provider too, and a provider that cannot serve it fails the run. Make the summary
-model configurable wherever users switch providers.
+The run's provider is whichever provider the layers resolved for that run, so it changes when a user switches the
+agent to another provider. The summary model named in code then goes to that provider too, and if that provider
+cannot serve the model, the run fails. Make the summary model configurable wherever users switch providers.
 :::
 
 ## Related
