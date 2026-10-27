@@ -390,7 +390,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `FunctionInvokingChatClient.CurrentContext`. Background answers join the run through the steering queue, so
   every run has a `ConversationRun`, which stores only with a conversation; the run's end cancels the sub-agents
   still working, and the next run tells the model which ones it lost, after a crash, a cancellation or a failure.
-  TSH023, TSH024 and TSH026 check agents of the same compilation; tool stamps carry `RequiresApproval` for TSH024.
+  TSH023 and TSH024 check the agents a compilation uses, a reference's through its module stamp, which carries the
+  agent's name, whether it has a description and the tools it offers that require approval; tool stamps carry
+  `RequiresApproval` for that list. TSH026 checks the compilation's own agents, since assemblies cannot reference each
+  other in a circle.
 - **Where:** `Agents/SubAgentFunction.cs`, `Conversations/ConversationRun.cs`, `Analysis/TypeshiftAnalyzer.cs`.
 - **Alternatives:** passing a sub-agent's approval requests up to the caller's host, which pauses a parent run on a
   child's call and needs the child's state stored to resume (possible later); MAF's six background-task tools

@@ -104,6 +104,7 @@ rewrite.
 | new | A background sub-agent's answer joins the run, which waits for it; a lost one is reported on resume (D33) | `SubAgentTests.Given_A_Background_Sub_Agent_The_Caller_Works_On_And_Receives_Its_Answer_Before_It_Ends`, `..._Given_An_Interrupted_Run_With_A_Background_Sub_Agent_The_Model_Hears_It_Was_Lost` |
 | new | A handoff continues the run with the other agent, which answers the conversation's later runs (D34) | `HandoffTests` |
 | new | Sub-agents and handoff targets are checked at compile time (TSH023, TSH024, TSH026) | `DiagnosticTests` |
+| new | A referenced sub-agent is checked against its module stamp (TSH023, TSH024; D33) | `DiagnosticTests.Given_A_Sub_Agent_Of_A_Reference_Without_A_Description_TSH023_Is_Reported_On_The_Use`, `..._Given_A_Sub_Agent_Of_A_Reference_Offering_A_Tool_That_Needs_Approval_TSH024_Is_Reported_On_The_Use` |
 | new | MCP servers' tools follow the agent's own, read-only or behind approval; a clash or no provider fails (D35) | `McpTests` |
 | new | The file tools stay within the root, links included, and read, list, search, write, edit and delete (D37) | `FileSystemToolsetTests` |
 | new | `run_command` runs in the root, with a timeout and an output limit (D37) | `ShellToolsetTests` |
@@ -138,8 +139,6 @@ rewrite.
   last call, so a run's first call trusts the estimate alone. The summary model reads results cut to 2,000
   characters.
 - **Compaction across steering.** A steered run's later pass compacts afresh and summarizes again if it needs to.
-- **Agents across references.** TSH023, TSH024 and TSH026 check the agents of the same compilation. A sub-agent of a
-  referenced assembly is checked when that assembly builds, not against its callers.
 - **File tools and links.** The root check follows every link on a path, but a link swapped in between the check
   and the use still escapes, and only a sandbox stops that. `edit_file` holds a file whole in memory and refuses
   files over 16 MB. Paths compare as the operating system opens them, which on Windows drops a last segment's
