@@ -57,6 +57,8 @@ All notable changes to this project are documented here. The format follows
 - The client `CreateChatClientAsync` returns serves concurrent calls, each with its own options' iteration limit,
   where a second call changed the first one's limit.
 - A run of an agent with handoffs loads its conversation once instead of twice.
+- The XML docs of a project that declares no toolsets or agents describe the tool parameters of the projects that
+  reference it: such a project gets a module that registers them, where its docs reached no schema.
 - TSH022 reports two agents of one kind in two referenced projects too, on the project that references both.
 - `run_command` keeps what a command wrote just before its timeout: it reads the output to its end once the timeout
   killed the command, and for a second past the timeout while a process left behind holds it open, where it stopped

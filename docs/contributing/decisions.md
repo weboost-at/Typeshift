@@ -165,7 +165,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   schemas are built through an annotator over all of them. `TypeshiftSchemaAnnotations=false` leaves the class out.
 - **As built:** the annotator never replaces a description, so a `<param>` doc keeps describing its parameter. A
   project that marked its own class has two, and Weboost.SchemaAnnotations then writes no
-  `AIJsonSchemaCreateOptions.Annotated`; deleting its own brings `Annotated` back from the added class.
+  `AIJsonSchemaCreateOptions.Annotated`; deleting its own brings `Annotated` back from the added class. A project
+  that declares no toolsets or agents but documents types gets a module that registers just those docs, which the
+  `AddTypeshift()` of a project referencing it registers like any referenced module.
 - **Where:** `buildTransitive/Typeshift.props`, `Parsing/Discovery.cs`, `Emitting/ModuleEmitter.cs`,
   `Generated/ToolJson.cs`.
 - **Alternatives:** a chain call taking `AIJsonSchemaCreateOptions`, which every host would have to make; the

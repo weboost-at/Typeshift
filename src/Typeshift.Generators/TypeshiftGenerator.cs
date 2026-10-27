@@ -142,7 +142,7 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
                 pair.Right.Type));
     }
 
-    // Null for an assembly that declares neither toolsets nor agents; its contexts serve no generated tool
+    // D55: an assembly that only documents types still gets a module, so the tools of its referrers describe them
     private static ModuleModel? CreateModule(
         ImmutableArray<ToolsetModel> toolsets,
         ImmutableArray<AgentOutput> outputs,
@@ -152,7 +152,7 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
         string idType,
         string providerIdType)
     {
-        if (toolsets.IsEmpty && outputs.IsEmpty) return null;
+        if (toolsets.IsEmpty && outputs.IsEmpty && annotations.IsEmpty) return null;
 
         var reachableToolsets = toolsets
             .Where(toolset => toolset.IsReachable)
