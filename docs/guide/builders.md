@@ -106,7 +106,7 @@ puts it into the agent's `Settings`, like a chat option.
 | Call | Default | Does |
 |---|---|---|
 | `WithMode(AgentMode mode)` | `Default` | Sets the [mode](./tool-approval.md#the-three-modes) runs start in: `Default`, `Plan` or `Auto`. |
-| `WithMaxToolIterations(int iterations)` | 40 | Sets the most rounds of tool calls one run makes. |
+| `WithMaxToolIterations(int iterations)` | 40 | Sets the most rounds of tool calls one run makes. Calls the host [approves](./tool-approval.md#approving-or-rejecting) run in the next run, which counts its own. |
 | `WithMaxConsecutiveToolErrors(int errors)` | 3 | Sets the most failed tool calls in a row before the run ends. |
 | `WithConcurrentToolCalls(bool concurrent)` | off | Runs the tool calls of one model response at the same time. |
 | `WithMaxInputTokens(int tokens)` | off | Turns [compaction](./conversations.md#compaction) on at this many input tokens. |

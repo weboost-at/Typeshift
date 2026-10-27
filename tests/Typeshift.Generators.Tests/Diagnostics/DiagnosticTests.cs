@@ -85,6 +85,20 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Public_Agent_Of_An_Internal_Provider_Id_Type_TSH006_Is_Reported_On_The_Model_Pick()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.PublicAgentOfInternalProviderIdType);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.WithProviderIdType("Demo.Vendor"));
+
+        // Assert
+        run.Assert.Reports("TSH006", DiagnosticSeverity.Error, "o => o.ModelId");
+        run.Assert.GeneratesValidCode();
+    }
+
+    [Fact]
     public void Given_Two_Tools_Mapping_To_One_Member_TSH007_Is_Reported_On_The_Second()
     {
         // Act
@@ -414,6 +428,23 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_Two_References_With_A_Tool_Of_One_Name_TSH007_Is_Reported()
+    {
+        // Arrange
+        var companies = CompileReference("Companies", ReferenceSources.CompanyToolset);
+        var search = CompileReference("Search", ReferenceSources.SameNamedToolset);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [companies, search]));
+
+        // Assert
+        run.Assert.ReportsOnTheCompilation("TSH007", DiagnosticSeverity.Error)
+            .GetMessage()
+            .Should()
+            .Contain("find_companies");
+    }
+
+    [Fact]
     public void Given_A_Reference_Of_Toolsets_Only_Built_With_Another_Id_Type_TSH021_Is_Not_Reported()
     {
         // Arrange
@@ -446,6 +477,27 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Reference_With_Agents_Built_With_Another_Provider_Id_Type_TSH021_Is_Reported()
+    {
+        // Arrange
+        var properties = BuildProperties.WithProviderIdType("int");
+        var reference = CompileReference(
+            "Companies",
+            properties,
+            ReferenceSources.CompanyToolset,
+            ReferenceSources.CompanyAgent);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.SameNamedToolset));
+
+        // Assert
+        run.Assert.ReportsOnTheCompilation("TSH021", DiagnosticSeverity.Error)
+            .GetMessage()
+            .Should()
+            .Contain("TypeshiftProviderIdType");
+    }
+
+    [Fact]
     public void Given_Two_Agents_Of_One_Class_Name_TSH022_Is_Reported_On_The_Second()
     {
         // Act
@@ -453,6 +505,20 @@ public class DiagnosticTests : GeneratorTestBase
 
         // Assert
         run.Assert.Reports("TSH022", DiagnosticSeverity.Error, "HelpAgent").GetMessage().Should().Contain("Billing");
+    }
+
+    [Fact]
+    public void Given_Two_References_With_Agents_Of_One_Kind_TSH022_Is_Reported()
+    {
+        // Arrange
+        var billing = CompileReference("Billing", ReferenceSources.BillingHelpAgent);
+        var support = CompileReference("Support", ReferenceSources.SupportHelpAgent);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [billing, support]));
+
+        // Assert
+        run.Assert.ReportsOnTheCompilation("TSH022", DiagnosticSeverity.Error).GetMessage().Should().Contain("Billing");
     }
 
     [Fact]
@@ -509,10 +575,42 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Sub_Agent_Of_A_Reference_Without_A_Description_TSH023_Is_Reported_On_The_Use()
+    {
+        // Arrange
+        var reference = CompileReference("Help", ReferenceSources.UndescribedHelpAgent);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.HelpAgentUse));
+
+        // Assert
+        run.Assert.Reports("TSH023", DiagnosticSeverity.Error, "UseAgent<HelpAgent>")
+            .GetMessage()
+            .Should()
+            .Contain("WithDescription");
+    }
+
+    [Fact]
     public void Given_A_Sub_Agent_Offering_A_Tool_That_Needs_Approval_TSH024_Is_Reported_On_The_Use()
     {
         // Act
         var run = Run(DiagnosticSources.SubAgentNeedingApproval);
+
+        // Assert
+        run.Assert.Reports("TSH024", DiagnosticSeverity.Warning, "UseAgent<HelpAgent>")
+            .GetMessage()
+            .Should()
+            .Contain("close");
+    }
+
+    [Fact]
+    public void Given_A_Sub_Agent_Of_A_Reference_Offering_A_Tool_That_Needs_Approval_TSH024_Is_Reported_On_The_Use()
+    {
+        // Arrange
+        var reference = CompileReference("Help", ReferenceSources.AskingHelpAgent);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.HelpAgentUse));
 
         // Assert
         run.Assert.Reports("TSH024", DiagnosticSeverity.Warning, "UseAgent<HelpAgent>")

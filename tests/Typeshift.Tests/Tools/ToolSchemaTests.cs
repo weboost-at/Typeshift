@@ -56,6 +56,22 @@ public class ToolSchemaTests : UnitTestBase
     }
 
     [Fact]
+    public void Given_A_Recursive_Parameter_Type_The_Schema_Matches_AIFunctionFactory()
+    {
+        // Arrange
+        var reflected = AIFunctionFactory.Create(TreeToolset.CountCategories, new AIFunctionFactoryOptions
+        {
+            SerializerOptions = Json.SerializerOptions
+        });
+
+        // Act
+        var count = TreeToolset.CreateCountCategories(Json);
+
+        // Assert
+        count.JsonSchema.Assert.MatchesWithoutDescriptions(reflected.JsonSchema);
+    }
+
+    [Fact]
     public void Given_Param_Docs_They_Become_The_Parameter_Descriptions()
     {
         // Act

@@ -6,10 +6,13 @@ namespace Typeshift.Toolsets;
 /// <summary>
 /// Runs shell commands in the root the host's <see cref="IFileSystemRoot"/> gives, each behind the host's approval.
 /// The root is the working folder, not a sandbox: run the host in a container when commands must not reach further. A
-/// process a command leaves running in the background outlives the call, which returns at its timeout.
+/// process a command leaves running in the background outlives the call, which returns a second past its timeout.
 /// </summary>
 public sealed partial class ShellToolset : Toolset
 {
+    // How long the streams are read past the timeout, for what a process the command left behind still writes
+    internal static readonly TimeSpan DrainTime = TimeSpan.FromSeconds(1);
+
     /// <summary>
     /// Declares <c>run_command</c>, which asks first.
     /// </summary>
@@ -52,15 +55,18 @@ public sealed partial class ShellToolset : Toolset
         using var limit = new CancellationTokenSource(settings.Timeout, Time(services));
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct, limit.Token);
 
+        // A process left in the background holds the pipes open, so reading outlasts the timeout by a moment
+        using var drain = new CancellationTokenSource(settings.Timeout + DrainTime, Time(services));
+        using var reading = CancellationTokenSource.CreateLinkedTokenSource(ct, drain.Token);
+
         using var process = Process.Start(start)
             ?? throw new InvalidOperationException($"The shell '{settings.Shell}' did not start.");
 
         process.StandardInput.Close();
 
-        // A process the command left running in the background keeps the streams open; reading them ends with the
-        // timeout as well
-        var output = Capture(process.StandardOutput, settings.MaxOutputLength, timeout.Token);
-        var error = Capture(process.StandardError, settings.MaxOutputLength, timeout.Token);
+        // Killing the command at its timeout ends its streams, which are read to their end
+        var output = Capture(process.StandardOutput, settings.MaxOutputLength, reading.Token);
+        var error = Capture(process.StandardError, settings.MaxOutputLength, reading.Token);
 
         var timedOut = false;
 

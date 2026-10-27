@@ -301,7 +301,8 @@ services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite("Data Sou
 ## Agent settings
 
 `ConfigureAsync` loads an agent's settings, applies your change and saves them. When another save came in between, it
-loads them again and reapplies your change until its save wins:
+loads them again and reapplies your change until its save wins, up to ten times; then it throws the store's
+`StoreConflictException`:
 
 <!-- snippet: configure-settings -->
 <a id='snippet-configure-settings'></a>

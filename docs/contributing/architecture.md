@@ -80,9 +80,9 @@ operation action. `ParameterDocsSuppressor` suppresses CS1573 for the parameters
 
 `ToolJson` builds the schema of each function type once and caches it. That is one
 `AIJsonUtilities.CreateJsonSchema` per parameter, with its description and default, nullable references widened to
-`[type, "null"]`, and properties described by the XML docs the modules registered (D55). For JSON metadata,
-`ToolJson` asks the modules' JSON contexts first, then Microsoft.Extensions.AI's defaults, which reflect outside
-Native AOT (D45).
+`[type, "null"]`, the `$ref`s of a recursive type rebased under its parameter, and properties described by the XML
+docs the modules registered (D55). For JSON metadata, `ToolJson` asks the modules' JSON contexts first, then
+Microsoft.Extensions.AI's defaults, which reflect outside Native AOT (D45).
 
 ## A run
 

@@ -79,13 +79,16 @@ layer of settings applies to a `with` copy of them.
 
 ## TSH006
 
-**Settings are less accessible than what exposes them.** Make the record or the toolset as accessible as what exposes
-it. There are two cases:
+**Settings are less accessible than what exposes them.** Make the record, the toolset or the provider id type as
+accessible as what exposes it. There are three cases:
 
 - A settings record is less accessible than its toolset. The toolset's generated members name the record wherever
   the toolset can be named.
 - A toolset with configurable settings is less accessible than a public agent that offers it. The agent's `Settings`
   record names the toolset's overrides.
+- A public agent makes its model or its summary model configurable, and the
+  [provider id type](./models.md#the-provider-id-type) is less accessible. The agent's `Settings` record names the
+  type for the model's provider.
 
 ## TSH007
 
@@ -165,19 +168,19 @@ version the rest of the build uses.
 
 ## TSH021
 
-**Referenced assembly has another id type.** Every project of a build shares one id type. Set `TypeshiftIdType`
-once, in `Directory.Build.props`.
+**Referenced assembly has another id type.** Every project of a build shares one id type and one provider id type.
+Set `TypeshiftIdType` and `TypeshiftProviderIdType` once, in `Directory.Build.props`.
 
 ## TSH022
 
 **Two agents share a settings kind**, so their settings would overwrite each other in the store. It happens when two
-agent classes have one name in different namespaces, or two agents set the same `WithStorageKind`. Give one of them
-a `WithStorageKind` of its own.
+agent classes have one name in different namespaces, or two agents set the same `WithStorageKind`, in one project or
+across a project and the projects it references. Give one of them a `WithStorageKind` of its own.
 
 ## TSH023
 
 **Agent cannot be a tool or a handoff target.** The model needs the agent's `WithDescription` to decide when to call
-it, and a lower_snake_case name to call it by. The analyzer checks agents of the same project.
+it, and a lower_snake_case name to call it by. An agent of a referenced project is checked too.
 
 ## TSH024
 

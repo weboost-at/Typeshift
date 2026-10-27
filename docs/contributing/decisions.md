@@ -85,7 +85,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   declaration, the builders and the per-agent store of `Configure{Tool}()` values) and one private field
   `_typeshift`, so an agent gains as few names as possible. A tool's member in `Settings` named like an option or a
   record member gets a `Tool` suffix. A public agent's `Settings` cannot name the overrides of an internal toolset:
-  TSH006, and the generator leaves the member out.
+  TSH006, and the generator leaves the member out. Nor can it name a less accessible provider id type, which a
+  configurable model or summary model brings in: TSH006 on the pick, and the generator writes the provider members
+  internal.
 - **Where:** `Emitting/Names.cs`, `Emitting/AgentEmitter.cs`.
 
 ### D7. Stamps carry the generated names and a version
@@ -306,9 +308,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `SummaryProvider`), and `ChatClients<TProviderId>`, which the interceptor's `AddCoreServices<TId, TProviderId>`
   registers, unboxes them for the host's provider. Generated `ApplySettings` sets the providers through
   `SetProvider` and `SetSummaryProvider`. A provider of another type at `WithModel` or `WithChatClientProvider<T>()`
-  is TSH030; a provider id type that cannot be used is TSH029.
+  is TSH030; a provider id type that cannot be used is TSH029. Module stamps carry the provider id type next to the
+  id type, and a reference with agents built with another is TSH021.
 - **Where:** `Hosting/IChatClientProvider.cs`, `Hosting/ChatClients.cs`, `Agents/ChatOptionsBuilder.cs`,
-  `Compaction/Compaction.cs`, `Parsing/IdTypes.cs`, `Emitting/OptionMembers.cs`.
+  `Compaction/Compaction.cs`, `Parsing/IdTypes.cs`, `Emitting/OptionMembers.cs`, `Generated/Stamps.cs`,
+  `Emitting/ModuleEmitter.cs`, `Parsing/ReferenceReader.cs`.
 - **Alternatives:** a model record with a request type, a client cache and a catalog, more surface than the problem
   needs; methods that list providers and their models, which Typeshift never calls; a summary provider in code, tied
   to a provider the user may switch away from; compaction that drops turns without a summary model.
@@ -366,7 +370,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   answered after are cleared. What compaction did holds for the rest of the run: the tool loop keeps the whole
   history, so each later call gets the same cleared results and summary. The summary entry holds the summary, the
   kept todo list and copies of the kept messages, so a later run starts from that entry alone. Rounds the approval
-  layer continues share `MaxToolIterations`, and so do the passes steering input or background answers start.
+  layer continues share `MaxToolIterations`, and so do the passes steering input or background answers start. Calls
+  the host approves run in the conversation's next run, which counts its own rounds.
 - **Where:** `Compaction/`, `Approval/ApprovalChatClient.cs` for the shared limit.
 - **Alternatives:** MAF's strategy pipeline and trigger combinators, more concepts for the same two steps; a
   tokenizer dependency; message-count triggers, which ignore that one tool result may outweigh a hundred messages; a
@@ -386,7 +391,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `FunctionInvokingChatClient.CurrentContext`. Background answers join the run through the steering queue, so
   every run has a `ConversationRun`, which stores only with a conversation; the run's end cancels the sub-agents
   still working, and the next run tells the model which ones it lost, after a crash, a cancellation or a failure.
-  TSH023, TSH024 and TSH026 check agents of the same compilation; tool stamps carry `RequiresApproval` for TSH024.
+  TSH023 and TSH024 check the agents a compilation uses, a reference's through its module stamp, which carries the
+  agent's name, whether it has a description and the tools it offers that require approval; tool stamps carry
+  `RequiresApproval` for that list. TSH026 checks the compilation's own agents, since assemblies cannot reference each
+  other in a circle.
 - **Where:** `Agents/SubAgentFunction.cs`, `Conversations/ConversationRun.cs`, `Analysis/TypeshiftAnalyzer.cs`.
 - **Alternatives:** passing a sub-agent's approval requests up to the caller's host, which pauses a parent run on a
   child's call and needs the child's state stored to resume (possible later); MAF's six background-task tools
@@ -494,7 +502,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Decision:** `SaveAsync` takes the revision the caller loaded, 0 for none, and throws `StoreConflictException`
   when the stored one differs. `ConfigureAsync` reloads and reapplies until it wins (each conflict means another
-  save won). `SaveSettingsAsync` takes the revision from `LoadSettingsAsync`.
+  save won), at most ten times, so a store that conflicts every time fails instead of spinning. `SaveSettingsAsync`
+  takes the revision from `LoadSettingsAsync`.
 
 ### D42. Settings ids and conversation ids are separate; conversations grow by appending
 

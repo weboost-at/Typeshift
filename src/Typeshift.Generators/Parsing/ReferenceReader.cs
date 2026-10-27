@@ -10,7 +10,7 @@ namespace Typeshift.Generators.Parsing;
 internal static class ReferenceReader
 {
     // Raised whenever the stamps change shape; a reference with another version is TSH020
-    public const int StampVersion = 1;
+    public const int StampVersion = 3;
 
     public static ReferenceModel Read(Compilation compilation, CancellationToken ct)
     {
@@ -37,24 +37,59 @@ internal static class ReferenceReader
 
     // TSH021: the id type a reference was built with, when it differs from the build's
     public static IEnumerable<(IAssemblySymbol Assembly, ITypeSymbol IdType)> GetOtherIdTypes(
-        Compilation compilation,
-        ITypeSymbol? idType) =>
+        Compilation compilation, ITypeSymbol? idType) =>
+        GetOtherTypes(compilation, argument: 2, idType);
+
+    // TSH021 too: the provider id type a reference was built with, when it differs from the build's (D56)
+    public static IEnumerable<(IAssemblySymbol Assembly, ITypeSymbol ProviderIdType)> GetOtherProviderIdTypes(
+        Compilation compilation, ITypeSymbol? providerIdType) =>
+        GetOtherTypes(compilation, argument: 3, providerIdType);
+
+    // D11: an assembly without agents stamps null, so it never has another type
+    private static IEnumerable<(IAssemblySymbol Assembly, ITypeSymbol Type)> GetOtherTypes(
+        Compilation compilation, int argument, ITypeSymbol? own) =>
         GetLibraryUsers(compilation)
-            .Select(assembly => (Assembly: assembly, Stamp: GetModuleStamp(assembly)))
-            .Where(stamped => stamped.Stamp?.ConstructorArguments[2].Value is ITypeSymbol other
-                && !SymbolEqualityComparer.Default.Equals(other, idType))
-            .Select(stamped => (stamped.Assembly, (ITypeSymbol)stamped.Stamp!.ConstructorArguments[2].Value!));
+            .Select(assembly => (Assembly: assembly, Type: GetStampedType(assembly, argument)))
+            .Where(stamped => stamped.Type is { } other && !SymbolEqualityComparer.Default.Equals(other, own))
+            .Select(stamped => (stamped.Assembly, stamped.Type!));
+
+    private static ITypeSymbol? GetStampedType(IAssemblySymbol assembly, int argument) =>
+        GetModuleStamp(assembly)?.ConstructorArguments[argument].Value as ITypeSymbol;
 
     // D39: the kinds of the referenced agents' stored settings
     public static IEnumerable<(string Kind, string Agent)> GetAgentKinds(Compilation compilation) =>
+        GetAgentStamps(compilation)
+            .Select(attribute => (
+                (string)attribute.ConstructorArguments[1].Value!,
+                ((ITypeSymbol)attribute.ConstructorArguments[0].Value!).ToDisplayString()));
+
+    // D33, D34: the referenced agents as their modules stamp them, for the agents that use them
+    public static IEnumerable<ModuleAgent> GetAgents(Compilation compilation) =>
+        GetAgentStamps(compilation)
+            .Select(ReadAgent);
+
+    private static IEnumerable<AttributeData> GetAgentStamps(Compilation compilation) =>
         GetLibraryUsers(compilation)
             .Select(GetModule)
             .OfType<INamedTypeSymbol>()
             .SelectMany(module => module.GetAttributes())
-            .Where(attribute => attribute.AttributeClass.Is(KnownTypes.ModuleAgentAttribute))
-            .Select(attribute => (
-                (string)attribute.ConstructorArguments[1].Value!,
-                ((ITypeSymbol)attribute.ConstructorArguments[0].Value!).ToDisplayString()));
+            .Where(attribute => attribute.AttributeClass.Is(KnownTypes.ModuleAgentAttribute));
+
+    private static ModuleAgent ReadAgent(AttributeData stamp)
+    {
+        var arguments = stamp.ConstructorArguments;
+
+        var approvalTools = arguments[3].Values
+            .Select(tool => (string)tool.Value!)
+            .ToEquatableArray();
+
+        return new ModuleAgent(
+            Type: ((ITypeSymbol)arguments[0].Value!).ToTypeOf(),
+            Kind: (string)arguments[1].Value!,
+            Name: (string)arguments[2].Value!,
+            Described: stamp.NamedArguments.Any(argument => argument is { Key: "Described", Value.Value: true }),
+            ApprovalTools: approvalTools);
+    }
 
     public static INamedTypeSymbol? GetModule(IAssemblySymbol assembly) =>
         GetModuleStamp(assembly)?.ConstructorArguments[0].Value as INamedTypeSymbol;
@@ -62,7 +97,7 @@ internal static class ReferenceReader
     private static AttributeData? GetModuleStamp(IAssemblySymbol assembly) =>
         assembly.GetAttributes()
             .Where(attribute => attribute.AttributeClass.Is(KnownTypes.GeneratedModuleAttribute))
-            .FirstOrDefault(attribute => attribute.ConstructorArguments.Length == 3
+            .FirstOrDefault(attribute => attribute.ConstructorArguments.Length == 4
                 && attribute.ConstructorArguments[1].Value is StampVersion);
 
     // Every module stamps its toolsets, so the toolset's own assembly is never searched

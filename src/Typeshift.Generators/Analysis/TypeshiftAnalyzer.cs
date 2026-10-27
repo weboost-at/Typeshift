@@ -74,19 +74,22 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         var providerIdType = IdTypes.ResolveProvider(providerProperty, context.Compilation);
         var unknown = new List<Diagnostic>();
 
-        if (idType is null) unknown.Add(UnknownIdType("TypeshiftIdType", property, Descriptors.NotFound));
+        if (idType is null) unknown.Add(UnknownIdType(IdTypes.Name, property, Descriptors.NotFound));
 
         if (providerIdType is null)
         {
             unknown.Add(UnknownIdType(
-                "TypeshiftProviderIdType",
+                IdTypes.ProviderName,
                 providerProperty,
                 IdTypes.Resolve(providerProperty, context.Compilation, "string") is null
                     ? Descriptors.NotFound
                     : Descriptors.NotOneValue));
         }
 
-        context.RegisterSymbolStartAction(start => StartClass(start, tools, kinds, found), SymbolKind.NamedType);
+        context.RegisterSymbolStartAction(
+            start => StartClass(start, providerIdType, tools, kinds, found),
+            SymbolKind.NamedType);
+
         context.RegisterSymbolAction(symbol => CollectJsonTypes(symbol, found), SymbolKind.NamedType);
 
         var aot = IsAot(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
@@ -105,7 +108,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
             ReportClashesAcrossToolsets(end, tools);
             ReportUnstampedReferences(end);
-            ReportOtherIdTypes(end, idType);
+            ReportOtherIdTypes(end, idType, providerIdType);
             ReportSharedKinds(end, kinds);
             ReportAgentUses(end, found);
             if (aot) ReportMissingJsonMetadata(end, found);
@@ -114,6 +117,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
     private static void StartClass(
         SymbolStartAnalysisContext context,
+        ITypeSymbol? providerIdType,
         ConcurrentBag<(string Name, INamedTypeSymbol Toolset, Location Location)> tools,
         ConcurrentBag<(string Kind, INamedTypeSymbol Agent)> kinds,
         Found found)
@@ -142,6 +146,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         context.RegisterSymbolEndAction(end =>
         {
             var reporter = new Reporter(end.ReportDiagnostic);
+            var ct = end.CancellationToken;
 
             if (GetIndirection(type, baseType) is { } indirection)
             {
@@ -163,7 +168,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
             if (baseType == "Agent")
             {
-                if (AgentParser.Parse(type, ordered, reporter, end.CancellationToken, out var uses) is { } agent)
+                if (AgentParser.Parse(type, ordered, providerIdType, reporter, ct, out var uses) is { } agent)
                 {
                     kinds.Add((agent.Kind, type));
                     found.Agents.Add(new FoundAgent(type, agent, uses));
@@ -175,7 +180,6 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             var documented = type.DeclaringSyntaxReferences
                 .Any(reference => reference.SyntaxTree.Options.DocumentationMode != DocumentationMode.None);
 
-            var ct = end.CancellationToken;
             var toolset = ToolsetParser.Parse(type, ordered, documented, reporter, ct, out var declarations);
             if (toolset is not null) found.Toolsets.Add(Catalog.Summarize(toolset));
 
@@ -289,11 +293,22 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         IEnumerable<(string Name, INamedTypeSymbol Toolset, Location Location)> tools)
     {
         // D37: the built-in toolsets reserve no names; an agent that offers one beside a tool of its name is TSH025
-        var referenced = new HashSet<string>(ReferenceReader.Read(context.Compilation, context.CancellationToken)
+        var referenced = ReferenceReader
+            .Read(context.Compilation, context.CancellationToken)
             .Toolsets
             .Where(toolset => !toolset.Type.StartsWith(KnownTypes.BuiltInNamespace, System.StringComparison.Ordinal))
             .SelectMany(toolset => toolset.Tools)
-            .Select(tool => Names.ToPascalCase(tool.Name)));
+            .ToLookup(tool => Names.ToPascalCase(tool.Name));
+
+        foreach (var group in referenced)
+        {
+            foreach (var clash in group.Skip(1))
+            {
+                // A referenced tool has no location, so a clash between two references goes on the compilation
+                context.ReportDiagnostic(
+                    Diagnostic.Create(Descriptors.DuplicateToolName, Location.None, clash.Name, group.Key));
+            }
+        }
 
         var ordered = tools
             .OrderBy(tool => tool.Location.SourceTree?.FilePath)
@@ -357,51 +372,65 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         return null;
     }
 
-    private static void ReportOtherIdTypes(CompilationAnalysisContext context, ITypeSymbol? idType)
+    private static void ReportOtherIdTypes(
+        CompilationAnalysisContext context, ITypeSymbol? idType, ITypeSymbol? providerIdType)
     {
         foreach (var (assembly, other) in ReferenceReader.GetOtherIdTypes(context.Compilation, idType))
         {
-            context.ReportDiagnostic(Diagnostic.Create(
-                Descriptors.OtherIdType,
-                Location.None,
-                assembly.Name,
-                other.ToDisplayString(),
-                idType?.ToDisplayString()));
+            ReportOtherIdType(context, assembly, IdTypes.Name, other, idType);
+        }
+
+        foreach (var (assembly, other) in ReferenceReader.GetOtherProviderIdTypes(context.Compilation, providerIdType))
+        {
+            ReportOtherIdType(context, assembly, IdTypes.ProviderName, other, providerIdType);
         }
     }
+
+    private static void ReportOtherIdType(
+        CompilationAnalysisContext context,
+        IAssemblySymbol assembly,
+        string name,
+        ITypeSymbol other,
+        ITypeSymbol? own) =>
+        context.ReportDiagnostic(Diagnostic.Create(
+            Descriptors.OtherIdType,
+            Location.None,
+            assembly.Name,
+            name,
+            other.ToDisplayString(),
+            own?.ToDisplayString()));
 
     // D39: the kinds of this compilation's agents, and those its references stamp
     private static void ReportSharedKinds(
         CompilationAnalysisContext context,
         IEnumerable<(string Kind, INamedTypeSymbol Agent)> kinds)
     {
-        var taken = ReferenceReader.GetAgentKinds(context.Compilation)
-            .GroupBy(kind => kind.Kind)
-            .ToDictionary(group => group.Key, group => group.First().Agent);
+        // A referenced agent has no location here, so a clash between two references is reported on the compilation
+        var referenced = ReferenceReader
+            .GetAgentKinds(context.Compilation)
+            .Select(stamped => (stamped.Kind, stamped.Agent, Location: Location.None));
 
-        var ordered = kinds
-            .OrderBy(kind => kind.Agent.Locations.FirstOrDefault()?.SourceTree?.FilePath)
-            .ThenBy(kind => kind.Agent.Locations.FirstOrDefault()?.SourceSpan.Start);
+        var own = kinds
+            .Select(kind => (kind.Kind, Agent: kind.Agent.ToDisplayString(), Location: kind.Agent.Locations.First()))
+            .OrderBy(kind => kind.Location.SourceTree?.FilePath)
+            .ThenBy(kind => kind.Location.SourceSpan.Start);
 
-        foreach (var (kind, agent) in ordered)
+        var taken = new Dictionary<string, string>();
+
+        // References first, so a clash with an agent of this compilation is reported on that agent
+        foreach (var (kind, agent, location) in referenced.Concat(own))
         {
             if (taken.TryGetValue(kind, out var other))
             {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    Descriptors.SharedKind,
-                    agent.Locations.FirstOrDefault(),
-                    agent.ToDisplayString(),
-                    kind,
-                    other));
-
+                context.ReportDiagnostic(Diagnostic.Create(Descriptors.SharedKind, location, agent, kind, other));
                 continue;
             }
 
-            taken[kind] = agent.ToDisplayString();
+            taken[kind] = agent;
         }
     }
 
-    // D33, D34: the agents an agent uses, as far as this compilation declares them
+    // D33, D34: the agents an agent uses, of this compilation or of a reference, whose module stamps them
     private static void ReportAgentUses(CompilationAnalysisContext context, Found found)
     {
         var agents = found.Agents.ToDictionary(
@@ -415,45 +444,55 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             .. ReferenceReader.Read(context.Compilation, context.CancellationToken).Toolsets
         ];
 
+        var referenced = ReferenceReader
+            .GetAgents(context.Compilation)
+            .ToLookup(agent => agent.Type);
+
         foreach (var (type, _, uses) in found.Agents)
         {
             foreach (var use in uses)
             {
-                if (!agents.TryGetValue(use.Target, out var target)) continue;
+                if (ResolveTarget(use.Target) is not { } target) continue;
 
                 var role = use.SubAgent ? "a sub-agent" : "a handoff target";
 
-                if (target.Model.Description is null)
+                if (GetUnusableReason(target) is { } reason)
                 {
-                    var reason = "it has no WithDescription";
-                    Report(context, Descriptors.NotUsableAgent, use, target.Type.Name, role, reason);
-                }
-                else if (!ToolNames.IsLowerSnakeCase(target.Model.Name))
-                {
-                    var reason = $"its name '{target.Model.Name}' is not lower_snake_case";
-                    Report(context, Descriptors.NotUsableAgent, use, target.Type.Name, role, reason);
+                    Report(context, Descriptors.NotUsableAgent, use, use.Target.Name, role, reason);
                 }
 
                 if (!use.SubAgent) continue;
 
-                var asking = Catalog.Resolve(target.Model, toolsets).Tools
-                    .Where(offered => offered.Tool.RequiresApproval)
-                    .Select(offered => offered.Tool.Name)
-                    .ToList();
-
-                if (asking.Count > 0)
+                if (target.ApprovalTools.Count > 0)
                 {
-                    var names = string.Join(", ", asking);
-                    Report(context, Descriptors.SubAgentNeedsApproval, use, target.Type.Name, names);
+                    var names = string.Join(", ", target.ApprovalTools);
+                    Report(context, Descriptors.SubAgentNeedsApproval, use, use.Target.Name, names);
                 }
 
+                // Assemblies cannot reference each other in a circle, so only this compilation's agents can close one
                 if (Calls(use.Target, type, agents))
-                    Report(context, Descriptors.AgentCircle, use, type.Name, target.Type.Name);
+                {
+                    Report(context, Descriptors.AgentCircle, use, type.Name, use.Target.Name);
+                }
             }
 
             ReportNamesOfferedTwice(context, agents[type], toolsets);
         }
+
+        ModuleAgent? ResolveTarget(INamedTypeSymbol agent) =>
+            agents.TryGetValue(agent, out var own)
+                ? Catalog.Summarize(Catalog.Resolve(own.Model, toolsets))
+                : referenced[agent.ToTypeOf()].FirstOrDefault();
     }
+
+    // Null for an agent that can be a tool or a handoff target
+    private static string? GetUnusableReason(ModuleAgent agent) =>
+        agent switch
+        {
+            { Described: false } => "it has no WithDescription",
+            _ when !ToolNames.IsLowerSnakeCase(agent.Name) => $"its name '{agent.Name}' is not lower_snake_case",
+            _ => null
+        };
 
     // D37: two toolsets an agent uses, of this assembly, a reference or the library's built-ins, may share a tool name
     private static void ReportNamesOfferedTwice(

@@ -8,9 +8,13 @@ namespace Typeshift.Generators.Parsing;
 // D11: the build's id type, from the TypeshiftIdType property the package's props pass to the compiler
 internal static class IdTypes
 {
-    public const string Property = "build_property.TypeshiftIdType";
+    public const string Name = "TypeshiftIdType";
 
-    public const string ProviderProperty = "build_property.TypeshiftProviderIdType";
+    public const string ProviderName = "TypeshiftProviderIdType";
+
+    public const string Property = "build_property." + Name;
+
+    public const string ProviderProperty = "build_property." + ProviderName;
 
     public static string? Read(AnalyzerConfigOptions options, string property = Property) =>
         options.TryGetValue(property, out var value) && value.Trim().Length > 0 ? value.Trim() : null;
@@ -60,8 +64,8 @@ internal static class IdTypes
     // The generated code stays valid with a provider id type that cannot be used; TSH029 says what to fix
     public static ProviderIdModel Provider(AnalyzerConfigOptions options, Compilation compilation) =>
         ResolveProvider(Read(options, ProviderProperty), compilation) is { } type && Storage.Of(type) is { } storage
-            ? new ProviderIdModel(type.ToTypeOf(), storage)
-            : new ProviderIdModel("string", new StorageModel(StorageKind.Scalar, "string"));
+            ? new ProviderIdModel(type.ToTypeOf(), storage, type.IsEffectivelyPublic())
+            : new ProviderIdModel("string", new StorageModel(StorageKind.Scalar, "string"), IsPublic: true);
 
     // How the raw path reads a conversation id from ChatOptions.ConversationId: a string as it is, a parsable type
     // through IParsable, any other not at all

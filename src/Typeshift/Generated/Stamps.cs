@@ -8,9 +8,12 @@ namespace Typeshift.Generated;
 /// <param name="module">The module.</param>
 /// <param name="version">D7: the stamps' version, which generators of other versions check.</param>
 /// <param name="idType">D11: the id type the assembly was built with; null for an assembly without agents.</param>
+/// <param name="providerIdType">
+/// D56: the provider id type the assembly was built with; null for an assembly without agents.
+/// </param>
 [EditorBrowsable(EditorBrowsableState.Never)]
 [AttributeUsage(AttributeTargets.Assembly)]
-public sealed class GeneratedModuleAttribute(Type module, int version, Type? idType) : Attribute
+public sealed class GeneratedModuleAttribute(Type module, int version, Type? idType, Type? providerIdType) : Attribute
 {
     /// <summary>
     /// The module.
@@ -26,16 +29,25 @@ public sealed class GeneratedModuleAttribute(Type module, int version, Type? idT
     /// The id type the assembly was built with; null for an assembly without agents.
     /// </summary>
     public Type? IdType { get; } = idType;
+
+    /// <summary>
+    /// The provider id type the assembly was built with; null for an assembly without agents.
+    /// </summary>
+    public Type? ProviderIdType { get; } = providerIdType;
 }
 
 /// <summary>
-/// Names an agent a module registers and the kind its stored settings go by.
+/// Names an agent a module registers, the kind its stored settings go by, and what the agents of other assemblies
+/// check when they use it.
 /// </summary>
 /// <param name="agent">The agent.</param>
 /// <param name="kind">D39: the kind.</param>
+/// <param name="name">D22: the agent's name, which it goes by as a tool or a handoff target.</param>
+/// <param name="approvalTools">D33: the tools the agent offers that ask the host before they run.</param>
 [EditorBrowsable(EditorBrowsableState.Never)]
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public sealed class ModuleAgentAttribute(Type agent, string kind) : Attribute
+public sealed class ModuleAgentAttribute(
+    Type agent, string kind, string name, params string[] approvalTools) : Attribute
 {
     /// <summary>
     /// The agent.
@@ -46,6 +58,21 @@ public sealed class ModuleAgentAttribute(Type agent, string kind) : Attribute
     /// The kind its stored settings go by.
     /// </summary>
     public string Kind { get; } = kind;
+
+    /// <summary>
+    /// The agent's name.
+    /// </summary>
+    public string Name { get; } = name;
+
+    /// <summary>
+    /// The tools the agent offers that ask the host before they run.
+    /// </summary>
+    public IReadOnlyList<string> ApprovalTools { get; } = approvalTools;
+
+    /// <summary>
+    /// Whether the agent has a description, which it needs as a tool or a handoff target.
+    /// </summary>
+    public bool Described { get; init; }
 }
 
 /// <summary>
