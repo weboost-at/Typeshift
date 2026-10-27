@@ -138,8 +138,10 @@ To stop a run, cancel its token. It is stored up to where it stopped.
 
 ## Live updates
 
-With `WithRealtimeTracking()`, Typeshift publishes the updates of streaming runs as they happen, and `WatchAsync` reads
-one conversation's updates until you cancel it. A UI can forward them over SignalR, for example:
+With `WithRealtimeTracking()`, Typeshift publishes the updates of runs as they happen, and `WatchAsync` reads one
+conversation's updates until you cancel it. A streaming run publishes its updates as they stream; a run that does not
+stream publishes each model response and tool result as it stores it. A UI can forward them over SignalR, for
+example:
 
 <!-- snippet: watch-conversation -->
 <a id='snippet-watch-conversation'></a>
@@ -196,7 +198,7 @@ WithRunOptions()
 <!-- endSnippet -->
 
 Before every model call, Typeshift estimates the call's input tokens at about four characters per token, corrected by
-what the provider reported for the run's last call. When the estimate reaches the maximum, it shrinks the history to
+what the provider reported for the run's last call, or for the conversation's last call before the run. When the estimate reaches the maximum, it shrinks the history to
 `WithTargetInputTokens`, half the maximum unless set:
 
 1. It clears the results of the oldest tool calls the model has already read. It keeps the calls, so the model knows

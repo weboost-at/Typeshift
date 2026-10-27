@@ -84,6 +84,7 @@ rewrite.
 | new | Run watchers hear the runs going on, then each start and end (D54) | `ConversationRunTests.Given_A_Run_Watcher_It_Hears_The_Run_Start_And_End`, `..._Given_A_Run_Going_On_A_Run_Watcher_Hears_It_Once_Then_Its_End` |
 | new | Watchers receive streamed updates (D47) | `ConversationRunTests.Given_A_Watcher_It_Receives_The_Updates_Of_A_Streaming_Run` |
 | new | Text streamed within the publish interval reaches watchers merged, ahead of the next call (D47) | `ConversationRunTests.Given_Text_Within_The_Interval_A_Watcher_Receives_It_Merged_Ahead_Of_The_Next_Call` |
+| new | A run that does not stream publishes each response and tool result to watchers (D47) | `ConversationRunTests.Given_A_Watcher_It_Receives_Each_Step_Of_A_Run_That_Does_Not_Stream` |
 | new | The raw path names its conversation in `ChatOptions.ConversationId` | `ConversationRunTests.Given_A_Conversation_Id_In_The_Options_The_Raw_Path_Stores_The_Run` |
 | new | Concurrent calls on one created client each keep their own iteration limit (D29, D32) | `AgentRunTests.Given_Two_Calls_On_One_Created_Client_Each_Keeps_Its_Own_Limit` |
 | new | A call that requires approval ends the run with its request; the next run's answer runs or rejects it (D24) | `ToolApprovalTests.Given_A_Call_That_Needs_Approval_The_Run_Ends_With_Its_Request_And_It_Does_Not_Run`, `..._Given_An_Approval_The_Next_Run_Of_The_Conversation_Runs_The_Call`, `..._Given_A_Rejection_The_Model_Receives_Its_Reason_And_The_Call_Does_Not_Run`, `..._Given_A_Streaming_Run_The_Host_Receives_The_Request_And_Its_Approval_Runs_The_Call` |
@@ -98,11 +99,13 @@ rewrite.
 | new | Tool middleware wraps calls in order and may answer in place of the tool (D30) | `ToolMiddlewareTests` |
 | new | Context providers add instructions, unstored messages ahead of the input, and tools (D31) | `ContextProviderTests` |
 | new | A run is an `invoke_agent` span around its chat and tool spans, with usage and errors (D36) | `TelemetryTests` |
+| new | Runs on one provider and model share one instrumented client, whatever client instances the provider returns (D36) | `TelemetryTests.Given_Two_Runs_On_A_Provider_Client_Per_Call_Their_Chat_Spans_Come_From_One_Source`, `..._Given_Two_Runs_On_One_Provider_Client_Their_Chat_Spans_Come_From_One_Source` |
 | new | Compaction clears the oldest read results, then summarizes the oldest turns, by calibrated estimate (D32) | `CompactionTests` |
 | new | The summary runs on the run's provider and model unless the agent or the settings name others (D56) | `CompactionTests.Given_No_Summary_Model_The_Runs_Model_Summarizes`, `..._Given_Clearing_Is_Not_Enough_The_Oldest_Turns_Are_Summarized`, `..._Given_A_Summary_Provider_It_Serves_The_Summary_Model` |
 | new | A summary is stored, and later runs start from it (D32) | `CompactionTests.Given_A_Summary_Later_Runs_Start_From_It` |
 | new | A run loads its conversation from the last summary on, which keeps the mode, the standing approvals and the background calls still working (D24, D32, D33, D52) | `ConversationStoreTests.Given_A_Summary_The_Next_Run_Never_Loads_The_Whole_Conversation`, `..._Given_A_Summary_The_Store_Loads_It_And_The_Entries_After_It`, `ToolApprovalTests.Given_An_Approval_For_The_Conversation_The_Summary_Keeps_It_For_Later_Runs`, `ModeTests.Given_A_Compaction_In_Plan_Mode_Its_Summary_Keeps_The_Mode`, `SubAgentTests.Given_A_Compaction_While_A_Background_Sub_Agent_Works_Its_Summary_Keeps_The_Call`, `..._Given_A_Summary_That_Left_A_Background_Sub_Agent_Working_The_Next_Run_Hears_It_Was_Lost` |
 | new | A steered run's later pass starts from the summary its first pass made (D32, D51) | `CompactionTests.Given_A_Steered_Streaming_Run_Its_Later_Pass_Starts_From_The_Summary` |
+| new | A run's first estimate is calibrated by the conversation's last reported call (D32) | `CompactionTests.Given_A_Report_Of_The_Last_Run_The_Next_Runs_First_Call_Compacts_By_It` |
 | new | Summarizing keeps the latest `write_todos` call with its result (D32, D37) | `CompactionTests.Given_Summarized_Turns_The_Latest_Todo_List_Stays_With_Its_Result` |
 | new | A sub-agent is a tool of its description and one input, answering in a fresh context in its caller's mode (D33) | `SubAgentTests` |
 | new | Plan mode offers the sub-agents, which plan with their read-only tools and no `exit_plan_mode` (D33, D52) | `SubAgentTests.Given_A_Caller_In_Plan_Mode_Its_Sub_Agents_Are_Offered`, `..._Given_A_Caller_In_Plan_Mode_Its_Sub_Agent_Is_Offered_Only_Its_Read_Only_Tools` |
@@ -134,7 +137,6 @@ rewrite.
   `properties`, so a `$ref` that `AIJsonUtilities.CreateJsonSchema` emits for a recursive type is relative to the
   parameter. This is untested, and non-recursive types are unaffected.
 - **Generated line length.** Generated code is `global::`-qualified, and some declarations exceed 120 columns.
-- **Live updates of non-streaming runs.** Only streaming runs publish.
 - **Docs of types in assemblies without toolsets or agents.** Such an assembly has no module, so the XML docs
   collected for it reach no schema. A tool whose parameter type lives there gets that type's properties undescribed.
 - **Storable structs.** A user struct other than the scalars cannot be configurable (TSH012).
@@ -142,14 +144,12 @@ rewrite.
   auto mode approved calls, share the run's `MaxToolIterations`, so a round that runs tools before it asks again may
   run one round of tools past it. Calls the host approves are not affected: they run in the next run.
 - **Compaction's estimate.** About four characters make a token, corrected by the provider's report of the run's
-  last call, so a run's first call trusts the estimate alone. The summary model reads results cut to 2,000
-  characters.
+  last call, or of the conversation's last call before it, so only a conversation's first call trusts the estimate
+  alone. The summary model reads results cut to 2,000 characters.
 - **File tools and links.** The root check follows every link on a path, but a link swapped in between the check
   and the use still escapes, and only a sandbox stops that. `edit_file` holds a file whole in memory and refuses
   files over 16 MB. Paths compare as the operating system opens them, which on Windows drops a last segment's
   trailing dots and spaces; CI runs on Linux, so that is untested.
-- **A provider client per call.** A provider that returns a new client instance per call gets a new instrumented
-  wrapper per call, with a meter that lives as long as the instance. Return one instance per model.
 - **Web fetch and private addresses.** The model picks the URL, and the host's `IWebFetch` decides which addresses
   it reaches. No fetcher ships with Typeshift.
 - **Shell.** `run_command` runs what the model sends. The root is its working directory but not a sandbox, and the

@@ -216,6 +216,26 @@ public class CompactionTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Report_Of_The_Last_Run_The_Next_Runs_First_Call_Compacts_By_It()
+    {
+        // Arrange
+        var reported = new UsageDetails { InputTokenCount = 2_000 };
+
+        ChatClient
+            .Reply(Read(Data.Tool.CallId, Page / 2))
+            .Reply(Text(Data.Tool.Answer), new ChatResponseUpdate(ChatRole.Assistant, [new UsageContent(reported)]))
+            .Reply(Text(Data.Tool.Answer));
+
+        await RunAsync(Data.Tool.Question);
+
+        // Act
+        await RunAsync(Data.Agent.FollowUp, new() { MaxInputTokens = 1_500, TargetInputTokens = 1_000 });
+
+        // Assert
+        Results(2)[0].Should().Be(Typeshift.Compaction.ClearedResult);
+    }
+
+    [Fact]
     public async Task Given_A_Streaming_Run_Reported_Input_Tokens_Over_The_Estimate_Compaction_Goes_By_The_Report()
     {
         // Arrange

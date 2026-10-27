@@ -424,6 +424,30 @@ public class ConversationRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Watcher_It_Receives_Each_Step_Of_A_Run_That_Does_Not_Stream()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        await using var watch = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token).GetAsyncEnumerator(Ct);
+        var first = watch.MoveNextAsync();
+
+        // Act
+        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+
+        // Assert
+        (await first).Should().BeTrue();
+        watch.Current.Contents.Should().ContainSingle(content => content is FunctionCallContent);
+        (await watch.MoveNextAsync()).Should().BeTrue();
+        watch.Current.Contents.Should().ContainSingle(content => content is FunctionResultContent);
+        (await watch.MoveNextAsync()).Should().BeTrue();
+        watch.Current.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
     public async Task Given_Text_Within_The_Interval_A_Watcher_Receives_It_Merged_Ahead_Of_The_Next_Call()
     {
         // Arrange
