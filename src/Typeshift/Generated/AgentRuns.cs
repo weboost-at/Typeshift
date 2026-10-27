@@ -9,6 +9,9 @@ namespace Typeshift.Generated;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class AgentRuns
 {
+    // D41: a store that conflicts every time would keep ConfigureAsync going forever
+    private const int MaxConfigureAttempts = 10;
+
     /// <summary>
     /// Runs the agent on one message.
     /// </summary>
@@ -168,7 +171,8 @@ public static class AgentRuns
         host.Store.SaveAsync(settingsId, settings, revision, ct);
 
     /// <summary>
-    /// Changes the settings stored under an id, reloading and changing them again whenever another save came first.
+    /// Changes the settings stored under an id, reloading and changing them again whenever another save came first, up
+    /// to ten times.
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <typeparam name="TSettings">The agent's settings record.</typeparam>
@@ -177,6 +181,7 @@ public static class AgentRuns
     /// <param name="configure">Returns the changed settings; called again after a lost save.</param>
     /// <param name="ct">Cancels the change.</param>
     /// <returns>The settings saved.</returns>
+    /// <exception cref="StoreConflictException">Another save came first ten times in a row.</exception>
     public static async Task<TSettings> ConfigureAsync<TAgent, TSettings>(
         AgentHost<TAgent> host,
         object settingsId,
@@ -186,7 +191,7 @@ public static class AgentRuns
         where TSettings : class, IStorable<TSettings>, new()
     {
         // D41: each conflict means another save won, so the loop ends once no other save comes between
-        while (true)
+        for (var attempt = 1; ; attempt++)
         {
             var stored = await LoadSettingsAsync<TAgent, TSettings>(host, settingsId, ct);
             var configured = configure(stored.Data);
@@ -196,7 +201,7 @@ public static class AgentRuns
                 await host.Store.SaveAsync(settingsId, configured, stored.Revision, ct);
                 return configured;
             }
-            catch (StoreConflictException)
+            catch (StoreConflictException) when (attempt < MaxConfigureAttempts)
             {
                 ct.ThrowIfCancellationRequested();
             }

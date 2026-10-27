@@ -37,6 +37,8 @@ All notable changes to this project are documented here. The format follows
   spaces cannot lead above the root.
 - Options the raw path builds itself run with the agent's run options through the whole pipeline.
 - A run of an agent with handoffs loads its conversation once instead of twice.
+- `ConfigureAsync` gives up after ten conflicts in a row and throws the last `StoreConflictException`, where a store
+  that conflicted every time kept it going until its token was cancelled.
 
 ## [0.1.0-alpha.2] - 2026-10-16
 

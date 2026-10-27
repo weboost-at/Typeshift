@@ -555,11 +555,15 @@ internal static class AgentEmitter
             Docs.WriteSummary(
                 writer,
                 "Changes the settings stored under an id, reloading and changing them again whenever another save "
-                + "came first.");
+                + "came first, up to ten times.");
             Docs.WriteParam(writer, "settingsId", "The id.");
             Docs.WriteParam(writer, "configure", "Returns the changed settings; called again after a lost save.");
             Docs.WriteParam(writer, "ct", "Cancels the change.");
             Docs.WriteReturns(writer, "The settings saved.");
+            Docs.WriteException(
+                writer,
+                "global::Typeshift.StoreConflictException",
+                "Another save came first ten times in a row.");
             writer.Lines(
                 $"""
                 public {Task}<{settings}> ConfigureAsync(
