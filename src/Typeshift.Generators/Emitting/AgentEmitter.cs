@@ -124,6 +124,11 @@ internal static class AgentEmitter
         var run = Picked(agent.RunOptions, OptionMembers.Run).ToList();
         var tools = output.Tools.Select(offered => offered.Tool).Where(tool => tool.Overrides is not null).ToList();
 
+        // D6: a public agent's Settings cannot name a less accessible provider id type (TSH006)
+        var providerAccess = agent.Type.Accessibility == "public" && !providerId.IsPublic
+            ? "internal"
+            : "public";
+
         Docs.WriteSummary(
             writer,
             "What may change at runtime: stored under a settings id, or passed for one run. Null keeps the layer "
@@ -152,7 +157,7 @@ internal static class AgentEmitter
                 {
                     members.Add((
                         "The provider of the model, over <c>WithModel</c>. Null keeps the layer below.",
-                        $"public {providerId.Type}? {provider} {{ get; init; }}"));
+                        ProviderDeclaration(provider)));
                 }
 
                 members.Add((summary, $"public {option.Type} {option.Setting} {{ get; init; }}"));
@@ -165,7 +170,7 @@ internal static class AgentEmitter
                     members.Add((
                         $"The provider of <c>{option.Setting}</c>, the run's provider unless a layer sets it. Null "
                         + "keeps the layer below.",
-                        $"public {providerId.Type}? {provider} {{ get; init; }}"));
+                        ProviderDeclaration(provider)));
                 }
 
                 members.Add((
@@ -225,6 +230,9 @@ internal static class AgentEmitter
                         + $"out var tool{index}) ? tool{index} : new()")
                 ]);
         }
+
+        string ProviderDeclaration(string provider) =>
+            $"{providerAccess} {providerId.Type}? {provider} {{ get; init; }}";
     }
 
     // Tools are stored under "tools" by name, each left out while it overrides nothing
