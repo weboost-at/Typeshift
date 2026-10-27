@@ -51,7 +51,8 @@ Most diagnostics are reported on the declaration they are about, so the usual
 `#pragma warning disable TSH009` around one declaration, or a `dotnet_diagnostic.TSH009.severity` entry in
 `.editorconfig`. [TSH020](#tsh020), [TSH021](#tsh021) and [TSH029](#tsh029) concern the whole build and have no
 source location, so no `#pragma` reaches them. To silence TSH020, the only warning of the three, add it to
-`<NoWarn>` in the project file.
+`<NoWarn>` in the project file. [TSH007](#tsh007) and [TSH022](#tsh022) have no location either when the clash lies
+between two referenced projects.
 
 ## TSH001
 
@@ -187,14 +188,16 @@ Set `TypeshiftIdType` and `TypeshiftProviderIdType` once, in `Directory.Build.pr
 
 ## TSH022
 
-**Two agents share a settings kind**, so their settings would overwrite each other in the store. It happens when two
-agent classes have one name in different namespaces, or two agents set the same `WithStorageKind`, in one project or
-across a project and the projects it references. Give one of them a `WithStorageKind` of its own.
+**Two agents share a settings kind.** Their settings would overwrite each other in the store. It happens when two
+agent classes have the same name in different namespaces, or when two agents set the same `WithStorageKind`, in one
+project or across a project and the projects it references. Give one of them a `WithStorageKind` of its own.
 
 ## TSH023
 
-**Agent cannot be a tool or a handoff target.** The model needs the agent's `WithDescription` to decide when to call
-it, and a lower_snake_case name to call it by. An agent of a referenced project is checked too.
+**Agent cannot be a tool or a handoff target.** The diagnostic sits on `UseAgent<T>()` or `UseHandoff<T>()` and is
+about the agent `T`. The model needs that agent's `WithDescription` to decide when to call it, and a lower_snake_case
+name to call it by: its class name in snake_case, unless `WithName(...)` sets another. Add a `WithDescription(...)` to
+that agent's constructor, or fix its name. An agent of a referenced project is checked too.
 
 ## TSH024
 
