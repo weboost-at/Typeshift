@@ -47,7 +47,8 @@ A call runs the sub-agent in a fresh context, with no conversation of its own, a
 runs with the caller's settings id, so the settings stored for the sub-agent under that id apply. It also runs in the
 caller's mode and shares the caller's [standing approvals](./tool-approval.md#approving-for-the-conversation) and
 [approval rules](./tool-approval.md#approval-rules). In [plan mode](./tool-approval.md#plan-mode) it researches with
-its read-only tools and answers the caller, which presents the plan.
+its read-only tools and answers the caller, which presents the plan. A sub-agent that fails, for example because no
+client serves its model, answers its caller with the exception's message, and the calling run goes on.
 
 Its tool calls and tokens stay out of the caller's history, which keeps a long run's context small. A sub-agent can
 read twenty files and answer in one paragraph, and only the paragraph reaches the caller. When the calling agent's run
