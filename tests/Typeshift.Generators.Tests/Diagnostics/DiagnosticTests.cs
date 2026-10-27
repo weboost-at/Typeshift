@@ -697,6 +697,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Configurable_Struct_That_Is_Not_A_Record_TSH012_Is_Reported_On_The_Pick()
+    {
+        // Act
+        var run = Run(DiagnosticSources.PlainStructPick);
+
+        // Assert
+        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, "s => s.Home");
+    }
+
+    [Fact]
     public void Given_A_Tool_Type_Only_A_Private_Context_Lists_Under_Native_Aot_TSH027_Is_Reported()
     {
         // Arrange

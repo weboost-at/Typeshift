@@ -21,6 +21,8 @@ public record Address
     public string City { get; init; } = "Vienna";
 }
 
+public readonly record struct GeoPoint(double Latitude, double Longitude);
+
 // A configurable member of every kind settings can store (D19)
 public record EveryKindSettings
 {
@@ -58,6 +60,8 @@ public record EveryKindSettings
 
     public Address Address { get; init; } = new();
 
+    public GeoPoint Home { get; init; }
+
     public IReadOnlyList<string> Tags { get; init; } = [];
 
     public int[] Numbers { get; init; } = [];
@@ -69,6 +73,8 @@ public record EveryKindSettings
     public Dictionary<Shade, Address> Places { get; init; } = [];
 
     public List<Address> History { get; init; } = [];
+
+    public IReadOnlyList<GeoPoint> Route { get; init; } = [];
 }
 
 public partial class EveryKindToolset : Toolset

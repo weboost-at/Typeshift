@@ -33,12 +33,14 @@ public class PersistenceTestData(Faker faker)
             Shade = Shade.Dark,
             Days = Days.Monday | Days.Tuesday,
             Address = new Address { Street = faker.Address.StreetAddress(), City = faker.Address.City() },
+            Home = new GeoPoint(faker.Address.Latitude(), faker.Address.Longitude()),
             Tags = [faker.Lorem.Word(), faker.Lorem.Word()],
             Numbers = [faker.Random.Int(), faker.Random.Int()],
             Shades = [Shade.Light, Shade.Dark],
             Scores = new Dictionary<string, int> { [faker.Lorem.Word()] = faker.Random.Int() },
             Places = new Dictionary<Shade, Address> { [Shade.Light] = new() { Street = faker.Address.StreetName() } },
-            History = [new Address { City = faker.Address.City() }]
+            History = [new Address { City = faker.Address.City() }],
+            Route = [new GeoPoint(faker.Address.Latitude(), faker.Address.Longitude())]
         }
     };
 }

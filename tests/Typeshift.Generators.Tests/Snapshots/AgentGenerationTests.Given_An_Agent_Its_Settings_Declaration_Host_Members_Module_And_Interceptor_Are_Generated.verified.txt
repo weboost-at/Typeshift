@@ -157,7 +157,7 @@ partial class SupportAgent
 
         private static bool TryReadStored0(global::System.Text.Json.JsonElement element, out global::System.Collections.Generic.IReadOnlyList<string> value)
         {
-            value = null!;
+            value = default!;
             if (!global::Typeshift.Generated.StorableJson.TryReadList<string>(element, global::Typeshift.Generated.StorableJson.TryRead, out var items)) return false;
 
             value = items;

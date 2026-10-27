@@ -102,11 +102,10 @@ internal static class Storage
             : null;
     }
 
-    // A class, records included, created with its parameterless constructor and every public member set: replaced as a
-    // whole, never merged
+    // Created with its parameterless constructor and every public member set: replaced as a whole, never merged
     private static StorageModel? Object(string name, INamedTypeSymbol type, HashSet<ITypeSymbol> visiting)
     {
-        if (type is not { TypeKind: TypeKind.Class, IsAbstract: false, IsGenericType: false }
+        if (!IsObject(type)
             || !type.InstanceConstructors.Any(constructor => constructor is
             {
                 Parameters.IsEmpty: true,
@@ -138,6 +137,11 @@ internal static class Storage
     // D44: camelCase
     public static string JsonName(string property) =>
         char.ToLowerInvariant(property[0]) + property.Substring(1);
+
+    // A struct other than a record mostly keeps its state where no setter reaches, so it would store as {}
+    private static bool IsObject(INamedTypeSymbol type) =>
+        type is { IsAbstract: false, IsGenericType: false }
+        and ({ TypeKind: TypeKind.Class } or { TypeKind: TypeKind.Struct, IsRecord: true });
 
     // new() cannot create a class that requires members be set
     private static bool HasRequiredMembers(INamedTypeSymbol type)
