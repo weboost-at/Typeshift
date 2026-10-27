@@ -46,6 +46,9 @@ internal sealed class ConversationRun(
 
     public DateTimeOffset StartedAt { get; } = time.GetUtcNow();
 
+    // D47: a run that does not stream publishes each response and tool result as it stores them
+    public LivePublisher? Publisher { get; set; }
+
     public bool IsSteered
     {
         get
@@ -247,6 +250,8 @@ internal sealed class ConversationRun(
         MarkStored(messages);
         if (Conversation is null) return;
 
+        if (!endsRun && !summary) Publish(messages);
+
         var entry = new ConversationEntry(answering ?? Agent, messages, time.GetUtcNow())
         {
             Model = model,
@@ -266,6 +271,22 @@ internal sealed class ConversationRun(
         {
             logger.LogError(exception, "Conversation {Conversation} could not store a step.", Conversation);
             run.Activity?.AddException(exception);
+        }
+    }
+
+    private void Publish(IEnumerable<ChatMessage> messages)
+    {
+        if (Publisher is null) return;
+
+        foreach (var message in messages.Where(message => message.Role != ChatRole.User))
+        {
+            var update = new ChatResponseUpdate(message.Role, message.Contents)
+            {
+                AuthorName = message.AuthorName,
+                MessageId = message.MessageId
+            };
+
+            Publisher.Add(update);
         }
     }
 

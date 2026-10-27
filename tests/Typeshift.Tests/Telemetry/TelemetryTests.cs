@@ -114,6 +114,35 @@ public sealed class TelemetryTests : AgentTestBase
             .ContainSingle();
     }
 
+    [Fact]
+    public async Task Given_Two_Runs_On_A_Provider_Client_Per_Call_Their_Chat_Spans_Come_From_One_Source()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithStore<InMemoryTypeshiftStore>().WithChatClientProvider<ClientPerCallProvider>();
+        services.AddSingleton(ChatClient);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await host.RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+
+        // Assert
+        Activities.Runs(Data.Agent.ConversationId)
+            .SelectMany(Activities.Inside)
+            .Select(activity => activity.Source)
+            .Distinct()
+            .Should()
+            .ContainSingle();
+    }
+
     private Task<ChatResponse> RunAsync() =>
         Host<ProbeAgent>().RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
 }

@@ -13,6 +13,8 @@ All notable changes to this project are documented here. The format follows
 - `ITypeshiftStore.LoadConversationSinceCompactionAsync` returns a conversation's last summary and the entries after it.
   Its default loads the whole conversation; a store overrides it to leave the entries before the summary unread.
 - A tool may return `IAsyncEnumerable<T>`: the call reads it to its end, and the model receives its items as one array.
+- With `WithRealtimeTracking()`, a run that does not stream publishes too: each model response and tool result as it
+  is stored, where only streaming runs reached `WatchAsync`.
 
 ### Changed
 
@@ -32,8 +34,9 @@ All notable changes to this project are documented here. The format follows
 ### Fixed
 
 - The metrics `gen_ai.client.token.usage` and `gen_ai.client.operation.duration` no longer reset after every run:
-  the provider's client is instrumented once and kept so as long as it lives, instead of a source and a meter per
-  run. Return the same client instance per model from `IChatClientProvider` where you can.
+  each provider and model is instrumented once and kept as long as the host, instead of a source and a meter per
+  run, and each call goes on to the client its run got, so a provider may return a new client per run or per
+  tenant.
 - Steering input waiting when the model hands the conversation to another agent is stored for that agent, so the
   conversation's next run goes to it instead of back to the agent that handed off.
 - An approval still finds its stored request when run middleware adds or removes messages ahead of the input.
@@ -66,6 +69,8 @@ All notable changes to this project are documented here. The format follows
   where the pass lost it and could summarize the same turns again.
 - A public agent of a less accessible `TypeshiftIdType` is TSH006 on the agent, instead of CS0051 in its generated
   host members, which the generator keeps internal.
+- Compaction calibrates a run's first estimate by the tokens the provider reported for the conversation's last call,
+  where only the run's own calls corrected it.
 
 ## [0.1.0-alpha.2] - 2026-10-16
 
