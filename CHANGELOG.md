@@ -51,6 +51,8 @@ All notable changes to this project are documented here. The format follows
 - TSH023 and TSH024 check a sub-agent or handoff target of a referenced project too: its module stamp carries the
   agent's name, whether it has a description and the tools it offers that require approval, at stamp version 3.
 - Options the raw path builds itself run with the agent's run options through the whole pipeline.
+- The client `CreateChatClientAsync` returns serves concurrent calls, each with its own options' iteration limit,
+  where a second call changed the first one's limit.
 - A run of an agent with handoffs loads its conversation once instead of twice.
 - TSH022 reports two agents of one kind in two referenced projects too, on the project that references both.
 - `run_command` keeps what a command wrote just before its timeout: it reads the output to its end once the timeout
