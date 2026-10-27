@@ -72,6 +72,26 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         return [.. rows.Select(row => ConversationEntry.Deserialize(row.Json, row.Version))];
     }
 
+    // A run starts from the last summary, so the rows before it stay in the database
+    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
+        int conversation,
+        CancellationToken ct)
+    {
+        await using var db = await contexts.CreateDbContextAsync(ct);
+        var entries = db.Entries.Where(entry => entry.Conversation == conversation);
+
+        var start = await entries
+            .Where(entry => entry.IsSummary)
+            .MaxAsync(entry => (long?)entry.Sequence, ct) ?? 0;
+
+        var rows = await entries
+            .Where(entry => entry.Sequence >= start)
+            .OrderBy(entry => entry.Sequence)
+            .ToListAsync(ct);
+
+        return [.. rows.Select(row => ConversationEntry.Deserialize(row.Json, row.Version))];
+    }
+
     public async Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
@@ -80,6 +100,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         {
             Conversation = conversation,
             Version = ConversationEntry.Version,
+            IsSummary = entry.IsSummary,
             Json = entry.Serialize()
         });
 

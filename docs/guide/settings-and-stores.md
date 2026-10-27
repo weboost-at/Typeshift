@@ -109,14 +109,15 @@ but every call that loads or saves throws an `InvalidOperationException` that na
 
 ## The store
 
-`ITypeshiftStore` has four methods. Their ids are of the build's [id type](./registration.md#the-id-type), `Guid`
-unless `TypeshiftIdType` names another.
+`ITypeshiftStore` has four methods, and a fifth a store may override. Their ids are of the build's
+[id type](./registration.md#the-id-type), `Guid` unless `TypeshiftIdType` names another.
 
 | Method | Does |
 |---|---|
 | `LoadAsync<TData>(id)` | Returns the document of kind `TData.Kind` under an id, with its revision, or null. |
 | `SaveAsync<TData>(id, data, revision)` | Saves the document if the stored revision is still `revision` (0 for none) and returns the new revision. Throws a `StoreConflictException` when another save came first. |
 | `LoadConversationAsync(conversation)` | Returns a conversation's entries, oldest first. |
+| `LoadConversationSinceCompactionAsync(conversation)` | Returns the conversation's last [summary](./conversations.md#compaction) and the entries after it, which is all a run reads. By default it loads the whole conversation and drops what came before; override it to leave those entries in the database. |
 | `AppendConversationAsync(conversation, entry)` | Appends one entry: a run's input, a model response or tool results. |
 
 Runs append as they go, so `AppendConversationAsync` is the hot path, and a row per entry keeps it cheap.
@@ -140,7 +141,7 @@ settings id, each agent has its own document, because each agent's `Settings` is
 ## An Entity Framework Core store
 
 The database keeps documents keyed by kind and id, with the revision as a concurrency token, and conversation entries
-in order:
+in order, each marked whether it is a summary:
 
 <!-- snippet: ef-core-db -->
 <a id='snippet-ef-core-db'></a>
@@ -189,14 +190,16 @@ internal sealed class EntryRow
 
     public required int Version { get; init; }
 
+    public required bool IsSummary { get; init; }
+
     public required string Json { get; init; }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/TypeshiftDb.cs#L5-L52' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-db' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/TypeshiftDb.cs#L5-L54' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-db' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The store maps the four methods onto it. A save that another save beat becomes a `StoreConflictException`, and any
-other database failure surfaces as it is:
+The store maps the five methods onto it, and a run reads a conversation from its last summary only. A save that
+another save beat becomes a `StoreConflictException`, and any other database failure surfaces as it is:
 
 <!-- snippet: ef-core-store -->
 <a id='snippet-ef-core-store'></a>
@@ -270,6 +273,26 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         return [.. rows.Select(row => ConversationEntry.Deserialize(row.Json, row.Version))];
     }
 
+    // A run starts from the last summary, so the rows before it stay in the database
+    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
+        int conversation,
+        CancellationToken ct)
+    {
+        await using var db = await contexts.CreateDbContextAsync(ct);
+        var entries = db.Entries.Where(entry => entry.Conversation == conversation);
+
+        var start = await entries
+            .Where(entry => entry.IsSummary)
+            .MaxAsync(entry => (long?)entry.Sequence, ct) ?? 0;
+
+        var rows = await entries
+            .Where(entry => entry.Sequence >= start)
+            .OrderBy(entry => entry.Sequence)
+            .ToListAsync(ct);
+
+        return [.. rows.Select(row => ConversationEntry.Deserialize(row.Json, row.Version))];
+    }
+
     public async Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
@@ -278,6 +301,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         {
             Conversation = conversation,
             Version = ConversationEntry.Version,
+            IsSummary = entry.IsSummary,
             Json = entry.Serialize()
         });
 
@@ -285,7 +309,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L5-L89' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-store' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L5-L110' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-store' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Register the context factory the store takes, next to `WithStore<EfTypeshiftStore>()`:

@@ -99,6 +99,7 @@ rewrite.
 | new | Compaction clears the oldest read results, then summarizes the oldest turns, by calibrated estimate (D32) | `CompactionTests` |
 | new | The summary runs on the run's provider and model unless the agent or the settings name others (D56) | `CompactionTests.Given_No_Summary_Model_The_Runs_Model_Summarizes`, `..._Given_Clearing_Is_Not_Enough_The_Oldest_Turns_Are_Summarized`, `..._Given_A_Summary_Provider_It_Serves_The_Summary_Model` |
 | new | A summary is stored, and later runs start from it (D32) | `CompactionTests.Given_A_Summary_Later_Runs_Start_From_It` |
+| new | A run loads its conversation from the last summary on, which keeps the mode, the standing approvals and the background calls still working (D24, D32, D33, D52) | `ConversationStoreTests.Given_A_Summary_The_Next_Run_Never_Loads_The_Whole_Conversation`, `..._Given_A_Summary_The_Store_Loads_It_And_The_Entries_After_It`, `ToolApprovalTests.Given_An_Approval_For_The_Conversation_The_Summary_Keeps_It_For_Later_Runs`, `ModeTests.Given_A_Compaction_In_Plan_Mode_Its_Summary_Keeps_The_Mode`, `SubAgentTests.Given_A_Compaction_While_A_Background_Sub_Agent_Works_Its_Summary_Keeps_The_Call`, `..._Given_A_Summary_That_Left_A_Background_Sub_Agent_Working_The_Next_Run_Hears_It_Was_Lost` |
 | new | Summarizing keeps the latest `write_todos` call with its result (D32, D37) | `CompactionTests.Given_Summarized_Turns_The_Latest_Todo_List_Stays_With_Its_Result` |
 | new | A sub-agent is a tool of its description and one input, answering in a fresh context in its caller's mode (D33) | `SubAgentTests` |
 | new | A sub-agent's calls that need approval are rejected unless something approves them (D33) | `SubAgentTests.Given_A_Sub_Agent_In_The_Default_Mode_A_Call_That_Needs_Approval_Is_Rejected` |
@@ -150,9 +151,6 @@ rewrite.
   even one that only reads. A sub-agent run in plan mode would be asked for a plan it has no host to present to.
 - **The raw path's client under concurrent calls.** The client `CreateChatClientAsync` returns holds one tool loop,
   whose iteration limit the approval layer sets per call, so the client serves one call at a time.
-- **A conversation loads whole.** `LoadConversationAsync` returns every entry of a conversation, and a run reads all
-  of them although its history starts at the last summary; standing approvals and lost background agents are read
-  from the whole conversation too.
 - **Web fetch and private addresses.** The model picks the URL, and the host's `IWebFetch` decides which addresses
   it reaches. No fetcher ships with Typeshift.
 - **Shell.** `run_command` runs what the model sends. The root is its working directory but not a sandbox, and the

@@ -239,7 +239,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `CreateResponse(approved)` in the next run of the conversation; the stored request is the one that runs, an answer to
   no stored request is dropped, a request keeps its first answer, and an unanswered request is left out of the next run.
   A request in the input is dropped before anything stores it, so a host's input cannot bring a call of its own past the
-  rules. Standing approvals are read from the whole conversation, beyond what compaction left. Calls in the same
+  rules. Standing approvals hold beyond what compaction left: a summary entry stores them. Calls in the same
   response that need no approval wait with it and run once the host answered (the tool loop asks for every call of a
   response once one needs approval; the approval layer approves the others). A run that asks without a conversation
   throws, naming the tool. `request.ApproveForConversation()` approves the tool for the rest of the conversation; the
@@ -369,9 +369,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   schemas, calibrated by the tokens the provider reported for the run's last call. Only results the model already
   answered after are cleared. What compaction did holds for the rest of the run: the tool loop keeps the whole
   history, so each later call gets the same cleared results and summary. The summary entry holds the summary, the
-  kept todo list and copies of the kept messages, so a later run starts from that entry alone. Rounds the approval
-  layer continues share `MaxToolIterations`, and so do the passes steering input or background answers start. Calls
-  the host approves run in the conversation's next run, which counts its own rounds.
+  kept todo list and copies of the kept messages, with the run's mode, its standing approvals and the background calls
+  still working, so a later run loads only that entry and the ones after it (`LoadConversationSinceCompactionAsync`,
+  which a store may override to leave the rest unread). A summary an earlier version stored keeps no standing approvals,
+  and its runs load the whole conversation. Rounds the approval layer continues share `MaxToolIterations`, and so do the
+  passes steering input or background answers start. Calls the host approves run in the conversation's next run, which
+  counts its own rounds.
 - **Where:** `Compaction/`, `Approval/ApprovalChatClient.cs` for the shared limit.
 - **Alternatives:** MAF's strategy pipeline and trigger combinators, more concepts for the same two steps; a
   tokenizer dependency; message-count triggers, which ignore that one tool result may outweigh a hundred messages; a
@@ -390,11 +393,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   factory `UseAgent<T>()` captured, so no generated code is needed; it finds its caller's run through
   `FunctionInvokingChatClient.CurrentContext`. Background answers join the run through the steering queue, so
   every run has a `ConversationRun`, which stores only with a conversation; the run's end cancels the sub-agents
-  still working, and the next run tells the model which ones it lost, after a crash, a cancellation or a failure.
-  TSH023 and TSH024 check the agents a compilation uses, a reference's through its module stamp, which carries the
-  agent's name, whether it has a description and the tools it offers that require approval; tool stamps carry
-  `RequiresApproval` for that list. TSH026 checks the compilation's own agents, since assemblies cannot reference each
-  other in a circle.
+  still working, and the next run tells the model which ones it lost, after a crash, a cancellation or a failure,
+  including the ones a summary left working. TSH023 and TSH024 check the agents a compilation uses, a reference's
+  through its module stamp, which carries the agent's name, whether it has a description and the tools it offers that
+  require approval; tool stamps carry `RequiresApproval` for that list. TSH026 checks the compilation's own agents,
+  since assemblies cannot reference each other in a circle.
 - **Where:** `Agents/SubAgentFunction.cs`, `Conversations/ConversationRun.cs`, `Analysis/TypeshiftAnalyzer.cs`.
 - **Alternatives:** passing a sub-agent's approval requests up to the caller's host, which pauses a parent run on a
   child's call and needs the child's state stored to resume (possible later); MAF's six background-task tools
@@ -475,7 +478,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** approved.
 - **Decision:** `ITypeshiftStore<TId>` (aliased `ITypeshiftStore`): `LoadAsync` and `SaveAsync` of documents with
   revisions, `LoadConversationAsync` and `AppendConversationAsync` of `ConversationEntry`s keyed by the conversation
-  id. Documents stay a closed set (each agent's `Settings`, `ConversationEntry`), so store generators stay
+  id. `LoadConversationSinceCompactionAsync`, which runs call, defaults to the whole load and drops what came before the
+  last summary. Documents stay a closed set (each agent's `Settings`, `ConversationEntry`), so store generators stay
   possible.
 - **Alternatives:** v0's load and save only, which rewrote a whole conversation per turn; a generic append for any
   kind, a concept with one user.
@@ -608,9 +612,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `Plan` offers only tools marked `ReadOnly()` (toolset tools, or MCP servers with `UseMcpServer(...).ReadOnly()`),
   `write_todos` and a built-in `exit_plan_mode(plan)`, which asks the host; `ApprovePlan(mode)` continues in `Default`
   or `Auto`, a rejection's reason sends the model back to planning. `Auto` runs tools that require approval unless a
-  rule rejects the call. A conversation keeps its mode: a run without one continues in the mode the last run ended
-  in, stored on the run's ending entry; a run whose settings name a mode switches it. Plan mode appends a short
-  instruction to research, then call `exit_plan_mode`. Sub-agents run in their caller's mode.
+  rule rejects the call. A conversation keeps its mode: a run without one continues in the mode the last run ended in,
+  stored on the run's ending entry and on a summary; a run whose settings name a mode switches it. Plan mode appends a
+  short instruction to research, then call `exit_plan_mode`. Sub-agents run in their caller's mode.
 - **Where:** `Agents/RunOptions.cs`, `Approval/ExitPlanModeFunction.cs`, the approval layer of D29.
 - **Alternatives:** modes as tools the model calls (MAF's `mode_get`/`mode_set`), which lets the model leave plan
   mode unasked; a classifier built into auto mode, where a rule the host writes can ask any model it chooses.

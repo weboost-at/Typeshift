@@ -47,6 +47,8 @@ internal sealed class EntryRow
 
     public required int Version { get; init; }
 
+    public required bool IsSummary { get; init; }
+
     public required string Json { get; init; }
 }
 // end-snippet
