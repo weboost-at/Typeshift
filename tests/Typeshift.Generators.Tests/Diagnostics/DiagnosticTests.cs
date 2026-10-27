@@ -589,10 +589,42 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Sub_Agent_Of_A_Reference_Without_A_Description_TSH023_Is_Reported_On_The_Use()
+    {
+        // Arrange
+        var reference = CompileReference("Help", ReferenceSources.UndescribedHelpAgent);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.HelpAgentUse));
+
+        // Assert
+        run.Assert.Reports("TSH023", DiagnosticSeverity.Error, "UseAgent<HelpAgent>")
+            .GetMessage()
+            .Should()
+            .Contain("WithDescription");
+    }
+
+    [Fact]
     public void Given_A_Sub_Agent_Offering_A_Tool_That_Needs_Approval_TSH024_Is_Reported_On_The_Use()
     {
         // Act
         var run = Run(DiagnosticSources.SubAgentNeedingApproval);
+
+        // Assert
+        run.Assert.Reports("TSH024", DiagnosticSeverity.Warning, "UseAgent<HelpAgent>")
+            .GetMessage()
+            .Should()
+            .Contain("close");
+    }
+
+    [Fact]
+    public void Given_A_Sub_Agent_Of_A_Reference_Offering_A_Tool_That_Needs_Approval_TSH024_Is_Reported_On_The_Use()
+    {
+        // Arrange
+        var reference = CompileReference("Help", ReferenceSources.AskingHelpAgent);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.HelpAgentUse));
 
         // Assert
         run.Assert.Reports("TSH024", DiagnosticSeverity.Warning, "UseAgent<HelpAgent>")

@@ -182,7 +182,7 @@ across a project and the projects it references. Give one of them a `WithStorage
 ## TSH023
 
 **Agent cannot be a tool or a handoff target.** The model needs the agent's `WithDescription` to decide when to call
-it, and a lower_snake_case name to call it by. The analyzer checks agents of the same project.
+it, and a lower_snake_case name to call it by. An agent of a referenced project is checked too.
 
 ## TSH024
 

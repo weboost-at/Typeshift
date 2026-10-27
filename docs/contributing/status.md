@@ -54,6 +54,7 @@ rewrite.
 | new | A run's tools resolve from the scope its host came from (D25) | `AgentRunTests.Given_Two_Tool_Calls_Of_A_Run_Both_Resolve_From_The_Hosts_Scope` |
 | new | Messages and updates carry the agent's name (D26) | `AgentRunTests.Given_A_Run_Its_Messages_Carry_The_Agents_Name_As_Their_Author`, `..._Given_A_Streaming_Run_Its_Updates_Carry_The_Text_And_The_Agents_Name` |
 | new | Run options limit the tool loop and may be configurable (D32) | `AgentRunTests.Given_Run_Settings_Of_A_Run_Option_The_Tool_Loop_Stops_After_It` |
+| new | Calls the host approves run in the next run, within its own limit (D24, D32) | `ToolApprovalTests.Given_A_Run_That_Asked_At_Its_Limit_The_Next_Run_Runs_The_Approved_Call_Within_Its_Own` |
 | new | A run asks the chat client provider for the provider and model of code, stored settings or the run; the request names the model alone (D56) | `AgentRunTests.Given_Run_Settings_They_Override_The_Configurable_Options`, `..._Given_A_Provider_And_A_Model_The_Request_Names_Only_The_Model`, `..._Given_Options_Of_Its_Own_The_Created_Client_Asks_The_Agents_Provider`, `StoredSettingsTests.Given_Stored_Settings_A_Run_With_Their_Id_Applies_Them` |
 | new | The provider id type types the alias, the `Provider` members and the core services (D56) | `AgentGenerationTests.Given_A_Provider_Id_Type_The_Alias_The_Settings_And_The_Core_Services_Use_It` |
 | new | A public agent's configurable model needs a provider id type as accessible (TSH006, D6) | `DiagnosticTests.Given_A_Public_Agent_Of_An_Internal_Provider_Id_Type_TSH006_Is_Reported_On_The_Model_Pick` |
@@ -64,7 +65,7 @@ rewrite.
 | new | Toolsets of referenced assemblies: stamps, settings, JSON contexts (D7, D45) | `AgentRunTests.Given_A_Toolset_Of_A_Referenced_Assembly_Its_Tool_Runs_With_Its_Settings`, `AddTypeshiftTests.Given_A_Json_Context_In_A_Toolsets_Assembly_Tools_Ask_It_Before_The_Defaults`, `AgentGenerationTests` |
 | new | An agent's output is generated again only when what it offers changes | `IncrementalTests` |
 | 16 | Stored settings apply under their id, run settings over them, tool overrides included | `StoredSettingsTests.Given_Stored_Settings_A_Run_With_Their_Id_Applies_Them`, `..._Given_Stored_And_Run_Settings_The_Runs_Apply_Over_The_Stored`, `..._Given_Stored_Tool_Overrides_The_Tool_Runs_With_Them_Over_The_Agents_Settings` |
-| 17 | Saves are guarded by revisions; `ConfigureAsync` retries until it wins (D41) | `StoredSettingsTests.Given_A_Revision_Another_Save_Replaced_Saving_Throws_A_StoreConflictException`, `..._Given_A_Save_Between_Load_And_Save_Configuring_Applies_The_Change_Again_And_Wins` |
+| 17 | Saves are guarded by revisions; `ConfigureAsync` retries until it wins, ten times at most (D41) | `StoredSettingsTests.Given_A_Revision_Another_Save_Replaced_Saving_Throws_A_StoreConflictException`, `..._Given_A_Save_Between_Load_And_Save_Configuring_Applies_The_Change_Again_And_Wins`, `..._Given_A_Save_Between_Every_Load_And_Save_Configuring_Gives_Up_After_Ten_Attempts` |
 | 18 | Without a store, loading or saving throws naming `WithStore<T>()` (D43) | `StoredSettingsTests.Given_No_Store_A_Run_With_A_Settings_Id_Fails_Naming_WithStore` |
 | 19 | Settings of every storable kind read back equivalent; nulls left out; mistyped members read as null | `SettingsJsonTests` |
 | new | `System.Text.Json` writes and reads the stored shape (D44) | `SettingsJsonTests.Given_Settings_System_Text_Json_Writes_What_The_Store_Keeps`, `..._Given_Stored_Json_System_Text_Json_Reads_The_Settings` |
@@ -105,6 +106,7 @@ rewrite.
 | new | A background sub-agent's answer joins the run, which waits for it; a lost one is reported on resume (D33) | `SubAgentTests.Given_A_Background_Sub_Agent_The_Caller_Works_On_And_Receives_Its_Answer_Before_It_Ends`, `..._Given_An_Interrupted_Run_With_A_Background_Sub_Agent_The_Model_Hears_It_Was_Lost` |
 | new | A handoff continues the run with the other agent, which answers the conversation's later runs (D34) | `HandoffTests` |
 | new | Sub-agents and handoff targets are checked at compile time (TSH023, TSH024, TSH026) | `DiagnosticTests` |
+| new | A referenced sub-agent is checked against its module stamp (TSH023, TSH024; D33) | `DiagnosticTests.Given_A_Sub_Agent_Of_A_Reference_Without_A_Description_TSH023_Is_Reported_On_The_Use`, `..._Given_A_Sub_Agent_Of_A_Reference_Offering_A_Tool_That_Needs_Approval_TSH024_Is_Reported_On_The_Use` |
 | new | MCP servers' tools follow the agent's own, read-only or behind approval; a clash or no provider fails (D35) | `McpTests` |
 | new | The file tools stay within the root, links included, and read, list, search, write, edit and delete (D37) | `FileSystemToolsetTests` |
 | new | `run_command` runs in the root, with a timeout and an output limit (D37) | `ShellToolsetTests` |
@@ -133,14 +135,13 @@ rewrite.
 - **Docs of types in assemblies without toolsets or agents.** Such an assembly has no module, so the XML docs
   collected for it reach no schema. A tool whose parameter type lives there gets that type's properties undescribed.
 - **Storable structs.** A user struct other than the scalars cannot be configurable (TSH012).
-- **Run limit across approval rounds.** The rounds the approval layer continues share the run's
-  `MaxToolIterations`, so a round that runs tools before it asks again may run one round of tools past it.
+- **Run limit across approval rounds.** The rounds the approval layer continues, after a rule, a standing approval or
+  auto mode approved calls, share the run's `MaxToolIterations`, so a round that runs tools before it asks again may
+  run one round of tools past it. Calls the host approves are not affected: they run in the next run.
 - **Compaction's estimate.** About four characters make a token, corrected by the provider's report of the run's
   last call, so a run's first call trusts the estimate alone. The summary model reads results cut to 2,000
   characters.
 - **Compaction across steering.** A steered run's later pass compacts afresh and summarizes again if it needs to.
-- **Agents across references.** TSH023, TSH024 and TSH026 check the agents of the same compilation. A sub-agent of a
-  referenced assembly is checked when that assembly builds, not against its callers.
 - **File tools and links.** The root check follows every link on a path, but a link swapped in between the check
   and the use still escapes, and only a sandbox stops that. `edit_file` holds a file whole in memory and refuses
   files over 16 MB. Paths compare as the operating system opens them, which on Windows drops a last segment's
@@ -154,8 +155,6 @@ rewrite.
   from the whole conversation too.
 - **A provider client per call.** A provider that returns a new client instance per call gets a new instrumented
   wrapper per call, with a meter that lives as long as the instance. Return one instance per model.
-- **`ConfigureAsync` under a store that always conflicts.** Each conflict is read as another save that won, so the
-  retry has no cap and ends only when the token is cancelled.
 - **Web fetch and private addresses.** The model picks the URL, and the host's `IWebFetch` decides which addresses
   it reaches. No fetcher ships with Typeshift.
 - **Shell.** `run_command` runs what the model sends. The root is its working directory but not a sandbox, and the
