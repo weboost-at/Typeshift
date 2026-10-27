@@ -104,6 +104,7 @@ rewrite.
 | new | MCP servers' tools follow the agent's own, read-only or behind approval; a clash or no provider fails (D35) | `McpTests` |
 | new | The file tools stay within the root, links included, and read, list, search, write, edit and delete (D37) | `FileSystemToolsetTests` |
 | new | `run_command` runs in the root, with a timeout and an output limit (D37) | `ShellToolsetTests` |
+| new | `run_command` reads a command's output to its end after the timeout kills it, and a second past it for what a process left behind writes (D37) | `ShellToolsetTests.Given_A_Process_Left_Behind_What_It_Writes_Just_After_The_Timeout_Is_Kept`, `..._Given_A_Command_That_Leaves_A_Process_Behind_It_Returns_At_The_Timeout` |
 | new | `delete_file` and `run_command` ask first; the three file readers are read-only (D37) | `FileSystemToolsetTests.Given_The_File_And_Shell_Tools_Those_That_Change_Things_Ask_And_The_Readers_Only_Read` |
 | new | The web tools refuse other schemes and name a missing registration (D37) | `WebToolsetTests` |
 | new | A consumer's agent configures a built-in tool across the assembly boundary (D7, D37) | `FileSystemToolsetTests.Given_An_Agent_Using_The_Built_In_Toolset_Its_Configuration_Reaches_The_Tool` |
