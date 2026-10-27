@@ -93,6 +93,7 @@ rewrite.
 | new | Compaction clears the oldest read results, then summarizes the oldest turns, by calibrated estimate (D32) | `CompactionTests` |
 | new | The summary runs on the run's provider and model unless the agent or the settings name others (D56) | `CompactionTests.Given_No_Summary_Model_The_Runs_Model_Summarizes`, `..._Given_Clearing_Is_Not_Enough_The_Oldest_Turns_Are_Summarized`, `..._Given_A_Summary_Provider_It_Serves_The_Summary_Model` |
 | new | A summary is stored, and later runs start from it (D32) | `CompactionTests.Given_A_Summary_Later_Runs_Start_From_It` |
+| new | A steered run's later pass starts from the summary its first pass made (D32, D51) | `CompactionTests.Given_A_Steered_Streaming_Run_Its_Later_Pass_Starts_From_The_Summary` |
 | new | Summarizing keeps the latest `write_todos` call with its result (D32, D37) | `CompactionTests.Given_Summarized_Turns_The_Latest_Todo_List_Stays_With_Its_Result` |
 | new | A sub-agent is a tool of its description and one input, answering in a fresh context in its caller's mode (D33) | `SubAgentTests` |
 | new | A sub-agent's calls that need approval are rejected unless something approves them (D33) | `SubAgentTests.Given_A_Sub_Agent_In_The_Default_Mode_A_Call_That_Needs_Approval_Is_Rejected` |
@@ -138,7 +139,6 @@ rewrite.
 - **Compaction's estimate.** About four characters make a token, corrected by the provider's report of the run's
   last call, so a run's first call trusts the estimate alone. The summary model reads results cut to 2,000
   characters.
-- **Compaction across steering.** A steered run's later pass compacts afresh and summarizes again if it needs to.
 - **Agents across references.** TSH023, TSH024 and TSH026 check the agents of the same compilation. A sub-agent of a
   referenced assembly is checked when that assembly builds, not against its callers.
 - **File tools and links.** The root check follows every link on a path, but a link swapped in between the check
