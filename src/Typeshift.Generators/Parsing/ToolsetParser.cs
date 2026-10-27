@@ -193,7 +193,7 @@ internal static class ToolsetParser
             Settings: settings,
             Parameters: parameters.ToEquatableArray(),
             Return: returns,
-            Result: GetResultType(method.ReturnType, returns)?.ToTypeOf());
+            Result: GetResultType(method.ReturnType, returns));
     }
 
     private static ToolChain? ReadChain(IInvocationOperation addTool, Reporter reporter)
@@ -359,16 +359,20 @@ internal static class ToolsetParser
             { SpecialType: SpecialType.System_Void } => ReturnKind.Void,
             _ when type.Is(KnownTypes.Task) || type.Is(KnownTypes.ValueTask) => ReturnKind.Awaitable,
             _ when type.Is(KnownTypes.TaskOfT) || type.Is(KnownTypes.ValueTaskOfT) => ReturnKind.AwaitableValue,
+            _ when type.Is(KnownTypes.AsyncEnumerableOfT) => ReturnKind.Stream,
             _ => ReturnKind.Value
         };
 
-    private static ITypeSymbol? GetResultType(ITypeSymbol type, ReturnKind returns) =>
+    private static string? GetResultType(ITypeSymbol type, ReturnKind returns) =>
         returns switch
         {
-            ReturnKind.Value => type,
-            ReturnKind.AwaitableValue => ((INamedTypeSymbol)type).TypeArguments[0],
+            ReturnKind.Value => type.ToTypeOf(),
+            ReturnKind.AwaitableValue => TypeArgument(type),
+            ReturnKind.Stream => $"global::System.Collections.Generic.List<{TypeArgument(type)}>",
             _ => null
         };
+
+    private static string TypeArgument(ITypeSymbol type) => ((INamedTypeSymbol)type).TypeArguments[0].ToTypeOf();
 
     // What one AddTool chain declares, before it is checked
     private sealed class ToolChain

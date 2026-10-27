@@ -12,6 +12,7 @@ All notable changes to this project are documented here. The format follows
 - TSH030 reports a provider of another type than the build's at `WithModel` and at `WithChatClientProvider<T>()`.
 - `ITypeshiftStore.LoadConversationSinceCompactionAsync` returns a conversation's last summary and the entries after it.
   Its default loads the whole conversation; a store overrides it to leave the entries before the summary unread.
+- A tool may return `IAsyncEnumerable<T>`: the call reads it to its end, and the model receives its items as one array.
 
 ### Changed
 
@@ -57,6 +58,8 @@ All notable changes to this project are documented here. The format follows
   reading at once.
 - `ConfigureAsync` gives up after ten conflicts in a row and throws the last `StoreConflictException`, where a store
   that conflicted every time kept it going until its token was cancelled.
+- A streaming run that compacted keeps its summary when steering input or a background answer starts another pass,
+  where the pass lost it and could summarize the same turns again.
 - Compaction calibrates a run's first estimate by the tokens the provider reported for the conversation's last call,
   where only the run's own calls corrected it.
 
