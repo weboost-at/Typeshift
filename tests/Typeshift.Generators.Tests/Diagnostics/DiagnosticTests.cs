@@ -85,6 +85,20 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Public_Agent_Of_An_Internal_Provider_Id_Type_TSH006_Is_Reported_On_The_Model_Pick()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.PublicAgentOfInternalProviderIdType);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.WithProviderIdType("Demo.Vendor"));
+
+        // Assert
+        run.Assert.Reports("TSH006", DiagnosticSeverity.Error, "o => o.ModelId");
+        run.Assert.GeneratesValidCode();
+    }
+
+    [Fact]
     public void Given_Two_Tools_Mapping_To_One_Member_TSH007_Is_Reported_On_The_Second()
     {
         // Act

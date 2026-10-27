@@ -86,7 +86,10 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
                     : Descriptors.NotOneValue));
         }
 
-        context.RegisterSymbolStartAction(start => StartClass(start, tools, kinds, found), SymbolKind.NamedType);
+        context.RegisterSymbolStartAction(
+            start => StartClass(start, providerIdType, tools, kinds, found),
+            SymbolKind.NamedType);
+
         context.RegisterSymbolAction(symbol => CollectJsonTypes(symbol, found), SymbolKind.NamedType);
 
         var aot = IsAot(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
@@ -114,6 +117,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
     private static void StartClass(
         SymbolStartAnalysisContext context,
+        ITypeSymbol? providerIdType,
         ConcurrentBag<(string Name, INamedTypeSymbol Toolset, Location Location)> tools,
         ConcurrentBag<(string Kind, INamedTypeSymbol Agent)> kinds,
         Found found)
@@ -142,6 +146,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         context.RegisterSymbolEndAction(end =>
         {
             var reporter = new Reporter(end.ReportDiagnostic);
+            var ct = end.CancellationToken;
 
             if (GetIndirection(type, baseType) is { } indirection)
             {
@@ -163,7 +168,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
             if (baseType == "Agent")
             {
-                if (AgentParser.Parse(type, ordered, reporter, end.CancellationToken, out var uses) is { } agent)
+                if (AgentParser.Parse(type, ordered, providerIdType, reporter, ct, out var uses) is { } agent)
                 {
                     kinds.Add((agent.Kind, type));
                     found.Agents.Add(new FoundAgent(type, agent, uses));
@@ -175,7 +180,6 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             var documented = type.DeclaringSyntaxReferences
                 .Any(reference => reference.SyntaxTree.Options.DocumentationMode != DocumentationMode.None);
 
-            var ct = end.CancellationToken;
             var toolset = ToolsetParser.Parse(type, ordered, documented, reporter, ct, out var declarations);
             if (toolset is not null) found.Toolsets.Add(Catalog.Summarize(toolset));
 
