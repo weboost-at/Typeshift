@@ -103,6 +103,7 @@ rewrite.
 | new | A summary is stored, and later runs start from it (D32) | `CompactionTests.Given_A_Summary_Later_Runs_Start_From_It` |
 | new | A run loads its conversation from the last summary on, which keeps the mode, the standing approvals and the background calls still working (D24, D32, D33, D52) | `ConversationStoreTests.Given_A_Summary_The_Next_Run_Never_Loads_The_Whole_Conversation`, `..._Given_A_Summary_The_Store_Loads_It_And_The_Entries_After_It`, `ToolApprovalTests.Given_An_Approval_For_The_Conversation_The_Summary_Keeps_It_For_Later_Runs`, `ModeTests.Given_A_Compaction_In_Plan_Mode_Its_Summary_Keeps_The_Mode`, `SubAgentTests.Given_A_Compaction_While_A_Background_Sub_Agent_Works_Its_Summary_Keeps_The_Call`, `..._Given_A_Summary_That_Left_A_Background_Sub_Agent_Working_The_Next_Run_Hears_It_Was_Lost` |
 | new | A steered run's later pass starts from the summary its first pass made (D32, D51) | `CompactionTests.Given_A_Steered_Streaming_Run_Its_Later_Pass_Starts_From_The_Summary` |
+| new | A run's first estimate is calibrated by the conversation's last reported call (D32) | `CompactionTests.Given_A_Report_Of_The_Last_Run_The_Next_Runs_First_Call_Compacts_By_It` |
 | new | Summarizing keeps the latest `write_todos` call with its result (D32, D37) | `CompactionTests.Given_Summarized_Turns_The_Latest_Todo_List_Stays_With_Its_Result` |
 | new | A sub-agent is a tool of its description and one input, answering in a fresh context in its caller's mode (D33) | `SubAgentTests` |
 | new | A sub-agent's calls that need approval are rejected unless something approves them (D33) | `SubAgentTests.Given_A_Sub_Agent_In_The_Default_Mode_A_Call_That_Needs_Approval_Is_Rejected` |
@@ -141,8 +142,8 @@ rewrite.
   auto mode approved calls, share the run's `MaxToolIterations`, so a round that runs tools before it asks again may
   run one round of tools past it. Calls the host approves are not affected: they run in the next run.
 - **Compaction's estimate.** About four characters make a token, corrected by the provider's report of the run's
-  last call, so a run's first call trusts the estimate alone. The summary model reads results cut to 2,000
-  characters.
+  last call, or of the conversation's last call before it, so only a conversation's first call trusts the estimate
+  alone. The summary model reads results cut to 2,000 characters.
 - **File tools and links.** The root check follows every link on a path, but a link swapped in between the check
   and the use still escapes, and only a sandbox stops that. `edit_file` holds a file whole in memory and refuses
   files over 16 MB. Paths compare as the operating system opens them, which on Windows drops a last segment's

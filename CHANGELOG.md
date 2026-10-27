@@ -64,6 +64,8 @@ All notable changes to this project are documented here. The format follows
   where the pass lost it and could summarize the same turns again.
 - A public agent of a less accessible `TypeshiftIdType` is TSH006 on the agent, instead of CS0051 in its generated
   host members, which the generator keeps internal.
+- Compaction calibrates a run's first estimate by the tokens the provider reported for the conversation's last call,
+  where only the run's own calls corrected it.
 
 ## [0.1.0-alpha.2] - 2026-10-16
 

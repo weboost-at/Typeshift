@@ -196,7 +196,7 @@ WithRunOptions()
 <!-- endSnippet -->
 
 Before every model call, Typeshift estimates the call's input tokens at about four characters per token, corrected by
-what the provider reported for the run's last call. When the estimate reaches the maximum, it shrinks the history to
+what the provider reported for the run's last call, or for the conversation's last call before the run. When the estimate reaches the maximum, it shrinks the history to
 `WithTargetInputTokens`, half the maximum unless set:
 
 1. It clears the results of the oldest tool calls the model has already read. It keeps the calls, so the model knows

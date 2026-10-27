@@ -354,7 +354,8 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         {
             InputStart = history.Count,
             Activity = activity,
-            Standing = [.. summarized, .. granted]
+            Standing = [.. summarized, .. granted],
+            LastCall = LastCall(entries)
         };
 
         var logger = (services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance)
@@ -379,6 +380,16 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         if (input.Count > 0) await run.AppendAsync(input);
 
         return (run, call, runOptions);
+    }
+
+    // D32: the messages of the last model call whose provider reported its input tokens, and that report
+    private static ReportedCall? LastCall(IReadOnlyList<ConversationEntry> entries)
+    {
+        var last = entries.ToList().FindLastIndex(entry => entry.Usage?.InputTokenCount is not null);
+
+        return last < 0
+            ? null
+            : new ReportedCall(ConversationHistory.From([.. entries.Take(last)]), entries[last].Usage!);
     }
 
     private static ChatMessage? WithoutRequests(ChatMessage message)

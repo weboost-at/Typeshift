@@ -369,7 +369,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   Instructions, the latest `write_todos` call and call/result pairs stay; the summary is stored as an entry later
   runs start from. Without reported usage, tokens are estimated from the text.
 - **As built:** the estimate counts characters (four to a token) over the messages, the instructions and the tool
-  schemas, calibrated by the tokens the provider reported for the run's last call. Only results the model already
+  schemas, calibrated by the tokens the provider reported for the run's last call, and before the run's first call
+  for the conversation's last. Only results the model already
   answered after are cleared. What compaction did holds for the rest of the run: the tool loop keeps the whole
   history, so each later call gets the same cleared results and summary. The summary entry holds the summary, the
   kept todo list and copies of the kept messages, with the run's mode, its standing approvals and the background calls

@@ -15,7 +15,7 @@ internal sealed class CompactingChatClient(IChatClient inner) : DelegatingChatCl
         if (options is not ResolvedChatOptions { AgentRun: { } run, RunOptions.MaxInputTokens: { } max } resolved)
             return await base.GetResponseAsync(messages, options, cancellationToken);
 
-        var compaction = run.Compaction ??= new Compaction();
+        var compaction = run.Compaction ??= Start(run, resolved);
         var call = await compaction.PrepareAsync(messages, resolved, max, cancellationToken);
 
         var response = await base.GetResponseAsync(call, options, cancellationToken);
@@ -38,7 +38,7 @@ internal sealed class CompactingChatClient(IChatClient inner) : DelegatingChatCl
             yield break;
         }
 
-        var compaction = run.Compaction ??= new Compaction();
+        var compaction = run.Compaction ??= Start(run, resolved);
         var call = await compaction.PrepareAsync(messages, resolved, max, cancellationToken);
         UsageDetails? usage = null;
 
@@ -53,5 +53,13 @@ internal sealed class CompactingChatClient(IChatClient inner) : DelegatingChatCl
         }
 
         compaction.Calibrate(call, resolved, usage);
+    }
+
+    // A run's first estimate is calibrated by the conversation's last call the provider reported on
+    private static Compaction Start(AgentRun run, ResolvedChatOptions options)
+    {
+        var compaction = new Compaction();
+        if (run.LastCall is { } last) compaction.Calibrate(last.Call, options, last.Usage);
+        return compaction;
     }
 }
