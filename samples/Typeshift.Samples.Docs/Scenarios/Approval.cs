@@ -32,9 +32,9 @@ internal static class Approval
         var ticket = await scope.ServiceProvider.GetRequiredService<ITicketClient>().GetAsync(1234, default);
         if (ticket is not { Closed: true }) throw new InvalidOperationException("Expected the approved call to run.");
 
+        // begin-snippet: approval-for-conversation
         var again = await support.RunAsync("Close ticket 1234 again.", conversationId: conversationId);
 
-        // begin-snippet: approval-for-conversation
         var always = new ChatMessage(ChatRole.User, [again.ApprovalRequests[0].ApproveForConversation()]);
 
         await support.RunAsync(always, conversationId: conversationId);

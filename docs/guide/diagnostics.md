@@ -5,8 +5,8 @@ description: Every TSHnnn error and warning the Typeshift analyzer reports, what
 
 # Diagnostics
 
-The analyzer reports these errors and warnings while you type. Every mistake the generator cannot handle has one, so you
-never debug a compiler error inside generated code.
+The analyzer reports these errors and warnings while you type. Each one points at a mistake in your code or your build,
+so you fix it there instead of debugging a compiler error inside generated code.
 
 | ID | Severity | Title |
 |---|---|---|
@@ -46,11 +46,13 @@ never debug a compiler error inside generated code.
 An error fails the build. A warning lets it pass, but points at code that does not do what it seems to, such as
 settings that reach no parameter ([TSH010](#tsh010)). Each diagnostic's help link leads to its section on this page.
 
-Most diagnostics sit on the declaration they are about, so the usual
+Most diagnostics are reported on the declaration they are about, so the usual
 [suppression](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/suppress-warnings) reaches them:
 `#pragma warning disable TSH009` around one declaration, or a `dotnet_diagnostic.TSH009.severity` entry in
 `.editorconfig`. [TSH020](#tsh020), [TSH021](#tsh021) and [TSH029](#tsh029) concern the whole build and have no
-source location, so no `#pragma` reaches them.
+source location, so no `#pragma` reaches them. To silence TSH020, the only warning of the three, add it to
+`<NoWarn>` in the project file. [TSH007](#tsh007) and [TSH022](#tsh022) have no location either when the clash lies
+between two referenced projects.
 
 ## TSH001
 
@@ -64,8 +66,9 @@ class it is nested in must be `partial`.
 
 ## TSH003
 
-**Tool is not a static method group.** Lambdas, instance methods, local functions and delegate variables need
-reflection to call. Pass a static method, of any accessibility: `AddTool(Find)`.
+**Tool is not a static method group.** The generated function calls your tool method directly, so `AddTool` needs a
+static method that is not generic. A lambda, an instance method, a local function, a generic method or a delegate
+variable cannot be called that way. Pass a static method, of any accessibility: `AddTool(Find)`.
 
 ## TSH004
 
@@ -74,8 +77,8 @@ a ref struct such as `Span<T>`.
 
 ## TSH005
 
-**Settings type is not a record with a parameterless constructor.** That constructor sets the code defaults, and each
-layer of settings applies to a `with` copy of them.
+**Settings type is not a record with a parameterless constructor.** That constructor sets the code defaults. Each
+layer of settings then changes a copy of them, made with `with`.
 
 ## TSH006
 
@@ -90,17 +93,21 @@ id type as accessible as what exposes it. There are four cases:
   [provider id type](./models.md#the-provider-id-type) is less accessible. The agent's `Settings` record names the
   type for the model's provider.
 - The build's [id type](./registration.md#the-id-type) is less accessible than a public agent. The agent's host
-  members take settings and conversation ids of it, so the generator keeps them internal.
+  members take settings ids and conversation ids of that type, so the generator keeps those members internal.
 
 ## TSH007
 
-**Tool name is not unique** across everything the host sees. Names that differ only in their underscores, such as
-`get_v2` and `get_v_2`, count as the same, because they map to the same generated property.
+**Tool name is not unique.** A tool name must be unique across the toolsets of your project and of the projects it
+references, the built-in toolsets aside ([TSH025](#tsh025) covers those). Names that differ only in their
+underscores, such as `get_v2` and `get_v_2`, count as the same, because they map to the same generated property. Give
+one of the tools another name with `WithName("...")`.
 
 ## TSH008
 
-**Tool name is not lower_snake_case**, the convention of the providers' function names. It is reported on
-`WithName`, or on the method when the name derived from it breaks the convention.
+**Tool name is not lower_snake_case.** The providers' function names follow that convention, so tool names must too.
+With `WithName`, the diagnostic is on the string you passed, so change it. Otherwise the tool is
+[named after its method](./toolsets.md#names-and-descriptions), and the diagnostic is on the method in
+`AddTool(...)`: rename the method, or set a name with `WithName("...")`.
 
 ## TSH009
 
@@ -120,7 +127,10 @@ have no `<param>` docs, since it replaces only the `<summary>`.
 
 ## TSH012
 
-**Configurable member has a type settings cannot store**, or it belongs to the run rather than to settings.
+**Configurable member has a type settings cannot store.** The same error covers a `Configurable(o => ...)` pick of a
+chat option that belongs to a single run. Remove the pick, or change the member's type. A member that
+`WithConfigurableSettings<T>()` makes configurable is reported on that call, and you can leave it out with
+`NotConfigurable(...)`.
 
 - [Tool settings](./tool-settings.md#configurable-members) lists the types a configurable settings member may have.
 - Of the chat options, the model, the instructions, the sampling options, the stop sequences, multiple tool calls and
@@ -134,12 +144,15 @@ have no `<param>` docs, since it replaces only the `<summary>`.
 ## TSH014
 
 **Declaration outside the constructor.** The generator reads `AddTool`, `UseToolset` and the other declarations only
-directly in the constructor, not in a helper method, a lambda or a local function.
+directly in the constructor, not in a helper method, a lambda or a local function. It also skips them under an `if`,
+in a loop or in another nested block, because there they would run only sometimes, while the generated code always
+includes them. Move each declaration to the top level of the constructor body.
 
 ## TSH015
 
 **Chain the generator cannot read.** Keep each declaration one expression. The generator cannot follow a chain split
-over variables, such as `var u = UseToolset<T>(); u.Include(...)`, or a pick that is not `t => t.Tool`.
+over variables, such as `var u = UseToolset<T>(); u.Include(...)`. It also reads a pick only when it names one
+member of the lambda's parameter, as `t => t.SearchTickets` in `Include` or `s => s.Limit` in `Configurable` do.
 
 ## TSH016
 
@@ -175,41 +188,49 @@ Set `TypeshiftIdType` and `TypeshiftProviderIdType` once, in `Directory.Build.pr
 
 ## TSH022
 
-**Two agents share a settings kind**, so their settings would overwrite each other in the store. It happens when two
-agent classes have one name in different namespaces, or two agents set the same `WithStorageKind`, in one project or
-across a project and the projects it references. Give one of them a `WithStorageKind` of its own.
+**Two agents share a settings kind.** Their settings would overwrite each other in the store. It happens when two
+agent classes have the same name in different namespaces, or when two agents set the same `WithStorageKind`, in one
+project or across a project and the projects it references. Give one of them a `WithStorageKind` of its own.
 
 ## TSH023
 
-**Agent cannot be a tool or a handoff target.** The model needs the agent's `WithDescription` to decide when to call
-it, and a lower_snake_case name to call it by. An agent of a referenced project is checked too.
+**Agent cannot be a tool or a handoff target.** The diagnostic sits on `UseAgent<T>()` or `UseHandoff<T>()` and is
+about the agent `T`. The model needs that agent's `WithDescription` to decide when to call it, and a lower_snake_case
+name to call it by: its class name in snake_case, unless `WithName(...)` sets another. Add a `WithDescription(...)` to
+that agent's constructor, or fix its name. An agent of a referenced project is checked too.
 
 ## TSH024
 
-**Sub-agent offers tools that need approval.** A sub-agent cannot ask the host, so in the default mode its calls of
-such tools are rejected unless a standing approval or a rule approves them. Add an
-[approval rule](./tool-approval.md#approval-rules), or hand off to the agent instead.
+**Sub-agent offers tools that need approval.** A sub-agent cannot stop and ask your app for approval, so in `Default`
+mode its calls of such tools are rejected unless a standing approval or a rule approves them. Add an
+[approval rule](./tool-approval.md#approval-rules), or offer the agent with `UseHandoff<T>()` instead of
+`UseAgent<T>()`.
 
 ## TSH025
 
-**Tool is offered twice** by one agent, which happens when it:
+**Tool is offered twice.** An agent offers the same tool twice when it:
 
-- uses one toolset twice;
-- picks one tool twice;
-- uses one agent twice as a sub-agent, or twice as a handoff target;
-- uses two toolsets with a tool of one name, a built-in toolset's included. Leave one of the two tools out.
+- uses the same toolset twice;
+- picks the same tool twice;
+- uses the same agent twice as a sub-agent, or twice as a handoff target;
+- uses two toolsets that each have a tool of the same name, even when one of them is a built-in toolset. Leave one of
+  the two tools out, for example with `Exclude(...)`.
 
 ## TSH026
 
-**Agents call each other in a circle** through `UseAgent`, so a call could never end. Break the circle, or turn one
-link into a handoff: handoffs may form circles.
+**Agents call each other in a circle.** The agents offer each other as sub-agents through `UseAgent<T>()`, so a call
+could never end. Break the circle by removing one of these `UseAgent<T>()` calls, or by replacing one with
+`UseHandoff<T>()`, because handoffs may form circles.
 
 ## TSH027
 
 **Tool type has no JSON metadata under Native AOT.** In a project that publishes with Native AOT or sets
-`IsAotCompatible`, every parameter and result type of a tool needs source-generated metadata. List the type in a
-`JsonSerializerContext` of the toolset's assembly ([Native AOT](./production.md#native-aot)). Strings, numbers,
-`bool`, `char`, dates, `TimeSpan`, `IEnumerable<string>` and the JSON element and node types need none.
+`IsAotCompatible`, the types of the parameters the model fills and the type the tool returns need source-generated
+metadata. List each type as `[JsonSerializable(typeof(T))]` on a `JsonSerializerContext` of the toolset's assembly
+([Native AOT](./production.md#native-aot)). A context nested as `private` or `protected` does not count. These types
+need none: `string`, `char`, `bool`, `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `float`, `double`, `decimal`,
+`DateTime`, `DateTimeOffset`, `TimeSpan`, `IEnumerable<string>`, `JsonElement`, `JsonDocument` and the
+`System.Text.Json.Nodes` types.
 
 ## TSH028
 

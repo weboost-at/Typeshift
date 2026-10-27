@@ -5,6 +5,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-alpha.3] - 2026-10-27
+
 ### Added
 
 - `TypeshiftProviderIdType` sets the type of provider ids for the build, `string` by default, and the generator writes

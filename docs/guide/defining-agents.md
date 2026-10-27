@@ -58,9 +58,9 @@ The tools and their settings have sections of their own below. The other calls d
 
 | Call | Declares |
 |---|---|
-| `WithName(...)` | The name that messages the agent writes carry as their author. Optional: `SupportAgent` is `support_agent`. |
+| `WithName(...)` | The agent's name. Messages the agent writes carry it as their author, and other agents call this one by it. Without `WithName`, `SupportAgent` is named `support_agent`. |
 | `WithDescription(...)` | What the agent does. The model of an agent that calls this one reads it. |
-| `WithChatOptions()` | The options every run starts from: `WithModel`, `WithTemperature`, `WithMaxOutputTokens` and a `With...` per other option. `WithTools` adds tools of no toolset, such as a hosted web search. |
+| `WithChatOptions()` | The options every run starts from: `WithModel`, `WithTemperature`, `WithMaxOutputTokens` and a `With...` per other option. `WithTools` adds tools that belong to no toolset, such as a hosted web search. |
 | `UseMcpServer(...)` | The tools of an [MCP server](./mcp.md). `ReadOnly()` lets plan mode offer them. |
 | `UseContext<T>()` | A [context provider](./middleware.md#context-providers), whose instructions, messages and tools join every run. |
 | `UseAgent<T>()`, `UseHandoff<T>()` | Another agent as a tool, or one the model can hand the conversation to. See [Multiple agents](./multi-agent.md). |
@@ -68,16 +68,17 @@ The tools and their settings have sections of their own below. The other calls d
 
 Because the generator reads the constructor rather than running it, `WithName` and `WithDescription` take constants
 ([TSH002](./diagnostics.md#tsh002)), and every declaration sits directly in the constructor as one chain
-([TSH014](./diagnostics.md#tsh014), [TSH015](./diagnostics.md#tsh015)). An agent derives from `Agent` directly
-([TSH017](./diagnostics.md#tsh017)), so share declarations through static methods and constants instead.
+([TSH014](./diagnostics.md#tsh014), [TSH015](./diagnostics.md#tsh015)). An agent derives from `Agent` directly, never
+from a base agent of yours ([TSH017](./diagnostics.md#tsh017)). To share between agents, put values in constants and
+code in static methods, and keep every declaration in each agent's constructor.
 
-The flip side is that an agent is code, not data. You cannot define one at runtime, and stored settings change only
-what its code marks configurable.
+Because an agent is declared in code, you cannot define one at runtime, and stored settings change only what its code
+marks configurable.
 
 ## Selecting tools
 
-`UseToolset<T>()` offers every tool of a toolset. Chain `Include` to offer only some, in that order, or `Exclude` to
-offer all but some:
+`UseToolset<T>()` offers every tool of a toolset. Chain `Include` to offer only the tools you pick, in the order you
+pick them, or `Exclude` to offer all but those:
 
 <!-- snippet: exclude-tools -->
 <a id='snippet-exclude-tools'></a>
@@ -88,23 +89,26 @@ UseToolset<TicketToolset>()
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L13-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-exclude-tools' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The lambda picks from a list the generator writes for each toolset, with one property per tool: `search_tickets` is
-`t.SearchTickets`. A tool of another toolset is not on that list, so picking it does not compile. Use each toolset
-once and pick each tool once ([TSH025](./diagnostics.md#tsh025)). A toolset from another project needs the Typeshift
-package in that project ([TSH019](./diagnostics.md#tsh019)).
+The lambda picks from a list the generator writes for each toolset, with one property per tool, named after the
+tool: `search_tickets` is `t.SearchTickets`, and `close_ticket`, from `CloseTicketAsync`, is `t.CloseTicket`. A tool
+of another toolset is not on that list, so picking it does not compile. Use each toolset once and pick each tool once
+([TSH025](./diagnostics.md#tsh025)). A toolset from another project needs the Typeshift package in that project
+([TSH019](./diagnostics.md#tsh019)).
 
 ## Configurable chat options
 
 `Configurable(o => o.Temperature)` marks an option that stored settings and runs may change, whether the code sets it
-or not. The model is an option like any other, so without `Configurable(o => o.ModelId)` a settings form never offers
-a model the agent does not allow.
+or not. The model is an option like any other. Without `Configurable(o => o.ModelId)`, stored settings and runs
+cannot change it, and the agent's `Settings` has no `Provider` or `Model` for a settings form to offer.
 
 [Builders](./builders.md#chatoptionsbuilder) lists which options may be configurable. The rest belong to the run
+rather than to its settings, and the analyzer reports a `Configurable` call that names one of them
 ([TSH012](./diagnostics.md#tsh012)).
 
 ## Run options
 
-`WithRunOptions()` sets how a run's tool loop goes, and `Configurable` marks the options a run may change:
+`WithRunOptions()` sets how a run's tool loop goes, and `Configurable` marks the options that stored settings and
+runs may change:
 
 <!-- snippet: run-options -->
 <a id='snippet-run-options'></a>
@@ -125,8 +129,9 @@ the calls of one response run at the same time, and when the history is [compact
 ## Tool settings
 
 `Configure{Tool}()` sets a tool's [settings](./tool-settings.md) for this agent, over the record's code defaults, as
-`ConfigureSearchTickets().WithLimit(5)` does above. A tool the agent does not offer has none, so configuring it does
-not compile. [Generated members](./generated-members.md#configure-tool) lists what the builder offers.
+`ConfigureSearchTickets().WithLimit(5)` does above. It can set every settable member of the record, configurable or
+not, for every run of this agent. A tool the agent does not offer has none, so configuring it does not compile.
+[Generated members](./generated-members.md#configure-tool) lists what the builder offers.
 
 ## The generated settings
 
@@ -135,18 +140,20 @@ runtime:
 
 | Member | From |
 |---|---|
-| `Provider`, `Model` | When `Configurable(o => o.ModelId)` allows them; override `WithModel`. |
+| `Provider`, `Model` | Present when `Configurable(o => o.ModelId)` allows them. They override what `WithModel` sets. |
 | One per configurable chat option | `Instructions` and `Temperature` above. |
-| One per configurable run option | `MaxToolIterations` of the triage agent above. |
+| One per configurable run option | `Mode` and `MaxToolIterations` from the run options above. |
 | One per offered tool with configurable settings | `SearchTickets`, `SearchArticles`: their [overrides](./tool-settings.md#the-generated-overrides). |
 
 Option values are nullable, and so are the values in a tool's overrides. A null keeps the
-[layer below](./settings-and-stores.md#settings-layering). A tool member named like an option, or like a member of
-the record itself, gets a `Tool` suffix.
+[layer below](./settings-and-stores.md#settings-layering). When a tool's member would be named like an option or like
+one of the record's own members, such as `Kind`, the generator adds a `Tool` suffix to it.
 
 Store the record [under a settings id](./settings-and-stores.md#agent-settings), pass it
-[for one run](./running-agents.md#run-settings), or bind a settings form or an API to it. `Serialize()` and
-`System.Text.Json` write the same JSON. `WithStorageKind` and `WithSettingsVersion` name and version it in a store.
+[for one run](./running-agents.md#run-settings), or bind a settings form or an API to it. The record's `Serialize()`
+and `System.Text.Json` write the same JSON, so either works for an API. In a store, `WithStorageKind` sets the name
+the record is kept under in place of the class name, and `WithSettingsVersion` raises its version after you rename or
+remove a configurable member ([What a store keeps](./settings-and-stores.md#what-a-store-keeps)).
 
 ## Related
 

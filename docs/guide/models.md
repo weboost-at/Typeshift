@@ -6,12 +6,13 @@ description: Name an agent's model by provider and model, return its client from
 # Models and providers
 
 An agent names its model by a provider and a model, and your `IChatClientProvider` returns the client for that pair.
-Typeshift sends each provider its own model id, so your host never builds composite names like `openai/gpt-5-mini`.
+Typeshift sends each provider its own model id, so your app never builds composite names like `openai/gpt-5-mini`.
 A model a user picks is stored like any other setting.
 
 ## The chat client provider
 
-You implement one method. Typeshift calls it for every run with the provider and the model the run resolved:
+You implement one method. Typeshift calls it for every run with the provider and the model the run resolved, and again
+when [compaction](./conversations.md#compaction) needs the summary model:
 
 <!-- snippet: chat-client-provider -->
 <a id='snippet-chat-client-provider'></a>
@@ -20,14 +21,18 @@ internal sealed class KeyedChatClientProvider(IServiceProvider services) : IChat
 {
     // One client per provider serves all its models: Typeshift puts the model into every request
     public ValueTask<IChatClient> GetChatClientAsync(string provider, string model, CancellationToken ct) =>
-        ValueTask.FromResult(services.GetRequiredKeyedService<IChatClient>(provider));
+        ValueTask.FromResult(
+            services.GetKeyedService<IChatClient>(provider)
+                ?? throw new InvalidOperationException($"No IChatClient is registered for the provider '{provider}'."));
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/KeyedChatClientProvider.cs#L6-L13' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client-provider' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/KeyedChatClientProvider.cs#L6-L15' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client-provider' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Typeshift puts the model into every request as `ChatOptions.ModelId`, so one client per provider serves all its
-models. Register the provider on the chain, and your clients however you like:
+Typeshift puts the model into every request as `ChatOptions.ModelId`, which is why the sample ignores its `model`
+parameter and returns one client per provider. Register the provider on the chain, and register your clients however
+you like, as long as each is the provider's bare client ([a real client](#a-real-client) says why). Here `openAi` and
+`anthropic` stand for the `IChatClient` instances your app creates, one per provider:
 
 <!-- snippet: chat-client-provider-registration -->
 <a id='snippet-chat-client-provider-registration'></a>
@@ -38,17 +43,74 @@ services.AddTypeshift()
 services.AddKeyedSingleton("openai", openAi);
 services.AddKeyedSingleton("anthropic", anthropic);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L12-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client-provider-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L14-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client-provider-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ::: info The provider is scoped
 Typeshift resolves your provider from each run's scope, so it can use that request's services, such as the current
-customer's credentials or your `DbContext`. Typeshift never disposes a client it gets, and it instruments each
-provider and model once, whatever instance you return. A client per customer works; one you create per run is yours
-to dispose.
+customer's credentials or your `DbContext`. Typeshift never disposes a client you return, and it instruments each
+provider and model once, whatever instance you return. So you may return a client per customer, and a client you
+create for a single run is yours to dispose.
 :::
 
-A run without a registered provider throws, naming `WithChatClientProvider<T>()`.
+If no provider is registered, a run throws an `InvalidOperationException` that tells you to call
+`WithChatClientProvider<T>()`.
+
+## A real client
+
+Each provider's client library has an adapter to `IChatClient` for Microsoft.Extensions.AI. For OpenAI, add the
+`Microsoft.Extensions.AI.OpenAI` package:
+
+```bash
+dotnet add package Microsoft.Extensions.AI.OpenAI
+```
+
+Then register one client for the provider:
+
+<!-- snippet: openai-client -->
+<a id='snippet-openai-client'></a>
+```cs
+var openAi = new OpenAIClient(apiKey)
+    .GetChatClient("gpt-5-mini")
+    .AsIChatClient();
+
+services.AddKeyedSingleton("openai", openAi);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L25-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-client' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- Typeshift names the model in every request as `ChatOptions.ModelId`, so this one client serves every OpenAI model
+  your agents name. The model you pass to `GetChatClient` only names the client.
+- `OpenAIClient` is in the `OpenAI` namespace. Read the API key from your app's configuration, never from code.
+- Register the bare client. Typeshift runs the tool loop itself, so a client you wrap with `UseFunctionInvocation()`
+  runs a second loop inside it, and a run that answers an [approval request](./tool-approval.md) fails.
+
+A local server with an OpenAI-compatible API, such as LM Studio or Ollama, works with the same package. Point the
+client at its endpoint, and name its models in `WithModel`, here as `WithModel("local", "qwen3-8b")`.
+`ApiKeyCredential` is in the `System.ClientModel` namespace:
+
+<!-- snippet: local-chat-client -->
+<a id='snippet-local-chat-client'></a>
+```cs
+var options = new OpenAIClientOptions
+{
+    Endpoint = new Uri("http://localhost:1234/v1")
+};
+
+var local = new OpenAIClient(new ApiKeyCredential("none"), options)
+    .GetChatClient("qwen3-8b")
+    .AsIChatClient();
+
+services.AddKeyedSingleton("local", local);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L36-L47' title='Snippet source file'>snippet source</a> | <a href='#snippet-local-chat-client' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+For other providers, such as Anthropic or Azure OpenAI, register the `IChatClient` of their own package.
+[Microsoft.Extensions.AI](https://learn.microsoft.com/dotnet/ai/microsoft-extensions-ai) lists them. A fake client for
+tests reads the same requests: the model in `ChatOptions.ModelId`, the agent's instructions in
+`ChatOptions.Instructions` and the run's tools in `ChatOptions.Tools`. It calls a tool by answering with a
+`FunctionCallContent`, and Typeshift runs the call.
 
 ## The provider id type
 
@@ -65,14 +127,17 @@ A provider is a string unless you choose another type. Set `TypeshiftProviderIdT
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Typeshift.Samples.Console.csproj#L20-L24' title='Snippet source file'>snippet source</a> | <a href='#snippet-provider-id-type' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The agent's `Settings` store a provider as one value, so the type is a string, a number, a `Guid` for providers that
-are rows in your database, or an enum for providers known in code. With an enum like the one above, the compiler
-checks every provider you name, as in `WithModel(Provider.Scripted, "scripted-model")`. You implement
-`IChatClientProvider`, the alias the
-generator writes for the type. A provider of another type is [TSH030](./diagnostics.md#tsh030), a type that cannot be
-used is [TSH029](./diagnostics.md#tsh029), and a referenced project built with another is
-[TSH021](./diagnostics.md#tsh021). A public agent with a configurable model names the type in its `Settings`, so the
-type is public too ([TSH006](./diagnostics.md#tsh006)).
+Because the agent's `Settings` store a provider as a single value, the type must be a string, a number, a `Guid` or
+an enum. A `Guid` suits providers that are rows in your database, and an enum suits providers known in code: the
+snippet names the enum `Typeshift.Samples.Chat.Provider`, so the compiler checks every provider you name, as in
+`WithModel(Provider.Scripted, "scripted-model")`.
+
+Your provider class still implements `IChatClientProvider`. The generator writes that name as an alias for your
+provider id type, so `GetChatClientAsync` takes a provider of your type instead of a string. A public agent with a
+configurable model names the type in its `Settings`, so the type must be public too
+([TSH006](./diagnostics.md#tsh006)). The analyzer reports a provider of another type
+([TSH030](./diagnostics.md#tsh030)), a type it cannot use ([TSH029](./diagnostics.md#tsh029)), and a referenced
+project built with another provider id type ([TSH021](./diagnostics.md#tsh021)).
 
 ## Naming a model
 
@@ -91,14 +156,15 @@ WithChatOptions()
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L14-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-model' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`Configurable(o => o.ModelId)` lets stored settings or a run pick another, so the agent's
-[`Settings`](./generated-members.md#settings) get `Provider` and `Model`. Each
-[layers](./settings-and-stores.md#settings-layering) on its own, so a layer that sets only `Model` keeps the
-provider below.
+`Configurable(o => o.ModelId)` adds `Provider` and `Model` to the agent's
+[`Settings`](./generated-members.md#settings), so stored settings or a run can pick another model. The two values
+[layer](./settings-and-stores.md#settings-layering) separately: a layer that sets only `Model` keeps the provider of
+the layer below, so set both when you switch providers.
 
-Leave out `WithModel` and the choice is the user's. Every run then needs a stored or passed pick, and one without
-throws, naming the agent. Store the pick under a settings id, from a settings page that offers your providers and
-their models, for example:
+Leave out `WithModel` but keep `Configurable(o => o.ModelId)`, and the choice is the user's. Every run then needs a
+provider and a model from stored settings or from the run's own settings, and a run without them throws an
+`InvalidOperationException` that names the agent. Store the pick under a settings id, from a settings page that
+offers your providers and their models, for example:
 
 <!-- snippet: configure-settings -->
 <a id='snippet-configure-settings'></a>
@@ -145,7 +211,7 @@ var settings = new CodingAgent.Settings
     SummaryModel = "gpt-5-mini"
 };
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L23-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-summary-provider' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L52-L58' title='Snippet source file'>snippet source</a> | <a href='#snippet-summary-provider' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 | Named | The summary runs on |
@@ -155,9 +221,9 @@ var settings = new CodingAgent.Settings
 | `SummaryProvider` and `SummaryModel` in settings | That provider, that model |
 
 ::: warning The summary model follows the run's provider
-The run's provider is the one the run resolved. When a user switches the agent to another provider, the code's
-summary model is asked of that provider too, and a provider that cannot serve it fails the run. Make the summary
-model configurable wherever users switch providers.
+The run's provider is whichever provider the layers resolved for that run, so it changes when a user switches the
+agent to another provider. The summary model named in code then goes to that provider too, and if that provider
+cannot serve the model, the run fails. Make the summary model configurable wherever users switch providers.
 :::
 
 ## Related

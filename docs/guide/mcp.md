@@ -1,6 +1,6 @@
 ---
 title: MCP servers
-description: Offer the tools of MCP servers to an agent, connected by the host's own MCP client or by the model's provider.
+description: Offer the tools of MCP servers to an agent, connected by your app's own MCP client or by the model's provider.
 ---
 
 # MCP servers
@@ -8,9 +8,10 @@ description: Offer the tools of MCP servers to an agent, connected by the host's
 An agent can offer an MCP server's tools next to its toolsets. Typeshift takes no MCP dependency, so you pick the
 client.
 
-## Servers the host connects
+## Servers your app connects
 
-`UseMcpServer` names a server in the agent's constructor:
+`UseMcpServer` names a server in the agent's constructor. The name is a key you choose, and your app decides which
+server it stands for:
 
 <!-- snippet: use-mcp-server -->
 <a id='snippet-use-mcp-server'></a>
@@ -21,8 +22,9 @@ UseMcpServer("status_page")
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L33-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-mcp-server' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The host connects it by implementing `IMcpToolProvider`, whose `GetToolsAsync` returns the tools of the server the
-agent names. This provider uses the official `ModelContextProtocol.Core` client:
+Your app connects the server by implementing `IMcpToolProvider`. Its `GetToolsAsync` receives the name and returns
+that server's tools. This provider uses the official `ModelContextProtocol.Core` client and builds the server's URL
+from the name:
 
 <!-- snippet: mcp-tool-provider -->
 <a id='snippet-mcp-tool-provider'></a>
@@ -68,24 +70,27 @@ services.AddTypeshift()
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L79-L82' title='Snippet source file'>snippet source</a> | <a href='#snippet-mcp-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Typeshift resolves it from the run's services, scoped. That lets it connect each customer with their own
-credentials, and the scope disposes it along with its connections.
+The provider is scoped, and Typeshift resolves it from the run's services, so each scope, such as a web request, gets
+its own. That lets it connect each customer with their own credentials. When the scope ends, it disposes the provider
+along with its connections, so the provider above opens one connection per server for each scope.
 
 ## How the agent offers the tools
 
-The servers' tools come after the agent's own. `UseMcpServer(...).RequiresApproval()` asks the host before every call
-of the server's tools, as [tool approval](./tool-approval.md) describes. `ReadOnly()` marks them as reading only, so
-[plan mode](./tool-approval.md#plan-mode) offers them.
+In the tool list the model receives, the servers' tools come after the agent's own.
+`UseMcpServer(...).RequiresApproval()` makes every call of the server's tools need approval, as
+[Approval and modes](./tool-approval.md) describes. `ReadOnly()` marks every tool of the server as reading only, so
+[plan mode](./tool-approval.md#plan-mode) offers them all. Use it only for a server whose tools change nothing.
 
-Two mistakes fail the run. A server tool named like one of the agent's own tools fails it, naming both, because the
-model would otherwise see only one of them. An agent with servers but no registered provider fails it too.
+The run fails when a server's tool is named like one of the agent's own tools or like a tool of another server it
+uses, because the model would otherwise see only one of them. The error names the server and the tool. An agent that
+uses servers also fails its run when no provider is registered.
 
 ::: danger A server's tools are untrusted
 Treat a server's tool descriptions and results as untrusted text, never as instructions. The model reads both, so a
 server you do not control puts its words into the model's context.
 :::
 
-## Servers the provider connects
+## Servers the model provider connects
 
 Some model providers call MCP servers themselves. For those, put Microsoft.Extensions.AI's `HostedMcpServerTool` in
 the chat options:
@@ -100,12 +105,12 @@ WithChatOptions()
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/StatusAgent.cs#L9-L13' title='Snippet source file'>snippet source</a> | <a href='#snippet-hosted-mcp' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The provider then connects the server, and no `IMcpToolProvider` takes part. A hosted tool carries no `ReadOnly()`
-mark, so plan mode hides it.
+The model provider then connects to the server itself, and your `IMcpToolProvider` takes no part. A hosted tool
+carries no `ReadOnly()` mark, so plan mode hides it.
 
 ## Related
 
-- [Tool approval](./tool-approval.md): asking before a server's tools run.
-- [Plan and auto modes](./tool-approval.md#plan-mode): which tools plan mode offers.
+- [Approval and modes](./tool-approval.md): asking before a server's tools run.
+- [Plan mode](./tool-approval.md#plan-mode): which tools plan mode offers.
 - [Agents](./defining-agents.md#selecting-tools): offering toolsets next to servers.
 - [Builders](./builders.md): `UseMcpServer` among the other calls of an agent's constructor.

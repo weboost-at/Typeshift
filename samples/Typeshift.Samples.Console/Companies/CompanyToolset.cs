@@ -13,7 +13,7 @@ internal partial class CompanyToolset : Toolset
     }
 
     /// <summary>
-    /// Finds the companies of a city, best matches first.
+    /// Finds the companies of a city.
     /// </summary>
     /// <param name="city">The city the companies are based in.</param>
     /// <param name="settings">The settings the search runs with; the model never sees them.</param>

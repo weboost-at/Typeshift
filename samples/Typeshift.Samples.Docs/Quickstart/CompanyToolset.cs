@@ -13,7 +13,7 @@ internal partial class CompanyToolset : Toolset
     }
 
     /// <summary>
-    /// Finds the companies of a city, best matches first.
+    /// Finds the companies of a city.
     /// </summary>
     /// <param name="city">The city the companies are based in.</param>
     public static IReadOnlyList<Company> FindCompanies(string city, FindCompaniesSettings settings) =>
@@ -23,7 +23,6 @@ internal partial class CompanyToolset : Toolset
             .Where(company => company.Active || settings.IncludeInactive)
             .Take(settings.Limit)
     ];
-    // end-snippet
 
     private static readonly Company[] Companies =
     [
@@ -32,3 +31,6 @@ internal partial class CompanyToolset : Toolset
         new("Graz Gearworks", "Graz", Active: false)
     ];
 }
+
+internal sealed record Company(string Name, string City, bool Active);
+// end-snippet

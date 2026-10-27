@@ -1,6 +1,6 @@
 ---
 title: Built-in toolsets
-description: The to-do, file, shell and web toolsets that ship with Typeshift, what each needs from the host, and where they are not safe.
+description: The to-do, file, shell and web toolsets that ship with Typeshift, what each needs from your app, and where they are not safe.
 ---
 
 # Built-in toolsets
@@ -10,7 +10,8 @@ them like your own.
 
 ## Offering them
 
-An agent offers the built-in toolsets with `UseToolset<T>()`, like any other:
+The built-in toolsets and the interfaces they need are in the `Typeshift.Toolsets` namespace, so add
+`using Typeshift.Toolsets;` to the file. An agent then offers them with `UseToolset<T>()`:
 
 <!-- snippet: coding-agent -->
 <a id='snippet-coding-agent'></a>
@@ -56,7 +57,10 @@ internal partial class CodingAgent : Agent
 <!-- endSnippet -->
 
 This agent offers all four toolsets, but only `web_fetch` of the web tools, and `ConfigureRunCommand()` sets the
-shell's settings for it. Its run options make it a [long-running agent](./conversations.md#compaction).
+shell's settings for it. Its run options start runs in [plan mode](./tool-approval.md#plan-mode), allow up to 500
+rounds of tool calls and compact the history at 150,000 input tokens, which makes it a
+[long-running agent](./conversations.md#compaction). `InBackground()` lets its `ExploreAgent` sub-agent work
+[in the background](./multi-agent.md#in-the-background).
 
 ## What each needs
 
@@ -67,8 +71,9 @@ shell's settings for it. Its run options make it a [long-running agent](./conver
 | `ShellToolset` | `run_command` | `WithFileSystemRoot<T>()` |
 | `WebToolset` | `web_search`, `web_fetch` | `WithWebSearch<T>()`, `WithWebFetch<T>()` |
 
-Register the services after `AddTypeshift()`. A tool whose service is missing fails its call with a message that
-names the registration:
+Register these services with the `With...` calls on the chain that `AddTypeshift()` returns. A tool whose service is
+missing fails its call with a message that names the registration. `WithApprovalRule<ShellGuard>()` adds an
+[approval rule](./tool-approval.md#approval-rules) that rejects the shell commands you never allow:
 
 <!-- snippet: built-in-registration -->
 <a id='snippet-built-in-registration'></a>
@@ -84,10 +89,13 @@ services.AddTypeshift()
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L87-L95' title='Snippet source file'>snippet source</a> | <a href='#snippet-built-in-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+The sample's `HttpWebFetch` reads pages with a plain `HttpClient` and checks no address, so it is not safe as it
+stands: your fetcher must refuse private addresses, as the warning under [Web](#web) explains.
+
 ## Todos
 
 `write_todos` replaces the model's to-do list, a list of titles, each `Pending`, `InProgress` or `Completed`. The
-list lives in the conversation: the latest call holds it, and
+list is kept only in the conversation: the latest `write_todos` call carries the current list, and
 [compaction](./conversations.md#compaction) never drops that call. Plan mode offers it.
 
 ## Files
@@ -106,8 +114,8 @@ internal sealed class CustomerWorkspace(ICurrentCustomer customer) : IFileSystem
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/CustomerWorkspace.cs#L5-L10' title='Snippet source file'>snippet source</a> | <a href='#snippet-file-system-root' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Paths are relative to the root. Absolute paths, `..` and links that lead outside are refused, and the model reads
-why.
+Paths are relative to the root. The tools refuse every absolute path, every path with `..` and every path through a
+link that leads outside the root, and tell the model why.
 
 | Tool | Does | Marked |
 |---|---|---|
@@ -120,7 +128,9 @@ why.
 
 Plan mode offers the three `ReadOnly()` tools, and an agent that should only read
 [includes](./defining-agents.md#selecting-tools) only those. `FileSystemSettings` caps what one call returns:
-2,000 lines, matches or entries, 2,000 characters per line and 65,536 characters in all. A search pattern is a .NET
+2,000 lines, matches or entries, 2,000 characters per line and 65,536 characters in all. An agent can change the caps
+with `ConfigureReadFile()`, `ConfigureListFiles()` and `ConfigureSearchFiles()`, as `ConfigureRunCommand()` does for
+the shell. Stored settings cannot, because none of the record's members is configurable. A search pattern is a .NET
 regular expression, matched in linear time where the pattern allows it.
 
 ::: danger The root is not a sandbox
@@ -130,28 +140,31 @@ holds what others must not reach.
 
 ## Shell
 
-`run_command` runs a command in the root and needs approval for every call, so an
-[approval rule](./tool-approval.md#approval-rules) can reject the commands you never allow. A process the command
-leaves running in the background outlives the call. At the timeout the command is killed and its output read to the
-end; a process left in the background holds the output open, so the call reads it for a second more and returns.
+`run_command` runs a command with the root as its working folder, and every call needs approval. Your
+[approval rules](./tool-approval.md#approval-rules) see each call before the run asks your app, so a rule can reject
+the commands you never allow. A command still running at the timeout is killed, with the processes it started. A
+process the command leaves running in the background outlives the call, and because it holds the output open, the
+call returns a second past the timeout.
 
-`ShellSettings` set the shell (`/bin/sh`), the timeout (30 seconds) and how much of each stream the model receives:
+`ShellSettings` sets the shell (`/bin/sh`), the timeout (30 seconds) and how much of each stream the model receives:
 65,536 characters, from its start and its end.
 
 ::: danger The working folder is not a sandbox
-The root is the working folder of each command, nothing more. Run the host in a container when commands must not
+The root is the working folder of each command, nothing more. Run your app in a container when commands must not
 reach further.
 :::
 
-::: danger Approving commands unasked is rarely safe
-A rule that approves the commands that look harmless approves the model's code too. While `write_file` runs unasked,
-the model can write the configuration or the code that `git status` or `dotnet test` then runs.
+::: danger Approving commands by rule is rarely safe
+A rule that approves harmless-looking commands also approves whatever code those commands run. Because `write_file`
+runs without asking, the model can first write the configuration or the code that `git status` or `dotnet test` then
+runs.
 :::
 
 ## Web
 
-`web_search` and `web_fetch` call the services the host registers. No provider ships with Typeshift, so Tavily,
-Firecrawl, Brave or a plain `HttpClient` plug in:
+`web_search` and `web_fetch` call the services your app registers. Typeshift ships no search or fetch provider, so you
+implement `IWebSearch` and `IWebFetch` over the service you choose, such as Tavily, Firecrawl, Brave or a plain
+`HttpClient`. This search calls a JSON API:
 
 <!-- snippet: web-search -->
 <a id='snippet-web-search'></a>
@@ -173,7 +186,7 @@ internal sealed class SearchApi(HttpClient http) : IWebSearch
 Both tools are `ReadOnly()`, so plan mode offers them. `web_fetch` takes absolute http and https URLs only.
 
 ::: danger Your fetcher must refuse private addresses
-The model picks the URLs `web_fetch` reads. A fetcher on the host's network must refuse loopback, private and
+The model picks the URLs `web_fetch` reads. A fetcher on your app's network must refuse loopback, private and
 link-local addresses where it connects (`SocketsHttpHandler.ConnectCallback`), or the model reads the cloud's
 metadata service. Check the address there, not the host name, which a DNS answer can change.
 :::
@@ -186,6 +199,6 @@ Search results and fetched pages are untrusted text, never instructions. Anyone 
 
 - [Toolsets](./toolsets.md): declaring your own toolsets the same way.
 - [Agents](./defining-agents.md#selecting-tools): picking a toolset's tools with `Include` and `Exclude`.
-- [Tool approval](./tool-approval.md#approval-rules): the rules that guard the shell.
+- [Approval rules](./tool-approval.md#approval-rules): the rules that guard the shell.
 - [Compaction](./conversations.md#compaction): the coding agent's run options and compaction.
 - [Generated members](./generated-members.md): `ConfigureRunCommand()` and the other `Configure{Tool}()` methods.
