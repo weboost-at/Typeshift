@@ -138,6 +138,38 @@ public class CompactionTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Steered_Streaming_Run_Its_Later_Pass_Starts_From_The_Summary()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+        var settings = new CompactingAgent.Settings { MaxInputTokens = 1_000, SummaryModel = SummaryModel };
+
+        ChatClient
+            .Reply(Text(Data.Agent.CompanyName), Text(Data.Agent.Instructions), Read(Data.Tool.CallId, Page))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(gate, Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.FollowUp));
+
+        var run = Host<CompactingAgent>()
+            .RunStreamingAsync(
+                Data.Tool.Question,
+                conversationId: Data.Agent.ConversationId,
+                settings: settings,
+                ct: Ct)
+            .ToListAsync(Ct);
+
+        await ChatClient.RequestedAsync(3);
+
+        // Act
+        Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+        gate.SetResult();
+        await run;
+
+        // Assert
+        Texts(3)[0].Should().EndWith(Data.Agent.Reason);
+    }
+
+    [Fact]
     public async Task Given_Summarized_Turns_The_Latest_Todo_List_Stays_With_Its_Result()
     {
         // Arrange

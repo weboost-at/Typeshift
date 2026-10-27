@@ -57,6 +57,8 @@ All notable changes to this project are documented here. The format follows
   reading at once.
 - `ConfigureAsync` gives up after ten conflicts in a row and throws the last `StoreConflictException`, where a store
   that conflicted every time kept it going until its token was cancelled.
+- A streaming run that compacted keeps its summary when steering input or a background answer starts another pass,
+  where the pass lost it and could summarize the same turns again.
 
 ## [0.1.0-alpha.2] - 2026-10-16
 
