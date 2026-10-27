@@ -112,8 +112,8 @@ works, tools included. Every call that loads or saves, such as a run with either
 
 ## The store
 
-`ITypeshiftStore` has four methods, and a fifth a store may override. Their ids are of the build's
-[id type](./registration.md#the-id-type), `Guid` unless `TypeshiftIdType` names another.
+`ITypeshiftStore` has four methods, plus a fifth that a store may override. The ids they take have the build's
+[id type](./registration.md#the-id-type), which is `Guid` unless `TypeshiftIdType` names another.
 
 | Method | Does |
 |---|---|
