@@ -13,7 +13,9 @@ internal interface IStoreAccess
 
     Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(object conversation, CancellationToken ct);
 
-    Task<IReadOnlyList<ConversationEntry>> LoadConversationFromSummaryAsync(object conversation, CancellationToken ct);
+    Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
+        object conversation,
+        CancellationToken ct);
 
     Task AppendConversationAsync(object conversation, ConversationEntry entry, CancellationToken ct);
 
@@ -41,10 +43,10 @@ internal sealed class StoreAccess<TId>(IServiceProvider services, Func<string, T
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(object conversation, CancellationToken ct) =>
         Store.LoadConversationAsync((TId)conversation, ct);
 
-    public Task<IReadOnlyList<ConversationEntry>> LoadConversationFromSummaryAsync(
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         object conversation,
         CancellationToken ct) =>
-        Store.LoadConversationFromSummaryAsync((TId)conversation, ct);
+        Store.LoadConversationSinceCompactionAsync((TId)conversation, ct);
 
     public Task AppendConversationAsync(object conversation, ConversationEntry entry, CancellationToken ct) =>
         Store.AppendConversationAsync((TId)conversation, entry, ct);

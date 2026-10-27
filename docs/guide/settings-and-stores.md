@@ -117,7 +117,7 @@ but every call that loads or saves throws an `InvalidOperationException` that na
 | `LoadAsync<TData>(id)` | Returns the document of kind `TData.Kind` under an id, with its revision, or null. |
 | `SaveAsync<TData>(id, data, revision)` | Saves the document if the stored revision is still `revision` (0 for none) and returns the new revision. Throws a `StoreConflictException` when another save came first. |
 | `LoadConversationAsync(conversation)` | Returns a conversation's entries, oldest first. |
-| `LoadConversationFromSummaryAsync(conversation)` | Returns the conversation's last [summary](./conversations.md#compaction) and the entries after it, which is all a run reads. By default it loads the whole conversation and drops what came before; override it to leave those entries in the database. |
+| `LoadConversationSinceCompactionAsync(conversation)` | Returns the conversation's last [summary](./conversations.md#compaction) and the entries after it, which is all a run reads. By default it loads the whole conversation and drops what came before; override it to leave those entries in the database. |
 | `AppendConversationAsync(conversation, entry)` | Appends one entry: a run's input, a model response or tool results. |
 
 Runs append as they go, so `AppendConversationAsync` is the hot path, and a row per entry keeps it cheap.
@@ -274,7 +274,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
     }
 
     // A run starts from the last summary, so the rows before it stay in the database
-    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationFromSummaryAsync(
+    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         int conversation,
         CancellationToken ct)
     {

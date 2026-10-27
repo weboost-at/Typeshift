@@ -367,7 +367,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   history, so each later call gets the same cleared results and summary. The summary entry holds the summary, the
   kept todo list and copies of the kept messages, with the run's mode, its standing approvals and the background
   calls still working, so a later run loads only that entry and the ones after it
-  (`LoadConversationFromSummaryAsync`, which a store may override to leave the rest unread). A summary an earlier
+  (`LoadConversationSinceCompactionAsync`, which a store may override to leave the rest unread). A summary an earlier
   version stored keeps no standing approvals, and its runs load the whole conversation. Rounds the approval
   layer continues share `MaxToolIterations`, and so do the passes steering input or background answers start.
 - **Where:** `Compaction/`, `Approval/ApprovalChatClient.cs` for the shared limit.
@@ -470,7 +470,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** approved.
 - **Decision:** `ITypeshiftStore<TId>` (aliased `ITypeshiftStore`): `LoadAsync` and `SaveAsync` of documents with
   revisions, `LoadConversationAsync` and `AppendConversationAsync` of `ConversationEntry`s keyed by the conversation
-  id. `LoadConversationFromSummaryAsync`, which runs call, defaults to the whole load and drops what came before the
+  id. `LoadConversationSinceCompactionAsync`, which runs call, defaults to the whole load and drops what came before the
   last summary. Documents stay a closed set (each agent's `Settings`, `ConversationEntry`), so store generators stay
   possible.
 - **Alternatives:** v0's load and save only, which rewrote a whole conversation per turn; a generic append for any

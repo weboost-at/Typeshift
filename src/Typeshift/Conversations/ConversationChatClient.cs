@@ -240,7 +240,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         var conversation = options is null ? null : GetConversation(options);
         if (conversation is null) return (null, []);
 
-        var entries = await Store.LoadConversationFromSummaryAsync(conversation, ct);
+        var entries = await Store.LoadConversationSinceCompactionAsync(conversation, ct);
 
         // D24: a summary an earlier version stored keeps no standing approvals, so the run reads them all
         if (entries is [{ IsSummary: true, StandingApprovals: null }, ..])

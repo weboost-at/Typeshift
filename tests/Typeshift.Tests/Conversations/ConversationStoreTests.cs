@@ -63,7 +63,7 @@ public class ConversationStoreTests : AgentTestBase
         }
 
         // Act
-        var loaded = await store.LoadConversationFromSummaryAsync(conversation, Ct);
+        var loaded = await store.LoadConversationSinceCompactionAsync(conversation, Ct);
 
         // Assert
         loaded.Select(entry => entry.Messages[0].Text).Should().Equal(Data.Agent.Reason, Data.Agent.FollowUp);

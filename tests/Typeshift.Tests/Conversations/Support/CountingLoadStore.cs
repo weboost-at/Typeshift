@@ -21,10 +21,10 @@ public sealed class CountingLoadStore : ITypeshiftStore
         return _store.LoadConversationAsync(conversation, ct);
     }
 
-    public Task<IReadOnlyList<ConversationEntry>> LoadConversationFromSummaryAsync(
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         Guid conversation,
         CancellationToken ct) =>
-        _store.LoadConversationFromSummaryAsync(conversation, ct);
+        _store.LoadConversationSinceCompactionAsync(conversation, ct);
 
     public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct) =>
         _store.AppendConversationAsync(conversation, entry, ct);

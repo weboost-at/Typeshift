@@ -73,7 +73,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
     }
 
     // A run starts from the last summary, so the rows before it stay in the database
-    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationFromSummaryAsync(
+    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         int conversation,
         CancellationToken ct)
     {

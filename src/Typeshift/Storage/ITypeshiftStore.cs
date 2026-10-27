@@ -47,7 +47,7 @@ public interface ITypeshiftStore<TId> where TId : notnull
     /// <param name="conversation">The conversation's id.</param>
     /// <param name="ct">Cancels the load.</param>
     /// <returns>The entries, oldest first; none for a conversation never stored.</returns>
-    async Task<IReadOnlyList<ConversationEntry>> LoadConversationFromSummaryAsync(
+    async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         TId conversation,
         CancellationToken ct)
     {
