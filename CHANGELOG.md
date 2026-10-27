@@ -29,6 +29,7 @@ All notable changes to this project are documented here. The format follows
 - Steering input waiting when the model hands the conversation to another agent is stored for that agent, so the
   conversation's next run goes to it instead of back to the agent that handed off.
 - An approval still finds its stored request when run middleware adds or removes messages ahead of the input.
+- TSH007 reports a tool name two referenced projects share, on the project that references both.
 - Merging the rounds of a run no longer adds the later rounds' usage into the first response's `Usage`.
 - The merged text updates `ConversationTracker.WatchAsync` publishes keep the first update's ids, so a watcher
   groups them into messages as the run's caller does.

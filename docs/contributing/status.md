@@ -39,6 +39,7 @@ rewrite.
 | 8 | The schema matches `AIFunctionFactory`'s | `ToolSchemaTests.Given_The_Same_Method_The_Schema_Matches_AIFunctionFactory_Without_Descriptions` |
 | 9 | Docs become descriptions | `ToolSchemaTests.Given_Param_Docs_They_Become_The_Parameter_Descriptions`, `..._Given_No_WithDescription_The_Summary_Is_The_Tool_Description` |
 | 10 | Tool names are unique | `DiagnosticTests.Given_Two_Tools_Mapping_To_One_Member_TSH007_Is_Reported_On_The_Second`, `..._Given_Two_Toolsets_With_A_Tool_Of_One_Name_TSH007_Is_Reported_On_The_Second` |
+| new | A tool name is unique across the host, two references' tools included (TSH007) | `DiagnosticTests.Given_A_Tool_Named_Like_One_Of_A_Reference_TSH007_Is_Reported_On_The_Own`, `..._Given_Two_References_With_A_Tool_Of_One_Name_TSH007_Is_Reported` |
 | new | Tool names derive from the method, without `Async` (D13) | `ToolSchemaTests.Given_An_Async_Method_Without_WithName_The_Tool_Is_Named_Without_The_Suffix`, `ToolNamesTests` |
 | new | A call without services fails, saying how to run the tool | `ToolInvocationTests.Given_No_Services_The_Call_Fails_Saying_How_To_Run_It` |
 | new | Every shape the generator cannot handle is a diagnostic, and the generated code holds no error | `DiagnosticTests`, `DiagnosticTests.Given_Any_Mistake_The_Generated_Code_Holds_No_Error` |
@@ -116,9 +117,6 @@ rewrite.
 - **Recursive parameter types.** Each parameter's schema is created on its own and nested under the function's
   `properties`, so a `$ref` that `AIJsonUtilities.CreateJsonSchema` emits for a recursive type is relative to the
   parameter. This is untested, and non-recursive types are unaffected.
-- **Tool names across references.** TSH007 compares the compilation's tools with each other and with the tools the
-  references stamp, but not two references' tools with each other. An agent offering two referenced tools of one
-  name keeps the first, and the generated code stays valid.
 - **Provider id types across references.** The module stamps carry the id type but not the provider id type, so a
   referenced project built with another `TypeshiftProviderIdType` compiles, and a run of its agents fails with an
   `InvalidOperationException` that names both types.
