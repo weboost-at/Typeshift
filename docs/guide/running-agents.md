@@ -27,8 +27,10 @@ services.AddKeyedSingleton("anthropic", reasoning);
 <!-- endSnippet -->
 
 `AddTypeshift()` registers the toolsets and agents of this project and the projects it references, plus a host per
-agent. This page needs two calls of the chain: `WithChatClientProvider<T>()` returns the client of a provider's model, and
-`WithStore<T>()` keeps settings and conversations. [Registration](./registration.md#the-chain) covers the rest.
+agent. `fast` and `reasoning` stand for the `IChatClient` instances your app creates, one per provider. This page
+needs two calls of the chain: `WithChatClientProvider<T>()` registers your class that returns the client of a
+provider's model, and `WithStore<T>()` registers the store that keeps settings and conversations.
+[Registration](./registration.md#the-chain) covers the rest.
 
 ## Chat clients
 
@@ -37,8 +39,9 @@ run's services. [Models and providers](./models.md) shows how to write one and h
 
 ## The run's services
 
-`AgentHost<TAgent>` is transient and runs with the services of the scope you resolved it from. Tools and the chat
-client provider resolve there too, so a request's scoped services, such as the current customer, reach them:
+`AgentHost<TAgent>` is transient and runs with the services of the scope you resolved it from. Your tools receive that
+scope as their `IServiceProvider` parameter, and your chat client provider resolves from it too, so a request's
+scoped services, such as the current customer, reach them:
 
 <!-- snippet: run -->
 <a id='snippet-run'></a>
@@ -72,7 +75,8 @@ var stored = await support.RunAsync("Where is my refund?", settingsId);
 
 ## Run settings
 
-A run can also pass the agent's `Settings` for itself. They override the stored settings, for that run only:
+A run can also pass settings of its own, as an instance of the agent's generated
+[`Settings`](./generated-members.md#settings) record. They override the stored settings for that run only:
 
 <!-- snippet: run-settings -->
 <a id='snippet-run-settings'></a>
@@ -96,8 +100,8 @@ Values the run leaves null keep what the stored settings or the agent's code set
 
 ## Conversations
 
-With a conversation id, the run resumes the conversation and stores itself in it, step by step. `ResumeAsync`
-continues a run that a crash cut off. [Conversations](./conversations.md) covers both.
+Pass a conversation id, and the run continues that conversation and stores each of its steps in it. If a crash cuts a
+run off, `ResumeAsync` continues it. [Conversations](./conversations.md) covers both.
 
 ## Structured output
 
@@ -132,7 +136,8 @@ Under [Native AOT](./production.md#native-aot), `T` needs JSON metadata.
 
 ## Streaming
 
-`RunStreamingAsync` streams the updates, and tool calls run between them:
+`RunStreamingAsync` returns the model's updates as they arrive. When the model calls tools, the tools run between its
+updates, and the stream goes on with the model's next response:
 
 <!-- snippet: streaming -->
 <a id='snippet-streaming'></a>
@@ -148,8 +153,9 @@ too.
 
 ## The raw path
 
-A host that needs the `IChatClient` itself splits a run into three steps: resolve the options, create the client, and
-call it with those options:
+If your app needs the `IChatClient` itself, for example to hand it to a library that takes one, split a run into
+three steps: resolve the options, create the client, and call the client with those options. Here `run` is the
+`SupportAgent.Settings` from [Run settings](#run-settings):
 
 <!-- snippet: raw-path -->
 <a id='snippet-raw-path'></a>
@@ -163,14 +169,16 @@ var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "Wh
 <!-- endSnippet -->
 
 The client is the run's whole pipeline, the tool loop and the agent's run options included. It serves concurrent
-calls, each with its own options' limits. Disposing it leaves the provider's client alone. `ChatOptions.ConversationId` names the conversation to run in, as a string of the build's id
-type, and never reaches the provider.
+calls, each with the limits of its own options. Disposing it does not dispose the client your provider returned. To
+run in a conversation, set `ChatOptions.ConversationId` on the options to the conversation's id, written as a string
+of the build's id type. Typeshift reads the conversation from it and never sends it to the provider.
 
 ## How a run works
 
-A run is one call of `RunAsync`, `RunStreamingAsync` or `ResumeAsync`. Streaming or not, every run passes through the
-same steps in the same order, and that order tells you what your middleware sees, when context is added, which calls
-ask for approval and what is stored when.
+A run is one call of `RunAsync`, `RunAsync<T>`, `RunStreamingAsync`, `ResumeAsync` or `ResumeStreamingAsync`, or of a
+client from the [raw path](#the-raw-path). Streaming or not, every run passes through the same steps in the same
+order, and that order tells you what your middleware sees, when context is added, which calls ask for approval and
+what is stored when.
 
 ```mermaid
 flowchart TD
@@ -188,8 +196,8 @@ flowchart TD
   model -->|an answer| done([ChatResponse])
 ```
 
-The run starts at the top. Each step wraps the ones below it, so the answer passes back up through them: the
-conversation stores how the run ended, and middleware sees the response.
+Each step wraps the steps below it, so the answer passes back up through them in reverse order: run middleware sees
+the response before the conversation stores how the run ended.
 
 1. **Resolve the options.** The host builds the run's `ChatOptions` from the agent's code, then the settings stored
    under the settings id, then the run's own settings. It creates the tools the agent offers, their settings resolved
@@ -197,23 +205,27 @@ conversation stores how the run ended, and middleware sees the response.
    when the run starts ([settings layering](./settings-and-stores.md#settings-layering)).
 2. **Resume the conversation.** With a conversation id, the run puts the stored entries ahead of the new input, so the
    model sees the whole conversation, and stores the input. It keeps the conversation's mode unless the run's settings
-   name one, and a conversation that was handed off goes to the agent that answered last. Without a conversation id,
-   the run starts fresh and stores nothing. Within one process, a conversation has one run at a time
+   name one. If an earlier run [handed the conversation off](./multi-agent.md#handoff) to another agent, the agent
+   that answered last answers this run too. Without a conversation id, the run starts fresh and stores nothing. Within
+   one process, a conversation has one run at a time, and starting a second while the first goes on throws
    ([Conversations](./conversations.md)).
 3. **Run middleware.** Each `IRunMiddleware` wraps the rest of the run ([Middleware](./middleware.md)).
-4. **Context providers.** Each provider the agent uses adds to this run. Nothing it adds is stored with the
-   conversation, so every run asks again ([Context providers](./middleware.md#context-providers)).
-5. **Approval and mode.** The run matches the host's answers to the approval requests the conversation stored, and in
-   plan mode offers only the read-only tools and `exit_plan_mode`. After each pass of the tool loop, rules, standing
-   approvals and auto mode decide the calls they can. When calls are left that only the host can decide, the run
-   stores the requests and ends ([Approval and modes](./tool-approval.md)).
+4. **Context providers.** Each context provider the agent uses can add instructions, messages and tools to this run.
+   The conversation stores none of it, so every run calls the providers again
+   ([Context providers](./middleware.md#context-providers)).
+5. **Approval and mode.** If the input carries your app's answers to approval requests the conversation stored, the
+   run matches each answer to its request. In plan mode, it offers the model only the read-only tools and
+   `exit_plan_mode`. After each pass of the tool loop, approval rules, standing approvals and auto mode decide every
+   call they can. If calls remain that only your app can decide, the run stores their requests and ends
+   ([Approval and modes](./tool-approval.md)).
 6. **The tool loop.** Microsoft.Extensions.AI's `FunctionInvokingChatClient` calls the model, runs the tools it asks
    for, each through the tool middleware, and calls the model again until it answers. The
    [run options](./defining-agents.md#run-options) set its limits, such as the most rounds of tool calls.
 
-Before every model call inside the loop, the run appends the new steps to the conversation: tool results, steering
-input and the answers of background sub-agents. Each model response is stored as it arrives, so a crash loses at most
-the call in flight.
+Before every model call inside the loop, the run appends the new steps to the conversation: tool results, input your
+app [steered](./conversations.md#steering) into the run, and the answers of sub-agents running
+[in the background](./multi-agent.md#in-the-background). Each model response is stored as it arrives, so a crash
+loses at most the calls in flight.
 
 When compaction is on and a call would exceed the token limit, the run compacts what the model sees, while the stored
 conversation keeps everything ([compaction](./conversations.md#compaction)). Typeshift traces every call to the
