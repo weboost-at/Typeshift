@@ -28,7 +28,8 @@ internal static class ModuleEmitter
             [assembly: global::Typeshift.Generated.GeneratedModule(
                 typeof({module}),
                 {ReferenceReader.StampVersion},
-                {(model.Agents.Count == 0 ? "null" : $"typeof({model.IdType})")})]
+                {FormatStampedType(model, model.IdType)},
+                {FormatStampedType(model, model.ProviderIdType)})]
 
             namespace {Names.GeneratedNamespace};
 
@@ -89,4 +90,10 @@ internal static class ModuleEmitter
 
         return writer.ToString();
     }
+
+    // D11, D56: an assembly without agents was built with no id type that could clash
+    private static string FormatStampedType(ModuleModel model, string type) =>
+        model.Agents.Count == 0
+            ? "null"
+            : $"typeof({type})";
 }

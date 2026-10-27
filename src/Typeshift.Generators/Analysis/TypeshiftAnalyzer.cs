@@ -74,12 +74,12 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         var providerIdType = IdTypes.ResolveProvider(providerProperty, context.Compilation);
         var unknown = new List<Diagnostic>();
 
-        if (idType is null) unknown.Add(UnknownIdType("TypeshiftIdType", property, Descriptors.NotFound));
+        if (idType is null) unknown.Add(UnknownIdType(IdTypes.Name, property, Descriptors.NotFound));
 
         if (providerIdType is null)
         {
             unknown.Add(UnknownIdType(
-                "TypeshiftProviderIdType",
+                IdTypes.ProviderName,
                 providerProperty,
                 IdTypes.Resolve(providerProperty, context.Compilation, "string") is null
                     ? Descriptors.NotFound
@@ -108,7 +108,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
             ReportClashesAcrossToolsets(end, tools);
             ReportUnstampedReferences(end);
-            ReportOtherIdTypes(end, idType);
+            ReportOtherIdTypes(end, idType, providerIdType);
             ReportSharedKinds(end, kinds);
             ReportAgentUses(end, found);
             if (aot) ReportMissingJsonMetadata(end, found);
@@ -372,18 +372,33 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         return null;
     }
 
-    private static void ReportOtherIdTypes(CompilationAnalysisContext context, ITypeSymbol? idType)
+    private static void ReportOtherIdTypes(
+        CompilationAnalysisContext context, ITypeSymbol? idType, ITypeSymbol? providerIdType)
     {
         foreach (var (assembly, other) in ReferenceReader.GetOtherIdTypes(context.Compilation, idType))
         {
-            context.ReportDiagnostic(Diagnostic.Create(
-                Descriptors.OtherIdType,
-                Location.None,
-                assembly.Name,
-                other.ToDisplayString(),
-                idType?.ToDisplayString()));
+            ReportOtherIdType(context, assembly, IdTypes.Name, other, idType);
+        }
+
+        foreach (var (assembly, other) in ReferenceReader.GetOtherProviderIdTypes(context.Compilation, providerIdType))
+        {
+            ReportOtherIdType(context, assembly, IdTypes.ProviderName, other, providerIdType);
         }
     }
+
+    private static void ReportOtherIdType(
+        CompilationAnalysisContext context,
+        IAssemblySymbol assembly,
+        string name,
+        ITypeSymbol other,
+        ITypeSymbol? own) =>
+        context.ReportDiagnostic(Diagnostic.Create(
+            Descriptors.OtherIdType,
+            Location.None,
+            assembly.Name,
+            name,
+            other.ToDisplayString(),
+            own?.ToDisplayString()));
 
     // D39: the kinds of this compilation's agents, and those its references stamp
     private static void ReportSharedKinds(

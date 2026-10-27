@@ -111,6 +111,7 @@ rewrite.
 | new | `delete_file` and `run_command` ask first; the three file readers are read-only (D37) | `FileSystemToolsetTests.Given_The_File_And_Shell_Tools_Those_That_Change_Things_Ask_And_The_Readers_Only_Read` |
 | new | The web tools refuse other schemes and name a missing registration (D37) | `WebToolsetTests` |
 | new | A consumer's agent configures a built-in tool across the assembly boundary (D7, D37) | `FileSystemToolsetTests.Given_An_Agent_Using_The_Built_In_Toolset_Its_Configuration_Reaches_The_Tool` |
+| new | A reference with agents built with another provider id type is TSH021 (D56) | `DiagnosticTests.Given_A_Reference_With_Agents_Built_With_Another_Provider_Id_Type_TSH021_Is_Reported` |
 | new | A reference without agents has no id type to clash (D11) | `DiagnosticTests.Given_A_Reference_Of_Toolsets_Only_Built_With_Another_Id_Type_TSH021_Is_Not_Reported` |
 | new | Under Native AOT, a tool type no context lists is TSH027 (D45) | `DiagnosticTests.Given_A_Tool_Type_No_Context_Lists_Under_Native_Aot_TSH027_Is_Reported_On_Its_Tool` |
 | new | Tools, settings, conversations, streaming and structured output run published as Native AOT | `samples/Typeshift.Samples.Console`, run by CI |
@@ -124,9 +125,6 @@ rewrite.
 - **Recursive parameter types.** Each parameter's schema is created on its own and nested under the function's
   `properties`, so a `$ref` that `AIJsonUtilities.CreateJsonSchema` emits for a recursive type is relative to the
   parameter. This is untested, and non-recursive types are unaffected.
-- **Provider id types across references.** The module stamps carry the id type but not the provider id type, so a
-  referenced project built with another `TypeshiftProviderIdType` compiles, and a run of its agents fails with an
-  `InvalidOperationException` that names both types.
 - **Generated line length.** Generated code is `global::`-qualified, and some declarations exceed 120 columns.
 - **Streamed results.** A tool returning `IAsyncEnumerable<T>` compiles, but its result is serialized synchronously
   and the call fails at runtime. Neither v0 nor the approved API supports it.
