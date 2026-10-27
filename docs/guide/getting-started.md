@@ -24,23 +24,26 @@ The types on this page are in the `Typeshift` namespace, which the package does 
 `using Microsoft.Extensions.DependencyInjection;`, and in a console app the `Microsoft.Extensions.DependencyInjection`
 package, which builds the service provider.
 
-Turn on XML docs in `Directory.Build.props`, since tools take their descriptions from them; without them the build
+Turn on XML docs in a `Directory.Build.props` next to your solution, since tools take their descriptions from them; without them the build
 warns with [TSH011](./diagnostics.md#tsh011). The same file sets `TypeshiftIdType`, the type of the settings ids and
 conversation ids you pass to runs. Leave it out, and ids are `Guid`s, so step 4 does not compile with the ids 42 and
 1:
 
 ```xml
-<PropertyGroup>
-  <GenerateDocumentationFile>true</GenerateDocumentationFile>
-  <!-- Ids are Guids unless you name another type. This sample uses int. -->
-  <TypeshiftIdType>int</TypeshiftIdType>
-</PropertyGroup>
+<Project>
+  <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Ids are Guids unless you name another type. This sample uses int. -->
+    <TypeshiftIdType>int</TypeshiftIdType>
+  </PropertyGroup>
+</Project>
 ```
 
 ## 2. Write a toolset
 
-A toolset is a `partial` class, so the generator can add members to it ([TSH001](./diagnostics.md#tsh001)). It
-declares its tools in its constructor, and each tool is a static method:
+Steps 2 and 3 each go in a file of their own, and step 4 goes in `Program.cs`. A toolset is a `partial` class, so the
+generator can add members to it ([TSH001](./diagnostics.md#tsh001)). It declares its tools in its constructor, and
+each tool is a static method:
 
 <!-- snippet: quickstart-toolset -->
 <a id='snippet-quickstart-toolset'></a>

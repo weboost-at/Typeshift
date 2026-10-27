@@ -59,7 +59,13 @@ If no provider is registered, a run throws an `InvalidOperationException` that t
 ## A real client
 
 Each provider's client library has an adapter to `IChatClient` for Microsoft.Extensions.AI. For OpenAI, add the
-`Microsoft.Extensions.AI.OpenAI` package and register one client for the provider:
+`Microsoft.Extensions.AI.OpenAI` package:
+
+```bash
+dotnet add package Microsoft.Extensions.AI.OpenAI
+```
+
+Then register one client for the provider:
 
 <!-- snippet: openai-client -->
 <a id='snippet-openai-client'></a>
@@ -80,7 +86,8 @@ services.AddKeyedSingleton("openai", openAi);
   runs a second loop inside it, and a run that answers an [approval request](./tool-approval.md) fails.
 
 A local server with an OpenAI-compatible API, such as LM Studio or Ollama, works with the same package. Point the
-client at its endpoint, and name its models in `WithModel`:
+client at its endpoint, and name its models in `WithModel`, here as `WithModel("local", "qwen3-8b")`.
+`ApiKeyCredential` is in the `System.ClientModel` namespace:
 
 <!-- snippet: local-chat-client -->
 <a id='snippet-local-chat-client'></a>
