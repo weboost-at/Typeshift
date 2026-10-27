@@ -61,7 +61,7 @@ dotnet mdsnippets && git diff --exit-code
 ```
 
 - Cloud sessions run `.claude/hooks/session-start.sh`: the .NET SDK from Ubuntu's feed (dot.net is unreachable), the
-  tools, the packages, and the owner's skills pinned to reviewed commits.
+  tools, the packages, and the skills pinned to reviewed commits: the owner's, ponytail's and `humanizer`.
 - The build is warning-free with `TreatWarningsAsErrors`. The only suppressed warning is CS1591 in `tests/` and
   `samples/`.
 - Generator snapshots live in `tests/Typeshift.Generators.Tests/Snapshots`. A mismatch writes `.received.txt`; review

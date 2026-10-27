@@ -22,6 +22,7 @@ npm install --no-audit --no-fund
 # Bump a ref only after reading what changed upstream
 PONYTAIL_REF=2961b52fc1fe6a5a87c7a959a79512e5c2f3ffe5
 AGENT_SKILLS_REF=a851c53733a492a6c43b452a9bb6df8f39b87c53
+HUMANIZER_REF=8c307f367c91bd974002f10f2be2965d642c13df
 
 skills="$HOME/.claude/skills"
 cache="$HOME/.cache/agent-skills"
@@ -54,3 +55,9 @@ for skill in dotnet-testing/skills/csharp-test-formatting dotnet-testing/skills/
   git-workflow/skills/git-commit git-workflow/skills/git-worktree; do
   install "$owner/plugins/$skill"
 done
+
+# The docs skills run it over changed prose, with writing.md's Voice section as the voice sample
+humanizer=$(checkout blader/humanizer "$HUMANIZER_REF")
+rm -rf "$skills/humanizer"
+mkdir -p "$skills/humanizer"
+cp "$humanizer/SKILL.md" "$skills/humanizer/"

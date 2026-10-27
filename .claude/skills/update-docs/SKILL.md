@@ -16,7 +16,9 @@ Read `docs/contributing/writing.md` first: the voice, the page anatomy, and the 
    `<!-- endSnippet -->` by hand. C# never goes into a hand-written block.
 4. Write the prose to `writing.md`: a lead that answers first, varied sentences, the reason for each rule, callouts
    with a title, `## Related` last. Read a neighbouring page and match it. Then read your text as a newcomer would:
-   explain each term on first use or link it, and rewrite any sentence you had to read twice.
+   explain each term on first use or link it, and rewrite any sentence you had to read twice. Run the `humanizer`
+   skill over the prose you changed, with the Voice section of `writing.md` as its voice sample, and keep an edit only
+   where `writing.md` agrees.
 5. A new page starts from `docs/contributing/templates/`, goes into the sidebar in `docs/.vitepress/config.mts` and
    into the `## Related` of its neighbours. No page may be named `agents.md`: mdsnippets skips files of that name.
 6. Run `npm ci` once, then `npm run docs:check`: markdownlint, the docs rules (frontmatter, headings, sidebar,

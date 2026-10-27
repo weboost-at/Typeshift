@@ -40,7 +40,8 @@ Read each section in sidebar order against `docs/contributing/writing.md`:
 - pitch lines and the README following "The pitch" in `writing.md`, and short paragraphs;
 - varied sentences that read like a person wrote them, the reason for each rule, no filler, no trailing "say";
 - explanations rather than compressed lines: no sentence the reader has to read twice, no slogan as a heading, no
-  tell from "No staging" in `writing.md`, and "your app" where the application is meant;
+  tell from "No staging" in `writing.md` or from the `humanizer` skill (with the Voice section of `writing.md` as its
+  voice sample), and "your app" where the application is meant;
 - no fact a page explains that another page owns, and no page longer than its topic needs;
 - callouts for what they mean: security cautions as `danger`, silent surprises as `warning`;
 - `## Related` that links forward to details and back to the concept;
