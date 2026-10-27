@@ -111,11 +111,13 @@ with the conversation, so it holds across runs and processes:
 <!-- snippet: approval-for-conversation -->
 <a id='snippet-approval-for-conversation'></a>
 ```cs
+var again = await support.RunAsync("Close ticket 1234 again.", conversationId: conversationId);
+
 var always = new ChatMessage(ChatRole.User, [again.ApprovalRequests[0].ApproveForConversation()]);
 
 await support.RunAsync(always, conversationId: conversationId);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L37-L41' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-for-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L35-L41' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-for-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Approval rules
