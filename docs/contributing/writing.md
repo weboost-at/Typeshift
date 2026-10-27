@@ -104,7 +104,7 @@ call, member or option in a table and explains little.
 ```yaml
 ---
 title: Approval and modes
-description: Pause a run until the host approves a tool call, and let rules decide the calls you are sure about.
+description: Pause a run until your app approves a tool call, and let rules decide the calls you are sure about.
 ---
 ```
 
