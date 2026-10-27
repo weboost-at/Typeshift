@@ -8,6 +8,8 @@ internal sealed class KeyedChatClientProvider(IServiceProvider services) : IChat
 {
     // One client per provider serves all its models: Typeshift puts the model into every request
     public ValueTask<IChatClient> GetChatClientAsync(string provider, string model, CancellationToken ct) =>
-        ValueTask.FromResult(services.GetRequiredKeyedService<IChatClient>(provider));
+        ValueTask.FromResult(
+            services.GetKeyedService<IChatClient>(provider)
+                ?? throw new InvalidOperationException($"No IChatClient is registered for the provider '{provider}'."));
 }
 // end-snippet

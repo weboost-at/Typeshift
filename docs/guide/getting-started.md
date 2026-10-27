@@ -195,10 +195,12 @@ internal sealed class KeyedChatClientProvider(IServiceProvider services) : IChat
 {
     // One client per provider serves all its models: Typeshift puts the model into every request
     public ValueTask<IChatClient> GetChatClientAsync(string provider, string model, CancellationToken ct) =>
-        ValueTask.FromResult(services.GetRequiredKeyedService<IChatClient>(provider));
+        ValueTask.FromResult(
+            services.GetKeyedService<IChatClient>(provider)
+                ?? throw new InvalidOperationException($"No IChatClient is registered for the provider '{provider}'."));
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/KeyedChatClientProvider.cs#L6-L13' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client-provider' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/KeyedChatClientProvider.cs#L6-L15' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client-provider' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A settings id is an id you choose, for example one per customer. The store keeps the agent's settings under it, and
