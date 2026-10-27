@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Typeshift.Generators.Models;
 using Typeshift.Generators.Parsing;
@@ -46,8 +47,7 @@ internal static class ModuleEmitter
 
         foreach (var agent in model.Agents)
         {
-            writer.Line(
-                $"[global::Typeshift.Generated.ModuleAgent(typeof({agent.Type}), {Names.Literal(agent.Kind)})]");
+            writer.Line(GetStamp(agent));
         }
 
         using (writer.Block($"public static class {model.Name}"))
@@ -96,4 +96,20 @@ internal static class ModuleEmitter
         model.Agents.Count == 0
             ? "null"
             : $"typeof({type})";
+
+    // D33, D34: what the agents of other assemblies check when they use this one
+    private static string GetStamp(ModuleAgent agent)
+    {
+        List<string> arguments =
+        [
+            $"typeof({agent.Type})",
+            Names.Literal(agent.Kind),
+            Names.Literal(agent.Name),
+            .. agent.ApprovalTools.Select(Names.Literal)
+        ];
+
+        if (agent.Described) arguments.Add("Described = true");
+
+        return $"[global::Typeshift.Generated.ModuleAgent({string.Join(", ", arguments)})]";
+    }
 }

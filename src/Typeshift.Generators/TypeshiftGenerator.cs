@@ -80,7 +80,7 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
 
         var module = toolsets
             .Collect()
-            .Combine(agents.Collect())
+            .Combine(outputs.Collect())
             .Combine(contexts)
             .Combine(annotations)
             .Combine(assemblyName)
@@ -139,23 +139,23 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
     // Null for an assembly that declares neither toolsets nor agents; its contexts serve no generated tool
     private static ModuleModel? CreateModule(
         ImmutableArray<ToolsetModel> toolsets,
-        ImmutableArray<AgentModel> agents,
+        ImmutableArray<AgentOutput> outputs,
         ImmutableArray<string> contexts,
         ImmutableArray<string> annotations,
         string assemblyName,
         string idType,
         string providerIdType)
     {
-        if (toolsets.IsEmpty && agents.IsEmpty) return null;
+        if (toolsets.IsEmpty && outputs.IsEmpty) return null;
 
         var reachableToolsets = toolsets
             .Where(toolset => toolset.IsReachable)
             .Select(toolset => toolset.Type.FullName)
             .ToEquatableArray();
 
-        var reachableAgents = agents
-            .Where(agent => agent.IsReachable)
-            .Select(agent => new ModuleAgent(agent.Type.FullName, agent.Kind))
+        var reachableAgents = outputs
+            .Where(output => output.Agent.IsReachable)
+            .Select(Catalog.Summarize)
             .ToEquatableArray();
 
         return new ModuleModel(

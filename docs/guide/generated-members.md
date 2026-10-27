@@ -306,7 +306,8 @@ Saves `Settings` under an id if the stored revision is still `revision`, and ret
 ### `ConfigureAsync`
 
 Loads the settings, applies `configure`, and saves them with the loaded revision. On a conflict it loads and applies
-again until its save wins, then returns what it saved.
+again until its save wins, then returns what it saved. After ten conflicts in a row it throws the last
+`StoreConflictException`.
 
 ### What a run stores
 

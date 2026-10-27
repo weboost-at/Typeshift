@@ -6,6 +6,9 @@ namespace Typeshift.Tests.Agents.Support;
 // The host's registration, with a store in memory, live updates, and every model served by the scripted client
 public abstract class AgentTestBase : HostTestBase
 {
+    // About a thousand tokens of text, at four characters to a token
+    protected const int Page = 4_000;
+
     protected ProvidedModels Models { get; } = [];
 
     protected AgentHost<TAgent> Host<TAgent>() where TAgent : Agent =>
