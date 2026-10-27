@@ -37,6 +37,8 @@ All notable changes to this project are documented here. The format follows
   spaces cannot lead above the root.
 - Options the raw path builds itself run with the agent's run options through the whole pipeline.
 - A run of an agent with handoffs loads its conversation once instead of twice.
+- Compaction calibrates a run's first estimate by the tokens the provider reported for the conversation's last call,
+  where only the run's own calls corrected it.
 
 ## [0.1.0-alpha.2] - 2026-10-16
 
