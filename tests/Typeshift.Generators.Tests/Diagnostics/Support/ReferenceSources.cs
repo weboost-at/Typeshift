@@ -123,4 +123,53 @@ public static class ReferenceSources
             public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
         }
         """;
+
+    public const string UndescribedHelpAgent =
+        """
+        using Typeshift;
+
+        namespace Help;
+
+        public partial class HelpAgent : Agent
+        {
+            public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
+        }
+        """;
+
+    public const string AskingHelpAgent =
+        """
+        using Typeshift;
+
+        namespace Help;
+
+        public partial class TicketToolset : Toolset
+        {
+            public TicketToolset() => AddTool(Close).WithDescription("Closes a ticket.").RequiresApproval();
+
+            public static void Close(int number)
+            {
+            }
+        }
+
+        public partial class HelpAgent : Agent
+        {
+            public HelpAgent()
+            {
+                WithDescription("Helps.");
+
+                UseToolset<TicketToolset>();
+            }
+        }
+        """;
+
+    public const string HelpAgentUse =
+        """
+        using Typeshift;
+        using Help;
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent() => UseAgent<HelpAgent>();
+        }
+        """;
 }

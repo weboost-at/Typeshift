@@ -27,6 +27,22 @@ internal static class Catalog
                     RequiresApproval: tool.RequiresApproval))
                 .ToEquatableArray());
 
+    // D33, D34: the agent as its module stamps it, for the agents that use it
+    public static ModuleAgent Summarize(AgentOutput output)
+    {
+        var approvalTools = output.Tools
+            .Where(offered => offered.Tool.RequiresApproval)
+            .Select(offered => offered.Tool.Name)
+            .ToEquatableArray();
+
+        return new ModuleAgent(
+            Type: output.Agent.Type.FullName,
+            Kind: output.Agent.Kind,
+            Name: output.Agent.Name,
+            Described: output.Agent.Description is not null,
+            ApprovalTools: approvalTools);
+    }
+
     // A use of a toolset the catalog lacks is skipped (TSH019), and so is a tool already offered (TSH025, or a name
     // two referenced toolsets share), so the generated members stay unique
     public static AgentOutput Resolve(AgentModel agent, IReadOnlyList<ToolsetSummary> toolsets)

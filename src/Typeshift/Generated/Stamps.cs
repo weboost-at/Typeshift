@@ -37,13 +37,17 @@ public sealed class GeneratedModuleAttribute(Type module, int version, Type? idT
 }
 
 /// <summary>
-/// Names an agent a module registers and the kind its stored settings go by.
+/// Names an agent a module registers, the kind its stored settings go by, and what the agents of other assemblies
+/// check when they use it.
 /// </summary>
 /// <param name="agent">The agent.</param>
 /// <param name="kind">D39: the kind.</param>
+/// <param name="name">D22: the agent's name, which it goes by as a tool or a handoff target.</param>
+/// <param name="approvalTools">D33: the tools the agent offers that ask the host before they run.</param>
 [EditorBrowsable(EditorBrowsableState.Never)]
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public sealed class ModuleAgentAttribute(Type agent, string kind) : Attribute
+public sealed class ModuleAgentAttribute(
+    Type agent, string kind, string name, params string[] approvalTools) : Attribute
 {
     /// <summary>
     /// The agent.
@@ -54,6 +58,21 @@ public sealed class ModuleAgentAttribute(Type agent, string kind) : Attribute
     /// The kind its stored settings go by.
     /// </summary>
     public string Kind { get; } = kind;
+
+    /// <summary>
+    /// The agent's name.
+    /// </summary>
+    public string Name { get; } = name;
+
+    /// <summary>
+    /// The tools the agent offers that ask the host before they run.
+    /// </summary>
+    public IReadOnlyList<string> ApprovalTools { get; } = approvalTools;
+
+    /// <summary>
+    /// Whether the agent has a description, which it needs as a tool or a handoff target.
+    /// </summary>
+    public bool Described { get; init; }
 }
 
 /// <summary>

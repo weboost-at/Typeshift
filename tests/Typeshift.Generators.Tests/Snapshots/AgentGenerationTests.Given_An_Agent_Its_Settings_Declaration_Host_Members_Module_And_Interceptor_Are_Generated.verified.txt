@@ -431,12 +431,16 @@ public static class SupportAgentHostExtensions
             global::Typeshift.Generated.AgentRuns.SaveSettingsAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, settingsId, settings, revision, ct);
 
         /// <summary>
-        /// Changes the settings stored under an id, reloading and changing them again whenever another save came first.
+        /// Changes the settings stored under an id, reloading and changing them again whenever another save came first,
+        /// up to ten times.
         /// </summary>
         /// <param name="settingsId">The id.</param>
         /// <param name="configure">Returns the changed settings; called again after a lost save.</param>
         /// <param name="ct">Cancels the change.</param>
         /// <returns>The settings saved.</returns>
+        /// <exception cref="global::Typeshift.StoreConflictException">
+        /// Another save came first ten times in a row.
+        /// </exception>
         public global::System.Threading.Tasks.Task<global::Demo.SupportAgent.Settings> ConfigureAsync(
             global::System.Guid settingsId,
             global::System.Func<global::Demo.SupportAgent.Settings, global::Demo.SupportAgent.Settings> configure,
@@ -702,7 +706,7 @@ global using IChatClientProvider = global::Typeshift.IChatClientProvider<string>
 
 [assembly: global::Typeshift.Generated.GeneratedModule(
     typeof(global::Typeshift.Generated.SubjectModule),
-    2,
+    3,
     typeof(global::System.Guid),
     typeof(string))]
 
@@ -713,7 +717,7 @@ namespace Typeshift.Generated;
 /// </summary>
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
 [global::Typeshift.Generated.ModuleToolset(typeof(global::Demo.TicketToolset))]
-[global::Typeshift.Generated.ModuleAgent(typeof(global::Demo.SupportAgent), "SupportAgent")]
+[global::Typeshift.Generated.ModuleAgent(typeof(global::Demo.SupportAgent), "SupportAgent", "support_agent", Described = true)]
 public static class SubjectModule
 {
     /// <summary>
