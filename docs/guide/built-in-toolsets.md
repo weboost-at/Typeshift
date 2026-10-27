@@ -132,7 +132,8 @@ holds what others must not reach.
 
 `run_command` runs a command in the root and needs approval for every call, so an
 [approval rule](./tool-approval.md#approval-rules) can reject the commands you never allow. A process the command
-leaves running in the background outlives the call, which returns at the timeout.
+leaves running in the background outlives the call. At the timeout the command is killed and its output read to the
+end; a process left in the background holds the output open, so the call reads it for a second more and returns.
 
 `ShellSettings` set the shell (`/bin/sh`), the timeout (30 seconds) and how much of each stream the model receives:
 65,536 characters, from its start and its end.

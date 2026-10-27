@@ -29,16 +29,25 @@ All notable changes to this project are documented here. The format follows
 - Steering input waiting when the model hands the conversation to another agent is stored for that agent, so the
   conversation's next run goes to it instead of back to the agent that handed off.
 - An approval still finds its stored request when run middleware adds or removes messages ahead of the input.
+- TSH007 reports a tool name two referenced projects share, on the project that references both.
 - Merging the rounds of a run no longer adds the later rounds' usage into the first response's `Usage`.
+- A tool parameter of a recursive type gets `$ref`s that resolve: they point into the parameter's schema instead of
+  the function's root.
 - The merged text updates `ConversationTracker.WatchAsync` publishes keep the first update's ids, so a watcher
   groups them into messages as the run's caller does.
 - A background sub-agent that its run's end cancelled no longer faults an unobserved task.
+- A public agent with a configurable model and a less accessible provider id type is TSH006 on the pick, instead of
+  CS0053 in the generated `Settings`.
 - The file tools compare a path as the operating system opens it, so on Windows a last segment's trailing dots and
   spaces cannot lead above the root.
 - TSH023 and TSH024 check a sub-agent or handoff target of a referenced project too: its module stamp carries the
   agent's name, whether it has a description and the tools it offers that require approval, at stamp version 2.
 - Options the raw path builds itself run with the agent's run options through the whole pipeline.
 - A run of an agent with handoffs loads its conversation once instead of twice.
+- TSH022 reports two agents of one kind in two referenced projects too, on the project that references both.
+- `run_command` keeps what a command wrote just before its timeout: it reads the output to its end once the timeout
+  killed the command, and for a second past the timeout while a process left behind holds it open, where it stopped
+  reading at once.
 
 ## [0.1.0-alpha.2] - 2026-10-16
 

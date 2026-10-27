@@ -70,7 +70,8 @@ are rows in your database, or an enum for providers known in code. With an enum 
 checks every provider you name, as in `WithModel(Provider.Scripted, "scripted-model")`. You implement
 `IChatClientProvider`, the alias the
 generator writes for the type. A provider of another type is [TSH030](./diagnostics.md#tsh030), and a type that
-cannot be used is [TSH029](./diagnostics.md#tsh029).
+cannot be used is [TSH029](./diagnostics.md#tsh029). A public agent with a configurable model names the type in
+its `Settings`, so the type is public too ([TSH006](./diagnostics.md#tsh006)).
 
 ## Naming a model
 

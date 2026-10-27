@@ -21,12 +21,13 @@ internal static class AgentParser
         IEnumerable<IOperation> constructors,
         Reporter reporter,
         CancellationToken ct) =>
-        Parse(agent, constructors, reporter, ct, out _);
+        Parse(agent, constructors, providerIdType: null, reporter, ct, out _);
 
     // The analyzer also needs the agents an agent uses, to check them against each other (D33, D34)
     public static AgentModel? Parse(
         INamedTypeSymbol agent,
         IEnumerable<IOperation> constructors,
+        ITypeSymbol? providerIdType,
         Reporter reporter,
         CancellationToken ct,
         out IReadOnlyList<AgentUseDeclaration> agents)
@@ -67,6 +68,8 @@ internal static class AgentParser
         }
 
         agents = declarations.Agents;
+
+        ReportHiddenProviderIdType(agent, providerIdType, declarations.ProviderPicks, reporter);
 
         if (notPartial is not null || clash is not null) return null;
 
@@ -128,11 +131,11 @@ internal static class AgentParser
                 break;
 
             case "WithChatOptions":
-                ReadPicks(call, OptionMembers.Chat, declarations.ChatOptions, reporter);
+                ReadPicks(call, OptionMembers.Chat, declarations.ChatOptions, declarations.ProviderPicks, reporter);
                 break;
 
             case "WithRunOptions":
-                ReadPicks(call, OptionMembers.Run, declarations.RunOptions, reporter);
+                ReadPicks(call, OptionMembers.Run, declarations.RunOptions, declarations.ProviderPicks, reporter);
                 break;
 
             case "UseToolset":
@@ -167,6 +170,7 @@ internal static class AgentParser
         IInvocationOperation call,
         OptionMember[] options,
         List<string> picked,
+        List<SyntaxNode> providerPicks,
         Reporter reporter)
     {
         var picks = ConstructorChains.GetChainedCalls(call).Where(next => next.TargetMethod.Name == "Configurable");
@@ -179,13 +183,18 @@ internal static class AgentParser
                 continue;
             }
 
-            if (options.All(option => option.Option != property.Name))
+            var option = options.FirstOrDefault(member => member.Option == property.Name);
+
+            if (option is null)
             {
                 reporter.Report(Descriptors.NotStorable, pick.Arguments[0].Syntax, property.Name);
                 continue;
             }
 
             if (!picked.Contains(property.Name)) picked.Add(property.Name);
+
+            // D56: a configurable model brings the member of its provider
+            if (option.Provider is not null) providerPicks.Add(pick.Arguments[0].Syntax);
         }
     }
 
@@ -247,6 +256,18 @@ internal static class AgentParser
         return new ToolsetUseModel(type, excludes, picks.ToEquatableArray());
     }
 
+    // D6: a public agent's Settings name the provider id type of each configurable model
+    private static void ReportHiddenProviderIdType(
+        INamedTypeSymbol agent, ITypeSymbol? providerIdType, List<SyntaxNode> picks, Reporter reporter)
+    {
+        if (providerIdType is null || providerIdType.IsEffectivelyPublic() || !agent.IsEffectivelyPublic()) return;
+
+        foreach (var pick in picks)
+        {
+            reporter.Report(Descriptors.SettingsLessAccessible, pick, providerIdType.Name, agent.Name);
+        }
+    }
+
     public static bool Offers(bool excludes, IReadOnlyCollection<string> picks, string property) =>
         picks.Count == 0 || picks.Contains(property) != excludes;
 
@@ -284,6 +305,8 @@ internal static class AgentParser
         public List<string> ChatOptions { get; } = [];
 
         public List<string> RunOptions { get; } = [];
+
+        public List<SyntaxNode> ProviderPicks { get; } = [];
 
         public List<ToolsetUseModel> Toolsets { get; } = [];
 
