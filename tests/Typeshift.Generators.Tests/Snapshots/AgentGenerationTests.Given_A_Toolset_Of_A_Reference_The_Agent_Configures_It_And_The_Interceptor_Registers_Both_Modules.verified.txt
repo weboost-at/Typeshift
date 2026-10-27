@@ -407,7 +407,7 @@ global using IChatClientProvider = global::Typeshift.IChatClientProvider<string>
 
 [assembly: global::Typeshift.Generated.GeneratedModule(
     typeof(global::Typeshift.Generated.SubjectModule),
-    1,
+    2,
     typeof(global::System.Guid))]
 
 namespace Typeshift.Generated;
@@ -416,7 +416,7 @@ namespace Typeshift.Generated;
 /// Registers the toolsets and agents of Subject.
 /// </summary>
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-[global::Typeshift.Generated.ModuleAgent(typeof(global::Research.ResearchAgent), "ResearchAgent")]
+[global::Typeshift.Generated.ModuleAgent(typeof(global::Research.ResearchAgent), "ResearchAgent", "research_agent")]
 public static class SubjectModule
 {
     /// <summary>

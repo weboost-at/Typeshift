@@ -401,7 +401,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    // D33, D34: the agents an agent uses, as far as this compilation declares them
+    // D33, D34: the agents an agent uses, of this compilation or of a reference, whose module stamps them
     private static void ReportAgentUses(CompilationAnalysisContext context, Found found)
     {
         var agents = found.Agents.ToDictionary(
@@ -415,45 +415,55 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             .. ReferenceReader.Read(context.Compilation, context.CancellationToken).Toolsets
         ];
 
+        var referenced = ReferenceReader
+            .GetAgents(context.Compilation)
+            .ToLookup(agent => agent.Type);
+
         foreach (var (type, _, uses) in found.Agents)
         {
             foreach (var use in uses)
             {
-                if (!agents.TryGetValue(use.Target, out var target)) continue;
+                if (ResolveTarget(use.Target) is not { } target) continue;
 
                 var role = use.SubAgent ? "a sub-agent" : "a handoff target";
 
-                if (target.Model.Description is null)
+                if (GetUnusableReason(target) is { } reason)
                 {
-                    var reason = "it has no WithDescription";
-                    Report(context, Descriptors.NotUsableAgent, use, target.Type.Name, role, reason);
-                }
-                else if (!ToolNames.IsLowerSnakeCase(target.Model.Name))
-                {
-                    var reason = $"its name '{target.Model.Name}' is not lower_snake_case";
-                    Report(context, Descriptors.NotUsableAgent, use, target.Type.Name, role, reason);
+                    Report(context, Descriptors.NotUsableAgent, use, use.Target.Name, role, reason);
                 }
 
                 if (!use.SubAgent) continue;
 
-                var asking = Catalog.Resolve(target.Model, toolsets).Tools
-                    .Where(offered => offered.Tool.RequiresApproval)
-                    .Select(offered => offered.Tool.Name)
-                    .ToList();
-
-                if (asking.Count > 0)
+                if (target.ApprovalTools.Count > 0)
                 {
-                    var names = string.Join(", ", asking);
-                    Report(context, Descriptors.SubAgentNeedsApproval, use, target.Type.Name, names);
+                    var names = string.Join(", ", target.ApprovalTools);
+                    Report(context, Descriptors.SubAgentNeedsApproval, use, use.Target.Name, names);
                 }
 
+                // Assemblies cannot reference each other in a circle, so only this compilation's agents can close one
                 if (Calls(use.Target, type, agents))
-                    Report(context, Descriptors.AgentCircle, use, type.Name, target.Type.Name);
+                {
+                    Report(context, Descriptors.AgentCircle, use, type.Name, use.Target.Name);
+                }
             }
 
             ReportNamesOfferedTwice(context, agents[type], toolsets);
         }
+
+        ModuleAgent? ResolveTarget(INamedTypeSymbol agent) =>
+            agents.TryGetValue(agent, out var own)
+                ? Catalog.Summarize(Catalog.Resolve(own.Model, toolsets))
+                : referenced[agent.ToTypeOf()].FirstOrDefault();
     }
+
+    // Null for an agent that can be a tool or a handoff target
+    private static string? GetUnusableReason(ModuleAgent agent) =>
+        agent switch
+        {
+            { Described: false } => "it has no WithDescription",
+            _ when !ToolNames.IsLowerSnakeCase(agent.Name) => $"its name '{agent.Name}' is not lower_snake_case",
+            _ => null
+        };
 
     // D37: two toolsets an agent uses, of this assembly, a reference or the library's built-ins, may share a tool name
     private static void ReportNamesOfferedTwice(

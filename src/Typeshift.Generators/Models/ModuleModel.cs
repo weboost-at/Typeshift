@@ -10,8 +10,13 @@ internal sealed record ModuleModel(
     EquatableArray<string> JsonContexts,
     EquatableArray<string> SchemaAnnotations);
 
-// D39: an agent and the kind its stored Settings go by
-internal sealed record ModuleAgent(string Type, string Kind);
+// D33, D34, D39: an agent, the kind of its stored Settings, and what the agents of other assemblies check
+internal sealed record ModuleAgent(
+    string Type,
+    string Kind,
+    string Name,
+    bool Described,
+    EquatableArray<string> ApprovalTools);
 
 // The modules and toolsets of the referenced assemblies compiled with the generator
 internal sealed record ReferenceModel(EquatableArray<string> Modules, EquatableArray<ToolsetSummary> Toolsets);
