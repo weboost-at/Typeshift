@@ -20,6 +20,8 @@ All notable changes to this project are documented here. The format follows
 - Compaction always summarizes: without a summary model the run's model does it, and `WithSummaryModel(model)` names
   a model the run's provider serves. It no longer drops the oldest turns.
 - TSH029 is "Id type cannot be used" and covers `TypeshiftProviderIdType` too.
+- TSH021 covers `TypeshiftProviderIdType` too, so a referenced project with agents built with another provider id
+  type fails the build instead of its runs. Module stamps carry the provider id type, at stamp version 2.
 
 ### Fixed
 
@@ -29,14 +31,23 @@ All notable changes to this project are documented here. The format follows
 - Steering input waiting when the model hands the conversation to another agent is stored for that agent, so the
   conversation's next run goes to it instead of back to the agent that handed off.
 - An approval still finds its stored request when run middleware adds or removes messages ahead of the input.
+- TSH007 reports a tool name two referenced projects share, on the project that references both.
 - Merging the rounds of a run no longer adds the later rounds' usage into the first response's `Usage`.
+- A tool parameter of a recursive type gets `$ref`s that resolve: they point into the parameter's schema instead of
+  the function's root.
 - The merged text updates `ConversationTracker.WatchAsync` publishes keep the first update's ids, so a watcher
   groups them into messages as the run's caller does.
 - A background sub-agent that its run's end cancelled no longer faults an unobserved task.
+- A public agent with a configurable model and a less accessible provider id type is TSH006 on the pick, instead of
+  CS0053 in the generated `Settings`.
 - The file tools compare a path as the operating system opens it, so on Windows a last segment's trailing dots and
   spaces cannot lead above the root.
 - Options the raw path builds itself run with the agent's run options through the whole pipeline.
 - A run of an agent with handoffs loads its conversation once instead of twice.
+- TSH022 reports two agents of one kind in two referenced projects too, on the project that references both.
+- `run_command` keeps what a command wrote just before its timeout: it reads the output to its end once the timeout
+  killed the command, and for a second past the timeout while a process left behind holds it open, where it stopped
+  reading at once.
 - A streaming run that compacted keeps its summary when steering input or a background answer starts another pass,
   where the pass lost it and could summarize the same turns again.
 
