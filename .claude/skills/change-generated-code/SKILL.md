@@ -16,6 +16,8 @@ Read `docs/contributing/architecture.md`, "The generator", first.
 - Generated code is `global::`-qualified, escapes keyword names (`Names.Identifier`), starts with the header of
   `SourceWriter`, documents every public member, and hides what only generated code calls with
   `EditorBrowsable(Never)` (D10).
+- Generated code is not held to 120 columns. A signature stays on its first line, a long parameter list breaks after
+  `(` with one parameter per line, and a `where` clause takes its own line after the `)`.
 - A generated member a user member could share a name with is checked in the parser (TSH018), with
   `Names.ToolsetMembers` and `AgentParser.Members` as the lists of those names.
 - An agent's picks from a tool list do not bind in the generator, whose own output the list is: read them from

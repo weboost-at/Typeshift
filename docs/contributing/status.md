@@ -132,7 +132,6 @@ rewrite.
 
 ## Known gaps
 
-- **Generated line length.** Generated code is `global::`-qualified, and some declarations exceed 120 columns.
 - **Run limit across approval rounds.** The rounds the approval layer continues, after a rule, a standing approval or
   auto mode approved calls, share the run's `MaxToolIterations`, so a round that runs tools before it asks again may
   run one round of tools past it. Calls the host approves are not affected: they run in the next run.
