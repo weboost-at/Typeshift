@@ -37,6 +37,7 @@ All notable changes to this project are documented here. The format follows
   spaces cannot lead above the root.
 - Options the raw path builds itself run with the agent's run options through the whole pipeline.
 - A run of an agent with handoffs loads its conversation once instead of twice.
+- TSH022 reports two agents of one kind in two referenced projects too, on the project that references both.
 
 ## [0.1.0-alpha.2] - 2026-10-16
 

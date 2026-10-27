@@ -171,8 +171,8 @@ once, in `Directory.Build.props`.
 ## TSH022
 
 **Two agents share a settings kind**, so their settings would overwrite each other in the store. It happens when two
-agent classes have one name in different namespaces, or two agents set the same `WithStorageKind`. Give one of them
-a `WithStorageKind` of its own.
+agent classes have one name in different namespaces, or two agents set the same `WithStorageKind`, in one project or
+across a project and the projects it references. Give one of them a `WithStorageKind` of its own.
 
 ## TSH023
 

@@ -456,6 +456,20 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_Two_References_With_Agents_Of_One_Kind_TSH022_Is_Reported()
+    {
+        // Arrange
+        var billing = CompileReference("Billing", ReferenceSources.BillingHelpAgent);
+        var support = CompileReference("Support", ReferenceSources.SupportHelpAgent);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [billing, support]));
+
+        // Assert
+        run.Assert.ReportsOnTheCompilation("TSH022", DiagnosticSeverity.Error).GetMessage().Should().Contain("Billing");
+    }
+
+    [Fact]
     public void Given_A_Store_Of_Another_Id_Type_TSH028_Is_Reported_On_WithStore()
     {
         // Act
