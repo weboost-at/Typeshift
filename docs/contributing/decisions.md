@@ -325,7 +325,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   (handoff, run options, tool middleware as its `FunctionInvoker`), checkpoints (each step appended before compaction
   sees it; steering input and background answers injected here), compaction, `OpenTelemetryChatClient`, the
   provider's client behind a wrapper that never disposes it.
-  Checkpoints and compaction sit inside the tool loop, so they act before every model call.
+  Checkpoints and compaction sit inside the tool loop, so they act before every model call. The approval layer builds
+  a `FunctionInvokingChatClient` per round, whose iteration limit is that round's, so calls on one client never share
+  a limit.
 - **Where:** `AgentHost.cs`.
 
 ### D30. Middleware: one interface around runs, one around tool calls

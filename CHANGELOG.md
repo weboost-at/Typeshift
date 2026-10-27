@@ -43,6 +43,8 @@ All notable changes to this project are documented here. The format follows
 - The file tools compare a path as the operating system opens it, so on Windows a last segment's trailing dots and
   spaces cannot lead above the root.
 - Options the raw path builds itself run with the agent's run options through the whole pipeline.
+- The client `CreateChatClientAsync` returns serves concurrent calls, each with its own options' iteration limit,
+  where a second call changed the first one's limit.
 - A run of an agent with handoffs loads its conversation once instead of twice.
 - TSH022 reports two agents of one kind in two referenced projects too, on the project that references both.
 - `run_command` keeps what a command wrote just before its timeout: it reads the output to its end once the timeout

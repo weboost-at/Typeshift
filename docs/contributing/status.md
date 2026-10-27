@@ -82,6 +82,7 @@ rewrite.
 | new | Watchers receive streamed updates (D47) | `ConversationRunTests.Given_A_Watcher_It_Receives_The_Updates_Of_A_Streaming_Run` |
 | new | Text streamed within the publish interval reaches watchers merged, ahead of the next call (D47) | `ConversationRunTests.Given_Text_Within_The_Interval_A_Watcher_Receives_It_Merged_Ahead_Of_The_Next_Call` |
 | new | The raw path names its conversation in `ChatOptions.ConversationId` | `ConversationRunTests.Given_A_Conversation_Id_In_The_Options_The_Raw_Path_Stores_The_Run` |
+| new | Concurrent calls on one created client each keep their own iteration limit (D29, D32) | `AgentRunTests.Given_Two_Calls_On_One_Created_Client_Each_Keeps_Its_Own_Limit` |
 | new | A call that requires approval ends the run with its request; the next run's answer runs or rejects it (D24) | `ToolApprovalTests.Given_A_Call_That_Needs_Approval_The_Run_Ends_With_Its_Request_And_It_Does_Not_Run`, `..._Given_An_Approval_The_Next_Run_Of_The_Conversation_Runs_The_Call`, `..._Given_A_Rejection_The_Model_Receives_Its_Reason_And_The_Call_Does_Not_Run`, `..._Given_A_Streaming_Run_The_Host_Receives_The_Request_And_Its_Approval_Runs_The_Call` |
 | new | The stored request is the call that runs; stray and second answers change nothing (D24) | `ToolApprovalTests.Given_An_Answer_Carrying_Other_Arguments_The_Call_The_Conversation_Stored_Runs`, `..._Given_An_Answer_To_No_Stored_Request_Nothing_Runs`, `..._Given_A_Second_Answer_To_A_Request_The_First_Stands`, `..._Given_An_Answered_Approval_Later_Runs_Send_The_Call_Once_With_Its_Result` |
 | new | Calls next to one that requires approval wait with it; without a conversation a run that asks fails | `ToolApprovalTests.Given_A_Call_Needing_Approval_Next_To_One_That_Does_Not_Only_The_First_Waits_And_Both_Run`, `..._Given_No_Conversation_A_Call_Needing_Approval_Fails_Naming_The_Tool` |
@@ -146,8 +147,6 @@ rewrite.
   trailing dots and spaces; CI runs on Linux, so that is untested.
 - **Sub-agents in plan mode.** A sub-agent's tool carries no `ReadOnly()` mark, so plan mode hides every sub-agent,
   even one that only reads. A sub-agent run in plan mode would be asked for a plan it has no host to present to.
-- **The raw path's client under concurrent calls.** The client `CreateChatClientAsync` returns holds one tool loop,
-  whose iteration limit the approval layer sets per call, so the client serves one call at a time.
 - **A conversation loads whole.** `LoadConversationAsync` returns every entry of a conversation, and a run reads all
   of them although its history starts at the last summary; standing approvals and lost background agents are read
   from the whole conversation too.

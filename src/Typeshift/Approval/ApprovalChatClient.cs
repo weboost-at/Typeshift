@@ -7,7 +7,7 @@ namespace Typeshift;
 // D24, D52: above the tool loop. It binds the host's answers to the requests the conversation stored, offers the
 // tools of the run's mode, and answers what rules, standing approvals and the mode decide, continuing the loop, so
 // only the rest reach the host
-internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChatClient loop)
+internal sealed class ApprovalChatClient(IChatClient inner, Func<int, IChatClient> loop)
     : DelegatingChatClient(inner)
 {
     public override async Task<ChatResponse> GetResponseAsync(
@@ -19,28 +19,21 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
             return await base.GetResponseAsync(messages, options, cancellationToken);
 
         var call = Prepare(messages, resolved, out var standing);
-        Budget(resolved);
         var decided = new HashSet<string>();
         ChatResponse? merged = null;
 
-        try
+        while (true)
         {
-            while (true)
-            {
-                var response = await base.GetResponseAsync(call, ForMode(resolved, run.Mode), cancellationToken);
-                merged = merged is null ? response : ChatResponses.Merge(merged, response);
+            var round = loop(Budget(resolved));
+            var response = await round.GetResponseAsync(call, ForMode(resolved, run.Mode), cancellationToken);
+            merged = merged is null ? response : ChatResponses.Merge(merged, response);
 
-                var answers = await DecideAsync(response.Messages, resolved, standing, cancellationToken);
-                decided.UnionWith(answers.Select(answer => answer.RequestId));
+            var answers = await DecideAsync(response.Messages, resolved, standing, cancellationToken);
+            decided.UnionWith(answers.Select(answer => answer.RequestId));
 
-                if (!await ContinueAsync(response.Messages, answers, resolved)) return Without(merged, decided);
+            if (!await ContinueAsync(response.Messages, answers, resolved)) return Without(merged, decided);
 
-                call = [.. call, .. response.Messages, new ChatMessage(ChatRole.User, [.. answers])];
-            }
-        }
-        finally
-        {
-            loop.MaximumIterationsPerRequest = resolved.RunOptions.MaxToolIterations;
+            call = [.. call, .. response.Messages, new ChatMessage(ChatRole.User, [.. answers])];
         }
     }
 
@@ -60,47 +53,40 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
         }
 
         var call = Prepare(messages, resolved, out var standing);
-        Budget(resolved);
 
-        try
+        while (true)
         {
-            while (true)
+            var updates = new List<ChatResponseUpdate>();
+
+            var round = loop(Budget(resolved));
+            var streamed = round.GetStreamingResponseAsync(call, ForMode(resolved, run.Mode), cancellationToken);
+
+            await foreach (var update in streamed)
             {
-                var updates = new List<ChatResponseUpdate>();
+                updates.Add(update);
 
-                var streamed = base.GetStreamingResponseAsync(call, ForMode(resolved, run.Mode), cancellationToken);
-
-                await foreach (var update in streamed)
-                {
-                    updates.Add(update);
-
-                    // The requests a rule may answer wait until the stream ends; the host sees only those left to it
-                    if (!update.Contents.Any(IsRequest)) yield return update;
-                }
-
-                var response = updates.ToChatResponse();
-                var answers = await DecideAsync(response.Messages, resolved, standing, cancellationToken);
-                var answered = answers.Select(answer => answer.RequestId).ToHashSet();
-
-                foreach (var update in updates.Where(update => update.Contents.Any(IsRequest)))
-                {
-                    var left = update.Contents.Where(content => !IsAnswered(content, answered)).ToList();
-
-                    if (left.Count > 0)
-                        yield return new ChatResponseUpdate(update.Role, left) { AuthorName = update.AuthorName };
-                }
-
-                if (!await ContinueAsync(response.Messages, answers, resolved)) yield break;
-
-                // Rebuilt from the updates, the response holds new text the checkpoints stored already
-                var rebuilt = response.Messages.Where(message => message.Role == ChatRole.Assistant);
-                resolved.ConversationRun?.MarkStored(rebuilt);
-                call = [.. call, .. response.Messages, new ChatMessage(ChatRole.User, [.. answers])];
+                // The requests a rule may answer wait until the stream ends; the host sees only those left to it
+                if (!update.Contents.Any(IsRequest)) yield return update;
             }
-        }
-        finally
-        {
-            loop.MaximumIterationsPerRequest = resolved.RunOptions.MaxToolIterations;
+
+            var response = updates.ToChatResponse();
+            var answers = await DecideAsync(response.Messages, resolved, standing, cancellationToken);
+            var answered = answers.Select(answer => answer.RequestId).ToHashSet();
+
+            foreach (var update in updates.Where(update => update.Contents.Any(IsRequest)))
+            {
+                var left = update.Contents.Where(content => !IsAnswered(content, answered)).ToList();
+
+                if (left.Count > 0)
+                    yield return new ChatResponseUpdate(update.Role, left) { AuthorName = update.AuthorName };
+            }
+
+            if (!await ContinueAsync(response.Messages, answers, resolved)) yield break;
+
+            // Rebuilt from the updates, the response holds new text the checkpoints stored already
+            var rebuilt = response.Messages.Where(message => message.Role == ChatRole.Assistant);
+            resolved.ConversationRun?.MarkStored(rebuilt);
+            call = [.. call, .. response.Messages, new ChatMessage(ChatRole.User, [.. answers])];
         }
     }
 
@@ -137,21 +123,15 @@ internal sealed class ApprovalChatClient(IChatClient inner, FunctionInvokingChat
     }
 
     // D32: each pass of a run, as steering input or a background answer starts one, gets what is left of its limit
-    private void Budget(ResolvedChatOptions options) =>
-        loop.MaximumIterationsPerRequest =
-            Math.Max(1, options.RunOptions.MaxToolIterations - options.AgentRun!.ModelCalls);
+    private static int Budget(ResolvedChatOptions options) => Math.Max(1, CallsLeft(options));
 
     // D32: the rounds of a run share its limit. A round goes on from the model call that asked, so it may make the
     // calls left; past the limit the run ends without the calls the round approved, as the tool loop leaves the calls
     // past its own. shortcut: a round that runs tools before asking again may run one round of tools past the limit
-    private bool Budgets(ResolvedChatOptions options)
-    {
-        var left = options.RunOptions.MaxToolIterations - options.AgentRun!.ModelCalls;
-        if (left < 0) return false;
+    private static bool Budgets(ResolvedChatOptions options) => CallsLeft(options) >= 0;
 
-        loop.MaximumIterationsPerRequest = Math.Max(1, left);
-        return true;
-    }
+    private static int CallsLeft(ResolvedChatOptions options) =>
+        options.RunOptions.MaxToolIterations - options.AgentRun!.ModelCalls;
 
     // D24: an answer runs the call its request stored, whatever call the host sent; an answer to no stored request is
     // dropped, a request keeps its first answer, and a request no answer reached is left out, as the tool loop

@@ -318,4 +318,37 @@ public class AgentRunTests : AgentTestBase
         // Assert
         Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, Data.Agent.Model));
     }
+
+    [Fact]
+    public async Task Given_Two_Calls_On_One_Created_Client_Each_Keeps_Its_Own_Limit()
+    {
+        // Arrange
+        var first = new TaskCompletionSource();
+        var second = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(first, Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(second, Text(Data.Tool.Answer))
+            .Reply(Call(Data.Tool.SecondCallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>();
+        var unlimited = await host.ResolveOptionsAsync(ct: Ct);
+        var limited = await host.ResolveOptionsAsync(settings: new() { MaxToolIterations = 1 }, ct: Ct);
+        using var client = await host.CreateChatClientAsync(limited, Ct);
+
+        var running = client.GetResponseAsync([new(ChatRole.User, Data.Tool.Question)], limited, Ct);
+        await ChatClient.RequestedAsync(1);
+        var other = client.GetResponseAsync([new(ChatRole.User, Data.Tool.Question)], unlimited, Ct);
+        await ChatClient.RequestedAsync(2);
+
+        // Act
+        first.SetResult();
+        await running;
+        second.SetResult();
+        await other;
+
+        // Assert
+        ChatClient.Requests.Should().HaveCount(3);
+    }
 }
