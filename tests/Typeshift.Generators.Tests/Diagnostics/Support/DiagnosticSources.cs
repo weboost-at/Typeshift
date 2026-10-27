@@ -602,6 +602,28 @@ public static class DiagnosticSources
         }
         """;
 
+    // Built with the provider id type Demo.Vendor
+    public const string PublicAgentOfInternalProviderIdType =
+        """
+        #pragma warning disable CS1591
+
+        using Typeshift;
+
+        namespace Demo;
+
+        internal enum Vendor
+        {
+            OpenAi,
+            Anthropic
+        }
+
+        public partial class SupportAgent : Agent
+        {
+            public SupportAgent() =>
+                WithChatOptions().WithModel(Vendor.OpenAi, "fast-model").Configurable(o => o.ModelId);
+        }
+        """;
+
     // Built with the id type Demo.TenantId
     public const string PublicAgentOfInternalIdType =
         """

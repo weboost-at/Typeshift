@@ -85,8 +85,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   declaration, the builders and the per-agent store of `Configure{Tool}()` values) and one private field
   `_typeshift`, so an agent gains as few names as possible. A tool's member in `Settings` named like an option or a
   record member gets a `Tool` suffix. A public agent's `Settings` cannot name the overrides of an internal toolset:
-  TSH006, and the generator leaves the member out. Its host members take ids of the build's id type, so a less
-  accessible id type is TSH006 on the agent, and the generator writes the host members internal.
+  TSH006, and the generator leaves the member out. Nor can it name a less accessible provider id type, which a
+  configurable model or summary model brings in: TSH006 on the pick, and the generator writes the provider members
+  internal. Its host members take ids of the build's id type, so a less accessible id type is TSH006 on the agent,
+  and the generator writes the host members internal.
 - **Where:** `Emitting/Names.cs`, `Emitting/AgentEmitter.cs`.
 
 ### D7. Stamps carry the generated names and a version
@@ -307,9 +309,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `SummaryProvider`), and `ChatClients<TProviderId>`, which the interceptor's `AddCoreServices<TId, TProviderId>`
   registers, unboxes them for the host's provider. Generated `ApplySettings` sets the providers through
   `SetProvider` and `SetSummaryProvider`. A provider of another type at `WithModel` or `WithChatClientProvider<T>()`
-  is TSH030; a provider id type that cannot be used is TSH029.
+  is TSH030; a provider id type that cannot be used is TSH029. Module stamps carry the provider id type next to the
+  id type, and a reference with agents built with another is TSH021.
 - **Where:** `Hosting/IChatClientProvider.cs`, `Hosting/ChatClients.cs`, `Agents/ChatOptionsBuilder.cs`,
-  `Compaction/Compaction.cs`, `Parsing/IdTypes.cs`, `Emitting/OptionMembers.cs`.
+  `Compaction/Compaction.cs`, `Parsing/IdTypes.cs`, `Emitting/OptionMembers.cs`, `Generated/Stamps.cs`,
+  `Emitting/ModuleEmitter.cs`, `Parsing/ReferenceReader.cs`.
 - **Alternatives:** a model record with a request type, a client cache and a catalog, more surface than the problem
   needs; methods that list providers and their models, which Typeshift never calls; a summary provider in code, tied
   to a provider the user may switch away from; compaction that drops turns without a summary model.

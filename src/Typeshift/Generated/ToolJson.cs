@@ -99,8 +99,31 @@ public sealed class ToolJson
 
         // A type that takes any JSON gets the schema true, which {} matches
         var schema = element.ValueKind is JsonValueKind.Object ? JsonObject.Create(element)! : new JsonObject();
+        RebaseReferences(schema, $"#/properties/{parameter.Name}");
         return parameter.IsNullable ? AsNullable(schema) : schema;
     }
+
+    // A recursive type's $refs point from its own root, which the function's schema nests under the parameter
+    private static void RebaseReferences(JsonNode? node, string root)
+    {
+        if (node is JsonObject schema && schema["$ref"] is JsonValue reference)
+        {
+            schema["$ref"] = root + reference.GetValue<string>().TrimStart('#');
+        }
+
+        foreach (var child in GetChildren(node))
+        {
+            RebaseReferences(child, root);
+        }
+    }
+
+    private static IEnumerable<JsonNode?> GetChildren(JsonNode? node) =>
+        node switch
+        {
+            JsonObject members => members.Select(member => member.Value),
+            JsonArray elements => elements,
+            _ => []
+        };
 
     // D48: a nullable reference is typed [type, "null"], as the reflection path types it
     private static JsonObject AsNullable(JsonObject schema)
