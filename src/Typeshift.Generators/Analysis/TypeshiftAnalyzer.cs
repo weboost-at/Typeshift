@@ -289,11 +289,22 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         IEnumerable<(string Name, INamedTypeSymbol Toolset, Location Location)> tools)
     {
         // D37: the built-in toolsets reserve no names; an agent that offers one beside a tool of its name is TSH025
-        var referenced = new HashSet<string>(ReferenceReader.Read(context.Compilation, context.CancellationToken)
+        var referenced = ReferenceReader
+            .Read(context.Compilation, context.CancellationToken)
             .Toolsets
             .Where(toolset => !toolset.Type.StartsWith(KnownTypes.BuiltInNamespace, System.StringComparison.Ordinal))
             .SelectMany(toolset => toolset.Tools)
-            .Select(tool => Names.ToPascalCase(tool.Name)));
+            .ToLookup(tool => Names.ToPascalCase(tool.Name));
+
+        foreach (var group in referenced)
+        {
+            foreach (var clash in group.Skip(1))
+            {
+                // A referenced tool has no location, so a clash between two references goes on the compilation
+                context.ReportDiagnostic(
+                    Diagnostic.Create(Descriptors.DuplicateToolName, Location.None, clash.Name, group.Key));
+            }
+        }
 
         var ordered = tools
             .OrderBy(tool => tool.Location.SourceTree?.FilePath)
