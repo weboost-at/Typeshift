@@ -213,7 +213,7 @@ internal sealed class StorageEmitter
 
     private void ReadValue(SourceWriter writer, StorageModel model)
     {
-        writer.Line("value = null!;");
+        writer.Line("value = default!;");
 
         if (model.Kind == StorageKind.Object)
         {

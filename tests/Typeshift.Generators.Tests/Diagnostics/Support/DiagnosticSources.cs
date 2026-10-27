@@ -866,6 +866,29 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string PlainStructPick =
+        """
+        using Typeshift;
+
+        internal struct GeoPoint
+        {
+            public double Latitude { get; set; }
+        }
+
+        internal record EchoSettings
+        {
+            public GeoPoint Home { get; init; }
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Home);
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
     public const string PrivateJsonContext =
         """
         using System.Text.Json.Serialization;

@@ -199,14 +199,15 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D19. Configurable types widen to what the generator can serialize
 
 - **Status:** owner.
-- **Decision:** besides v0's scalars, enums and string lists: `DateOnly`, `TimeOnly`, `Uri`, records and classes of
-  storable settable members (replaced as a whole, never merged), arrays, lists and sets of storable values,
-  dictionaries keyed by `string` or an enum. The generator writes their serialization member by member, as for the
-  records themselves; anything else is TSH012. Recursive types are TSH012.
+- **Decision:** besides v0's scalars, enums and string lists: `DateOnly`, `TimeOnly`, `Uri`, records, record structs
+  and classes of storable settable members (replaced as a whole, never merged), arrays, lists and sets of storable
+  values, dictionaries keyed by `string` or an enum. The generator writes their serialization member by member, as
+  for the records themselves; anything else is TSH012. Recursive types are TSH012.
 - **Details:** a stored record or class needs a public parameterless constructor; its members without a setter are
   computed and not stored, its obsolete ones no longer stored. A missing member reads as the constructor's value.
-  Collection items and dictionary values are values: a nullable value type item has no stored form. Structs other
-  than the scalars are not storable.
+  Collection items and dictionary values are values: a nullable value type item has no stored form. A record struct
+  stores like a record. Other structs than the scalars are not storable, since most keep their state where no setter
+  reaches and would store as an empty object.
 - **Where:** `Parsing/Storage.cs`, `Emitting/StorageEmitter.cs`, `Generated/StorableJson.cs`.
 
 ### D20. `Configure{Tool}()` stays

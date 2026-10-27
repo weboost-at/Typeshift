@@ -15,6 +15,7 @@ All notable changes to this project are documented here. The format follows
 - A tool may return `IAsyncEnumerable<T>`: the call reads it to its end, and the model receives its items as one array.
 - With `WithRealtimeTracking()`, a run that does not stream publishes too: each model response and tool result as it
   is stored, where only streaming runs reached `WatchAsync`.
+- A configurable member may be a record struct, stored like a record. Other structs stay TSH012.
 
 ### Changed
 

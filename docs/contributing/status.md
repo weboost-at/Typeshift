@@ -70,6 +70,7 @@ rewrite.
 | 17 | Saves are guarded by revisions; `ConfigureAsync` retries until it wins, ten times at most (D41) | `StoredSettingsTests.Given_A_Revision_Another_Save_Replaced_Saving_Throws_A_StoreConflictException`, `..._Given_A_Save_Between_Load_And_Save_Configuring_Applies_The_Change_Again_And_Wins`, `..._Given_A_Save_Between_Every_Load_And_Save_Configuring_Gives_Up_After_Ten_Attempts` |
 | 18 | Without a store, loading or saving throws naming `WithStore<T>()` (D43) | `StoredSettingsTests.Given_No_Store_A_Run_With_A_Settings_Id_Fails_Naming_WithStore` |
 | 19 | Settings of every storable kind read back equivalent; nulls left out; mistyped members read as null | `SettingsJsonTests` |
+| new | A record struct stores like a record; another struct is TSH012 (D19) | `SettingsJsonTests.Given_Settings_Of_Every_Kind_They_Read_Back_Equivalent`, `DiagnosticTests.Given_A_Configurable_Struct_That_Is_Not_A_Record_TSH012_Is_Reported_On_The_Pick` |
 | new | `System.Text.Json` writes and reads the stored shape (D44) | `SettingsJsonTests.Given_Settings_System_Text_Json_Writes_What_The_Store_Keeps`, `..._Given_Stored_Json_System_Text_Json_Reads_The_Settings` |
 | new | Kinds and versions (D39, D40) | `SettingsJsonTests.Given_WithStorageKind_And_WithSettingsVersion_The_Settings_Carry_Them`, `..._Given_A_Version_Newer_Than_The_Codes_Reading_Throws_A_JsonException` |
 | new | A kind is unique, two referenced projects' agents included (TSH022, D39) | `DiagnosticTests.Given_Two_Agents_Of_One_Class_Name_TSH022_Is_Reported_On_The_Second`, `..._Given_Two_References_With_Agents_Of_One_Kind_TSH022_Is_Reported` |
@@ -138,7 +139,6 @@ rewrite.
   `properties`, so a `$ref` that `AIJsonUtilities.CreateJsonSchema` emits for a recursive type is relative to the
   parameter. This is untested, and non-recursive types are unaffected.
 - **Generated line length.** Generated code is `global::`-qualified, and some declarations exceed 120 columns.
-- **Storable structs.** A user struct other than the scalars cannot be configurable (TSH012).
 - **Run limit across approval rounds.** The rounds the approval layer continues, after a rule, a standing approval or
   auto mode approved calls, share the run's `MaxToolIterations`, so a round that runs tools before it asks again may
   run one round of tools past it. Calls the host approves are not affected: they run in the next run.
