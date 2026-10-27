@@ -13,6 +13,8 @@ All notable changes to this project are documented here. The format follows
 - `ITypeshiftStore.LoadConversationSinceCompactionAsync` returns a conversation's last summary and the entries after it.
   Its default loads the whole conversation; a store overrides it to leave the entries before the summary unread.
 - A tool may return `IAsyncEnumerable<T>`: the call reads it to its end, and the model receives its items as one array.
+- With `WithRealtimeTracking()`, a run that does not stream publishes too: each model response and tool result as it
+  is stored, where only streaming runs reached `WatchAsync`.
 
 ### Changed
 
