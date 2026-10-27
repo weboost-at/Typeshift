@@ -87,7 +87,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   record member gets a `Tool` suffix. A public agent's `Settings` cannot name the overrides of an internal toolset:
   TSH006, and the generator leaves the member out. Nor can it name a less accessible provider id type, which a
   configurable model or summary model brings in: TSH006 on the pick, and the generator writes the provider members
-  internal.
+  internal. Its host members take ids of the build's id type, so a less accessible id type is TSH006 on the agent,
+  and the generator writes the host members internal.
 - **Where:** `Emitting/Names.cs`, `Emitting/AgentEmitter.cs`.
 
 ### D7. Stamps carry the generated names and a version
@@ -325,7 +326,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   (handoff, run options, tool middleware as its `FunctionInvoker`), checkpoints (each step appended before compaction
   sees it; steering input and background answers injected here), compaction, `OpenTelemetryChatClient`, the
   provider's client behind a wrapper that never disposes it.
-  Checkpoints and compaction sit inside the tool loop, so they act before every model call.
+  Checkpoints and compaction sit inside the tool loop, so they act before every model call. The approval layer builds
+  a `FunctionInvokingChatClient` per round, whose iteration limit is that round's, so calls on one client never share
+  a limit.
 - **Where:** `AgentHost.cs`.
 
 ### D30. Middleware: one interface around runs, one around tool calls

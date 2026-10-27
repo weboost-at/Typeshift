@@ -54,7 +54,8 @@ another, set once in `Directory.Build.props`:
 <!-- endSnippet -->
 
 `TypeshiftIdType` takes a C# keyword (`int`, `long`, `string`), a type of `System`, or a full type name
-([TSH029](./diagnostics.md#tsh029)).
+([TSH029](./diagnostics.md#tsh029)). A public agent needs a public id type, since its host members take ids of it
+([TSH006](./diagnostics.md#tsh006)).
 
 Generated members take the id type, as in `RunAsync(input, settingsId: 42)`, and `ITypeshiftStore`,
 `InMemoryTypeshiftStore`, `ConversationTracker` and `LiveRun` are aliases the generator writes for it. The library

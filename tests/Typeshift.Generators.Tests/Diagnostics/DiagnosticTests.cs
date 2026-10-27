@@ -99,6 +99,20 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Public_Agent_Of_An_Internal_Id_Type_TSH006_Is_Reported_On_The_Agent()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.PublicAgentOfInternalIdType);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.WithIdType("Demo.TenantId"));
+
+        // Assert
+        run.Assert.Reports("TSH006", DiagnosticSeverity.Error, "SupportAgent");
+        run.Assert.GeneratesValidCode();
+    }
+
+    [Fact]
     public void Given_Two_Tools_Mapping_To_One_Member_TSH007_Is_Reported_On_The_Second()
     {
         // Act

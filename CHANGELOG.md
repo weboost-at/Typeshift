@@ -51,6 +51,8 @@ All notable changes to this project are documented here. The format follows
 - TSH023 and TSH024 check a sub-agent or handoff target of a referenced project too: its module stamp carries the
   agent's name, whether it has a description and the tools it offers that require approval, at stamp version 3.
 - Options the raw path builds itself run with the agent's run options through the whole pipeline.
+- The client `CreateChatClientAsync` returns serves concurrent calls, each with its own options' iteration limit,
+  where a second call changed the first one's limit.
 - A run of an agent with handoffs loads its conversation once instead of twice.
 - TSH022 reports two agents of one kind in two referenced projects too, on the project that references both.
 - `run_command` keeps what a command wrote just before its timeout: it reads the output to its end once the timeout
@@ -60,6 +62,8 @@ All notable changes to this project are documented here. The format follows
   that conflicted every time kept it going until its token was cancelled.
 - A streaming run that compacted keeps its summary when steering input or a background answer starts another pass,
   where the pass lost it and could summarize the same turns again.
+- A public agent of a less accessible `TypeshiftIdType` is TSH006 on the agent, instead of CS0051 in its generated
+  host members, which the generator keeps internal.
 - Compaction calibrates a run's first estimate by the tokens the provider reported for the conversation's last call,
   where only the run's own calls corrected it.
 
