@@ -208,7 +208,8 @@ internal sealed class Compaction
     {
         var clients = run.Services.GetRequiredService<ChatClients>();
         var instrumented = run.Services.GetRequiredService<InstrumentedClients>();
-        using var client = instrumented.Instrument(await clients.GetAsync(run.Services, provider, model, ct));
+        var provided = await clients.GetAsync(run.Services, provider, model, ct);
+        using var client = instrumented.Instrument(provided, provider, model);
 
         var response = await client.GetResponseAsync(
             [new ChatMessage(ChatRole.System, SummaryInstructions), new ChatMessage(ChatRole.User, Transcript(region))],

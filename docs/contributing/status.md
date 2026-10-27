@@ -90,6 +90,7 @@ rewrite.
 | new | Tool middleware wraps calls in order and may answer in place of the tool (D30) | `ToolMiddlewareTests` |
 | new | Context providers add instructions, unstored messages ahead of the input, and tools (D31) | `ContextProviderTests` |
 | new | A run is an `invoke_agent` span around its chat and tool spans, with usage and errors (D36) | `TelemetryTests` |
+| new | Runs on one provider and model share one instrumented client, whatever client instances the provider returns (D36) | `TelemetryTests.Given_Two_Runs_On_A_Provider_Client_Per_Call_Their_Chat_Spans_Come_From_One_Source`, `..._Given_Two_Runs_On_One_Provider_Client_Their_Chat_Spans_Come_From_One_Source` |
 | new | Compaction clears the oldest read results, then summarizes the oldest turns, by calibrated estimate (D32) | `CompactionTests` |
 | new | The summary runs on the run's provider and model unless the agent or the settings name others (D56) | `CompactionTests.Given_No_Summary_Model_The_Runs_Model_Summarizes`, `..._Given_Clearing_Is_Not_Enough_The_Oldest_Turns_Are_Summarized`, `..._Given_A_Summary_Provider_It_Serves_The_Summary_Model` |
 | new | A summary is stored, and later runs start from it (D32) | `CompactionTests.Given_A_Summary_Later_Runs_Start_From_It` |
@@ -152,8 +153,6 @@ rewrite.
 - **A conversation loads whole.** `LoadConversationAsync` returns every entry of a conversation, and a run reads all
   of them although its history starts at the last summary; standing approvals and lost background agents are read
   from the whole conversation too.
-- **A provider client per call.** A provider that returns a new client instance per call gets a new instrumented
-  wrapper per call, with a meter that lives as long as the instance. Return one instance per model.
 - **`ConfigureAsync` under a store that always conflicts.** Each conflict is read as another save that won, so the
   retry has no cap and ends only when the token is cancelled.
 - **Web fetch and private addresses.** The model picks the URL, and the host's `IWebFetch` decides which addresses

@@ -145,9 +145,9 @@ a copy of the options. It marks those messages as stored, so the checkpoints lea
 
 ## Telemetry and compaction
 
-`ConversationChatClient` opens each run's `invoke_agent` span. `Telemetry.Instrument` wraps the provider's client for
-the run in Microsoft.Extensions.AI's `OpenTelemetryChatClient`, and the tool loop finds that client's source for its
-tool spans.
+`ConversationChatClient` opens each run's `invoke_agent` span. `InstrumentedClients` keeps one Microsoft.Extensions.AI
+`OpenTelemetryChatClient` per provider and model, which passes each call on to the client its run got, and the tool
+loop finds that client's source for its tool spans.
 
 `CompactingChatClient` sits below the checkpoints, so every step is stored before it shrinks the call. `Compaction`
 holds one run's state: the cleared results, the summary and the message it kept from, and the estimate's
