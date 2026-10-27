@@ -186,6 +186,69 @@ public class SubAgentTests : MultiAgentTestBase
         ChatClient.Requests[0].Select(message => message.Text).Should().Contain(text => text.Contains("was lost"));
     }
 
+    [Fact]
+    public async Task Given_A_Compaction_While_A_Background_Sub_Agent_Works_Its_Summary_Keeps_The_Call()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Agent.Steering))
+            .Reply(Text(Data.Tool.Answer));
+
+        HelperClient.Reply(gate, Text(Data.Agent.Reason));
+
+        // Act
+        var running = Host<BackgroundLeadAgent>().RunAsync(
+            new string('x', Page),
+            conversationId: Data.Agent.ConversationId,
+            settings: new() { MaxInputTokens = 1_000 },
+            ct: Ct);
+
+        await ChatClient.RequestedAsync(3);
+        gate.SetResult();
+        await running;
+        var summary = (await EntriesAsync(Data.Agent.ConversationId)).Single(entry => entry.IsSummary);
+
+        // Assert
+        summary.BackgroundCalls.Should().Contain(Data.Tool.CallId, "helper_agent");
+    }
+
+    [Fact]
+    public async Task Given_A_Summary_That_Left_A_Background_Sub_Agent_Working_The_Next_Run_Hears_It_Was_Lost()
+    {
+        // Arrange
+        var store = Services.GetRequiredService<ITypeshiftStore>();
+        var conversation = Data.Agent.ConversationId;
+
+        var summary = new ConversationEntry(
+            "background_lead_agent",
+            [new ChatMessage(ChatRole.User, Data.Agent.Reason)],
+            Time.GetUtcNow())
+        {
+            IsSummary = true,
+            StandingApprovals = [],
+            BackgroundCalls = new Dictionary<string, string> { [Data.Tool.CallId] = "helper_agent" }
+        };
+
+        await store.AppendConversationAsync(conversation, summary, Ct);
+        var end = new ConversationEntry("background_lead_agent", [], Time.GetUtcNow()) { EndsRun = true };
+
+        await store.AppendConversationAsync(conversation, end, Ct);
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<BackgroundLeadAgent>().RunAsync(Data.Agent.FollowUp, conversationId: conversation, ct: Ct);
+
+        // Assert
+        ChatClient.Requests[0]
+            .Select(message => message.Text)
+            .Should()
+            .Contain(text => text.Contains("helper_agent was lost"));
+    }
+
     private static string? Result(IEnumerable<ChatMessage> request) =>
         request.SelectMany(message => message.Contents).OfType<FunctionResultContent>().Single().Result?.ToString();
 }

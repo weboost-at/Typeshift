@@ -208,7 +208,10 @@ The instructions and the latest `write_todos` call always stay, and a cut never 
 result. Later calls of the run see the same compaction.
 
 The stored conversation keeps everything. Compaction adds what it kept, the summary and the messages after it, as an
-entry of its own, and later runs start from that entry instead of summarizing again.
+entry of its own, and later runs start from that entry instead of summarizing again. They read nothing before it:
+the entry also keeps the conversation's mode, its
+[approvals for the conversation](./tool-approval.md#approving-for-the-conversation) and the background agents still
+working.
 
 ## Related
 

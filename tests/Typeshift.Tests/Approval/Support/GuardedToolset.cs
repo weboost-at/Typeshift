@@ -58,7 +58,8 @@ public partial class GuardedAgent : Agent
 
         WithRunOptions()
             .Configurable(r => r.Mode)
-            .Configurable(r => r.MaxToolIterations);
+            .Configurable(r => r.MaxToolIterations)
+            .Configurable(r => r.MaxInputTokens);
 
         UseToolset<GuardedToolset>();
     }
