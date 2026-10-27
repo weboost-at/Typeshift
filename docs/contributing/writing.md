@@ -22,7 +22,7 @@ slogan, rewrite it.
 | Do | Don't |
 |---|---|
 | "You create an agent in its constructor: a few chained calls pick the model, the instructions and the tools." | "An agent is a constructor." |
-| "You may group tools by feature, by domain or by permission level. How you group them is up to you." | A rule where the choice is the reader's: "Each toolset holds one domain." |
+| "You may group tools by feature, by domain or by permission level. How you group them is up to you." | A rule where the choice is the reader's: "Group tools by domain." |
 | "The analyzer rejects `ref` and `out` parameters with TSH004." | "`ref` and `out` parameters are TSH004." |
 | "A tool is named after its method in snake_case, without `Async`." | "The name is, by default, derived from the method in snake_case form." |
 | "Stored settings are keyed by the tool's name, so renaming the method orphans them." | "A tool's name keys its stored settings. Rename the method. The settings no longer apply." |
