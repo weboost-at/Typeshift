@@ -370,7 +370,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   answered after are cleared. What compaction did holds for the rest of the run: the tool loop keeps the whole
   history, so each later call gets the same cleared results and summary. The summary entry holds the summary, the
   kept todo list and copies of the kept messages, so a later run starts from that entry alone. Rounds the approval
-  layer continues share `MaxToolIterations`, and so do the passes steering input or background answers start.
+  layer continues share `MaxToolIterations`, and so do the passes steering input or background answers start. Calls
+  the host approves run in the conversation's next run, which counts its own rounds.
 - **Where:** `Compaction/`, `Approval/ApprovalChatClient.cs` for the shared limit.
 - **Alternatives:** MAF's strategy pipeline and trigger combinators, more concepts for the same two steps; a
   tokenizer dependency; message-count triggers, which ignore that one tool result may outweigh a hundred messages; a

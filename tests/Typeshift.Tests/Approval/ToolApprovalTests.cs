@@ -24,6 +24,35 @@ public class ToolApprovalTests : ApprovalTestBase
     }
 
     [Fact]
+    public async Task Given_A_Run_That_Asked_At_Its_Limit_The_Next_Run_Runs_The_Approved_Call_Within_Its_Own()
+    {
+        // Arrange
+        var settings = new GuardedAgent.Settings { MaxToolIterations = 2 };
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "read_ticket", ("number", Data.Agent.Ticket.Default)))
+            .Reply(CloseTicket(Data.Tool.SecondCallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer));
+
+        var asked = await Host<GuardedAgent>().RunAsync(
+            Data.Tool.Question,
+            conversationId: Data.Agent.ConversationId,
+            settings: settings,
+            ct: Ct);
+
+        // Act
+        var response = await Host<GuardedAgent>().RunAsync(
+            new ChatMessage(ChatRole.User, [asked.ApprovalRequests[0].CreateResponse(approved: true)]),
+            conversationId: Data.Agent.ConversationId,
+            settings: settings,
+            ct: Ct);
+
+        // Assert
+        ToolCalls.Should().EndWith($"close_ticket {Data.Agent.Ticket.Default}");
+        response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
     public async Task Given_An_Approval_The_Next_Run_Of_The_Conversation_Runs_The_Call()
     {
         // Arrange
