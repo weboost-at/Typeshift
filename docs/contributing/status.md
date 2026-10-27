@@ -52,6 +52,7 @@ rewrite.
 | new | A run's tools resolve from the scope its host came from (D25) | `AgentRunTests.Given_Two_Tool_Calls_Of_A_Run_Both_Resolve_From_The_Hosts_Scope` |
 | new | Messages and updates carry the agent's name (D26) | `AgentRunTests.Given_A_Run_Its_Messages_Carry_The_Agents_Name_As_Their_Author`, `..._Given_A_Streaming_Run_Its_Updates_Carry_The_Text_And_The_Agents_Name` |
 | new | Run options limit the tool loop and may be configurable (D32) | `AgentRunTests.Given_Run_Settings_Of_A_Run_Option_The_Tool_Loop_Stops_After_It` |
+| new | Calls the host approves run in the next run, within its own limit (D24, D32) | `ToolApprovalTests.Given_A_Run_That_Asked_At_Its_Limit_The_Next_Run_Runs_The_Approved_Call_Within_Its_Own` |
 | new | A run asks the chat client provider for the provider and model of code, stored settings or the run; the request names the model alone (D56) | `AgentRunTests.Given_Run_Settings_They_Override_The_Configurable_Options`, `..._Given_A_Provider_And_A_Model_The_Request_Names_Only_The_Model`, `..._Given_Options_Of_Its_Own_The_Created_Client_Asks_The_Agents_Provider`, `StoredSettingsTests.Given_Stored_Settings_A_Run_With_Their_Id_Applies_Them` |
 | new | The provider id type types the alias, the `Provider` members and the core services (D56) | `AgentGenerationTests.Given_A_Provider_Id_Type_The_Alias_The_Settings_And_The_Core_Services_Use_It` |
 | new | Structured output and the raw path | `AgentRunTests.Given_A_Result_Type_The_Run_Returns_The_Models_Json_Typed`, `..._Given_Resolved_Options_The_Created_Client_Runs_The_Agent` |
@@ -133,8 +134,9 @@ rewrite.
 - **Docs of types in assemblies without toolsets or agents.** Such an assembly has no module, so the XML docs
   collected for it reach no schema. A tool whose parameter type lives there gets that type's properties undescribed.
 - **Storable structs.** A user struct other than the scalars cannot be configurable (TSH012).
-- **Run limit across approval rounds.** The rounds the approval layer continues share the run's
-  `MaxToolIterations`, so a round that runs tools before it asks again may run one round of tools past it.
+- **Run limit across approval rounds.** The rounds the approval layer continues, after a rule, a standing approval or
+  auto mode approved calls, share the run's `MaxToolIterations`, so a round that runs tools before it asks again may
+  run one round of tools past it. Calls the host approves are not affected: they run in the next run.
 - **Compaction's estimate.** About four characters make a token, corrected by the provider's report of the run's
   last call, so a run's first call trusts the estimate alone. The summary model reads results cut to 2,000
   characters.
