@@ -20,6 +20,8 @@ All notable changes to this project are documented here. The format follows
 - Compaction always summarizes: without a summary model the run's model does it, and `WithSummaryModel(model)` names
   a model the run's provider serves. It no longer drops the oldest turns.
 - TSH029 is "Id type cannot be used" and covers `TypeshiftProviderIdType` too.
+- TSH021 covers `TypeshiftProviderIdType` too, so a referenced project with agents built with another provider id
+  type fails the build instead of its runs. Module stamps carry the provider id type, at stamp version 2.
 
 ### Fixed
 
@@ -41,7 +43,7 @@ All notable changes to this project are documented here. The format follows
 - The file tools compare a path as the operating system opens it, so on Windows a last segment's trailing dots and
   spaces cannot lead above the root.
 - TSH023 and TSH024 check a sub-agent or handoff target of a referenced project too: its module stamp carries the
-  agent's name, whether it has a description and the tools it offers that require approval, at stamp version 2.
+  agent's name, whether it has a description and the tools it offers that require approval, at stamp version 3.
 - Options the raw path builds itself run with the agent's run options through the whole pipeline.
 - A run of an agent with handoffs loads its conversation once instead of twice.
 - TSH022 reports two agents of one kind in two referenced projects too, on the project that references both.

@@ -85,13 +85,15 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             .Combine(annotations)
             .Combine(assemblyName)
             .Combine(idType)
+            .Combine(providerId)
             .Select(static (pair, _) => CreateModule(
-                pair.Left.Left.Left.Left.Left,
+                pair.Left.Left.Left.Left.Left.Left,
+                pair.Left.Left.Left.Left.Left.Right,
                 pair.Left.Left.Left.Left.Right,
                 pair.Left.Left.Left.Right,
                 pair.Left.Left.Right,
                 pair.Left.Right,
-                pair.Right))
+                pair.Right.Type))
             .WithTrackingName(TrackingNames.Module);
 
         context.RegisterSourceOutput(toolsets, static (output, toolset) =>
@@ -141,9 +143,15 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
         ImmutableArray<string> contexts,
         ImmutableArray<string> annotations,
         string assemblyName,
-        string idType)
+        string idType,
+        string providerIdType)
     {
         if (toolsets.IsEmpty && outputs.IsEmpty) return null;
+
+        var reachableToolsets = toolsets
+            .Where(toolset => toolset.IsReachable)
+            .Select(toolset => toolset.Type.FullName)
+            .ToEquatableArray();
 
         var reachableAgents = outputs
             .Where(output => output.Agent.IsReachable)
@@ -151,13 +159,14 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             .ToEquatableArray();
 
         return new ModuleModel(
-            ModuleEmitter.GetName(assemblyName),
-            assemblyName,
-            idType,
-            toolsets.Where(toolset => toolset.IsReachable).Select(toolset => toolset.Type.FullName).ToEquatableArray(),
-            reachableAgents,
-            contexts.Distinct().ToEquatableArray(),
-            annotations.ToEquatableArray());
+            Name: ModuleEmitter.GetName(assemblyName),
+            AssemblyName: assemblyName,
+            IdType: idType,
+            ProviderIdType: providerIdType,
+            Toolsets: reachableToolsets,
+            Agents: reachableAgents,
+            JsonContexts: contexts.Distinct().ToEquatableArray(),
+            SchemaAnnotations: annotations.ToEquatableArray());
     }
 
     private static void EmitInterceptor(

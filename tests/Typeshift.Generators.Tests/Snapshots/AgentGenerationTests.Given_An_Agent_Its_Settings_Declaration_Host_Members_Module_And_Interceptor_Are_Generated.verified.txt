@@ -702,8 +702,9 @@ global using IChatClientProvider = global::Typeshift.IChatClientProvider<string>
 
 [assembly: global::Typeshift.Generated.GeneratedModule(
     typeof(global::Typeshift.Generated.SubjectModule),
-    2,
-    typeof(global::System.Guid))]
+    3,
+    typeof(global::System.Guid),
+    typeof(string))]
 
 namespace Typeshift.Generated;
 
