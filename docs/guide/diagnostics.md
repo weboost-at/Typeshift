@@ -86,6 +86,8 @@ it. There are two cases:
   the toolset can be named.
 - A toolset with configurable settings is less accessible than a public agent that offers it. The agent's `Settings`
   record names the toolset's overrides.
+- The build's [id type](./registration.md#the-id-type) is less accessible than a public agent. The agent's host
+  members take settings and conversation ids of it, so the generator keeps them internal.
 
 ## TSH007
 

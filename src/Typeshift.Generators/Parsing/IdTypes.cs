@@ -49,6 +49,10 @@ internal static class IdTypes
     public static string Display(string? property, Compilation compilation) =>
         Resolve(property, compilation)?.ToTypeOf() ?? "global::System.Guid";
 
+    // D6: a public agent's host members take ids of the type, so a type less accessible keeps them internal (TSH006)
+    public static bool IsPublic(string? property, Compilation compilation) =>
+        Resolve(property, compilation)?.IsEffectivelyPublic() ?? true;
+
     // D56: a provider id is one value Settings store, string when the property is not set. Null for a name the build
     // cannot find or a type stored otherwise, which is TSH029
     public static ITypeSymbol? ResolveProvider(string? property, Compilation compilation) =>
