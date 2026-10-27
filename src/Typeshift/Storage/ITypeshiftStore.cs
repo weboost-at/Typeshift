@@ -40,6 +40,22 @@ public interface ITypeshiftStore<TId> where TId : notnull
     Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(TId conversation, CancellationToken ct);
 
     /// <summary>
+    /// Loads the entries a run starts from: the conversation's last summary and the entries after it, or every entry
+    /// when compaction never summarized it. Override it where the store finds the last summary without reading the
+    /// rest; this one loads the whole conversation.
+    /// </summary>
+    /// <param name="conversation">The conversation's id.</param>
+    /// <param name="ct">Cancels the load.</param>
+    /// <returns>The entries, oldest first; none for a conversation never stored.</returns>
+    async Task<IReadOnlyList<ConversationEntry>> LoadConversationFromSummaryAsync(
+        TId conversation,
+        CancellationToken ct)
+    {
+        var entries = await LoadConversationAsync(conversation, ct);
+        return ConversationHistory.SinceSummary(entries);
+    }
+
+    /// <summary>
     /// Appends an entry to a conversation, creating it on the first. Runs append as they go, so this is the hot path.
     /// </summary>
     /// <param name="conversation">The conversation's id.</param>

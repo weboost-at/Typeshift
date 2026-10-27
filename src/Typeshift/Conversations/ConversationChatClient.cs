@@ -232,13 +232,23 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         return further;
     }
 
-    // The run's conversation and its entries, loaded once: for the agent that answers and for the run's history
+    // The run's conversation from its last summary, loaded once: for the agent that answers and for the run's history
     private async Task<(object? Conversation, IReadOnlyList<ConversationEntry> Entries)> LoadAsync(
         ChatOptions? options,
         CancellationToken ct)
     {
         var conversation = options is null ? null : GetConversation(options);
-        return (conversation, conversation is null ? [] : await Store.LoadConversationAsync(conversation, ct));
+        if (conversation is null) return (null, []);
+
+        var entries = await Store.LoadConversationFromSummaryAsync(conversation, ct);
+
+        // D24: a summary an earlier version stored keeps no standing approvals, so the run reads them all
+        if (entries is [{ IsSummary: true, StandingApprovals: null }, ..])
+        {
+            entries = await Store.LoadConversationAsync(conversation, ct);
+        }
+
+        return (conversation, entries);
     }
 
     // D34: the agent that answered the conversation last answers its next run, if this agent's handoffs reach it
@@ -335,12 +345,16 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
         var history = ConversationHistory.From(entries);
         List<ChatMessage> call = [.. history, .. input];
+
         // D24: a standing approval holds for the whole conversation, beyond what compaction left of it
+        var summarized = entries.FirstOrDefault()?.StandingApprovals ?? [];
+        var granted = ApprovalChatClient.StandingIn(entries.SelectMany(entry => entry.Messages));
+
         var agentRun = new AgentRun(agent, call, runOptions, services, mode)
         {
             InputStart = history.Count,
             Activity = activity,
-            Standing = ApprovalChatClient.StandingIn(entries.SelectMany(entry => entry.Messages))
+            Standing = [.. summarized, .. granted]
         };
 
         var logger = (services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance)
@@ -382,7 +396,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             $"Hands the conversation to {target.Agent.Name}: {target.Agent.Description}",
             System.Text.Json.JsonElement.Parse("""{ "type": "object", "properties": {} }"""));
 
-    // The background sub-agents that started, their call answered, and that never answered themselves
+    // The background sub-agents that started, or that a summary left working, and that never answered themselves
     private IEnumerable<ChatMessage> LostBackground(IReadOnlyList<ConversationEntry> entries)
     {
         var background = agent.SubAgents
@@ -401,15 +415,20 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             .Select(call => call?.ToString())
             .ToHashSet();
 
+        var working = entries.FirstOrDefault()?.BackgroundCalls ?? new Dictionary<string, string>();
+
         var lost = contents.OfType<FunctionCallContent>()
-            .Where(call => background.Contains(call.Name) && started.Contains(call.CallId))
-            .Where(call => !answered.Contains(call.CallId));
+            .Where(call => started.Contains(call.CallId))
+            .Select(call => (call.CallId, Agent: call.Name))
+            .Concat(working.Select(call => (CallId: call.Key, Agent: call.Value)))
+            .Where(call => background.Contains(call.Agent) && !answered.Contains(call.CallId))
+            .DistinctBy(call => call.CallId);
 
         foreach (var call in lost)
         {
             yield return new ChatMessage(
                 ChatRole.User,
-                $"The background agent {call.Name} was lost when the run stopped; call it again if you need it.")
+                $"The background agent {call.Agent} was lost when the run stopped; call it again if you need it.")
             {
                 AdditionalProperties = new() { [ConversationRun.BackgroundCall] = call.CallId }
             };

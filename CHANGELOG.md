@@ -10,6 +10,8 @@ All notable changes to this project are documented here. The format follows
 - `TypeshiftProviderIdType` sets the type of provider ids for the build, `string` by default, and the generator writes
   the `IChatClientProvider` alias for it. A string, a number, a `Guid` or an enum works.
 - TSH030 reports a provider of another type than the build's at `WithModel` and at `WithChatClientProvider<T>()`.
+- `ITypeshiftStore.LoadConversationFromSummaryAsync` returns a conversation's last summary and the entries after it.
+  Its default loads the whole conversation; a store overrides it to leave the entries before the summary unread.
 
 ### Changed
 
@@ -20,6 +22,9 @@ All notable changes to this project are documented here. The format follows
 - Compaction always summarizes: without a summary model the run's model does it, and `WithSummaryModel(model)` names
   a model the run's provider serves. It no longer drops the oldest turns.
 - TSH029 is "Id type cannot be used" and covers `TypeshiftProviderIdType` too.
+- A run loads its conversation from the last summary on. A summary keeps the conversation's mode, its standing
+  approvals and the background calls still working; a run of a conversation an earlier version summarized loads it
+  whole.
 
 ### Fixed
 
