@@ -10,6 +10,8 @@ All notable changes to this project are documented here. The format follows
 - `TypeshiftProviderIdType` sets the type of provider ids for the build, `string` by default, and the generator writes
   the `IChatClientProvider` alias for it. A string, a number, a `Guid` or an enum works.
 - TSH030 reports a provider of another type than the build's at `WithModel` and at `WithChatClientProvider<T>()`.
+- `ITypeshiftStore.LoadConversationSinceCompactionAsync` returns a conversation's last summary and the entries after it.
+  Its default loads the whole conversation; a store overrides it to leave the entries before the summary unread.
 
 ### Changed
 
@@ -22,6 +24,9 @@ All notable changes to this project are documented here. The format follows
 - TSH029 is "Id type cannot be used" and covers `TypeshiftProviderIdType` too.
 - TSH021 covers `TypeshiftProviderIdType` too, so a referenced project with agents built with another provider id
   type fails the build instead of its runs. Module stamps carry the provider id type, at stamp version 2.
+- A run loads its conversation from the last summary on. A summary keeps the conversation's mode, its standing
+  approvals and the background calls still working; a run of a conversation an earlier version summarized loads it
+  whole.
 
 ### Fixed
 
@@ -42,6 +47,8 @@ All notable changes to this project are documented here. The format follows
   CS0053 in the generated `Settings`.
 - The file tools compare a path as the operating system opens it, so on Windows a last segment's trailing dots and
   spaces cannot lead above the root.
+- TSH023 and TSH024 check a sub-agent or handoff target of a referenced project too: its module stamp carries the
+  agent's name, whether it has a description and the tools it offers that require approval, at stamp version 3.
 - Options the raw path builds itself run with the agent's run options through the whole pipeline.
 - The client `CreateChatClientAsync` returns serves concurrent calls, each with its own options' iteration limit,
   where a second call changed the first one's limit.
@@ -50,6 +57,8 @@ All notable changes to this project are documented here. The format follows
 - `run_command` keeps what a command wrote just before its timeout: it reads the output to its end once the timeout
   killed the command, and for a second past the timeout while a process left behind holds it open, where it stopped
   reading at once.
+- `ConfigureAsync` gives up after ten conflicts in a row and throws the last `StoreConflictException`, where a store
+  that conflicted every time kept it going until its token was cancelled.
 
 ## [0.1.0-alpha.2] - 2026-10-16
 

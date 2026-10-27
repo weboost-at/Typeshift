@@ -116,9 +116,10 @@ well, so an agent's settings can delegate to the overrides of a toolset in anoth
 
 ## Conversations
 
-A run with a conversation id goes through `ConversationChatClient`. It loads the entries and builds the history
-without unanswered calls and errors. It registers the run in `LiveRuns`, which allows one per conversation in a
-process, stores the input, and ends the run with an entry of its own.
+A run with a conversation id goes through `ConversationChatClient`. It loads the entries from the last summary on
+(`LoadConversationSinceCompactionAsync`) and builds the history without unanswered calls and errors. It registers the
+run in `LiveRuns`, which allows one per conversation in a process, stores the input, and ends the run with an entry of
+its own.
 
 Inside the tool loop, `CheckpointChatClient` stores the steps before each model call, tool results first and then
 any steering input it takes in, and stores each response as it arrives. `ConversationRun` holds what one run stored
@@ -134,7 +135,8 @@ approvals and switches the mode on an approved plan.
 After each pass of the tool loop, it answers the requests that rules, standing approvals and auto mode decide, and
 sends the tool loop round again. When requests are left, it stores them with its own answers and ends the run. In
 plan mode it offers only the read-only tools and `exit_plan_mode`, and appends the planning instruction. `AgentRun`
-carries the mode, and the run's ending entry stores it, so the conversation's next run resumes in it (D52).
+carries the mode, and the run's ending entry stores it, so the conversation's next run resumes in it (D52). A
+summary stores the mode and the standing approvals too, since a later run reads nothing before it (D24, D32).
 
 ## Middleware and context
 
