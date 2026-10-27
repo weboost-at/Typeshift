@@ -40,7 +40,8 @@ each agent from `Agent` directly ([TSH017](./diagnostics.md#tsh017)).
 | `WithConfigurableSettings<TSettings>()` | Gives the tool a settings record whose settable members may all change, except those `NotConfigurable` names. Returns `ConfigurableSettingsBuilder<TSettings>`. |
 
 Put the settings call last in the tool's chain, because it returns `ToolBuilder<TSettings>` or
-`ConfigurableSettingsBuilder<TSettings>`, which offer only the calls below. `TSettings` is a record whose
+`ConfigurableSettingsBuilder<TSettings>`, which offer only the calls below: `ReadOnly()` after it is a compiler error
+(CS1061). `TSettings` is a record whose
 parameterless constructor sets the code defaults ([TSH005](./diagnostics.md#tsh005)), and the tool's method takes a
 parameter of that type ([TSH010](./diagnostics.md#tsh010)).
 
