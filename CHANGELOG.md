@@ -10,6 +10,7 @@ All notable changes to this project are documented here. The format follows
 - `TypeshiftProviderIdType` sets the type of provider ids for the build, `string` by default, and the generator writes
   the `IChatClientProvider` alias for it. A string, a number, a `Guid` or an enum works.
 - TSH030 reports a provider of another type than the build's at `WithModel` and at `WithChatClientProvider<T>()`.
+- A tool may return `IAsyncEnumerable<T>`: the call reads it to its end, and the model receives its items as one array.
 
 ### Changed
 

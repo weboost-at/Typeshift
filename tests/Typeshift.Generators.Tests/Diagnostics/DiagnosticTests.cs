@@ -549,6 +549,22 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Stream_Whose_List_No_Context_Lists_Under_Native_Aot_TSH027_Is_Reported_On_Its_Tool()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.StreamWithoutJsonMetadata);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.PublishingAot());
+
+        // Assert
+        run.Assert.Reports("TSH027", DiagnosticSeverity.Error, "AddTool(List)")
+            .GetMessage()
+            .Should()
+            .Contain("global::System.Collections.Generic.List<global::Company>");
+    }
+
+    [Fact]
     public void Given_A_Tool_Type_No_Context_Lists_Outside_Native_Aot_TSH027_Is_Not_Reported()
     {
         // Act

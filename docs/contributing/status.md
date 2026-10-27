@@ -35,6 +35,7 @@ rewrite.
 | 4 | A call receives its arguments, its settings, the run's services and the call's token; the result reaches the model as JSON | `ToolInvocationTests.Given_A_Scripted_Call_The_Tool_Receives_Its_Arguments`, `..._Given_Settings_The_Tool_Runs_With_Them`, `..._Given_Two_Calls_Of_One_Run_Both_Resolve_From_The_Runs_Scope`, `..._Given_A_Call_The_Tool_Receives_The_Calls_Token`, `..._Given_A_Scripted_Call_The_Result_Reaches_The_Model_As_Json` |
 | 5 | A missing required argument fails the call; an absent optional one takes its default | `ToolInvocationTests.Given_A_Missing_Required_Argument_The_Call_Fails_With_An_ArgumentException`, `..._Given_An_Absent_Optional_Argument_The_Tool_Takes_Its_Default` |
 | 6 | A struct parameter defaulting to `default` | `ToolInvocationTests.Given_A_Struct_Parameter_Defaulting_To_Default_The_Tool_Runs_Without_It`, `ToolSchemaTests.Given_A_Struct_Parameter_Defaulting_To_Default_Its_Schema_Carries_The_Default` |
+| new | A tool returning `IAsyncEnumerable<T>` gives the model its items as one array; under AOT the list needs JSON metadata (D45) | `ToolInvocationTests.Given_A_Tool_That_Streams_Its_Results_The_Model_Receives_Them_As_One_Array`, `DiagnosticTests.Given_A_Stream_Whose_List_No_Context_Lists_Under_Native_Aot_TSH027_Is_Reported_On_Its_Tool` |
 | 7 | A nullable reference parameter is typed nullable | `ToolSchemaTests.Given_A_Nullable_Reference_Parameter_It_Is_Typed_As_Nullable` |
 | 8 | The schema matches `AIFunctionFactory`'s | `ToolSchemaTests.Given_The_Same_Method_The_Schema_Matches_AIFunctionFactory_Without_Descriptions` |
 | 9 | Docs become descriptions | `ToolSchemaTests.Given_Param_Docs_They_Become_The_Parameter_Descriptions`, `..._Given_No_WithDescription_The_Summary_Is_The_Tool_Description` |
@@ -125,8 +126,6 @@ rewrite.
 - **A public agent with a less accessible provider id type.** A configurable model puts the provider id type into the
   agent's public `Settings`, so an internal enum fails with CS0053 instead of a Typeshift diagnostic.
 - **Generated line length.** Generated code is `global::`-qualified, and some declarations exceed 120 columns.
-- **Streamed results.** A tool returning `IAsyncEnumerable<T>` compiles, but its result is serialized synchronously
-  and the call fails at runtime. Neither v0 nor the approved API supports it.
 - **Kinds across references.** TSH022 compares the compilation's agents with each other and with those the
   references stamp, but not two references' agents with each other.
 - **Live updates of non-streaming runs.** Only streaming runs publish.
