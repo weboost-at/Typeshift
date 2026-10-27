@@ -35,7 +35,8 @@ provider's model, and `WithStore<T>()` registers the store that keeps settings a
 ## Chat clients
 
 Your `IChatClientProvider` returns the `IChatClient` for a provider and a model, and Typeshift resolves it from the
-run's services. [Models and providers](./models.md) shows how to write one and how an agent names its model.
+run's services. [Models and providers](./models.md) shows how to write one, how an agent names its model and how to
+create [a real client](./models.md#a-real-client).
 
 ## The run's services
 
@@ -132,7 +133,9 @@ internal enum RefundState
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L77-L86' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output-type' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Under [Native AOT](./production.md#native-aot), `T` needs JSON metadata.
+`T`'s schema leaves out XML docs, which describe only tool parameters. Describe its properties with `[Description]`
+attributes when the model needs to know more than their names. Under [Native AOT](./production.md#native-aot), `T`
+needs JSON metadata.
 
 ## Streaming
 
