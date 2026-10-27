@@ -86,7 +86,10 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
                     : Descriptors.NotOneValue));
         }
 
-        context.RegisterSymbolStartAction(start => StartClass(start, tools, kinds, found), SymbolKind.NamedType);
+        context.RegisterSymbolStartAction(
+            start => StartClass(start, providerIdType, tools, kinds, found),
+            SymbolKind.NamedType);
+
         context.RegisterSymbolAction(symbol => CollectJsonTypes(symbol, found), SymbolKind.NamedType);
 
         var aot = IsAot(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
@@ -114,6 +117,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
     private static void StartClass(
         SymbolStartAnalysisContext context,
+        ITypeSymbol? providerIdType,
         ConcurrentBag<(string Name, INamedTypeSymbol Toolset, Location Location)> tools,
         ConcurrentBag<(string Kind, INamedTypeSymbol Agent)> kinds,
         Found found)
@@ -142,6 +146,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         context.RegisterSymbolEndAction(end =>
         {
             var reporter = new Reporter(end.ReportDiagnostic);
+            var ct = end.CancellationToken;
 
             if (GetIndirection(type, baseType) is { } indirection)
             {
@@ -163,7 +168,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
             if (baseType == "Agent")
             {
-                if (AgentParser.Parse(type, ordered, reporter, end.CancellationToken, out var uses) is { } agent)
+                if (AgentParser.Parse(type, ordered, providerIdType, reporter, ct, out var uses) is { } agent)
                 {
                     kinds.Add((agent.Kind, type));
                     found.Agents.Add(new FoundAgent(type, agent, uses));
@@ -175,7 +180,6 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             var documented = type.DeclaringSyntaxReferences
                 .Any(reference => reference.SyntaxTree.Options.DocumentationMode != DocumentationMode.None);
 
-            var ct = end.CancellationToken;
             var toolset = ToolsetParser.Parse(type, ordered, documented, reporter, ct, out var declarations);
             if (toolset is not null) found.Toolsets.Add(Catalog.Summarize(toolset));
 
@@ -289,11 +293,22 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         IEnumerable<(string Name, INamedTypeSymbol Toolset, Location Location)> tools)
     {
         // D37: the built-in toolsets reserve no names; an agent that offers one beside a tool of its name is TSH025
-        var referenced = new HashSet<string>(ReferenceReader.Read(context.Compilation, context.CancellationToken)
+        var referenced = ReferenceReader
+            .Read(context.Compilation, context.CancellationToken)
             .Toolsets
             .Where(toolset => !toolset.Type.StartsWith(KnownTypes.BuiltInNamespace, System.StringComparison.Ordinal))
             .SelectMany(toolset => toolset.Tools)
-            .Select(tool => Names.ToPascalCase(tool.Name)));
+            .ToLookup(tool => Names.ToPascalCase(tool.Name));
+
+        foreach (var group in referenced)
+        {
+            foreach (var clash in group.Skip(1))
+            {
+                // A referenced tool has no location, so a clash between two references goes on the compilation
+                context.ReportDiagnostic(
+                    Diagnostic.Create(Descriptors.DuplicateToolName, Location.None, clash.Name, group.Key));
+            }
+        }
 
         var ordered = tools
             .OrderBy(tool => tool.Location.SourceTree?.FilePath)
@@ -390,29 +405,28 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         CompilationAnalysisContext context,
         IEnumerable<(string Kind, INamedTypeSymbol Agent)> kinds)
     {
-        var taken = ReferenceReader.GetAgentKinds(context.Compilation)
-            .GroupBy(kind => kind.Kind)
-            .ToDictionary(group => group.Key, group => group.First().Agent);
+        // A referenced agent has no location here, so a clash between two references is reported on the compilation
+        var referenced = ReferenceReader
+            .GetAgentKinds(context.Compilation)
+            .Select(stamped => (stamped.Kind, stamped.Agent, Location: Location.None));
 
-        var ordered = kinds
-            .OrderBy(kind => kind.Agent.Locations.FirstOrDefault()?.SourceTree?.FilePath)
-            .ThenBy(kind => kind.Agent.Locations.FirstOrDefault()?.SourceSpan.Start);
+        var own = kinds
+            .Select(kind => (kind.Kind, Agent: kind.Agent.ToDisplayString(), Location: kind.Agent.Locations.First()))
+            .OrderBy(kind => kind.Location.SourceTree?.FilePath)
+            .ThenBy(kind => kind.Location.SourceSpan.Start);
 
-        foreach (var (kind, agent) in ordered)
+        var taken = new Dictionary<string, string>();
+
+        // References first, so a clash with an agent of this compilation is reported on that agent
+        foreach (var (kind, agent, location) in referenced.Concat(own))
         {
             if (taken.TryGetValue(kind, out var other))
             {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    Descriptors.SharedKind,
-                    agent.Locations.FirstOrDefault(),
-                    agent.ToDisplayString(),
-                    kind,
-                    other));
-
+                context.ReportDiagnostic(Diagnostic.Create(Descriptors.SharedKind, location, agent, kind, other));
                 continue;
             }
 
-            taken[kind] = agent.ToDisplayString();
+            taken[kind] = agent;
         }
     }
 
