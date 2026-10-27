@@ -39,12 +39,22 @@ Read each section in sidebar order against `docs/contributing/writing.md`:
 - a lead that answers what and why, and no summary box;
 - pitch lines and the README following "The pitch" in `writing.md`, and short paragraphs;
 - varied sentences that read like a person wrote them, the reason for each rule, no filler, no trailing "say";
+- explanations rather than compressed lines: no sentence the reader has to read twice, no slogan as a heading, no
+  tell from "No staging" in `writing.md`, and "your app" where the application is meant;
 - no fact a page explains that another page owns, and no page longer than its topic needs;
 - callouts for what they mean: security cautions as `danger`, silent surprises as `warning`;
 - `## Related` that links forward to details and back to the concept;
 - every term used as the glossary defines it.
 
-## 5. Report
+## 5. Reader test
+
+Hand each sidebar group to a fresh agent that knows nothing of your work: give it only the page paths, read-only
+access to `src/` and `samples/`, and the role of a .NET developer who is new to Typeshift. Ask it for every sentence
+it had to read twice, every term used before it is explained, every question a page raises and never answers, and
+every claim that looks wrong against the code, each quoted with a proposed rewrite. Don't tell it what you expect it
+to find. Its findings are claims: check each one against the code before you report or fix it.
+
+## 6. Report
 
 Group the findings by severity:
 
