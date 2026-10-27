@@ -89,6 +89,11 @@ var resumed = await support.RunAsync(approval, conversationId: conversationId);
 Approved calls run. A rejected call reaches the model as rejected, with the reason if the answer gives one, and the
 run goes on.
 
+`WithMaxToolIterations` limits the rounds of tool calls of one run. The run that asked has ended, so the calls you
+approve run in the next run, which starts its own count: they run even when the run that asked had used up its
+rounds. Calls that a rule, a standing approval or auto mode approves go on in the same run and count toward its
+limit, and such a run may make one round more than the limit.
+
 Typeshift matches each answer to the request the conversation stored. So the call that runs is the one the host saw,
 arguments included, whatever call the answer carries. An answer to no stored request is dropped, and a request keeps
 its first answer.

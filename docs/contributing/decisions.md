@@ -369,11 +369,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   schemas, calibrated by the tokens the provider reported for the run's last call. Only results the model already
   answered after are cleared. What compaction did holds for the rest of the run: the tool loop keeps the whole
   history, so each later call gets the same cleared results and summary. The summary entry holds the summary, the
-  kept todo list and copies of the kept messages, with the run's mode, its standing approvals and the background
-  calls still working, so a later run loads only that entry and the ones after it
-  (`LoadConversationSinceCompactionAsync`, which a store may override to leave the rest unread). A summary an earlier
-  version stored keeps no standing approvals, and its runs load the whole conversation. Rounds the approval
-  layer continues share `MaxToolIterations`, and so do the passes steering input or background answers start.
+  kept todo list and copies of the kept messages, with the run's mode, its standing approvals and the background calls
+  still working, so a later run loads only that entry and the ones after it (`LoadConversationSinceCompactionAsync`,
+  which a store may override to leave the rest unread). A summary an earlier version stored keeps no standing approvals,
+  and its runs load the whole conversation. Rounds the approval layer continues share `MaxToolIterations`, and so do the
+  passes steering input or background answers start. Calls the host approves run in the conversation's next run, which
+  counts its own rounds.
 - **Where:** `Compaction/`, `Approval/ApprovalChatClient.cs` for the shared limit.
 - **Alternatives:** MAF's strategy pipeline and trigger combinators, more concepts for the same two steps; a
   tokenizer dependency; message-count triggers, which ignore that one tool result may outweigh a hundred messages; a
@@ -393,8 +394,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `FunctionInvokingChatClient.CurrentContext`. Background answers join the run through the steering queue, so
   every run has a `ConversationRun`, which stores only with a conversation; the run's end cancels the sub-agents
   still working, and the next run tells the model which ones it lost, after a crash, a cancellation or a failure,
-  including the ones a summary left working.
-  TSH023, TSH024 and TSH026 check agents of the same compilation; tool stamps carry `RequiresApproval` for TSH024.
+  including the ones a summary left working. TSH023 and TSH024 check the agents a compilation uses, a reference's
+  through its module stamp, which carries the agent's name, whether it has a description and the tools it offers that
+  require approval; tool stamps carry `RequiresApproval` for that list. TSH026 checks the compilation's own agents,
+  since assemblies cannot reference each other in a circle.
 - **Where:** `Agents/SubAgentFunction.cs`, `Conversations/ConversationRun.cs`, `Analysis/TypeshiftAnalyzer.cs`.
 - **Alternatives:** passing a sub-agent's approval requests up to the caller's host, which pauses a parent run on a
   child's call and needs the child's state stored to resume (possible later); MAF's six background-task tools

@@ -47,6 +47,8 @@ All notable changes to this project are documented here. The format follows
   CS0053 in the generated `Settings`.
 - The file tools compare a path as the operating system opens it, so on Windows a last segment's trailing dots and
   spaces cannot lead above the root.
+- TSH023 and TSH024 check a sub-agent or handoff target of a referenced project too: its module stamp carries the
+  agent's name, whether it has a description and the tools it offers that require approval, at stamp version 3.
 - Options the raw path builds itself run with the agent's run options through the whole pipeline.
 - A run of an agent with handoffs loads its conversation once instead of twice.
 - TSH022 reports two agents of one kind in two referenced projects too, on the project that references both.
