@@ -576,7 +576,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   for a watcher. `PublishInterval` (100 ms) and `MaxPendingUpdates` (256) are options. `Runs` lists the runs of
   conversations going on in this process.
 - **Alternatives:** v0's process-wide events, awaited up to 5 s per model call.
-- **Details:** merged text waits for the next update or the end of the stream, so no timer runs per watcher.
+- **Details:** merged text waits for the next update or the end of the stream, so no timer runs per watcher. A run
+  that does not stream publishes each response and tool result as it stores them, through the same publisher.
 - **Where:** `Conversations/LiveRuns.cs`, `Conversations/LivePublisher.cs`.
 
 ### D50. A conversation is stored step by step and resumes after a crash

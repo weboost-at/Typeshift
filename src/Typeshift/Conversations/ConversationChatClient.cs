@@ -88,6 +88,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             return await answering.RunAsync(messages, SettingsId(options), conversation, null, ct);
 
         var (run, call, runOptions) = await BeginAsync(messages, options, conversation, entries, activity);
+        run.Publisher = CreatePublisher(run);
         var handedOff = false;
 
         try
@@ -127,6 +128,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         }
         finally
         {
+            run.Publisher?.Flush();
             Runs.End(run);
         }
     }
@@ -151,9 +153,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
         var (run, call, runOptions) = await BeginAsync(messages, options, conversation, entries, activity);
 
-        var publisher = run.Conversation is not null && services.GetService<RealtimeTrackingOptions>() is { } realtime
-            ? new LivePublisher(Runs, run.Conversation, realtime, Time)
-            : null;
+        var publisher = CreatePublisher(run);
 
         var ended = false;
         var calls = runOptions.AgentRun!.ModelCalls;
@@ -209,6 +209,12 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             Runs.End(run);
         }
     }
+
+    // D47: only a conversation has watchers, and only realtime tracking feeds them
+    private LivePublisher? CreatePublisher(ConversationRun run) =>
+        run.Conversation is not null && services.GetService<RealtimeTrackingOptions>() is { } realtime
+            ? new LivePublisher(Runs, run.Conversation, realtime, Time)
+            : null;
 
     // The id a typed run passes, or the raw path's ChatOptions.ConversationId in the build's id type
     private object? GetConversation(ChatOptions options) =>

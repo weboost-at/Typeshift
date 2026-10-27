@@ -138,8 +138,10 @@ To stop a run, cancel its token. It is stored up to where it stopped.
 
 ## Live updates
 
-With `WithRealtimeTracking()`, Typeshift publishes the updates of streaming runs as they happen, and `WatchAsync` reads
-one conversation's updates until you cancel it. A UI can forward them over SignalR, for example:
+With `WithRealtimeTracking()`, Typeshift publishes the updates of runs as they happen, and `WatchAsync` reads one
+conversation's updates until you cancel it. A streaming run publishes its updates as they stream; a run that does not
+stream publishes each model response and tool result as it stores it. A UI can forward them over SignalR, for
+example:
 
 <!-- snippet: watch-conversation -->
 <a id='snippet-watch-conversation'></a>
