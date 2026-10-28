@@ -7,18 +7,19 @@ description: Write the ITypeshiftStore that keeps your agents' settings and conv
 
 Typeshift keeps every agent's settings and every conversation through one store, an `ITypeshiftStore` you implement
 over your own database. This page walks through what a store must do, in the order you meet it: its lifetime, the
-settings it saves with their revisions, and the conversations it appends to. `InMemoryTypeshiftStore` serves tests
+settings it saves with their revisions, and the conversations it appends to. `InMemoryTypeshiftStore` is for tests
 and samples, so a production app writes its own.
 
 ## The store is a singleton
 
-`WithStore<T>()` registers your store as a singleton. One instance serves every run of every request, often several
-at the same time, so plan the store around that before you write a method of it:
+`WithStore<T>()` registers your store as a singleton. One instance handles every run of every request, and several
+runs often call it at the same time, so plan for that before you write its first method:
 
-- **It cannot take scoped services**, such as a `DbContext` or the current customer. Take a factory instead, and
-  create what a call needs inside the call.
-- **Every method may run while others run**, on the same document or conversation too. Keep no state between calls,
-  or guard what you keep.
+- **It cannot take scoped services**, such as a `DbContext` or the current customer. Take a factory instead, such as
+  `IDbContextFactory<T>` or `IServiceScopeFactory`, and create what a call needs inside the call. Singleton services,
+  such as options or a logger, are fine.
+- **Any method can run while others are running**, even on the same document or conversation. Keep no state between
+  calls, or guard what you keep.
 - **It knows nothing of the caller.** Your app decides who may use a settings id or a conversation id before it
   passes one to a run ([Conversations](./conversations.md#tracking-a-conversation)), and the store keeps whatever it
   is given.
@@ -29,7 +30,7 @@ requests, which `DbContext` does not allow. Register `IDbContextFactory<T>` with
 context in each method.
 :::
 
-This page builds a store on Entity Framework Core, registered next to its context factory:
+This page builds a store on Entity Framework Core. Register its context factory next to your `WithStore<T>()` call:
 
 <!-- snippet: ef-core-registration -->
 <a id='snippet-ef-core-registration'></a>
@@ -41,19 +42,21 @@ services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite("Data Sou
 
 ## The five methods
 
-`ITypeshiftStore` has four methods, plus a fifth that a store may override. The ids they take have the build's
-[id type](./registration.md#the-id-type), `Guid` unless `TypeshiftIdType` names another, and each method takes a
-`CancellationToken` last.
+`ITypeshiftStore` has five methods. You implement four of them, and `LoadConversationSinceCompactionAsync` has a
+default you may replace by declaring the method in your store. Every id has your build's
+[id type](./registration.md#the-id-type), which is `Guid` unless `TypeshiftIdType` names another; the samples on this
+page set it to `int`. Each method takes a `CancellationToken` last.
 
 | Method | Does |
 |---|---|
 | `LoadAsync<TData>(id)` | Returns the document of kind `TData.Kind` under an id, with its revision, or null when none is stored. |
-| `SaveAsync<TData>(id, data, revision)` | Saves the document if its stored revision is still `revision`, 0 for none, and returns the new revision. Throws a `StoreConflictException` when another save came first. |
+| `SaveAsync<TData>(id, data, revision)` | Saves the document if its stored revision still equals `revision` (0 when nothing is stored yet), and returns the new revision. Throws a `StoreConflictException` when another save came first. |
 | `LoadConversationAsync(conversation)` | Returns a conversation's entries, oldest first. |
-| `LoadConversationSinceCompactionAsync(conversation)` | Returns the conversation's last summary and the entries after it. By default it loads the whole conversation and drops what came before the summary. |
-| `AppendConversationAsync(conversation, entry)` | Appends one entry to a conversation, and creates the conversation with its first. |
+| `LoadConversationSinceCompactionAsync(conversation)` | Returns the conversation's last summary and the entries after it ([Recognizing a summary](#recognizing-a-summary)). |
+| `AppendConversationAsync(conversation, entry)` | Appends one entry to a conversation. The first entry creates the conversation. |
 
-The first two keep settings, the other three conversations. The database of this page has a table for each:
+The first two methods keep settings and the other three keep conversations, so the database on this page has a table
+for each:
 
 <!-- snippet: ef-core-db -->
 <a id='snippet-ef-core-db'></a>
@@ -112,8 +115,8 @@ internal sealed class EntryRow
 
 ## Settings documents
 
-A document is an agent's `Settings` record, the one `ConfigureAsync` and `SaveSettingsAsync` save. Store it under
-two keys and with two values next to its JSON:
+A document is an agent's `Settings` record, the one `ConfigureAsync` and `SaveSettingsAsync` save. Store it in a row
+keyed by its kind and id, with its JSON, its version and its [revision](#revisions):
 
 - **The kind**, `TData.Kind`, is the agent's class name or what its `WithStorageKind("...")` sets. Under one settings
   id, each agent has a document of its own, so the kind and the id together are the key.
@@ -123,9 +126,10 @@ two keys and with two values next to its JSON:
   Store it with the JSON and pass it back to `TData.Deserialize(json, version)` when you load.
 
 `Deserialize` refuses a version newer than the code's, so an app rolled back to older code fails loudly instead of
-reading settings it does not understand. When an agent raises its version, because a configurable member was renamed
-or removed, migrating the stored JSON of older versions is your store's job, for example in `LoadAsync` before it
-calls `Deserialize`.
+reading settings it does not understand. An agent raises its version when a configurable member is renamed or
+removed, and migrating the stored JSON of older versions is then your store's job, for example in `LoadAsync` before
+it calls `Deserialize`. Each save writes the current version, so a migrated document reaches the new version with
+its next save.
 
 Loading reads the row by its kind and id and returns the document with the revision the row holds:
 
@@ -151,8 +155,8 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
 
 A revision is the number of the stored document's current state, kept for optimistic concurrency. It lets a save
 find out that the document changed since the caller loaded it, so one save never silently overwrites another.
-Typeshift never reads anything into the number. It hands `SaveAsync` back the revision `LoadAsync` returned, and
-your store compares the two.
+Typeshift does not interpret the number: it hands `SaveAsync` back the revision `LoadAsync` returned, and your store
+compares the two.
 
 ```mermaid
 sequenceDiagram
@@ -176,11 +180,13 @@ the first form's change, and that form loads the settings again.
 1. **Revision 0 means the caller found nothing.** Insert the document, and throw a `StoreConflictException` when one
    exists already, because another save created it in between.
 2. **Any other revision is the one the caller loaded.** Update the document only while its stored revision still
-   equals it, and throw a `StoreConflictException` otherwise.
-3. **Check and write in one step**, such as an `UPDATE ... WHERE revision = @revision`, a concurrency token or a
-   transaction. A read followed by a separate write lets two saves of the same revision both win.
-4. **Return the new revision.** Any number works as long as it is not 0 and differs from the document's earlier
-   revisions; counting up by one is the simple choice.
+   equals it, and throw a `StoreConflictException` otherwise, also when the document is gone.
+3. **Check and write in one step.** In SQL, that is
+   `UPDATE ... SET ..., revision = @revision + 1 WHERE kind = @kind AND id = @id AND revision = @revision`, and no
+   updated row means a conflict; an insert that hits the primary key is one too. A concurrency token or a transaction
+   does the same. A read followed by a separate write lets two saves of the same revision both win.
+4. **Return the new revision.** Any number works as long as it is not 0 and was never this document's revision
+   before; counting up by one is the simple choice.
 5. **Throw `StoreConflictException` only for a lost race.** Any other failure, such as a lost connection, goes to the
    caller as it is.
 
@@ -243,8 +249,8 @@ private async Task<bool> ExistsAsync(string kind, int id, CancellationToken ct)
 Runs only load settings; they never save them. Saves come from your app:
 
 - `ConfigureAsync` loads the settings, applies your change and saves them with the loaded revision. On a conflict it
-  loads and applies the change again, up to ten times, then throws the last `StoreConflictException`. A store that
-  conflicts on every save therefore fails after ten tries instead of looping.
+  loads and applies the change again, up to ten times, then throws the last `StoreConflictException`, so even a store
+  that conflicts on every save fails after ten tries.
 - `SaveSettingsAsync` saves with the revision you pass, usually the one `LoadSettingsAsync` returned to a settings
   form. On a conflict, load the settings again and show the user the current values
   ([Agent settings](./settings-and-stores.md#agent-settings)).
@@ -252,22 +258,22 @@ Runs only load settings; they never save them. Saves come from your app:
 ## Conversations
 
 A conversation only grows. Runs append each step as it happens: the input, every model response, the tool results
-of each round of calls, steering input and the entry that ends a run ([What is stored](./conversations.md#what-is-stored)).
-Your store keeps them in the order it received them and never changes or removes one:
+of each round of calls, steering input and the entry that ends a run
+([What is stored](./conversations.md#what-is-stored)). Your store never changes or removes an entry:
 
-- **Keep the append order.** `LoadConversationAsync` returns the entries in that order, oldest first, so store a
-  sequence number or a timestamp that sorts the same way.
+- **Keep the append order.** `LoadConversationAsync` returns the entries in the order they were appended, oldest
+  first. Let the database number the rows, as an identity column does; a timestamp can tie.
 - **Store each entry as its JSON**, `entry.Serialize()`, with `ConversationEntry.Version` next to it, and read it back
-  with `ConversationEntry.Deserialize(json, version)`.
+  with `ConversationEntry.Deserialize(json, version)`, passing the stored version.
 - **Keep the append cheap.** Runs append while they work, so `AppendConversationAsync` is the hot path, and a row per
   entry suits it.
 
 ### Recognizing a summary
 
-When [compaction](./conversations.md#compaction) has to summarize a run's oldest turns, because clearing old tool
-results did not shrink the history enough, it appends an entry of its own: the summary and the messages it kept after
-it. That entry has `IsSummary` set to true, and every later run starts from the latest one, because it carries what
-the runs need from before it, the conversation's mode and its standing approvals included.
+When clearing old tool results does not shrink the history enough, [compaction](./conversations.md#compaction)
+summarizes a run's oldest turns. It appends one entry of its own that holds the summary and the messages it kept after
+the summary, with `IsSummary` set to true. Every later run starts from the latest such entry, because it carries what
+the runs need from before it, including the conversation's mode and its standing approvals.
 
 `LoadConversationSinceCompactionAsync` returns that entry and everything after it, oldest first, or every entry when
 the conversation has no summary. Its default calls `LoadConversationAsync` and drops what came before the summary, so
