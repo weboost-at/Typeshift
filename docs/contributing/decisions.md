@@ -539,7 +539,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** carried (v0 D27), extended.
 - **Decision:** member by member through hidden helpers, no reflection; camelCase, tools under `"tools"` by name,
   nulls left out. The generator also writes a `JsonConverter` on the record, so `System.Text.Json` (an ASP.NET
-  endpoint) writes the stored shape too.
+  endpoint) writes the stored shape too. `ConversationEntry` carries the same converter, and a `TypeConverter` to
+  `string` that Newtonsoft.Json writes the stored JSON through, so a store hands entries to either library as they are.
 - **Details:** each overrides record writes and reads itself (`IJsonStorable<T>`), so an agent's `Settings` in
   another assembly than the toolset delegates to it. A member that does not read, missing or mistyped, reads as
   null and keeps the layer below; a document that is no JSON object throws. Enums are stored by name, non-finite

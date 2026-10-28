@@ -43,4 +43,44 @@ public class PersistenceTestData(Faker faker)
             Route = [new GeoPoint(faker.Address.Latitude(), faker.Address.Longitude())]
         }
     };
+
+    // Every member set, none to a default, and a message of each kind a run stores
+    public ConversationEntry Entry { get; } = CreateEntry(faker);
+
+    private static ConversationEntry CreateEntry(Faker faker)
+    {
+        var callId = faker.Random.AlphaNumeric(12);
+
+        return new(
+            faker.Lorem.Word(),
+            [
+                new ChatMessage(ChatRole.User, faker.Lorem.Sentence()),
+                new ChatMessage(
+                    ChatRole.Assistant,
+                    [
+                        new FunctionCallContent(
+                            callId,
+                            faker.Lorem.Word(),
+                            new Dictionary<string, object?> { ["query"] = faker.Lorem.Word() })
+                    ])
+                {
+                    AuthorName = faker.Lorem.Word()
+                },
+                new ChatMessage(ChatRole.Tool, [new FunctionResultContent(callId, faker.Lorem.Sentence())])
+            ],
+            faker.Date.PastOffset())
+        {
+            Model = $"{faker.Hacker.Noun()}-model",
+            Usage = new UsageDetails
+            {
+                InputTokenCount = faker.Random.Int(1, 1000),
+                OutputTokenCount = faker.Random.Int(1, 1000)
+            },
+            EndsRun = true,
+            Mode = AgentMode.Plan,
+            IsSummary = true,
+            StandingApprovals = [faker.Lorem.Word()],
+            BackgroundCalls = new Dictionary<string, string> { [faker.Random.AlphaNumeric(12)] = faker.Lorem.Word() }
+        };
+    }
 }

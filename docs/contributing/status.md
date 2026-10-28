@@ -72,6 +72,7 @@ rewrite.
 | 19 | Settings of every storable kind read back equivalent; nulls left out; mistyped members read as null | `SettingsJsonTests` |
 | new | A record struct stores like a record; another struct is TSH012 (D19) | `SettingsJsonTests.Given_Settings_Of_Every_Kind_They_Read_Back_Equivalent`, `DiagnosticTests.Given_A_Configurable_Struct_That_Is_Not_A_Record_TSH012_Is_Reported_On_The_Pick` |
 | new | `System.Text.Json` writes and reads the stored shape (D44) | `SettingsJsonTests.Given_Settings_System_Text_Json_Writes_What_The_Store_Keeps`, `..._Given_Stored_Json_System_Text_Json_Reads_The_Settings` |
+| new | A conversation entry serializes as it is: `System.Text.Json` in its stored shape, Newtonsoft.Json as that JSON in a string (D44) | `ConversationEntryJsonTests` |
 | new | Kinds and versions (D39, D40) | `SettingsJsonTests.Given_WithStorageKind_And_WithSettingsVersion_The_Settings_Carry_Them`, `..._Given_A_Version_Newer_Than_The_Codes_Reading_Throws_A_JsonException` |
 | new | A kind is unique, two referenced projects' agents included (TSH022, D39) | `DiagnosticTests.Given_Two_Agents_Of_One_Class_Name_TSH022_Is_Reported_On_The_Second`, `..._Given_Two_References_With_Agents_Of_One_Kind_TSH022_Is_Reported` |
 | new | The id type reaches the aliases and the typed members (D11) | `AgentGenerationTests.Given_An_Id_Type_The_Aliases_And_The_Host_Members_Use_It` |
