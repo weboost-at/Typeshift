@@ -5,9 +5,9 @@ using System.Text.Json.Serialization;
 namespace Typeshift.Generated;
 
 /// <summary>
-/// Lets <c>System.Text.Json</c> write and read generated settings in their stored shape.
+/// Lets <c>System.Text.Json</c> write and read settings and conversation entries in their stored shape.
 /// </summary>
-/// <typeparam name="T">The settings' type.</typeparam>
+/// <typeparam name="T">The data's type.</typeparam>
 // D44: an ASP.NET endpoint that binds Settings reads the JSON a store keeps
 [EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class StorableJsonConverter<T> : JsonConverter<T> where T : class, IJsonStorable<T>

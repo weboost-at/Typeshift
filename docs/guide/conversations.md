@@ -45,6 +45,10 @@ Each entry is a `ConversationEntry`: the name of the agent, the entry's `Message
 the `Model` and `Usage` of a model response, `EndsRun` on the entry that ends a run, and `IsSummary` on a
 [compaction](#compaction) summary.
 
+An entry serializes itself with `Serialize()` and `ConversationEntry.Deserialize(json, version)`, and JSON libraries
+handle it as it is. `System.Text.Json` writes and reads that same JSON, and Newtonsoft.Json writes it as a string, so
+a store or an API can pass entries on with either library and no settings.
+
 <!-- snippet: load-conversation -->
 <a id='snippet-load-conversation'></a>
 ```cs

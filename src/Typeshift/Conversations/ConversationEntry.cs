@@ -1,4 +1,6 @@
+using System.ComponentModel;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.AI;
 using Typeshift.Generated;
 
@@ -11,8 +13,11 @@ namespace Typeshift;
 /// <param name="Agent">The name of the agent the step belongs to.</param>
 /// <param name="Messages">The step's messages; none for the end of a run that answered.</param>
 /// <param name="At">When the step was stored.</param>
+// D44: System.Text.Json and Newtonsoft.Json take entries as they are, in their stored JSON
+[JsonConverter(typeof(StorableJsonConverter<ConversationEntry>))]
+[TypeConverter(typeof(StorableTypeConverter<ConversationEntry>))]
 public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> Messages, DateTimeOffset At)
-    : IStorable<ConversationEntry>
+    : IStorable<ConversationEntry>, IJsonStorable<ConversationEntry>
 {
     /// <summary>
     /// The model that wrote the messages, for a model response.
@@ -59,58 +64,7 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
     public static int Version => 1;
 
     /// <inheritdoc />
-    public string Serialize() =>
-        StorableJson.Write(writer =>
-        {
-            writer.WriteStartObject();
-            writer.WriteString("agent", Agent);
-            writer.WriteString("at", At);
-            if (Model is not null) writer.WriteString("model", Model);
-
-            if (Usage is not null)
-            {
-                writer.WritePropertyName("usage");
-                JsonSerializer.Serialize(writer, Usage, Contract<UsageDetails>());
-            }
-
-            if (EndsRun) writer.WriteBoolean("endsRun", true);
-            if (Mode is { } mode) writer.WriteString("mode", mode.ToString());
-            if (IsSummary) writer.WriteBoolean("isSummary", true);
-
-            if (StandingApprovals is not null)
-            {
-                writer.WriteStartArray("standingApprovals");
-
-                foreach (var tool in StandingApprovals)
-                {
-                    writer.WriteStringValue(tool);
-                }
-
-                writer.WriteEndArray();
-            }
-
-            if (BackgroundCalls is not null)
-            {
-                writer.WriteStartObject("backgroundCalls");
-
-                foreach (var (call, agent) in BackgroundCalls)
-                {
-                    writer.WriteString(call, agent);
-                }
-
-                writer.WriteEndObject();
-            }
-
-            writer.WriteStartArray("messages");
-
-            foreach (var message in Messages)
-            {
-                JsonSerializer.Serialize(writer, message, Contract<ChatMessage>());
-            }
-
-            writer.WriteEndArray();
-            writer.WriteEndObject();
-        });
+    public string Serialize() => StorableJson.Write(Write);
 
     /// <inheritdoc />
     public static ConversationEntry Deserialize(string json, int version)
@@ -118,11 +72,70 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
         if (version > Version)
             throw new JsonException($"Conversation entries of version {version} are newer than this code's {Version}.");
 
-        using var document = JsonDocument.Parse(json);
-        var root = document.RootElement;
+        return StorableJson.Read<ConversationEntry>(json, TryRead);
+    }
 
-        if (root.ValueKind is not JsonValueKind.Object)
-            throw new JsonException($"A conversation entry must be a JSON object, not {root.ValueKind}.");
+    void IJsonStorable<ConversationEntry>.WriteJson(Utf8JsonWriter writer) => Write(writer);
+
+    static bool IJsonStorable<ConversationEntry>.TryReadJson(JsonElement element, out ConversationEntry value) =>
+        TryRead(element, out value);
+
+    private void Write(Utf8JsonWriter writer)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("agent", Agent);
+        writer.WriteString("at", At);
+        if (Model is not null) writer.WriteString("model", Model);
+
+        if (Usage is not null)
+        {
+            writer.WritePropertyName("usage");
+            JsonSerializer.Serialize(writer, Usage, Contract<UsageDetails>());
+        }
+
+        if (EndsRun) writer.WriteBoolean("endsRun", true);
+        if (Mode is { } mode) writer.WriteString("mode", mode.ToString());
+        if (IsSummary) writer.WriteBoolean("isSummary", true);
+
+        if (StandingApprovals is not null)
+        {
+            writer.WriteStartArray("standingApprovals");
+
+            foreach (var tool in StandingApprovals)
+            {
+                writer.WriteStringValue(tool);
+            }
+
+            writer.WriteEndArray();
+        }
+
+        if (BackgroundCalls is not null)
+        {
+            writer.WriteStartObject("backgroundCalls");
+
+            foreach (var (call, agent) in BackgroundCalls)
+            {
+                writer.WriteString(call, agent);
+            }
+
+            writer.WriteEndObject();
+        }
+
+        writer.WriteStartArray("messages");
+
+        foreach (var message in Messages)
+        {
+            JsonSerializer.Serialize(writer, message, Contract<ChatMessage>());
+        }
+
+        writer.WriteEndArray();
+        writer.WriteEndObject();
+    }
+
+    private static bool TryRead(JsonElement root, out ConversationEntry entry)
+    {
+        entry = null!;
+        if (root.ValueKind is not JsonValueKind.Object) return false;
 
         var messages = StorableJson.Member(root, "messages") is { ValueKind: JsonValueKind.Array } array
             ? array.EnumerateArray().Select(message => message.Deserialize(Contract<ChatMessage>())!).ToList()
@@ -131,7 +144,7 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
         var approvals = StorableJson.Member(root, "standingApprovals");
         var background = StorableJson.Member(root, "backgroundCalls");
 
-        return new ConversationEntry(
+        entry = new ConversationEntry(
             StorableJson.TryRead(StorableJson.Member(root, "agent"), out string agent) ? agent : "",
             messages,
             StorableJson.TryRead(StorableJson.Member(root, "at"), out DateTimeOffset at) ? at : default)
@@ -150,6 +163,8 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
                 ? calls
                 : null
         };
+
+        return true;
     }
 
     // Microsoft.Extensions.AI's own contracts, which know every content type

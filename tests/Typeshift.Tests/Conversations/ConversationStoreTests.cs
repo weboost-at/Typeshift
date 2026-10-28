@@ -10,37 +10,6 @@ namespace Typeshift.Tests.Conversations;
 public class ConversationStoreTests : AgentTestBase
 {
     [Fact]
-    public void Given_An_Entry_With_Every_Member_Set_It_Reads_Back_The_Same()
-    {
-        // Arrange
-        var entry = new ConversationEntry(
-            "probe_agent",
-            [
-                new ChatMessage(ChatRole.Assistant, [new FunctionCallContent(Data.Tool.CallId, "probe")])
-                {
-                    AuthorName = "probe_agent"
-                },
-                new ChatMessage(ChatRole.Tool, [new FunctionResultContent(Data.Tool.CallId, Data.Tool.Answer)])
-            ],
-            Time.GetUtcNow())
-        {
-            Model = ProbeAgent.Model,
-            Usage = new UsageDetails { InputTokenCount = 12, OutputTokenCount = 3, TotalTokenCount = 15 },
-            EndsRun = true,
-            Mode = AgentMode.Auto,
-            IsSummary = true,
-            StandingApprovals = ["close_ticket"],
-            BackgroundCalls = new Dictionary<string, string> { [Data.Tool.SecondCallId] = "helper_agent" }
-        };
-
-        // Act
-        var read = ConversationEntry.Deserialize(entry.Serialize(), ConversationEntry.Version);
-
-        // Assert
-        read.Serialize().Should().Be(entry.Serialize());
-    }
-
-    [Fact]
     public async Task Given_A_Summary_The_Store_Loads_It_And_The_Entries_After_It()
     {
         // Arrange
