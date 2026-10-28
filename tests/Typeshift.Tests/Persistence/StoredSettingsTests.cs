@@ -1,4 +1,5 @@
 using Typeshift.Tests.Agents.Support;
+using Typeshift.Tests.Persistence.Support;
 using Typeshift.Tests.Tools.Support;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
@@ -91,6 +92,25 @@ public class StoredSettingsTests : AgentTestBase
 
         // Assert
         stored.Should().BeEquivalentTo(new Stored<ProbeAgent.Settings>(settings, revision));
+    }
+
+    [Fact]
+    public async Task Given_One_Id_For_Two_Agents_The_Store_Keeps_The_Json_Of_Each_Under_Its_Kind()
+    {
+        // Arrange
+        var store = Services.GetRequiredService<ITypeshiftStore>();
+        var probe = new ProbeAgent.Settings { Model = Data.Agent.Model };
+
+        // Act
+        await Host<ProbeAgent>().SaveSettingsAsync(Data.Persistence.SettingsId, probe, 0, Ct);
+        await Host<EveryKindAgent>().SaveSettingsAsync(Data.Persistence.SettingsId, Data.Persistence.EveryKind, 0, Ct);
+
+        var probeDocument = await store.LoadAsync(Data.Persistence.SettingsId, ProbeAgent.Settings.Kind, Ct);
+        var everyKindDocument = await store.LoadAsync(Data.Persistence.SettingsId, EveryKindAgent.Settings.Kind, Ct);
+
+        // Assert
+        probeDocument!.Json.Should().Be(probe.Serialize());
+        everyKindDocument!.Json.Should().Be(Data.Persistence.EveryKind.Serialize());
     }
 
     [Fact]
