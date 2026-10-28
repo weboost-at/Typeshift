@@ -206,6 +206,11 @@ internal sealed class KeyedChatClientProvider(IServiceProvider services) : IChat
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/KeyedChatClientProvider.cs#L6-L15' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client-provider' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+You configure and run the agent through its host, `AgentHost<ResearchAgent>`, which `AddTypeshift()` registered for
+it. The next snippet starts by creating a scope and resolving the host from it. In a web app, you take the host as a
+constructor parameter of your controller or service instead
+([Resolve an agent's host](./running-agents.md#resolve-an-agent-s-host)).
+
 A settings id is an id you choose, for example one per customer. The store keeps the agent's settings under it, and
 every run that passes the id uses them. `ConfigureAsync` loads the agent's generated `ResearchAgent.Settings` record,
 which holds only what the code marked `Configurable`, applies your change and saves it:
@@ -271,7 +276,7 @@ tools and stores the conversation.
 | Toolset | A `partial` class deriving from `Toolset` that declares the tools of one domain | [Toolsets](./toolsets.md) |
 | Tool settings | A record of values a tool needs that the model must not choose | [Tool settings](./tool-settings.md) |
 | Agent | A `partial` class deriving from `Agent`, with chat options, instructions and tools | [Agents](./defining-agents.md) |
-| Agent host | `AgentHost<TAgent>`, which runs one agent in the scope it was resolved from | [Running agents](./running-agents.md) |
+| Agent host | `AgentHost<TAgent>`, which runs one agent in the scope it was resolved from | [Resolve an agent's host](./running-agents.md#resolve-an-agent-s-host) |
 | Store | Your `ITypeshiftStore`, which keeps settings and conversations | [Settings and stores](./settings-and-stores.md) |
 
 The [glossary](./glossary.md) defines every other term.

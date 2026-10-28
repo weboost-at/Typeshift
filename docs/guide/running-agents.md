@@ -38,11 +38,35 @@ Your `IChatClientProvider` returns the `IChatClient` for a provider and a model,
 run's services. [Models and providers](./models.md) shows how to write one, how an agent names its model and how to
 create [a real client](./models.md#a-real-client).
 
-## The run's services
+## Resolve an agent's host
+
+`AddTypeshift()` registers a host for each agent, such as `AgentHost<SupportAgent>` for the support agent, so you get
+it like any other service. In a web app, add it to the constructor of the class that runs the agent, such as a
+controller or a service of your own, or to the parameters of a minimal API endpoint:
+
+<!-- snippet: inject-host -->
+<a id='snippet-inject-host'></a>
+```cs
+internal sealed class RefundDesk(AgentHost<SupportAgent> support, ICurrentCustomer customer)
+{
+    public async Task<string> AnswerAsync(string question, CancellationToken ct)
+    {
+        var answer = await support.RunAsync(question, settingsId: customer.Id, ct: ct);
+        return answer.Text;
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/RefundDesk.cs#L5-L14' title='Snippet source file'>snippet source</a> | <a href='#snippet-inject-host' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+`ICurrentCustomer` stands for a scoped service of your app. Register `RefundDesk` as scoped, with
+`services.AddScoped<RefundDesk>()`, so ASP.NET Core creates it in each request's scope, together with its host and
+that request's customer. Controllers and endpoint parameters need no registration of their own.
 
 `AgentHost<TAgent>` is transient and runs with the services of the scope you resolved it from. Your tools receive that
 scope as their `IServiceProvider` parameter, and your chat client provider resolves from it too, so a request's
-scoped services, such as the current customer, reach them:
+scoped services, such as the current customer, reach them. Outside a request, such as in a console app or a
+background job, create a scope of your app's service provider and resolve the host from it:
 
 <!-- snippet: run -->
 <a id='snippet-run'></a>
@@ -54,8 +78,18 @@ var answer = await support.RunAsync("Where is my refund?");
 
 Console.WriteLine($"{answer.Messages[^1].AuthorName}: {answer.Text}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L13-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-run' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L14-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
+
+::: warning Resolve the host from a scope, never from the root provider
+A host resolved from the root provider, such as `app.Services` or what `BuildServiceProvider()` returns, runs with the
+root's services. With
+[scope validation](https://learn.microsoft.com/dotnet/core/extensions/dependency-injection#scope-validation)
+on, as in ASP.NET Core's development environment, the run fails as soon as it resolves a scoped service, such as your
+chat client provider. Without it, every run shares one instance of each scoped service, so one customer's
+`ICurrentCustomer` reaches the tools of another. A singleton, such as a `BackgroundService`, that takes the host in its
+constructor gets it from the root provider too, so inject `IServiceScopeFactory` there and create a scope for each job.
+:::
 
 A run returns Microsoft.Extensions.AI's `ChatResponse`: the model's messages, with the tool calls and results between
 them. Each message names the agent that wrote it in `AuthorName`.
@@ -71,7 +105,7 @@ var settingsId = 42;
 
 var stored = await support.RunAsync("Where is my refund?", settingsId);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L22-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-with-settings-id' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L30-L34' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-with-settings-id' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Run settings
@@ -93,7 +127,7 @@ var run = new SupportAgent.Settings
 
 var thorough = await support.RunAsync("Where is my refund?", settingsId, settings: run);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L30-L41' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L38-L49' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Values the run leaves null keep what the stored settings or the agent's code set, as
@@ -115,7 +149,7 @@ var report = await support.RunAsync<RefundStatus>("Summarize the refund.", setti
 
 Console.WriteLine($"{report.Result.Invoice}: {report.Result.State}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L45-L49' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L53-L57' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 <!-- snippet: structured-output-type -->
@@ -130,7 +164,7 @@ internal enum RefundState
     Paid
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L77-L86' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output-type' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L85-L94' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output-type' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `T`'s schema leaves out XML docs, which describe only tool parameters. Describe its properties with `[Description]`
@@ -148,7 +182,7 @@ updates, and the stream goes on with the model's next response:
 await foreach (var update in support.RunStreamingAsync("Where is my refund?", settingsId))
     Console.Write(update.Text);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L53-L56' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L61-L64' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 With `WithRealtimeTracking()`, anyone [watching the conversation](./conversations.md#live-updates) sees the updates
@@ -168,7 +202,7 @@ var options = await support.ResolveOptionsAsync(settingsId, run);
 using var client = await support.CreateChatClientAsync(options);
 var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "Where is my refund?")], options);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L60-L65' title='Snippet source file'>snippet source</a> | <a href='#snippet-raw-path' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L68-L73' title='Snippet source file'>snippet source</a> | <a href='#snippet-raw-path' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The client is the run's whole pipeline, the tool loop and the agent's run options included. It serves concurrent

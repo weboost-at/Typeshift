@@ -86,7 +86,7 @@ services.AddTypeshift()
     .WithWebFetch<HttpWebFetch>()
     .WithApprovalRule<ShellGuard>();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L87-L95' title='Snippet source file'>snippet source</a> | <a href='#snippet-built-in-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L88-L96' title='Snippet source file'>snippet source</a> | <a href='#snippet-built-in-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The sample's `HttpWebFetch` reads pages with a plain `HttpClient` and checks no address, so it is not safe as it

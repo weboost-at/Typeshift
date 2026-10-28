@@ -184,7 +184,7 @@ services.AddTypeshift()
         MaxPendingUpdates = 1024
     });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L50-L57' title='Snippet source file'>snippet source</a> | <a href='#snippet-realtime-options' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L51-L58' title='Snippet source file'>snippet source</a> | <a href='#snippet-realtime-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Without `WithRealtimeTracking()`, `WatchAsync` throws an `InvalidOperationException`.
