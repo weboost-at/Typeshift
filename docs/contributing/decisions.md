@@ -534,6 +534,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   when the stored one differs. `ConfigureAsync` reloads and reapplies until it wins (each conflict means another
   save won), at most ten times, so a store that conflicts every time fails instead of spinning. `SaveSettingsAsync`
   takes the revision from `LoadSettingsAsync`.
+- **Details:** one statement that checks and writes needs no exception handling and no second read. Before, the docs' EF
+  Core store set a concurrency token, caught `DbUpdateConcurrencyException`, and after a failed insert read the row
+  again to tell a conflict from another failure. The rule itself is in the store guide.
+- **Alternatives:** `SaveAsync` returning null for a lost save and Typeshift throwing, so a store never builds the
+  exception, kept as the owner's open question since it breaks every store again; an opaque `string` revision, which an
+  ETag fits as is, open for the same reason.
 
 ### D42. Settings ids and conversation ids are separate; conversations grow by appending
 

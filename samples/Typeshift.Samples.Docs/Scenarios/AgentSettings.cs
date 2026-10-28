@@ -39,17 +39,33 @@ internal static class AgentSettings
         if (saved.Data.Instructions is not null || saved.Data.SearchTickets.Limit != 20 || saved.Revision != 2)
             throw new InvalidOperationException("Expected the configured settings, saved twice.");
 
-        var conflict = false;
+        var lost = saved.Data with { Instructions = "Lost." };
 
-        try
-        {
-            await support.SaveSettingsAsync(settingsId, saved.Data, stored.Revision);
-        }
-        catch (StoreConflictException)
-        {
-            conflict = true;
-        }
+        await ExpectConflictAsync(
+            () => support.SaveSettingsAsync(settingsId, lost, stored.Revision),
+            "Expected a stale revision to conflict.");
 
-        if (!conflict) throw new InvalidOperationException("Expected a stale revision to conflict.");
+        await ExpectConflictAsync(
+            () => support.SaveSettingsAsync(settingsId, lost, revision: 0),
+            "Expected a second first save to conflict.");
+
+        var after = await support.LoadSettingsAsync(settingsId);
+
+        if (after.Revision != saved.Revision || after.Data.Instructions is not null)
+            throw new InvalidOperationException("Expected a conflict to leave the settings as they were.");
+
+        static async Task ExpectConflictAsync(Func<Task> save, string message)
+        {
+            try
+            {
+                await save();
+            }
+            catch (StoreConflictException)
+            {
+                return;
+            }
+
+            throw new InvalidOperationException(message);
+        }
     }
 }

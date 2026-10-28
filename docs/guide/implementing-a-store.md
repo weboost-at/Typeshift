@@ -75,10 +75,6 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
         model.Entity<DocumentRow>()
             .HasKey(document => new { document.Id, document.Kind });
 
-        model.Entity<DocumentRow>()
-            .Property(document => document.Revision)
-            .IsConcurrencyToken();
-
         model.Entity<EntryRow>()
             .HasKey(entry => entry.Sequence);
 
@@ -93,9 +89,9 @@ internal sealed class DocumentRow
 
     public required string Kind { get; init; }
 
-    public required long Revision { get; set; }
+    public required long Revision { get; init; }
 
-    public required string Json { get; set; }
+    public required string Json { get; init; }
 }
 
 internal sealed class EntryRow
@@ -109,7 +105,7 @@ internal sealed class EntryRow
     public required string Json { get; init; }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/TypeshiftDb.cs#L5-L50' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-db' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/TypeshiftDb.cs#L5-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-db' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Settings documents
@@ -181,22 +177,37 @@ the first form's change, and that form loads the settings again.
 
 ### What a save must do
 
-1. **Revision 0 means the caller found nothing.** Insert the document, and throw a `StoreConflictException` when one
-   exists already, because another save created it in between.
-2. **Any other revision is the one the caller loaded.** Update the document only while its stored revision still
-   equals it, and throw a `StoreConflictException` otherwise, also when the document is gone.
-3. **Check and write in one step.** In SQL, that is
-   `UPDATE ... SET ..., revision = @revision + 1 WHERE id = @id AND kind = @kind AND revision = @revision`, and no
-   updated row means a conflict; an insert that hits the primary key is one too. A concurrency token or a transaction
-   does the same. A read followed by a separate write lets two saves of the same revision both win.
-4. **Return the new revision.** Any number works as long as it is not 0 and was never this document's revision
-   before; counting up by one is the simple choice.
-5. **Throw `StoreConflictException` only for a lost race**, with a message that names the document and the database's
-   exception as the inner one when you have it. Any other failure, such as a lost connection, goes to the caller as
-   it is.
+Run one `INSERT` or `UPDATE` that checks the revision as it writes, and throw a `StoreConflictException` when it
+changed no row. The revision the caller passes tells you which state of the document it loaded:
 
-The EF Core store maps these rules onto a concurrency token. The update matches the row only while it still holds the
-loaded revision, and an insert that finds the row taken is a conflict too:
+- **Revision 0 means the caller found no document**, so insert it. A row that is there already was created by another
+  save in between.
+- **Any other revision is the one the caller loaded**, so update the row only while it still holds that revision. A
+  row that holds another revision was saved by someone else since, and a missing row was deleted since. Both are
+  conflicts.
+
+Check and write in one statement. If you read the row, compare its revision and then write, two saves that both
+loaded revision 3 can both pass the check before either writes, and the second silently overwrites the first. Each of
+these statements reports how many rows it changed, and none means another save won:
+
+```sql
+INSERT INTO documents (id, kind, revision, json) VALUES (@id, @kind, 1, @json)
+ON CONFLICT (id, kind) DO NOTHING;
+
+UPDATE documents SET json = @json, revision = @revision + 1
+WHERE id = @id AND kind = @kind AND revision = @revision;
+```
+
+SQL Server has no `ON CONFLICT`. There, run a plain `INSERT` and treat the duplicate-key error, number 2627, as the
+conflict, passing it to the `StoreConflictException` as its inner exception.
+
+Return the new revision. Any number works as long as it is not 0 and was never this document's revision before, and
+counting up by one is the simple choice. Throw `StoreConflictException` only for a lost race, with a message that
+names the document. Any other failure, such as a lost connection, goes to the caller as it is.
+
+The EF Core store runs one of the two statements per save. `ExecuteSqlAsync` inserts with `ON CONFLICT DO NOTHING`,
+which SQLite and PostgreSQL support, and turns each interpolated value into a SQL parameter. `ExecuteUpdateAsync`
+updates with the revision in its `WHERE`. Both return the number of rows they changed:
 
 <!-- snippet: ef-core-save -->
 <a id='snippet-ef-core-save'></a>
@@ -205,58 +216,42 @@ public async Task<long> SaveAsync(int id, string kind, string json, long revisio
 {
     await using var db = await contexts.CreateDbContextAsync(ct);
 
-    var row = new DocumentRow
-    {
-        Id = id,
-        Kind = kind,
-        Revision = revision + 1,
-        Json = json
-    };
+    var rows = revision == 0
+        ? await InsertAsync()
+        : await UpdateAsync();
 
-    var entry = db.Entry(row);
-    entry.State = revision == 0 ? EntityState.Added : EntityState.Modified;
+    // Each statement checks and writes in one step, so a save that changed no row lost to another save
+    return rows == 1
+        ? revision + 1
+        : throw new StoreConflictException($"{kind} {id} was saved after revision {revision}.");
 
-    // The update only matches the row while it still has the revision the caller loaded
-    if (revision > 0)
-        entry.Property(document => document.Revision).OriginalValue = revision;
+    Task<int> InsertAsync() =>
+        db.Database.ExecuteSqlAsync(
+            $"""
+            INSERT INTO "Documents" ("Id", "Kind", "Revision", "Json")
+            VALUES ({id}, {kind}, 1, {json})
+            ON CONFLICT ("Id", "Kind") DO NOTHING
+            """,
+            ct);
 
-    // A conflict is another save that won; any other failure is the database's and surfaces as it is
-    try
-    {
-        await db.SaveChangesAsync(ct);
-        return row.Revision;
-    }
-    catch (DbUpdateConcurrencyException exception)
-    {
-        throw new StoreConflictException($"{kind} {id} changed after revision {revision}.", exception);
-    }
-    catch (DbUpdateException exception) when (revision == 0)
-    {
-        if (!await ExistsAsync(id, kind, ct)) throw;
-
-        throw new StoreConflictException($"{kind} {id} was saved first by another.", exception);
-    }
-}
-
-private async Task<bool> ExistsAsync(int id, string kind, CancellationToken ct)
-{
-    await using var db = await contexts.CreateDbContextAsync(ct);
-    return await db.Documents.AnyAsync(row => row.Id == id && row.Kind == kind, ct);
+    Task<int> UpdateAsync() =>
+        db.Documents
+            .Where(row => row.Id == id && row.Kind == kind && row.Revision == revision)
+            .ExecuteUpdateAsync(
+                set => set
+                    .SetProperty(row => row.Json, json)
+                    .SetProperty(row => row.Revision, revision + 1),
+                ct);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L18-L61' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-save' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L18-L50' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-save' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ### Who saves
 
-Runs only load settings; they never save them. Saves come from your app:
-
-- `ConfigureAsync` loads the settings, applies your change and saves them with the loaded revision. On a conflict it
-  loads and applies the change again, up to ten times, then throws the last `StoreConflictException`, so even a store
-  that conflicts on every save fails after ten tries.
-- `SaveSettingsAsync` saves with the revision you pass, usually the one `LoadSettingsAsync` returned to a settings
-  form. On a conflict, load the settings again and show the user the current values
-  ([Agent settings](./settings-and-stores.md#agent-settings)).
+Runs only load settings; they never save them. Saves come from your app, through `ConfigureAsync`, which loads again
+and reapplies its change after a lost save, and `SaveSettingsAsync`, which leaves the conflict to your code
+([Agent settings](./settings-and-stores.md#agent-settings)).
 
 ## Conversations
 
@@ -334,7 +329,7 @@ public async Task AppendConversationAsync(int conversation, ConversationEntry en
 }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L63-L110' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-conversations' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L52-L99' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-conversations' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `LoadConversationAsync` still returns every entry, summaries included, for your app's own use, such as showing the

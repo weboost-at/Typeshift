@@ -129,6 +129,21 @@ public class StoredSettingsTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Stale_Revision_Saving_Throws_A_StoreConflictException()
+    {
+        // Arrange
+        var host = Host<ProbeAgent>();
+        var stale = await host.SaveSettingsAsync(Data.Persistence.SettingsId, new(), 0, Ct);
+        await host.SaveSettingsAsync(Data.Persistence.SettingsId, new(), stale, Ct);
+
+        // Act
+        var save = () => host.SaveSettingsAsync(Data.Persistence.SettingsId, new(), stale, Ct);
+
+        // Assert
+        await save.Should().ThrowAsync<StoreConflictException>();
+    }
+
+    [Fact]
     public async Task Given_A_Save_Between_Load_And_Save_Configuring_Applies_The_Change_Again_And_Wins()
     {
         // Arrange

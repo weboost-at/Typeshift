@@ -20,43 +20,32 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
-        var row = new DocumentRow
-        {
-            Id = id,
-            Kind = kind,
-            Revision = revision + 1,
-            Json = json
-        };
+        var rows = revision == 0
+            ? await InsertAsync()
+            : await UpdateAsync();
 
-        var entry = db.Entry(row);
-        entry.State = revision == 0 ? EntityState.Added : EntityState.Modified;
+        // Each statement checks and writes in one step, so a save that changed no row lost to another save
+        return rows == 1
+            ? revision + 1
+            : throw new StoreConflictException($"{kind} {id} was saved after revision {revision}.");
 
-        // The update only matches the row while it still has the revision the caller loaded
-        if (revision > 0)
-            entry.Property(document => document.Revision).OriginalValue = revision;
+        Task<int> InsertAsync() =>
+            db.Database.ExecuteSqlAsync(
+                $"""
+                INSERT INTO "Documents" ("Id", "Kind", "Revision", "Json")
+                VALUES ({id}, {kind}, 1, {json})
+                ON CONFLICT ("Id", "Kind") DO NOTHING
+                """,
+                ct);
 
-        // A conflict is another save that won; any other failure is the database's and surfaces as it is
-        try
-        {
-            await db.SaveChangesAsync(ct);
-            return row.Revision;
-        }
-        catch (DbUpdateConcurrencyException exception)
-        {
-            throw new StoreConflictException($"{kind} {id} changed after revision {revision}.", exception);
-        }
-        catch (DbUpdateException exception) when (revision == 0)
-        {
-            if (!await ExistsAsync(id, kind, ct)) throw;
-
-            throw new StoreConflictException($"{kind} {id} was saved first by another.", exception);
-        }
-    }
-
-    private async Task<bool> ExistsAsync(int id, string kind, CancellationToken ct)
-    {
-        await using var db = await contexts.CreateDbContextAsync(ct);
-        return await db.Documents.AnyAsync(row => row.Id == id && row.Kind == kind, ct);
+        Task<int> UpdateAsync() =>
+            db.Documents
+                .Where(row => row.Id == id && row.Kind == kind && row.Revision == revision)
+                .ExecuteUpdateAsync(
+                    set => set
+                        .SetProperty(row => row.Json, json)
+                        .SetProperty(row => row.Revision, revision + 1),
+                    ct);
     }
     // end-snippet
 

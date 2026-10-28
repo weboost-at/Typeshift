@@ -14,10 +14,6 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
         model.Entity<DocumentRow>()
             .HasKey(document => new { document.Id, document.Kind });
 
-        model.Entity<DocumentRow>()
-            .Property(document => document.Revision)
-            .IsConcurrencyToken();
-
         model.Entity<EntryRow>()
             .HasKey(entry => entry.Sequence);
 
@@ -32,9 +28,9 @@ internal sealed class DocumentRow
 
     public required string Kind { get; init; }
 
-    public required long Revision { get; set; }
+    public required long Revision { get; init; }
 
-    public required string Json { get; set; }
+    public required string Json { get; init; }
 }
 
 internal sealed class EntryRow

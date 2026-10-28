@@ -129,7 +129,7 @@ settings id, each agent has its own document, because each agent's `Settings` is
 documents by id and kind together.
 
 `ConfigureAsync` loads an agent's settings, applies your change and saves them. When another save came in between, it
-loads them again and reapplies your change until its save wins, up to ten times; then it throws the store's
+loads them again and reapplies your change, ten tries in all. If the tenth save loses too, it throws the store's
 `StoreConflictException`:
 
 <!-- snippet: configure-settings -->
