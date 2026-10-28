@@ -49,8 +49,8 @@ page set it to `int`. Each method takes a `CancellationToken` last.
 
 | Method | Does |
 |---|---|
-| `LoadAsync<TData>(id)` | Returns the document of kind `TData.Kind` under an id, with its revision, or null when none is stored. |
-| `SaveAsync<TData>(id, data, revision)` | Saves the document if its stored revision still equals `revision` (0 when nothing is stored yet), and returns the new revision. Throws a `StoreConflictException` when another save came first. |
+| `LoadAsync(id, kind)` | Returns the document of a kind under an id as a `StoredDocument`, with its JSON, version and revision, or null when none is stored. |
+| `SaveAsync(id, kind, json, version, revision)` | Saves a document's JSON and version if its stored revision still equals `revision` (0 when nothing is stored yet), and returns the new revision. Throws a `StoreConflictException` when another save came first. |
 | `LoadConversationAsync(conversation)` | Returns a conversation's entries, oldest first. |
 | `LoadConversationSinceCompactionAsync(conversation)` | Returns the conversation's last summary and the entries after it ([Recognizing a summary](#recognizing-a-summary)). |
 | `AppendConversationAsync(conversation, entry)` | Appends one entry to a conversation. The first entry creates the conversation. |
@@ -70,7 +70,7 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.Entity<DocumentRow>()
-            .HasKey(document => new { document.Kind, document.Id });
+            .HasKey(document => new { document.Id, document.Kind });
 
         model.Entity<DocumentRow>()
             .Property(document => document.Revision)
@@ -86,9 +86,9 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
 
 internal sealed class DocumentRow
 {
-    public required string Kind { get; init; }
-
     public required int Id { get; init; }
+
+    public required string Kind { get; init; }
 
     public required int Version { get; set; }
 
@@ -115,40 +115,43 @@ internal sealed class EntryRow
 
 ## Settings documents
 
-A document is an agent's `Settings` record, the one `ConfigureAsync` and `SaveSettingsAsync` save. Store it in a row
-keyed by its kind and id, with its JSON, its version and its [revision](#revisions):
+A document is an agent's `Settings` record, the one `ConfigureAsync` and `SaveSettingsAsync` save. Typeshift writes
+the record as JSON before it calls `SaveAsync` and reads it back after `LoadAsync`, so your store handles strings and
+numbers only. Keep each document in a row keyed by the id and the kind, with the JSON, the version and the
+[revision](#revisions):
 
-- **The kind**, `TData.Kind`, is the agent's class name or what its `WithStorageKind("...")` sets. Under one settings
-  id, each agent has a document of its own, so the kind and the id together are the key.
 - **The id** is the settings id your app passed, such as a customer's.
-- **The JSON** is what `data.Serialize()` writes. Keep it as text and hand it back unchanged.
-- **The version**, `TData.Version`, is the schema version the agent's `WithSettingsVersion(n)` sets, 1 unless raised.
-  Store it with the JSON and pass it back to `TData.Deserialize(json, version)` when you load.
+- **The kind** is the agent's class name, or what its `WithStorageKind("...")` sets. Under one settings id, each agent
+  has a document of its own, so the id and the kind together are the key.
+- **The JSON** is the record as Typeshift wrote it ([The stored JSON](./settings-and-stores.md#the-stored-json)).
+  Keep it as text and return it unchanged.
+- **The version** is the schema version the agent's `WithSettingsVersion(n)` sets, 1 unless raised. Store it with the
+  JSON and return it with the JSON.
 
-`Deserialize` refuses a version newer than the code's, so an app rolled back to older code fails loudly instead of
+Typeshift refuses a version newer than the code's, so an app rolled back to older code fails loudly instead of
 reading settings it does not understand. An agent raises its version when a configurable member is renamed or
-removed, and migrating the stored JSON of older versions is then your store's job, for example in `LoadAsync` before
-it calls `Deserialize`. Each save writes the current version, so a migrated document reaches the new version with
-its next save.
+removed, and migrating the stored JSON of older versions is then your store's job. `LoadAsync` is a good place for
+it: the kind tells you which agent's settings a row holds, so you rewrite the JSON of an older version and return it
+with the version it now has and the revision the row holds. Each save writes the current version, so a migrated
+document reaches the new version in your database with its next save.
 
-Loading reads the row by its kind and id and returns the document with the revision the row holds:
+Loading reads the row by its id and kind and returns its JSON, version and revision as a `StoredDocument`:
 
 <!-- snippet: ef-core-load -->
 <a id='snippet-ef-core-load'></a>
 ```cs
 internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) : ITypeshiftStore
 {
-    public async Task<Stored<TData>?> LoadAsync<TData>(int id, CancellationToken ct)
-        where TData : class, IStorable<TData>
+    public async Task<StoredDocument?> LoadAsync(int id, string kind, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
-        return await db.Documents.FindAsync([TData.Kind, id], ct) is { } row
-            ? new Stored<TData>(TData.Deserialize(row.Json, row.Version), row.Revision)
+        return await db.Documents.FindAsync([id, kind], ct) is { } row
+            ? new StoredDocument(row.Json, row.Version, row.Revision)
             : null;
     }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L5-L17' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-load' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L5-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-load' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Revisions
@@ -182,7 +185,7 @@ the first form's change, and that form loads the settings again.
 2. **Any other revision is the one the caller loaded.** Update the document only while its stored revision still
    equals it, and throw a `StoreConflictException` otherwise, also when the document is gone.
 3. **Check and write in one step.** In SQL, that is
-   `UPDATE ... SET ..., revision = @revision + 1 WHERE kind = @kind AND id = @id AND revision = @revision`, and no
+   `UPDATE ... SET ..., revision = @revision + 1 WHERE id = @id AND kind = @kind AND revision = @revision`, and no
    updated row means a conflict; an insert that hits the primary key is one too. A concurrency token or a transaction
    does the same. A read followed by a separate write lets two saves of the same revision both win.
 4. **Return the new revision.** Any number works as long as it is not 0 and was never this document's revision
@@ -197,18 +200,23 @@ loaded revision, and an insert that finds the row taken is a conflict too:
 <!-- snippet: ef-core-save -->
 <a id='snippet-ef-core-save'></a>
 ```cs
-public async Task<long> SaveAsync<TData>(int id, TData data, long revision, CancellationToken ct)
-    where TData : class, IStorable<TData>
+public async Task<long> SaveAsync(
+    int id,
+    string kind,
+    string json,
+    int version,
+    long revision,
+    CancellationToken ct)
 {
     await using var db = await contexts.CreateDbContextAsync(ct);
 
     var row = new DocumentRow
     {
-        Kind = TData.Kind,
         Id = id,
-        Version = TData.Version,
+        Kind = kind,
+        Version = version,
         Revision = revision + 1,
-        Json = data.Serialize()
+        Json = json
     };
 
     var entry = db.Entry(row);
@@ -226,23 +234,23 @@ public async Task<long> SaveAsync<TData>(int id, TData data, long revision, Canc
     }
     catch (DbUpdateConcurrencyException exception)
     {
-        throw new StoreConflictException($"{TData.Kind} {id} changed after revision {revision}.", exception);
+        throw new StoreConflictException($"{kind} {id} changed after revision {revision}.", exception);
     }
     catch (DbUpdateException exception) when (revision == 0)
     {
-        if (!await ExistsAsync(TData.Kind, id, ct)) throw;
+        if (!await ExistsAsync(id, kind, ct)) throw;
 
-        throw new StoreConflictException($"{TData.Kind} {id} was saved first by another.", exception);
+        throw new StoreConflictException($"{kind} {id} was saved first by another.", exception);
     }
 }
 
-private async Task<bool> ExistsAsync(string kind, int id, CancellationToken ct)
+private async Task<bool> ExistsAsync(int id, string kind, CancellationToken ct)
 {
     await using var db = await contexts.CreateDbContextAsync(ct);
-    return await db.Documents.AnyAsync(row => row.Kind == kind && row.Id == id, ct);
+    return await db.Documents.AnyAsync(row => row.Id == id && row.Kind == kind, ct);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L19-L64' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-save' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L18-L68' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-save' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ### Who saves
@@ -265,7 +273,10 @@ of each round of calls, steering input and the entry that ends a run
 - **Keep the append order.** `LoadConversationAsync` returns the entries in the order they were appended, oldest
   first. Let the database number the rows, as an identity column does; a timestamp can tie.
 - **Store each entry as its JSON**, `entry.Serialize()`, with `ConversationEntry.Version` next to it, and read it back
-  with `ConversationEntry.Deserialize(json, version)`, passing the stored version.
+  with `ConversationEntry.Deserialize(json, version)`, passing the stored version. A database client that serializes
+  with `System.Text.Json` or Newtonsoft.Json may take the entry as it is
+  ([What is stored](./conversations.md#what-is-stored)), but those libraries read every entry as the current version,
+  so keep the version next to it all the same.
 - **Keep the append cheap.** Runs append while they work, so `AppendConversationAsync` is the hot path, and a row per
   entry suits it.
 
@@ -332,7 +343,7 @@ public async Task AppendConversationAsync(int conversation, ConversationEntry en
 }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L66-L114' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-conversations' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L70-L118' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-conversations' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `LoadConversationAsync` still returns every entry, summaries included, for your app's own use, such as showing the
@@ -347,5 +358,5 @@ an empty list, so test your store with a summary compaction wrote, for example b
   store keeps.
 - [Conversations](./conversations.md): what a run stores, resuming, and compaction.
 - [Registration](./registration.md#the-chain): `WithStore<T>()` among the other chain calls.
-- [Generated members](./generated-members.md#settings): the `Settings` record and its `Kind`, `Version` and
-  `Serialize()`.
+- [Generated members](./generated-members.md#settings): the `Settings` record a store keeps, with its `Kind` and
+  `Version`.
