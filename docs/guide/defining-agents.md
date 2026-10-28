@@ -153,7 +153,7 @@ Store the record [under a settings id](./settings-and-stores.md#agent-settings),
 [for one run](./running-agents.md#run-settings), or bind a settings form or an API to it. The record's `Serialize()`
 and `System.Text.Json` write the same JSON, so either works for an API. In a store, `WithStorageKind` sets the name
 the record is kept under in place of the class name, and `WithSettingsVersion` raises its version after you rename or
-remove a configurable member ([What a store keeps](./settings-and-stores.md#what-a-store-keeps)).
+remove a configurable member ([Settings documents](./implementing-a-store.md#settings-documents)).
 
 ## Related
 

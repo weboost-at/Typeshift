@@ -37,13 +37,14 @@ against your own record of the conversation, as you would for any other id from 
 
 ## What is stored
 
-A conversation is a list of entries, appended as they happen: each run's input, every model response with its model
-and token usage, the tool results of each round of calls, and an entry that ends the run and records its mode. Your
-store receives each entry through `AppendConversationAsync` ([the store](./settings-and-stores.md#the-store)).
+A conversation is a list of entries, appended as they happen: each run's input, every model response with its model and
+token usage, the tool results of each round of calls, and an entry that ends the run and records its mode. Your store
+receives each entry through `AppendConversationAsync` ([Implementing a store](./implementing-a-store.md#conversations)).
 
-Each entry is a `ConversationEntry`: the name of the agent, the entry's `Messages` and the time it was stored, plus
-the `Model` and `Usage` of a model response, `EndsRun` on the entry that ends a run, and `IsSummary` on a
-[compaction](#compaction) summary.
+Each entry is a `ConversationEntry`: the name of its agent in `Agent`, its `Messages` and the time it was stored in
+`At`, plus the `Model` and `Usage` of a model response, and `EndsRun` on the entry that ends a run. `IsSummary` is true
+on the entry [compaction](#compaction) appends when it summarizes, which is how your code and your store tell a summary
+apart ([Recognizing a summary](./implementing-a-store.md#recognizing-a-summary)).
 
 An entry serializes itself with `Serialize()` and `ConversationEntry.Deserialize(json, version)`, and JSON libraries
 handle it as it is. `System.Text.Json` writes and reads that same JSON, and Newtonsoft.Json writes it as a string, so
@@ -230,17 +231,16 @@ The instructions and the latest call of `write_todos`, the to-do tool of the
 Every later model call of the same run starts from the history as compaction left it, with the same results cleared
 and the same summary.
 
-The stored conversation keeps everything. Compaction appends an entry of its own that holds the summary and the
-messages it kept after it. Later runs start from that entry instead of summarizing again, and read nothing before
-it: the entry also keeps the conversation's mode, its
-[approvals for the conversation](./tool-approval.md#approving-for-the-conversation) and the background agents still
-working.
+The stored conversation keeps everything. Compaction appends an entry of its own, with `IsSummary` set to true, that
+holds the summary and the messages it kept after it. Later runs start from that entry instead of summarizing again, and
+read nothing before it: the entry also keeps the conversation's mode, its [approvals for the
+conversation](./tool-approval.md#approving-for-the-conversation) and the background agents still working.
 
 ## Related
 
 - [Running agents](./running-agents.md): passing a conversation id to a run.
 - [How a run works](./running-agents.md#how-a-run-works): where a run resumes and stores its steps.
-- [Settings and stores](./settings-and-stores.md#the-store): the store methods that keep conversations.
+- [Implementing a store](./implementing-a-store.md#conversations): the store methods that keep conversations.
 - [Builders](./builders.md#runoptionsbuilder): the run options of compaction and their defaults.
 - [Models and providers](./models.md#the-summary-model): which model summarizes, and its provider.
 - [Multiple agents](./multi-agent.md#handoff): handoffs, which need a conversation.

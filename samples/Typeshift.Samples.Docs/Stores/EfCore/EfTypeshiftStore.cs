@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Typeshift.Samples.Stores.EfCore;
 
-// begin-snippet: ef-core-store
+// begin-snippet: ef-core-load
 internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) : ITypeshiftStore
 {
     public async Task<StoredDocument?> LoadAsync(int id, string kind, CancellationToken ct)
@@ -13,7 +13,9 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
             ? new StoredDocument(row.Json, row.Version, row.Revision)
             : null;
     }
+    // end-snippet
 
+    // begin-snippet: ef-core-save
     public async Task<long> SaveAsync(
         int id,
         string kind,
@@ -63,7 +65,9 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         await using var db = await contexts.CreateDbContextAsync(ct);
         return await db.Documents.AnyAsync(row => row.Id == id && row.Kind == kind, ct);
     }
+    // end-snippet
 
+    // begin-snippet: ef-core-conversations
     public async Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(int conversation, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
