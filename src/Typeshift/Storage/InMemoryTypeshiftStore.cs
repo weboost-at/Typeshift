@@ -9,24 +9,19 @@ namespace Typeshift;
 /// <typeparam name="TId">The id type.</typeparam>
 public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId> where TId : notnull
 {
-    private readonly ConcurrentDictionary<(string Kind, TId Id), (string Json, int Version, long Revision)> _documents =
-        [];
+    private readonly ConcurrentDictionary<(string Kind, TId Id), StoredDocument> _documents = [];
 
     private readonly ConcurrentDictionary<TId, List<string>> _conversations = [];
 
     /// <inheritdoc />
-    public Task<Stored<TData>?> LoadAsync<TData>(TId id, CancellationToken ct)
-        where TData : class, IStorable<TData> =>
-        Task.FromResult(_documents.TryGetValue((TData.Kind, id), out var stored)
-            ? new Stored<TData>(TData.Deserialize(stored.Json, stored.Version), stored.Revision)
-            : null);
+    public Task<StoredDocument?> LoadAsync(string kind, TId id, CancellationToken ct) =>
+        Task.FromResult(_documents.GetValueOrDefault((kind, id)));
 
     /// <inheritdoc />
-    public Task<long> SaveAsync<TData>(TId id, TData data, long revision, CancellationToken ct)
-        where TData : class, IStorable<TData>
+    public Task<long> SaveAsync(string kind, TId id, string json, int version, long revision, CancellationToken ct)
     {
-        var key = (TData.Kind, id);
-        var saved = (data.Serialize(), TData.Version, revision + 1);
+        var key = (kind, id);
+        var saved = new StoredDocument(json, version, revision + 1);
 
         var won = revision == 0
             ? _documents.TryAdd(key, saved)
@@ -35,8 +30,8 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId> where TId
                 && _documents.TryUpdate(key, saved, stored);
 
         return won
-            ? Task.FromResult(revision + 1)
-            : throw new StoreConflictException($"The {TData.Kind} of {id} was saved since revision {revision}.");
+            ? Task.FromResult(saved.Revision)
+            : throw new StoreConflictException($"The {kind} of {id} was saved since revision {revision}.");
     }
 
     /// <inheritdoc />

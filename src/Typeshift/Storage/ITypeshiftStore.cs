@@ -10,26 +10,29 @@ namespace Typeshift;
 public interface ITypeshiftStore<TId> where TId : notnull
 {
     /// <summary>
-    /// Loads the document of kind <c>TData.Kind</c> stored under an id.
+    /// Loads the document of a kind stored under an id.
     /// </summary>
-    /// <typeparam name="TData">The document's type.</typeparam>
+    /// <param name="kind">
+    /// The document's kind, an agent's <c>Settings.Kind</c>; one id holds a document of each kind.
+    /// </param>
     /// <param name="id">The id.</param>
     /// <param name="ct">Cancels the load.</param>
-    /// <returns>The document and its revision, or null when none is stored.</returns>
-    Task<Stored<TData>?> LoadAsync<TData>(TId id, CancellationToken ct) where TData : class, IStorable<TData>;
+    /// <returns>The document, or null when none is stored.</returns>
+    Task<StoredDocument?> LoadAsync(string kind, TId id, CancellationToken ct);
 
     /// <summary>
-    /// Saves a document if the stored revision is still <paramref name="revision"/>, 0 for none.
+    /// Saves the document of a kind under an id if the stored revision is still <paramref name="revision"/>, 0 for
+    /// none.
     /// </summary>
-    /// <typeparam name="TData">The document's type.</typeparam>
+    /// <param name="kind">The document's kind.</param>
     /// <param name="id">The id.</param>
-    /// <param name="data">The document.</param>
+    /// <param name="json">The document's JSON.</param>
+    /// <param name="version">The schema version the JSON was written under, which a load returns with it.</param>
     /// <param name="revision">The revision the caller loaded, 0 when it found none.</param>
     /// <param name="ct">Cancels the save.</param>
     /// <returns>The new revision.</returns>
     /// <exception cref="StoreConflictException">Another save came first.</exception>
-    Task<long> SaveAsync<TData>(TId id, TData data, long revision, CancellationToken ct)
-        where TData : class, IStorable<TData>;
+    Task<long> SaveAsync(string kind, TId id, string json, int version, long revision, CancellationToken ct);
 
     /// <summary>
     /// Loads the entries of a conversation, oldest first.
@@ -66,7 +69,16 @@ public interface ITypeshiftStore<TId> where TId : notnull
 }
 
 /// <summary>
-/// A stored document and the revision a save must name.
+/// A document as a store keeps it: the JSON, the schema version it was written under, and the revision a save must
+/// name.
+/// </summary>
+/// <param name="Json">The JSON.</param>
+/// <param name="Version">The schema version.</param>
+/// <param name="Revision">The revision.</param>
+public sealed record StoredDocument(string Json, int Version, long Revision);
+
+/// <summary>
+/// A document read back as its type, and the revision a save must name.
 /// </summary>
 /// <typeparam name="TData">The document's type.</typeparam>
 /// <param name="Data">The document.</param>

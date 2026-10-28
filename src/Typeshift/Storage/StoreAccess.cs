@@ -32,13 +32,15 @@ internal sealed class StoreAccess<TId>(IServiceProvider services, Func<string, T
         ?? throw new InvalidOperationException(
             "No store is registered: call WithStore<T>() after AddTypeshift() to load or save settings.");
 
-    public Task<Stored<TData>?> LoadAsync<TData>(object id, CancellationToken ct)
+    public async Task<Stored<TData>?> LoadAsync<TData>(object id, CancellationToken ct)
         where TData : class, IStorable<TData> =>
-        Store.LoadAsync<TData>((TId)id, ct);
+        await Store.LoadAsync(TData.Kind, (TId)id, ct) is { } document
+            ? new Stored<TData>(TData.Deserialize(document.Json, document.Version), document.Revision)
+            : null;
 
     public Task<long> SaveAsync<TData>(object id, TData data, long revision, CancellationToken ct)
         where TData : class, IStorable<TData> =>
-        Store.SaveAsync((TId)id, data, revision, ct);
+        Store.SaveAsync(TData.Kind, (TId)id, data.Serialize(), TData.Version, revision, ct);
 
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(object conversation, CancellationToken ct) =>
         Store.LoadConversationAsync((TId)conversation, ct);

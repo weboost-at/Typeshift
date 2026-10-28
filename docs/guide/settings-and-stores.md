@@ -118,8 +118,8 @@ a `CancellationToken` last.
 
 | Method | Does |
 |---|---|
-| `LoadAsync<TData>(id)` | Returns the document of kind `TData.Kind` under an id, with its revision, or null. |
-| `SaveAsync<TData>(id, data, revision)` | Saves the document if the stored revision is still `revision` (0 for none) and returns the new revision. Throws a `StoreConflictException` when another save came first. |
+| `LoadAsync(kind, id)` | Returns the document of a kind under an id as a `StoredDocument`, its JSON, version and revision, or null. |
+| `SaveAsync(kind, id, json, version, revision)` | Saves a document's JSON and version if the stored revision is still `revision` (0 for none) and returns the new revision. Throws a `StoreConflictException` when another save came first. |
 | `LoadConversationAsync(conversation)` | Returns a conversation's entries, oldest first. |
 | `LoadConversationSinceCompactionAsync(conversation)` | Returns the conversation's last [summary](./conversations.md#compaction) and the entries after it, which is all a run reads. By default it loads the whole conversation and drops what came before; override it to leave those entries in the database. |
 | `AppendConversationAsync(conversation, entry)` | Appends one entry: a run's input, a model response, tool results, steering input, the end of a run, or a compaction summary. |
@@ -128,20 +128,21 @@ Runs append as they go, so `AppendConversationAsync` is the hot path, and a row 
 
 ## What a store keeps
 
-The documents that `LoadAsync` and `SaveAsync` handle are the agents' `Settings` records. Each serializes itself, with
-`Serialize()` and `TData.Deserialize(json, version)`. Next to the JSON, a store keeps three things:
+The documents that `LoadAsync` and `SaveAsync` handle are the agents' `Settings` records. Typeshift serializes them
+itself, so a store handles strings and numbers only. Next to the JSON, a store keeps three things:
 
-- **The kind**, `TData.Kind`, a stable name. For an agent's settings it is the class name, so moving the agent to
-  another namespace keeps its data. `WithStorageKind("support")` in the agent pins it, so renaming the class keeps the
-  data too. For two agents with the same kind, the analyzer reports [TSH022](./diagnostics.md#tsh022).
-- **The version**, `TData.Version`, which the store hands back to `Deserialize`. `Deserialize` refuses a version newer
-  than its code's. Migrating older documents is your store's job, for example in `LoadAsync`, before it hands the
-  JSON of an older version to `TData.Deserialize`.
+- **The kind**, a stable name. For an agent's settings it is the class name, so moving the agent to another namespace
+  keeps its data. `WithStorageKind("support")` in the agent pins it, so renaming the class keeps the data too. For two
+  agents with the same kind, the analyzer reports [TSH022](./diagnostics.md#tsh022).
+- **The version**, which `LoadAsync` returns with the JSON. The agent refuses a version newer than its code's.
+  Migrating older documents is your store's job, for example in `LoadAsync`, which can return an older document's
+  JSON migrated, with the version it now has.
 - **The revision**, for optimistic concurrency. A save names the revision it loaded, so it fails when another save came
   first.
 
 A settings id stands for whatever you decide: a customer, a team, a user, or a settings profile of your own. Under one
-settings id, each agent has its own document, because each agent's `Settings` is its own kind.
+settings id, each agent has its own document, because each agent's `Settings` is its own kind, so a store keys
+documents by kind and id together.
 
 ## An Entity Framework Core store
 
@@ -211,28 +212,32 @@ another save beat becomes a `StoreConflictException`, and any other database exc
 ```cs
 internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) : ITypeshiftStore
 {
-    public async Task<Stored<TData>?> LoadAsync<TData>(int id, CancellationToken ct)
-        where TData : class, IStorable<TData>
+    public async Task<StoredDocument?> LoadAsync(string kind, int id, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
-        return await db.Documents.FindAsync([TData.Kind, id], ct) is { } row
-            ? new Stored<TData>(TData.Deserialize(row.Json, row.Version), row.Revision)
+        return await db.Documents.FindAsync([kind, id], ct) is { } row
+            ? new StoredDocument(row.Json, row.Version, row.Revision)
             : null;
     }
 
-    public async Task<long> SaveAsync<TData>(int id, TData data, long revision, CancellationToken ct)
-        where TData : class, IStorable<TData>
+    public async Task<long> SaveAsync(
+        string kind,
+        int id,
+        string json,
+        int version,
+        long revision,
+        CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
         var row = new DocumentRow
         {
-            Kind = TData.Kind,
+            Kind = kind,
             Id = id,
-            Version = TData.Version,
+            Version = version,
             Revision = revision + 1,
-            Json = data.Serialize()
+            Json = json
         };
 
         var entry = db.Entry(row);
@@ -250,13 +255,13 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         }
         catch (DbUpdateConcurrencyException exception)
         {
-            throw new StoreConflictException($"{TData.Kind} {id} changed after revision {revision}.", exception);
+            throw new StoreConflictException($"{kind} {id} changed after revision {revision}.", exception);
         }
         catch (DbUpdateException exception) when (revision == 0)
         {
-            if (!await ExistsAsync(TData.Kind, id, ct)) throw;
+            if (!await ExistsAsync(kind, id, ct)) throw;
 
-            throw new StoreConflictException($"{TData.Kind} {id} was saved first by another.", exception);
+            throw new StoreConflictException($"{kind} {id} was saved first by another.", exception);
         }
     }
 
@@ -314,7 +319,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L5-L110' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-store' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L5-L114' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-store' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The store is a singleton, so it cannot take a scoped `DbContext`. It takes an `IDbContextFactory<TypeshiftDb>`

@@ -5,28 +5,32 @@ namespace Typeshift.Samples.Stores.EfCore;
 // begin-snippet: ef-core-store
 internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) : ITypeshiftStore
 {
-    public async Task<Stored<TData>?> LoadAsync<TData>(int id, CancellationToken ct)
-        where TData : class, IStorable<TData>
+    public async Task<StoredDocument?> LoadAsync(string kind, int id, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
-        return await db.Documents.FindAsync([TData.Kind, id], ct) is { } row
-            ? new Stored<TData>(TData.Deserialize(row.Json, row.Version), row.Revision)
+        return await db.Documents.FindAsync([kind, id], ct) is { } row
+            ? new StoredDocument(row.Json, row.Version, row.Revision)
             : null;
     }
 
-    public async Task<long> SaveAsync<TData>(int id, TData data, long revision, CancellationToken ct)
-        where TData : class, IStorable<TData>
+    public async Task<long> SaveAsync(
+        string kind,
+        int id,
+        string json,
+        int version,
+        long revision,
+        CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
         var row = new DocumentRow
         {
-            Kind = TData.Kind,
+            Kind = kind,
             Id = id,
-            Version = TData.Version,
+            Version = version,
             Revision = revision + 1,
-            Json = data.Serialize()
+            Json = json
         };
 
         var entry = db.Entry(row);
@@ -44,13 +48,13 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         }
         catch (DbUpdateConcurrencyException exception)
         {
-            throw new StoreConflictException($"{TData.Kind} {id} changed after revision {revision}.", exception);
+            throw new StoreConflictException($"{kind} {id} changed after revision {revision}.", exception);
         }
         catch (DbUpdateException exception) when (revision == 0)
         {
-            if (!await ExistsAsync(TData.Kind, id, ct)) throw;
+            if (!await ExistsAsync(kind, id, ct)) throw;
 
-            throw new StoreConflictException($"{TData.Kind} {id} was saved first by another.", exception);
+            throw new StoreConflictException($"{kind} {id} was saved first by another.", exception);
         }
     }
 
