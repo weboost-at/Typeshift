@@ -25,23 +25,20 @@ public interface ISettingsStore<TId> where TId : notnull
     /// </summary>
     /// <param name="id">The id.</param>
     /// <param name="kind">The document's kind.</param>
-    /// <param name="json">The document's JSON.</param>
-    /// <param name="version">The schema version the JSON was written under, which a load returns with it.</param>
+    /// <param name="json">The document's JSON, which a load returns as it is.</param>
     /// <param name="revision">The revision the caller loaded, 0 when it found none.</param>
     /// <param name="ct">Cancels the save.</param>
     /// <returns>The new revision.</returns>
     /// <exception cref="StoreConflictException">Another save came first.</exception>
-    Task<long> SaveAsync(TId id, string kind, string json, int version, long revision, CancellationToken ct);
+    Task<long> SaveAsync(TId id, string kind, string json, long revision, CancellationToken ct);
 }
 
 /// <summary>
-/// A document as a store keeps it: the JSON, the schema version it was written under, and the revision a save must
-/// name.
+/// A document as a store keeps it: the JSON, and the revision a save must name.
 /// </summary>
 /// <param name="Json">The JSON.</param>
-/// <param name="Version">The schema version.</param>
 /// <param name="Revision">The revision.</param>
-public sealed record StoredDocument(string Json, int Version, long Revision);
+public sealed record StoredDocument(string Json, long Revision);
 
 /// <summary>
 /// A document read back as its type, and the revision a save must name.

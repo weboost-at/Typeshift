@@ -19,10 +19,15 @@ All notable changes to this project are documented here. The format follows
 ### Changed
 
 - `ITypeshiftStore.LoadAsync` and `SaveAsync` are no longer generic. They take a document's id and kind, a save its
-  JSON and version too, and a load returns a `StoredDocument`. Typeshift serializes the agents' settings itself, so a
-  store handles strings and numbers only. A store moves over by taking `kind`, `json` and `version` where it called
-  `TData.Kind`, `Serialize()` and `TData.Version`, and returning `new StoredDocument(json, version, revision)`; the
-  stored data stays the same.
+  JSON too, and a load returns a `StoredDocument`. Typeshift serializes the agents' settings itself, so a store
+  handles strings and numbers only. A store moves over by taking `kind` and `json` where it called `TData.Kind` and
+  `Serialize()`, and returning `new StoredDocument(json, revision)`.
+- A document's schema version travels in its JSON as `"$version"`, left out at version 1, so a store keeps the JSON and
+  its revision and nothing else. `SaveAsync` has no `version` parameter and `StoredDocument` has no `Version`, and
+  `ConversationEntry.Deserialize` and the generated `Settings.Deserialize` take the JSON alone. A store moves over by
+  dropping its version columns and the versions it passed to `StoredDocument` and `ConversationEntry.Deserialize`.
+  Documents and entries stored at version 1 read as before. For an agent that raised `WithSettingsVersion`, copy the
+  stored version into the JSON as `"$version"` if your migrations read it; without it a document reads as version 1.
 
 ## [0.1.0-alpha.3] - 2026-10-27
 

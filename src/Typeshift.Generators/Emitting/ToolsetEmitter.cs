@@ -123,7 +123,7 @@ internal static class ToolsetEmitter
             }
 
             // D44: the overrides as an agent's stored settings keep them, under the tool's name
-            StorageEmitter.WriteRecordJson(writer, type, configurable.Select(property =>
+            StorageEmitter.WriteRecordJson(writer, type, versioned: false, configurable.Select(property =>
                 (Member(property, reserved), Parsing.Storage.JsonName(property.Name), property.Storage!)));
         }
     }

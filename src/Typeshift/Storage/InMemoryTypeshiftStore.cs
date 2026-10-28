@@ -18,10 +18,10 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId> where TId
         Task.FromResult(_documents.GetValueOrDefault((id, kind)));
 
     /// <inheritdoc />
-    public Task<long> SaveAsync(TId id, string kind, string json, int version, long revision, CancellationToken ct)
+    public Task<long> SaveAsync(TId id, string kind, string json, long revision, CancellationToken ct)
     {
         var key = (id, kind);
-        var saved = new StoredDocument(json, version, revision + 1);
+        var saved = new StoredDocument(json, revision + 1);
 
         var won = revision == 0
             ? _documents.TryAdd(key, saved)
@@ -43,7 +43,7 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId> where TId
         lock (entries)
         {
             return Task.FromResult<IReadOnlyList<ConversationEntry>>(
-                [.. entries.Select(json => ConversationEntry.Deserialize(json, ConversationEntry.Version))]);
+                [.. entries.Select(ConversationEntry.Deserialize)]);
         }
     }
 

@@ -58,17 +58,14 @@ partial class SupportAgent
         public string Serialize() => global::Typeshift.Generated.StorableJson.Write(WriteJson);
 
         /// <inheritdoc />
-        public static Settings Deserialize(string json, int version) =>
-            version > Version
-                ? throw new global::System.Text.Json.JsonException(
-                    $"{Kind} settings of version {version} are newer than this code's {Version}.")
-                : global::Typeshift.Generated.StorableJson.Read<Settings>(json, TryReadJson);
+        public static Settings Deserialize(string json) => global::Typeshift.Generated.StorableJson.Read<Settings>(json, TryReadJson);
 
         /// <inheritdoc />
         [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
         public void WriteJson(global::System.Text.Json.Utf8JsonWriter writer)
         {
             writer.WriteStartObject();
+            global::Typeshift.Generated.StorableJson.WriteVersion(writer, Version);
 
             if (Provider is { } member0)
             {
@@ -130,6 +127,7 @@ partial class SupportAgent
         {
             value = null!;
             if (element.ValueKind is not global::System.Text.Json.JsonValueKind.Object) return false;
+            global::Typeshift.Generated.StorableJson.EnsureVersion(element, Version, Kind);
 
             value = new()
             {

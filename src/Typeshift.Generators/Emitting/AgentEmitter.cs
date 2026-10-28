@@ -205,11 +205,7 @@ internal static class AgentEmitter
                 public string Serialize() => {{Json}}.Write(WriteJson);
 
                 /// <inheritdoc />
-                public static Settings Deserialize(string json, int version) =>
-                    version > Version
-                        ? throw new global::System.Text.Json.JsonException(
-                            $"{Kind} settings of version {version} are newer than this code's {Version}.")
-                        : {{Json}}.Read<Settings>(json, TryReadJson);
+                public static Settings Deserialize(string json) => {{Json}}.Read<Settings>(json, TryReadJson);
                 """);
 
             var stored = chat.Concat(run)
@@ -221,6 +217,7 @@ internal static class AgentEmitter
             StorageEmitter.WriteRecordJson(
                 writer,
                 "Settings",
+                versioned: true,
                 stored,
                 tools.Count == 0 ? null : more => WriteTools(more, agent, tools),
                 [

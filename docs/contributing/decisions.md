@@ -484,7 +484,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - **Status:** approved; split at the owner's request.
 - **Decision:** `ISettingsStore<TId>`: `LoadAsync` and `SaveAsync` of documents as JSON, keyed by id and kind, with a
-  version and a revision. `IConversationStore<TId>`: `LoadConversationAsync` and `AppendConversationAsync` of
+  revision. `IConversationStore<TId>`: `LoadConversationAsync` and `AppendConversationAsync` of
   `ConversationEntry`s keyed by the conversation id; `LoadConversationSinceCompactionAsync`, which runs call, defaults
   to the whole load and drops what came before the last summary. `ITypeshiftStore<TId>` is both in one. Each has a
   `global using` alias. The library serializes the documents (each agent's `Settings`), so a store implements no
@@ -494,14 +494,14 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   read once per run and saved with a revision, against an append-only log written at every step. TSH028 reports a
   store that implements neither interface for the build's id type, or either for another id type. Registration checks
   the store's type with `IsAssignableFrom`, which reads no members and stays safe under trimming.
-- **Alternatives:** v0's load and save only, which rewrote a whole conversation per turn; a generic append for any
-  kind, a concept with one user; `LoadAsync<TData>` and `SaveAsync<TData>` over `IStorable` documents (up to
-  0.1.0-alpha.3), which made every store call `TData.Kind`, `Serialize` and `Deserialize` itself; one document per
-  settings id holding every agent's settings, which would hide the versions a store migrates by (D40); one interface
-  for both (up to 0.1.0-alpha.3), which made a store of conversations implement settings methods it does not keep;
-  `WithSettingsStore<T>()` and `WithConversationStore<T>()`, two calls where the interfaces already say what a store
-  keeps; renaming the conversation methods (`LoadAsync`, `AppendAsync`), which would clash with the settings methods
-  in a class that implements both.
+- **Alternatives:** v0's load and save only, which rewrote a whole conversation per turn; a generic append for any kind,
+  a concept with one user; `LoadAsync<TData>` and `SaveAsync<TData>` over `IStorable` documents (up to 0.1.0-alpha.3),
+  which made every store call `TData.Kind`, `Serialize` and `Deserialize` itself; one document per settings id holding
+  every agent's settings, where a save of one agent's settings would conflict with a save of another's (D41); one
+  interface for both (up to 0.1.0-alpha.3), which made a store of conversations implement settings methods it does not
+  keep; `WithSettingsStore<T>()` and `WithConversationStore<T>()`, two calls where the interfaces already say what a
+  store keeps; renaming the conversation methods (`LoadAsync`, `AppendAsync`), which would clash with the settings
+  methods in a class that implements both.
 
 ### D39. Kinds are stable names
 
@@ -514,11 +514,18 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D40. A schema version per document
 
 - **Status:** owner.
-- **Decision:** `IStorable.Version`, 1 for `Settings` until `WithSettingsVersion(n)` raises it. The store keeps it
-  next to the JSON and returns it with a load, and `Deserialize` refuses a newer version; migrating older documents is
-  the store's job.
+- **Decision:** `IStorable.Version`, 1 for `Settings` until `WithSettingsVersion(n)` raises it. The JSON carries it
+  as `"$version"`, left out at 1, and `Deserialize` refuses a newer version; migrating older documents is the app's
+  job, in its store or its database.
+- **Details:** a store keeps the JSON and a revision and nothing next to them. A version beside the JSON gave every
+  store a column and every save a parameter, and a JSON library that read the JSON alone never saw it.
+  `ConversationEntry` carries its version the same way, and `System.Text.Json` and Newtonsoft.Json check it too, where
+  they used to read every entry as the current version. JSON written before the version moved names none and reads as
+  version 1; a `"$version"` that is no whole number is refused, since it cannot be shown to be older.
 - **Alternatives:** a version hashed from the record's shape (automatic, but no store can map it to a migration); a
-  migration hook on the agent; an analyzer against a shipped list of stored members (later).
+  migration hook on the agent; an analyzer against a shipped list of stored members (later); the version next to the
+  JSON (up to 0.1.0-alpha.3), a column every store kept; no version at all, which would read settings a newer release
+  wrote after a rollback.
 
 ### D41. Optimistic concurrency
 
@@ -549,10 +556,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D44. Settings records serialize themselves
 
 - **Status:** carried (v0 D27), extended.
-- **Decision:** member by member through hidden helpers, no reflection; camelCase, tools under `"tools"` by name,
-  nulls left out. The generator also writes a `JsonConverter` on the record, so `System.Text.Json` (an ASP.NET
-  endpoint) writes the stored shape too. `ConversationEntry` carries the same converter, and a `TypeConverter` to
-  `string` that Newtonsoft.Json writes the stored JSON through, so a store hands entries to either library as they are.
+- **Decision:** member by member through hidden helpers, no reflection; camelCase, tools under `"tools"` by name, nulls
+  left out, the schema version as `"$version"` above 1 (D40). The generator also writes a `JsonConverter` on the record,
+  so `System.Text.Json` (an ASP.NET endpoint) writes the stored shape too. `ConversationEntry` carries the same
+  converter, and a `TypeConverter` to `string` that Newtonsoft.Json writes the stored JSON through, so a store hands
+  entries to either library as they are.
 - **Details:** each overrides record writes and reads itself (`IJsonStorable<T>`), so an agent's `Settings` in
   another assembly than the toolset delegates to it. A member that does not read, missing or mistyped, reads as
   null and keeps the layer below; a document that is no JSON object throws. Enums are stored by name, non-finite

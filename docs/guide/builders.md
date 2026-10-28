@@ -65,7 +65,7 @@ marked `[Obsolete]` out without a `NotConfigurable` call.
 | `WithName(string name)` | Names the agent, which is otherwise its class name in snake_case. Messages the agent writes carry the name as their author. |
 | `WithDescription(string description)` | Says what the agent does. A sub-agent or a handoff target needs one ([TSH023](./diagnostics.md#tsh023)). |
 | `WithStorageKind(string kind)` | Sets the kind a store keys the agent's `Settings` by, in place of its class name, so renaming the class keeps its stored settings. |
-| `WithSettingsVersion(int version)` | Sets the schema version of the stored `Settings`, 1 unless raised. Raise it after you rename or remove a configurable member, so the store can migrate older documents. |
+| `WithSettingsVersion(int version)` | Sets the schema version of the stored `Settings`, 1 unless raised. Raise it after you rename or remove a configurable member, so you can [migrate older documents](./implementing-a-store.md#settings-documents). |
 | `WithChatOptions()` | Returns the [`ChatOptionsBuilder`](#chatoptionsbuilder). |
 | `WithRunOptions()` | Returns the [`RunOptionsBuilder`](#runoptionsbuilder). |
 | `UseToolset<TToolset>()` | Offers every tool of the toolset. `.Include(t => t.X)` offers only the tools picked, in that order, and `.Exclude(t => t.X)` all but those. One use includes or excludes, never both. Use each toolset once and pick each tool once ([TSH025](./diagnostics.md#tsh025)). |

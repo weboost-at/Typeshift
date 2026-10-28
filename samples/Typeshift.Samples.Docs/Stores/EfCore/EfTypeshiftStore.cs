@@ -10,19 +10,13 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         await using var db = await contexts.CreateDbContextAsync(ct);
 
         return await db.Documents.FindAsync([id, kind], ct) is { } row
-            ? new StoredDocument(row.Json, row.Version, row.Revision)
+            ? new StoredDocument(row.Json, row.Revision)
             : null;
     }
     // end-snippet
 
     // begin-snippet: ef-core-save
-    public async Task<long> SaveAsync(
-        int id,
-        string kind,
-        string json,
-        int version,
-        long revision,
-        CancellationToken ct)
+    public async Task<long> SaveAsync(int id, string kind, string json, long revision, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
@@ -30,7 +24,6 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         {
             Id = id,
             Kind = kind,
-            Version = version,
             Revision = revision + 1,
             Json = json
         };
@@ -77,7 +70,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
             .OrderBy(entry => entry.Sequence)
             .ToListAsync(ct);
 
-        return [.. rows.Select(row => ConversationEntry.Deserialize(row.Json, row.Version))];
+        return [.. rows.Select(row => ConversationEntry.Deserialize(row.Json))];
     }
 
     // A run starts from the last summary, so the rows before it stay in the database
@@ -97,7 +90,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
             .OrderBy(entry => entry.Sequence)
             .ToListAsync(ct);
 
-        return [.. rows.Select(row => ConversationEntry.Deserialize(row.Json, row.Version))];
+        return [.. rows.Select(row => ConversationEntry.Deserialize(row.Json))];
     }
 
     public async Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct)
@@ -107,7 +100,6 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         db.Entries.Add(new EntryRow
         {
             Conversation = conversation,
-            Version = ConversationEntry.Version,
             IsSummary = entry.IsSummary,
             Json = entry.Serialize()
         });

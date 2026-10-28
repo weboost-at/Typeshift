@@ -13,7 +13,7 @@ public class ConversationEntryJsonTests : UnitTestBase
         var entry = Data.Persistence.Entry;
 
         // Act
-        var read = ConversationEntry.Deserialize(entry.Serialize(), ConversationEntry.Version);
+        var read = ConversationEntry.Deserialize(entry.Serialize());
 
         // Assert
         read.Serialize().Should().Be(entry.Serialize());
@@ -57,5 +57,15 @@ public class ConversationEntryJsonTests : UnitTestBase
 
         // Assert
         read!.Serialize().Should().Be(entry.Serialize());
+    }
+
+    [Fact]
+    public void Given_An_Entry_Of_A_Newer_Version_Reading_Throws_A_JsonException()
+    {
+        // Act
+        var read = () => ConversationEntry.Deserialize($$"""{"$version":{{ConversationEntry.Version + 1}}}""");
+
+        // Assert
+        read.Should().Throw<JsonException>().WithMessage("*newer*");
     }
 }

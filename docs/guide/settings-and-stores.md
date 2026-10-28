@@ -188,16 +188,16 @@ What is stored is the record's JSON: camelCase, with the tools nested under `"to
 }
 ```
 
-`System.Text.Json` writes and reads the same JSON, so an endpoint that binds `SupportAgent.Settings` accepts and
-returns the JSON the store keeps. A stored member that cannot be read, because its value has the wrong type or its
-name is unknown, counts as missing, so the layer below applies. When a configurable member is itself a record or a
-class, a stored value replaces the whole object, so members missing from its stored JSON take that type's defaults,
-not the values of the layer below.
+An agent whose `WithSettingsVersion(n)` raised its version above 1 also writes `"$version": n` first. `System.Text.Json`
+writes and reads the same JSON, so an endpoint that binds `SupportAgent.Settings` accepts and returns the JSON the store
+keeps. A stored member that cannot be read, because its value has the wrong type or its name is unknown, counts as
+missing, so the layer below applies. When a configurable member is itself a record or a class, a stored value replaces
+the whole object, so members missing from its stored JSON take that type's defaults, not the values of the layer below.
 
 ::: warning A renamed member loses its stored value
 A configurable member that is renamed or removed reads as missing, so its stored value no longer applies. When that
 matters, raise the agent's settings version with `WithSettingsVersion(2)` and migrate the documents of the older
-version in the store ([Settings documents](./implementing-a-store.md#settings-documents)).
+version ([Settings documents](./implementing-a-store.md#settings-documents)).
 :::
 
 ## Related

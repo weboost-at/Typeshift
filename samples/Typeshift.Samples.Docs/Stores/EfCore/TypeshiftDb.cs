@@ -32,8 +32,6 @@ internal sealed class DocumentRow
 
     public required string Kind { get; init; }
 
-    public required int Version { get; set; }
-
     public required long Revision { get; set; }
 
     public required string Json { get; set; }
@@ -44,8 +42,6 @@ internal sealed class EntryRow
     public long Sequence { get; init; }
 
     public required int Conversation { get; init; }
-
-    public required int Version { get; init; }
 
     public required bool IsSummary { get; init; }
 

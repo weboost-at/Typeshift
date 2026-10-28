@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Persistence.Support;
 using FluentAssertions;
 
@@ -13,17 +14,17 @@ public class SettingsJsonTests : UnitTestBase
         var settings = Data.Persistence.EveryKind;
 
         // Act
-        var read = EveryKindAgent.Settings.Deserialize(settings.Serialize(), EveryKindAgent.Settings.Version);
+        var read = EveryKindAgent.Settings.Deserialize(settings.Serialize());
 
         // Assert
         read.Should().BeEquivalentTo(settings);
     }
 
     [Fact]
-    public void Given_Settings_Without_Values_They_Are_Stored_As_An_Empty_Object()
+    public void Given_Version_1_Settings_Without_Values_They_Are_Stored_As_An_Empty_Object()
     {
         // Act
-        var json = new EveryKindAgent.Settings().Serialize();
+        var json = new ProbeAgent.Settings().Serialize();
 
         // Assert
         json.Should().Be("{}");
@@ -66,7 +67,7 @@ public class SettingsJsonTests : UnitTestBase
         var json = settings.Serialize();
 
         // Assert
-        json.Should().Be("""{"tools":{"inspect":{"count":3,"shade":"Dark"}}}""");
+        json.Should().Be("""{"$version":2,"tools":{"inspect":{"count":3,"shade":"Dark"}}}""");
     }
 
     [Fact]
@@ -74,8 +75,7 @@ public class SettingsJsonTests : UnitTestBase
     {
         // Act
         var read = EveryKindAgent.Settings.Deserialize(
-            """{"temperature":"warm","tools":{"inspect":{"count":true}}}""",
-            EveryKindAgent.Settings.Version);
+            """{"temperature":"warm","tools":{"inspect":{"count":true}}}""");
 
         // Assert
         read.Should().BeEquivalentTo(new EveryKindAgent.Settings());
@@ -88,7 +88,7 @@ public class SettingsJsonTests : UnitTestBase
         var settings = new EveryKindAgent.Settings { Inspect = new() { Precise = double.NaN } };
 
         // Act
-        var read = EveryKindAgent.Settings.Deserialize(settings.Serialize(), EveryKindAgent.Settings.Version);
+        var read = EveryKindAgent.Settings.Deserialize(settings.Serialize());
 
         // Assert
         read.Inspect.Precise.Should().Be(double.NaN);
@@ -99,8 +99,7 @@ public class SettingsJsonTests : UnitTestBase
     {
         // Act
         var read = EveryKindAgent.Settings.Deserialize(
-            """{"tools":{"inspect":{"address":{"street":"Ring 1"}}}}""",
-            EveryKindAgent.Settings.Version);
+            """{"tools":{"inspect":{"address":{"street":"Ring 1"}}}}""");
 
         // Assert
         read.Inspect.Address.Should().Be(new Address { Street = "Ring 1" });
@@ -109,11 +108,47 @@ public class SettingsJsonTests : UnitTestBase
     [Fact]
     public void Given_A_Version_Newer_Than_The_Codes_Reading_Throws_A_JsonException()
     {
+        // Arrange
+        var json = $$"""{"$version":{{EveryKindAgent.Settings.Version + 1}}}""";
+
         // Act
-        var read = () => EveryKindAgent.Settings.Deserialize("{}", EveryKindAgent.Settings.Version + 1);
+        var read = () => EveryKindAgent.Settings.Deserialize(json);
 
         // Assert
         read.Should().Throw<JsonException>().WithMessage("*every_kind*");
+    }
+
+    [Fact]
+    public void Given_A_Version_Newer_Than_The_Codes_System_Text_Json_Throws_A_JsonException()
+    {
+        // Arrange
+        var json = $$"""{"$version":{{EveryKindAgent.Settings.Version + 1}}}""";
+
+        // Act
+        var read = () => JsonSerializer.Deserialize<EveryKindAgent.Settings>(json);
+
+        // Assert
+        read.Should().Throw<JsonException>().WithMessage("*every_kind*");
+    }
+
+    [Fact]
+    public void Given_A_Version_That_Is_No_Whole_Number_Reading_Throws_A_JsonException()
+    {
+        // Act
+        var read = () => EveryKindAgent.Settings.Deserialize("""{"$version":"1"}""");
+
+        // Assert
+        read.Should().Throw<JsonException>().WithMessage("*whole number*");
+    }
+
+    [Fact]
+    public void Given_WithSettingsVersion_The_Json_Carries_The_Version()
+    {
+        // Act
+        var json = new EveryKindAgent.Settings().Serialize();
+
+        // Assert
+        json.Should().Be("""{"$version":2}""");
     }
 
     [Fact]

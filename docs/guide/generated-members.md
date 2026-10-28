@@ -166,9 +166,9 @@ The record is also the document a store keeps under a settings id:
 | Member | Is |
 |---|---|
 | `static string Kind` | The name a store keys it by, which the store's methods receive as `kind`: `WithStorageKind("...")`, or else the class name, so moving the agent to another namespace keeps its data. For two agents of the same kind, the analyzer reports [TSH022](./diagnostics.md#tsh022). |
-| `static int Version` | 1, or what `WithSettingsVersion(n)` sets. `SaveAsync` receives it, and the store keeps it next to the JSON. |
+| `static int Version` | 1, or what `WithSettingsVersion(n)` sets, which `Serialize()` writes into the JSON ([The stored JSON](./settings-and-stores.md#the-stored-json)). |
 | `Serialize()` | Writes the record as JSON. |
-| `static Deserialize(json, version)` | Reads the JSON. Throws a `JsonException` for a version newer than the code's. |
+| `static Deserialize(json)` | Reads the JSON. Throws a `JsonException` for a `"$version"` newer than the code's. |
 | `WriteJson`, `TryReadJson` (hidden) | What `Serialize`, `Deserialize` and the record's `JsonConverter` use. |
 
 [The stored JSON](./settings-and-stores.md#the-stored-json) covers the JSON's shape, how it reads back, and what to
