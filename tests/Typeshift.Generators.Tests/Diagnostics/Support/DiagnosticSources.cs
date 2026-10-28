@@ -752,6 +752,67 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string SubAgentWithOwnToolNeedingApproval =
+        """
+        using Typeshift;
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent()
+            {
+                WithDescription("Helps.");
+
+                AddTool(Close).WithDescription("Closes a ticket.").RequiresApproval();
+            }
+
+            private static void Close(int number)
+            {
+            }
+        }
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent() => UseAgent<HelpAgent>();
+        }
+        """;
+
+    public const string AgentToolNamedLikeAToolsets =
+        """
+        using Typeshift;
+
+        internal partial class TicketToolset : Toolset
+        {
+            public TicketToolset() => AddTool(Close).WithDescription("Closes a ticket.");
+
+            public static void Close(int number)
+            {
+            }
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => AddTool(CloseDesk).WithName("close").WithDescription("Closes a desk.");
+
+            private static void CloseDesk(int desk)
+            {
+            }
+        }
+        """;
+
+    public const string AgentToolOfAnInstanceMethod =
+        """
+        using Typeshift;
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => AddTool(Close).WithDescription("Closes a desk.");
+
+            private void Close(int desk)
+            {
+            }
+        }
+        """;
+
     public const string AgentCircle =
         """
         using Typeshift;

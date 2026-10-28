@@ -28,6 +28,26 @@ public class AgentGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_Tools_Of_The_Agents_Own_They_Are_Generated_In_It_And_Offered_After_The_Toolsets()
+    {
+        // Act
+        var run = Run(AgentSources.Tickets, AgentSources.OwnTools);
+
+        // Assert
+        Snapshot.Verify(run.Result);
+    }
+
+    [Fact]
+    public void Given_Tools_Of_The_Agents_Own_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(AgentSources.Tickets, AgentSources.OwnTools);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
     public void Given_A_Toolset_Of_A_Reference_The_Agent_Configures_It_And_The_Interceptor_Registers_Both_Modules()
     {
         // Arrange

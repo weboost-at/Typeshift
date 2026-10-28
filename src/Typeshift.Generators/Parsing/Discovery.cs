@@ -31,8 +31,10 @@ internal static class Discovery
     {
         if (GetDeclared(context, KnownTypes.Agent, ct) is not { } type) return null;
 
+        var documented = context.Node.SyntaxTree.Options.DocumentationMode != DocumentationMode.None;
         var constructors = ConstructorChains.GetBlocks(type, context.SemanticModel.Compilation, ct);
-        return AgentParser.Parse(type, constructors, Reporter.None, ct);
+
+        return AgentParser.Parse(type, constructors, documented, Reporter.None, ct);
     }
 
     // D45: the module registers the assembly's JSON contexts, which tools ask before the defaults

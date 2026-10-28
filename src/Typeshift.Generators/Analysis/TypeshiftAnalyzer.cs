@@ -167,22 +167,34 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
                 .ThenBy(operation => operation.Syntax.SpanStart)
                 .ToList();
 
+            var documented = type.DeclaringSyntaxReferences
+                .Any(reference => reference.SyntaxTree.Options.DocumentationMode != DocumentationMode.None);
+
+            IReadOnlyList<(ToolModel Tool, IInvocationOperation AddTool)> declarations;
+
             if (baseType == "Agent")
             {
-                if (AgentParser.Parse(type, ordered, providerIdType, reporter, ct, out var uses) is { } agent)
+                var agent = AgentParser.Parse(
+                    type,
+                    ordered,
+                    documented,
+                    providerIdType,
+                    reporter,
+                    ct,
+                    out var uses,
+                    out declarations);
+
+                if (agent is not null)
                 {
                     kinds.Add((agent.Kind, type));
                     found.Agents.Add(new FoundAgent(type, agent, uses));
                 }
-
-                return;
             }
-
-            var documented = type.DeclaringSyntaxReferences
-                .Any(reference => reference.SyntaxTree.Options.DocumentationMode != DocumentationMode.None);
-
-            var toolset = ToolsetParser.Parse(type, ordered, documented, reporter, ct, out var declarations);
-            if (toolset is not null) found.Toolsets.Add(Catalog.Summarize(toolset));
+            else
+            {
+                var toolset = ToolsetParser.Parse(type, ordered, documented, reporter, ct, out declarations);
+                if (toolset is not null) found.Toolsets.Add(Catalog.Summarize(toolset));
+            }
 
             foreach (var (tool, addTool) in declarations)
             {
@@ -510,7 +522,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             _ => null
         };
 
-    // D37: two toolsets an agent uses, of this assembly, a reference or the library's built-ins, may share a tool name
+    // D37: two toolsets an agent uses, of this assembly, a reference or the library's built-ins, may share a tool name,
+    // and so may a toolset and the agent's own tools
     private static void ReportNamesOfferedTwice(
         CompilationAnalysisContext context,
         FoundAgent agent,
@@ -520,7 +533,9 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             .SelectMany(use => toolsets.Where(toolset => toolset.Type == use.Toolset)
                 .Take(1)
                 .SelectMany(toolset => Catalog.Offered(use, toolset)))
-            .GroupBy(tool => tool.Name)
+            .Select(tool => tool.Name)
+            .Concat(agent.Model.Tools.Select(tool => tool.Name))
+            .GroupBy(name => name)
             .Where(group => group.Count() > 1);
 
         foreach (var name in offered)

@@ -29,9 +29,6 @@ internal static class ToolsetParser
         CancellationToken ct,
         out IReadOnlyList<(ToolModel Tool, IInvocationOperation AddTool)> declarations)
     {
-        var declared = new List<(ToolModel Tool, IInvocationOperation AddTool)>();
-        declarations = declared;
-
         var notPartial = toolset.GetNotPartial(ct);
 
         if (notPartial is not null)
@@ -43,13 +40,29 @@ internal static class ToolsetParser
         if (unreachable is not null)
             reporter.Report(Descriptors.Unreachable, toolset.Locations.FirstOrDefault(), toolset.Name, unreachable);
 
-        var tools = new List<ToolModel>();
+        declarations = ParseTools(toolset, constructors, documented, reporter, ct);
+        var tools = declarations.Select(declaration => declaration.Tool).ToEquatableArray();
+
+        return notPartial is null
+            ? new ToolsetModel(TypeModels.From(toolset), isReachable, tools)
+            : null;
+    }
+
+    // The tools a toolset or an agent declares in its constructors; a tool that clashes is reported and left out
+    public static IReadOnlyList<(ToolModel Tool, IInvocationOperation AddTool)> ParseTools(
+        INamedTypeSymbol owner,
+        IEnumerable<IOperation> constructors,
+        bool documented,
+        Reporter reporter,
+        CancellationToken ct)
+    {
+        var declared = new List<(ToolModel Tool, IInvocationOperation AddTool)>();
 
         foreach (var addTool in ConstructorChains.GetInvocations(constructors).Where(IsAddTool))
         {
-            if (ParseTool(addTool, toolset, documented, reporter, ct) is not { } tool) continue;
+            if (ParseTool(addTool, owner, documented, reporter, ct) is not { } tool) continue;
 
-            if (tools.Any(offered => Clashes(offered, tool)))
+            if (declared.Any(offered => Clashes(offered.Tool, tool)))
             {
                 reporter.Report(
                     Descriptors.DuplicateToolName,
@@ -59,7 +72,7 @@ internal static class ToolsetParser
                 continue;
             }
 
-            if (ClashingMember(toolset, tool) is { } member)
+            if (ClashingMember(owner, tool) is { } member)
             {
                 reporter.Report(
                     Descriptors.GeneratedNameClash,
@@ -69,32 +82,31 @@ internal static class ToolsetParser
                 continue;
             }
 
-            tools.Add(tool);
             declared.Add((tool, addTool));
         }
 
-        return notPartial is null
-            ? new ToolsetModel(TypeModels.From(toolset), isReachable, tools.ToEquatableArray())
-            : null;
+        return declared;
     }
 
     public static bool IsAddTool(IInvocationOperation invocation) =>
-        invocation.TargetMethod.Name == "AddTool" && invocation.TargetMethod.ContainingType.Is(KnownTypes.Toolset);
+        invocation.TargetMethod.Name == "AddTool"
+        && (invocation.TargetMethod.ContainingType.Is(KnownTypes.Toolset)
+            || invocation.TargetMethod.ContainingType.Is(KnownTypes.Agent));
 
     // get_v2 and get_v_2 differ, but both generate CreateGetV2
     private static bool Clashes(ToolModel offered, ToolModel tool) =>
         offered.Name == tool.Name || Names.ToPascalCase(offered.Name) == Names.ToPascalCase(tool.Name);
 
     // The analyzer sees the generated members too; only the user's own can clash
-    private static ISymbol? ClashingMember(INamedTypeSymbol toolset, ToolModel tool) =>
+    private static ISymbol? ClashingMember(INamedTypeSymbol owner, ToolModel tool) =>
         Names.ToolsetMembers(tool.Name, tool.Settings?.HasConfigurable is true)
-            .SelectMany(name => toolset.GetMembers(name))
+            .SelectMany(name => owner.GetMembers(name))
             .FirstOrDefault(member => member.DeclaringSyntaxReferences
                 .Any(reference => !Names.IsGenerated(reference.SyntaxTree)));
 
     private static ToolModel? ParseTool(
         IInvocationOperation addTool,
-        INamedTypeSymbol toolset,
+        INamedTypeSymbol owner,
         bool documented,
         Reporter reporter,
         CancellationToken ct)
@@ -141,7 +153,7 @@ internal static class ToolsetParser
             return null;
         }
 
-        var settings = chain.SettingsCall is null ? null : ParseSettings(chain, toolset, reporter, ct);
+        var settings = chain.SettingsCall is null ? null : ParseSettings(chain, owner, reporter, ct);
         if (chain.SettingsCall is not null && settings is null) return null;
 
         var docs = XmlDocs.Read(method, ct);
@@ -256,7 +268,7 @@ internal static class ToolsetParser
 
     private static SettingsModel? ParseSettings(
         ToolChain chain,
-        INamedTypeSymbol toolset,
+        INamedTypeSymbol owner,
         Reporter reporter,
         CancellationToken ct)
     {
@@ -269,12 +281,12 @@ internal static class ToolsetParser
             return null;
         }
 
-        // The overrides, the factories and the agents name the settings wherever the toolset can be named
-        var reachable = toolset.IsEffectivelyPublic() ? type.IsEffectivelyPublic() : type.IsVisibleInAssembly();
+        // The overrides, the factories and the agents name the settings wherever the toolset or the agent can be named
+        var reachable = owner.IsEffectivelyPublic() ? type.IsEffectivelyPublic() : type.IsVisibleInAssembly();
 
         if (!reachable)
         {
-            reporter.Report(Descriptors.SettingsLessAccessible, settingsName, type.Name, toolset.Name);
+            reporter.Report(Descriptors.SettingsLessAccessible, settingsName, type.Name, owner.Name);
             return null;
         }
 

@@ -63,6 +63,7 @@ rewrite.
 | new | Structured output and the raw path | `AgentRunTests.Given_A_Result_Type_The_Run_Returns_The_Models_Json_Typed`, `..._Given_Resolved_Options_The_Created_Client_Runs_The_Agent` |
 | new | A run without a model or a provider fails, saying how to fix it | `AgentRunTests.Given_No_Model_The_Run_Fails_Saying_How_To_Set_One`, `AddTypeshiftTests.Given_No_Chat_Client_Provider_A_Run_Fails_Naming_The_Registration` |
 | new | Disposing a run's client leaves the provider's client alone | `AgentRunTests.Given_A_Run_The_Providers_Client_Outlives_It` |
+| new | An agent's own tools (`AddTool` in its constructor) are offered after its toolsets' tools, with settings, approval and the analyzer's tool rules (D57) | `OwnToolsTests`, `AgentGenerationTests.Given_Tools_Of_The_Agents_Own_They_Are_Generated_In_It_And_Offered_After_The_Toolsets`, `..._Given_Tools_Of_The_Agents_Own_The_Generated_Code_Compiles_Without_Warnings`, `DiagnosticTests.Given_An_Agents_Tool_Named_Like_A_Toolsets_TSH007_Is_Reported_On_The_Agents`, `..._Given_An_Agents_Tool_Of_An_Instance_Method_TSH003_Is_Reported_On_The_Argument`, `..._Given_A_Sub_Agent_With_A_Tool_Of_Its_Own_That_Needs_Approval_TSH024_Is_Reported_On_The_Use` |
 | new | The XML docs of a parameter's type describe its properties; the module registers a marked class's docs (D55) | `AddTypeshiftTests.Given_Xml_Docs_On_A_Parameters_Type_Its_Schema_Describes_Its_Properties`, `ToolsetGenerationTests.Given_A_Schema_Annotations_Class_The_Module_Registers_Its_Docs`, `..._Given_A_Schema_Annotations_Class_That_Is_Not_Partial_The_Module_Leaves_It_Out` |
 | new | Toolsets of referenced assemblies: stamps, settings, JSON contexts (D7, D45) | `AgentRunTests.Given_A_Toolset_Of_A_Referenced_Assembly_Its_Tool_Runs_With_Its_Settings`, `AddTypeshiftTests.Given_A_Json_Context_In_A_Toolsets_Assembly_Tools_Ask_It_Before_The_Defaults`, `AgentGenerationTests` |
 | new | An agent's output is generated again only when what it offers changes | `IncrementalTests` |
@@ -144,6 +145,8 @@ rewrite.
   and the use still escapes, and only a sandbox stops that. `edit_file` holds a file whole in memory and refuses
   files over 16 MB. Paths compare as the operating system opens them, which on Windows drops a last segment's
   trailing dots and spaces; CI runs on Linux, so that is untested.
+- **An agent's own tools across projects.** TSH007 compares an agent's own tools with the toolsets of referenced
+  projects, but not with the own tools of their agents, since no stamp carries those.
 - **Web fetch and private addresses.** The model picks the URL, and the host's `IWebFetch` decides which addresses
   it reaches. No fetcher ships with Typeshift.
 - **Shell.** `run_command` runs what the model sends. The root is its working directory but not a sandbox, and the

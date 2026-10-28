@@ -123,6 +123,26 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_An_Agents_Tool_Named_Like_A_Toolsets_TSH007_Is_Reported_On_The_Agents()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentToolNamedLikeAToolsets);
+
+        // Assert
+        run.Assert.Reports("TSH007", DiagnosticSeverity.Error, "AddTool(CloseDesk)");
+    }
+
+    [Fact]
+    public void Given_An_Agents_Tool_Of_An_Instance_Method_TSH003_Is_Reported_On_The_Argument()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentToolOfAnInstanceMethod);
+
+        // Assert
+        run.Assert.Reports("TSH003", DiagnosticSeverity.Error, "Close");
+    }
+
+    [Fact]
     public void Given_Two_Toolsets_With_A_Tool_Of_One_Name_TSH007_Is_Reported_On_The_Second()
     {
         // Act
@@ -602,6 +622,19 @@ public class DiagnosticTests : GeneratorTestBase
             .GetMessage()
             .Should()
             .Contain("WithDescription");
+    }
+
+    [Fact]
+    public void Given_A_Sub_Agent_With_A_Tool_Of_Its_Own_That_Needs_Approval_TSH024_Is_Reported_On_The_Use()
+    {
+        // Act
+        var run = Run(DiagnosticSources.SubAgentWithOwnToolNeedingApproval);
+
+        // Assert
+        run.Assert.Reports("TSH024", DiagnosticSeverity.Warning, "UseAgent<HelpAgent>")
+            .GetMessage()
+            .Should()
+            .Contain("close");
     }
 
     [Fact]

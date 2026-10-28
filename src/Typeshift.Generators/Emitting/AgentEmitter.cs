@@ -70,6 +70,11 @@ internal static class AgentEmitter
 
                 writer.Line();
                 WriteDeclaration(writer, output, configured);
+
+                if (agent.Tools.Count == 0) return;
+
+                writer.Line();
+                ToolsetEmitter.WriteTools(writer, agent.Tools);
             },
             writer =>
             {

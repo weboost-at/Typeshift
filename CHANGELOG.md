@@ -7,6 +7,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- An agent may declare tools of its own: `AddTool(method)` in its constructor takes a toolset tool's chain and a
+  static method of the agent, which may be private. The agent offers them after its toolsets' tools, with
+  `Configure{Tool}()`, configurable settings in its `Settings`, approval and every analyzer check.
 - `System.Text.Json` and Newtonsoft.Json serialize a `ConversationEntry` as it is, with no settings: the first writes
   its stored JSON, the second that JSON as a string. Newtonsoft.Json used to read entries back with their contents
   emptied.

@@ -97,6 +97,15 @@ public abstract class Agent
     /// <returns>The chain of chat options.</returns>
     protected ChatOptionsBuilder WithChatOptions() => new(this);
 
+    // D4: the generator reads the chain at compile time; at runtime it declares nothing
+    /// <summary>
+    /// Declares a tool of this agent's own, backed by a static method of the agent, and offers it after the tools of
+    /// the toolsets. It takes the same chain as a toolset's tool: its name, description, settings and approval.
+    /// </summary>
+    /// <param name="method">The method group: <c>AddTool(LookUpOrder)</c>.</param>
+    /// <returns>A chain that renames, describes, marks and configures the tool.</returns>
+    protected ToolBuilder AddTool(Delegate method) => ToolBuilder.Instance;
+
     /// <summary>
     /// Offers the tools of a toolset: all of them, or those <c>Include</c> picks, or all but those <c>Exclude</c>
     /// picks.
