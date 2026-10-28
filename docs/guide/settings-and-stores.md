@@ -121,7 +121,8 @@ works, tools included. Every call that loads or saves, such as a run with either
 ## Agent settings
 
 A settings id stands for whatever you decide: a customer, a team, a user, or a settings profile of your own. Under one
-settings id, each agent has its own document, because each agent's `Settings` is its own kind.
+settings id, each agent has its own document, because each agent's `Settings` is its own kind, so a store keys
+documents by id and kind together.
 
 `ConfigureAsync` loads an agent's settings, applies your change and saves them. When another save came in between, it
 loads them again and reapplies your change until its save wins, up to ten times; then it throws the store's
