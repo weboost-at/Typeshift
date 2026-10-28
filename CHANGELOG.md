@@ -18,6 +18,8 @@ All notable changes to this project are documented here. The format follows
   store handles strings and numbers only. A store moves over by taking `kind`, `json` and `version` where it called
   `TData.Kind`, `Serialize()` and `TData.Version`, and returning `new StoredDocument(json, version, revision)`; the
   stored data stays the same.
+- The package icon and the docs site's touch icon are a white tile with an ink and a red chevron, where the tile was
+  ink with a white and a red chevron.
 
 ## [0.1.0-alpha.3] - 2026-10-27
 
