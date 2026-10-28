@@ -20,7 +20,7 @@ section names the declaration that adds a member.
 ### `{Tool}Overrides`
 
 **Triggered by** a tool with at least one configurable settings member. The record is a `public sealed record`
-nested in the toolset.
+nested in the toolset, or in the agent for a tool of the agent's own.
 
 `TicketToolset.SearchTicketsOverrides`, with `int? Limit` and `bool? IncludeClosed`, comes from this declaration:
 
@@ -187,6 +187,12 @@ run of the agent.
 
 A tool the agent does not offer has no `Configure{Tool}()`, so configuring it does not compile. A `Configure{Tool}()`
 the agent declares itself replaces the generated one.
+
+### Tools of the agent's own
+
+**Triggered by** an `AddTool(...)` in the agent's constructor. The agent gets the tool's `{Tool}Overrides`,
+`Create{Tool}` and `{Tool}Function`, as a toolset would, but no tool list and no stamp, so no other agent offers the
+tool.
 
 ### `{Agent}HostExtensions`
 

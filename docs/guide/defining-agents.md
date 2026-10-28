@@ -95,6 +95,50 @@ of another toolset is not on that list, so picking it does not compile. Use each
 ([TSH025](./diagnostics.md#tsh025)). A toolset from another project needs the Typeshift package in that project
 ([TSH019](./diagnostics.md#tsh019)).
 
+## Add a tool of the agent's own
+
+A tool that only one agent needs can live in the agent itself, without a toolset of its own. Declare it with `AddTool`
+in the agent's constructor, backed by a static method of the agent:
+
+<!-- snippet: agent-own-tool -->
+<a id='snippet-agent-own-tool'></a>
+```cs
+internal partial class BillingAgent : Agent
+{
+    public BillingAgent()
+    {
+        WithDescription("Settles charges and invoices.");
+
+        WithChatOptions()
+            .WithModel("openai", "gpt-5-mini");
+
+        AddTool(GetToday)
+            .ReadOnly();
+    }
+
+    /// <summary>
+    /// Returns today's date, to tell whether an invoice is overdue.
+    /// </summary>
+    private static DateOnly GetToday(IServiceProvider services) =>
+        DateOnly.FromDateTime(services.GetRequiredService<TimeProvider>().GetLocalNow().DateTime);
+
+    protected override string GetInstructions() => "Settle the customer's charges and invoices.";
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/BillingAgent.cs#L5-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-own-tool' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- The tool takes the same chain as a toolset's tool, such as `ReadOnly()` here or `RequiresApproval()`, and follows
+  the same rules for its [name and description](./toolsets.md#names-and-descriptions),
+  [parameters](./toolsets.md#parameters) and [results](./toolsets.md#results), so `GetToday` becomes `get_today`.
+- The method may be private, since only the agent's generated code calls it.
+- The agent offers its own tools after the tools of its toolsets. A tool with settings gets a `Configure{Tool}()`,
+  and its configurable members join the agent's `Settings`, as a toolset's tool does.
+- Its name must be unique among all your tools ([TSH007](./diagnostics.md#tsh007)).
+
+Move the tool into a toolset once a second agent needs it, because no other agent can offer this agent's tools, and
+`Include` and `Exclude` pick only from toolsets.
+
 ## Configurable chat options
 
 `Configurable(o => o.Temperature)` marks an option that stored settings and runs may change, whether the code sets it

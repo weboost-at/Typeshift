@@ -45,7 +45,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | **Steering** | Input a user sends while a run works, which you hand to that run with `ConversationTracker.TrySteer`. See [Steering](./conversations.md#steering). |
 | **Store** | The one `ITypeshiftStore` your app registers with `WithStore<T>()`, which keeps settings and conversations. See [Settings and stores](./settings-and-stores.md). |
 | **Sub-agent** | Another agent offered as a tool with `UseAgent<T>()`. It works in a context of its own and answers with text. |
-| **Tool** | A static method a toolset declares with `AddTool`, offered to the model as a generated `AIFunction`. |
+| **Tool** | A static method that a toolset or an agent declares with `AddTool`, offered to the model as a generated `AIFunction`. |
 | **Tool list** | `ToolList<TToolset>`, the type `Include` and `Exclude` pick tools from. The generated `{Toolset}ToolList` gives it one property per tool. |
 | **Toolset** | A `partial` class deriving from `Toolset` that declares the tools of one domain. See [Toolsets](./toolsets.md). |
 
