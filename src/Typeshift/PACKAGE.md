@@ -19,7 +19,8 @@ their descriptions from XML docs, which the compiler reads only then, and withou
 - Tools from static methods, with JSON schemas from their parameters and XML docs.
 - Tool settings that layer code defaults, the agent's code, its stored settings and the run.
 - A generated `Settings` record per agent, holding exactly what may change at runtime.
-- One store interface, `ITypeshiftStore<TId>`, with the id type you already use; without a store, agents run from code.
+- Store interfaces for settings and conversations, `ISettingsStore<TId>` and `IConversationStore<TId>`, in one class
+  or two, with the id type you already use; without a store, agents run from code.
 - Runs that return Microsoft.Extensions.AI's `ChatResponse`, streaming and structured output included.
 - Conversations stored step by step: resume after a crash, steer a run going on, watch it live.
 - Tool approval with standing approvals and rules, and built-in plan and auto modes.

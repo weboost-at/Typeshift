@@ -1,6 +1,7 @@
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Compaction.Support;
 using Typeshift.Tests.Conversations.Support;
+using Typeshift.Tests.Persistence.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -104,6 +105,67 @@ public class ConversationStoreTests : AgentTestBase
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*WithStore*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_Of_Settings_Alone_A_Run_With_A_Conversation_Fails_Naming_IConversationStore()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithStore<SettingsOnlyStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+
+        // Act
+        var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*IConversationStore*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_Of_Settings_And_One_Of_Conversations_A_Run_Uses_Each()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        services.AddTypeshift()
+            .WithStore<SettingsOnlyStore>()
+            .WithStore<CountingLoadStore>()
+            .WithChatClientProvider<ScriptedChatClientProvider>();
+
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var conversations = provider.GetRequiredService<CountingLoadStore>();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+
+        var stored = new ProbeAgent.Settings
+        {
+            Provider = Data.Agent.Provider,
+            Model = Data.Agent.Model
+        };
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        await host.SaveSettingsAsync(Data.Persistence.SettingsId, stored, 0, Ct);
+
+        // Act
+        await host.RunAsync(
+            Data.Tool.Question,
+            Data.Persistence.SettingsId,
+            conversationId: Data.Agent.ConversationId,
+            ct: Ct);
+
+        var entries = await conversations.LoadConversationAsync(Data.Agent.ConversationId, Ct);
+
+        // Assert
+        Models.Should().Equal(new ProvidedModel(Data.Agent.Provider, Data.Agent.Model));
+
+        entries.Should().NotBeEmpty();
     }
 
     [Fact]
