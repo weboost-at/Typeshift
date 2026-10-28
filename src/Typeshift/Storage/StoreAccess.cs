@@ -34,13 +34,13 @@ internal sealed class StoreAccess<TId>(IServiceProvider services, Func<string, T
 
     public async Task<Stored<TData>?> LoadAsync<TData>(object id, CancellationToken ct)
         where TData : class, IStorable<TData> =>
-        await Store.LoadAsync(TData.Kind, (TId)id, ct) is { } document
-            ? new Stored<TData>(TData.Deserialize(document.Json, document.Version), document.Revision)
+        await Store.LoadAtomAsync((TId)id, TData.Kind, ct) is { } atom
+            ? new Stored<TData>(TData.Deserialize(atom.Json, atom.Version), atom.Revision)
             : null;
 
     public Task<long> SaveAsync<TData>(object id, TData data, long revision, CancellationToken ct)
         where TData : class, IStorable<TData> =>
-        Store.SaveAsync(TData.Kind, (TId)id, data.Serialize(), TData.Version, revision, ct);
+        Store.SaveAtomAsync((TId)id, TData.Kind, data.Serialize(), TData.Version, revision, ct);
 
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(object conversation, CancellationToken ct) =>
         Store.LoadConversationAsync((TId)conversation, ct);

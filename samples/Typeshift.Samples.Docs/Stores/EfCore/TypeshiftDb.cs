@@ -5,17 +5,17 @@ namespace Typeshift.Samples.Stores.EfCore;
 // begin-snippet: ef-core-db
 internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbContext(options)
 {
-    public DbSet<DocumentRow> Documents => Set<DocumentRow>();
+    public DbSet<AtomRow> Atoms => Set<AtomRow>();
 
     public DbSet<EntryRow> Entries => Set<EntryRow>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
-        model.Entity<DocumentRow>()
-            .HasKey(document => new { document.Kind, document.Id });
+        model.Entity<AtomRow>()
+            .HasKey(atom => new { atom.Id, atom.Kind });
 
-        model.Entity<DocumentRow>()
-            .Property(document => document.Revision)
+        model.Entity<AtomRow>()
+            .Property(atom => atom.Revision)
             .IsConcurrencyToken();
 
         model.Entity<EntryRow>()
@@ -26,11 +26,11 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
     }
 }
 
-internal sealed class DocumentRow
+internal sealed class AtomRow
 {
-    public required string Kind { get; init; }
-
     public required int Id { get; init; }
+
+    public required string Kind { get; init; }
 
     public required int Version { get; set; }
 

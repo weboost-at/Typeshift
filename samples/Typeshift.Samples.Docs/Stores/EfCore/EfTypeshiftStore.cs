@@ -5,18 +5,18 @@ namespace Typeshift.Samples.Stores.EfCore;
 // begin-snippet: ef-core-store
 internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) : ITypeshiftStore
 {
-    public async Task<StoredDocument?> LoadAsync(string kind, int id, CancellationToken ct)
+    public async Task<Atom?> LoadAtomAsync(int id, string kind, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
-        return await db.Documents.FindAsync([kind, id], ct) is { } row
-            ? new StoredDocument(row.Json, row.Version, row.Revision)
+        return await db.Atoms.FindAsync([id, kind], ct) is { } row
+            ? new Atom(row.Json, row.Version, row.Revision)
             : null;
     }
 
-    public async Task<long> SaveAsync(
-        string kind,
+    public async Task<long> SaveAtomAsync(
         int id,
+        string kind,
         string json,
         int version,
         long revision,
@@ -24,10 +24,10 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
-        var row = new DocumentRow
+        var row = new AtomRow
         {
-            Kind = kind,
             Id = id,
+            Kind = kind,
             Version = version,
             Revision = revision + 1,
             Json = json
@@ -38,7 +38,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
 
         // The update only matches the row while it still has the revision the caller loaded
         if (revision > 0)
-            entry.Property(document => document.Revision).OriginalValue = revision;
+            entry.Property(atom => atom.Revision).OriginalValue = revision;
 
         // A conflict is another save that won; any other failure is the database's and surfaces as it is
         try
@@ -52,16 +52,16 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         }
         catch (DbUpdateException exception) when (revision == 0)
         {
-            if (!await ExistsAsync(kind, id, ct)) throw;
+            if (!await ExistsAsync(id, kind, ct)) throw;
 
             throw new StoreConflictException($"{kind} {id} was saved first by another.", exception);
         }
     }
 
-    private async Task<bool> ExistsAsync(string kind, int id, CancellationToken ct)
+    private async Task<bool> ExistsAsync(int id, string kind, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
-        return await db.Documents.AnyAsync(row => row.Kind == kind && row.Id == id, ct);
+        return await db.Atoms.AnyAsync(row => row.Id == id && row.Kind == kind, ct);
     }
 
     public async Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(int conversation, CancellationToken ct)

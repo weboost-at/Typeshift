@@ -7,11 +7,17 @@ public sealed class CountingLoadStore : ITypeshiftStore
 
     public int WholeLoads { get; private set; }
 
-    public Task<StoredDocument?> LoadAsync(string kind, Guid id, CancellationToken ct) =>
-        _store.LoadAsync(kind, id, ct);
+    public Task<Atom?> LoadAtomAsync(Guid id, string kind, CancellationToken ct) =>
+        _store.LoadAtomAsync(id, kind, ct);
 
-    public Task<long> SaveAsync(string kind, Guid id, string json, int version, long revision, CancellationToken ct) =>
-        _store.SaveAsync(kind, id, json, version, revision, ct);
+    public Task<long> SaveAtomAsync(
+        Guid id,
+        string kind,
+        string json,
+        int version,
+        long revision,
+        CancellationToken ct) =>
+        _store.SaveAtomAsync(id, kind, json, version, revision, ct);
 
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(Guid conversation, CancellationToken ct)
     {
