@@ -5,6 +5,14 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- `ITypeshiftStore.LoadAsync` and `SaveAsync` are no longer generic. They take a document's id and kind, a save its
+  JSON and version too, and a load returns a `StoredDocument`. Typeshift serializes the agents' settings itself, so a
+  store handles strings and numbers only. A store moves over by taking `kind`, `json` and `version` where it called
+  `TData.Kind`, `Serialize()` and `TData.Version`, and returning `new StoredDocument(json, version, revision)`; the
+  stored data stays the same.
+
 ## [0.1.0-alpha.3] - 2026-10-27
 
 ### Added

@@ -12,7 +12,7 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.Entity<DocumentRow>()
-            .HasKey(document => new { document.Kind, document.Id });
+            .HasKey(document => new { document.Id, document.Kind });
 
         model.Entity<DocumentRow>()
             .Property(document => document.Revision)
@@ -28,9 +28,9 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
 
 internal sealed class DocumentRow
 {
-    public required string Kind { get; init; }
-
     public required int Id { get; init; }
+
+    public required string Kind { get; init; }
 
     public required int Version { get; set; }
 
