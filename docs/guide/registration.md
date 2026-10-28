@@ -130,8 +130,10 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 | `WithToolMiddleware<TMiddleware>()` | One more `IToolMiddleware`. The first registered is the outermost. | Scoped | Wrapping every tool call. |
 | `WithMcpToolProvider<TProvider>()` | `IMcpToolProvider` | Scoped | Agents with `UseMcpServer`. |
 | `WithFileSystemRoot<TRoot>()` | `IFileSystemRoot` | Scoped | `FileSystemToolset`, `ShellToolset`. |
+| `WithFileSystemRoot(string path)` | `IFileSystemRoot` of one folder | Singleton | `FileSystemToolset`, `ShellToolset`. |
 | `WithWebSearch<TSearch>()` | `IWebSearch` | Scoped | `web_search`. |
 | `WithWebFetch<TFetch>()` | `IWebFetch` | Scoped | `web_fetch`. |
+| `WithWebFetch()` | `IWebFetch`, the fetcher of public pages that ships with Typeshift | Singleton | `web_fetch`. |
 
 Scoped services resolve from the run's scope, so they can differ per request and use the current customer's
 credentials, folder or rules, for example.

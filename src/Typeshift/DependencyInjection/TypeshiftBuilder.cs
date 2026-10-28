@@ -129,6 +129,17 @@ public sealed class TypeshiftBuilder
     }
 
     /// <summary>
+    /// Registers one folder as the root the file system and shell tools stay within, the same for every run.
+    /// </summary>
+    /// <param name="path">The folder's path.</param>
+    /// <returns>The same chain.</returns>
+    public TypeshiftBuilder WithFileSystemRoot(string path)
+    {
+        _services.AddSingleton<Toolsets.IFileSystemRoot>(new Toolsets.FolderRoot(path));
+        return this;
+    }
+
+    /// <summary>
     /// Registers the search engine behind <c>web_search</c>, scoped.
     /// </summary>
     /// <typeparam name="TSearch">The search engine.</typeparam>
@@ -151,6 +162,20 @@ public sealed class TypeshiftBuilder
         where TFetch : class, Toolsets.IWebFetch
     {
         _services.AddScoped<Toolsets.IWebFetch, TFetch>();
+        return this;
+    }
+
+    /// <summary>
+    /// Registers the fetcher that ships with Typeshift behind <c>web_fetch</c>, a singleton. It connects to public
+    /// addresses only, follows up to five redirects, and returns a page's text, read within 30 seconds and 4 MiB.
+    /// </summary>
+    /// <returns>The same chain.</returns>
+    public TypeshiftBuilder WithWebFetch()
+    {
+        // D37: one client and its connections for the app's lifetime, disposed with the container
+        _services.AddSingleton<Toolsets.IWebFetch>(provider =>
+            new Toolsets.PublicWebFetch(provider.GetService<TimeProvider>() ?? TimeProvider.System));
+
         return this;
     }
 }

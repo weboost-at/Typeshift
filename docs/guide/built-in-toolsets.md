@@ -67,9 +67,9 @@ rounds of tool calls and compact the history at 150,000 input tokens, which make
 | Toolset | Tools | Needs |
 |---|---|---|
 | `TodoToolset` | `write_todos` | nothing |
-| `FileSystemToolset` | `read_file`, `list_files`, `search_files`, `write_file`, `edit_file`, `delete_file` | `WithFileSystemRoot<T>()` |
-| `ShellToolset` | `run_command` | `WithFileSystemRoot<T>()` |
-| `WebToolset` | `web_search`, `web_fetch` | `WithWebSearch<T>()`, `WithWebFetch<T>()` |
+| `FileSystemToolset` | `read_file`, `list_files`, `search_files`, `write_file`, `edit_file`, `delete_file` | `WithFileSystemRoot(path)` or `WithFileSystemRoot<T>()` |
+| `ShellToolset` | `run_command` | `WithFileSystemRoot(path)` or `WithFileSystemRoot<T>()` |
+| `WebToolset` | `web_search`, `web_fetch` | `WithWebSearch<T>()`, and `WithWebFetch()` or `WithWebFetch<T>()` |
 
 Register these services with the `With...` calls on the chain that `AddTypeshift()` returns. A tool whose service is
 missing fails its call with a message that names the registration. `WithApprovalRule<ShellGuard>()` adds an
@@ -83,14 +83,14 @@ services.AddSingleton<HttpClient>();
 services.AddTypeshift()
     .WithFileSystemRoot<CustomerWorkspace>()
     .WithWebSearch<SearchApi>()
-    .WithWebFetch<HttpWebFetch>()
+    .WithWebFetch()
     .WithApprovalRule<ShellGuard>();
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L87-L95' title='Snippet source file'>snippet source</a> | <a href='#snippet-built-in-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The sample's `HttpWebFetch` reads pages with a plain `HttpClient` and checks no address, so it is not safe as it
-stands: your fetcher must refuse private addresses, as the warning under [Web](#web) explains.
+`WithWebFetch()` registers the fetcher that ships with Typeshift, which reads public pages only
+([Fetching pages](#fetching-pages)).
 
 ## Todos
 
@@ -113,6 +113,8 @@ internal sealed class CustomerWorkspace(ICurrentCustomer customer) : IFileSystem
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/CustomerWorkspace.cs#L5-L10' title='Snippet source file'>snippet source</a> | <a href='#snippet-file-system-root' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
+
+When every run works in the same folder, `WithFileSystemRoot("/srv/workspace")` registers it, and you write no class.
 
 Paths are relative to the root. The tools refuse every absolute path, every path with `..` and every path through a
 link that leads outside the root, and tell the model why.
@@ -162,9 +164,8 @@ runs.
 
 ## Web
 
-`web_search` and `web_fetch` call the services your app registers. Typeshift ships no search or fetch provider, so you
-implement `IWebSearch` and `IWebFetch` over the service you choose, such as Tavily, Firecrawl, Brave or a plain
-`HttpClient`. This search calls a JSON API:
+`web_search` and `web_fetch` call the services your app registers. Typeshift ships no search provider, so you implement
+`IWebSearch` over the service you choose, such as Tavily, Brave or Bing. This search calls a JSON API:
 
 <!-- snippet: web-search -->
 <a id='snippet-web-search'></a>
@@ -185,10 +186,26 @@ internal sealed class SearchApi(HttpClient http) : IWebSearch
 
 Both tools are `ReadOnly()`, so plan mode offers them. `web_fetch` takes absolute http and https URLs only.
 
-::: danger Your fetcher must refuse private addresses
+### Fetching pages
+
+`WithWebFetch()` registers the fetcher that ships with Typeshift. It reads a page and returns its title and its text:
+
+- It connects only to public addresses. It checks the address it connects to, after the DNS lookup and again for
+  each of up to five redirects, so a host name that leads into your network is refused too.
+- It drops scripts, styles and comments, puts each block of the page on a line of its own and decodes entities. Text
+  of another type, such as JSON or CSV, comes back as it is, and an image or another binary fails the call.
+- It reads for at most 30 seconds and the first 4 MiB, and returns at most 65,536 characters.
+- It connects directly, never through a proxy, since through one it would check the proxy's address instead of the
+  page's.
+
+To read pages another way, such as through Firecrawl or a headless browser, implement `IWebFetch` and register it
+with `WithWebFetch<T>()` instead.
+
+::: danger A fetcher of your own must refuse private addresses
 The model picks the URLs `web_fetch` reads. A fetcher on your app's network must refuse loopback, private and
 link-local addresses where it connects (`SocketsHttpHandler.ConnectCallback`), or the model reads the cloud's
-metadata service. Check the address there, not the host name, which a DNS answer can change.
+metadata service. Check the address there, not the host name, which a DNS answer can change. The fetcher of
+`WithWebFetch()` does.
 :::
 
 ::: danger What the web returns is untrusted

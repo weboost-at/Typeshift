@@ -2,7 +2,7 @@ namespace Typeshift.Toolsets;
 
 /// <summary>
 /// The folder the file system and shell tools stay within; resolved from the run's services, so it may differ per
-/// customer. Registered with <c>WithFileSystemRoot&lt;T&gt;()</c>.
+/// customer. Registered with <c>WithFileSystemRoot&lt;T&gt;()</c>, or <c>WithFileSystemRoot(path)</c> for one folder.
 /// </summary>
 public interface IFileSystemRoot
 {
@@ -11,6 +11,9 @@ public interface IFileSystemRoot
     /// </summary>
     string Path { get; }
 }
+
+// The root WithFileSystemRoot(path) registers, the same folder for every run
+internal sealed record FolderRoot(string Path) : IFileSystemRoot;
 
 // D37: a path the model sent, within the root: relative, without .., and through no link that leads outside. Paths
 // compare after every link on them is followed, one hop at a time and the root's own included, as the operating
@@ -28,7 +31,8 @@ internal static class FileSystemRoot
     {
         var root = services.GetService(typeof(IFileSystemRoot)) as IFileSystemRoot
             ?? throw new InvalidOperationException(
-                "The file system and shell tools need a root: call WithFileSystemRoot<T>() after AddTypeshift().");
+                "The file system and shell tools need a root: call WithFileSystemRoot(path) or WithFileSystemRoot<T>() "
+                + "after AddTypeshift().");
 
         var hops = 0;
         return Follow(Path.GetFullPath(root.Path), ref hops)

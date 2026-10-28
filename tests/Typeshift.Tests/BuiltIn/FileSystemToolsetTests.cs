@@ -1,6 +1,7 @@
 using Typeshift.Tests.BuiltIn.Support;
 using Typeshift.Toolsets;
 using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift.Tests.BuiltIn;
 
@@ -17,6 +18,23 @@ public class FileSystemToolsetTests : WorkspaceTestBase
 
         // Assert
         read.Should().Be("     2\ttwo\n[More lines follow from line 2.]");
+    }
+
+    [Fact]
+    public async Task Given_A_Root_Path_The_File_Tools_Work_Within_It()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithFileSystemRoot(Root);
+
+        await using var provider = services.BuildServiceProvider();
+        Write("notes.txt", "one");
+
+        // Act
+        var read = await FileSystemToolset.ReadFileAsync("notes.txt", Files, provider, ct: Ct);
+
+        // Assert
+        read.Should().Be("     1\tone\n");
     }
 
     [Theory]

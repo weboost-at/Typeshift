@@ -125,6 +125,8 @@ rewrite.
 | new | `run_command` reads a command's output to its end after the timeout kills it, and a second past it for what a process left behind writes (D37) | `ShellToolsetTests.Given_A_Process_Left_Behind_What_It_Writes_Just_After_The_Timeout_Is_Kept`, `..._Given_A_Command_That_Leaves_A_Process_Behind_It_Returns_At_The_Timeout` |
 | new | `delete_file` and `run_command` ask first; the three file readers are read-only (D37) | `FileSystemToolsetTests.Given_The_File_And_Shell_Tools_Those_That_Change_Things_Ask_And_The_Readers_Only_Read` |
 | new | The web tools refuse other schemes and name a missing registration (D37) | `WebToolsetTests` |
+| new | `WithWebFetch()` reads public pages only, as text, within a time and a size limit (D37) | `PublicWebFetchTests`, `WebToolsetTests.Given_The_Built_In_Fetcher_A_Loopback_Page_Is_Refused_Before_It_Connects` |
+| new | `WithFileSystemRoot(path)` roots the file and shell tools in one folder (D37) | `FileSystemToolsetTests.Given_A_Root_Path_The_File_Tools_Work_Within_It` |
 | new | A consumer's agent configures a built-in tool across the assembly boundary (D7, D37) | `FileSystemToolsetTests.Given_An_Agent_Using_The_Built_In_Toolset_Its_Configuration_Reaches_The_Tool` |
 | new | A reference with agents built with another provider id type is TSH021 (D56) | `DiagnosticTests.Given_A_Reference_With_Agents_Built_With_Another_Provider_Id_Type_TSH021_Is_Reported` |
 | new | A reference without agents has no id type to clash (D11) | `DiagnosticTests.Given_A_Reference_Of_Toolsets_Only_Built_With_Another_Id_Type_TSH021_Is_Not_Reported` |
@@ -144,8 +146,10 @@ rewrite.
   and the use still escapes, and only a sandbox stops that. `edit_file` holds a file whole in memory and refuses
   files over 16 MB. Paths compare as the operating system opens them, which on Windows drops a last segment's
   trailing dots and spaces; CI runs on Linux, so that is untested.
-- **Web fetch and private addresses.** The model picks the URL, and the host's `IWebFetch` decides which addresses
-  it reaches. No fetcher ships with Typeshift.
+- **Web fetch and private addresses.** The model picks the URL. The fetcher of `WithWebFetch()` connects only to
+  public addresses, checked where it connects, but treats NAT64 addresses (`64:ff9b::/96`) as public, whatever IPv4
+  address they embed. It never uses a proxy, so an app behind one writes its own `IWebFetch`, which decides which
+  addresses it reaches. No search engine ships with Typeshift.
 - **Shell.** `run_command` runs what the model sends. The root is its working directory but not a sandbox, and the
   tool requires approval unless a rule or auto mode answers.
 

@@ -2,7 +2,8 @@ namespace Typeshift.Toolsets;
 
 /// <summary>
 /// Searches and reads the web through the services the host registers: <see cref="IWebSearch"/> for
-/// <c>web_search</c>, <see cref="IWebFetch"/> for <c>web_fetch</c>. No provider ships with Typeshift.
+/// <c>web_search</c>, <see cref="IWebFetch"/> for <c>web_fetch</c>. <c>WithWebFetch()</c> registers a fetcher of public
+/// pages; no search engine ships with Typeshift.
 /// </summary>
 public sealed partial class WebToolset : Toolset
 {
@@ -44,7 +45,7 @@ public sealed partial class WebToolset : Toolset
     /// <returns>The page.</returns>
     public static Task<WebPage> WebFetchAsync(Uri url, IServiceProvider services, CancellationToken ct) =>
         url is { IsAbsoluteUri: true, Scheme: "http" or "https" }
-            ? Need<IWebFetch>(services, "WithWebFetch<T>()").FetchAsync(url, ct)
+            ? Need<IWebFetch>(services, "WithWebFetch()").FetchAsync(url, ct)
             : throw new ArgumentException($"'{url}' is no absolute http or https URL.", nameof(url));
 
     private static T Need<T>(IServiceProvider services, string registration) =>
@@ -70,9 +71,9 @@ public interface IWebSearch
 }
 
 /// <summary>
-/// The fetcher behind <c>web_fetch</c>: Firecrawl, a headless browser, a plain <c>HttpClient</c>. The model picks the
-/// URL, so a fetcher on the host's network refuses loopback, private and link-local addresses where it connects
-/// (<c>SocketsHttpHandler.ConnectCallback</c>), not by the host name, which a DNS answer can change.
+/// The fetcher behind <c>web_fetch</c>: the one <c>WithWebFetch()</c> registers, Firecrawl, a headless browser. The
+/// model picks the URL, so a fetcher on the host's network refuses loopback, private and link-local addresses where it
+/// connects (<c>SocketsHttpHandler.ConnectCallback</c>), not by the host name, which a DNS answer can change.
 /// </summary>
 public interface IWebFetch
 {

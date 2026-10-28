@@ -90,7 +90,7 @@ internal static class Registration
         services.AddTypeshift()
             .WithFileSystemRoot<CustomerWorkspace>()
             .WithWebSearch<SearchApi>()
-            .WithWebFetch<HttpWebFetch>()
+            .WithWebFetch()
             .WithApprovalRule<ShellGuard>();
         // end-snippet
     }
