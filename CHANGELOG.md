@@ -7,11 +7,11 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
-- `ITypeshiftStore.LoadAsync<TData>` and `SaveAsync<TData>` are now `LoadAtomAsync` and `SaveAtomAsync`, and no
-  longer generic. They take an id and a kind, a save the JSON and version too, and a load returns an `Atom`. Typeshift
-  serializes the agents' settings itself, so a store handles strings and numbers only. A store moves over by taking
-  `kind`, `json` and `version` where it called `TData.Kind`, `Serialize()` and `TData.Version`, and returning
-  `new Atom(json, version, revision)`; the stored data stays the same.
+- `ITypeshiftStore.LoadAsync` and `SaveAsync` are no longer generic. They take a document's id and kind, a save its
+  JSON and version too, and a load returns a `StoredDocument`. Typeshift serializes the agents' settings itself, so a
+  store handles strings and numbers only. A store moves over by taking `kind`, `json` and `version` where it called
+  `TData.Kind`, `Serialize()` and `TData.Version`, and returning `new StoredDocument(json, version, revision)`; the
+  stored data stays the same.
 
 ## [0.1.0-alpha.3] - 2026-10-27
 

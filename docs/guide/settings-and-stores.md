@@ -118,8 +118,8 @@ a `CancellationToken` last.
 
 | Method | Does |
 |---|---|
-| `LoadAtomAsync(id, kind)` | Returns the [atom](#what-a-store-keeps) of a kind under an id, its JSON, version and revision, or null. |
-| `SaveAtomAsync(id, kind, json, version, revision)` | Saves an atom's JSON and version if the stored revision is still `revision` (0 for none) and returns the new revision. Throws a `StoreConflictException` when another save came first. |
+| `LoadAsync(id, kind)` | Returns the document of a kind under an id as a `StoredDocument`, its JSON, version and revision, or null. |
+| `SaveAsync(id, kind, json, version, revision)` | Saves a document's JSON and version if the stored revision is still `revision` (0 for none) and returns the new revision. Throws a `StoreConflictException` when another save came first. |
 | `LoadConversationAsync(conversation)` | Returns a conversation's entries, oldest first. |
 | `LoadConversationSinceCompactionAsync(conversation)` | Returns the conversation's last [summary](./conversations.md#compaction) and the entries after it, which is all a run reads. By default it loads the whole conversation and drops what came before; override it to leave those entries in the database. |
 | `AppendConversationAsync(conversation, entry)` | Appends one entry: a run's input, a model response, tool results, steering input, the end of a run, or a compaction summary. |
@@ -128,26 +128,25 @@ Runs append as they go, so `AppendConversationAsync` is the hot path, and a row 
 
 ## What a store keeps
 
-An atom is one agent's `Settings` under a settings id, the unit `LoadAtomAsync` and `SaveAtomAsync` handle. Typeshift
-serializes the settings itself, so a store handles strings and numbers only. Next to the JSON, a store keeps three
-things:
+The documents that `LoadAsync` and `SaveAsync` handle are the agents' `Settings` records. Typeshift serializes them
+itself, so a store handles strings and numbers only. Next to the JSON, a store keeps three things:
 
 - **The kind**, a stable name. For an agent's settings it is the class name, so moving the agent to another namespace
   keeps its data. `WithStorageKind("support")` in the agent pins it, so renaming the class keeps the data too. For two
   agents with the same kind, the analyzer reports [TSH022](./diagnostics.md#tsh022).
-- **The version**, which `LoadAtomAsync` returns with the JSON. The agent refuses a version newer than its code's.
-  Migrating older atoms is your store's job, for example in `LoadAtomAsync`, which can return an older atom's JSON
-  migrated, with the version it now has.
+- **The version**, which `LoadAsync` returns with the JSON. The agent refuses a version newer than its code's.
+  Migrating older documents is your store's job, for example in `LoadAsync`, which can return an older document's
+  JSON migrated, with the version it now has.
 - **The revision**, for optimistic concurrency. A save names the revision it loaded, so it fails when another save came
   first.
 
 A settings id stands for whatever you decide: a customer, a team, a user, or a settings profile of your own. Under one
-settings id, each agent has its own atom, because each agent's `Settings` is its own kind, so a store keys atoms by
-id and kind together.
+settings id, each agent has its own document, because each agent's `Settings` is its own kind, so a store keys
+documents by id and kind together.
 
 ## An Entity Framework Core store
 
-The database keeps atoms keyed by id and kind, with the revision as a concurrency token, and conversation entries
+The database keeps documents keyed by id and kind, with the revision as a concurrency token, and conversation entries
 in order, each marked whether it is a summary:
 
 <!-- snippet: ef-core-db -->
@@ -155,17 +154,17 @@ in order, each marked whether it is a summary:
 ```cs
 internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbContext(options)
 {
-    public DbSet<AtomRow> Atoms => Set<AtomRow>();
+    public DbSet<DocumentRow> Documents => Set<DocumentRow>();
 
     public DbSet<EntryRow> Entries => Set<EntryRow>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
-        model.Entity<AtomRow>()
-            .HasKey(atom => new { atom.Id, atom.Kind });
+        model.Entity<DocumentRow>()
+            .HasKey(document => new { document.Id, document.Kind });
 
-        model.Entity<AtomRow>()
-            .Property(atom => atom.Revision)
+        model.Entity<DocumentRow>()
+            .Property(document => document.Revision)
             .IsConcurrencyToken();
 
         model.Entity<EntryRow>()
@@ -176,7 +175,7 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
     }
 }
 
-internal sealed class AtomRow
+internal sealed class DocumentRow
 {
     public required int Id { get; init; }
 
@@ -213,16 +212,16 @@ another save beat becomes a `StoreConflictException`, and any other database exc
 ```cs
 internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) : ITypeshiftStore
 {
-    public async Task<Atom?> LoadAtomAsync(int id, string kind, CancellationToken ct)
+    public async Task<StoredDocument?> LoadAsync(int id, string kind, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
-        return await db.Atoms.FindAsync([id, kind], ct) is { } row
-            ? new Atom(row.Json, row.Version, row.Revision)
+        return await db.Documents.FindAsync([id, kind], ct) is { } row
+            ? new StoredDocument(row.Json, row.Version, row.Revision)
             : null;
     }
 
-    public async Task<long> SaveAtomAsync(
+    public async Task<long> SaveAsync(
         int id,
         string kind,
         string json,
@@ -232,7 +231,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
-        var row = new AtomRow
+        var row = new DocumentRow
         {
             Id = id,
             Kind = kind,
@@ -246,7 +245,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
 
         // The update only matches the row while it still has the revision the caller loaded
         if (revision > 0)
-            entry.Property(atom => atom.Revision).OriginalValue = revision;
+            entry.Property(document => document.Revision).OriginalValue = revision;
 
         // A conflict is another save that won; any other failure is the database's and surfaces as it is
         try
@@ -269,7 +268,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
     private async Task<bool> ExistsAsync(int id, string kind, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
-        return await db.Atoms.AnyAsync(row => row.Id == id && row.Kind == kind, ct);
+        return await db.Documents.AnyAsync(row => row.Id == id && row.Kind == kind, ct);
     }
 
     public async Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(int conversation, CancellationToken ct)

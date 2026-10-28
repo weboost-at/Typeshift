@@ -483,15 +483,14 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D38. One store of documents and conversations
 
 - **Status:** approved.
-- **Decision:** `ITypeshiftStore<TId>` (aliased `ITypeshiftStore`): `LoadAtomAsync` and `SaveAtomAsync` of atoms,
-  each agent's `Settings` under a settings id as JSON, keyed by id and kind, with a version and a revision;
-  `LoadConversationAsync` and `AppendConversationAsync` of `ConversationEntry`s keyed by the conversation id.
-  `LoadConversationSinceCompactionAsync`, which runs call, defaults to the whole load and drops what came before the
-  last summary. The library serializes the settings, so a store implements no generic method and handles strings and
-  numbers only.
+- **Decision:** `ITypeshiftStore<TId>` (aliased `ITypeshiftStore`): `LoadAsync` and `SaveAsync` of documents as
+  JSON, keyed by id and kind, with a version and a revision; `LoadConversationAsync` and `AppendConversationAsync` of
+  `ConversationEntry`s keyed by the conversation id. `LoadConversationSinceCompactionAsync`, which runs call, defaults
+  to the whole load and drops what came before the last summary. The library serializes the documents (each agent's
+  `Settings`), so a store implements no generic method and handles strings and numbers only.
 - **Alternatives:** v0's load and save only, which rewrote a whole conversation per turn; a generic append for any
   kind, a concept with one user; `LoadAsync<TData>` and `SaveAsync<TData>` over `IStorable` documents (up to
-  0.1.0-alpha.3), which made every store call `TData.Kind`, `Serialize` and `Deserialize` itself; one atom per
+  0.1.0-alpha.3), which made every store call `TData.Kind`, `Serialize` and `Deserialize` itself; one document per
   settings id holding every agent's settings, which would hide the versions a store migrates by (D40).
 
 ### D39. Kinds are stable names

@@ -105,10 +105,9 @@ Microsoft.Extensions.AI's defaults, which reflect outside Native AOT (D45).
 
 ## Storage
 
-`ITypeshiftStore<TId>` keeps atoms, each agent's settings by id and kind, as JSON with a version and a revision (D38,
-D40, D41). The
+`ITypeshiftStore<TId>` keeps documents by id and kind, as JSON with a version and a revision (D38, D40, D41). The
 library never sees the id type. The interceptor registers `StoreAccess<TId>` through `AddCoreServices<TId>`, and runs
-reach it as `IStoreAccess` with boxed ids (D11). `StoreAccess` serializes and reads the settings, so a store handles
+reach it as `IStoreAccess` with boxed ids (D11). `StoreAccess` serializes and reads the documents, so a store handles
 strings and numbers only.
 
 The generator writes each agent's `Settings` as an `IStorable<Settings>`, with a kind, a version, `Serialize` and

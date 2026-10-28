@@ -9,25 +9,25 @@ namespace Typeshift;
 /// <typeparam name="TId">The id type.</typeparam>
 public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId> where TId : notnull
 {
-    private readonly ConcurrentDictionary<(TId Id, string Kind), Atom> _atoms = [];
+    private readonly ConcurrentDictionary<(TId Id, string Kind), StoredDocument> _documents = [];
 
     private readonly ConcurrentDictionary<TId, List<string>> _conversations = [];
 
     /// <inheritdoc />
-    public Task<Atom?> LoadAtomAsync(TId id, string kind, CancellationToken ct) =>
-        Task.FromResult(_atoms.GetValueOrDefault((id, kind)));
+    public Task<StoredDocument?> LoadAsync(TId id, string kind, CancellationToken ct) =>
+        Task.FromResult(_documents.GetValueOrDefault((id, kind)));
 
     /// <inheritdoc />
-    public Task<long> SaveAtomAsync(TId id, string kind, string json, int version, long revision, CancellationToken ct)
+    public Task<long> SaveAsync(TId id, string kind, string json, int version, long revision, CancellationToken ct)
     {
         var key = (id, kind);
-        var saved = new Atom(json, version, revision + 1);
+        var saved = new StoredDocument(json, version, revision + 1);
 
         var won = revision == 0
-            ? _atoms.TryAdd(key, saved)
-            : _atoms.TryGetValue(key, out var stored)
+            ? _documents.TryAdd(key, saved)
+            : _documents.TryGetValue(key, out var stored)
                 && stored.Revision == revision
-                && _atoms.TryUpdate(key, saved, stored);
+                && _documents.TryUpdate(key, saved, stored);
 
         return won
             ? Task.FromResult(saved.Revision)
