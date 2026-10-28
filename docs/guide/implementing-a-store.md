@@ -187,8 +187,9 @@ the first form's change, and that form loads the settings again.
    does the same. A read followed by a separate write lets two saves of the same revision both win.
 4. **Return the new revision.** Any number works as long as it is not 0 and was never this document's revision
    before; counting up by one is the simple choice.
-5. **Throw `StoreConflictException` only for a lost race.** Any other failure, such as a lost connection, goes to the
-   caller as it is.
+5. **Throw `StoreConflictException` only for a lost race**, with a message that names the document and the database's
+   exception as the inner one when you have it. Any other failure, such as a lost connection, goes to the caller as
+   it is.
 
 The EF Core store maps these rules onto a concurrency token. The update matches the row only while it still holds the
 loaded revision, and an insert that finds the row taken is a conflict too:
@@ -278,7 +279,7 @@ the runs need from before it, including the conversation's mode and its standing
 `LoadConversationSinceCompactionAsync` returns that entry and everything after it, oldest first, or every entry when
 the conversation has no summary. Its default calls `LoadConversationAsync` and drops what came before the summary, so
 a long conversation is read whole on every run. To read only what a run needs, copy `entry.IsSummary` into a column of
-its own when you append, and override the method to start at the last row that has it:
+its own when you append, and declare the method in your store to start at the last row that has it:
 
 <!-- snippet: ef-core-conversations -->
 <a id='snippet-ef-core-conversations'></a>
@@ -335,7 +336,10 @@ public async Task AppendConversationAsync(int conversation, ConversationEntry en
 <!-- endSnippet -->
 
 `LoadConversationAsync` still returns every entry, summaries included, for your app's own use, such as showing the
-whole history.
+whole history. Runs call it too in one case: when the last summary has no `StandingApprovals`, as one stored by a
+Typeshift version before 0.1.0-alpha.3, they read the whole conversation. Compaction always fills them in, even as
+an empty list, so test your store with a summary compaction wrote, for example by giving an agent a small
+`WithMaxInputTokens`, rather than with an entry you built yourself.
 
 ## Related
 
