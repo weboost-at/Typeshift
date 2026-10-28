@@ -37,14 +37,14 @@ against your own record of the conversation, as you would for any other id from 
 
 ## What is stored
 
-A conversation is a list of entries, appended as they happen: each run's input, every model response with its model
-and token usage, the tool results of each round of calls, and an entry that ends the run and records its mode. Your
-store receives each entry through `AppendConversationAsync` ([Implementing a store](./implementing-a-store.md#conversations)).
+A conversation is a list of entries, appended as they happen: each run's input, every model response with its model and
+token usage, the tool results of each round of calls, and an entry that ends the run and records its mode. Your store
+receives each entry through `AppendConversationAsync` ([Implementing a store](./implementing-a-store.md#conversations)).
 
-Each entry is a `ConversationEntry`: the name of the agent, the entry's `Messages` and the time it was stored, plus
-the `Model` and `Usage` of a model response, and `EndsRun` on the entry that ends a run. `IsSummary` is true on the
-entry [compaction](#compaction) appends when it summarizes, which is how your code and your store tell a summary apart
-([Recognizing a summary](./implementing-a-store.md#recognizing-a-summary)).
+Each entry is a `ConversationEntry`: the name of its agent in `Agent`, its `Messages` and the time it was stored in
+`At`, plus the `Model` and `Usage` of a model response, and `EndsRun` on the entry that ends a run. `IsSummary` is true
+on the entry [compaction](#compaction) appends when it summarizes, which is how your code and your store tell a summary
+apart ([Recognizing a summary](./implementing-a-store.md#recognizing-a-summary)).
 
 <!-- snippet: load-conversation -->
 <a id='snippet-load-conversation'></a>
@@ -228,10 +228,9 @@ Every later model call of the same run starts from the history as compaction lef
 and the same summary.
 
 The stored conversation keeps everything. Compaction appends an entry of its own, with `IsSummary` set to true, that
-holds the summary and the messages it kept after it. Later runs start from that entry instead of summarizing again, and read nothing before
-it: the entry also keeps the conversation's mode, its
-[approvals for the conversation](./tool-approval.md#approving-for-the-conversation) and the background agents still
-working.
+holds the summary and the messages it kept after it. Later runs start from that entry instead of summarizing again, and
+read nothing before it: the entry also keeps the conversation's mode, its [approvals for the
+conversation](./tool-approval.md#approving-for-the-conversation) and the background agents still working.
 
 ## Related
 
