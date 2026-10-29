@@ -10,9 +10,9 @@ All notable changes to this project are documented here. The format follows
 - `System.Text.Json` and Newtonsoft.Json serialize a `ConversationEntry` as it is, with no settings: the first writes
   its stored JSON, the second that JSON as a string. Newtonsoft.Json used to read entries back with their contents
   emptied.
-- `WithWebFetch()` registers a fetcher for `web_fetch` that ships with Typeshift. It connects only to public
-  addresses, checked where it connects and for each redirect, and returns a page's title and text, read within 30
-  seconds and 4 MiB.
+- `WithWebFetch()` registers a fetcher for `web_fetch` that ships with Typeshift. It refuses private and other
+  non-public addresses, checking the address it connects to on every redirect too, and returns a page's title and
+  text. It stops after 30 seconds or 4 MiB, reads the charset the server names, and sends no cookies.
 - `WithFileSystemRoot(path)` roots the file system and shell tools in one folder, without a class of your own.
 
 ### Changed

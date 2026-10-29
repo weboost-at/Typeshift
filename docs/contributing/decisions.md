@@ -455,23 +455,26 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Decision:** in `Typeshift.Toolsets`, declared with Typeshift's own toolset API:
   - `TodoToolset`: `write_todos` replaces the whole list; the list lives in the conversation (the latest call).
-  - `FileSystemToolset`: six tools within an `IFileSystemRoot` the host registers per scope, or one folder
-    (`WithFileSystemRoot(path)`); absolute paths, `..` and escaping links refused; the three reading tools
+  - `FileSystemToolset`: six tools within an `IFileSystemRoot` your app registers per scope, or the one folder that
+    `WithFileSystemRoot(path)` registers; absolute paths, `..` and escaping links refused; the three reading tools
     `ReadOnly()`, `delete_file` behind approval.
   - `ShellToolset`: `run_command` in the root, always behind approval; timeout and output cap as settings.
   - `WebToolset`: `web_search` and `web_fetch` over `IWebSearch` and `IWebFetch`. `WithWebFetch()` registers a
-    fetcher of public pages; no search provider ships, since every search engine is a vendor and a key.
+    fetcher of public pages. No search provider ships, since each is a vendor's API that needs its own key.
 - **As built:** the library compiles them with its own generator; its module stamps no id type, as it has no
   agents, and every consumer's `AddTypeshift()` registers it. The file tools follow every link on a path, the root's
   own included, before comparing it with the root, and return why they refuse instead of failing the call, so the
   model can correct itself. The fetcher of `WithWebFetch()` checks each address where it connects
-  (`SocketsHttpHandler.ConnectCallback`), redirects included, never uses a proxy, whose address it would check in
-  place of the page's, and turns HTML into text with a few linear-time regular expressions, so no parser package.
+  (`SocketsHttpHandler.ConnectCallback`), so it checks every redirect too. It uses no proxy, because the check would
+  then see the proxy's address. It turns HTML into text with a few linear-time regular expressions, so it needs no
+  parser package. One handler serves every run, so it keeps no cookies.
 - **Where:** `Toolsets/`.
-- **Alternatives:** MAF's five todo tools with state in the session (more tokens, a store per session); file access
-  in a store abstraction; no fetcher (up to 0.1.0-alpha.3), which left every app the address check to write; an HTML
-  parser or a Markdown converter, a dependency for text a model reads either way; the fetcher's limits as settings of
-  `web_fetch`, which `IWebFetch` has no parameter to pass on.
+- **Alternatives:**
+  - MAF's five todo tools with state in the session: more tokens, and a store per session.
+  - File access in a store abstraction.
+  - No fetcher, as up to 0.1.0-alpha.3: every app had to write the address check itself.
+  - An HTML parser or a Markdown converter: a dependency, when the model reads plain text just as well.
+  - The fetcher's limits as settings of `web_fetch`: `IWebFetch` has no parameter that would pass them on.
 
 ### D53. A failed tool call reports its exception's message
 

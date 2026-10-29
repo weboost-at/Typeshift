@@ -25,10 +25,12 @@ public class FileSystemToolsetTests : WorkspaceTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithFileSystemRoot(Root);
 
-        await using var provider = services.BuildServiceProvider();
+        services.AddTypeshift()
+            .WithFileSystemRoot(Root);
+
         Write("notes.txt", "one");
+        await using var provider = services.BuildServiceProvider();
 
         // Act
         var read = await FileSystemToolset.ReadFileAsync("notes.txt", Files, provider, ct: Ct);

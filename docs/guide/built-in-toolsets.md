@@ -89,8 +89,7 @@ services.AddTypeshift()
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L87-L95' title='Snippet source file'>snippet source</a> | <a href='#snippet-built-in-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`WithWebFetch()` registers the fetcher that ships with Typeshift, which reads public pages only
-([Fetching pages](#fetching-pages)).
+[Fetching pages](#fetching-pages) says what the fetcher of `WithWebFetch()` reads.
 
 ## Todos
 
@@ -190,13 +189,17 @@ Both tools are `ReadOnly()`, so plan mode offers them. `web_fetch` takes absolut
 
 `WithWebFetch()` registers the fetcher that ships with Typeshift. It reads a page and returns its title and its text:
 
-- It connects only to public addresses. It checks the address it connects to, after the DNS lookup and again for
-  each of up to five redirects, so a host name that leads into your network is refused too.
-- It drops scripts, styles and comments, puts each block of the page on a line of its own and decodes entities. Text
-  of another type, such as JSON or CSV, comes back as it is, and an image or another binary fails the call.
-- It reads for at most 30 seconds and the first 4 MiB, and returns at most 65,536 characters.
+- It refuses loopback, private, shared, link-local, multicast, reserved and documentation addresses, and IPv6
+  addresses that carry one of them, such as `::ffff:10.0.0.1` or the NAT64 address `64:ff9b::a00:1`. It checks the
+  address it connects to, after the DNS lookup and again for each of up to five redirects, so a host name that leads
+  into your network is refused too.
+- It drops scripts, styles and comments, puts each block of the page on a line of its own and decodes entities, in
+  the charset the server names. Text of another type, such as JSON or CSV, comes back as it is, and a type that is
+  not text, such as an image or a Word document, fails the call.
+- It reads for at most 30 seconds and the first 4 MiB. It cuts the text at 65,536 characters and adds a line saying
+  the page goes on.
 - It connects directly, never through a proxy, since through one it would check the proxy's address instead of the
-  page's.
+  page's. It sends no cookies, so nothing one run's page set reaches another's.
 
 To read pages another way, such as through Firecrawl or a headless browser, implement `IWebFetch` and register it
 with `WithWebFetch<T>()` instead.
@@ -204,8 +207,7 @@ with `WithWebFetch<T>()` instead.
 ::: danger A fetcher of your own must refuse private addresses
 The model picks the URLs `web_fetch` reads. A fetcher on your app's network must refuse loopback, private and
 link-local addresses where it connects (`SocketsHttpHandler.ConnectCallback`), or the model reads the cloud's
-metadata service. Check the address there, not the host name, which a DNS answer can change. The fetcher of
-`WithWebFetch()` does.
+metadata service. Check the address there, not the host name, which a DNS answer can change.
 :::
 
 ::: danger What the web returns is untrusted

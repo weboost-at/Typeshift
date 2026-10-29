@@ -146,10 +146,10 @@ rewrite.
   and the use still escapes, and only a sandbox stops that. `edit_file` holds a file whole in memory and refuses
   files over 16 MB. Paths compare as the operating system opens them, which on Windows drops a last segment's
   trailing dots and spaces; CI runs on Linux, so that is untested.
-- **Web fetch and private addresses.** The model picks the URL. The fetcher of `WithWebFetch()` connects only to
-  public addresses, checked where it connects, but treats NAT64 addresses (`64:ff9b::/96`) as public, whatever IPv4
-  address they embed. It never uses a proxy, so an app behind one writes its own `IWebFetch`, which decides which
-  addresses it reaches. No search engine ships with Typeshift.
+- **Web fetch and private addresses.** The fetcher of `WithWebFetch()` refuses the addresses
+  [Fetching pages](../guide/built-in-toolsets.md#fetching-pages) lists, but it cannot tell an operator's own NAT64
+  prefix from a public network, and it never uses a proxy, so an app behind one writes its own `IWebFetch`. No search
+  engine ships with Typeshift.
 - **Shell.** `run_command` runs what the model sends. The root is its working directory but not a sandbox, and the
   tool requires approval unless a rule or auto mode answers.
 

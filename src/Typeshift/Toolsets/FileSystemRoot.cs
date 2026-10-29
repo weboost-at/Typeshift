@@ -12,7 +12,6 @@ public interface IFileSystemRoot
     string Path { get; }
 }
 
-// The root WithFileSystemRoot(path) registers, the same folder for every run
 internal sealed record FolderRoot(string Path) : IFileSystemRoot;
 
 // D37: a path the model sent, within the root: relative, without .., and through no link that leads outside. Paths

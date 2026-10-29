@@ -36,19 +36,26 @@ public class WebToolsetTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithWebFetch();
+
+        services.AddTypeshift()
+            .WithWebFetch();
 
         await using var provider = services.BuildServiceProvider();
-        using var server = new TcpListener(IPAddress.Loopback, 0);
-        server.Start();
 
-        var url = new Uri($"http://{host}:{((IPEndPoint)server.LocalEndpoint).Port}/");
+        using var server = new TcpListener(
+            localaddr: IPAddress.Loopback,
+            port: 0);
+
+        server.Start();
+        var port = ((IPEndPoint)server.LocalEndpoint).Port;
+        var url = new Uri($"http://{host}:{port}/");
 
         // Act
         var fetch = () => WebToolset.WebFetchAsync(url, provider, Ct);
 
         // Assert
         await fetch.Should().ThrowAsync<HttpRequestException>().WithMessage("*no public address*");
+
         server.Pending().Should().BeFalse();
     }
 

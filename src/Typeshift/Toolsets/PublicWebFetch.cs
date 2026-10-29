@@ -16,9 +16,14 @@ internal sealed partial class PublicWebFetch(TimeProvider time, HttpMessageHandl
     // A page is mostly markup, so its HTML may be many times its text
     internal const int MaxBytes = 4 * 1024 * 1024;
 
-    internal static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
+    internal static readonly TimeSpan TimeLimit = TimeSpan.FromSeconds(30);
 
-    // Loopback, private, shared (carrier-grade NAT), link-local (the cloud's metadata service), multicast, reserved
+    // shortcut: a NAT64 prefix an operator picks looks like any public network, so only the well-known one is
+    // unwrapped; check the network's own prefix once a host runs behind one
+    private static readonly IPNetwork Nat64 = IPNetwork.Parse("64:ff9b::/96");
+
+    // Loopback, private, shared, link-local (the cloud's metadata service), benchmarking, documentation, multicast,
+    // reserved, and the IPv6 forms that carry an IPv4 address nothing here can check
     private static readonly IPNetwork[] Refused =
     [
         IPNetwork.Parse("0.0.0.0/8"),
@@ -27,9 +32,19 @@ internal sealed partial class PublicWebFetch(TimeProvider time, HttpMessageHandl
         IPNetwork.Parse("127.0.0.0/8"),
         IPNetwork.Parse("169.254.0.0/16"),
         IPNetwork.Parse("172.16.0.0/12"),
+        IPNetwork.Parse("192.0.0.0/24"),
+        IPNetwork.Parse("192.0.2.0/24"),
         IPNetwork.Parse("192.168.0.0/16"),
+        IPNetwork.Parse("198.18.0.0/15"),
+        IPNetwork.Parse("198.51.100.0/24"),
+        IPNetwork.Parse("203.0.113.0/24"),
         IPNetwork.Parse("224.0.0.0/3"),
-        IPNetwork.Parse("::/127"),
+        IPNetwork.Parse("::/96"),
+        IPNetwork.Parse("64:ff9b:1::/48"),
+        IPNetwork.Parse("100::/64"),
+        IPNetwork.Parse("2001::/32"),
+        IPNetwork.Parse("2001:db8::/32"),
+        IPNetwork.Parse("2002::/16"),
         IPNetwork.Parse("fc00::/7"),
         IPNetwork.Parse("fe80::/10"),
         IPNetwork.Parse("fec0::/10"),
@@ -39,7 +54,7 @@ internal sealed partial class PublicWebFetch(TimeProvider time, HttpMessageHandl
     // The time limit is the TimeProvider's, so the client's own is off
     private readonly HttpClient _http = new(handler)
     {
-        Timeout = System.Threading.Timeout.InfiniteTimeSpan
+        Timeout = Timeout.InfiniteTimeSpan
     };
 
     public PublicWebFetch(TimeProvider time)
@@ -47,9 +62,58 @@ internal sealed partial class PublicWebFetch(TimeProvider time, HttpMessageHandl
     {
     }
 
+    internal static SocketsHttpHandler CreateHandler() =>
+        new()
+        {
+            // Through a proxy, the callback would check the proxy's address and never the page's
+            UseProxy = false,
+            // One handler serves every run of every customer, so no cookie may carry over
+            UseCookies = false,
+            MaxAutomaticRedirections = 5,
+            ConnectCallback = ConnectToPublicAsync
+        };
+
+    private static async ValueTask<Stream> ConnectToPublicAsync(
+        SocketsHttpConnectionContext context,
+        CancellationToken ct)
+    {
+        var host = context.DnsEndPoint.Host;
+        var resolved = await Dns.GetHostAddressesAsync(host, ct);
+        var addresses = resolved.Where(IsPublic).ToArray();
+
+        if (addresses.Length == 0)
+            throw new HttpRequestException($"'{host}' has no public address; web_fetch reads public pages only.");
+
+        // Dual mode, so one socket tries the IPv6 and the IPv4 addresses in turn
+        var socket = new Socket(SocketType.Stream, ProtocolType.Tcp)
+        {
+            NoDelay = true
+        };
+
+        try
+        {
+            await socket.ConnectAsync(addresses, context.DnsEndPoint.Port, ct);
+            return new NetworkStream(socket, ownsSocket: true);
+        }
+        catch
+        {
+            socket.Dispose();
+            throw;
+        }
+    }
+
+    internal static bool IsPublic(IPAddress address)
+    {
+        var target = address.IsIPv4MappedToIPv6 || Nat64.Contains(address)
+            ? new IPAddress(address.GetAddressBytes()[12..])
+            : address;
+
+        return !Refused.Any(network => network.Contains(target));
+    }
+
     public async Task<WebPage> FetchAsync(Uri url, CancellationToken ct)
     {
-        using var timeout = new CancellationTokenSource(Timeout, time);
+        using var timeout = new CancellationTokenSource(TimeLimit, time);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(ct, timeout.Token);
 
         try
@@ -67,11 +131,10 @@ internal sealed partial class PublicWebFetch(TimeProvider time, HttpMessageHandl
         }
         catch (OperationCanceledException) when (timeout.IsCancellationRequested && !ct.IsCancellationRequested)
         {
-            throw new TimeoutException($"'{url}' did not answer within {Timeout.TotalSeconds} seconds.");
+            throw new TimeoutException($"'{url}' did not answer within {TimeLimit.TotalSeconds} seconds.");
         }
     }
 
-    // The first MaxBytes of the body, in the charset the server names, UTF-8 when it names none it knows
     private static async Task<string> ReadAsync(
         Uri url,
         HttpContent content,
@@ -79,113 +142,85 @@ internal sealed partial class PublicWebFetch(TimeProvider time, HttpMessageHandl
         CancellationToken ct)
     {
         if (!IsText(type))
-            throw new InvalidOperationException($"'{url}' is {type?.MediaType}, and web_fetch reads text only.");
+            throw new InvalidOperationException(
+                $"'{url}' is {type?.MediaType ?? "of no named type"}; web_fetch reads text only.");
 
         await using var stream = await content.ReadAsStreamAsync(ct);
         using var read = new MemoryStream();
         var buffer = new byte[81_920];
 
-        while (read.Length < MaxBytes && await stream.ReadAsync(Rest(buffer, read), ct) is var count and > 0)
+        while (read.Length < MaxBytes)
         {
+            var room = (int)Math.Min(buffer.Length, MaxBytes - read.Length);
+            var count = await stream.ReadAsync(buffer.AsMemory(0, room), ct);
+            if (count == 0) break;
+
             read.Write(buffer, 0, count);
         }
 
-        return GetEncoding(type).GetString(read.GetBuffer(), 0, (int)read.Length);
+        read.Position = 0;
+
+        // A byte order mark names the encoding over the header, and stays out of the text
+        using var reader = new StreamReader(read, GetEncoding(type), detectEncodingFromByteOrderMarks: true);
+        return await reader.ReadToEndAsync(ct);
     }
 
-    private static Memory<byte> Rest(byte[] buffer, MemoryStream read) =>
-        buffer.AsMemory(0, (int)Math.Min(buffer.Length, MaxBytes - read.Length));
-
     private static bool IsText(MediaTypeHeaderValue? type) =>
-        type?.MediaType is not { } media
-        || media.StartsWith("text/", StringComparison.OrdinalIgnoreCase)
-        || media.Contains("html", StringComparison.OrdinalIgnoreCase)
-        || media.Contains("xml", StringComparison.OrdinalIgnoreCase)
-        || media.Contains("json", StringComparison.OrdinalIgnoreCase);
+        type?.MediaType?.ToLowerInvariant() is { } media
+        && (media.StartsWith("text/", StringComparison.Ordinal)
+            || media.EndsWith("/xml", StringComparison.Ordinal)
+            || media.EndsWith("+xml", StringComparison.Ordinal)
+            || media.EndsWith("/json", StringComparison.Ordinal)
+            || media.EndsWith("+json", StringComparison.Ordinal));
 
     private static bool IsHtml(MediaTypeHeaderValue? type) =>
-        type?.MediaType?.Contains("html", StringComparison.OrdinalIgnoreCase) ?? false;
+        type?.MediaType?.ToLowerInvariant() is "text/html" or "application/xhtml+xml";
 
     private static Encoding GetEncoding(MediaTypeHeaderValue? type)
     {
+        if (type?.CharSet is not { } charset) return Encoding.UTF8;
+
+        var name = charset.Trim('"');
+
         try
         {
-            return type?.CharSet is { } charset ? Encoding.GetEncoding(charset.Trim('"')) : Encoding.UTF8;
+            return CodePagesEncodingProvider.Instance.GetEncoding(name) ?? Encoding.GetEncoding(name);
         }
-        // Best effort, a charset the runtime does not know reads as UTF-8
+        // Best effort, a charset no encoding knows reads as UTF-8
         catch (ArgumentException)
         {
             return Encoding.UTF8;
         }
     }
 
-    private static string? GetTitle(string html) =>
-        Title().Match(html) is { Success: true } match
-        && Collapse(WebUtility.HtmlDecode(match.Groups[1].Value)) is { Length: > 0 } title
+    private static string? GetTitle(string html)
+    {
+        var match = Title().Match(html);
+        if (!match.Success) return null;
+
+        var title = Collapse(WebUtility.HtmlDecode(match.Groups[1].Value));
+
+        return title.Length > 0
             ? title
             : null;
+    }
 
-    // Whitespace collapses as a browser collapses it, each block becomes a line, and entities become characters
+    [GeneratedRegex(
+        @"<title\b[^>]*>(.*?)</title\s*>",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.NonBacktracking)]
+    private static partial Regex Title();
+
+    // Split() puts the text between <pre> blocks at even places and the blocks, which keep their lines, at odd ones
     private static string GetText(string html)
     {
-        var visible = Spaces().Replace(Hidden().Replace(html, ""), " ");
-        var text = WebUtility.HtmlDecode(Tag().Replace(Block().Replace(visible, "\n"), ""));
+        var visible = Hidden().Replace(html, "");
+        var parts = Preformatted().Split(visible);
 
-        var lines = text
-            .Split('\n')
-            .Select(Collapse)
-            .Where(line => line.Length > 0);
+        var texts = parts
+            .Select((part, index) => index % 2 == 0 ? GetFlowingText(part) : GetPreformattedText(part))
+            .Where(text => text.Length > 0);
 
-        return string.Join('\n', lines);
-    }
-
-    private static string Collapse(string text) => Spaces().Replace(text, " ").Trim();
-
-    private static string Cut(string text) =>
-        text.Length <= MaxLength
-            ? text
-            : text[..MaxLength] + "\n[The page goes on past this point.]";
-
-    private static SocketsHttpHandler CreateHandler() =>
-        new()
-        {
-            ConnectCallback = ConnectToPublicAsync,
-            // Through a proxy, the callback would check the proxy's address and never the page's
-            UseProxy = false,
-            MaxAutomaticRedirections = 5
-        };
-
-    private static async ValueTask<Stream> ConnectToPublicAsync(
-        SocketsHttpConnectionContext context,
-        CancellationToken ct)
-    {
-        var host = context.DnsEndPoint.Host;
-        var addresses = await Dns.GetHostAddressesAsync(host, ct);
-
-        var address = addresses.FirstOrDefault(IsPublic)
-            ?? throw new HttpRequestException($"'{host}' has no public address; web_fetch reads public pages only.");
-
-        var socket = new Socket(address.AddressFamily, SocketType.Stream, ProtocolType.Tcp)
-        {
-            NoDelay = true
-        };
-
-        try
-        {
-            await socket.ConnectAsync(address, context.DnsEndPoint.Port, ct);
-            return new NetworkStream(socket, ownsSocket: true);
-        }
-        catch
-        {
-            socket.Dispose();
-            throw;
-        }
-    }
-
-    internal static bool IsPublic(IPAddress address)
-    {
-        var target = address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address;
-        return !Refused.Any(network => network.Contains(target));
+        return string.Join('\n', texts);
     }
 
     // Linear time, since the page is the model's choice and anyone's to write
@@ -196,22 +231,53 @@ internal sealed partial class PublicWebFetch(TimeProvider time, HttpMessageHandl
     private static partial Regex Hidden();
 
     [GeneratedRegex(
-        @"</?(p|div|br|li|ul|ol|h[1-6]|tr|table|section|article|header|footer|nav|main|aside|blockquote|pre|hr|dt|dd)"
+        @"(<pre\b.*?</pre\s*>)",
+        RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.NonBacktracking)]
+    private static partial Regex Preformatted();
+
+    private static string GetFlowingText(string html)
+    {
+        var collapsed = Spaces().Replace(html, " ");
+        var blocks = Block().Replace(collapsed, "\n");
+        var cells = Cell().Replace(blocks, " ");
+        var text = WebUtility.HtmlDecode(Tag().Replace(cells, ""));
+
+        var lines = text
+            .Split('\n')
+            .Select(Collapse)
+            .Where(line => line.Length > 0);
+
+        return string.Join('\n', lines);
+    }
+
+    [GeneratedRegex(
+        @"</?(p|div|br|li|ul|ol|h[1-6]|tr|table|section|article|header|footer|nav|main|aside|blockquote|hr|dt|dd)"
         + @"\b[^>]*>",
         RegexOptions.IgnoreCase | RegexOptions.NonBacktracking)]
     private static partial Regex Block();
 
-    // A tag the size limit cut off ends the text
-    [GeneratedRegex(@"<[^>]*(>|\z)", RegexOptions.NonBacktracking)]
+    [GeneratedRegex(@"</?(td|th)\b[^>]*>", RegexOptions.IgnoreCase | RegexOptions.NonBacktracking)]
+    private static partial Regex Cell();
+
+    private static string GetPreformattedText(string html)
+    {
+        var text = WebUtility.HtmlDecode(Tag().Replace(html, ""));
+        return text.Trim('\r', '\n');
+    }
+
+    // A tag the size limit cut off ends the text; a '<' that opens no tag stays text
+    [GeneratedRegex(@"<[a-zA-Z/!?][^>]*(>|\z)", RegexOptions.NonBacktracking)]
     private static partial Regex Tag();
 
-    [GeneratedRegex(
-        @"<title\b[^>]*>(.*?)</title\s*>",
-        RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.NonBacktracking)]
-    private static partial Regex Title();
+    private static string Collapse(string text) => Spaces().Replace(text, " ").Trim();
 
     [GeneratedRegex(@"\s+", RegexOptions.NonBacktracking)]
     private static partial Regex Spaces();
+
+    private static string Cut(string text) =>
+        text.Length <= MaxLength
+            ? text
+            : text[..MaxLength] + "\n[The page goes on past this point.]";
 
     public void Dispose() => _http.Dispose();
 }

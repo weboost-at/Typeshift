@@ -131,11 +131,11 @@ public sealed class TypeshiftBuilder
     /// <summary>
     /// Registers one folder as the root the file system and shell tools stay within, the same for every run.
     /// </summary>
-    /// <param name="path">The folder's path.</param>
+    /// <param name="path">The folder's path; a relative one is resolved once, against the current directory.</param>
     /// <returns>The same chain.</returns>
     public TypeshiftBuilder WithFileSystemRoot(string path)
     {
-        _services.AddSingleton<Toolsets.IFileSystemRoot>(new Toolsets.FolderRoot(path));
+        _services.AddSingleton<Toolsets.IFileSystemRoot>(new Toolsets.FolderRoot(Path.GetFullPath(path)));
         return this;
     }
 
