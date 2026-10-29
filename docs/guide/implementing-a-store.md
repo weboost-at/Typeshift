@@ -116,9 +116,10 @@ numbers only. Keep each document in a row keyed by the id and the kind, with the
 [revision](#revisions):
 
 - **The id** is the settings id your app passed, such as a customer's.
-- **The kind** is the agent's class name, or what its `WithStorageKind("...")` sets. Your app passes one settings id
-  for a run, and every agent of that run, sub-agents included, loads its own settings under it
-  ([Agent settings](./settings-and-stores.md#agent-settings)). So the id and the kind together are the key.
+- **The kind** is the agent's class name, or what its `WithStorageKind("...")` sets. One settings id holds a document
+  per agent of a run, sub-agents and handoffs included
+  ([Sub-agents and handoffs](./settings-and-stores.md#sub-agents-and-handoffs)), so the id and the kind together are
+  the key.
 - **The JSON** is the record as Typeshift wrote it ([The stored JSON](./settings-and-stores.md#the-stored-json)).
   Keep it as text and return it unchanged.
 
@@ -336,13 +337,13 @@ public async Task AppendConversationAsync(int conversation, ConversationEntry en
 `LoadConversationAsync` still returns every entry, summaries included, for your app's own use, such as showing the whole
 history. Runs call it too in one case: when the last summary has no `StandingApprovals`, as one stored by a Typeshift
 version before 0.1.0-alpha.3, they read the whole conversation. Compaction always fills them in, even as an empty list,
-and the summary that [`CheckConversationsAsync`](#check-your-store) appends has them set too.
+so set them on any summary you build for a test of your own, as [`CheckConversationsAsync`](#check-your-store) does.
 
 ## Check your store
 
-`StoreCheck` runs this page's rules for keys, revisions and conversation entries against your store, and throws an
-`InvalidOperationException` that names the first rule your store broke. Call it from a test of your own, with your
-store created over a database for tests:
+`StoreCheck` runs this page's rules for keys, revisions and conversation entries against your store. Call
+`CheckSettingsAsync` for an `ISettingsStore` and `CheckConversationsAsync` for an `IConversationStore` (both for a
+store that is both), from a test of your own in any test framework, with your store over a test database:
 
 <!-- snippet: store-check -->
 <a id='snippet-store-check'></a>
@@ -357,16 +358,22 @@ await StoreCheck.CheckConversationsAsync(store, conversationId);
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/StoreChecks.cs#L13-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-store-check' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+- A broken rule throws an `InvalidOperationException` whose message names the rule and what to change, such as
+  keying documents by id and kind together. An exception your store throws itself passes through as it is, except
+  where a `StoreConflictException` belongs: there the message names the type your store threw instead.
 - `CheckSettingsAsync` saves a document, then one of another kind under the same id, and loads both back. It then
-  saves at revision 0 and with a revision another save replaced. Both saves must throw a `StoreConflictException`
-  and leave the document as it was.
-- `CheckConversationsAsync` appends a run and loads it, then two more runs, each after a summary as compaction writes
-  it, and loads the conversation whole and from the last summary on.
-- Both first check that nothing is stored under the id you pass, then write under it, so a second run with the same id
-  fails and asks for a new one. Give each run an id nothing else uses, such as a new `Guid`, or start from an empty
-  database, as the docs sample does. They need no test framework, so any test runner can call them.
-- They make one call at a time, so they cannot show a race between two saves. Checking and writing in one statement
-  is what rules that out ([What a save must do](#what-a-save-must-do)).
+  saves the first document at revision 0, and with its old revision after a save with the current one. Those two
+  saves must throw a `StoreConflictException` and leave the document as it was. Every save that succeeds must return
+  a new revision other than 0.
+- `CheckConversationsAsync` appends a run's input and its end, then two summaries with `IsSummary` and
+  `StandingApprovals` set, each followed by a run's end. After the first run and again at the end, it loads the
+  conversation whole and from the last summary on, which is every entry while there is no summary. Each entry must
+  come back unchanged, in the order it was appended.
+- Both write under the id you pass, so calling them twice with one id fails with a message that asks for a new id.
+  Give each call an id nothing else uses, such as a new `Guid`, or start from an empty database, as the docs sample
+  does.
+- They make one call at a time, so they cannot catch two saves that race. A store that reads the revision and then
+  writes passes them and still loses saves under load ([What a save must do](#what-a-save-must-do)).
 
 ## Related
 

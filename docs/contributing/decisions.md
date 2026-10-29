@@ -541,7 +541,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   exception, kept as the owner's open question since it breaks every store again; an opaque `string` revision, which an
   ETag fits as is, open for the same reason.
 
-### D58. A store checks itself against the contract
+### D58. A store's own tests check it against the contract
 
 - **Status:** owner.
 - **Decision:** `StoreCheck.CheckSettingsAsync(store, id)` and `StoreCheck.CheckConversationsAsync(store, conversation)`
@@ -550,8 +550,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   the id it is given, so tests pass one that nothing else uses.
 - **Details:** the steps are on [Implementing a store](../guide/implementing-a-store.md#check-your-store). The summary
   entries have `StandingApprovals` set, as compaction writes them, and entries carry fixed times, so the check reads
-  no clock. A store's own exception where a conflict belongs is named in the message, and an id something is stored
-  under already fails as the caller's mistake, not the store's.
+  no clock. A store's own exception where a conflict belongs is named in the message. A conversation id with entries,
+  or a settings id that holds the check's own document, fails with a message that asks for a new id and names no rule.
 - **Where:** `Storage/StoreCheck.cs`.
 - **Alternatives:** an abstract xUnit test class in a package of its own, which ties stores to one test framework; a
   checking decorator around the registered store, which finds a broken rule only when a run hits it.
