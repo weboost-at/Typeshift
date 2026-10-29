@@ -93,7 +93,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         context.RegisterSymbolAction(symbol => CollectJsonTypes(symbol, found), SymbolKind.NamedType);
 
         var aot = IsAot(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
-        // The library's own builders make the calls a user may not; its built-in toolsets are checked as declarations
+        // The library's own builders make the calls a user may not
         if (context.Compilation.AssemblyName != KnownTypes.LibraryAssembly)
             context.RegisterOperationAction(
                 call => AnalyzeCall(call, idType, providerIdType),
@@ -303,11 +303,9 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         CompilationAnalysisContext context,
         IEnumerable<(string Name, INamedTypeSymbol Toolset, Location Location)> tools)
     {
-        // D37: the built-in toolsets reserve no names; an agent that offers one beside a tool of its name is TSH025
         var referenced = ReferenceReader
             .Read(context.Compilation, context.CancellationToken)
             .Toolsets
-            .Where(toolset => !toolset.Type.StartsWith(KnownTypes.BuiltInNamespace, System.StringComparison.Ordinal))
             .SelectMany(toolset => toolset.Tools)
             .ToLookup(tool => Names.ToPascalCase(tool.Name));
 
@@ -520,7 +518,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             _ => null
         };
 
-    // D37: two toolsets an agent uses, of this assembly, a reference or the library's built-ins, may share a tool name
+    // D37: two toolsets an agent uses, of this assembly or a reference, may share a tool name
     private static void ReportNamesOfferedTwice(
         CompilationAnalysisContext context,
         FoundAgent agent,

@@ -237,7 +237,6 @@ lists [what your app implements](https://weboost-at.github.io/Typeshift/guide/ge
 | [Composable agents](https://weboost-at.github.io/Typeshift/guide/defining-agents) | Agents built from toolsets, [sub-agents and handoffs](https://weboost-at.github.io/Typeshift/guide/multi-agent) |
 | [One store](https://weboost-at.github.io/Typeshift/guide/settings-and-stores) | Settings and conversations in your database, behind four methods |
 | [Conversations](https://weboost-at.github.io/Typeshift/guide/conversations) | Resume after a crash, steer a run while it works, watch it live |
-| [Built-in toolsets](https://weboost-at.github.io/Typeshift/guide/built-in-toolsets) | To-dos, files, the shell and the web |
 | [Tool approval](https://weboost-at.github.io/Typeshift/guide/tool-approval) | Let your app approve a call before it runs |
 | [Plan and auto modes](https://weboost-at.github.io/Typeshift/guide/tool-approval#the-three-modes) | Let the agent plan first, or run without interruptions |
 | [Middleware](https://weboost-at.github.io/Typeshift/guide/middleware) | Wrap every run or tool call |
@@ -249,7 +248,7 @@ lists [what your app implements](https://weboost-at.github.io/Typeshift/guide/ge
 
 ### A coding agent in one class
 
-The built-in toolsets, a background sub-agent, plan mode and compaction, together:
+A workspace toolset, a background sub-agent, plan mode and compaction, together:
 
 <!-- snippet: coding-agent -->
 <a id='snippet-coding-agent'></a>
@@ -261,11 +260,7 @@ internal partial class CodingAgent : Agent
         WithChatOptions()
             .WithModel("anthropic", "claude-sonnet-5-5");
 
-        UseToolset<TodoToolset>();
-        UseToolset<FileSystemToolset>();
-        UseToolset<ShellToolset>();
-        UseToolset<WebToolset>()
-            .Include(t => t.WebFetch);
+        UseToolset<WorkspaceToolset>();
 
         UseAgent<ExploreAgent>()
             .InBackground();
@@ -278,24 +273,16 @@ internal partial class CodingAgent : Agent
             .Configurable(r => r.Mode)
             .Configurable(r => r.MaxToolIterations)
             .Configurable(r => r.SummaryModel);
-
-        ConfigureRunCommand()
-            .WithShell("/bin/bash")
-            .WithTimeout(TimeSpan.FromMinutes(2));
     }
 
     protected override string GetInstructions() =>
         """
-        Work in the customer's workspace. Plan with write_todos, read before you edit, and run the tests after
-        every change.
+        Work in the customer's workspace. Read before you change anything, and run the tests after every change.
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
-
-> [!CAUTION]
-> The workspace folder is not a sandbox. Run an app whose agents use the shell in a container.
 
 ## Contributing
 

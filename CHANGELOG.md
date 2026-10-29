@@ -34,6 +34,15 @@ All notable changes to this project are documented here. The format follows
   `expectedVersion` where they took `revision`, so `StoredDocument.Version` now holds what `Revision` held.
   `WithSettingsVersion(n)` is `WithSchemaVersion(n)`, and `IStorable.Version`, `Settings.Version` and
   `ConversationEntry.Version` are `SchemaVersion`. A store renames its revision column, or keeps it and maps it.
+- The package icon and the docs site's touch icon are a white tile with an ink and a red chevron, where the tile was
+  ink with a white and a red chevron.
+
+### Removed
+
+- The built-in toolsets: `TodoToolset`, `FileSystemToolset`, `ShellToolset` and `WebToolset`, with `IFileSystemRoot`,
+  `IWebSearch`, `IWebFetch`, `WithFileSystemRoot<T>()`, `WithWebSearch<T>()` and `WithWebFetch<T>()`. An app that used
+  them declares the tools it needs in a toolset of its own. Compaction still keeps the latest call of a tool named
+  `write_todos`.
 
 ## [0.1.0-alpha.3] - 2026-10-27
 

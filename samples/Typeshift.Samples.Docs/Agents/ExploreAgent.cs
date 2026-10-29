@@ -1,4 +1,4 @@
-using Typeshift.Toolsets;
+using Typeshift.Samples.Workspace;
 
 namespace Typeshift.Samples.Agents;
 
@@ -12,7 +12,7 @@ internal partial class ExploreAgent : Agent
         WithChatOptions()
             .WithModel("openai", "gpt-5-mini");
 
-        UseToolset<FileSystemToolset>()
+        UseToolset<WorkspaceToolset>()
             .Include(t => t.ReadFile)
             .Include(t => t.ListFiles)
             .Include(t => t.SearchFiles);
