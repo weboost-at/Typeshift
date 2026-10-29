@@ -555,12 +555,17 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `StoreConflictException` when the stored one differs. `ConfigureAsync` reloads and reapplies until it wins (each
   conflict means another save won), at most ten times, so a store that conflicts every time fails instead of spinning.
   `SaveSettingsAsync` takes the version from `LoadSettingsAsync`.
-- **Details:** the store's number is the version and the record's is the schema version (D40), so the two never share
-  a name where a store meets both, as a migration in `LoadAsync` does. `loadedVersion` names the old version, the one
-  the stored version must still equal; the store writes the new one and returns it.
-- **Alternatives:** `revision` for the store's number (up to 0.1.0-alpha.4), which kept the plain word for the schema
-  while store authors handle the store's number in every call; `version` for the parameter, which reads as the version
-  to write; `expectedVersion`, which the owner found unclear.
+- **Details:** one statement that checks and writes needs no exception handling and no second read. Before, the docs' EF
+  Core store set a concurrency token, caught `DbUpdateConcurrencyException`, and after a failed insert read the row
+  again to tell a conflict from another failure. The rule itself is in the store guide. The store's number is the
+  version and the record's is the schema version (D40), so the two never share a name where a store meets both, as a
+  migration in `LoadAsync` does. `loadedVersion` names the old version, the one the stored version must still equal;
+  the store writes the new one and returns it.
+- **Alternatives:** `SaveAsync` returning null for a lost save and Typeshift throwing, so a store never builds the
+  exception, kept as the owner's open question since it breaks every store again; an opaque `string` version, which an
+  ETag fits as is, open for the same reason; `revision` for the store's number (up to 0.1.0-alpha.4), which kept the
+  plain word for the schema while store authors handle the store's number in every call; `version` for the parameter,
+  which reads as the version to write; `expectedVersion`, which the owner found unclear.
 
 ### D42. Settings ids and conversation ids are separate; conversations grow by appending
 

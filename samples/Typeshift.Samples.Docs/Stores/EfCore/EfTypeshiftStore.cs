@@ -20,44 +20,39 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
-        var row = new DocumentRow
-        {
-            Id = id,
-            Kind = kind,
-            Version = loadedVersion + 1,
-            Json = json
-        };
+        var rows = loadedVersion == 0
+            ? await InsertAsync(db, id, kind, json, ct)
+            : await UpdateAsync(db, id, kind, json, loadedVersion, ct);
 
-        var entry = db.Entry(row);
-        entry.State = loadedVersion == 0 ? EntityState.Added : EntityState.Modified;
-
-        // The update only matches the row while it still has the version the caller loaded
-        if (loadedVersion > 0)
-            entry.Property(document => document.Version).OriginalValue = loadedVersion;
-
-        // A conflict is another save that won; any other failure is the database's and surfaces as it is
-        try
-        {
-            await db.SaveChangesAsync(ct);
-            return row.Version;
-        }
-        catch (DbUpdateConcurrencyException exception)
-        {
-            throw new StoreConflictException($"{kind} {id} changed after version {loadedVersion}.", exception);
-        }
-        catch (DbUpdateException exception) when (loadedVersion == 0)
-        {
-            if (!await ExistsAsync(id, kind, ct)) throw;
-
-            throw new StoreConflictException($"{kind} {id} was saved first by another.", exception);
-        }
+        // Each statement checks and writes in one step, so a save that changed no row lost to another save
+        return rows == 1
+            ? loadedVersion + 1
+            : throw new StoreConflictException($"{kind} {id} was saved after version {loadedVersion}.");
     }
 
-    private async Task<bool> ExistsAsync(int id, string kind, CancellationToken ct)
-    {
-        await using var db = await contexts.CreateDbContextAsync(ct);
-        return await db.Documents.AnyAsync(row => row.Id == id && row.Kind == kind, ct);
-    }
+    private static Task<int> InsertAsync(TypeshiftDb db, int id, string kind, string json, CancellationToken ct) =>
+        db.Database.ExecuteSqlAsync(
+            $"""
+            INSERT INTO "Documents" ("Id", "Kind", "Version", "Json")
+            VALUES ({id}, {kind}, 1, {json})
+            ON CONFLICT ("Id", "Kind") DO NOTHING
+            """,
+            ct);
+
+    private static Task<int> UpdateAsync(
+        TypeshiftDb db,
+        int id,
+        string kind,
+        string json,
+        long loadedVersion,
+        CancellationToken ct) =>
+        db.Documents
+            .Where(row => row.Id == id && row.Kind == kind && row.Version == loadedVersion)
+            .ExecuteUpdateAsync(
+                set => set
+                    .SetProperty(row => row.Json, json)
+                    .SetProperty(row => row.Version, loadedVersion + 1),
+                ct);
     // end-snippet
 
     // begin-snippet: ef-core-conversations
