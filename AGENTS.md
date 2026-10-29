@@ -101,7 +101,7 @@ style; the essentials:
 | Providers and models, the provider id type, the summary model | `guide/models.md` | `running-agents.md#chat-clients`, `registration.md#the-id-type`, `conversations.md#compaction` |
 | Approval and modes | `guide/tool-approval.md` | `builders.md` (link) |
 | Settings layers and precedence | `guide/settings-and-stores.md#settings-layering` | `tool-settings.md`, `defining-agents.md`, `running-agents.md` |
-| Getting an agent's host: injecting it, or resolving it from a scope | `guide/running-agents.md#resolve-an-agent-s-host` | `getting-started.md` (step 4), `registration.md` (the lifetime) |
+| Getting an agent's host: injecting it, or resolving it from a scope | `guide/using-an-agent.md` | `getting-started.md` (step 4), `registration.md` (the lifetime), `running-agents.md` (lead) |
 | The order of a run's steps | `guide/running-agents.md#how-a-run-works` | `contributing/architecture.md#a-run` (the code's side) |
 | The store's lifetime and contract, kinds, versions, revisions, conversation entries and summaries | `guide/implementing-a-store.md` | `settings-and-stores.md` (link), `conversations.md#what-is-stored` |
 | The `Settings` JSON, agent settings under a settings id | `guide/settings-and-stores.md` | `generated-members.md#settings` |

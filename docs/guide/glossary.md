@@ -11,7 +11,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | Term | Meaning |
 |---|---|
 | **Agent** | A `partial` class deriving from `Agent` that bundles chat options, instructions, tools and their settings for one job. See [Agents](./defining-agents.md). |
-| **Agent host** | `AgentHost<TAgent>`, which runs one agent with the services of the scope it was resolved from. See [Resolve an agent's host](./running-agents.md#resolve-an-agent-s-host). |
+| **Agent host** | `AgentHost<TAgent>`, which runs one agent with the services of the scope it was resolved from. See [Using an agent](./using-an-agent.md). |
 | **Approval request** | The `ToolApprovalRequestContent` a run ends with when it needs approval. You answer it in the conversation's next run. See [Approval and modes](./tool-approval.md). |
 | **Approval rule** | An `IToolApprovalRule` that approves, rejects or abstains on a tool call before your app is asked. |
 | **Chat client provider** | The `IChatClientProvider` your app registers with `WithChatClientProvider<T>()`, which returns the `IChatClient` for a provider and a model. |
