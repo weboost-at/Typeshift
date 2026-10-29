@@ -70,29 +70,29 @@ public class StoredSettingsTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_No_Stored_Settings_Loading_Returns_Empty_Settings_At_Revision_Zero()
+    public async Task Given_No_Stored_Settings_Loading_Returns_Empty_Settings_At_Version_Zero()
     {
         // Act
         var stored = await Host<ProbeAgent>().LoadSettingsAsync(Data.Persistence.SettingsId, Ct);
 
         // Assert
-        stored.Revision.Should().Be(0);
+        stored.Version.Should().Be(0);
         stored.Data.Should().BeEquivalentTo(new ProbeAgent.Settings());
     }
 
     [Fact]
-    public async Task Given_A_Save_Loading_Returns_The_Settings_With_Its_Revision()
+    public async Task Given_A_Save_Loading_Returns_The_Settings_With_Its_Version()
     {
         // Arrange
         var host = Host<ProbeAgent>();
         var settings = new ProbeAgent.Settings { Temperature = Data.Agent.Temperature };
 
         // Act
-        var revision = await host.SaveSettingsAsync(Data.Persistence.SettingsId, settings, 0, Ct);
+        var version = await host.SaveSettingsAsync(Data.Persistence.SettingsId, settings, 0, Ct);
         var stored = await host.LoadSettingsAsync(Data.Persistence.SettingsId, Ct);
 
         // Assert
-        stored.Should().BeEquivalentTo(new Stored<ProbeAgent.Settings>(settings, revision));
+        stored.Should().BeEquivalentTo(new Stored<ProbeAgent.Settings>(settings, version));
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public class StoredSettingsTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_A_Revision_Another_Save_Replaced_Saving_Throws_A_StoreConflictException()
+    public async Task Given_A_Version_Another_Save_Replaced_Saving_Throws_A_StoreConflictException()
     {
         // Arrange
         var host = Host<ProbeAgent>();
@@ -171,7 +171,7 @@ public class StoredSettingsTests : AgentTestBase
         {
             calls++;
             var stored = await host.LoadSettingsAsync(Data.Persistence.SettingsId, Ct);
-            await host.SaveSettingsAsync(Data.Persistence.SettingsId, stored.Data, stored.Revision, Ct);
+            await host.SaveSettingsAsync(Data.Persistence.SettingsId, stored.Data, stored.Version, Ct);
 
             return settings with { Temperature = Data.Agent.Temperature };
         }

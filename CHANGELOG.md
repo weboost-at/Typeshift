@@ -25,10 +25,21 @@ All notable changes to this project are documented here. The format follows
 ### Changed
 
 - `ITypeshiftStore.LoadAsync` and `SaveAsync` are no longer generic. They take a document's id and kind, a save its
-  JSON and version too, and a load returns a `StoredDocument`. Typeshift serializes the agents' settings itself, so a
-  store handles strings and numbers only. A store moves over by taking `kind`, `json` and `version` where it called
-  `TData.Kind`, `Serialize()` and `TData.Version`, and returning `new StoredDocument(json, version, revision)`; the
-  stored data stays the same.
+  JSON too, and a load returns a `StoredDocument`. Typeshift serializes the agents' settings itself, so a store
+  handles strings and numbers only. A store moves over by taking `kind` and `json` where it called `TData.Kind` and
+  `Serialize()`, and returning `new StoredDocument(json, version)`.
+- A document's schema version travels in its JSON as `"$schemaVersion"`, left out at 1, so a store keeps the JSON and
+  its version and nothing else. `SaveAsync` and `StoredDocument` carry no schema version, and
+  `ConversationEntry.Deserialize` and the generated `Settings.Deserialize` take the JSON alone. A store moves over by
+  dropping its schema version columns and the schema versions it passed to `StoredDocument` and
+  `ConversationEntry.Deserialize`. Documents and entries stored at schema version 1 read as before. For an agent that
+  raised its schema version, copy the stored one into the JSON as `"$schemaVersion"` if your migrations read it;
+  without it a document reads as schema version 1.
+- The number a store keeps for each document is its version, and the record's number its schema version.
+  `StoredDocument.Revision` and `Stored<T>.Revision` are `Version`, and `SaveAsync` and `SaveSettingsAsync` take
+  `loadedVersion` where they took `revision`, so `StoredDocument.Version` now holds what `Revision` held.
+  `WithSettingsVersion(n)` is `WithSchemaVersion(n)`, and `IStorable.Version`, `Settings.Version` and
+  `ConversationEntry.Version` are `SchemaVersion`. A store renames its revision column, or keeps it and maps it.
 - The package icon and the docs site's touch icon are a white tile with an ink and a red chevron, where the tile was
   ink with a white and a red chevron.
 

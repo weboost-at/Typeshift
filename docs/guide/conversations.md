@@ -46,9 +46,9 @@ Each entry is a `ConversationEntry`: the name of its agent in `Agent`, its `Mess
 on the entry [compaction](#compaction) appends when it summarizes, which is how your code and your store tell a summary
 apart ([Recognizing a summary](./implementing-a-store.md#recognizing-a-summary)).
 
-An entry serializes itself with `Serialize()` and `ConversationEntry.Deserialize(json, version)`, and JSON libraries
-handle it as it is. `System.Text.Json` writes and reads that same JSON, and Newtonsoft.Json writes it as a string, so
-a store or an API can pass entries on with either library and no settings.
+An entry serializes itself with `Serialize()` and `ConversationEntry.Deserialize(json)`, and JSON libraries handle it as
+it is. `System.Text.Json` writes and reads that same JSON, and Newtonsoft.Json writes it as a string, so a store or an
+API can pass entries on with either library and no settings.
 
 <!-- snippet: load-conversation -->
 <a id='snippet-load-conversation'></a>

@@ -61,19 +61,13 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
     public static string Kind => "conversation_entry";
 
     /// <inheritdoc />
-    public static int Version => 1;
+    public static int SchemaVersion => 1;
 
     /// <inheritdoc />
     public string Serialize() => StorableJson.Write(Write);
 
     /// <inheritdoc />
-    public static ConversationEntry Deserialize(string json, int version)
-    {
-        if (version > Version)
-            throw new JsonException($"Conversation entries of version {version} are newer than this code's {Version}.");
-
-        return StorableJson.Read<ConversationEntry>(json, TryRead);
-    }
+    public static ConversationEntry Deserialize(string json) => StorableJson.Read<ConversationEntry>(json, TryRead);
 
     void IJsonStorable<ConversationEntry>.WriteJson(Utf8JsonWriter writer) => Write(writer);
 
@@ -83,6 +77,7 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
     private void Write(Utf8JsonWriter writer)
     {
         writer.WriteStartObject();
+        StorableJson.WriteSchemaVersion(writer, SchemaVersion);
         writer.WriteString("agent", Agent);
         writer.WriteString("at", At);
         if (Model is not null) writer.WriteString("model", Model);
@@ -137,6 +132,7 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
         entry = null!;
         if (root.ValueKind is not JsonValueKind.Object) return false;
 
+        StorableJson.EnsureSchemaVersion(root, SchemaVersion, Kind);
         var messages = StorableJson.Member(root, "messages") is { ValueKind: JsonValueKind.Array } array
             ? array.EnumerateArray().Select(message => message.Deserialize(Contract<ChatMessage>())!).ToList()
             : [];

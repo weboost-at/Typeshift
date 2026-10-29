@@ -1,7 +1,7 @@
 namespace Typeshift;
 
 /// <summary>
-/// Keeps the agents' settings: a JSON document per settings id and kind, guarded by a revision. Each project sees it
+/// Keeps the agents' settings: a JSON document per settings id and kind, guarded by a version. Each project sees it
 /// as <c>ISettingsStore</c>, an alias the generator writes for the build's id type. Implement it alone when
 /// conversations live elsewhere, or <see cref="ITypeshiftStore{TId}"/> for both.
 /// </summary>
@@ -20,36 +20,36 @@ public interface ISettingsStore<TId> where TId : notnull
     Task<StoredDocument?> LoadAsync(TId id, string kind, CancellationToken ct);
 
     /// <summary>
-    /// Saves the document of a kind under an id if the stored revision is still <paramref name="revision"/>, 0 for
-    /// none.
+    /// Saves the document of a kind under an id if the stored version is still <paramref name="loadedVersion"/>, 0
+    /// for none.
     /// </summary>
     /// <param name="id">The id.</param>
     /// <param name="kind">The document's kind.</param>
-    /// <param name="json">The document's JSON.</param>
-    /// <param name="version">The schema version the JSON was written under, which a load returns with it.</param>
-    /// <param name="revision">The revision the caller loaded, 0 when it found none.</param>
+    /// <param name="json">The document's JSON, which a load returns as it is.</param>
+    /// <param name="loadedVersion">
+    /// The version <see cref="LoadAsync"/> returned to the caller, 0 when it found none: the old version, which the
+    /// stored one must still equal, never the version to write.
+    /// </param>
     /// <param name="ct">Cancels the save.</param>
-    /// <returns>The new revision.</returns>
+    /// <returns>The new version the store wrote, which the caller passes to its next save.</returns>
     /// <exception cref="StoreConflictException">Another save came first.</exception>
-    Task<long> SaveAsync(TId id, string kind, string json, int version, long revision, CancellationToken ct);
+    Task<long> SaveAsync(TId id, string kind, string json, long loadedVersion, CancellationToken ct);
 }
 
 /// <summary>
-/// A document as a store keeps it: the JSON, the schema version it was written under, and the revision a save must
-/// name.
+/// A document as a store keeps it: the JSON, and the version a save must name.
 /// </summary>
 /// <param name="Json">The JSON.</param>
-/// <param name="Version">The schema version.</param>
-/// <param name="Revision">The revision.</param>
-public sealed record StoredDocument(string Json, int Version, long Revision);
+/// <param name="Version">The version.</param>
+public sealed record StoredDocument(string Json, long Version);
 
 /// <summary>
-/// A document read back as its type, and the revision a save must name.
+/// A document read back as its type, and the version a save must name.
 /// </summary>
 /// <typeparam name="TData">The document's type.</typeparam>
 /// <param name="Data">The document.</param>
-/// <param name="Revision">Its revision.</param>
-public sealed record Stored<TData>(TData Data, long Revision);
+/// <param name="Version">Its version.</param>
+public sealed record Stored<TData>(TData Data, long Version);
 
 /// <summary>
 /// A save that lost to another save of the same document.

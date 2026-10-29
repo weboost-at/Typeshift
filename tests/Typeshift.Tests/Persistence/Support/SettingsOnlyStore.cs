@@ -8,6 +8,6 @@ public sealed class SettingsOnlyStore : ISettingsStore
     public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken ct) =>
         _store.LoadAsync(id, kind, ct);
 
-    public Task<long> SaveAsync(Guid id, string kind, string json, int version, long revision, CancellationToken ct) =>
-        _store.SaveAsync(id, kind, json, version, revision, ct);
+    public Task<long> SaveAsync(Guid id, string kind, string json, long loadedVersion, CancellationToken ct) =>
+        _store.SaveAsync(id, kind, json, loadedVersion, ct);
 }

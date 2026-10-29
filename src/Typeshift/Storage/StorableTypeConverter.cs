@@ -11,7 +11,7 @@ internal sealed class StorableTypeConverter<T> : TypeConverter where T : class, 
 
     public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value) =>
         value is string json
-            ? T.Deserialize(json, T.Version)
+            ? T.Deserialize(json)
             : base.ConvertFrom(context, culture, value);
 
     public override object? ConvertTo(

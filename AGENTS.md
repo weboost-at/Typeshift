@@ -103,7 +103,7 @@ style; the essentials:
 | Settings layers and precedence | `guide/settings-and-stores.md#settings-layering` | `tool-settings.md`, `defining-agents.md`, `running-agents.md` |
 | Getting an agent's host: injecting it, or resolving it from a scope | `guide/using-an-agent.md` | `getting-started.md` (step 4), `registration.md` (the lifetime), `running-agents.md` (lead) |
 | The order of a run's steps | `guide/running-agents.md#how-a-run-works` | `contributing/architecture.md#a-run` (the code's side) |
-| The store's lifetime and contract, kinds, versions, revisions, conversation entries and summaries | `guide/implementing-a-store.md` | `settings-and-stores.md` (link), `conversations.md#what-is-stored` |
+| The store's lifetime and contract, kinds, schema versions, versions, conversation entries and summaries | `guide/implementing-a-store.md` | `settings-and-stores.md` (link), `conversations.md#what-is-stored` |
 | The `Settings` JSON, agent settings under a settings id | `guide/settings-and-stores.md` | `generated-members.md#settings` |
 | Conversations: storage, resume, steering, live updates, compaction | `guide/conversations.md` | |
 | Generated members, `AgentHost` members and signatures | `guide/generated-members.md` | `running-agents.md` |

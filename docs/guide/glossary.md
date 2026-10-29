@@ -34,9 +34,9 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | **Overrides** | The generated `{Tool}Overrides` record, a tool's configurable settings with each one nullable. Null keeps the layer below. |
 | **Provider id type** | The type of every provider id in a build, such as the provider in `WithModel(provider, model)`: `string` unless `TypeshiftProviderIdType` names another. See [Models and providers](./models.md#the-provider-id-type). |
 | **Raw path** | Resolving a run's options and creating its `IChatClient` yourself, for when your app needs the client. See [Running agents](./running-agents.md#the-raw-path). |
-| **Revision** | The number that marks a stored document's current state; each save gives the document a new one. A save passes the revision it loaded, so it fails when another save came first. See [Revisions](./implementing-a-store.md#revisions). |
 | **Run** | One call of `RunAsync`, `RunAsync<T>`, `RunStreamingAsync`, `ResumeAsync`, `ResumeStreamingAsync` or the raw path's client: the model calls and tool calls until the model answers. |
 | **Run options** | How a run's tool loop goes, with its mode, its limits and compaction. Set with `WithRunOptions()`. |
+| **Schema version** | The number in a stored document's JSON, `"$schemaVersion"`, that names the shape of the record that wrote it: 1 unless the agent's `WithSchemaVersion(n)` raises it. Reading a newer one fails. See [The stored JSON](./settings-and-stores.md#the-stored-json). |
 | **Settings** | An agent's generated `Settings` record, with exactly the values that may change at runtime. Stored under a settings id, or passed for one run. |
 | **Settings id** | The id your app stores an agent's `Settings` under, such as one per customer, team or user. |
 | **Settings record** | The record a tool receives its settings in, declared with `WithSettings<T>()` or `WithConfigurableSettings<T>()`. The model never sees it. |
@@ -48,6 +48,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | **Tool** | A static method that a toolset or an agent declares with `AddTool`, offered to the model as a generated `AIFunction`. |
 | **Tool list** | `ToolList<TToolset>`, the type `Include` and `Exclude` pick tools from. The generated `{Toolset}ToolList` gives it one property per tool. |
 | **Toolset** | A `partial` class deriving from `Toolset` that declares the tools of one domain. See [Toolsets](./toolsets.md). |
+| **Version** | The number that marks a stored document's current state; each save gives the document a new one. A save passes the version it loaded, so it fails when another save came first. Not the schema version. See [Versions](./implementing-a-store.md#versions). |
 
 ## Related
 

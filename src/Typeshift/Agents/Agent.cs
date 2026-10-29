@@ -87,7 +87,7 @@ public abstract class Agent
     /// configurable member; stores see it and migrate older documents.
     /// </summary>
     /// <param name="version">A constant above the last one.</param>
-    protected void WithSettingsVersion(int version)
+    protected void WithSchemaVersion(int version)
     {
     }
 

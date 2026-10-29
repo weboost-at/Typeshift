@@ -28,7 +28,7 @@ internal static class AgentEmitter
     private static readonly string[] RecordMembers =
     [
         "Clone", "Deconstruct", "Deserialize", "EqualityContract", "Equals", "GetHashCode", "Kind", "PrintMembers",
-        "Serialize", "Settings", "ToString", "TryReadJson", "Version", "WriteJson"
+        "SchemaVersion", "Serialize", "Settings", "ToString", "TryReadJson", "WriteJson"
     ];
 
     public static string Emit(AgentOutput output, string idType, bool idTypeIsPublic, ProviderIdModel providerId)
@@ -204,17 +204,13 @@ internal static class AgentEmitter
                 public static string Kind => {{Names.Literal(agent.Kind)}};
 
                 /// <inheritdoc />
-                public static int Version => {{agent.Version}};
+                public static int SchemaVersion => {{agent.SchemaVersion}};
 
                 /// <inheritdoc />
                 public string Serialize() => {{Json}}.Write(WriteJson);
 
                 /// <inheritdoc />
-                public static Settings Deserialize(string json, int version) =>
-                    version > Version
-                        ? throw new global::System.Text.Json.JsonException(
-                            $"{Kind} settings of version {version} are newer than this code's {Version}.")
-                        : {{Json}}.Read<Settings>(json, TryReadJson);
+                public static Settings Deserialize(string json) => {{Json}}.Read<Settings>(json, TryReadJson);
                 """);
 
             var stored = chat.Concat(run)
@@ -226,6 +222,7 @@ internal static class AgentEmitter
             StorageEmitter.WriteRecordJson(
                 writer,
                 "Settings",
+                versioned: true,
                 stored,
                 tools.Count == 0 ? null : more => WriteTools(more, agent, tools),
                 [
@@ -533,13 +530,13 @@ internal static class AgentEmitter
                 """);
             writer.Line();
 
-            // D41: revisions guard every save
+            // D41: versions guard every save
             Docs.WriteSummary(writer, "Loads the settings stored under an id.");
             Docs.WriteParam(writer, "settingsId", "The id.");
             Docs.WriteParam(writer, "ct", "Cancels the load.");
             Docs.WriteReturns(
                 writer,
-                "The settings and the revision <c>SaveSettingsAsync</c> takes; empty settings at revision 0 when none "
+                "The settings and the version <c>SaveSettingsAsync</c> takes; empty settings at version 0 when none "
                 + "are stored.");
             writer.Lines(
                 $"""
@@ -553,18 +550,21 @@ internal static class AgentEmitter
             Docs.WriteSummary(writer, "Saves settings under an id, unless another save came since they were loaded.");
             Docs.WriteParam(writer, "settingsId", "The id.");
             Docs.WriteParam(writer, "settings", "The settings.");
-            Docs.WriteParam(writer, "revision", "The revision <c>LoadSettingsAsync</c> returned.");
+            Docs.WriteParam(
+                writer,
+                "loadedVersion",
+                "The version <c>LoadSettingsAsync</c> returned, 0 when it loaded none.");
             Docs.WriteParam(writer, "ct", "Cancels the save.");
-            Docs.WriteReturns(writer, "The new revision.");
+            Docs.WriteReturns(writer, "The new version, to pass to the next save.");
             Docs.WriteException(writer, "global::Typeshift.StoreConflictException", "Another save came first.");
             writer.Lines(
                 $"""
                 public {Task}<long> SaveSettingsAsync(
                     {idType} settingsId,
                     {settings} settings,
-                    long revision,
+                    long loadedVersion,
                     {CancellationToken} ct = default) =>
-                    {Runs}.SaveSettingsAsync<{types}>(host, settingsId, settings, revision, ct);
+                    {Runs}.SaveSettingsAsync<{types}>(host, settingsId, settings, loadedVersion, ct);
                 """);
             writer.Line();
 
