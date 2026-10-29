@@ -119,25 +119,32 @@ internal partial class BillingAgent : Agent
     /// <summary>
     /// Returns today's date, to tell whether an invoice is overdue.
     /// </summary>
-    private static DateOnly GetToday(IServiceProvider services) =>
-        DateOnly.FromDateTime(services.GetRequiredService<TimeProvider>().GetLocalNow().DateTime);
+    private static DateOnly GetToday(IServiceProvider services)
+    {
+        var time = services.GetService(typeof(TimeProvider)) as TimeProvider ?? TimeProvider.System;
+        return DateOnly.FromDateTime(time.GetLocalNow().DateTime);
+    }
 
     protected override string GetInstructions() => "Settle the customer's charges and invoices.";
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/BillingAgent.cs#L5-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-own-tool' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/BillingAgent.cs#L3-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-own-tool' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - The tool takes the same chain as a toolset's tool, such as `ReadOnly()` here or `RequiresApproval()`, and follows
   the same rules for its [name and description](./toolsets.md#names-and-descriptions),
-  [parameters](./toolsets.md#parameters) and [results](./toolsets.md#results), so `GetToday` becomes `get_today`.
-- The method may be private, since only the agent's generated code calls it.
-- The agent offers its own tools after the tools of its toolsets. A tool with settings gets a `Configure{Tool}()`,
-  and its configurable members join the agent's `Settings`, as a toolset's tool does.
-- Its name must be unique among all your tools ([TSH007](./diagnostics.md#tsh007)).
+  [parameters](./toolsets.md#parameters) and [results](./toolsets.md#results). So `GetToday` becomes `get_today`, its
+  `<summary>` describes it to the model, and the `IServiceProvider` it takes is the run's, which the model never sees.
+- The method must be static and may be private, since only the agent's generated code calls it.
+- The agent offers its own tools after the tools of its toolsets, in the order it adds them.
+- A tool with settings declares them with `WithSettings<T>()` and takes the record as a parameter
+  ([Tool settings](./tool-settings.md)). It then gets a `Configure{Tool}()`, and its configurable members join the
+  agent's `Settings`, as a toolset's tool does.
+- Its name must be unique among your project's tools ([TSH007](./diagnostics.md#tsh007)) and the tools of the toolsets
+  the agent uses ([TSH025](./diagnostics.md#tsh025)).
 
-Move the tool into a toolset once a second agent needs it, because no other agent can offer this agent's tools, and
-`Include` and `Exclude` pick only from toolsets.
+No other agent can offer this agent's tools, so move the tool into a toolset once a second agent needs it. `Include`
+and `Exclude` pick only from toolsets, so the agent always offers its own tools.
 
 ## Configurable chat options
 

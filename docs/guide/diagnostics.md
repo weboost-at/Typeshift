@@ -97,10 +97,10 @@ id type as accessible as what exposes it. There are four cases:
 
 ## TSH007
 
-**Tool name is not unique.** A tool name must be unique across your project's toolsets and agents and the toolsets of
-the projects it references, the built-in toolsets aside ([TSH025](#tsh025) covers those). Names that differ only in
-their underscores, such as `get_v2` and `get_v_2`, count as the same, because they map to the same generated property.
-Give one of the tools another name with `WithName("...")`.
+**Tool name is not unique.** A tool name must be unique across the tools of your project's toolsets and agents, and
+those of the toolsets in the projects it references, the built-in toolsets aside ([TSH025](#tsh025) covers those). Names
+that differ only in their underscores, such as `get_v2` and `get_v_2`, count as the same, because they map to the same
+generated property. Give one of the tools another name with `WithName("...")`.
 
 ## TSH008
 

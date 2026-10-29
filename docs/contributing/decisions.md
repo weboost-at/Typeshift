@@ -239,15 +239,15 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - **Status:** owner.
 - **Context:** a tool only one agent needed still took a toolset class of its own and a `UseToolset<T>()`.
-- **Decision:** `AddTool(method)` in an agent's constructor, with the toolsets' chain, backed by a static method of
-  the agent. The agent offers its own tools after its toolsets' tools. They are no toolset: no tool list, no stamp
-  and no registration, so no other agent offers them and `Include` and `Exclude` do not pick them.
-- **As built:** the generator reads them with the toolsets' parser and writes their overrides, factories and
-  functions into the agent, where its `Settings`, `Configure{Tool}()` and declaration name them as a toolset's. The
-  analyzer applies every tool rule; a name is unique across the toolsets and the agents' own tools of the compilation
-  and the toolsets of its references (TSH007), and against the agent's toolsets (TSH025). The module stamp lists the
-  own tools that require approval, for TSH024. No stamp carries an agent's own tools, so TSH007 does not compare them
-  with those of a referenced project's agents.
+- **Decision:** `AddTool(method)` in an agent's constructor, with the toolsets' chain, backed by a static method of the
+  agent. The agent offers its own tools after its toolsets' tools. They do not form a toolset: they get no tool list, no
+  stamp and no registration, so no other agent offers them and `Include` and `Exclude` do not pick them.
+- **As built:** the generator reads them with the toolsets' parser and writes their overrides, factories and functions
+  into the agent, where the agent's `Settings`, its `Configure{Tool}()` methods and its declaration list them as they
+  list a toolset's tools. The analyzer applies every tool rule; a name is unique across the toolsets and the agents' own
+  tools of the compilation and the toolsets of its references (TSH007), and against the agent's toolsets (TSH025). The
+  module stamp lists the own tools that require approval, for TSH024. No stamp carries an agent's own tools, so TSH007
+  does not compare them with those of a referenced project's agents.
 - **Where:** `Agents/Agent.cs`, `Parsing/ToolsetParser.cs`, `Parsing/AgentParser.cs`, `Parsing/Catalog.cs`,
   `Emitting/AgentEmitter.cs`.
 - **Alternatives:** a second, lighter base class for small tasks, such as `AgentTask<TResult>` with instructions and

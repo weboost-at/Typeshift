@@ -1,5 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
-
 namespace Typeshift.Samples.Agents;
 
 // begin-snippet: agent-own-tool
@@ -19,8 +17,11 @@ internal partial class BillingAgent : Agent
     /// <summary>
     /// Returns today's date, to tell whether an invoice is overdue.
     /// </summary>
-    private static DateOnly GetToday(IServiceProvider services) =>
-        DateOnly.FromDateTime(services.GetRequiredService<TimeProvider>().GetLocalNow().DateTime);
+    private static DateOnly GetToday(IServiceProvider services)
+    {
+        var time = services.GetService(typeof(TimeProvider)) as TimeProvider ?? TimeProvider.System;
+        return DateOnly.FromDateTime(time.GetLocalNow().DateTime);
+    }
 
     protected override string GetInstructions() => "Settle the customer's charges and invoices.";
 }

@@ -190,9 +190,9 @@ the agent declares itself replaces the generated one.
 
 ### Tools of the agent's own
 
-**Triggered by** an `AddTool(...)` in the agent's constructor. The agent gets the tool's `{Tool}Overrides`,
-`Create{Tool}` and `{Tool}Function`, as a toolset would, but no tool list and no stamp, so no other agent offers the
-tool.
+**Triggered by** an `AddTool(...)` in the agent's constructor. The agent gets the tool's `Create{Tool}` and
+`{Tool}Function`, and its `{Tool}Overrides` when it has configurable members, as a toolset does. It gets no tool list
+and no stamp.
 
 ### `{Agent}HostExtensions`
 
