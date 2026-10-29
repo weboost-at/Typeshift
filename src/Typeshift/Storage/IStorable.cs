@@ -25,12 +25,12 @@ public interface IStorable<TSelf> where TSelf : class, IStorable<TSelf>
     string Serialize();
 
     /// <summary>
-    /// Reads a document <see cref="Serialize"/> wrote, under the version its JSON names, 1 when it names none.
+    /// Reads a document <see cref="Serialize"/> wrote, under the schema version its JSON names, 1 when it names none.
     /// </summary>
     /// <param name="json">The JSON text.</param>
     /// <returns>The document.</returns>
     /// <exception cref="System.Text.Json.JsonException">
-    /// The version is newer than this code's, or the text is no JSON object.
+    /// The schema version is newer than this code's, or the text is no JSON object.
     /// </exception>
     static abstract TSelf Deserialize(string json);
 }

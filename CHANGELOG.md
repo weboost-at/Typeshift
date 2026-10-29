@@ -34,9 +34,9 @@ All notable changes to this project are documented here. The format follows
   without it a document reads as schema version 1.
 - The number a store keeps for each document is its version, and the record's number its schema version.
   `StoredDocument.Revision` and `Stored<T>.Revision` are `Version`, and `SaveAsync` and `SaveSettingsAsync` take
-  `expectedVersion` where they took `revision`. `WithSettingsVersion(n)` is `WithSchemaVersion(n)`, and
-  `Settings.Version` and `ConversationEntry.Version` are `SchemaVersion`. A store renames its revision column, or keeps
-  it and maps it.
+  `expectedVersion` where they took `revision`, so `StoredDocument.Version` now holds what `Revision` held.
+  `WithSettingsVersion(n)` is `WithSchemaVersion(n)`, and `IStorable.Version`, `Settings.Version` and
+  `ConversationEntry.Version` are `SchemaVersion`. A store renames its revision column, or keeps it and maps it.
 
 ## [0.1.0-alpha.3] - 2026-10-27
 
