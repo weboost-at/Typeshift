@@ -7,6 +7,11 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `ISettingsStore` and `IConversationStore` split the store in two. A store implements either or both, and
+  `WithStore<T>()` registers each one it implements, so settings and conversations can live in different databases.
+  `ITypeshiftStore` is both in one, so an existing store compiles unchanged. A call that loads or saves without a
+  matching store throws, naming the interface it needs, and TSH028 reports a store that implements neither interface
+  for the build's id type.
 - `System.Text.Json` and Newtonsoft.Json serialize a `ConversationEntry` as it is, with no settings: the first writes
   its stored JSON, the second that JSON as a string. Newtonsoft.Json used to read entries back with their contents
   emptied.
@@ -18,6 +23,8 @@ All notable changes to this project are documented here. The format follows
   store handles strings and numbers only. A store moves over by taking `kind`, `json` and `version` where it called
   `TData.Kind`, `Serialize()` and `TData.Version`, and returning `new StoredDocument(json, version, revision)`; the
   stored data stays the same.
+- The package icon and the docs site's touch icon are a white tile with an ink and a red chevron, where the tile was
+  ink with a white and a red chevron.
 
 ## [0.1.0-alpha.3] - 2026-10-27
 

@@ -42,15 +42,30 @@ public static class ModuleRegistration
 
         return new TypeshiftBuilder(
             services,
-            static (services, store) => services.AddSingleton<ITypeshiftStore<TId>>(provider =>
-                store(provider) as ITypeshiftStore<TId>
-                ?? throw new InvalidOperationException(
-                    $"The store is no ITypeshiftStore<{typeof(TId).Name}>, the build's id type (TSH028).")),
+            AddStore<TId>,
             static (services, clients) => services.AddScoped<IChatClientProvider<TProviderId>>(provider =>
                 clients(provider) as IChatClientProvider<TProviderId>
                 ?? throw new InvalidOperationException(
                     $"The chat client provider is no IChatClientProvider<{typeof(TProviderId).Name}>, of the build's "
                     + "provider id type (TSH030).")));
+    }
+
+    // D38: a store is registered as each store interface it implements; the type check reads no members
+    private static void AddStore<TId>(IServiceCollection services, Type type, Func<IServiceProvider, object> store)
+        where TId : notnull
+    {
+        var keepsSettings = typeof(ISettingsStore<TId>).IsAssignableFrom(type);
+        var keepsConversations = typeof(IConversationStore<TId>).IsAssignableFrom(type);
+        var isTypeshiftStore = typeof(ITypeshiftStore<TId>).IsAssignableFrom(type);
+
+        if (!keepsSettings && !keepsConversations)
+            throw new InvalidOperationException(
+                $"{type.Name} is no ISettingsStore<{typeof(TId).Name}> or IConversationStore<{typeof(TId).Name}>, a "
+                + "store of the build's id type (TSH028).");
+
+        if (keepsSettings) services.AddSingleton(provider => (ISettingsStore<TId>)store(provider));
+        if (keepsConversations) services.AddSingleton(provider => (IConversationStore<TId>)store(provider));
+        if (isTypeshiftStore) services.AddSingleton(provider => (ITypeshiftStore<TId>)store(provider));
     }
 
     /// <summary>

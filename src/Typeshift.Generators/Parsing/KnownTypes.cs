@@ -43,7 +43,9 @@ internal static class KnownTypes
 
     public const string TypeshiftBuilder = "Typeshift.TypeshiftBuilder";
 
-    public const string Store = "Typeshift.ITypeshiftStore`1";
+    public const string SettingsStore = "Typeshift.ISettingsStore`1";
+
+    public const string ConversationStore = "Typeshift.IConversationStore`1";
 
     public const string ChatClientProvider = "Typeshift.IChatClientProvider`1";
 
