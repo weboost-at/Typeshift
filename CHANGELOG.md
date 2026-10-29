@@ -26,6 +26,13 @@ All notable changes to this project are documented here. The format follows
 - The package icon and the docs site's touch icon are a white tile with an ink and a red chevron, where the tile was
   ink with a white and a red chevron.
 
+### Removed
+
+- The built-in toolsets: `TodoToolset`, `FileSystemToolset`, `ShellToolset` and `WebToolset`, with `IFileSystemRoot`,
+  `IWebSearch`, `IWebFetch`, `WithFileSystemRoot<T>()`, `WithWebSearch<T>()` and `WithWebFetch<T>()`. An app that used
+  them declares the tools it needs in a toolset of its own. Compaction still keeps the latest call of a tool named
+  `write_todos`.
+
 ## [0.1.0-alpha.3] - 2026-10-27
 
 ### Added

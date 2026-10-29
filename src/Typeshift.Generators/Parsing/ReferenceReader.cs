@@ -147,12 +147,10 @@ internal static class ReferenceReader
             .Select(property => new SettingMember(property.Name, property.Type.ToFullyQualified()))
             .ToEquatableArray();
 
-    // The library is among them: its module registers the built-in toolsets (D37)
     private static IEnumerable<IAssemblySymbol> GetLibraryUsers(Compilation compilation) =>
-        compilation.SourceModule.ReferencedAssemblySymbols.Where(assembly => assembly.Name == KnownTypes.LibraryAssembly
-            || assembly.Modules
-                .SelectMany(module => module.ReferencedAssemblies)
-                .Any(identity => identity.Name == KnownTypes.LibraryAssembly));
+        compilation.SourceModule.ReferencedAssemblySymbols.Where(assembly => assembly.Modules
+            .SelectMany(module => module.ReferencedAssemblies)
+            .Any(identity => identity.Name == KnownTypes.LibraryAssembly));
 
     private static bool DeclaresToolsetsOrAgents(INamespaceSymbol ns, CancellationToken ct)
     {
