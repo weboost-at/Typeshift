@@ -145,6 +145,5 @@ between toolsets through static methods rather than a base class.
 
 - [Tool settings](./tool-settings.md): values a tool needs that the model must not choose.
 - [Agents](./defining-agents.md#selecting-tools): offering a toolset's tools to an agent.
-- [Built-in toolsets](./built-in-toolsets.md): to-dos, files, the shell and the web.
 - [Builders](./builders.md#toolset): every call a toolset's constructor can make.
 - [Generated members](./generated-members.md#per-toolset): what the generator writes for each toolset.

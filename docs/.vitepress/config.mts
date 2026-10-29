@@ -6,40 +6,45 @@ const repository = 'https://github.com/weboost-at/Typeshift'
 // GitHub Pages serves a project site under the repository's name; the Pages workflow passes the real base
 const base = process.env.DOCS_BASE ?? '/Typeshift/'
 
-// The sidebar order is the reading order: the big picture first, then building, running and controlling agents,
-// then the reference. docs/.vitepress/lint.mjs fails on a page the sidebar leaves out.
+// The sidebar order is the reading order: the Introduction first, which takes a reader from nothing to an app that
+// uses the library, then building, running and controlling agents, then the reference. The Introduction has no
+// `collapsed` key, so it is always open; the others start collapsed, and VitePress opens one when it holds the current
+// page.
+// docs/.vitepress/lint.mjs fails on a page the sidebar leaves out.
 const sidebar = {
   '/guide/': [
     {
       text: 'Introduction',
       items: [
-        { text: 'Getting started', link: '/guide/getting-started' }
+        { text: 'Getting started', link: '/guide/getting-started' },
+        { text: 'Implementing a store', link: '/guide/implementing-a-store' }
       ]
     },
     {
       text: 'Building agents',
+      collapsed: true,
       items: [
         { text: 'Toolsets', link: '/guide/toolsets' },
         { text: 'Tool settings', link: '/guide/tool-settings' },
         { text: 'Agents', link: '/guide/defining-agents' },
-        { text: 'Built-in toolsets', link: '/guide/built-in-toolsets' },
         { text: 'MCP servers', link: '/guide/mcp' },
         { text: 'Multiple agents', link: '/guide/multi-agent' }
       ]
     },
     {
       text: 'Running agents',
+      collapsed: true,
       items: [
         { text: 'Running agents', link: '/guide/running-agents' },
         { text: 'Models and providers', link: '/guide/models' },
         { text: 'Settings and stores', link: '/guide/settings-and-stores' },
-        { text: 'Implementing a store', link: '/guide/implementing-a-store' },
         { text: 'Conversations', link: '/guide/conversations' },
         { text: 'In production', link: '/guide/production' }
       ]
     },
     {
       text: 'Controlling runs',
+      collapsed: true,
       items: [
         { text: 'Approval and modes', link: '/guide/tool-approval' },
         { text: 'Middleware and context', link: '/guide/middleware' }
@@ -47,6 +52,7 @@ const sidebar = {
     },
     {
       text: 'Reference',
+      collapsed: true,
       items: [
         { text: 'Registration', link: '/guide/registration' },
         { text: 'Builders', link: '/guide/builders' },

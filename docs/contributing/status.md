@@ -114,7 +114,7 @@ rewrite.
 | new | A run loads its conversation from the last summary on, which keeps the mode, the standing approvals and the background calls still working (D24, D32, D33, D52) | `ConversationStoreTests.Given_A_Summary_The_Next_Run_Never_Loads_The_Whole_Conversation`, `..._Given_A_Summary_The_Store_Loads_It_And_The_Entries_After_It`, `ToolApprovalTests.Given_An_Approval_For_The_Conversation_The_Summary_Keeps_It_For_Later_Runs`, `ModeTests.Given_A_Compaction_In_Plan_Mode_Its_Summary_Keeps_The_Mode`, `SubAgentTests.Given_A_Compaction_While_A_Background_Sub_Agent_Works_Its_Summary_Keeps_The_Call`, `..._Given_A_Summary_That_Left_A_Background_Sub_Agent_Working_The_Next_Run_Hears_It_Was_Lost` |
 | new | A steered run's later pass starts from the summary its first pass made (D32, D51) | `CompactionTests.Given_A_Steered_Streaming_Run_Its_Later_Pass_Starts_From_The_Summary` |
 | new | A run's first estimate is calibrated by the conversation's last reported call (D32) | `CompactionTests.Given_A_Report_Of_The_Last_Run_The_Next_Runs_First_Call_Compacts_By_It` |
-| new | Summarizing keeps the latest `write_todos` call with its result (D32, D37) | `CompactionTests.Given_Summarized_Turns_The_Latest_Todo_List_Stays_With_Its_Result` |
+| new | Summarizing keeps the latest call of a tool named `write_todos` with its result (D32, D37) | `CompactionTests.Given_Summarized_Turns_The_Latest_Todo_List_Stays_With_Its_Result` |
 | new | A sub-agent is a tool of its description and one input, answering in a fresh context in its caller's mode (D33) | `SubAgentTests` |
 | new | Plan mode offers the sub-agents, which plan with their read-only tools and no `exit_plan_mode` (D33, D52) | `SubAgentTests.Given_A_Caller_In_Plan_Mode_Its_Sub_Agents_Are_Offered`, `..._Given_A_Caller_In_Plan_Mode_Its_Sub_Agent_Is_Offered_Only_Its_Read_Only_Tools` |
 | new | A sub-agent's calls that need approval are rejected unless something approves them (D33) | `SubAgentTests.Given_A_Sub_Agent_In_The_Default_Mode_A_Call_That_Needs_Approval_Is_Rejected` |
@@ -124,17 +124,11 @@ rewrite.
 | new | Sub-agents and handoff targets are checked at compile time (TSH023, TSH024, TSH026) | `DiagnosticTests` |
 | new | A referenced sub-agent is checked against its module stamp (TSH023, TSH024; D33) | `DiagnosticTests.Given_A_Sub_Agent_Of_A_Reference_Without_A_Description_TSH023_Is_Reported_On_The_Use`, `..._Given_A_Sub_Agent_Of_A_Reference_Offering_A_Tool_That_Needs_Approval_TSH024_Is_Reported_On_The_Use` |
 | new | MCP servers' tools follow the agent's own, read-only or behind approval; a clash or no provider fails (D35) | `McpTests` |
-| new | The file tools stay within the root, links included, and read, list, search, write, edit and delete (D37) | `FileSystemToolsetTests` |
-| new | `run_command` runs in the root, with a timeout and an output limit (D37) | `ShellToolsetTests` |
-| new | `run_command` reads a command's output to its end after the timeout kills it, and a second past it for what a process left behind writes (D37) | `ShellToolsetTests.Given_A_Process_Left_Behind_What_It_Writes_Just_After_The_Timeout_Is_Kept`, `..._Given_A_Command_That_Leaves_A_Process_Behind_It_Returns_At_The_Timeout` |
-| new | `delete_file` and `run_command` ask first; the three file readers are read-only (D37) | `FileSystemToolsetTests.Given_The_File_And_Shell_Tools_Those_That_Change_Things_Ask_And_The_Readers_Only_Read` |
-| new | The web tools refuse other schemes and name a missing registration (D37) | `WebToolsetTests` |
-| new | A consumer's agent configures a built-in tool across the assembly boundary (D7, D37) | `FileSystemToolsetTests.Given_An_Agent_Using_The_Built_In_Toolset_Its_Configuration_Reaches_The_Tool` |
 | new | A reference with agents built with another provider id type is TSH021 (D56) | `DiagnosticTests.Given_A_Reference_With_Agents_Built_With_Another_Provider_Id_Type_TSH021_Is_Reported` |
 | new | A reference without agents has no id type to clash (D11) | `DiagnosticTests.Given_A_Reference_Of_Toolsets_Only_Built_With_Another_Id_Type_TSH021_Is_Not_Reported` |
 | new | Under Native AOT, a tool type no context lists is TSH027 (D45) | `DiagnosticTests.Given_A_Tool_Type_No_Context_Lists_Under_Native_Aot_TSH027_Is_Reported_On_Its_Tool` |
 | new | Tools, settings, conversations, streaming and structured output run published as Native AOT | `samples/Typeshift.Samples.Console`, run by CI |
-| new | A consumer of the package, not of the projects, generates and registers its agents and the built-ins | `samples/Typeshift.Samples.PackageConsumer`, run by CI |
+| new | A consumer of the package, not of the projects, generates and registers its agents | `samples/Typeshift.Samples.PackageConsumer`, run by CI |
 
 ## Known gaps
 
@@ -144,19 +138,11 @@ rewrite.
 - **Compaction's estimate.** About four characters make a token, corrected by the provider's report of the run's
   last call, or of the conversation's last call before it, so only a conversation's first call trusts the estimate
   alone. The summary model reads results cut to 2,000 characters.
-- **File tools and links.** The root check follows every link on a path, but a link swapped in between the check
-  and the use still escapes, and only a sandbox stops that. `edit_file` holds a file whole in memory and refuses
-  files over 16 MB. Paths compare as the operating system opens them, which on Windows drops a last segment's
-  trailing dots and spaces; CI runs on Linux, so that is untested.
 - **Uses inside a referenced project.** TSH007 follows the handoffs and sub-agents of your project's agents into a
   referenced project's agent, but not that agent's own uses, which no stamp lists. An own tool of yours and one of an
   agent the referenced agent hands off to are not compared, in either project.
 - **One conversation through unrelated hosts.** An app that runs one conversation id through the hosts of two agents
   that never hand off to each other shares their standing approvals, and no diagnostic sees it.
-- **Web fetch and private addresses.** The model picks the URL, and the host's `IWebFetch` decides which addresses
-  it reaches. No fetcher ships with Typeshift.
-- **Shell.** `run_command` runs what the model sends. The root is its working directory but not a sandbox, and the
-  tool requires approval unless a rule or auto mode answers.
 
 ## Related
 

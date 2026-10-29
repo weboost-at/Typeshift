@@ -97,10 +97,9 @@ id type as accessible as what exposes it. There are four cases:
 
 ## TSH007
 
-**Tool name is not unique.** A tool name must be unique across the tools of your project's toolsets and those of the
-toolsets in the projects it references, the built-in toolsets aside ([TSH025](#tsh025) covers those). Names
-that differ only in their underscores, such as `get_v2` and `get_v_2`, count as the same, because they map to the same
-generated property. Give one of the tools another name with `WithName("...")`.
+**Tool name is not unique.** A tool name must be unique across the toolsets of your project and of the projects it
+references. Names that differ only in their underscores, such as `get_v2` and `get_v_2`, count as the same, because
+they map to the same generated property. Give one of the tools another name with `WithName("...")`.
 
 An agent's own tool needs a unique name only among the tools of the agents its standing approvals reach, and of those
 whose approvals reach it: the agents it hands off to, directly or through other agents, the agents that hand off to it,
@@ -218,8 +217,8 @@ mode its calls of such tools are rejected unless a standing approval or a rule a
 - uses the same toolset twice;
 - picks the same tool twice;
 - uses the same agent twice as a sub-agent, or twice as a handoff target;
-- uses two toolsets that each have a tool of the same name, even when one of them is a built-in toolset. Leave one of
-  the two tools out, for example with `Exclude(...)`;
+- uses two toolsets that each have a tool of the same name. Leave one of the two tools out, for example with
+  `Exclude(...)`;
 - has a tool of its own named like a tool of a toolset it uses. Rename its own tool with `WithName("...")`.
 
 ## TSH026

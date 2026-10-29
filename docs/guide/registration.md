@@ -104,10 +104,9 @@ and `anthropic`, and `KeyedChatClientProvider` returns the client registered und
 | The JSON contexts of each assembly, which tools ask before the defaults | Singleton |
 | `ConversationTracker` and the core services runs need | Singleton |
 
-The generator writes a registration module for each project that declares toolsets or agents. `AddTypeshift()` runs
-the modules from three places: the project that calls it, every project it references that declares toolsets or agents,
-and the library's [built-in toolsets](./built-in-toolsets.md). Each module registers once per service collection, so a
-second call to `AddTypeshift()` only returns another chain.
+The generator writes a registration module for each project that declares toolsets or agents. `AddTypeshift()` runs the
+modules of the project that calls it and of every project it references that declares toolsets or agents. Each module
+registers once per service collection, so a second call to `AddTypeshift()` only returns another chain.
 
 Because the generator intercepts the call, it works only in a project that references the package, and only when you
 call it on the service collection, such as `services.AddTypeshift()` or `builder.Services.AddTypeshift()`. A call the
@@ -129,9 +128,6 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 | `WithRunMiddleware<TMiddleware>()` | One more `IRunMiddleware`. The first registered is the outermost. | Scoped | Wrapping every run. |
 | `WithToolMiddleware<TMiddleware>()` | One more `IToolMiddleware`. The first registered is the outermost. | Scoped | Wrapping every tool call. |
 | `WithMcpToolProvider<TProvider>()` | `IMcpToolProvider` | Scoped | Agents with `UseMcpServer`. |
-| `WithFileSystemRoot<TRoot>()` | `IFileSystemRoot` | Scoped | `FileSystemToolset`, `ShellToolset`. |
-| `WithWebSearch<TSearch>()` | `IWebSearch` | Scoped | `web_search`. |
-| `WithWebFetch<TFetch>()` | `IWebFetch` | Scoped | `web_fetch`. |
 
 Scoped services resolve from the run's scope, so they can differ per request and use the current customer's
 credentials, folder or rules, for example.
