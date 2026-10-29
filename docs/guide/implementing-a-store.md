@@ -1,14 +1,14 @@
 ---
 title: Implementing a store
-description: Write the ITypeshiftStore that keeps your agents' settings and conversations in your own database, from its lifetime and revisions to conversation summaries.
+description: Write the store that keeps your agents' settings and conversations in your own database, from its lifetime and revisions to conversation summaries.
 ---
 
 # Implementing a store
 
-Typeshift keeps every agent's settings and every conversation through one store, an `ITypeshiftStore` you implement
-over your own database. This page walks through what a store must do, in the order you meet it: its lifetime, the
-settings it saves with their revisions, and the conversations it appends to. `InMemoryTypeshiftStore` is for tests
-and samples, so a production app writes its own.
+Typeshift keeps your agents' settings through an `ISettingsStore` and your conversations through an
+`IConversationStore`, which you implement over your own database. This page walks through what a store must do, in the
+order you meet it: its lifetime, the settings it saves with their revisions, and the conversations it appends to.
+`InMemoryTypeshiftStore` is for tests and samples, so a production app writes its own.
 
 ## The store is a singleton
 
@@ -42,10 +42,14 @@ services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite("Data Sou
 
 ## The five methods
 
-`ITypeshiftStore` has five methods. You implement four of them, and `LoadConversationSinceCompactionAsync` has a
-default you may replace by declaring the method in your store. Every id has your build's
-[id type](./registration.md#the-id-type), which is `Guid` unless `TypeshiftIdType` names another; the samples on this
-page set it to `int`. Each method takes a `CancellationToken` last.
+A store has five methods in two interfaces. `ISettingsStore` keeps settings with the first two, and `IConversationStore`
+keeps conversations with the other three. The store on this page implements `ITypeshiftStore`, which is both. When
+settings and conversations live in different databases, implement each interface in a class of its own and
+[register each](./settings-and-stores.md#registering-a-store).
+
+You implement four of the methods, and `LoadConversationSinceCompactionAsync` has a default you may replace by declaring
+the method in your store. Every id has your build's [id type](./registration.md#the-id-type), which is `Guid` unless
+`TypeshiftIdType` names another; the samples on this page set it to `int`. Each method takes a `CancellationToken` last.
 
 | Method | Does |
 |---|---|
@@ -55,8 +59,7 @@ page set it to `int`. Each method takes a `CancellationToken` last.
 | `LoadConversationSinceCompactionAsync(conversation)` | Returns the conversation's last summary and the entries after it ([Recognizing a summary](#recognizing-a-summary)). |
 | `AppendConversationAsync(conversation, entry)` | Appends one entry to a conversation. The first entry creates the conversation. |
 
-The first two methods keep settings and the other three keep conversations, so the database on this page has a table
-for each:
+The database on this page has a table for settings and one for conversations:
 
 <!-- snippet: ef-core-db -->
 <a id='snippet-ef-core-db'></a>

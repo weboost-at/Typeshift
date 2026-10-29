@@ -20,7 +20,7 @@ internal static class Conversations
         // end-snippet
 
         // begin-snippet: load-conversation
-        var store = provider.GetRequiredService<ITypeshiftStore>();
+        var store = provider.GetRequiredService<IConversationStore>();
         var entries = await store.LoadConversationAsync(conversationId, ct);
 
         Console.WriteLine($"{entries.Count} entries, {entries.Sum(entry => entry.Usage?.TotalTokenCount)} tokens");

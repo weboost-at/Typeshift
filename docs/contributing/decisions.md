@@ -119,13 +119,13 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - **Status:** owner.
 - **Context:** ids are typed end to end and the library is compiled before the host chooses its id type.
-- **Decision:** `<TypeshiftIdType>int</TypeshiftIdType>`, set once in `Directory.Build.props`, `Guid` by default.
-  The library's id-carrying types are generic (`ITypeshiftStore<TId>`); the generator writes per project
-  `global using` aliases (`ITypeshiftStore`, `InMemoryTypeshiftStore`, `ConversationTracker`, `LiveRun`) and
-  generates typed members with the concrete type. A reference built with another id type is TSH021; a store of
-  another is TSH028. The interceptor closes the core services over the id type (`AddCoreServices<TId>`), so
-  `WithStore<T>()` needs none; behind the typed members, the library passes ids boxed to the store of that type.
-  Module stamps carry the id type.
+- **Decision:** `<TypeshiftIdType>int</TypeshiftIdType>`, set once in `Directory.Build.props`, `Guid` by default. The
+  library's id-carrying types are generic (`ITypeshiftStore<TId>`); the generator writes per project `global using`
+  aliases (`ITypeshiftStore`, `ISettingsStore`, `IConversationStore`, `InMemoryTypeshiftStore`, `ConversationTracker`,
+  `LiveRun`) and generates typed members with the concrete type. A reference built with another id type is TSH021; a
+  store of another is TSH028. The interceptor closes the core services over the id type (`AddCoreServices<TId>`), so
+  `WithStore<T>()` needs none; behind the typed members, the library passes ids boxed to the store of that type. Module
+  stamps carry the id type.
 - **Alternatives:** `AddTypeshift().WithIdType<int>()`, known only in the registering project, with generic run
   members checked at runtime; a generated interface per project, ambiguous under `InternalsVisibleTo`.
 - **Where:** `buildTransitive/Typeshift.props`, `Emitting/AliasEmitter.cs`.
@@ -489,18 +489,28 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 ## Storage
 
-### D38. One store of documents and conversations
+### D38. A store of documents and a store of conversations
 
-- **Status:** approved.
-- **Decision:** `ITypeshiftStore<TId>` (aliased `ITypeshiftStore`): `LoadAsync` and `SaveAsync` of documents as
-  JSON, keyed by id and kind, with a version and a revision; `LoadConversationAsync` and `AppendConversationAsync` of
-  `ConversationEntry`s keyed by the conversation id. `LoadConversationSinceCompactionAsync`, which runs call, defaults
-  to the whole load and drops what came before the last summary. The library serializes the documents (each agent's
-  `Settings`), so a store implements no generic method and handles strings and numbers only.
+- **Status:** approved; split at the owner's request.
+- **Decision:** `ISettingsStore<TId>`: `LoadAsync` and `SaveAsync` of documents as JSON, keyed by id and kind, with a
+  version and a revision. `IConversationStore<TId>`: `LoadConversationAsync` and `AppendConversationAsync` of
+  `ConversationEntry`s keyed by the conversation id; `LoadConversationSinceCompactionAsync`, which runs call, defaults
+  to the whole load and drops what came before the last summary. `ITypeshiftStore<TId>` is both in one. Each has a
+  `global using` alias. The library serializes the documents (each agent's `Settings`), so a store implements no
+  generic method and handles strings and numbers only.
+- **Details:** `WithStore<T>()` registers each interface `T` implements, so settings and conversations may live in
+  two stores, each registered by its own call. Settings and conversations differ in shape and load: a few documents
+  read once per run and saved with a revision, against an append-only log written at every step. TSH028 reports a
+  store that implements neither interface for the build's id type, or either for another id type. Registration checks
+  the store's type with `IsAssignableFrom`, which reads no members and stays safe under trimming.
 - **Alternatives:** v0's load and save only, which rewrote a whole conversation per turn; a generic append for any
   kind, a concept with one user; `LoadAsync<TData>` and `SaveAsync<TData>` over `IStorable` documents (up to
   0.1.0-alpha.3), which made every store call `TData.Kind`, `Serialize` and `Deserialize` itself; one document per
-  settings id holding every agent's settings, which would hide the versions a store migrates by (D40).
+  settings id holding every agent's settings, which would hide the versions a store migrates by (D40); one interface
+  for both (up to 0.1.0-alpha.3), which made a store of conversations implement settings methods it does not keep;
+  `WithSettingsStore<T>()` and `WithConversationStore<T>()`, two calls where the interfaces already say what a store
+  keeps; renaming the conversation methods (`LoadAsync`, `AppendAsync`), which would clash with the settings methods
+  in a class that implements both.
 
 ### D39. Kinds are stable names
 
@@ -543,7 +553,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D43. The store is the persistence switch
 
 - **Status:** carried (v0 D26). Without `WithStore<T>()`, runs without a settings or conversation id work; everything
-  that loads or saves throws, naming `WithStore<T>()`.
+  that loads or saves throws, naming `WithStore<T>()` and the store interface it needs (D38).
 
 ### D44. Settings records serialize themselves
 

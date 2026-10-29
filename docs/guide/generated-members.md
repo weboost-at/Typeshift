@@ -210,7 +210,7 @@ Every agent also gets:
 | `{Assembly}Module` (hidden) | A toolset or an agent in the assembly | Registers the assembly's toolsets, agents, hosts, JSON contexts and XML docs; see [Registration](./registration.md#what-addtypeshift-registers). |
 | `[GeneratedModule]` (hidden) | The same | Stamps the module, its version and the id type for the projects that reference the assembly. |
 | `TypeshiftSchemaAnnotations_{Assembly}` (hidden) | `GenerateDocumentationFile`, unless `TypeshiftSchemaAnnotations` is `false` | Added by the package's build, not the generator. It carries the `[SchemaAnnotations]` attribute that makes Weboost.SchemaAnnotations collect the XML docs of your types; see [Registration](./registration.md#xml-docs-of-parameter-types). |
-| `ITypeshiftStore`, `InMemoryTypeshiftStore`, `ConversationTracker`, `LiveRun`, `IChatClientProvider` | A reference to the package | `global using` aliases that close the library's types over the [id type](./registration.md#the-id-type), and `IChatClientProvider` over the [provider id type](./models.md#the-provider-id-type). |
+| `ITypeshiftStore`, `ISettingsStore`, `IConversationStore`, `InMemoryTypeshiftStore`, `ConversationTracker`, `LiveRun`, `IChatClientProvider` | A reference to the package | `global using` aliases that close the library's types over the [id type](./registration.md#the-id-type), and `IChatClientProvider` over the [provider id type](./models.md#the-provider-id-type). |
 | The `AddTypeshift()` interceptor | A call of `services.AddTypeshift()` | See [Registration](./registration.md). |
 
 ## The agent host
@@ -224,8 +224,9 @@ the typed runs and settings of each agent.
 resolved from. Tools, the chat client provider, middleware, context providers, approval rules and the MCP tool
 provider all resolve from that scope.
 
-Every member that loads or saves needs a store. Without one, it throws an `InvalidOperationException` that names
-`WithStore<T>()`.
+Every member that loads or saves settings needs an `ISettingsStore`, and every member that loads or appends to a
+conversation needs an `IConversationStore`. [Registering a store](./settings-and-stores.md#registering-a-store) says
+what happens without one.
 
 ### `Agent`
 

@@ -5,8 +5,9 @@ description: How a run's settings layer from the code through stored settings to
 
 # Settings and stores
 
-Typeshift stores each agent's `Settings` under a settings id, and conversations under a conversation id. Both go through
-`ITypeshiftStore`, one interface you [implement](./implementing-a-store.md) with the id type you already use.
+Typeshift stores each agent's `Settings` under a settings id, and conversations under a conversation id. Settings go
+through an `ISettingsStore` and conversations through an `IConversationStore`, which you
+[implement](./implementing-a-store.md) with the id type you already use, in one class or in two.
 
 ## Settings layering
 
@@ -108,6 +109,9 @@ await using var provider = services.BuildServiceProvider(validateScopes: true);
 your own: [Implementing a store](./implementing-a-store.md) covers its methods, its revisions and the conversation
 summaries it reads.
 
+`WithStore<T>()` registers each store interface your class implements, so an `ITypeshiftStore` takes one call. A
+store of settings and a store of conversations take one call each.
+
 ::: warning The store is a singleton
 `WithStore<T>()` registers the store as a singleton, so one instance serves every run at the same time. It cannot
 take scoped services, such as a `DbContext`: [the store is a singleton](./implementing-a-store.md#the-store-is-a-singleton)
@@ -116,7 +120,7 @@ shows how to build one around that.
 
 Without a store, agents run from their code alone. A run that passes neither a settings id nor a conversation id
 works, tools included. Every call that loads or saves, such as a run with either id or `ConfigureAsync`, throws an
-`InvalidOperationException` that names `WithStore<T>()`.
+`InvalidOperationException` that names `WithStore<T>()` and the interface no registered store implements.
 
 ## Agent settings
 

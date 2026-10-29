@@ -9,12 +9,12 @@ namespace Typeshift;
 public sealed class TypeshiftBuilder
 {
     private readonly IServiceCollection _services;
-    private readonly Action<IServiceCollection, Func<IServiceProvider, object>> _addStore;
+    private readonly Action<IServiceCollection, Type, Func<IServiceProvider, object>> _addStore;
     private readonly Action<IServiceCollection, Func<IServiceProvider, object>> _addChatClientProvider;
 
     internal TypeshiftBuilder(
         IServiceCollection services,
-        Action<IServiceCollection, Func<IServiceProvider, object>> addStore,
+        Action<IServiceCollection, Type, Func<IServiceProvider, object>> addStore,
         Action<IServiceCollection, Func<IServiceProvider, object>> addChatClientProvider)
     {
         _services = services;
@@ -23,17 +23,21 @@ public sealed class TypeshiftBuilder
     }
 
     /// <summary>
-    /// Registers the store, a singleton, and turns persistence on: stored settings and conversations. Without it,
-    /// every call that loads or saves throws, naming this method.
+    /// Registers a store, a singleton, and turns persistence on for what it keeps: stored settings, conversations or
+    /// both. Call it twice for a store of settings and another of conversations. Without it, every call that loads or
+    /// saves throws, naming this method.
     /// </summary>
-    /// <typeparam name="TStore">An <c>ITypeshiftStore</c> of the build's id type (TSH028).</typeparam>
+    /// <typeparam name="TStore">
+    /// An <c>ISettingsStore</c>, an <c>IConversationStore</c> or both, an <c>ITypeshiftStore</c>, of the build's id
+    /// type (TSH028).
+    /// </typeparam>
     /// <returns>The same chain.</returns>
     public TypeshiftBuilder WithStore<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TStore>()
         where TStore : class
     {
         _services.AddSingleton<TStore>();
-        _addStore(_services, provider => provider.GetRequiredService<TStore>());
+        _addStore(_services, typeof(TStore), provider => provider.GetRequiredService<TStore>());
         return this;
     }
 

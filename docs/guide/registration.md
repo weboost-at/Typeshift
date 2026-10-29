@@ -62,10 +62,10 @@ another, set once in `Directory.Build.props`:
 public id type, since its host members take ids of it ([TSH006](./diagnostics.md#tsh006)).
 
 Generated members take the id type, as in `RunAsync(input, settingsId: 42)`. The generator also writes aliases that
-close `ITypeshiftStore`, `InMemoryTypeshiftStore`, `ConversationTracker` and `LiveRun` over it, so you use these names
-without a type argument. The library never creates ids; your code chooses them. If a referenced project was built
-with another id type, the analyzer reports [TSH021](./diagnostics.md#tsh021), and for a store of another id type it
-reports [TSH028](./diagnostics.md#tsh028).
+close `ITypeshiftStore`, `ISettingsStore`, `IConversationStore`, `InMemoryTypeshiftStore`, `ConversationTracker` and
+`LiveRun` over it, so you use these names without a type argument. The library never creates ids; your code chooses
+them. If a referenced project was built with another id type, the analyzer reports [TSH021](./diagnostics.md#tsh021),
+and for a store of another id type it reports [TSH028](./diagnostics.md#tsh028).
 
 Providers have an id type of their own, `TypeshiftProviderIdType`, which is `string` unless set. See
 [the provider id type](./models.md#the-provider-id-type).
@@ -122,7 +122,7 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 
 | Call | Registers | Lifetime | Needed by |
 |---|---|---|---|
-| `WithStore<TStore>()` | `TStore`, and `ITypeshiftStore` resolving to it | Singleton, so it takes no scoped services ([Implementing a store](./implementing-a-store.md#the-store-is-a-singleton)) | Settings ids, conversation ids, approval and handoffs. Without a store, every call that loads or saves throws, naming this method. |
+| `WithStore<TStore>()` | `TStore`, and each of `ISettingsStore`, `IConversationStore` and `ITypeshiftStore` it implements, resolving to it. Call it once for each class. | Singleton, so it takes no scoped services ([Implementing a store](./implementing-a-store.md#the-store-is-a-singleton)) | Settings ids, conversation ids, approval and handoffs. Without a store, every call that loads or saves throws, naming this method. |
 | `WithChatClientProvider<TProvider>()` | `TProvider`, and `IChatClientProvider` resolving to it | Scoped | Every run. |
 | `WithRealtimeTracking(RealtimeTrackingOptions? options = null)` | The options. By default, `PublishInterval` is 100 ms and `MaxPendingUpdates` 256. | Singleton | `ConversationTracker.WatchAsync`. |
 | `WithApprovalRule<TRule>()` | One more `IToolApprovalRule` | Scoped | Deciding calls before your app is asked. |

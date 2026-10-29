@@ -1,4 +1,5 @@
 using Typeshift.Tests.Agents.Support;
+using Typeshift.Tests.Conversations.Support;
 using Typeshift.Tests.Persistence.Support;
 using Typeshift.Tests.Tools.Support;
 using FluentAssertions;
@@ -202,5 +203,51 @@ public class StoredSettingsTests : AgentTestBase
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*WithStore*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_Of_Settings_Alone_A_Run_With_Their_Id_Applies_Them()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithStore<SettingsOnlyStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+
+        var stored = new ProbeAgent.Settings
+        {
+            Provider = Data.Agent.Provider,
+            Model = Data.Agent.Model
+        };
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        await host.SaveSettingsAsync(Data.Persistence.SettingsId, stored, 0, Ct);
+
+        // Act
+        await host.RunAsync(Data.Tool.Question, Data.Persistence.SettingsId, ct: Ct);
+
+        // Assert
+        Models.Should().Equal(new ProvidedModel(Data.Agent.Provider, Data.Agent.Model));
+    }
+
+    [Fact]
+    public async Task Given_A_Store_Of_Conversations_Alone_Loading_Settings_Fails_Naming_ISettingsStore()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithStore<CountingLoadStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+
+        // Act
+        var load = () => host.LoadSettingsAsync(Data.Persistence.SettingsId, Ct);
+
+        // Assert
+        await load.Should().ThrowAsync<InvalidOperationException>().WithMessage("*ISettingsStore*");
     }
 }

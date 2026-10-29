@@ -26,32 +26,39 @@ internal interface IStoreAccess
 internal sealed class StoreAccess<TId>(IServiceProvider services, Func<string, TId>? parse) : IStoreAccess
     where TId : notnull
 {
-    // D43: the store is the persistence switch
-    private ITypeshiftStore<TId> Store =>
-        services.GetService<ITypeshiftStore<TId>>()
+    // D43: the stores are the persistence switch
+    private ISettingsStore<TId> SettingsStore =>
+        services.GetService<ISettingsStore<TId>>()
         ?? throw new InvalidOperationException(
-            "No store is registered: call WithStore<T>() after AddTypeshift() to load or save settings.");
+            "No settings store is registered: call WithStore<T>() after AddTypeshift() with an ISettingsStore to load "
+            + "or save settings.");
+
+    private IConversationStore<TId> ConversationStore =>
+        services.GetService<IConversationStore<TId>>()
+        ?? throw new InvalidOperationException(
+            "No conversation store is registered: call WithStore<T>() after AddTypeshift() with an IConversationStore "
+            + "to keep conversations.");
 
     public async Task<Stored<TData>?> LoadAsync<TData>(object id, CancellationToken ct)
         where TData : class, IStorable<TData> =>
-        await Store.LoadAsync((TId)id, TData.Kind, ct) is { } document
+        await SettingsStore.LoadAsync((TId)id, TData.Kind, ct) is { } document
             ? new Stored<TData>(TData.Deserialize(document.Json, document.Version), document.Revision)
             : null;
 
     public Task<long> SaveAsync<TData>(object id, TData data, long revision, CancellationToken ct)
         where TData : class, IStorable<TData> =>
-        Store.SaveAsync((TId)id, TData.Kind, data.Serialize(), TData.Version, revision, ct);
+        SettingsStore.SaveAsync((TId)id, TData.Kind, data.Serialize(), TData.Version, revision, ct);
 
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(object conversation, CancellationToken ct) =>
-        Store.LoadConversationAsync((TId)conversation, ct);
+        ConversationStore.LoadConversationAsync((TId)conversation, ct);
 
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         object conversation,
         CancellationToken ct) =>
-        Store.LoadConversationSinceCompactionAsync((TId)conversation, ct);
+        ConversationStore.LoadConversationSinceCompactionAsync((TId)conversation, ct);
 
     public Task AppendConversationAsync(object conversation, ConversationEntry entry, CancellationToken ct) =>
-        Store.AppendConversationAsync((TId)conversation, entry, ct);
+        ConversationStore.AppendConversationAsync((TId)conversation, entry, ct);
 
     public object Parse(string id) =>
         parse is null
