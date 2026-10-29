@@ -82,17 +82,4 @@ internal static class Registration
             .WithMcpToolProvider<McpToolProvider>();
         // end-snippet
     }
-
-    public static void ShowBuiltInRegistration(IServiceCollection services)
-    {
-        // begin-snippet: built-in-registration
-        services.AddSingleton<HttpClient>();
-
-        services.AddTypeshift()
-            .WithFileSystemRoot<CustomerWorkspace>()
-            .WithWebSearch<SearchApi>()
-            .WithWebFetch<HttpWebFetch>()
-            .WithApprovalRule<ShellGuard>();
-        // end-snippet
-    }
 }

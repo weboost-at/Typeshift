@@ -39,7 +39,7 @@ features:
     link: /guide/conversations
     linkText: Keep a conversation
   - title: Approve, plan and delegate
-    details: Tool approval, plan mode, sub-agents, compaction, MCP servers, and built-in tools for files, the shell and the web.
+    details: Tool approval, plan mode, sub-agents, compaction and MCP servers.
     link: /guide/tool-approval
     linkText: Approve tool calls
   - title: Publish with Native AOT

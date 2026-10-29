@@ -25,9 +25,6 @@ internal static class KnownTypes
 
     public const string LibraryAssembly = "Typeshift";
 
-    // D37: where the library's built-in toolsets live, as their stamps name them
-    public const string BuiltInNamespace = "global::Typeshift.Toolsets.";
-
     public const string ServiceCollectionExtensions =
         "Microsoft.Extensions.DependencyInjection.TypeshiftServiceCollectionExtensions";
 

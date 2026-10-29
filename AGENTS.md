@@ -155,7 +155,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 
 | Path | Holds |
 |---|---|
-| `src/Typeshift` | The runtime library: public types in `Typeshift`, what only generated code calls in `Typeshift.Generated`, the built-in toolsets in `Typeshift.Toolsets`, compiled by the library's own generator. |
+| `src/Typeshift` | The runtime library: public types in `Typeshift`, what only generated code calls in `Typeshift.Generated`. |
 | `src/Typeshift.Generators` | The generator, the analyzer and the suppressor: `Parsing/` (symbols to models), `Models/`, `Emitting/` (models to source), `Analysis/`, `Diagnostics/`. |
 | `tests/Typeshift.Tests` | Runtime behavior, through real `FunctionInvokingChatClient` loops and a scripted `IChatClient`. |
 | `tests/Typeshift.Tests.Toolsets` | Toolsets in an assembly of their own, which `Typeshift.Tests` references for modules, stamps and JSON contexts across assemblies. |

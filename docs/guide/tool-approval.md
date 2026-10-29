@@ -170,7 +170,7 @@ internal sealed class ShellGuard : IToolApprovalRule
 
 ::: danger Approve only what you can read in full
 A command that looks harmless may run code the model wrote. That is why the rule above only rejects and leaves the
-rest to your app. [The shell](./built-in-toolsets.md#shell) has the details.
+rest to your app.
 :::
 
 ## The three modes
@@ -265,7 +265,6 @@ classifier that asks a model.
 
 ## Related
 
-- [Built-in toolsets](./built-in-toolsets.md#shell): the shell, which needs approval for every command.
 - [Conversations](./conversations.md): where requests, standing approvals and the mode are stored.
 - [Agents](./defining-agents.md#run-options): the run options that set the mode runs start in.
 - [MCP servers](./mcp.md): marking a server's tools read-only, so plan mode offers them.

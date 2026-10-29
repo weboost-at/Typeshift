@@ -930,28 +930,6 @@ public static class DiagnosticSources
         }
         """;
 
-    public const string BuiltInToolName =
-        """
-        using Typeshift;
-
-        internal partial class SearchToolset : Toolset
-        {
-            public SearchToolset() => AddTool(WebSearch).WithDescription("Searches our own index.");
-
-            public static string WebSearch(string query) => query;
-        }
-
-        internal partial class SearchAgent : Agent
-        {
-            public SearchAgent()
-            {
-                UseToolset<SearchToolset>();
-
-                UseToolset<Typeshift.Toolsets.WebToolset>();
-            }
-        }
-        """;
-
     public const string OtherStoreIdType =
         """
         using Typeshift;
