@@ -21,7 +21,7 @@ public class SettingsJsonTests : UnitTestBase
     }
 
     [Fact]
-    public void Given_Version_1_Settings_Without_Values_They_Are_Stored_As_An_Empty_Object()
+    public void Given_Schema_Version_1_Settings_Without_Values_They_Are_Stored_As_An_Empty_Object()
     {
         // Act
         var json = new ProbeAgent.Settings().Serialize();
@@ -106,7 +106,7 @@ public class SettingsJsonTests : UnitTestBase
     }
 
     [Fact]
-    public void Given_A_Version_Newer_Than_The_Codes_Reading_Throws_A_JsonException()
+    public void Given_A_Schema_Version_Newer_Than_The_Codes_Reading_Throws_A_JsonException()
     {
         // Arrange
         var json = $$"""{"$schemaVersion":{{EveryKindAgent.Settings.SchemaVersion + 1}}}""";
@@ -119,7 +119,7 @@ public class SettingsJsonTests : UnitTestBase
     }
 
     [Fact]
-    public void Given_A_Version_Newer_Than_The_Codes_System_Text_Json_Throws_A_JsonException()
+    public void Given_A_Schema_Version_Newer_Than_The_Codes_System_Text_Json_Throws_A_JsonException()
     {
         // Arrange
         var json = $$"""{"$schemaVersion":{{EveryKindAgent.Settings.SchemaVersion + 1}}}""";
@@ -132,7 +132,7 @@ public class SettingsJsonTests : UnitTestBase
     }
 
     [Fact]
-    public void Given_A_Version_That_Is_No_Whole_Number_Reading_Throws_A_JsonException()
+    public void Given_A_Schema_Version_That_Is_No_Whole_Number_Reading_Throws_A_JsonException()
     {
         // Act
         var read = () => EveryKindAgent.Settings.Deserialize("""{"$schemaVersion":"1"}""");

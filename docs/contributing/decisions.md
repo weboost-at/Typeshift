@@ -498,7 +498,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   a concept with one user; `LoadAsync<TData>` and `SaveAsync<TData>` over `IStorable` documents (up to 0.1.0-alpha.3),
   which made every store call `TData.Kind`, `Serialize` and `Deserialize` itself; one document per settings id holding
   every agent's settings, where a save of one agent's settings would conflict with a save of another's (D41); one
-  interface for both (up to 0.1.0-alpha.3), which made a store of conversations implement settings methods it does not
+  interface for both (up to 0.1.0-alpha.4), which made a store of conversations implement settings methods it does not
   keep; `WithSettingsStore<T>()` and `WithConversationStore<T>()`, two calls where the interfaces already say what a
   store keeps; renaming the conversation methods (`LoadAsync`, `AppendAsync`), which would clash with the settings
   methods in a class that implements both.
@@ -521,10 +521,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   every store a column and every save a parameter, and a JSON library that read the JSON alone never saw it.
   `ConversationEntry` carries its schema version the same way, and `System.Text.Json` and Newtonsoft.Json check it too,
   where they used to read every entry as the current one. JSON written before the schema version moved names none and
-  reads as version 1; a `"$schemaVersion"` that is no whole number is refused, since it cannot be shown to be older.
-- **Alternatives:** a version hashed from the record's shape (automatic, but no store can map it to a migration); a
+  reads as 1; a `"$schemaVersion"` that is no whole number is refused, since it cannot be shown to be older.
+- **Alternatives:** a hash of the record's shape (automatic, but no store can map it to a migration); a
   migration hook on the agent; an analyzer against a shipped list of stored members (later); the schema version next to
-  the JSON (up to 0.1.0-alpha.3), a column every store kept; no version at all, which would read settings a newer
+  the JSON (up to 0.1.0-alpha.4), a column every store kept; no schema version at all, which would read settings a newer
   release wrote after a rollback.
 
 ### D41. Optimistic concurrency
@@ -536,7 +536,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `SaveSettingsAsync` takes the version from `LoadSettingsAsync`.
 - **Details:** the store's number is the version and the record's is the schema version (D40), so the two never share
   a name where a store meets both, as a migration in `LoadAsync` does.
-- **Alternatives:** `revision` for the store's number (up to 0.1.0-alpha.3), which kept the plain word for the schema
+- **Alternatives:** `revision` for the store's number (up to 0.1.0-alpha.4), which kept the plain word for the schema
   while store authors handle the store's number in every call.
 
 ### D42. Settings ids and conversation ids are separate; conversations grow by appending

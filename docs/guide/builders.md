@@ -14,7 +14,7 @@ the calls in context, read [Toolsets](./toolsets.md), [Tool settings](./tool-set
 The generator reads each chain from your source at compile time, and at runtime the calls only record values. Because
 the generator reads source, put every declaration directly in the constructor ([TSH014](./diagnostics.md#tsh014)) and
 write it as one chain in one statement ([TSH015](./diagnostics.md#tsh015)). Names, descriptions, the storage kind and
-the settings version must be constants ([TSH002](./diagnostics.md#tsh002)). Each toolset derives from `Toolset` and
+the schema version must be constants ([TSH002](./diagnostics.md#tsh002)). Each toolset derives from `Toolset` and
 each agent from `Agent` directly ([TSH017](./diagnostics.md#tsh017)).
 
 ## Toolset
