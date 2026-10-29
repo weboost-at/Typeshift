@@ -102,7 +102,7 @@ style; the essentials:
 | Approval and modes | `guide/tool-approval.md` | `builders.md` (link) |
 | Settings layers and precedence | `guide/settings-and-stores.md#settings-layering` | `tool-settings.md`, `defining-agents.md`, `running-agents.md` |
 | The order of a run's steps | `guide/running-agents.md#how-a-run-works` | `contributing/architecture.md#a-run` (the code's side) |
-| The store's lifetime and contract, kinds, versions, revisions, conversation entries and summaries | `guide/implementing-a-store.md` | `settings-and-stores.md` (link), `conversations.md#what-is-stored` |
+| The store's lifetime and contract, kinds, versions, revisions, conversation entries and summaries, checking a store | `guide/implementing-a-store.md` | `settings-and-stores.md` (link), `conversations.md#what-is-stored` |
 | The `Settings` JSON, agent settings under a settings id | `guide/settings-and-stores.md` | `generated-members.md#settings` |
 | Conversations: storage, resume, steering, live updates, compaction | `guide/conversations.md` | |
 | Generated members, `AgentHost` members and signatures | `guide/generated-members.md` | `running-agents.md` |
