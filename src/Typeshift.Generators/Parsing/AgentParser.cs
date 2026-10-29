@@ -126,7 +126,7 @@ internal static class AgentParser
                 if (call.Arguments[0].Value.ConstantValue is { HasValue: true, Value: int version })
                     declarations.SchemaVersion = version;
                 else
-                    reporter.Report(Descriptors.NotConstant, call.Arguments[0].Syntax, "settings version");
+                    reporter.Report(Descriptors.NotConstant, call.Arguments[0].Syntax, "schema version");
 
                 break;
 

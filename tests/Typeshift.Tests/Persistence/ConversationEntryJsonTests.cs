@@ -60,7 +60,7 @@ public class ConversationEntryJsonTests : UnitTestBase
     }
 
     [Fact]
-    public void Given_An_Entry_Of_A_Newer_Version_Reading_Throws_A_JsonException()
+    public void Given_An_Entry_Of_A_Newer_Schema_Version_Reading_Throws_A_JsonException()
     {
         // Arrange
         var json = $$"""{"$schemaVersion":{{ConversationEntry.SchemaVersion + 1}}}""";
