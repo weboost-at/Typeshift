@@ -4,7 +4,7 @@ using Microsoft.Extensions.AI;
 
 namespace Typeshift.Samples.Chat;
 
-// Stands in for a provider: it plans with write_todos and asks for find_companies with the user's city, then answers
+// Stands in for a provider: it asks for find_companies with the user's city, then answers
 // from the tool's result, in JSON when the run asks for it
 internal sealed class ScriptedChatClient : IChatClient
 {
@@ -18,7 +18,7 @@ internal sealed class ScriptedChatClient : IChatClient
 
         var message = last.Contents.OfType<FunctionResultContent>().ToList() is { Count: > 0 } results
             ? new ChatMessage(ChatRole.Assistant, Answer(history, results, options))
-            : new ChatMessage(ChatRole.Assistant, [Plan(), FindCompanies(last.Text)]);
+            : new ChatMessage(ChatRole.Assistant, [FindCompanies(last.Text)]);
 
         return Task.FromResult(new ChatResponse(message)
         {
@@ -61,12 +61,6 @@ internal sealed class ScriptedChatClient : IChatClient
             ? $$"""{ "city": "{{city}}", "count": {{names.Count}} }"""
             : $"Found {string.Join(", ", names)}.";
     }
-
-    private static FunctionCallContent Plan() =>
-        new("call_plan", "write_todos", new Dictionary<string, object?>
-        {
-            ["todos"] = JsonElement.Parse("""[{ "title": "Find the companies", "status": "InProgress" }]""")
-        });
 
     private static FunctionCallContent FindCompanies(string city) =>
         new("call_find", "find_companies", new Dictionary<string, object?> { ["city"] = city });

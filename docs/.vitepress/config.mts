@@ -27,7 +27,6 @@ const sidebar = {
         { text: 'Toolsets', link: '/guide/toolsets' },
         { text: 'Tool settings', link: '/guide/tool-settings' },
         { text: 'Agents', link: '/guide/defining-agents' },
-        { text: 'Built-in toolsets', link: '/guide/built-in-toolsets' },
         { text: 'MCP servers', link: '/guide/mcp' },
         { text: 'Multiple agents', link: '/guide/multi-agent' }
       ]

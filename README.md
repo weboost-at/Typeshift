@@ -261,11 +261,7 @@ internal partial class CodingAgent : Agent
         WithChatOptions()
             .WithModel("anthropic", "claude-sonnet-5-5");
 
-        UseToolset<TodoToolset>();
-        UseToolset<FileSystemToolset>();
-        UseToolset<ShellToolset>();
-        UseToolset<WebToolset>()
-            .Include(t => t.WebFetch);
+        UseToolset<WorkspaceToolset>();
 
         UseAgent<ExploreAgent>()
             .InBackground();
@@ -278,20 +274,15 @@ internal partial class CodingAgent : Agent
             .Configurable(r => r.Mode)
             .Configurable(r => r.MaxToolIterations)
             .Configurable(r => r.SummaryModel);
-
-        ConfigureRunCommand()
-            .WithShell("/bin/bash")
-            .WithTimeout(TimeSpan.FromMinutes(2));
     }
 
     protected override string GetInstructions() =>
         """
-        Work in the customer's workspace. Plan with write_todos, read before you edit, and run the tests after
-        every change.
+        Work in the customer's workspace. Read before you change anything, and run the tests after every change.
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 > [!CAUTION]

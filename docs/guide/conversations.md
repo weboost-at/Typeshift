@@ -214,7 +214,7 @@ WithRunOptions()
     .Configurable(r => r.MaxToolIterations)
     .Configurable(r => r.SummaryModel);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L24-L33' title='Snippet source file'>snippet source</a> | <a href='#snippet-long-running-options' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L20-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-long-running-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Before every model call, Typeshift estimates the call's input tokens at about four characters per token, corrected by
@@ -226,8 +226,8 @@ estimate reaches the maximum, it shrinks the history to `WithTargetInputTokens`,
 2. If that is not enough, it summarizes the oldest turns with the [summary model](./models.md#the-summary-model), the
    run's own unless you name another.
 
-The instructions and the latest call of `write_todos`, the to-do tool of the
-[built-in toolsets](./built-in-toolsets.md#todos), always stay, and a cut never separates a tool call from its result.
+The instructions and the latest call of a tool named `write_todos`, if the agent offers one, always stay, and a cut
+never separates a tool call from its result.
 Every later model call of the same run starts from the history as compaction left it, with the same results cleared
 and the same summary.
 

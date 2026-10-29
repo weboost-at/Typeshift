@@ -79,7 +79,7 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             .Select(static (pair, _) => Catalog.Resolve(pair.Left, pair.Right))
             .WithTrackingName(TrackingNames.AgentOutputs);
 
-        // D37: the library declares the built-in toolsets with its own generator, and needs no aliases of its types
+        // The library runs its own generator and needs no aliases of its types
         var assemblyName = context.CompilationProvider
             .Select(static (compilation, _) => compilation.AssemblyName ?? "");
 
