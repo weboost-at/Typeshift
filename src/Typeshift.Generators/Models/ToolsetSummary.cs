@@ -19,4 +19,5 @@ internal sealed record SettingMember(string Name, string Type);
 // An agent with its toolset uses resolved to the tools they offer
 internal sealed record AgentOutput(AgentModel Agent, EquatableArray<OfferedTool> Tools);
 
-internal sealed record OfferedTool(string Toolset, ToolSummary Tool);
+// Owner is the toolset or, for a tool of the agent's own, the agent that declares the tool (D57)
+internal sealed record OfferedTool(string Owner, ToolSummary Tool);

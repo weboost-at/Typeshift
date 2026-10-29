@@ -20,17 +20,20 @@ public interface ISettingsStore<TId> where TId : notnull
     Task<StoredDocument?> LoadAsync(TId id, string kind, CancellationToken ct);
 
     /// <summary>
-    /// Saves the document of a kind under an id if the stored version is still <paramref name="expectedVersion"/>, 0
+    /// Saves the document of a kind under an id if the stored version is still <paramref name="loadedVersion"/>, 0
     /// for none.
     /// </summary>
     /// <param name="id">The id.</param>
     /// <param name="kind">The document's kind.</param>
     /// <param name="json">The document's JSON, which a load returns as it is.</param>
-    /// <param name="expectedVersion">The version the caller loaded, 0 when it found none.</param>
+    /// <param name="loadedVersion">
+    /// The version <see cref="LoadAsync"/> returned to the caller, 0 when it found none: the old version, which the
+    /// stored one must still equal, never the version to write.
+    /// </param>
     /// <param name="ct">Cancels the save.</param>
-    /// <returns>The new version.</returns>
+    /// <returns>The new version the store wrote, which the caller passes to its next save.</returns>
     /// <exception cref="StoreConflictException">Another save came first.</exception>
-    Task<long> SaveAsync(TId id, string kind, string json, long expectedVersion, CancellationToken ct);
+    Task<long> SaveAsync(TId id, string kind, string json, long loadedVersion, CancellationToken ct);
 }
 
 /// <summary>

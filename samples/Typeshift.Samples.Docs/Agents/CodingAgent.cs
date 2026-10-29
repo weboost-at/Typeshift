@@ -1,4 +1,4 @@
-using Typeshift.Toolsets;
+using Typeshift.Samples.Workspace;
 
 namespace Typeshift.Samples.Agents;
 
@@ -10,11 +10,7 @@ internal partial class CodingAgent : Agent
         WithChatOptions()
             .WithModel("anthropic", "claude-sonnet-5-5");
 
-        UseToolset<TodoToolset>();
-        UseToolset<FileSystemToolset>();
-        UseToolset<ShellToolset>();
-        UseToolset<WebToolset>()
-            .Include(t => t.WebFetch);
+        UseToolset<WorkspaceToolset>();
 
         // begin-snippet: background-sub-agent
         UseAgent<ExploreAgent>()
@@ -31,16 +27,11 @@ internal partial class CodingAgent : Agent
             .Configurable(r => r.MaxToolIterations)
             .Configurable(r => r.SummaryModel);
         // end-snippet
-
-        ConfigureRunCommand()
-            .WithShell("/bin/bash")
-            .WithTimeout(TimeSpan.FromMinutes(2));
     }
 
     protected override string GetInstructions() =>
         """
-        Work in the customer's workspace. Plan with write_todos, read before you edit, and run the tests after
-        every change.
+        Work in the customer's workspace. Read before you change anything, and run the tests after every change.
         """;
 }
 // end-snippet

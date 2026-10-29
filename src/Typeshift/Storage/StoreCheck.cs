@@ -75,11 +75,11 @@ public static class StoreCheck
             new(secondJson, second),
             "A save with a version another save replaced did not throw a StoreConflictException.");
 
-        async Task<long> SaveAsync(string kind, string json, long expectedVersion, string conflictRule)
+        async Task<long> SaveAsync(string kind, string json, long loadedVersion, string conflictRule)
         {
             try
             {
-                var saved = await store.SaveAsync(id, kind, json, expectedVersion, ct);
+                var saved = await store.SaveAsync(id, kind, json, loadedVersion, ct);
                 if (saved == 0) throw Broken("SaveAsync returned version 0, which tells Typeshift nothing is stored.");
 
                 return saved;
@@ -95,11 +95,11 @@ public static class StoreCheck
             if (await store.LoadAsync(id, kind, ct) != expected) throw Broken(rule);
         }
 
-        async Task EnsureConflictAsync(long expectedVersion, StoredDocument stored, string rule)
+        async Task EnsureConflictAsync(long loadedVersion, StoredDocument stored, string rule)
         {
             try
             {
-                await store.SaveAsync(id, Kind, """{"step":0}""", expectedVersion, ct);
+                await store.SaveAsync(id, Kind, """{"step":0}""", loadedVersion, ct);
             }
             catch (StoreConflictException)
             {

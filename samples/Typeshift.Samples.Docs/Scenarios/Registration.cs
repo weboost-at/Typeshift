@@ -33,6 +33,7 @@ internal static class Registration
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ITicketClient, InMemoryTicketClient>();
         services.AddScoped<ICurrentCustomer, SampleCustomer>();
+        services.AddScoped<RefundDesk>();
         services.AddLogging();
 
         return services;
@@ -79,19 +80,6 @@ internal static class Registration
         // begin-snippet: mcp-registration
         services.AddTypeshift()
             .WithMcpToolProvider<McpToolProvider>();
-        // end-snippet
-    }
-
-    public static void ShowBuiltInRegistration(IServiceCollection services)
-    {
-        // begin-snippet: built-in-registration
-        services.AddSingleton<HttpClient>();
-
-        services.AddTypeshift()
-            .WithFileSystemRoot<CustomerWorkspace>()
-            .WithWebSearch<SearchApi>()
-            .WithWebFetch<HttpWebFetch>()
-            .WithApprovalRule<ShellGuard>();
         // end-snippet
     }
 }

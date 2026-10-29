@@ -3,8 +3,7 @@ using Typeshift.Samples.PackageConsumer;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
-// AddTypeshift() works only when the package's generator ran and its props opted the project into the interceptor;
-// the built-in toolsets come from the package's own module
+// AddTypeshift() works only when the package's generator ran and its props opted the project into the interceptor
 var services = new ServiceCollection();
 
 services.AddTypeshift();

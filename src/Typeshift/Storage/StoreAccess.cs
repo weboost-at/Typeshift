@@ -8,7 +8,7 @@ internal interface IStoreAccess
 {
     Task<Stored<TData>?> LoadAsync<TData>(object id, CancellationToken ct) where TData : class, IStorable<TData>;
 
-    Task<long> SaveAsync<TData>(object id, TData data, long expectedVersion, CancellationToken ct)
+    Task<long> SaveAsync<TData>(object id, TData data, long loadedVersion, CancellationToken ct)
         where TData : class, IStorable<TData>;
 
     Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(object conversation, CancellationToken ct);
@@ -45,9 +45,9 @@ internal sealed class StoreAccess<TId>(IServiceProvider services, Func<string, T
             ? new Stored<TData>(TData.Deserialize(document.Json), document.Version)
             : null;
 
-    public Task<long> SaveAsync<TData>(object id, TData data, long expectedVersion, CancellationToken ct)
+    public Task<long> SaveAsync<TData>(object id, TData data, long loadedVersion, CancellationToken ct)
         where TData : class, IStorable<TData> =>
-        SettingsStore.SaveAsync((TId)id, TData.Kind, data.Serialize(), expectedVersion, ct);
+        SettingsStore.SaveAsync((TId)id, TData.Kind, data.Serialize(), loadedVersion, ct);
 
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(object conversation, CancellationToken ct) =>
         ConversationStore.LoadConversationAsync((TId)conversation, ct);

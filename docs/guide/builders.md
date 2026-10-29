@@ -69,6 +69,7 @@ marked `[Obsolete]` out without a `NotConfigurable` call.
 | `WithChatOptions()` | Returns the [`ChatOptionsBuilder`](#chatoptionsbuilder). |
 | `WithRunOptions()` | Returns the [`RunOptionsBuilder`](#runoptionsbuilder). |
 | `UseToolset<TToolset>()` | Offers every tool of the toolset. `.Include(t => t.X)` offers only the tools picked, in that order, and `.Exclude(t => t.X)` all but those. One use includes or excludes, never both. Use each toolset once and pick each tool once ([TSH025](./diagnostics.md#tsh025)). |
+| `AddTool(Delegate method)` | Declares a tool of the agent's own, backed by a static method of the agent, and returns its [`ToolBuilder`](#toolbuilder). The agent offers it after the tools of its toolsets. See [Agents](./defining-agents.md#add-a-tool-of-the-agent-s-own). |
 | `UseAgent<TAgent>()` | Offers another agent as a tool named like it, with one `input` parameter. `.InBackground()` returns at once and delivers the answer later. See [Sub-agents](./multi-agent.md#sub-agents). |
 | `UseHandoff<TAgent>()` | Offers a tool `handoff_to_{name}` that hands the conversation to the other agent. See [Handoff](./multi-agent.md#handoff). |
 | `UseMcpServer(string server)` | Offers the tools of an MCP server that your app's `IMcpToolProvider` connects. `.RequiresApproval()` makes every call to its tools wait for approval, and `.ReadOnly()` lets plan mode offer them. |

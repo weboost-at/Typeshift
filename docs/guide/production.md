@@ -25,7 +25,7 @@ services.AddOpenTelemetry()
     .WithTracing(tracing => tracing.AddSource("Typeshift"))
     .WithMetrics(metrics => metrics.AddMeter("Typeshift"));
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L70-L74' title='Snippet source file'>snippet source</a> | <a href='#snippet-open-telemetry' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L71-L75' title='Snippet source file'>snippet source</a> | <a href='#snippet-open-telemetry' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ### Spans
@@ -125,7 +125,7 @@ In a project that publishes with Native AOT or sets `IsAotCompatible`, the analy
 ### Everything else
 
 The generated `Settings` and overrides records serialize member by member, conversations go through
-Microsoft.Extensions.AI's own contracts, and the built-in toolsets carry a context of their own. None of these needs
+Microsoft.Extensions.AI's own contracts. None of these needs
 a context from you. `RunAsync<T>` does need one: list `T` in a context too. In the sample, `AppJsonContext` above
 lists `CompanyCount` because the app calls `RunAsync<CompanyCount>`.
 

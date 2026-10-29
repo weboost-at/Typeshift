@@ -101,6 +101,7 @@ style; the essentials:
 | Providers and models, the provider id type, the summary model | `guide/models.md` | `running-agents.md#chat-clients`, `registration.md#the-id-type`, `conversations.md#compaction` |
 | Approval and modes | `guide/tool-approval.md` | `builders.md` (link) |
 | Settings layers and precedence | `guide/settings-and-stores.md#settings-layering` | `tool-settings.md`, `defining-agents.md`, `running-agents.md` |
+| Getting an agent's host: injecting it, or resolving it from a scope | `guide/using-an-agent.md` | `getting-started.md` (step 4), `registration.md` (the lifetime), `running-agents.md` (lead) |
 | The order of a run's steps | `guide/running-agents.md#how-a-run-works` | `contributing/architecture.md#a-run` (the code's side) |
 | The store's lifetime and contract, kinds, schema versions, versions, conversation entries and summaries, checking a store | `guide/implementing-a-store.md` | `settings-and-stores.md` (link), `conversations.md#what-is-stored` |
 | The `Settings` JSON, agent settings under a settings id | `guide/settings-and-stores.md` | `generated-members.md#settings` |
@@ -154,7 +155,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 
 | Path | Holds |
 |---|---|
-| `src/Typeshift` | The runtime library: public types in `Typeshift`, what only generated code calls in `Typeshift.Generated`, the built-in toolsets in `Typeshift.Toolsets`, compiled by the library's own generator. |
+| `src/Typeshift` | The runtime library: public types in `Typeshift`, what only generated code calls in `Typeshift.Generated`. |
 | `src/Typeshift.Generators` | The generator, the analyzer and the suppressor: `Parsing/` (symbols to models), `Models/`, `Emitting/` (models to source), `Analysis/`, `Diagnostics/`. |
 | `tests/Typeshift.Tests` | Runtime behavior, through real `FunctionInvokingChatClient` loops and a scripted `IChatClient`. |
 | `tests/Typeshift.Tests.Toolsets` | Toolsets in an assembly of their own, which `Typeshift.Tests` references for modules, stamps and JSON contexts across assemblies. |

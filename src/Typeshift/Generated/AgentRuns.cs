@@ -157,18 +157,18 @@ public static class AgentRuns
     /// <param name="host">The host, with the run's services.</param>
     /// <param name="settingsId">The id.</param>
     /// <param name="settings">The settings.</param>
-    /// <param name="expectedVersion">The version <c>LoadSettingsAsync</c> returned.</param>
+    /// <param name="loadedVersion">The version <c>LoadSettingsAsync</c> returned, 0 when it loaded none.</param>
     /// <param name="ct">Cancels the save.</param>
-    /// <returns>The new version.</returns>
+    /// <returns>The new version, to pass to the next save.</returns>
     public static Task<long> SaveSettingsAsync<TAgent, TSettings>(
         AgentHost<TAgent> host,
         object settingsId,
         TSettings settings,
-        long expectedVersion,
+        long loadedVersion,
         CancellationToken ct)
         where TAgent : Agent
         where TSettings : class, IStorable<TSettings> =>
-        host.Store.SaveAsync(settingsId, settings, expectedVersion, ct);
+        host.Store.SaveAsync(settingsId, settings, loadedVersion, ct);
 
     /// <summary>
     /// Changes the settings stored under an id, reloading and changing them again whenever another save came first, up
