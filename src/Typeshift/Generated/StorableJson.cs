@@ -26,7 +26,7 @@ public delegate bool StorableReader<T>(JsonElement element, out T value);
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class StorableJson
 {
-    private const string VersionMember = "$version";
+    private const string VersionMember = "$schemaVersion";
 
     /// <summary>
     /// Writes a document.
@@ -63,12 +63,12 @@ public static class StorableJson
     }
 
     /// <summary>
-    /// Writes a document's schema version as its <c>$version</c> member, left out at version 1.
+    /// Writes a document's schema version as its <c>$schemaVersion</c> member, left out at version 1.
     /// </summary>
     /// <param name="writer">The writer, inside the document's object.</param>
     /// <param name="version">The version.</param>
     // D40: the version travels in the JSON, so a store keeps the JSON and nothing next to it
-    public static void WriteVersion(Utf8JsonWriter writer, int version)
+    public static void WriteSchemaVersion(Utf8JsonWriter writer, int version)
     {
         if (version > 1) writer.WriteNumber(VersionMember, version);
     }
@@ -80,15 +80,15 @@ public static class StorableJson
     /// <param name="version">The code's version.</param>
     /// <param name="kind">The document's kind, for the message.</param>
     /// <exception cref="JsonException">The document's version is newer, or no whole number.</exception>
-    public static void EnsureVersion(JsonElement element, int version, string kind)
+    public static void EnsureSchemaVersion(JsonElement element, int version, string kind)
     {
-        var written = GetVersion(element, kind);
+        var written = GetSchemaVersion(element, kind);
         if (written > version)
-            throw new JsonException($"'{kind}' of version {written} is newer than this code's version {version}.");
+            throw new JsonException($"'{kind}' of schema version {written} is newer than this code's {version}.");
     }
 
     // A version that is no whole number cannot be shown to be older, so it is refused rather than read as missing
-    private static int GetVersion(JsonElement element, string kind) =>
+    private static int GetSchemaVersion(JsonElement element, string kind) =>
         Member(element, VersionMember) switch
         {
             { ValueKind: JsonValueKind.Undefined } => 1,

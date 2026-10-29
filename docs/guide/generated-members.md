@@ -166,9 +166,9 @@ The record is also the document a store keeps under a settings id:
 | Member | Is |
 |---|---|
 | `static string Kind` | The name a store keys it by, which the store's methods receive as `kind`: `WithStorageKind("...")`, or else the class name, so moving the agent to another namespace keeps its data. For two agents of the same kind, the analyzer reports [TSH022](./diagnostics.md#tsh022). |
-| `static int Version` | 1, or what `WithSettingsVersion(n)` sets, which `Serialize()` writes into the JSON ([The stored JSON](./settings-and-stores.md#the-stored-json)). |
+| `static int SchemaVersion` | 1, or what `WithSchemaVersion(n)` sets, which `Serialize()` writes into the JSON ([The stored JSON](./settings-and-stores.md#the-stored-json)). |
 | `Serialize()` | Writes the record as JSON. |
-| `static Deserialize(json)` | Reads the JSON. Throws a `JsonException` for a `"$version"` newer than the code's. |
+| `static Deserialize(json)` | Reads the JSON. Throws a `JsonException` for a `"$schemaVersion"` newer than the code's. |
 | `WriteJson`, `TryReadJson` (hidden) | What `Serialize`, `Deserialize` and the record's `JsonConverter` use. |
 
 [The stored JSON](./settings-and-stores.md#the-stored-json) covers the JSON's shape, how it reads back, and what to
@@ -263,7 +263,7 @@ In these signatures, `TId` is the build's [id type](./registration.md#the-id-typ
 | `ResumeStreamingAsync(TId conversationId, TId? settingsId = null, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
 | `ResolveOptionsAsync(TId? settingsId = null, Settings? settings = null)` | `Task<ChatOptions>` |
 | `LoadSettingsAsync(TId settingsId)` | `Task<Stored<Settings>>` |
-| `SaveSettingsAsync(TId settingsId, Settings settings, long revision)` | `Task<long>` |
+| `SaveSettingsAsync(TId settingsId, Settings settings, long expectedVersion)` | `Task<long>` |
 | `ConfigureAsync(TId settingsId, Func<Settings, Settings> configure)` | `Task<Settings>` |
 
 ### `RunAsync`
@@ -306,17 +306,17 @@ sub-agents, the tools of `WithTools`, then the MCP servers' tools.
 
 ### `LoadSettingsAsync`
 
-`LoadSettingsAsync` loads the `Settings` stored under an id, with their revision, or empty settings at revision 0
+`LoadSettingsAsync` loads the `Settings` stored under an id, with their version, or empty settings at version 0
 when none are stored. It layers nothing, so the record holds only what was stored.
 
 ### `SaveSettingsAsync`
 
-`SaveSettingsAsync` saves `Settings` under an id if the stored revision is still `revision`, and returns the new
-revision. It throws a `StoreConflictException` when another save came first.
+`SaveSettingsAsync` saves `Settings` under an id if the stored version is still `expectedVersion`, and returns the
+new version. It throws a `StoreConflictException` when another save came first.
 
 ### `ConfigureAsync`
 
-`ConfigureAsync` loads the settings, applies `configure`, and saves them with the loaded revision. On a conflict it
+`ConfigureAsync` loads the settings, applies `configure`, and saves them with the loaded version. On a conflict it
 loads and applies again until its save wins, then returns what it saved. After ten conflicts in a row it throws the
 last `StoreConflictException`.
 

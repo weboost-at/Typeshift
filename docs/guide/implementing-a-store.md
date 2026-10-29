@@ -1,13 +1,13 @@
 ---
 title: Implementing a store
-description: Write the store that keeps your agents' settings and conversations in your own database, from its lifetime and revisions to conversation summaries.
+description: Write the store that keeps your agents' settings and conversations in your own database, from its lifetime and versions to conversation summaries.
 ---
 
 # Implementing a store
 
 Typeshift keeps your agents' settings through an `ISettingsStore` and your conversations through an
 `IConversationStore`, which you implement over your own database. This page walks through what a store must do, in the
-order you meet it: its lifetime, the settings it saves with their revisions, and the conversations it appends to.
+order you meet it: its lifetime, the settings it saves with their versions, and the conversations it appends to.
 `InMemoryTypeshiftStore` is for tests and samples, so a production app writes its own.
 
 ## The store is a singleton
@@ -53,8 +53,8 @@ the method in your store. Every id has your build's [id type](./registration.md#
 
 | Method | Does |
 |---|---|
-| `LoadAsync(id, kind)` | Returns the document of a kind under an id as a `StoredDocument`, with its JSON and revision, or null when none is stored. |
-| `SaveAsync(id, kind, json, revision)` | Saves a document's JSON if its stored revision still equals `revision` (0 when nothing is stored yet), and returns the new revision. Throws a `StoreConflictException` when another save came first. |
+| `LoadAsync(id, kind)` | Returns the document of a kind under an id as a `StoredDocument`, with its JSON and version, or null when none is stored. |
+| `SaveAsync(id, kind, json, expectedVersion)` | Saves a document's JSON if its stored version still equals `expectedVersion` (0 when nothing is stored yet), and returns the new version. Throws a `StoreConflictException` when another save came first. |
 | `LoadConversationAsync(conversation)` | Returns a conversation's entries, oldest first. |
 | `LoadConversationSinceCompactionAsync(conversation)` | Returns the conversation's last summary and the entries after it ([Recognizing a summary](#recognizing-a-summary)). |
 | `AppendConversationAsync(conversation, entry)` | Appends one entry to a conversation. The first entry creates the conversation. |
@@ -76,7 +76,7 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
             .HasKey(document => new { document.Id, document.Kind });
 
         model.Entity<DocumentRow>()
-            .Property(document => document.Revision)
+            .Property(document => document.Version)
             .IsConcurrencyToken();
 
         model.Entity<EntryRow>()
@@ -93,7 +93,7 @@ internal sealed class DocumentRow
 
     public required string Kind { get; init; }
 
-    public required long Revision { get; set; }
+    public required long Version { get; set; }
 
     public required string Json { get; set; }
 }
@@ -117,7 +117,7 @@ internal sealed class EntryRow
 A document is an agent's `Settings` record, the one `ConfigureAsync` and `SaveSettingsAsync` save. Typeshift writes
 the record as JSON before it calls `SaveAsync` and reads it back after `LoadAsync`, so your store handles strings and
 numbers only. Keep each document in a row keyed by the id and the kind, with the JSON and the
-[revision](#revisions):
+[version](#versions):
 
 - **The id** is the settings id your app passed, such as a customer's.
 - **The kind** is the agent's class name, or what its `WithStorageKind("...")` sets. Under one settings id, each agent
@@ -125,18 +125,18 @@ numbers only. Keep each document in a row keyed by the id and the kind, with the
 - **The JSON** is the record as Typeshift wrote it ([The stored JSON](./settings-and-stores.md#the-stored-json)).
   Keep it as text and return it unchanged.
 
-The JSON names the agent's schema version, the one `WithSettingsVersion(n)` sets, in `"$version"`
-([The stored JSON](./settings-and-stores.md#the-stored-json)), and JSON without it is at version 1. Typeshift refuses
-a version newer than the code's, so an app rolled back to older code fails loudly instead of reading settings it does
-not understand.
+The JSON names the agent's schema version, the one `WithSchemaVersion(n)` sets, in `"$schemaVersion"`
+([The stored JSON](./settings-and-stores.md#the-stored-json)), and JSON without it is at schema version 1. Typeshift
+refuses a schema version newer than the code's, so an app rolled back to older code fails loudly instead of reading
+settings it does not understand.
 
-An agent raises its version when a configurable member is renamed or removed, and migrating the stored JSON of older
-versions is then up to you. You can do it in `LoadAsync`, where the kind tells you which agent's settings a row
-holds: read `"$version"`, rewrite the JSON of an older version and return it with the revision the row holds, or
-migrate the rows with a script over your database. Each save writes the current version, so a migrated document
-reaches the new version in your database with its next save.
+An agent raises its schema version when a configurable member is renamed or removed, and migrating the stored JSON of
+older schema versions is then up to you. You can do it in `LoadAsync`, where the kind tells you which agent's settings a
+row holds: read `"$schemaVersion"`, rewrite the JSON of an older schema version and return it with the version the row
+holds, or migrate the rows with a script over your database. Each save writes the current schema version, so a migrated
+document reaches it in your database with its next save.
 
-Loading reads the row by its id and kind and returns its JSON and revision as a `StoredDocument`:
+Loading reads the row by its id and kind and returns its JSON and version as a `StoredDocument`:
 
 <!-- snippet: ef-core-load -->
 <a id='snippet-ef-core-load'></a>
@@ -148,18 +148,18 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         await using var db = await contexts.CreateDbContextAsync(ct);
 
         return await db.Documents.FindAsync([id, kind], ct) is { } row
-            ? new StoredDocument(row.Json, row.Revision)
+            ? new StoredDocument(row.Json, row.Version)
             : null;
     }
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L5-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-load' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-## Revisions
+## Versions
 
-A revision is the number of the stored document's current state, kept for optimistic concurrency. It lets a save
+A version is the number of the stored document's current state, kept for optimistic concurrency. It lets a save
 find out that the document changed since the caller loaded it, so one save never silently overwrites another.
-Typeshift does not interpret the number: it hands `SaveAsync` back the revision `LoadAsync` returned, and your store
+Typeshift does not interpret the number: it hands `SaveAsync` back the version `LoadAsync` returned, and your store
 compares the two.
 
 ```mermaid
@@ -167,41 +167,41 @@ sequenceDiagram
   participant A as Settings form A
   participant S as Your store
   participant B as Settings form B
-  A->>S: LoadAsync: revision 3
-  B->>S: LoadAsync: revision 3
-  A->>S: SaveAsync with revision 3
-  S-->>A: Saved, revision 4
-  B->>S: SaveAsync with revision 3
+  A->>S: LoadAsync: version 3
+  B->>S: LoadAsync: version 3
+  A->>S: SaveAsync with version 3
+  S-->>A: Saved, version 4
+  B->>S: SaveAsync with version 3
   S-->>B: StoreConflictException
 ```
 
-The diagram shows two forms editing the same customer's settings. Both load revision 3, and the first to save
-wins and moves the document to revision 4. The second still names revision 3, so its save fails instead of erasing
+The diagram shows two forms editing the same customer's settings. Both load version 3, and the first to save
+wins and moves the document to version 4. The second still names version 3, so its save fails instead of erasing
 the first form's change, and that form loads the settings again.
 
 ### What a save must do
 
-1. **Revision 0 means the caller found nothing.** Insert the document, and throw a `StoreConflictException` when one
+1. **Version 0 means the caller found nothing.** Insert the document, and throw a `StoreConflictException` when one
    exists already, because another save created it in between.
-2. **Any other revision is the one the caller loaded.** Update the document only while its stored revision still
+2. **Any other version is the one the caller loaded.** Update the document only while its stored version still
    equals it, and throw a `StoreConflictException` otherwise, also when the document is gone.
 3. **Check and write in one step.** In SQL, that is
-   `UPDATE ... SET ..., revision = @revision + 1 WHERE id = @id AND kind = @kind AND revision = @revision`, and no
-   updated row means a conflict; an insert that hits the primary key is one too. A concurrency token or a transaction
-   does the same. A read followed by a separate write lets two saves of the same revision both win.
-4. **Return the new revision.** Any number works as long as it is not 0 and was never this document's revision
+   `UPDATE ... SET ..., version = @expected + 1 WHERE id = @id AND kind = @kind AND version = @expected`,
+   and no updated row means a conflict; an insert that hits the primary key is one too. A concurrency token or a
+   transaction does the same. A read followed by a separate write lets two saves of the same version both win.
+4. **Return the new version.** Any number works as long as it is not 0 and was never this document's version
    before; counting up by one is the simple choice.
 5. **Throw `StoreConflictException` only for a lost race**, with a message that names the document and the database's
    exception as the inner one when you have it. Any other failure, such as a lost connection, goes to the caller as
    it is.
 
 The EF Core store maps these rules onto a concurrency token. The update matches the row only while it still holds the
-loaded revision, and an insert that finds the row taken is a conflict too:
+loaded version, and an insert that finds the row taken is a conflict too:
 
 <!-- snippet: ef-core-save -->
 <a id='snippet-ef-core-save'></a>
 ```cs
-public async Task<long> SaveAsync(int id, string kind, string json, long revision, CancellationToken ct)
+public async Task<long> SaveAsync(int id, string kind, string json, long expectedVersion, CancellationToken ct)
 {
     await using var db = await contexts.CreateDbContextAsync(ct);
 
@@ -209,28 +209,28 @@ public async Task<long> SaveAsync(int id, string kind, string json, long revisio
     {
         Id = id,
         Kind = kind,
-        Revision = revision + 1,
+        Version = expectedVersion + 1,
         Json = json
     };
 
     var entry = db.Entry(row);
-    entry.State = revision == 0 ? EntityState.Added : EntityState.Modified;
+    entry.State = expectedVersion == 0 ? EntityState.Added : EntityState.Modified;
 
-    // The update only matches the row while it still has the revision the caller loaded
-    if (revision > 0)
-        entry.Property(document => document.Revision).OriginalValue = revision;
+    // The update only matches the row while it still has the version the caller loaded
+    if (expectedVersion > 0)
+        entry.Property(document => document.Version).OriginalValue = expectedVersion;
 
     // A conflict is another save that won; any other failure is the database's and surfaces as it is
     try
     {
         await db.SaveChangesAsync(ct);
-        return row.Revision;
+        return row.Version;
     }
     catch (DbUpdateConcurrencyException exception)
     {
-        throw new StoreConflictException($"{kind} {id} changed after revision {revision}.", exception);
+        throw new StoreConflictException($"{kind} {id} changed after version {expectedVersion}.", exception);
     }
-    catch (DbUpdateException exception) when (revision == 0)
+    catch (DbUpdateException exception) when (expectedVersion == 0)
     {
         if (!await ExistsAsync(id, kind, ct)) throw;
 
@@ -251,10 +251,10 @@ private async Task<bool> ExistsAsync(int id, string kind, CancellationToken ct)
 
 Runs only load settings; they never save them. Saves come from your app:
 
-- `ConfigureAsync` loads the settings, applies your change and saves them with the loaded revision. On a conflict it
+- `ConfigureAsync` loads the settings, applies your change and saves them with the loaded version. On a conflict it
   loads and applies the change again, up to ten times, then throws the last `StoreConflictException`, so even a store
   that conflicts on every save fails after ten tries.
-- `SaveSettingsAsync` saves with the revision you pass, usually the one `LoadSettingsAsync` returned to a settings
+- `SaveSettingsAsync` saves with the version you pass, usually the one `LoadSettingsAsync` returned to a settings
   form. On a conflict, load the settings again and show the user the current values
   ([Agent settings](./settings-and-stores.md#agent-settings)).
 
@@ -350,4 +350,4 @@ an empty list, so test your store with a summary compaction wrote, for example b
 - [Conversations](./conversations.md): what a run stores, resuming, and compaction.
 - [Registration](./registration.md#the-chain): `WithStore<T>()` among the other chain calls.
 - [Generated members](./generated-members.md#settings): the `Settings` record a store keeps, with its `Kind` and
-  `Version`.
+  `SchemaVersion`.

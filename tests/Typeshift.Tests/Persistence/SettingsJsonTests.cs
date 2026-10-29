@@ -67,7 +67,7 @@ public class SettingsJsonTests : UnitTestBase
         var json = settings.Serialize();
 
         // Assert
-        json.Should().Be("""{"$version":2,"tools":{"inspect":{"count":3,"shade":"Dark"}}}""");
+        json.Should().Be("""{"$schemaVersion":2,"tools":{"inspect":{"count":3,"shade":"Dark"}}}""");
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public class SettingsJsonTests : UnitTestBase
     public void Given_A_Version_Newer_Than_The_Codes_Reading_Throws_A_JsonException()
     {
         // Arrange
-        var json = $$"""{"$version":{{EveryKindAgent.Settings.Version + 1}}}""";
+        var json = $$"""{"$schemaVersion":{{EveryKindAgent.Settings.SchemaVersion + 1}}}""";
 
         // Act
         var read = () => EveryKindAgent.Settings.Deserialize(json);
@@ -122,7 +122,7 @@ public class SettingsJsonTests : UnitTestBase
     public void Given_A_Version_Newer_Than_The_Codes_System_Text_Json_Throws_A_JsonException()
     {
         // Arrange
-        var json = $$"""{"$version":{{EveryKindAgent.Settings.Version + 1}}}""";
+        var json = $$"""{"$schemaVersion":{{EveryKindAgent.Settings.SchemaVersion + 1}}}""";
 
         // Act
         var read = () => JsonSerializer.Deserialize<EveryKindAgent.Settings>(json);
@@ -135,27 +135,27 @@ public class SettingsJsonTests : UnitTestBase
     public void Given_A_Version_That_Is_No_Whole_Number_Reading_Throws_A_JsonException()
     {
         // Act
-        var read = () => EveryKindAgent.Settings.Deserialize("""{"$version":"1"}""");
+        var read = () => EveryKindAgent.Settings.Deserialize("""{"$schemaVersion":"1"}""");
 
         // Assert
         read.Should().Throw<JsonException>().WithMessage("*whole number*");
     }
 
     [Fact]
-    public void Given_WithSettingsVersion_The_Json_Carries_The_Version()
+    public void Given_WithSchemaVersion_The_Json_Carries_The_Schema_Version()
     {
         // Act
         var json = new EveryKindAgent.Settings().Serialize();
 
         // Assert
-        json.Should().Be("""{"$version":2}""");
+        json.Should().Be("""{"$schemaVersion":2}""");
     }
 
     [Fact]
-    public void Given_WithStorageKind_And_WithSettingsVersion_The_Settings_Carry_Them()
+    public void Given_WithStorageKind_And_WithSchemaVersion_The_Settings_Carry_Them()
     {
         // Act
-        var stored = (EveryKindAgent.Settings.Kind, EveryKindAgent.Settings.Version);
+        var stored = (EveryKindAgent.Settings.Kind, EveryKindAgent.Settings.SchemaVersion);
 
         // Assert
         stored.Should().Be(("every_kind", 2));

@@ -10,13 +10,13 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         await using var db = await contexts.CreateDbContextAsync(ct);
 
         return await db.Documents.FindAsync([id, kind], ct) is { } row
-            ? new StoredDocument(row.Json, row.Revision)
+            ? new StoredDocument(row.Json, row.Version)
             : null;
     }
     // end-snippet
 
     // begin-snippet: ef-core-save
-    public async Task<long> SaveAsync(int id, string kind, string json, long revision, CancellationToken ct)
+    public async Task<long> SaveAsync(int id, string kind, string json, long expectedVersion, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
@@ -24,28 +24,28 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         {
             Id = id,
             Kind = kind,
-            Revision = revision + 1,
+            Version = expectedVersion + 1,
             Json = json
         };
 
         var entry = db.Entry(row);
-        entry.State = revision == 0 ? EntityState.Added : EntityState.Modified;
+        entry.State = expectedVersion == 0 ? EntityState.Added : EntityState.Modified;
 
-        // The update only matches the row while it still has the revision the caller loaded
-        if (revision > 0)
-            entry.Property(document => document.Revision).OriginalValue = revision;
+        // The update only matches the row while it still has the version the caller loaded
+        if (expectedVersion > 0)
+            entry.Property(document => document.Version).OriginalValue = expectedVersion;
 
         // A conflict is another save that won; any other failure is the database's and surfaces as it is
         try
         {
             await db.SaveChangesAsync(ct);
-            return row.Revision;
+            return row.Version;
         }
         catch (DbUpdateConcurrencyException exception)
         {
-            throw new StoreConflictException($"{kind} {id} changed after revision {revision}.", exception);
+            throw new StoreConflictException($"{kind} {id} changed after version {expectedVersion}.", exception);
         }
-        catch (DbUpdateException exception) when (revision == 0)
+        catch (DbUpdateException exception) when (expectedVersion == 0)
         {
             if (!await ExistsAsync(id, kind, ct)) throw;
 

@@ -26,7 +26,7 @@ internal static class AgentSettings
 
         try
         {
-            await support.SaveSettingsAsync(settingsId, stored.Data with { Instructions = null }, stored.Revision);
+            await support.SaveSettingsAsync(settingsId, stored.Data with { Instructions = null }, stored.Version);
         }
         catch (StoreConflictException)
         {
@@ -36,20 +36,20 @@ internal static class AgentSettings
 
         var saved = await support.LoadSettingsAsync(settingsId);
 
-        if (saved.Data.Instructions is not null || saved.Data.SearchTickets.Limit != 20 || saved.Revision != 2)
+        if (saved.Data.Instructions is not null || saved.Data.SearchTickets.Limit != 20 || saved.Version != 2)
             throw new InvalidOperationException("Expected the configured settings, saved twice.");
 
         var conflict = false;
 
         try
         {
-            await support.SaveSettingsAsync(settingsId, saved.Data, stored.Revision);
+            await support.SaveSettingsAsync(settingsId, saved.Data, stored.Version);
         }
         catch (StoreConflictException)
         {
             conflict = true;
         }
 
-        if (!conflict) throw new InvalidOperationException("Expected a stale revision to conflict.");
+        if (!conflict) throw new InvalidOperationException("Expected a stale version to conflict.");
     }
 }

@@ -13,10 +13,10 @@ public interface IStorable<TSelf> where TSelf : class, IStorable<TSelf>
     static abstract string Kind { get; }
 
     /// <summary>
-    /// The schema version <see cref="Serialize"/> writes into the JSON as <c>$version</c>, left out at 1, and
+    /// The schema version <see cref="Serialize"/> writes into the JSON as <c>$schemaVersion</c>, left out at 1, and
     /// <see cref="Deserialize"/> checks.
     /// </summary>
-    static abstract int Version { get; }
+    static abstract int SchemaVersion { get; }
 
     /// <summary>
     /// Writes the document as JSON.
