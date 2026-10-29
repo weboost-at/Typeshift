@@ -136,7 +136,7 @@ abstains on the rest. Register it with `WithApprovalRule<T>()`, and Typeshift re
 services.AddTypeshift()
     .WithApprovalRule<ShellGuard>();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L62-L65' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L63-L66' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Every rule sees every call that requires approval, with the arguments the model sent, so it decides on exactly the

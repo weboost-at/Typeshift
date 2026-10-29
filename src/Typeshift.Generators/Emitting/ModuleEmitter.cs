@@ -109,6 +109,8 @@ internal static class ModuleEmitter
         ];
 
         if (agent.Described) arguments.Add("Described = true");
+        if (agent.Tools.Count > 0) arguments.Add($"Tools = {Names.Array(agent.Tools)}");
+        if (agent.OwnTools.Count > 0) arguments.Add($"OwnTools = {Names.Array(agent.OwnTools)}");
 
         return $"[global::Typeshift.Generated.ModuleAgent({string.Join(", ", arguments)})]";
     }

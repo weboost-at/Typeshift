@@ -33,6 +33,7 @@ internal static class Registration
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ITicketClient, InMemoryTicketClient>();
         services.AddScoped<ICurrentCustomer, SampleCustomer>();
+        services.AddScoped<RefundDesk>();
         services.AddLogging();
 
         return services;

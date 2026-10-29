@@ -22,6 +22,10 @@ features:
     details: A few chained calls in the agent's constructor pick the model, the instructions, the tools and their settings.
     link: /guide/defining-agents
     linkText: Write an agent
+  - title: Use an agent in your app
+    details: Inject the agent's host into a controller or an endpoint, or resolve it in a background job, and its tools use that request's or job's services.
+    link: /guide/using-an-agent
+    linkText: Use an agent
   - title: Catch mistakes at compile time
     details: Configure a tool the agent does not offer, and the build fails. The analyzer reports the rest, each with how to fix it.
     link: /guide/diagnostics
@@ -38,4 +42,8 @@ features:
     details: Tool approval, plan mode, sub-agents, compaction and MCP servers.
     link: /guide/tool-approval
     linkText: Approve tool calls
+  - title: Publish with Native AOT
+    details: The generator writes every path a run takes, so nothing reflects, and the analyzer reports a tool type that lacks JSON metadata.
+    link: /guide/production#native-aot
+    linkText: Publish with AOT
 ---

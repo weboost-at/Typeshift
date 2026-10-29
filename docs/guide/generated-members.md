@@ -20,7 +20,7 @@ section names the declaration that adds a member.
 ### `{Tool}Overrides`
 
 **Triggered by** a tool with at least one configurable settings member. The record is a `public sealed record`
-nested in the toolset.
+nested in the toolset, or in the agent for a tool of the agent's own.
 
 `TicketToolset.SearchTicketsOverrides`, with `int? Limit` and `bool? IncludeClosed`, comes from this declaration:
 
@@ -188,6 +188,12 @@ run of the agent.
 A tool the agent does not offer has no `Configure{Tool}()`, so configuring it does not compile. A `Configure{Tool}()`
 the agent declares itself replaces the generated one.
 
+### Tools of the agent's own
+
+**Triggered by** an `AddTool(...)` in the agent's constructor. The agent gets the tool's `Create{Tool}` and
+`{Tool}Function`, and its `{Tool}Overrides` when it has configurable members, as a toolset does. It gets no tool list
+and no toolset stamp.
+
 ### `{Agent}HostExtensions`
 
 **Triggered by** every agent the generated code can reach: one that is not nested as `private` or `protected` and
@@ -330,7 +336,8 @@ and [compaction](./conversations.md#compaction) what a compacted run stores.
 
 - [Toolsets](./toolsets.md): the declarations behind the per-toolset members.
 - [Agents](./defining-agents.md): the declarations behind the per-agent members.
-- [Running agents](./running-agents.md): resolving a host and running an agent.
+- [Using an agent](./using-an-agent.md): getting a host from a request's or a job's scope.
+- [Running agents](./running-agents.md): running an agent with settings, typed output or streaming.
 - [Conversations](./conversations.md): storing, resuming and steering a conversation.
 - [Settings and stores](./settings-and-stores.md#agent-settings): loading, saving and configuring an agent's
   settings.
