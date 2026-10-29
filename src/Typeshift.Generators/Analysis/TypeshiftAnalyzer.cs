@@ -260,8 +260,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             && target is { Name: "WithStore", TypeArguments.Length: 1 }
             && target.ContainingType.Is(KnownTypes.TypeshiftBuilder)
             && target.TypeArguments[0] is var store
-            && !store.AllInterfaces.Any(contract => contract.Is(KnownTypes.Store)
-                && SymbolEqualityComparer.Default.Equals(contract.TypeArguments[0], idType)))
+            && !IsStoreOf(store, idType))
         {
             context.ReportDiagnostic(Diagnostic.Create(
                 Descriptors.OtherStoreIdType,
@@ -292,6 +291,17 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
                 invocation.Syntax.GetLocation(),
                 "declaration chain"));
         }
+    }
+
+    // D38: a store keeps settings, conversations or both, each by the build's id type
+    private static bool IsStoreOf(ITypeSymbol store, ITypeSymbol idType)
+    {
+        var contracts = store.AllInterfaces
+            .Where(contract => contract.Is(KnownTypes.SettingsStore) || contract.Is(KnownTypes.ConversationStore))
+            .ToList();
+
+        return contracts.Count > 0
+            && contracts.All(contract => SymbolEqualityComparer.Default.Equals(contract.TypeArguments[0], idType));
     }
 
     private static readonly string[] Builders =

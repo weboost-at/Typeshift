@@ -566,6 +566,26 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Store_Of_Conversations_Of_Another_Id_Type_TSH028_Is_Reported_On_WithStore()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ConversationStoreOfAnotherIdType);
+
+        // Assert
+        run.Assert.Reports("TSH028", DiagnosticSeverity.Error, "WithStore<EntryStore>");
+    }
+
+    [Fact]
+    public void Given_A_Store_Of_Settings_Alone_Of_The_Builds_Id_Type_TSH028_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(DiagnosticSources.SettingsStoreOfTheBuildsIdType);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH028");
+    }
+
+    [Fact]
     public void Given_A_Model_Of_A_Provider_Of_Another_Type_TSH030_Is_Reported_On_The_Provider()
     {
         // Act

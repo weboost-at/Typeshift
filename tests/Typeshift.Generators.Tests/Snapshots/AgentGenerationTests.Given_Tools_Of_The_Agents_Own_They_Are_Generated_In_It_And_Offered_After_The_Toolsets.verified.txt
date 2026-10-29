@@ -721,6 +721,8 @@ namespace System.Runtime.CompilerServices
 #nullable enable
 
 global using ITypeshiftStore = global::Typeshift.ITypeshiftStore<global::System.Guid>;
+global using ISettingsStore = global::Typeshift.ISettingsStore<global::System.Guid>;
+global using IConversationStore = global::Typeshift.IConversationStore<global::System.Guid>;
 global using InMemoryTypeshiftStore = global::Typeshift.InMemoryTypeshiftStore<global::System.Guid>;
 global using ConversationTracker = global::Typeshift.ConversationTracker<global::System.Guid>;
 global using LiveRun = global::Typeshift.LiveRun<global::System.Guid>;
