@@ -37,7 +37,7 @@ internal sealed class StorageEmitter
         using (writer.Block("public void WriteJson(global::System.Text.Json.Utf8JsonWriter writer)"))
         {
             writer.Line("writer.WriteStartObject();");
-            if (versioned) writer.Line($"{Json}.WriteVersion(writer, Version);");
+            if (versioned) writer.Line($"{Json}.WriteSchemaVersion(writer, SchemaVersion);");
             writer.Line();
             storage.WriteMembers(writer, list);
 
@@ -60,7 +60,7 @@ internal sealed class StorageEmitter
         {
             writer.Line("value = null!;");
             writer.Line("if (element.ValueKind is not global::System.Text.Json.JsonValueKind.Object) return false;");
-            if (versioned) writer.Line($"{Json}.EnsureVersion(element, Version, Kind);");
+            if (versioned) writer.Line($"{Json}.EnsureSchemaVersion(element, SchemaVersion, Kind);");
             writer.Line();
 
             var assignments = storage.ReadMembers(list, "element", _ => "null").Concat(readMore ?? []).ToList();

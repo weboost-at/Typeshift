@@ -10,30 +10,30 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         await using var db = await contexts.CreateDbContextAsync(ct);
 
         return await db.Documents.FindAsync([id, kind], ct) is { } row
-            ? new StoredDocument(row.Json, row.Revision)
+            ? new StoredDocument(row.Json, row.Version)
             : null;
     }
     // end-snippet
 
     // begin-snippet: ef-core-save
-    public async Task<long> SaveAsync(int id, string kind, string json, long revision, CancellationToken ct)
+    public async Task<long> SaveAsync(int id, string kind, string json, long expectedVersion, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
-        var rows = revision == 0
+        var rows = expectedVersion == 0
             ? await InsertAsync(db, id, kind, json, ct)
-            : await UpdateAsync(db, id, kind, json, revision, ct);
+            : await UpdateAsync(db, id, kind, json, expectedVersion, ct);
 
         // Each statement checks and writes in one step, so a save that changed no row lost to another save
         return rows == 1
-            ? revision + 1
-            : throw new StoreConflictException($"{kind} {id} was saved after revision {revision}.");
+            ? expectedVersion + 1
+            : throw new StoreConflictException($"{kind} {id} was saved after version {expectedVersion}.");
     }
 
     private static Task<int> InsertAsync(TypeshiftDb db, int id, string kind, string json, CancellationToken ct) =>
         db.Database.ExecuteSqlAsync(
             $"""
-            INSERT INTO "Documents" ("Id", "Kind", "Revision", "Json")
+            INSERT INTO "Documents" ("Id", "Kind", "Version", "Json")
             VALUES ({id}, {kind}, 1, {json})
             ON CONFLICT ("Id", "Kind") DO NOTHING
             """,
@@ -44,14 +44,14 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         int id,
         string kind,
         string json,
-        long revision,
+        long expectedVersion,
         CancellationToken ct) =>
         db.Documents
-            .Where(row => row.Id == id && row.Kind == kind && row.Revision == revision)
+            .Where(row => row.Id == id && row.Kind == kind && row.Version == expectedVersion)
             .ExecuteUpdateAsync(
                 set => set
                     .SetProperty(row => row.Json, json)
-                    .SetProperty(row => row.Revision, revision + 1),
+                    .SetProperty(row => row.Version, expectedVersion + 1),
                 ct);
     // end-snippet
 

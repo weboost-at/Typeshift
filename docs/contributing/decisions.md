@@ -484,14 +484,14 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - **Status:** approved; split at the owner's request.
 - **Decision:** `ISettingsStore<TId>`: `LoadAsync` and `SaveAsync` of documents as JSON, keyed by id and kind, with a
-  revision. `IConversationStore<TId>`: `LoadConversationAsync` and `AppendConversationAsync` of
+  version. `IConversationStore<TId>`: `LoadConversationAsync` and `AppendConversationAsync` of
   `ConversationEntry`s keyed by the conversation id; `LoadConversationSinceCompactionAsync`, which runs call, defaults
   to the whole load and drops what came before the last summary. `ITypeshiftStore<TId>` is both in one. Each has a
   `global using` alias. The library serializes the documents (each agent's `Settings`), so a store implements no
   generic method and handles strings and numbers only.
 - **Details:** `WithStore<T>()` registers each interface `T` implements, so settings and conversations may live in
   two stores, each registered by its own call. Settings and conversations differ in shape and load: a few documents
-  read once per run and saved with a revision, against an append-only log written at every step. TSH028 reports a
+  read once per run and saved with a version, against an append-only log written at every step. TSH028 reports a
   store that implements neither interface for the build's id type, or either for another id type. Registration checks
   the store's type with `IsAssignableFrom`, which reads no members and stays safe under trimming.
 - **Alternatives:** v0's load and save only, which rewrote a whole conversation per turn; a generic append for any kind,
@@ -514,32 +514,35 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D40. A schema version per document
 
 - **Status:** owner.
-- **Decision:** `IStorable.Version`, 1 for `Settings` until `WithSettingsVersion(n)` raises it. The JSON carries it
-  as `"$version"`, left out at 1, and `Deserialize` refuses a newer version; migrating older documents is the app's
+- **Decision:** `IStorable.SchemaVersion`, 1 for `Settings` until `WithSchemaVersion(n)` raises it. The JSON carries it
+  as `"$schemaVersion"`, left out at 1, and `Deserialize` refuses a newer one; migrating older documents is the app's
   job, in its store or its database.
-- **Details:** a store keeps the JSON and a revision and nothing next to them. A version beside the JSON gave every
-  store a column and every save a parameter, and a JSON library that read the JSON alone never saw it.
-  `ConversationEntry` carries its version the same way, and `System.Text.Json` and Newtonsoft.Json check it too, where
-  they used to read every entry as the current version. JSON written before the version moved names none and reads as
-  version 1; a `"$version"` that is no whole number is refused, since it cannot be shown to be older.
+- **Details:** a store keeps the JSON and a version and nothing next to them. A schema version beside the JSON gave
+  every store a column and every save a parameter, and a JSON library that read the JSON alone never saw it.
+  `ConversationEntry` carries its schema version the same way, and `System.Text.Json` and Newtonsoft.Json check it too,
+  where they used to read every entry as the current one. JSON written before the schema version moved names none and
+  reads as version 1; a `"$schemaVersion"` that is no whole number is refused, since it cannot be shown to be older.
 - **Alternatives:** a version hashed from the record's shape (automatic, but no store can map it to a migration); a
-  migration hook on the agent; an analyzer against a shipped list of stored members (later); the version next to the
-  JSON (up to 0.1.0-alpha.3), a column every store kept; no version at all, which would read settings a newer release
-  wrote after a rollback.
+  migration hook on the agent; an analyzer against a shipped list of stored members (later); the schema version next to
+  the JSON (up to 0.1.0-alpha.3), a column every store kept; no version at all, which would read settings a newer
+  release wrote after a rollback.
 
 ### D41. Optimistic concurrency
 
 - **Status:** owner.
-- **Decision:** `SaveAsync` takes the revision the caller loaded, 0 for none, and throws `StoreConflictException`
-  when the stored one differs. `ConfigureAsync` reloads and reapplies until it wins (each conflict means another
-  save won), at most ten times, so a store that conflicts every time fails instead of spinning. `SaveSettingsAsync`
-  takes the revision from `LoadSettingsAsync`.
+- **Decision:** `SaveAsync` takes the version the caller loaded as `expectedVersion`, 0 for none, and throws
+  `StoreConflictException` when the stored one differs. `ConfigureAsync` reloads and reapplies until it wins (each
+  conflict means another save won), at most ten times, so a store that conflicts every time fails instead of spinning.
+  `SaveSettingsAsync` takes the version from `LoadSettingsAsync`.
 - **Details:** one statement that checks and writes needs no exception handling and no second read. Before, the docs' EF
   Core store set a concurrency token, caught `DbUpdateConcurrencyException`, and after a failed insert read the row
-  again to tell a conflict from another failure. The rule itself is in the store guide.
+  again to tell a conflict from another failure. The rule itself is in the store guide. The store's number is the
+  version and the record's is the schema version (D40), so the two never share a name where a store meets both, as a
+  migration in `LoadAsync` does.
 - **Alternatives:** `SaveAsync` returning null for a lost save and Typeshift throwing, so a store never builds the
-  exception, kept as the owner's open question since it breaks every store again; an opaque `string` revision, which an
-  ETag fits as is, open for the same reason.
+  exception, kept as the owner's open question since it breaks every store again; an opaque `string` version, which an
+  ETag fits as is, open for the same reason; `revision` for the store's number (up to 0.1.0-alpha.3), which kept the
+  plain word for the schema while store authors handle the store's number in every call.
 
 ### D42. Settings ids and conversation ids are separate; conversations grow by appending
 
@@ -563,8 +566,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - **Status:** carried (v0 D27), extended.
 - **Decision:** member by member through hidden helpers, no reflection; camelCase, tools under `"tools"` by name, nulls
-  left out, the schema version as `"$version"` above 1 (D40). The generator also writes a `JsonConverter` on the record,
-  so `System.Text.Json` (an ASP.NET endpoint) writes the stored shape too. `ConversationEntry` carries the same
+  left out, the schema version as `"$schemaVersion"` above 1 (D40). The generator also writes a `JsonConverter` on the
+  record, so `System.Text.Json` (an ASP.NET endpoint) writes the stored shape too. `ConversationEntry` carries the same
   converter, and a `TypeConverter` to `string` that Newtonsoft.Json writes the stored JSON through, so a store hands
   entries to either library as they are.
 - **Details:** each overrides record writes and reads itself (`IJsonStorable<T>`), so an agent's `Settings` in

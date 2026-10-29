@@ -62,7 +62,7 @@ class it is nested in must be `partial`.
 ## TSH002
 
 **Declared value is not a constant.** The generator reads `WithName`, `WithDescription`, `WithStorageKind` and
-`WithSettingsVersion` at compile time. Pass a literal or a `const`.
+`WithSchemaVersion` at compile time. Pass a literal or a `const`.
 
 ## TSH003
 

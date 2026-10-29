@@ -28,7 +28,7 @@ internal static class AgentEmitter
     private static readonly string[] RecordMembers =
     [
         "Clone", "Deconstruct", "Deserialize", "EqualityContract", "Equals", "GetHashCode", "Kind", "PrintMembers",
-        "Serialize", "Settings", "ToString", "TryReadJson", "Version", "WriteJson"
+        "SchemaVersion", "Serialize", "Settings", "ToString", "TryReadJson", "WriteJson"
     ];
 
     public static string Emit(AgentOutput output, string idType, bool idTypeIsPublic, ProviderIdModel providerId)
@@ -199,7 +199,7 @@ internal static class AgentEmitter
                 public static string Kind => {{Names.Literal(agent.Kind)}};
 
                 /// <inheritdoc />
-                public static int Version => {{agent.Version}};
+                public static int SchemaVersion => {{agent.SchemaVersion}};
 
                 /// <inheritdoc />
                 public string Serialize() => {{Json}}.Write(WriteJson);
@@ -525,13 +525,13 @@ internal static class AgentEmitter
                 """);
             writer.Line();
 
-            // D41: revisions guard every save
+            // D41: versions guard every save
             Docs.WriteSummary(writer, "Loads the settings stored under an id.");
             Docs.WriteParam(writer, "settingsId", "The id.");
             Docs.WriteParam(writer, "ct", "Cancels the load.");
             Docs.WriteReturns(
                 writer,
-                "The settings and the revision <c>SaveSettingsAsync</c> takes; empty settings at revision 0 when none "
+                "The settings and the version <c>SaveSettingsAsync</c> takes; empty settings at version 0 when none "
                 + "are stored.");
             writer.Lines(
                 $"""
@@ -545,18 +545,18 @@ internal static class AgentEmitter
             Docs.WriteSummary(writer, "Saves settings under an id, unless another save came since they were loaded.");
             Docs.WriteParam(writer, "settingsId", "The id.");
             Docs.WriteParam(writer, "settings", "The settings.");
-            Docs.WriteParam(writer, "revision", "The revision <c>LoadSettingsAsync</c> returned.");
+            Docs.WriteParam(writer, "expectedVersion", "The version <c>LoadSettingsAsync</c> returned.");
             Docs.WriteParam(writer, "ct", "Cancels the save.");
-            Docs.WriteReturns(writer, "The new revision.");
+            Docs.WriteReturns(writer, "The new version.");
             Docs.WriteException(writer, "global::Typeshift.StoreConflictException", "Another save came first.");
             writer.Lines(
                 $"""
                 public {Task}<long> SaveSettingsAsync(
                     {idType} settingsId,
                     {settings} settings,
-                    long revision,
+                    long expectedVersion,
                     {CancellationToken} ct = default) =>
-                    {Runs}.SaveSettingsAsync<{types}>(host, settingsId, settings, revision, ct);
+                    {Runs}.SaveSettingsAsync<{types}>(host, settingsId, settings, expectedVersion, ct);
                 """);
             writer.Line();
 
