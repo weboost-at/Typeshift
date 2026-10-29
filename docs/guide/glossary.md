@@ -34,7 +34,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | **Overrides** | The generated `{Tool}Overrides` record, a tool's configurable settings with each one nullable. Null keeps the layer below. |
 | **Provider id type** | The type of every provider id in a build, such as the provider in `WithModel(provider, model)`: `string` unless `TypeshiftProviderIdType` names another. See [Models and providers](./models.md#the-provider-id-type). |
 | **Raw path** | Resolving a run's options and creating its `IChatClient` yourself, for when your app needs the client. See [Running agents](./running-agents.md#the-raw-path). |
-| **Revision** | The number that marks a stored document's current state; each save gives the document a new one. A save passes the revision it loaded, so it fails when another save came first. See [Revisions](./implementing-a-store.md#revisions). |
+| **Revision** | The number that marks a stored document's current state; each save gives the document a new one. A save passes the revision it loaded, so it fails when another save came first. See [Save with a revision](./implementing-a-store.md#save-with-a-revision). |
 | **Run** | One call of `RunAsync`, `RunAsync<T>`, `RunStreamingAsync`, `ResumeAsync`, `ResumeStreamingAsync` or the raw path's client: the model calls and tool calls until the model answers. |
 | **Run options** | How a run's tool loop goes, with its mode, its limits and compaction. Set with `WithRunOptions()`. |
 | **Settings** | An agent's generated `Settings` record, with exactly the values that may change at runtime. Stored under a settings id, or passed for one run. |

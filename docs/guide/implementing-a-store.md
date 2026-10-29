@@ -6,11 +6,11 @@ description: Write the store that keeps your agents' settings and conversations 
 # Implementing a store
 
 Typeshift keeps your agents' settings through an `ISettingsStore` and your conversations through an
-`IConversationStore`, which you implement over your own database. This page walks through what a store must do, in the
-order you meet it: its lifetime, the settings it saves with their revisions, and the conversations it appends to.
-`InMemoryTypeshiftStore` is for tests and samples, so a production app writes its own.
+`IConversationStore`, which you implement over your own database. This page walks through a store in the order you build
+it: you register it, implement its interfaces, load and save settings, append conversations, migrate older settings and
+check it. `InMemoryTypeshiftStore` is for tests and samples, so a production app writes its own.
 
-## The store is a singleton
+## Register your store
 
 `WithStore<T>()` registers your store as a singleton. One instance handles every run of every request, and several
 runs often call it at the same time, so plan for that before you write its first method:
@@ -30,7 +30,8 @@ requests, which `DbContext` does not allow. Register `IDbContextFactory<T>` with
 context in each method.
 :::
 
-This page builds a store on Entity Framework Core. Register its context factory next to your `WithStore<T>()` call:
+This page builds a store on Entity Framework Core. Register its context factory next to your
+`services.AddTypeshift().WithStore<EfTypeshiftStore>()` call:
 
 <!-- snippet: ef-core-registration -->
 <a id='snippet-ef-core-registration'></a>
@@ -40,7 +41,7 @@ services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite("Data Sou
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L43-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-## The five methods
+## Implement the interfaces
 
 A store has five methods in two interfaces. `ISettingsStore` keeps settings with the first two, and `IConversationStore`
 keeps conversations with the other three. The store on this page implements `ITypeshiftStore`, which is both. When
@@ -56,10 +57,12 @@ the method in your store. Every id has your build's [id type](./registration.md#
 | `LoadAsync(id, kind)` | Returns the document of a kind under an id as a `StoredDocument`, with its JSON and revision, or null when none is stored. |
 | `SaveAsync(id, kind, json, revision)` | Saves a document's JSON if its stored revision still equals `revision` (0 when nothing is stored yet), and returns the new revision. Throws a `StoreConflictException` when another save came first. |
 | `LoadConversationAsync(conversation)` | Returns a conversation's entries, oldest first. |
-| `LoadConversationSinceCompactionAsync(conversation)` | Returns the conversation's last summary and the entries after it ([Recognizing a summary](#recognizing-a-summary)). |
+| `LoadConversationSinceCompactionAsync(conversation)` | Returns the conversation's last summary and the entries after it ([Start from the last summary](#start-from-the-last-summary)). |
 | `AppendConversationAsync(conversation, entry)` | Appends one entry to a conversation. The first entry creates the conversation. |
 
-The database on this page has a table for settings and one for conversations:
+The database on this page has a table for settings, keyed by id and kind together
+([Key settings by id and kind](#key-settings-by-id-and-kind)), and one for conversations, keyed by a number the
+database assigns:
 
 <!-- snippet: ef-core-db -->
 <a id='snippet-ef-core-db'></a>
@@ -108,12 +111,15 @@ internal sealed class EntryRow
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/TypeshiftDb.cs#L5-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-db' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-## Settings documents
+Typeshift creates no tables. The docs sample creates them with `EnsureCreatedAsync` at startup, and your app creates
+them as it does its other tables, such as with EF Core migrations.
+
+## Key settings by id and kind
 
 A document is an agent's `Settings` record, the one `ConfigureAsync` and `SaveSettingsAsync` save. Typeshift writes
 the record as JSON before it calls `SaveAsync` and reads it back after `LoadAsync`, so your store handles strings and
 numbers only. Keep each document in a row keyed by the id and the kind, with the JSON and the
-[revision](#revisions):
+[revision](#save-with-a-revision):
 
 - **The id** is the settings id your app passed, such as a customer's.
 - **The kind** is the agent's class name, or what its `WithStorageKind("...")` sets. One settings id holds a document
@@ -122,17 +128,6 @@ numbers only. Keep each document in a row keyed by the id and the kind, with the
   the key.
 - **The JSON** is the record as Typeshift wrote it ([The stored JSON](./settings-and-stores.md#the-stored-json)).
   Keep it as text and return it unchanged.
-
-The JSON names the agent's schema version, the one `WithSettingsVersion(n)` sets, in `"$version"`
-([The stored JSON](./settings-and-stores.md#the-stored-json)), and JSON without it is at version 1. Typeshift refuses
-a version newer than the code's, so an app rolled back to older code fails loudly instead of reading settings it does
-not understand.
-
-An agent raises its version when a configurable member is renamed or removed, and migrating the stored JSON of older
-versions is then up to you. You can do it in `LoadAsync`, where the kind tells you which agent's settings a row
-holds: read `"$version"`, rewrite the JSON of an older version and return it with the revision the row holds, or
-migrate the rows with a script over your database. Each save writes the current version, so a migrated document
-reaches the new version in your database with its next save.
 
 Loading reads the row by its id and kind and returns its JSON and revision as a `StoredDocument`:
 
@@ -153,7 +148,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L5-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-load' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-## Revisions
+## Save with a revision
 
 A revision is the number of the stored document's current state, kept for optimistic concurrency. It lets a save
 find out that the document changed since the caller loaded it, so one save never silently overwrites another.
@@ -177,7 +172,11 @@ The diagram shows two forms editing the same customer's settings. Both load revi
 wins and moves the document to revision 4. The second still names revision 3, so its save fails instead of erasing
 the first form's change, and that form loads the settings again.
 
-### What a save must do
+Runs only load settings; they never save them. Saves come from your app, through `ConfigureAsync`, which loads again
+and reapplies its change after a lost save, and `SaveSettingsAsync`, which leaves the conflict to your code
+([Agent settings](./settings-and-stores.md#agent-settings)).
+
+### Write the save in one statement
 
 Run one `INSERT` or `UPDATE` that checks the revision as it writes, and throw a `StoreConflictException` when it
 changed no row. The revision the caller passes tells you which state of the document it loaded:
@@ -185,8 +184,8 @@ changed no row. The revision the caller passes tells you which state of the docu
 - **Revision 0 means the caller found no document**, so insert it. A row that is there already was created by another
   save in between.
 - **Any other revision is the one the caller loaded**, so update the row only while it still holds that revision. A
-  row that holds another revision was saved by someone else since, and a missing row was deleted since. Both are
-  conflicts.
+  row that holds another revision was saved by someone else since, and a missing row was deleted after the caller
+  loaded it. Both are conflicts.
 
 Check and write in one statement. If you read the row, compare its revision and then write, two saves that both
 loaded revision 3 can both pass the check before either writes, and the second silently overwrites the first. Each of
@@ -208,8 +207,9 @@ counting up by one is the simple choice. Throw `StoreConflictException` only for
 names the document. Any other failure, such as a lost connection, goes to the caller as it is.
 
 The EF Core store runs one of the two statements per save. `ExecuteSqlAsync` inserts with `ON CONFLICT DO NOTHING`,
-which SQLite and PostgreSQL support, and turns each interpolated value into a SQL parameter. `ExecuteUpdateAsync`
-updates with the revision in its `WHERE`. Both return the number of rows they changed:
+which SQLite and PostgreSQL support, and turns each interpolated value into a SQL parameter. Its SQL quotes the table
+and column names as EF Core names them by default, so match it to your own mapping. `ExecuteUpdateAsync` updates with
+the revision in its `WHERE`. Both return the number of rows they changed:
 
 <!-- snippet: ef-core-save -->
 <a id='snippet-ef-core-save'></a>
@@ -249,13 +249,7 @@ public async Task<long> SaveAsync(int id, string kind, string json, long revisio
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L18-L50' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-save' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-### Who saves
-
-Runs only load settings; they never save them. Saves come from your app, through `ConfigureAsync`, which loads again
-and reapplies its change after a lost save, and `SaveSettingsAsync`, which leaves the conflict to your code
-([Agent settings](./settings-and-stores.md#agent-settings)).
-
-## Conversations
+## Append to a conversation
 
 A conversation only grows. Runs append each step as it happens: the input, every model response, the tool results
 of each round of calls, steering input and the entry that ends a run
@@ -269,7 +263,7 @@ of each round of calls, steering input and the entry that ends a run
 - **Keep the append cheap.** Runs append while they work, so `AppendConversationAsync` is the hot path, and a row per
   entry suits it.
 
-### Recognizing a summary
+### Start from the last summary
 
 When clearing old tool results does not shrink the history enough, [compaction](./conversations.md#compaction)
 summarizes a run's oldest turns. It appends one entry of its own that holds the summary and the messages it kept after
@@ -339,6 +333,20 @@ history. Runs call it too in one case: when the last summary has no `StandingApp
 version before 0.1.0-alpha.3, they read the whole conversation. Compaction always fills them in, even as an empty list,
 so set them on any summary you build for a test of your own, as [`CheckConversationsAsync`](#check-your-store) does.
 
+## Migrate older settings
+
+A settings document's JSON names the agent's schema version, the one `WithSettingsVersion(n)` sets, in `"$version"`
+([The stored JSON](./settings-and-stores.md#the-stored-json)), and JSON without it is at version 1. Typeshift refuses
+a version newer than the code's, so an app rolled back to older code fails loudly instead of reading settings it does
+not understand.
+
+An agent raises its version when a configurable member is renamed or removed, and migrating the stored JSON of older
+versions is then up to you. You can do it in `LoadAsync`, where the kind tells you which agent's settings a row holds:
+read `"$version"`, rewrite the JSON of an older version and return it with the revision the row holds, or migrate the
+rows with a script over your database. Each save writes the current version, so a migrated document reaches the new
+version in your database with its next save. Typeshift reads a version you leave as it is, so a renamed or removed
+member reads as missing ([The stored JSON](./settings-and-stores.md#the-stored-json)).
+
 ## Check your store
 
 `StoreCheck` runs this page's rules for keys, revisions and conversation entries against your store. Call
@@ -373,7 +381,7 @@ await StoreCheck.CheckConversationsAsync(store, conversationId);
   Give each call an id nothing else uses, such as a new `Guid`, or start from an empty database, as the docs sample
   does.
 - They make one call at a time, so they cannot catch two saves that race. A store that reads the revision and then
-  writes passes them and still loses saves under load ([What a save must do](#what-a-save-must-do)).
+  writes passes them and still loses saves under load ([Write the save in one statement](#write-the-save-in-one-statement)).
 
 ## Related
 
