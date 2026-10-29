@@ -412,7 +412,7 @@ global using IChatClientProvider = global::Typeshift.IChatClientProvider<string>
 
 [assembly: global::Typeshift.Generated.GeneratedModule(
     typeof(global::Typeshift.Generated.SubjectModule),
-    3,
+    4,
     typeof(global::System.Guid),
     typeof(string))]
 
@@ -422,7 +422,7 @@ namespace Typeshift.Generated;
 /// Registers the toolsets and agents of Subject.
 /// </summary>
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-[global::Typeshift.Generated.ModuleAgent(typeof(global::Research.ResearchAgent), "ResearchAgent", "research_agent")]
+[global::Typeshift.Generated.ModuleAgent(typeof(global::Research.ResearchAgent), "ResearchAgent", "research_agent", Tools = new string[] { "find_companies" })]
 public static class SubjectModule
 {
     /// <summary>

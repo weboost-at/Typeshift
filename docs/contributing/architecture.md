@@ -53,11 +53,13 @@ what does not parse (D2).
    settings, a hidden `Create{Tool}` factory and a private `GeneratedToolFunction` subclass. For each toolset it
    writes a `{Toolset}ToolList` extension block with a property per tool, plus a `[GeneratedTool]` stamp per tool
    for agents in other assemblies (D7).
-5. **Agents** (`Parsing/AgentParser.cs`) read the chat and run option picks, the toolset uses and their picks. The
-   tool list's properties are the generator's own output, so a pick from it does not bind there. The parser walks
-   those calls as invalid operations and reads the picks from syntax instead. `Parsing/Catalog.cs` resolves the uses
-   against the compilation's toolsets and those the references stamp (`Parsing/ReferenceReader.cs`). An agent's
-   output stays cached while what it offers stays the same.
+5. **Agents** (`Parsing/AgentParser.cs`) read the chat and run option picks, the toolset uses and their picks, and
+   the agent's own tools, which `ToolsetParser.ParseTools` reads as it reads a toolset's (D57). The tool list's
+   properties are the generator's own output, so a pick from it does not bind there. The parser walks those calls as
+   invalid operations and reads the picks from syntax instead. `Parsing/Catalog.cs` resolves the uses against the
+   compilation's toolsets and those the references stamp (`Parsing/ReferenceReader.cs`), then adds the agent's own
+   tools, whose members `AgentEmitter` writes into the agent through `ToolsetEmitter.WriteTools`. An agent's output
+   stays cached while what it offers stays the same.
 6. **Registration.** `Emitting/ModuleEmitter.cs` writes one module, stamped with `[GeneratedModule]`, per assembly
    that declares toolsets or agents. `Emitting/InterceptorEmitter.cs` intercepts every `AddTypeshift()` call and
    registers the core services, the project's module and its references' modules (D1).

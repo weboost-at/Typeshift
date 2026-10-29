@@ -12,6 +12,12 @@ All notable changes to this project are documented here. The format follows
   `ITypeshiftStore` is both in one, so an existing store compiles unchanged. A call that loads or saves without a
   matching store throws, naming the interface it needs, and TSH028 reports a store that implements neither interface
   for the build's id type.
+- An agent may declare tools of its own with `AddTool(method)` in its constructor, backed by a static method of the
+  agent that may be private. The call returns the same chain as a toolset's tool. The agent offers these tools after
+  its toolsets' tools: each gets a `Configure{Tool}()`, its configurable members join the agent's `Settings`, it can
+  require approval, and the analyzer checks it like a toolset's tool. Its name may repeat another agent's tool, unless
+  the two share standing approvals through a handoff or a sub-agent (TSH007). Module stamps carry each agent's tools,
+  at stamp version 4.
 - `System.Text.Json` and Newtonsoft.Json serialize a `ConversationEntry` as it is, with no settings: the first writes
   its stored JSON, the second that JSON as a string. Newtonsoft.Json used to read entries back with their contents
   emptied.

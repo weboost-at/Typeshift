@@ -752,6 +752,249 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string SubAgentWithOwnToolNeedingApproval =
+        """
+        using Typeshift;
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent()
+            {
+                WithDescription("Helps.");
+
+                AddTool(Close).WithDescription("Closes a ticket.").RequiresApproval();
+            }
+
+            private static void Close(int number)
+            {
+            }
+        }
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent() => UseAgent<HelpAgent>();
+        }
+        """;
+
+    public const string AgentToolNamedLikeAToolsets =
+        """
+        using Typeshift;
+
+        internal partial class TicketToolset : Toolset
+        {
+            public TicketToolset() => AddTool(Close).WithDescription("Closes a ticket.");
+
+            public static void Close(int number)
+            {
+            }
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => AddTool(CloseDesk).WithName("close").WithDescription("Closes a desk.");
+
+            private static void CloseDesk(int desk)
+            {
+            }
+        }
+        """;
+
+    public const string AgentToolsOfOneNameWithoutHandoff =
+        """
+        using Typeshift;
+
+        internal partial class OrderAgent : Agent
+        {
+            public OrderAgent() => AddTool(FindOrder).WithName("lookup").WithDescription("Finds an order.");
+
+            private static string FindOrder(int number) => "";
+        }
+
+        internal partial class TicketAgent : Agent
+        {
+            public TicketAgent() => AddTool(FindTicket).WithName("lookup").WithDescription("Finds a ticket.");
+
+            private static string FindTicket(int number) => "";
+        }
+        """;
+
+    public const string AgentToolsOfOneNameAcrossHandoff =
+        """
+        using Typeshift;
+
+        internal partial class OrderAgent : Agent
+        {
+            public OrderAgent()
+            {
+                AddTool(FindOrder).WithName("lookup").WithDescription("Finds an order.");
+
+                UseHandoff<TicketAgent>();
+            }
+
+            private static string FindOrder(int number) => "";
+        }
+
+        internal partial class TicketAgent : Agent
+        {
+            public TicketAgent()
+            {
+                WithDescription("Answers about tickets.");
+
+                AddTool(FindTicket).WithName("lookup").WithDescription("Finds a ticket.");
+            }
+
+            private static string FindTicket(int number) => "";
+        }
+        """;
+
+    public const string AgentToolsOfOneNameAcrossSubAgent =
+        """
+        using Typeshift;
+
+        internal partial class OrderAgent : Agent
+        {
+            public OrderAgent()
+            {
+                AddTool(FindOrder).WithName("lookup").WithDescription("Finds an order.");
+
+                UseAgent<TicketAgent>();
+            }
+
+            private static string FindOrder(int number) => "";
+        }
+
+        internal partial class TicketAgent : Agent
+        {
+            public TicketAgent()
+            {
+                WithDescription("Answers about tickets.");
+
+                AddTool(FindTicket).WithName("lookup").WithDescription("Finds a ticket.");
+            }
+
+            private static string FindTicket(int number) => "";
+        }
+        """;
+
+    public const string AgentToolsOfOneNameInAHandoffCircle =
+        """
+        using Typeshift;
+
+        internal partial class OrderAgent : Agent
+        {
+            public OrderAgent()
+            {
+                WithDescription("Answers about orders.");
+
+                AddTool(FindOrder).WithName("lookup").WithDescription("Finds an order.");
+
+                UseHandoff<TicketAgent>();
+            }
+
+            private static string FindOrder(int number) => "";
+        }
+
+        internal partial class TicketAgent : Agent
+        {
+            public TicketAgent()
+            {
+                WithDescription("Answers about tickets.");
+
+                AddTool(FindTicket).WithName("lookup").WithDescription("Finds a ticket.");
+
+                UseHandoff<OrderAgent>();
+            }
+
+            private static string FindTicket(int number) => "";
+        }
+        """;
+
+    public const string AgentToolLikeItsToolsetsButForUnderscores =
+        """
+        using Typeshift;
+
+        internal partial class VersionToolset : Toolset
+        {
+            public VersionToolset() => AddTool(GetV2).WithDescription("Gets the second version.");
+
+            public static string GetV2() => "";
+        }
+
+        internal partial class VersionAgent : Agent
+        {
+            public VersionAgent()
+            {
+                UseToolset<VersionToolset>();
+
+                AddTool(GetOwn).WithName("get_v_2").WithDescription("Gets this agent's second version.");
+            }
+
+            private static string GetOwn() => "";
+        }
+        """;
+
+    public const string AgentToolLikeAToolsetsAtTheEndOfHandoffs =
+        """
+        using Typeshift;
+
+        internal partial class TicketToolset : Toolset
+        {
+            public TicketToolset() => AddTool(Close).WithDescription("Closes a ticket.");
+
+            public static void Close(int number)
+            {
+            }
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                AddTool(CloseDesk).WithName("close").WithDescription("Closes a desk.");
+
+                UseHandoff<RouterAgent>();
+            }
+
+            private static void CloseDesk(int desk)
+            {
+            }
+        }
+
+        internal partial class RouterAgent : Agent
+        {
+            public RouterAgent()
+            {
+                WithDescription("Routes the conversation.");
+
+                UseHandoff<TicketAgent>();
+            }
+        }
+
+        internal partial class TicketAgent : Agent
+        {
+            public TicketAgent()
+            {
+                WithDescription("Answers about tickets.");
+
+                UseToolset<TicketToolset>();
+            }
+        }
+        """;
+
+    public const string AgentToolOfAnInstanceMethod =
+        """
+        using Typeshift;
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => AddTool(Close).WithDescription("Closes a desk.");
+
+            private void Close(int desk)
+            {
+            }
+        }
+        """;
+
     public const string AgentCircle =
         """
         using Typeshift;

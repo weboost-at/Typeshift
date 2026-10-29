@@ -70,6 +70,11 @@ internal static class AgentEmitter
 
                 writer.Line();
                 WriteDeclaration(writer, output, configured);
+
+                if (agent.Tools.Count == 0) return;
+
+                writer.Line();
+                ToolsetEmitter.WriteTools(writer, agent.Tools);
             },
             writer =>
             {
@@ -420,8 +425,8 @@ internal static class AgentEmitter
                 [
                     .. output.Tools.Select(offered =>
                         offered.Tool.Settings is null
-                            ? $"{offered.Toolset}.{offered.Tool.Factory}(json)"
-                            : $"{offered.Toolset}.{offered.Tool.Factory}({Local(offered.Tool)}, json)")
+                            ? $"{offered.Owner}.{offered.Tool.Factory}(json)"
+                            : $"{offered.Owner}.{offered.Tool.Factory}({Local(offered.Tool)}, json)")
                 ]);
             }
         }

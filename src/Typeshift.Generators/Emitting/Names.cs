@@ -35,7 +35,8 @@ internal static class Names
 
     public static string FunctionName(string tool) => $"{ToPascalCase(tool)}Function";
 
-    // The members the generator adds to a toolset for one tool, which no member of the user's may share
+    // The members the generator adds for one tool to the toolset or the agent that declares it, which no member of the
+    // user's may share
     public static IEnumerable<string> ToolsetMembers(string tool, bool hasOverrides) =>
         hasOverrides
             ? [OverridesName(tool), FactoryName(tool), FunctionName(tool)]
@@ -48,6 +49,10 @@ internal static class Names
         SyntaxFacts.GetKeywordKind(name) == SyntaxKind.None ? name : "@" + name;
 
     public static string Literal(string text) => SymbolDisplay.FormatLiteral(text, quote: true);
+
+    // A string array for an attribute's named argument
+    public static string Array(IEnumerable<string> texts) =>
+        $"new string[] {{ {string.Join(", ", texts.Select(Literal))} }}";
 
     // A hint name takes no '@', which a name spelled like a keyword carries
     public static string HintName(string fullName) => $"{fullName.Replace("global::", "").Replace("@", "")}.g.cs";

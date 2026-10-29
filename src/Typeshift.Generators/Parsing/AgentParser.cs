@@ -19,18 +19,22 @@ internal static class AgentParser
     public static AgentModel? Parse(
         INamedTypeSymbol agent,
         IEnumerable<IOperation> constructors,
+        bool documented,
         Reporter reporter,
         CancellationToken ct) =>
-        Parse(agent, constructors, providerIdType: null, reporter, ct, out _);
+        Parse(agent, constructors, documented, providerIdType: null, reporter, ct, out _, out _);
 
-    // The analyzer also needs the agents an agent uses, to check them against each other (D33, D34)
+    // The analyzer also needs the agents an agent uses, to check them against each other (D33, D34), and each of its
+    // own tools' declaration, to report names that clash across the host
     public static AgentModel? Parse(
         INamedTypeSymbol agent,
         IEnumerable<IOperation> constructors,
+        bool documented,
         ITypeSymbol? providerIdType,
         Reporter reporter,
         CancellationToken ct,
-        out IReadOnlyList<AgentUseDeclaration> agents)
+        out IReadOnlyList<AgentUseDeclaration> agents,
+        out IReadOnlyList<(ToolModel Tool, IInvocationOperation AddTool)> tools)
     {
         var notPartial = agent.GetNotPartial(ct);
 
@@ -68,6 +72,7 @@ internal static class AgentParser
         }
 
         agents = declarations.Agents;
+        tools = ToolsetParser.ParseTools(agent, constructors, documented, reporter, ct);
 
         ReportHiddenProviderIdType(agent, providerIdType, declarations.ProviderPicks, reporter);
 
@@ -89,11 +94,13 @@ internal static class AgentParser
             declarations.ChatOptions.ToEquatableArray(),
             declarations.RunOptions.ToEquatableArray(),
             declarations.Toolsets.ToEquatableArray(),
+            tools.Select(declaration => declaration.Tool).ToEquatableArray(),
             configures.ToEquatableArray());
     }
 
+    // AddTool declares a tool, which ToolsetParser reads in an agent as in a toolset
     public static bool IsDeclaration(IInvocationOperation invocation) =>
-        invocation.TargetMethod is { IsStatic: false, Name: not "GetInstructions" } method
+        invocation.TargetMethod is { IsStatic: false, Name: not ("GetInstructions" or "AddTool") } method
         && method.ContainingType.Is(KnownTypes.Agent);
 
     // The analyzer sees the generated members too; only the user's own can clash

@@ -63,6 +63,8 @@ rewrite.
 | new | Structured output and the raw path | `AgentRunTests.Given_A_Result_Type_The_Run_Returns_The_Models_Json_Typed`, `..._Given_Resolved_Options_The_Created_Client_Runs_The_Agent` |
 | new | A run without a model or a provider fails, saying how to fix it | `AgentRunTests.Given_No_Model_The_Run_Fails_Saying_How_To_Set_One`, `AddTypeshiftTests.Given_No_Chat_Client_Provider_A_Run_Fails_Naming_The_Registration` |
 | new | Disposing a run's client leaves the provider's client alone | `AgentRunTests.Given_A_Run_The_Providers_Client_Outlives_It` |
+| new | An agent's own tools (`AddTool` in its constructor) are offered after its toolsets' tools, with settings, approval and the analyzer's tool rules (D57) | `OwnToolsTests`, `AgentGenerationTests.Given_Tools_Of_The_Agents_Own_They_Are_Generated_In_It_And_Offered_After_The_Toolsets`, `..._Given_Tools_Of_The_Agents_Own_The_Generated_Code_Compiles_Without_Warnings`, `DiagnosticTests.Given_An_Agents_Tool_Of_An_Instance_Method_TSH003_Is_Reported_On_The_Argument`, `..._Given_A_Sub_Agent_With_A_Tool_Of_Its_Own_That_Needs_Approval_TSH024_Is_Reported_On_The_Use` |
+| new | An agent's own tool needs a unique name only among the agents its standing approvals reach or come from: handoffs, directly or through others, and sub-agents, a referenced project's agent included (D33, D57) | `DiagnosticTests.Given_Two_Agents_With_Tools_Of_One_Name_And_No_Handoff_TSH007_Is_Not_Reported`, `..._Given_A_Handoff_Between_Agents_With_Tools_Of_One_Name_TSH007_Is_Reported_On_Both_Tools`, `..._Given_A_Sub_Agent_With_A_Tool_Named_Like_Its_Callers_TSH007_Is_Reported_On_Both_Tools`, `..._Given_Agents_Handing_Off_To_Each_Other_With_Tools_Of_One_Name_TSH007_Is_Reported_Once_On_Each_Tool`, `..._Given_Handoffs_Reaching_An_Agent_With_A_Toolset_Tool_Of_One_Name_TSH007_Is_Reported_On_The_Own_Tool`, `..._Given_A_Handoff_To_A_References_Agent_With_A_Tool_Of_One_Name_TSH007_Is_Reported_On_The_Own_Tool`, `..._Given_A_Handoff_To_A_References_Agent_With_A_Tool_Of_A_Toolsets_Name_TSH007_Is_Reported_On_The_Agent`, `..._Given_An_Agents_Tool_Named_Like_Its_Toolsets_But_For_Underscores_TSH007_Is_Reported_On_The_Own_Tool`, `..._Given_An_Agents_Tool_Named_Like_A_Toolsets_It_Does_Not_Use_TSH007_Is_Not_Reported` |
 | new | The XML docs of a parameter's type describe its properties; the module registers a marked class's docs (D55) | `AddTypeshiftTests.Given_Xml_Docs_On_A_Parameters_Type_Its_Schema_Describes_Its_Properties`, `ToolsetGenerationTests.Given_A_Schema_Annotations_Class_The_Module_Registers_Its_Docs`, `..._Given_A_Schema_Annotations_Class_That_Is_Not_Partial_The_Module_Leaves_It_Out` |
 | new | Toolsets of referenced assemblies: stamps, settings, JSON contexts (D7, D45) | `AgentRunTests.Given_A_Toolset_Of_A_Referenced_Assembly_Its_Tool_Runs_With_Its_Settings`, `AddTypeshiftTests.Given_A_Json_Context_In_A_Toolsets_Assembly_Tools_Ask_It_Before_The_Defaults`, `AgentGenerationTests` |
 | new | An agent's output is generated again only when what it offers changes | `IncrementalTests` |
@@ -136,6 +138,11 @@ rewrite.
 - **Compaction's estimate.** About four characters make a token, corrected by the provider's report of the run's
   last call, or of the conversation's last call before it, so only a conversation's first call trusts the estimate
   alone. The summary model reads results cut to 2,000 characters.
+- **Uses inside a referenced project.** TSH007 follows the handoffs and sub-agents of your project's agents into a
+  referenced project's agent, but not that agent's own uses, which no stamp lists. An own tool of yours and one of an
+  agent the referenced agent hands off to are not compared, in either project.
+- **One conversation through unrelated hosts.** An app that runs one conversation id through the hosts of two agents
+  that never hand off to each other shares their standing approvals, and no diagnostic sees it.
 
 ## Related
 

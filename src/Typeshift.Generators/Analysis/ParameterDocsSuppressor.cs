@@ -43,20 +43,20 @@ public sealed class ParameterDocsSuppressor : DiagnosticSuppressor
         IParameterSymbol parameter,
         Func<SyntaxTree, SemanticModel> models,
         CancellationToken ct) =>
-        parameter.ContainingSymbol is IMethodSymbol { IsStatic: true, ContainingType: { } toolset }
-        && toolset.DerivesFrom(KnownTypes.Toolset)
+        parameter.ContainingSymbol is IMethodSymbol { IsStatic: true, ContainingType: { } owner }
+        && (owner.DerivesFrom(KnownTypes.Toolset) || owner.DerivesFrom(KnownTypes.Agent))
         && (parameter.Type.Is(KnownTypes.ServiceProvider)
             || parameter.Type.Is(KnownTypes.CancellationToken)
             || parameter.Type.Is(KnownTypes.FunctionArguments)
-            || IsSettingsOf(toolset, parameter.Type, models, ct));
+            || IsSettingsOf(owner, parameter.Type, models, ct));
 
-    // A type the toolset's constructor names in WithSettings<T>() or WithConfigurableSettings<T>()
+    // A type the toolset's or the agent's constructor names in WithSettings<T>() or WithConfigurableSettings<T>()
     private static bool IsSettingsOf(
-        INamedTypeSymbol toolset,
+        INamedTypeSymbol owner,
         ITypeSymbol type,
         Func<SyntaxTree, SemanticModel> models,
         CancellationToken ct) =>
-        toolset.InstanceConstructors
+        owner.InstanceConstructors
             .SelectMany(constructor => constructor.DeclaringSyntaxReferences)
             .SelectMany(reference => reference.GetSyntax(ct).DescendantNodes().OfType<GenericNameSyntax>())
             .Where(name => name.Identifier.ValueText is "WithSettings" or "WithConfigurableSettings")

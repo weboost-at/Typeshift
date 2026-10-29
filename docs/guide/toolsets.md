@@ -13,7 +13,8 @@ method, and the generator turns it into an `AIFunction` at compile time, without
 You may group tools by feature, by domain or by permission level. How you group them is up to you. An agent offers
 whole toolsets and can [include or exclude](./defining-agents.md#selecting-tools) single tools, so a toolset works
 best when it holds tools an agent usually offers together. A toolset whose tools only read, for example, suits a
-sub-agent that must change nothing.
+sub-agent that must change nothing. A tool that only one agent needs can also
+[live in that agent](./defining-agents.md#add-a-tool-of-the-agent-s-own).
 
 ## Declaring tools
 

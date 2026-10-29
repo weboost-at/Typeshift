@@ -28,27 +28,30 @@ internal static class ToolsetEmitter
         TypeEmitter.EmitPartial(
             toolset.Type,
             toolset.Tools.Select(tool => Stamp(toolset, tool)),
-            writer =>
-            {
-                foreach (var tool in toolset.Tools)
-                {
-                    if (tool != toolset.Tools[0]) writer.Line();
-
-                    if (HasOverrides(tool))
-                    {
-                        WriteOverrides(writer, tool, tool.Settings!);
-                        writer.Line();
-                    }
-
-                    WriteFactory(writer, tool);
-                    writer.Line();
-                    WriteFunction(writer, tool);
-                }
-            },
+            writer => WriteTools(writer, toolset.Tools),
             writer =>
             {
                 if (toolset.IsReachable) WriteToolList(writer, toolset);
             });
+
+    // The members of each tool, in the toolset or the agent that declares it
+    public static void WriteTools(SourceWriter writer, EquatableArray<ToolModel> tools)
+    {
+        foreach (var tool in tools)
+        {
+            if (tool != tools[0]) writer.Line();
+
+            if (HasOverrides(tool))
+            {
+                WriteOverrides(writer, tool, tool.Settings!);
+                writer.Line();
+            }
+
+            WriteFactory(writer, tool);
+            writer.Line();
+            WriteFunction(writer, tool);
+        }
+    }
 
     private static bool HasOverrides(ToolModel tool) => tool.Settings?.HasConfigurable is true;
 

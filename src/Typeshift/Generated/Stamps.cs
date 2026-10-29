@@ -73,6 +73,17 @@ public sealed class ModuleAgentAttribute(
     /// Whether the agent has a description, which it needs as a tool or a handoff target.
     /// </summary>
     public bool Described { get; init; }
+
+    /// <summary>
+    /// D57: every tool the agent offers, which another agent's own tools may not share a name with when the two share
+    /// standing approvals.
+    /// </summary>
+    public string[] Tools { get; init; } = [];
+
+    /// <summary>
+    /// D57: the tools the agent declares itself.
+    /// </summary>
+    public string[] OwnTools { get; init; } = [];
 }
 
 /// <summary>
