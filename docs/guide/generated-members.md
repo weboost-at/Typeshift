@@ -330,7 +330,8 @@ and [compaction](./conversations.md#compaction) what a compacted run stores.
 
 - [Toolsets](./toolsets.md): the declarations behind the per-toolset members.
 - [Agents](./defining-agents.md): the declarations behind the per-agent members.
-- [Running agents](./running-agents.md): resolving a host and running an agent.
+- [Using an agent](./using-an-agent.md): getting a host from a request's or a job's scope.
+- [Running agents](./running-agents.md): running an agent with settings, typed output or streaming.
 - [Conversations](./conversations.md): storing, resuming and steering a conversation.
 - [Settings and stores](./settings-and-stores.md#agent-settings): loading, saving and configuring an agent's
   settings.

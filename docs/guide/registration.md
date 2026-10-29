@@ -100,7 +100,7 @@ and `anthropic`, and `KeyedChatClientProvider` returns the client registered und
 |---|---|
 | Each toolset | Singleton |
 | Each agent | Singleton |
-| `AgentHost<TAgent>` per agent | Transient, so it runs with the services of the scope it was resolved from |
+| `AgentHost<TAgent>` per agent | Transient, so it runs with the services of the scope it was resolved from ([Using an agent](./using-an-agent.md)) |
 | The JSON contexts of each assembly, which tools ask before the defaults | Singleton |
 | `ConversationTracker` and the core services runs need | Singleton |
 
@@ -135,7 +135,8 @@ credentials, folder or rules, for example.
 ## Related
 
 - [Getting started](./getting-started.md): the setup, step by step.
-- [Running agents](./running-agents.md): resolving a host from a scope and running an agent.
+- [Using an agent](./using-an-agent.md): injecting a host or resolving it from a scope.
+- [Running agents](./running-agents.md): running an agent.
 - [Settings and stores](./settings-and-stores.md): the store `WithStore<T>()` registers.
 - [Generated members](./generated-members.md#per-project): the module, the aliases and the interceptor the generator
   writes.

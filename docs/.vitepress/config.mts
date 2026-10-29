@@ -17,6 +17,7 @@ const sidebar = {
       text: 'Introduction',
       items: [
         { text: 'Getting started', link: '/guide/getting-started' },
+        { text: 'Using an agent', link: '/guide/using-an-agent' },
         { text: 'Implementing a store', link: '/guide/implementing-a-store' }
       ]
     },
