@@ -1,15 +1,9 @@
 namespace Typeshift.Tests.Conversations.Support;
 
 // Loads like a store in memory and fails every append, as a store that went down mid-run
-public sealed class FailingAppendStore : ITypeshiftStore
+public sealed class FailingAppendStore : IConversationStore
 {
     private readonly InMemoryTypeshiftStore _store = new();
-
-    public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken ct) =>
-        _store.LoadAsync(id, kind, ct);
-
-    public Task<long> SaveAsync(Guid id, string kind, string json, int version, long revision, CancellationToken ct) =>
-        _store.SaveAsync(id, kind, json, version, revision, ct);
 
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(Guid conversation, CancellationToken ct) =>
         _store.LoadConversationAsync(conversation, ct);

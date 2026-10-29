@@ -964,6 +964,63 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string ConversationStoreOfAnotherIdType =
+        """
+        using System;
+        using System.Collections.Generic;
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal sealed class EntryStore : IConversationStore<int>
+        {
+            public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+                int conversation,
+                CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct) =>
+                throw new NotSupportedException();
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithStore<EntryStore>();
+        }
+        """;
+
+    public const string SettingsStoreOfTheBuildsIdType =
+        """
+        using System;
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal sealed class SettingsStore : ISettingsStore<Guid>
+        {
+            public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task<long> SaveAsync(
+                Guid id,
+                string kind,
+                string json,
+                int version,
+                long revision,
+                CancellationToken ct) =>
+                throw new NotSupportedException();
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithStore<SettingsStore>();
+        }
+        """;
+
     // The build's provider id type is string
     public const string OtherProviderIdTypeModel =
         """

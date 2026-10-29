@@ -1,17 +1,11 @@
 namespace Typeshift.Tests.Conversations.Support;
 
 // A store in memory that counts the whole conversations it loaded, as a store whose conversations grow long would
-public sealed class CountingLoadStore : ITypeshiftStore
+public sealed class CountingLoadStore : IConversationStore
 {
-    private readonly ITypeshiftStore _store = new InMemoryTypeshiftStore();
+    private readonly IConversationStore _store = new InMemoryTypeshiftStore();
 
     public int WholeLoads { get; private set; }
-
-    public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken ct) =>
-        _store.LoadAsync(id, kind, ct);
-
-    public Task<long> SaveAsync(Guid id, string kind, string json, int version, long revision, CancellationToken ct) =>
-        _store.SaveAsync(id, kind, json, version, revision, ct);
 
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(Guid conversation, CancellationToken ct)
     {

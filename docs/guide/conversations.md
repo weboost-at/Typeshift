@@ -53,7 +53,7 @@ a store or an API can pass entries on with either library and no settings.
 <!-- snippet: load-conversation -->
 <a id='snippet-load-conversation'></a>
 ```cs
-var store = provider.GetRequiredService<ITypeshiftStore>();
+var store = provider.GetRequiredService<IConversationStore>();
 var entries = await store.LoadConversationAsync(conversationId, ct);
 
 Console.WriteLine($"{entries.Count} entries, {entries.Sum(entry => entry.Usage?.TotalTokenCount)} tokens");
