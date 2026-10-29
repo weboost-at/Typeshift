@@ -70,6 +70,11 @@ internal static class AgentEmitter
 
                 writer.Line();
                 WriteDeclaration(writer, output, configured);
+
+                if (agent.Tools.Count == 0) return;
+
+                writer.Line();
+                ToolsetEmitter.WriteTools(writer, agent.Tools);
             },
             writer =>
             {
@@ -417,8 +422,8 @@ internal static class AgentEmitter
                 [
                     .. output.Tools.Select(offered =>
                         offered.Tool.Settings is null
-                            ? $"{offered.Toolset}.{offered.Tool.Factory}(json)"
-                            : $"{offered.Toolset}.{offered.Tool.Factory}({Local(offered.Tool)}, json)")
+                            ? $"{offered.Owner}.{offered.Tool.Factory}(json)"
+                            : $"{offered.Owner}.{offered.Tool.Factory}({Local(offered.Tool)}, json)")
                 ]);
             }
         }
@@ -545,18 +550,21 @@ internal static class AgentEmitter
             Docs.WriteSummary(writer, "Saves settings under an id, unless another save came since they were loaded.");
             Docs.WriteParam(writer, "settingsId", "The id.");
             Docs.WriteParam(writer, "settings", "The settings.");
-            Docs.WriteParam(writer, "expectedVersion", "The version <c>LoadSettingsAsync</c> returned.");
+            Docs.WriteParam(
+                writer,
+                "loadedVersion",
+                "The version <c>LoadSettingsAsync</c> returned, 0 when it loaded none.");
             Docs.WriteParam(writer, "ct", "Cancels the save.");
-            Docs.WriteReturns(writer, "The new version.");
+            Docs.WriteReturns(writer, "The new version, to pass to the next save.");
             Docs.WriteException(writer, "global::Typeshift.StoreConflictException", "Another save came first.");
             writer.Lines(
                 $"""
                 public {Task}<long> SaveSettingsAsync(
                     {idType} settingsId,
                     {settings} settings,
-                    long expectedVersion,
+                    long loadedVersion,
                     {CancellationToken} ct = default) =>
-                    {Runs}.SaveSettingsAsync<{types}>(host, settingsId, settings, expectedVersion, ct);
+                    {Runs}.SaveSettingsAsync<{types}>(host, settingsId, settings, loadedVersion, ct);
                 """);
             writer.Line();
 

@@ -330,16 +330,16 @@ internal static class ResearchAgentHostExtensions
         /// </summary>
         /// <param name="settingsId">The id.</param>
         /// <param name="settings">The settings.</param>
-        /// <param name="expectedVersion">The version <c>LoadSettingsAsync</c> returned.</param>
+        /// <param name="loadedVersion">The version <c>LoadSettingsAsync</c> returned, 0 when it loaded none.</param>
         /// <param name="ct">Cancels the save.</param>
-        /// <returns>The new version.</returns>
+        /// <returns>The new version, to pass to the next save.</returns>
         /// <exception cref="global::Typeshift.StoreConflictException">Another save came first.</exception>
         public global::System.Threading.Tasks.Task<long> SaveSettingsAsync(
             global::System.Guid settingsId,
             global::Research.ResearchAgent.Settings settings,
-            long expectedVersion,
+            long loadedVersion,
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.SaveSettingsAsync<global::Research.ResearchAgent, global::Research.ResearchAgent.Settings>(host, settingsId, settings, expectedVersion, ct);
+            global::Typeshift.Generated.AgentRuns.SaveSettingsAsync<global::Research.ResearchAgent, global::Research.ResearchAgent.Settings>(host, settingsId, settings, loadedVersion, ct);
 
         /// <summary>
         /// Changes the settings stored under an id, reloading and changing them again whenever another save came first,
@@ -374,7 +374,6 @@ namespace Typeshift.Generated
             var builder = global::Typeshift.Generated.ModuleRegistration.AddCoreServices<global::System.Guid, string>(services, static text => global::System.Guid.Parse(text, global::System.Globalization.CultureInfo.InvariantCulture));
 
             global::Typeshift.Generated.SubjectModule.Register(services);
-            global::Typeshift.Generated.TypeshiftModule.Register(services);
             global::Typeshift.Generated.CompaniesModule.Register(services);
 
             return builder;
@@ -411,7 +410,7 @@ global using IChatClientProvider = global::Typeshift.IChatClientProvider<string>
 
 [assembly: global::Typeshift.Generated.GeneratedModule(
     typeof(global::Typeshift.Generated.SubjectModule),
-    3,
+    4,
     typeof(global::System.Guid),
     typeof(string))]
 
@@ -421,7 +420,7 @@ namespace Typeshift.Generated;
 /// Registers the toolsets and agents of Subject.
 /// </summary>
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
-[global::Typeshift.Generated.ModuleAgent(typeof(global::Research.ResearchAgent), "ResearchAgent", "research_agent")]
+[global::Typeshift.Generated.ModuleAgent(typeof(global::Research.ResearchAgent), "ResearchAgent", "research_agent", Tools = new string[] { "find_companies" })]
 public static class SubjectModule
 {
     /// <summary>

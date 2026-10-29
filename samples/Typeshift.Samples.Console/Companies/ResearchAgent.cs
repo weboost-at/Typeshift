@@ -1,5 +1,4 @@
 using Typeshift.Samples.Chat;
-using Typeshift.Toolsets;
 
 namespace Typeshift.Samples.Companies;
 
@@ -18,8 +17,6 @@ internal partial class ResearchAgent : Agent
             .Configurable(r => r.MaxToolIterations);
 
         UseToolset<CompanyToolset>();
-
-        UseToolset<TodoToolset>();
 
         ConfigureFindCompanies()
             .WithLimit(3);

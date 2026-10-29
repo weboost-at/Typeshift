@@ -29,7 +29,6 @@ services.AddTypeshift() --> InterceptParser --> InterceptorEmitter -------> AddT
 |---|---|
 | `Typeshift` | `Toolset` and the tool chain (`ToolBuilder`, the settings builders), `ToolName`, `ToolList<T>`; `Agent` and its chains (`ChatOptionsBuilder`, `ToolsetUse<T>`, `RunOptionsBuilder`), `RunOptions`; `AgentHost<T>`, `IChatClientProvider`, `TypeshiftBuilder`. |
 | `Typeshift.Generated` | What only generated code calls, hidden from editors (D10): `GeneratedToolFunction`, `ToolParameter`, `ToolJson`, `AgentDeclaration`, `AgentRuns`, `ModuleRegistration` and the stamps. |
-| `Typeshift.Toolsets` | The built-in toolsets (`TodoToolset`, `FileSystemToolset`, `ShellToolset`, `WebToolset`) and what they ask the host for, such as `IFileSystemRoot` (D37). |
 | `Microsoft.Extensions.DependencyInjection` | `AddTypeshift()`, which throws unless the generator intercepts it (D1). |
 
 At runtime the declaration chains only return the next builder or record a value, such as `WithDisplayName`, the
@@ -54,11 +53,13 @@ what does not parse (D2).
    settings, a hidden `Create{Tool}` factory and a private `GeneratedToolFunction` subclass. For each toolset it
    writes a `{Toolset}ToolList` extension block with a property per tool, plus a `[GeneratedTool]` stamp per tool
    for agents in other assemblies (D7).
-5. **Agents** (`Parsing/AgentParser.cs`) read the chat and run option picks, the toolset uses and their picks. The
-   tool list's properties are the generator's own output, so a pick from it does not bind there. The parser walks
-   those calls as invalid operations and reads the picks from syntax instead. `Parsing/Catalog.cs` resolves the uses
-   against the compilation's toolsets and those the references stamp (`Parsing/ReferenceReader.cs`). An agent's
-   output stays cached while what it offers stays the same.
+5. **Agents** (`Parsing/AgentParser.cs`) read the chat and run option picks, the toolset uses and their picks, and
+   the agent's own tools, which `ToolsetParser.ParseTools` reads as it reads a toolset's (D57). The tool list's
+   properties are the generator's own output, so a pick from it does not bind there. The parser walks those calls as
+   invalid operations and reads the picks from syntax instead. `Parsing/Catalog.cs` resolves the uses against the
+   compilation's toolsets and those the references stamp (`Parsing/ReferenceReader.cs`), then adds the agent's own
+   tools, whose members `AgentEmitter` writes into the agent through `ToolsetEmitter.WriteTools`. An agent's output
+   stays cached while what it offers stays the same.
 6. **Registration.** `Emitting/ModuleEmitter.cs` writes one module, stamped with `[GeneratedModule]`, per assembly
    that declares toolsets or agents. `Emitting/InterceptorEmitter.cs` intercepts every `AddTypeshift()` call and
    registers the core services, the project's module and its references' modules (D1).
@@ -170,12 +171,10 @@ queue.
 handoff call out, it continues the run with the agent handed to, and it sends the conversation's next run to the
 agent that answered last (D33, D34).
 
-## MCP and the built-in toolsets
+## MCP servers
 
 When `AgentHost` resolves a run's options, it asks the host's `IMcpToolProvider` for each server's tools. It offers
-them after the agent's own, marked for plan mode or wrapped for approval (D35). The library's own generator compiles
-the built-in toolsets in `Toolsets/` and writes no id-type aliases for them, and consumers register the library's
-module like any reference's (D37).
+them after the agent's own, marked for plan mode or wrapped for approval (D35).
 
 ## Related
 

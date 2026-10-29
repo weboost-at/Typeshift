@@ -37,7 +37,7 @@ This page builds a store on Entity Framework Core. Register its context factory 
 ```cs
 services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite("Data Source=typeshift.db"));
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L43-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L44-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## The five methods
@@ -54,7 +54,7 @@ the method in your store. Every id has your build's [id type](./registration.md#
 | Method | Does |
 |---|---|
 | `LoadAsync(id, kind)` | Returns the document of a kind under an id as a `StoredDocument`, with its JSON and version, or null when none is stored. |
-| `SaveAsync(id, kind, json, expectedVersion)` | Saves a document's JSON if its stored version still equals `expectedVersion` (0 when nothing is stored yet), and returns the new version. Throws a `StoreConflictException` when another save came first. |
+| `SaveAsync(id, kind, json, loadedVersion)` | Saves a document's JSON if its stored version still equals `loadedVersion` (0 when nothing is stored yet), and returns the new version. Throws a `StoreConflictException` when another save came first. |
 | `LoadConversationAsync(conversation)` | Returns a conversation's entries, oldest first. |
 | `LoadConversationSinceCompactionAsync(conversation)` | Returns the conversation's last summary and the entries after it ([Recognizing a summary](#recognizing-a-summary)). |
 | `AppendConversationAsync(conversation, entry)` | Appends one entry to a conversation. The first entry creates the conversation. |
@@ -155,8 +155,17 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
 
 A version is the number of the stored document's current state, kept for optimistic concurrency. It lets a save
 find out that the document changed since the caller loaded it, so one save never silently overwrites another.
-Typeshift does not interpret the number: it hands `SaveAsync` back the version `LoadAsync` returned, and your store
-compares the two.
+Typeshift does not interpret the number: it hands `SaveAsync` back the version `LoadAsync` returned, as
+`loadedVersion`, and your store compares the two. `loadedVersion` is always the old version. Your store writes the new
+one itself and returns it, and the caller passes that to its next save:
+
+| Call | Stored before | Your store | Returns |
+|---|---|---|---|
+| `LoadAsync` | nothing | finds no row | `null` |
+| `SaveAsync(json, loadedVersion: 0)` | nothing | inserts the row at version 1 | `1` |
+| `SaveAsync(json, loadedVersion: 1)` | version 1 | updates the row, which still holds 1, to version 2 | `2` |
+| `SaveAsync(json, loadedVersion: 1)` | version 2 | changes nothing: the row no longer holds 1 | throws `StoreConflictException` |
+| `SaveAsync(json, loadedVersion: 0)` | version 2 | changes nothing: a row exists | throws `StoreConflictException` |
 
 ```mermaid
 sequenceDiagram
@@ -178,7 +187,7 @@ the first form's change, and that form loads the settings again.
 ### What a save must do
 
 Run one `INSERT` or `UPDATE` that checks the version as it writes, and throw a `StoreConflictException` when it
-changed no row. The version the caller passes tells you which state of the document it loaded:
+changed no row. The `loadedVersion` the caller passes tells you which state of the document it loaded:
 
 - **Version 0 means the caller found no document**, so insert it. A row that is there already was created by another
   save in between.
@@ -194,8 +203,8 @@ these statements reports how many rows it changed, and none means another save w
 INSERT INTO documents (id, kind, version, json) VALUES (@id, @kind, 1, @json)
 ON CONFLICT (id, kind) DO NOTHING;
 
-UPDATE documents SET json = @json, version = @expectedVersion + 1
-WHERE id = @id AND kind = @kind AND version = @expectedVersion;
+UPDATE documents SET json = @json, version = @loaded + 1
+WHERE id = @id AND kind = @kind AND version = @loaded;
 ```
 
 SQL Server has no `ON CONFLICT`. There, run a plain `INSERT` and treat the duplicate-key error, number 2627, as the
@@ -212,18 +221,18 @@ updates with the version in its `WHERE`. Both return the number of rows they cha
 <!-- snippet: ef-core-save -->
 <a id='snippet-ef-core-save'></a>
 ```cs
-public async Task<long> SaveAsync(int id, string kind, string json, long expectedVersion, CancellationToken ct)
+public async Task<long> SaveAsync(int id, string kind, string json, long loadedVersion, CancellationToken ct)
 {
     await using var db = await contexts.CreateDbContextAsync(ct);
 
-    var rows = expectedVersion == 0
+    var rows = loadedVersion == 0
         ? await InsertAsync(db, id, kind, json, ct)
-        : await UpdateAsync(db, id, kind, json, expectedVersion, ct);
+        : await UpdateAsync(db, id, kind, json, loadedVersion, ct);
 
     // Each statement checks and writes in one step, so a save that changed no row lost to another save
     return rows == 1
-        ? expectedVersion + 1
-        : throw new StoreConflictException($"{kind} {id} was saved after version {expectedVersion}.");
+        ? loadedVersion + 1
+        : throw new StoreConflictException($"{kind} {id} was saved after version {loadedVersion}.");
 }
 
 private static Task<int> InsertAsync(TypeshiftDb db, int id, string kind, string json, CancellationToken ct) =>
@@ -240,14 +249,14 @@ private static Task<int> UpdateAsync(
     int id,
     string kind,
     string json,
-    long expectedVersion,
+    long loadedVersion,
     CancellationToken ct) =>
     db.Documents
-        .Where(row => row.Id == id && row.Kind == kind && row.Version == expectedVersion)
+        .Where(row => row.Id == id && row.Kind == kind && row.Version == loadedVersion)
         .ExecuteUpdateAsync(
             set => set
                 .SetProperty(row => row.Json, json)
-                .SetProperty(row => row.Version, expectedVersion + 1),
+                .SetProperty(row => row.Version, loadedVersion + 1),
             ct);
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L18-L56' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-save' title='Start of snippet'>anchor</a></sup>

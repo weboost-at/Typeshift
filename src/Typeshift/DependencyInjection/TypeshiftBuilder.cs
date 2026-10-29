@@ -118,43 +118,4 @@ public sealed class TypeshiftBuilder
         _services.AddScoped<IMcpToolProvider, TProvider>();
         return this;
     }
-
-    /// <summary>
-    /// Registers the root the file system and shell tools stay within, scoped, so it may differ per customer.
-    /// </summary>
-    /// <typeparam name="TRoot">The root.</typeparam>
-    /// <returns>The same chain.</returns>
-    public TypeshiftBuilder WithFileSystemRoot<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TRoot>()
-        where TRoot : class, Toolsets.IFileSystemRoot
-    {
-        _services.AddScoped<Toolsets.IFileSystemRoot, TRoot>();
-        return this;
-    }
-
-    /// <summary>
-    /// Registers the search engine behind <c>web_search</c>, scoped.
-    /// </summary>
-    /// <typeparam name="TSearch">The search engine.</typeparam>
-    /// <returns>The same chain.</returns>
-    public TypeshiftBuilder WithWebSearch<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TSearch>()
-        where TSearch : class, Toolsets.IWebSearch
-    {
-        _services.AddScoped<Toolsets.IWebSearch, TSearch>();
-        return this;
-    }
-
-    /// <summary>
-    /// Registers the fetcher behind <c>web_fetch</c>, scoped.
-    /// </summary>
-    /// <typeparam name="TFetch">The fetcher.</typeparam>
-    /// <returns>The same chain.</returns>
-    public TypeshiftBuilder WithWebFetch<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TFetch>()
-        where TFetch : class, Toolsets.IWebFetch
-    {
-        _services.AddScoped<Toolsets.IWebFetch, TFetch>();
-        return this;
-    }
 }

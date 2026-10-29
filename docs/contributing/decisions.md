@@ -144,7 +144,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Decision:** `SearchTickets` is `search_tickets`; an `Async` suffix is dropped, so `CloseTicketAsync` is
   `close_ticket`. `WithName` overrides. The name keys stored settings, so renaming a method renames the tool: the docs
-  say to pin the old name with `WithName` first. TSH007 also compares the generated property names.
+  say to pin the old name with `WithName` first. TSH007 also compares the generated property names. An agent's own
+  tools are compared only across the handoffs of a conversation (D57).
 - **Alternatives:** keeping `Async` (`close_ticket_async`), which leaks a C# convention to the model; a stored key
   separate from the name, a second identity.
 - **Where:** `Parsing/ToolsetParser.cs`.
@@ -235,6 +236,30 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   from static methods and constants. A preset class folded into agents (`UsePreset<T>()`) was considered and
   deferred.
 
+### D57. An agent may declare tools of its own
+
+- **Status:** owner.
+- **Context:** a tool only one agent needed still took a toolset class of its own and a `UseToolset<T>()`.
+- **Decision:** `AddTool(method)` in an agent's constructor, with the toolsets' chain, backed by a static method of the
+  agent. The agent offers its own tools after its toolsets' tools. They do not form a toolset: they get no tool list, no
+  toolset stamp and no registration, so no other agent offers them and `Include` and `Exclude` do not pick them.
+- **As built:** the generator reads them with the toolsets' parser and writes their overrides, factories and functions
+  into the agent, where the agent's `Settings`, its `Configure{Tool}()` methods and its declaration list them as they
+  list a toolset's tools. The analyzer applies every tool rule. An own tool's name differs from the agent's toolsets'
+  (TSH025) and from every tool of the agents its standing approvals reach or come from (TSH007), since an approval names
+  its tool: handoffs pass the conversation on, directly or through other agents, and a sub-agent runs with its caller's
+  approvals (D33) but without a conversation, so it hands off nothing. The module stamp lists each agent's tools, its
+  own tools and those that require approval, at stamp version 4, so a handoff or sub-agent into a referenced project's
+  agent is checked too; that agent's own uses are not stamped.
+- **Where:** `Agents/Agent.cs`, `Parsing/ToolsetParser.cs`, `Parsing/AgentParser.cs`, `Parsing/Catalog.cs`,
+  `Emitting/AgentEmitter.cs`.
+- **Alternatives:** a second, lighter base class for small tasks, such as `AgentTask<TResult>` with instructions and
+  a typed result, a second concept beside `Agent` (the owner's open question); `AIFunctionFactory` functions in
+  `WithTools`, which reflect, skip the analyzer and settings, and need JSON metadata the generator never checks;
+  own tools pickable from a `ToolList<TAgent>`, which would let one agent offer another's tools; own tools unique
+  across the host like toolsets' tools, which made two agents' one-off tools clash; unique per agent alone, which lets a
+  standing approval reach another agent's tool of the same name.
+
 ### D24. Tool approval uses Microsoft.Extensions.AI's contents, with standing approvals and rules
 
 - **Status:** approved.
@@ -252,8 +277,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   every approval) or `Abstain`, which the mode resolves (D52). A layer above `FunctionInvokingChatClient` answers the
   requests rules and standing approvals decide and continues the loop, so only the rest reach the host. It also stores
   the requests and its own answers when a run ends asking, as `FunctionInvokingChatClient` keeps them out of what the
-  checkpoint layer below it sees. Approvals match tools by name, which is unique per agent (TSH007, and a runtime check
-  for MCP tools).
+  checkpoint layer below it sees. Approvals match tools by name, which is unique per agent and across the agents its
+  approvals reach by handoff or as a sub-agent (TSH007, and a runtime check for MCP tools).
 - **Where:** `Approval/ApprovalChatClient.cs`, `Approval/ToolApproval.cs`.
 - **Alternatives:** an approval callback the run awaits, which holds a run open across requests; a Typeshift approval
   type, a second vocabulary.
@@ -450,22 +475,18 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   the exception on the run's span.
 - **Where:** `Telemetry/Telemetry.cs`, `Telemetry/InstrumentedClients.cs`.
 
-### D37. The built-in toolsets
+### D37. No built-in toolsets
 
 - **Status:** owner.
-- **Decision:** in `Typeshift.Toolsets`, declared with Typeshift's own toolset API:
-  - `TodoToolset`: `write_todos` replaces the whole list; the list lives in the conversation (the latest call).
-  - `FileSystemToolset`: six tools within an `IFileSystemRoot` the host registers per scope; absolute paths, `..`
-    and escaping links refused; the three reading tools `ReadOnly()`, `delete_file` behind approval.
-  - `ShellToolset`: `run_command` in the root, always behind approval; timeout and output cap as settings.
-  - `WebToolset`: `web_search` and `web_fetch` over `IWebSearch` and `IWebFetch`, no provider shipped.
-- **As built:** the library compiles them with its own generator; its module stamps no id type, as it has no
-  agents, and every consumer's `AddTypeshift()` registers it. The file tools follow every link on a path, the root's
-  own included, before comparing it with the root, and return why they refuse instead of failing the call, so the
-  model can correct itself.
-- **Where:** `Toolsets/`.
-- **Alternatives:** MAF's five todo tools with state in the session (more tokens, a store per session); file access
-  in a store abstraction.
+- **Decision:** the library ships no tools of its own. An app declares the file, shell, web or to-do tools it needs
+  in toolsets of its own, and plugin packages may bring such toolsets later.
+- **Details:** up to 0.1.0-alpha.4, `Typeshift.Toolsets` held `TodoToolset`, `FileSystemToolset`, `ShellToolset` and
+  `WebToolset`, with `IFileSystemRoot`, `IWebSearch` and `IWebFetch`. They were the library's riskiest code (a shell, a
+  file system jail and a fetcher that must guard against requests to private addresses), every app shipped them, and
+  the analyzer exempted their namespace from TSH007. Compaction still keeps the latest call of a tool named
+  `write_todos` (D32), so an app's own to-do tool keeps its list.
+- **Alternatives:** keeping them in the library; a `Typeshift.Toolsets` package in this repository, built like any
+  plugin, which first needs TSH021 to accept a toolset-only package built with another id type.
 
 ### D53. A failed tool call reports its exception's message
 
@@ -530,7 +551,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D41. Optimistic concurrency
 
 - **Status:** owner.
-- **Decision:** `SaveAsync` takes the version the caller loaded as `expectedVersion`, 0 for none, and throws
+- **Decision:** `SaveAsync` takes the version the caller loaded as `loadedVersion`, 0 for none, and throws
   `StoreConflictException` when the stored one differs. `ConfigureAsync` reloads and reapplies until it wins (each
   conflict means another save won), at most ten times, so a store that conflicts every time fails instead of spinning.
   `SaveSettingsAsync` takes the version from `LoadSettingsAsync`.
@@ -538,11 +559,13 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   Core store set a concurrency token, caught `DbUpdateConcurrencyException`, and after a failed insert read the row
   again to tell a conflict from another failure. The rule itself is in the store guide. The store's number is the
   version and the record's is the schema version (D40), so the two never share a name where a store meets both, as a
-  migration in `LoadAsync` does.
+  migration in `LoadAsync` does. `loadedVersion` names the old version, the one the stored version must still equal;
+  the store writes the new one and returns it.
 - **Alternatives:** `SaveAsync` returning null for a lost save and Typeshift throwing, so a store never builds the
   exception, kept as the owner's open question since it breaks every store again; an opaque `string` version, which an
   ETag fits as is, open for the same reason; `revision` for the store's number (up to 0.1.0-alpha.4), which kept the
-  plain word for the schema while store authors handle the store's number in every call.
+  plain word for the schema while store authors handle the store's number in every call; `version` for the parameter,
+  which reads as the version to write; `expectedVersion`, which the owner found unclear.
 
 ### D42. Settings ids and conversation ids are separate; conversations grow by appending
 
@@ -649,7 +672,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Decision:** `AgentMode` `Default`, `Plan`, `Auto`, a run option (`WithMode`, configurable like any run option).
   `Plan` offers only tools marked `ReadOnly()` (toolset tools, or MCP servers with `UseMcpServer(...).ReadOnly()`),
-  `write_todos` and a built-in `exit_plan_mode(plan)`, which asks the host; `ApprovePlan(mode)` continues in `Default`
+  and a built-in `exit_plan_mode(plan)`, which asks the host; `ApprovePlan(mode)` continues in `Default`
   or `Auto`, a rejection's reason sends the model back to planning. `Auto` runs tools that require approval unless a
   rule rejects the call. A conversation keeps its mode: a run without one continues in the mode the last run ended in,
   stored on the run's ending entry and on a summary; a run whose settings name a mode switches it. Plan mode appends a
