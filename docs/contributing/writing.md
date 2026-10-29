@@ -92,7 +92,7 @@ A page that grows past a few screens usually explains a fact another page owns. 
 |---|---|---|---|
 | Tutorial | "Show me it working." Only [Getting started](../guide/getting-started.md). | `docs/guide/` | none |
 | Concept | "How does this fit together, and why?" | `docs/guide/`, next to the guides it explains | [concept](#concept) |
-| Guide | "How do I use this feature?" | `docs/guide/`, in the group of its feature, or in Guides when it walks through one task from start to end, such as implementing a store | [guide](#guide) |
+| Guide | "How do I use this feature?" | `docs/guide/`, in the group of its feature, or in the Introduction when every app needs it, such as implementing a store | [guide](#guide) |
 | Reference | "What exactly does this call take and do?" | `docs/guide/`, the Reference group | [reference](#reference) |
 | Contributing | "How do I work on the repository?" | `docs/contributing/` | [concept](#concept) |
 
@@ -205,7 +205,7 @@ path from the repository root.
 ## Adding a page
 
 1. Copy a [template](#templates): a guide, a concept or a reference page.
-2. Add it to the sidebar in `docs/.vitepress/config.mts`, in reading order. A new group of the guide sidebar gets `collapsed: true`, like every group except Guides.
+2. Add it to the sidebar in `docs/.vitepress/config.mts`, in reading order. A new group of the guide sidebar gets `collapsed: true`, like every group except the Introduction.
 3. Link it from the `## Related` of its neighbours.
 4. When it becomes the home of a kind of fact, add a row to the fact map in `AGENTS.md`.
 
