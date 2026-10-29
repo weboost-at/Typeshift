@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading;
 using Typeshift.Generators.Diagnostics;
 using Typeshift.Generators.Emitting;
 using Typeshift.Generators.Models;
@@ -61,7 +62,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
     {
         if (context.Compilation.GetTypeByMetadataName(KnownTypes.Toolset) is null) return;
 
-        var tools = new ConcurrentBag<(string Name, INamedTypeSymbol Toolset, Location Location)>();
+        var tools = new ConcurrentBag<(string Name, INamedTypeSymbol Owner, Location Location)>();
         var kinds = new ConcurrentBag<(string Kind, INamedTypeSymbol Agent)>();
         var found = new Found();
 
@@ -119,7 +120,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
     private static void StartClass(
         SymbolStartAnalysisContext context,
         ITypeSymbol? providerIdType,
-        ConcurrentBag<(string Name, INamedTypeSymbol Toolset, Location Location)> tools,
+        ConcurrentBag<(string Name, INamedTypeSymbol Owner, Location Location)> tools,
         ConcurrentBag<(string Kind, INamedTypeSymbol Agent)> kinds,
         Found found)
     {
@@ -170,31 +171,9 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             var documented = type.DeclaringSyntaxReferences
                 .Any(reference => reference.SyntaxTree.Options.DocumentationMode != DocumentationMode.None);
 
-            IReadOnlyList<(ToolModel Tool, IInvocationOperation AddTool)> declarations;
-
-            if (baseType == "Agent")
-            {
-                var agent = AgentParser.Parse(
-                    type,
-                    ordered,
-                    documented,
-                    providerIdType,
-                    reporter,
-                    ct,
-                    out var uses,
-                    out declarations);
-
-                if (agent is not null)
-                {
-                    kinds.Add((agent.Kind, type));
-                    found.Agents.Add(new FoundAgent(type, agent, uses));
-                }
-            }
-            else
-            {
-                var toolset = ToolsetParser.Parse(type, ordered, documented, reporter, ct, out declarations);
-                if (toolset is not null) found.Toolsets.Add(Catalog.Summarize(toolset));
-            }
+            var declarations = baseType == "Agent"
+                ? ParseAgent(type, ordered, documented, providerIdType, reporter, kinds, found, ct)
+                : ParseToolset(type, ordered, documented, reporter, found, ct);
 
             foreach (var (tool, addTool) in declarations)
             {
@@ -202,6 +181,47 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
                 found.Tools.Add((tool, addTool.Syntax.GetLocation()));
             }
         });
+    }
+
+    private static IReadOnlyList<(ToolModel Tool, IInvocationOperation AddTool)> ParseAgent(
+        INamedTypeSymbol type,
+        IReadOnlyList<IOperation> constructors,
+        bool documented,
+        ITypeSymbol? providerIdType,
+        Reporter reporter,
+        ConcurrentBag<(string Kind, INamedTypeSymbol Agent)> kinds,
+        Found found,
+        CancellationToken ct)
+    {
+        var agent = AgentParser.Parse(
+            type,
+            constructors,
+            documented,
+            providerIdType,
+            reporter,
+            ct,
+            out var uses,
+            out var tools);
+
+        if (agent is null) return tools;
+
+        kinds.Add((agent.Kind, type));
+        found.Agents.Add(new FoundAgent(type, agent, uses));
+        return tools;
+    }
+
+    private static IReadOnlyList<(ToolModel Tool, IInvocationOperation AddTool)> ParseToolset(
+        INamedTypeSymbol type,
+        IReadOnlyList<IOperation> constructors,
+        bool documented,
+        Reporter reporter,
+        Found found,
+        CancellationToken ct)
+    {
+        var toolset = ToolsetParser.Parse(type, constructors, documented, reporter, ct, out var tools);
+        if (toolset is not null) found.Toolsets.Add(Catalog.Summarize(toolset));
+
+        return tools;
     }
 
     private static string? GetIndirection(INamedTypeSymbol type, string baseType) =>
@@ -300,10 +320,10 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
     }
 
     // D13: a tool name is unique across everything the host sees, the tools the references stamp too; within one
-    // toolset the parser reports it
+    // toolset or agent the parser reports it
     private static void ReportClashesAcrossToolsets(
         CompilationAnalysisContext context,
-        IEnumerable<(string Name, INamedTypeSymbol Toolset, Location Location)> tools)
+        IEnumerable<(string Name, INamedTypeSymbol Owner, Location Location)> tools)
     {
         // D37: the built-in toolsets reserve no names; an agent that offers one beside a tool of its name is TSH025
         var referenced = ReferenceReader
@@ -333,7 +353,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
             var clashes = referenced.Contains(group.Key)
                 ? group
-                : group.Skip(1).Where(tool => !SymbolEqualityComparer.Default.Equals(tool.Toolset, first.Toolset));
+                : group.Skip(1).Where(tool => !SymbolEqualityComparer.Default.Equals(tool.Owner, first.Owner));
 
             foreach (var clash in clashes)
             {
@@ -522,8 +542,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             _ => null
         };
 
-    // D37: two toolsets an agent uses, of this assembly, a reference or the library's built-ins, may share a tool name,
-    // and so may a toolset and the agent's own tools
+    // D37, D57: an agent offers each tool name once, yet two toolsets it uses, of this assembly, a reference or the
+    // library's built-ins, may share one, and so may a toolset and the agent's own tools
     private static void ReportNamesOfferedTwice(
         CompilationAnalysisContext context,
         FoundAgent agent,

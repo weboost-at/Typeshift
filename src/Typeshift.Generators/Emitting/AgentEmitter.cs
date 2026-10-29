@@ -425,8 +425,8 @@ internal static class AgentEmitter
                 [
                     .. output.Tools.Select(offered =>
                         offered.Tool.Settings is null
-                            ? $"{offered.Toolset}.{offered.Tool.Factory}(json)"
-                            : $"{offered.Toolset}.{offered.Tool.Factory}({Local(offered.Tool)}, json)")
+                            ? $"{offered.Owner}.{offered.Tool.Factory}(json)"
+                            : $"{offered.Owner}.{offered.Tool.Factory}({Local(offered.Tool)}, json)")
                 ]);
             }
         }

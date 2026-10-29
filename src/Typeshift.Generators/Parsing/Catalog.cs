@@ -54,7 +54,7 @@ internal static class Catalog
         }
 
         // D57: the agent's own tools come after its toolsets'
-        foreach (var tool in agent.Tools.Select(tool => Summarize(agent.Type, tool)))
+        foreach (var tool in agent.Tools.Select(own => Summarize(agent.Type, own)))
         {
             if (offered.Any(other => Clashes(other.Tool, tool))) continue;
 

@@ -35,7 +35,8 @@ internal static class Names
 
     public static string FunctionName(string tool) => $"{ToPascalCase(tool)}Function";
 
-    // The members the generator adds to a toolset for one tool, which no member of the user's may share
+    // The members the generator adds for one tool to the toolset or the agent that declares it, which no member of the
+    // user's may share
     public static IEnumerable<string> ToolsetMembers(string tool, bool hasOverrides) =>
         hasOverrides
             ? [OverridesName(tool), FactoryName(tool), FunctionName(tool)]
