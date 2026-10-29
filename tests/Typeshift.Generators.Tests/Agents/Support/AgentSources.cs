@@ -172,6 +172,7 @@ public static class AgentSources
                     .WithLimit(5);
             }
 
+            /// <param name="email">The customer's email address.</param>
             private static string LookUpCustomer(string email, LookUpSettings settings) => email;
 
             private static void RefundOrder(int order)

@@ -828,6 +828,20 @@ public class DiagnosticTests : GeneratorTestBase
             .Contain("web_search");
     }
 
+    [Fact]
+    public void Given_An_Agents_Tool_Named_Like_A_Built_In_One_It_Uses_TSH025_Is_Reported_On_The_Agent()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentToolNamedLikeABuiltIn);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH007");
+        run.Assert.Reports("TSH025", DiagnosticSeverity.Error, "SearchAgent")
+            .GetMessage()
+            .Should()
+            .Contain("web_search");
+    }
+
     [Theory]
     [MemberData(nameof(Mistakes))]
     public void Given_Any_Mistake_The_Generated_Code_Holds_No_Error(string mistake)

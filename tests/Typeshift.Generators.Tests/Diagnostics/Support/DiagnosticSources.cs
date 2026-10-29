@@ -1013,6 +1013,23 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string AgentToolNamedLikeABuiltIn =
+        """
+        using Typeshift;
+
+        internal partial class SearchAgent : Agent
+        {
+            public SearchAgent()
+            {
+                UseToolset<Typeshift.Toolsets.WebToolset>();
+
+                AddTool(Search).WithName("web_search").WithDescription("Searches our own index.");
+            }
+
+            private static string Search(string query) => query;
+        }
+        """;
+
     public const string OtherStoreIdType =
         """
         using Typeshift;

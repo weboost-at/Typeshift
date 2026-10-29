@@ -23,11 +23,11 @@ public class OwnToolsTests : AgentTestBase
     public async Task Given_A_Tool_Of_The_Agents_Own_It_Runs_With_The_Agents_Settings_And_The_Runs()
     {
         // Arrange
+        var settings = new OwnToolsAgent.Settings { Recall = new() { Limit = Data.Tool.Limit } };
+
         ChatClient
             .Reply(Call(Data.Tool.CallId, "recall", ("query", Data.Tool.Query)))
             .Reply(Text(Data.Tool.Answer));
-
-        var settings = new OwnToolsAgent.Settings { Recall = new() { Limit = Data.Tool.Limit } };
 
         // Act
         var response = await Host<OwnToolsAgent>().RunAsync(Data.Tool.Question, settings: settings, ct: Ct);
