@@ -1008,7 +1008,7 @@ public static class DiagnosticSources
                 Guid id,
                 string kind,
                 string json,
-                long revision,
+                long expectedVersion,
                 CancellationToken ct) =>
                 throw new NotSupportedException();
         }

@@ -61,7 +61,7 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
     public static string Kind => "conversation_entry";
 
     /// <inheritdoc />
-    public static int Version => 1;
+    public static int SchemaVersion => 1;
 
     /// <inheritdoc />
     public string Serialize() => StorableJson.Write(Write);
@@ -77,7 +77,7 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
     private void Write(Utf8JsonWriter writer)
     {
         writer.WriteStartObject();
-        StorableJson.WriteVersion(writer, Version);
+        StorableJson.WriteSchemaVersion(writer, SchemaVersion);
         writer.WriteString("agent", Agent);
         writer.WriteString("at", At);
         if (Model is not null) writer.WriteString("model", Model);
@@ -132,7 +132,7 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
         entry = null!;
         if (root.ValueKind is not JsonValueKind.Object) return false;
 
-        StorableJson.EnsureVersion(root, Version, Kind);
+        StorableJson.EnsureSchemaVersion(root, SchemaVersion, Kind);
         var messages = StorableJson.Member(root, "messages") is { ValueKind: JsonValueKind.Array } array
             ? array.EnumerateArray().Select(message => message.Deserialize(Contract<ChatMessage>())!).ToList()
             : [];

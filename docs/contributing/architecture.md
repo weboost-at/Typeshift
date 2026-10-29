@@ -105,7 +105,7 @@ Microsoft.Extensions.AI's defaults, which reflect outside Native AOT (D45).
 
 ## Storage
 
-`ISettingsStore<TId>` keeps documents by id and kind, as JSON with a revision (D38, D41), and
+`ISettingsStore<TId>` keeps documents by id and kind, as JSON with a version (D38, D41), and
 `IConversationStore<TId>` keeps conversation entries. `ITypeshiftStore<TId>` is both in one. `WithStore<T>()` registers
 each of them the store implements, so a host may keep settings and conversations in two stores. The library never sees
 the id type. The interceptor registers `StoreAccess<TId>` through `AddCoreServices<TId>`, and runs reach it as

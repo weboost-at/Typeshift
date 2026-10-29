@@ -140,7 +140,7 @@ public static class AgentRuns
     /// <param name="host">The host, with the run's services.</param>
     /// <param name="settingsId">The id.</param>
     /// <param name="ct">Cancels the load.</param>
-    /// <returns>The settings and their revision; empty settings at revision 0 when none are stored.</returns>
+    /// <returns>The settings and their version; empty settings at version 0 when none are stored.</returns>
     public static async Task<Stored<TSettings>> LoadSettingsAsync<TAgent, TSettings>(
         AgentHost<TAgent> host,
         object settingsId,
@@ -150,25 +150,25 @@ public static class AgentRuns
         await host.Store.LoadAsync<TSettings>(settingsId, ct) ?? new Stored<TSettings>(new TSettings(), 0);
 
     /// <summary>
-    /// Saves settings under an id if the stored revision is still the one loaded.
+    /// Saves settings under an id if the stored version is still the one loaded.
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <typeparam name="TSettings">The agent's settings record.</typeparam>
     /// <param name="host">The host, with the run's services.</param>
     /// <param name="settingsId">The id.</param>
     /// <param name="settings">The settings.</param>
-    /// <param name="revision">The revision <c>LoadSettingsAsync</c> returned.</param>
+    /// <param name="expectedVersion">The version <c>LoadSettingsAsync</c> returned.</param>
     /// <param name="ct">Cancels the save.</param>
-    /// <returns>The new revision.</returns>
+    /// <returns>The new version.</returns>
     public static Task<long> SaveSettingsAsync<TAgent, TSettings>(
         AgentHost<TAgent> host,
         object settingsId,
         TSettings settings,
-        long revision,
+        long expectedVersion,
         CancellationToken ct)
         where TAgent : Agent
         where TSettings : class, IStorable<TSettings> =>
-        host.Store.SaveAsync(settingsId, settings, revision, ct);
+        host.Store.SaveAsync(settingsId, settings, expectedVersion, ct);
 
     /// <summary>
     /// Changes the settings stored under an id, reloading and changing them again whenever another save came first, up
@@ -198,7 +198,7 @@ public static class AgentRuns
 
             try
             {
-                await host.Store.SaveAsync(settingsId, configured, stored.Revision, ct);
+                await host.Store.SaveAsync(settingsId, configured, stored.Version, ct);
                 return configured;
             }
             catch (StoreConflictException) when (attempt < MaxConfigureAttempts)

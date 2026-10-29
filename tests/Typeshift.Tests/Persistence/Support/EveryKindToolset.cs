@@ -97,7 +97,7 @@ public partial class EveryKindAgent : Agent
     {
         WithStorageKind("every_kind");
 
-        WithSettingsVersion(2);
+        WithSchemaVersion(2);
 
         WithChatOptions()
             .Configurable(o => o.ModelId)

@@ -85,7 +85,7 @@ internal static class AgentParser
             declarations.Name ?? ToolNames.ToSnakeCase(agent.Name),
             declarations.Description,
             declarations.Kind ?? agent.Name,
-            declarations.Version ?? 1,
+            declarations.SchemaVersion ?? 1,
             declarations.ChatOptions.ToEquatableArray(),
             declarations.RunOptions.ToEquatableArray(),
             declarations.Toolsets.ToEquatableArray(),
@@ -122,9 +122,9 @@ internal static class AgentParser
                 declarations.Kind = ReadConstant(call, "storage kind", reporter) ?? declarations.Kind;
                 break;
 
-            case "WithSettingsVersion":
+            case "WithSchemaVersion":
                 if (call.Arguments[0].Value.ConstantValue is { HasValue: true, Value: int version })
-                    declarations.Version = version;
+                    declarations.SchemaVersion = version;
                 else
                     reporter.Report(Descriptors.NotConstant, call.Arguments[0].Syntax, "settings version");
 
@@ -300,7 +300,7 @@ internal static class AgentParser
 
         public string? Kind { get; set; }
 
-        public int? Version { get; set; }
+        public int? SchemaVersion { get; set; }
 
         public List<string> ChatOptions { get; } = [];
 

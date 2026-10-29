@@ -28,7 +28,7 @@ internal sealed class DocumentRow
 
     public required string Kind { get; init; }
 
-    public required long Revision { get; init; }
+    public required long Version { get; init; }
 
     public required string Json { get; init; }
 }
