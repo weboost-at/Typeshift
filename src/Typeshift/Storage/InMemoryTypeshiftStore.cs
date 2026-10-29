@@ -18,20 +18,20 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId> where TId
         Task.FromResult(_documents.GetValueOrDefault((id, kind)));
 
     /// <inheritdoc />
-    public Task<long> SaveAsync(TId id, string kind, string json, long revision, CancellationToken ct)
+    public Task<long> SaveAsync(TId id, string kind, string json, long expectedVersion, CancellationToken ct)
     {
         var key = (id, kind);
-        var saved = new StoredDocument(json, revision + 1);
+        var saved = new StoredDocument(json, expectedVersion + 1);
 
-        var won = revision == 0
+        var won = expectedVersion == 0
             ? _documents.TryAdd(key, saved)
             : _documents.TryGetValue(key, out var stored)
-                && stored.Revision == revision
+                && stored.Version == expectedVersion
                 && _documents.TryUpdate(key, saved, stored);
 
         return won
-            ? Task.FromResult(saved.Revision)
-            : throw new StoreConflictException($"The {kind} of {id} was saved since revision {revision}.");
+            ? Task.FromResult(saved.Version)
+            : throw new StoreConflictException($"The {kind} of {id} was saved since version {expectedVersion}.");
     }
 
     /// <inheritdoc />

@@ -105,14 +105,14 @@ Microsoft.Extensions.AI's defaults, which reflect outside Native AOT (D45).
 
 ## Storage
 
-`ISettingsStore<TId>` keeps documents by id and kind, as JSON with a revision (D38, D41), and
+`ISettingsStore<TId>` keeps documents by id and kind, as JSON with a version (D38, D41), and
 `IConversationStore<TId>` keeps conversation entries. `ITypeshiftStore<TId>` is both in one. `WithStore<T>()` registers
 each of them the store implements, so a host may keep settings and conversations in two stores. The library never sees
 the id type. The interceptor registers `StoreAccess<TId>` through `AddCoreServices<TId>`, and runs reach it as
 `IStoreAccess` with boxed ids (D11). `StoreAccess` serializes and reads the documents, so a store handles strings and
 numbers only. `StoreCheck` runs the rules a store must keep against it, from the store's own tests (D58).
 
-The generator writes each agent's `Settings` as an `IStorable<Settings>`, with a kind, a version, `Serialize` and
+The generator writes each agent's `Settings` as an `IStorable<Settings>`, with a kind, a schema version, `Serialize` and
 `Deserialize`. It is an `IJsonStorable<Settings>` too, whose `WriteJson` and `TryReadJson` serve `Serialize` and the
 `StorableJsonConverter` that lets `System.Text.Json` speak the stored shape. Tool overrides are `IJsonStorable` as
 well, so an agent's settings can delegate to the overrides of a toolset in another assembly (D44).

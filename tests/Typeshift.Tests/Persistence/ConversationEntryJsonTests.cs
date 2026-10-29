@@ -60,10 +60,13 @@ public class ConversationEntryJsonTests : UnitTestBase
     }
 
     [Fact]
-    public void Given_An_Entry_Of_A_Newer_Version_Reading_Throws_A_JsonException()
+    public void Given_An_Entry_Of_A_Newer_Schema_Version_Reading_Throws_A_JsonException()
     {
+        // Arrange
+        var json = $$"""{"$schemaVersion":{{ConversationEntry.SchemaVersion + 1}}}""";
+
         // Act
-        var read = () => ConversationEntry.Deserialize($$"""{"$version":{{ConversationEntry.Version + 1}}}""");
+        var read = () => ConversationEntry.Deserialize(json);
 
         // Assert
         read.Should().Throw<JsonException>().WithMessage("*newer*");

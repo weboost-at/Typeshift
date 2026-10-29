@@ -52,7 +52,7 @@ partial class SupportAgent
         public static string Kind => "SupportAgent";
 
         /// <inheritdoc />
-        public static int Version => 1;
+        public static int SchemaVersion => 1;
 
         /// <inheritdoc />
         public string Serialize() => global::Typeshift.Generated.StorableJson.Write(WriteJson);
@@ -65,7 +65,7 @@ partial class SupportAgent
         public void WriteJson(global::System.Text.Json.Utf8JsonWriter writer)
         {
             writer.WriteStartObject();
-            global::Typeshift.Generated.StorableJson.WriteVersion(writer, Version);
+            global::Typeshift.Generated.StorableJson.WriteSchemaVersion(writer, SchemaVersion);
 
             if (Provider is { } member0)
             {
@@ -127,7 +127,7 @@ partial class SupportAgent
         {
             value = null!;
             if (element.ValueKind is not global::System.Text.Json.JsonValueKind.Object) return false;
-            global::Typeshift.Generated.StorableJson.EnsureVersion(element, Version, Kind);
+            global::Typeshift.Generated.StorableJson.EnsureSchemaVersion(element, SchemaVersion, Kind);
 
             value = new()
             {
@@ -404,7 +404,7 @@ public static class SupportAgentHostExtensions
         /// <param name="settingsId">The id.</param>
         /// <param name="ct">Cancels the load.</param>
         /// <returns>
-        /// The settings and the revision <c>SaveSettingsAsync</c> takes; empty settings at revision 0 when none are
+        /// The settings and the version <c>SaveSettingsAsync</c> takes; empty settings at version 0 when none are
         /// stored.
         /// </returns>
         public global::System.Threading.Tasks.Task<global::Typeshift.Stored<global::Demo.SupportAgent.Settings>> LoadSettingsAsync(
@@ -417,16 +417,16 @@ public static class SupportAgentHostExtensions
         /// </summary>
         /// <param name="settingsId">The id.</param>
         /// <param name="settings">The settings.</param>
-        /// <param name="revision">The revision <c>LoadSettingsAsync</c> returned.</param>
+        /// <param name="expectedVersion">The version <c>LoadSettingsAsync</c> returned.</param>
         /// <param name="ct">Cancels the save.</param>
-        /// <returns>The new revision.</returns>
+        /// <returns>The new version.</returns>
         /// <exception cref="global::Typeshift.StoreConflictException">Another save came first.</exception>
         public global::System.Threading.Tasks.Task<long> SaveSettingsAsync(
             global::System.Guid settingsId,
             global::Demo.SupportAgent.Settings settings,
-            long revision,
+            long expectedVersion,
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.SaveSettingsAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, settingsId, settings, revision, ct);
+            global::Typeshift.Generated.AgentRuns.SaveSettingsAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, settingsId, settings, expectedVersion, ct);
 
         /// <summary>
         /// Changes the settings stored under an id, reloading and changing them again whenever another save came first,

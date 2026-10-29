@@ -106,7 +106,7 @@ await using var provider = services.BuildServiceProvider(validateScopes: true);
 <!-- endSnippet -->
 
 `InMemoryTypeshiftStore` keeps everything in memory and serves tests and samples. For your database, write a store of
-your own: [Implementing a store](./implementing-a-store.md) covers its methods, its revisions and the conversation
+your own: [Implementing a store](./implementing-a-store.md) covers its methods, its versions and the conversation
 summaries it reads.
 
 `WithStore<T>()` registers each store interface your class implements, so an `ITypeshiftStore` takes one call. A
@@ -146,9 +146,9 @@ await support.ConfigureAsync(settingsId, settings => settings with
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L14-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-configure-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-A settings form does it in two steps: it loads the settings with their revision and saves them back with it. The
-revision tells the store which state the form loaded, so the save throws a `StoreConflictException` when someone saved
-in between ([Save with a revision](./implementing-a-store.md#save-with-a-revision) explains the number):
+A settings form does it in two steps: it loads the settings with their version and saves them back with it. The
+version tells the store which state the form loaded, so the save throws a `StoreConflictException` when someone saved
+in between ([Save with a version](./implementing-a-store.md#save-with-a-version) explains the number):
 
 <!-- snippet: load-and-save-settings -->
 <a id='snippet-load-and-save-settings'></a>
@@ -157,7 +157,7 @@ var stored = await support.LoadSettingsAsync(settingsId);
 
 try
 {
-    await support.SaveSettingsAsync(settingsId, stored.Data with { Instructions = null }, stored.Revision);
+    await support.SaveSettingsAsync(settingsId, stored.Data with { Instructions = null }, stored.Version);
 }
 catch (StoreConflictException)
 {
@@ -188,22 +188,23 @@ What is stored is the record's JSON: camelCase, with the tools nested under `"to
 }
 ```
 
-An agent whose `WithSettingsVersion(n)` raised its version above 1 also writes `"$version": n` first. `System.Text.Json`
-writes and reads the same JSON, so an endpoint that binds `SupportAgent.Settings` accepts and returns the JSON the store
-keeps. A stored member that cannot be read, because its value has the wrong type or its name is unknown, counts as
-missing, so the layer below applies. When a configurable member is itself a record or a class, a stored value replaces
-the whole object, so members missing from its stored JSON take that type's defaults, not the values of the layer below.
+An agent whose `WithSchemaVersion(n)` raised its schema version above 1 also writes `"$schemaVersion": n` first.
+`System.Text.Json` writes and reads the same JSON, so an endpoint that binds `SupportAgent.Settings` accepts and returns
+the JSON the store keeps. A stored member that cannot be read, because its value has the wrong type or its name is
+unknown, counts as missing, so the layer below applies. When a configurable member is itself a record or a class, a
+stored value replaces the whole object, so members missing from its stored JSON take that type's defaults, not the
+values of the layer below.
 
 ::: warning A renamed member loses its stored value
 A configurable member that is renamed or removed reads as missing, so its stored value no longer applies. When that
-matters, raise the agent's settings version with `WithSettingsVersion(2)` and migrate the documents of the older
-version ([Migrate older settings](./implementing-a-store.md#migrate-older-settings)).
+matters, raise the agent's schema version with `WithSchemaVersion(2)` and migrate the documents of the older
+schema version ([Migrate older settings](./implementing-a-store.md#migrate-older-settings)).
 :::
 
 ## Related
 
 - [Tool settings](./tool-settings.md): declaring a tool's settings and opening members to the layers.
-- [Implementing a store](./implementing-a-store.md): the store's methods, its revisions and conversation summaries.
+- [Implementing a store](./implementing-a-store.md): the store's methods, its versions and conversation summaries.
 - [Generated members](./generated-members.md#settings): the `Settings` record a store keeps.
 - [Running agents](./running-agents.md#run-settings): passing a settings id and run settings.
 - [Conversations](./conversations.md): what a run stores in a conversation, and resuming it.

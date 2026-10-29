@@ -14,7 +14,7 @@ the calls in context, read [Toolsets](./toolsets.md), [Tool settings](./tool-set
 The generator reads each chain from your source at compile time, and at runtime the calls only record values. Because
 the generator reads source, put every declaration directly in the constructor ([TSH014](./diagnostics.md#tsh014)) and
 write it as one chain in one statement ([TSH015](./diagnostics.md#tsh015)). Names, descriptions, the storage kind and
-the settings version must be constants ([TSH002](./diagnostics.md#tsh002)). Each toolset derives from `Toolset` and
+the schema version must be constants ([TSH002](./diagnostics.md#tsh002)). Each toolset derives from `Toolset` and
 each agent from `Agent` directly ([TSH017](./diagnostics.md#tsh017)).
 
 ## Toolset
@@ -65,7 +65,7 @@ marked `[Obsolete]` out without a `NotConfigurable` call.
 | `WithName(string name)` | Names the agent, which is otherwise its class name in snake_case. Messages the agent writes carry the name as their author. |
 | `WithDescription(string description)` | Says what the agent does. A sub-agent or a handoff target needs one ([TSH023](./diagnostics.md#tsh023)). |
 | `WithStorageKind(string kind)` | Sets the kind a store keys the agent's `Settings` by, in place of its class name, so renaming the class keeps its stored settings. |
-| `WithSettingsVersion(int version)` | Sets the schema version of the stored `Settings`, 1 unless raised. Raise it after you rename or remove a configurable member, so you can [migrate older documents](./implementing-a-store.md#migrate-older-settings). |
+| `WithSchemaVersion(int version)` | Sets the schema version of the stored `Settings`, 1 unless raised. Raise it after you rename or remove a configurable member, so you can [migrate older documents](./implementing-a-store.md#migrate-older-settings). |
 | `WithChatOptions()` | Returns the [`ChatOptionsBuilder`](#chatoptionsbuilder). |
 | `WithRunOptions()` | Returns the [`RunOptionsBuilder`](#runoptionsbuilder). |
 | `UseToolset<TToolset>()` | Offers every tool of the toolset. `.Include(t => t.X)` offers only the tools picked, in that order, and `.Exclude(t => t.X)` all but those. One use includes or excludes, never both. Use each toolset once and pick each tool once ([TSH025](./diagnostics.md#tsh025)). |

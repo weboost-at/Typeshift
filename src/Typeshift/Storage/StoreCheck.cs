@@ -16,7 +16,7 @@ public static class StoreCheck
     private const string Agent = "typeshift_check";
 
     /// <summary>
-    /// Saves and loads documents of two kinds under one id, and saves with a revision another save replaced, as runs
+    /// Saves and loads documents of two kinds under one id, and saves with a version another save replaced, as runs
     /// and settings forms do.
     /// </summary>
     /// <typeparam name="TId">The id type.</typeparam>
@@ -37,8 +37,8 @@ public static class StoreCheck
         if (await store.LoadAsync(id, Kind, ct) is not null)
             throw new InvalidOperationException($"LoadAsync returned a document for {id}: give the check a new id.");
 
-        var first = await SaveAsync(Kind, firstJson, 0, "A first save at revision 0 threw a StoreConflictException.");
-        await EnsureStoredAsync(Kind, new(firstJson, first), "LoadAsync did not return the last save and revision.");
+        var first = await SaveAsync(Kind, firstJson, 0, "A first save at version 0 threw a StoreConflictException.");
+        await EnsureStoredAsync(Kind, new(firstJson, first), "LoadAsync did not return the last save and version.");
 
         var other = await SaveAsync(
             OtherKind,
@@ -60,27 +60,27 @@ public static class StoreCheck
         await EnsureConflictAsync(
             0,
             new(firstJson, first),
-            "A save at revision 0 of a document stored already did not throw a StoreConflictException.");
+            "A save at version 0 of a document stored already did not throw a StoreConflictException.");
 
         var second = await SaveAsync(
             Kind,
             secondJson,
             first,
-            "A save with the revision the last save returned threw a StoreConflictException.");
+            "A save with the version the last save returned threw a StoreConflictException.");
 
-        if (second == first) throw Broken("SaveAsync returned the revision the document had before the save.");
+        if (second == first) throw Broken("SaveAsync returned the version the document had before the save.");
 
         await EnsureConflictAsync(
             first,
             new(secondJson, second),
-            "A save with a revision another save replaced did not throw a StoreConflictException.");
+            "A save with a version another save replaced did not throw a StoreConflictException.");
 
-        async Task<long> SaveAsync(string kind, string json, long revision, string conflictRule)
+        async Task<long> SaveAsync(string kind, string json, long expectedVersion, string conflictRule)
         {
             try
             {
-                var saved = await store.SaveAsync(id, kind, json, revision, ct);
-                if (saved == 0) throw Broken("SaveAsync returned revision 0, which tells Typeshift nothing is stored.");
+                var saved = await store.SaveAsync(id, kind, json, expectedVersion, ct);
+                if (saved == 0) throw Broken("SaveAsync returned version 0, which tells Typeshift nothing is stored.");
 
                 return saved;
             }
@@ -95,18 +95,18 @@ public static class StoreCheck
             if (await store.LoadAsync(id, kind, ct) != expected) throw Broken(rule);
         }
 
-        async Task EnsureConflictAsync(long revision, StoredDocument stored, string rule)
+        async Task EnsureConflictAsync(long expectedVersion, StoredDocument stored, string rule)
         {
             try
             {
-                await store.SaveAsync(id, Kind, """{"step":0}""", revision, ct);
+                await store.SaveAsync(id, Kind, """{"step":0}""", expectedVersion, ct);
             }
             catch (StoreConflictException)
             {
                 await EnsureStoredAsync(
                     Kind,
                     stored,
-                    "A save that conflicted changed the document: check the revision and write in one statement.");
+                    "A save that conflicted changed the document: check the version and write in one statement.");
 
                 return;
             }

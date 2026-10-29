@@ -73,8 +73,8 @@ code change.
 
 ::: warning A renamed member loses its stored values
 Stored settings keep each member under its name. Rename or remove a configurable member, and its stored value reads
-as missing, so the layer below applies. When that matters, raise the version the agent passes to
-`WithSettingsVersion` and migrate the stored documents, as
+as missing, so the layer below applies. When that matters, raise the schema version the agent passes to
+`WithSchemaVersion` and migrate the stored documents, as
 [Migrate older settings](./implementing-a-store.md#migrate-older-settings) explains.
 :::
 

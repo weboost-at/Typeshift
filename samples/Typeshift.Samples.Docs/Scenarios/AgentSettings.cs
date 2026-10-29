@@ -26,7 +26,7 @@ internal static class AgentSettings
 
         try
         {
-            await support.SaveSettingsAsync(settingsId, stored.Data with { Instructions = null }, stored.Revision);
+            await support.SaveSettingsAsync(settingsId, stored.Data with { Instructions = null }, stored.Version);
         }
         catch (StoreConflictException)
         {
@@ -36,22 +36,22 @@ internal static class AgentSettings
 
         var saved = await support.LoadSettingsAsync(settingsId);
 
-        if (saved.Data.Instructions is not null || saved.Data.SearchTickets.Limit != 20 || saved.Revision != 2)
+        if (saved.Data.Instructions is not null || saved.Data.SearchTickets.Limit != 20 || saved.Version != 2)
             throw new InvalidOperationException("Expected the configured settings, saved twice.");
 
         var lost = saved.Data with { Instructions = "Lost." };
 
         await ExpectConflictAsync(
-            () => support.SaveSettingsAsync(settingsId, lost, stored.Revision),
-            "Expected a stale revision to conflict.");
+            () => support.SaveSettingsAsync(settingsId, lost, stored.Version),
+            "Expected a stale version to conflict.");
 
         await ExpectConflictAsync(
-            () => support.SaveSettingsAsync(settingsId, lost, revision: 0),
+            () => support.SaveSettingsAsync(settingsId, lost, expectedVersion: 0),
             "Expected a second first save to conflict.");
 
         var after = await support.LoadSettingsAsync(settingsId);
 
-        if (after.Revision != saved.Revision || after.Data.Instructions is not null)
+        if (after.Version != saved.Version || after.Data.Instructions is not null)
             throw new InvalidOperationException("Expected a conflict to leave the settings as they were.");
 
         static async Task ExpectConflictAsync(Func<Task> save, string message)
