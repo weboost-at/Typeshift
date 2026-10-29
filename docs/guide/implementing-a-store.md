@@ -54,7 +54,7 @@ the method in your store. Every id has your build's [id type](./registration.md#
 | Method | Does |
 |---|---|
 | `LoadAsync(id, kind)` | Returns the document of a kind under an id as a `StoredDocument`, with its JSON and version, or null when none is stored. |
-| `SaveAsync(id, kind, json, expectedVersion)` | Saves a document's JSON if its stored version still equals `expectedVersion` (0 when nothing is stored yet), and returns the new version. Throws a `StoreConflictException` when another save came first. |
+| `SaveAsync(id, kind, json, loadedVersion)` | Saves a document's JSON if its stored version still equals `loadedVersion` (0 when nothing is stored yet), and returns the new version. Throws a `StoreConflictException` when another save came first. |
 | `LoadConversationAsync(conversation)` | Returns a conversation's entries, oldest first. |
 | `LoadConversationSinceCompactionAsync(conversation)` | Returns the conversation's last summary and the entries after it ([Recognizing a summary](#recognizing-a-summary)). |
 | `AppendConversationAsync(conversation, entry)` | Appends one entry to a conversation. The first entry creates the conversation. |
@@ -159,8 +159,17 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
 
 A version is the number of the stored document's current state, kept for optimistic concurrency. It lets a save
 find out that the document changed since the caller loaded it, so one save never silently overwrites another.
-Typeshift does not interpret the number: it hands `SaveAsync` back the version `LoadAsync` returned, and your store
-compares the two.
+Typeshift does not interpret the number: it hands `SaveAsync` back the version `LoadAsync` returned, as
+`loadedVersion`, and your store compares the two. `loadedVersion` is always the old version. Your store writes the new
+one itself and returns it, and the caller passes that to its next save:
+
+| Call | Stored before | Your store | Returns |
+|---|---|---|---|
+| `LoadAsync` | nothing | finds no row | `null` |
+| `SaveAsync(json, loadedVersion: 0)` | nothing | inserts the row at version 1 | `1` |
+| `SaveAsync(json, loadedVersion: 1)` | version 1 | updates the row, which still holds 1, to version 2 | `2` |
+| `SaveAsync(json, loadedVersion: 1)` | version 2 | changes nothing: the row no longer holds 1 | throws `StoreConflictException` |
+| `SaveAsync(json, loadedVersion: 0)` | version 2 | changes nothing: a row exists | throws `StoreConflictException` |
 
 ```mermaid
 sequenceDiagram
@@ -186,7 +195,7 @@ the first form's change, and that form loads the settings again.
 2. **Any other version is the one the caller loaded.** Update the document only while its stored version still
    equals it, and throw a `StoreConflictException` otherwise, also when the document is gone.
 3. **Check and write in one step.** In SQL, that is
-   `UPDATE ... SET ..., version = @expected + 1 WHERE id = @id AND kind = @kind AND version = @expected`,
+   `UPDATE ... SET ..., version = @loaded + 1 WHERE id = @id AND kind = @kind AND version = @loaded`,
    and no updated row means a conflict; an insert that hits the primary key is one too. A concurrency token or a
    transaction does the same. A read followed by a separate write lets two saves of the same version both win.
 4. **Return the new version.** Any number works as long as it is not 0 and was never this document's version
@@ -201,7 +210,7 @@ loaded version, and an insert that finds the row taken is a conflict too:
 <!-- snippet: ef-core-save -->
 <a id='snippet-ef-core-save'></a>
 ```cs
-public async Task<long> SaveAsync(int id, string kind, string json, long expectedVersion, CancellationToken ct)
+public async Task<long> SaveAsync(int id, string kind, string json, long loadedVersion, CancellationToken ct)
 {
     await using var db = await contexts.CreateDbContextAsync(ct);
 
@@ -209,16 +218,16 @@ public async Task<long> SaveAsync(int id, string kind, string json, long expecte
     {
         Id = id,
         Kind = kind,
-        Version = expectedVersion + 1,
+        Version = loadedVersion + 1,
         Json = json
     };
 
     var entry = db.Entry(row);
-    entry.State = expectedVersion == 0 ? EntityState.Added : EntityState.Modified;
+    entry.State = loadedVersion == 0 ? EntityState.Added : EntityState.Modified;
 
     // The update only matches the row while it still has the version the caller loaded
-    if (expectedVersion > 0)
-        entry.Property(document => document.Version).OriginalValue = expectedVersion;
+    if (loadedVersion > 0)
+        entry.Property(document => document.Version).OriginalValue = loadedVersion;
 
     // A conflict is another save that won; any other failure is the database's and surfaces as it is
     try
@@ -228,9 +237,9 @@ public async Task<long> SaveAsync(int id, string kind, string json, long expecte
     }
     catch (DbUpdateConcurrencyException exception)
     {
-        throw new StoreConflictException($"{kind} {id} changed after version {expectedVersion}.", exception);
+        throw new StoreConflictException($"{kind} {id} changed after version {loadedVersion}.", exception);
     }
-    catch (DbUpdateException exception) when (expectedVersion == 0)
+    catch (DbUpdateException exception) when (loadedVersion == 0)
     {
         if (!await ExistsAsync(id, kind, ct)) throw;
 

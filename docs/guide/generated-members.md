@@ -269,7 +269,7 @@ In these signatures, `TId` is the build's [id type](./registration.md#the-id-typ
 | `ResumeStreamingAsync(TId conversationId, TId? settingsId = null, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
 | `ResolveOptionsAsync(TId? settingsId = null, Settings? settings = null)` | `Task<ChatOptions>` |
 | `LoadSettingsAsync(TId settingsId)` | `Task<Stored<Settings>>` |
-| `SaveSettingsAsync(TId settingsId, Settings settings, long expectedVersion)` | `Task<long>` |
+| `SaveSettingsAsync(TId settingsId, Settings settings, long loadedVersion)` | `Task<long>` |
 | `ConfigureAsync(TId settingsId, Func<Settings, Settings> configure)` | `Task<Settings>` |
 
 ### `RunAsync`
@@ -317,8 +317,9 @@ when none are stored. It layers nothing, so the record holds only what was store
 
 ### `SaveSettingsAsync`
 
-`SaveSettingsAsync` saves `Settings` under an id if the stored version is still `expectedVersion`, and returns the
-new version. It throws a `StoreConflictException` when another save came first.
+`SaveSettingsAsync` saves `Settings` under an id if the stored version is still `loadedVersion`, the version
+`LoadSettingsAsync` returned, or 0 when it loaded none. It returns the new version, which your app passes to its next
+save. It throws a `StoreConflictException` when another save came first.
 
 ### `ConfigureAsync`
 

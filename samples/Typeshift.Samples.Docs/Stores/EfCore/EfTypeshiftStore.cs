@@ -16,7 +16,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
     // end-snippet
 
     // begin-snippet: ef-core-save
-    public async Task<long> SaveAsync(int id, string kind, string json, long expectedVersion, CancellationToken ct)
+    public async Task<long> SaveAsync(int id, string kind, string json, long loadedVersion, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
@@ -24,16 +24,16 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         {
             Id = id,
             Kind = kind,
-            Version = expectedVersion + 1,
+            Version = loadedVersion + 1,
             Json = json
         };
 
         var entry = db.Entry(row);
-        entry.State = expectedVersion == 0 ? EntityState.Added : EntityState.Modified;
+        entry.State = loadedVersion == 0 ? EntityState.Added : EntityState.Modified;
 
         // The update only matches the row while it still has the version the caller loaded
-        if (expectedVersion > 0)
-            entry.Property(document => document.Version).OriginalValue = expectedVersion;
+        if (loadedVersion > 0)
+            entry.Property(document => document.Version).OriginalValue = loadedVersion;
 
         // A conflict is another save that won; any other failure is the database's and surfaces as it is
         try
@@ -43,9 +43,9 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         }
         catch (DbUpdateConcurrencyException exception)
         {
-            throw new StoreConflictException($"{kind} {id} changed after version {expectedVersion}.", exception);
+            throw new StoreConflictException($"{kind} {id} changed after version {loadedVersion}.", exception);
         }
-        catch (DbUpdateException exception) when (expectedVersion == 0)
+        catch (DbUpdateException exception) when (loadedVersion == 0)
         {
             if (!await ExistsAsync(id, kind, ct)) throw;
 
