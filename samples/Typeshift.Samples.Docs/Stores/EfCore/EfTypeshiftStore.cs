@@ -21,32 +21,38 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         await using var db = await contexts.CreateDbContextAsync(ct);
 
         var rows = revision == 0
-            ? await InsertAsync()
-            : await UpdateAsync();
+            ? await InsertAsync(db, id, kind, json, ct)
+            : await UpdateAsync(db, id, kind, json, revision, ct);
 
         // Each statement checks and writes in one step, so a save that changed no row lost to another save
         return rows == 1
             ? revision + 1
             : throw new StoreConflictException($"{kind} {id} was saved after revision {revision}.");
-
-        Task<int> InsertAsync() =>
-            db.Database.ExecuteSqlAsync(
-                $"""
-                INSERT INTO "Documents" ("Id", "Kind", "Revision", "Json")
-                VALUES ({id}, {kind}, 1, {json})
-                ON CONFLICT ("Id", "Kind") DO NOTHING
-                """,
-                ct);
-
-        Task<int> UpdateAsync() =>
-            db.Documents
-                .Where(row => row.Id == id && row.Kind == kind && row.Revision == revision)
-                .ExecuteUpdateAsync(
-                    set => set
-                        .SetProperty(row => row.Json, json)
-                        .SetProperty(row => row.Revision, revision + 1),
-                    ct);
     }
+
+    private static Task<int> InsertAsync(TypeshiftDb db, int id, string kind, string json, CancellationToken ct) =>
+        db.Database.ExecuteSqlAsync(
+            $"""
+            INSERT INTO "Documents" ("Id", "Kind", "Revision", "Json")
+            VALUES ({id}, {kind}, 1, {json})
+            ON CONFLICT ("Id", "Kind") DO NOTHING
+            """,
+            ct);
+
+    private static Task<int> UpdateAsync(
+        TypeshiftDb db,
+        int id,
+        string kind,
+        string json,
+        long revision,
+        CancellationToken ct) =>
+        db.Documents
+            .Where(row => row.Id == id && row.Kind == kind && row.Revision == revision)
+            .ExecuteUpdateAsync(
+                set => set
+                    .SetProperty(row => row.Json, json)
+                    .SetProperty(row => row.Revision, revision + 1),
+                ct);
     // end-snippet
 
     // begin-snippet: ef-core-conversations
