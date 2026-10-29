@@ -192,7 +192,7 @@ the agent declares itself replaces the generated one.
 
 **Triggered by** an `AddTool(...)` in the agent's constructor. The agent gets the tool's `Create{Tool}` and
 `{Tool}Function`, and its `{Tool}Overrides` when it has configurable members, as a toolset does. It gets no tool list
-and no stamp.
+and no toolset stamp.
 
 ### `{Agent}HostExtensions`
 

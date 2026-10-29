@@ -144,7 +144,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Decision:** `SearchTickets` is `search_tickets`; an `Async` suffix is dropped, so `CloseTicketAsync` is
   `close_ticket`. `WithName` overrides. The name keys stored settings, so renaming a method renames the tool: the docs
-  say to pin the old name with `WithName` first. TSH007 also compares the generated property names.
+  say to pin the old name with `WithName` first. TSH007 also compares the generated property names. An agent's own
+  tools are compared only across the handoffs of a conversation (D57).
 - **Alternatives:** keeping `Async` (`close_ticket_async`), which leaks a C# convention to the model; a stored key
   separate from the name, a second identity.
 - **Where:** `Parsing/ToolsetParser.cs`.
@@ -241,19 +242,23 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Context:** a tool only one agent needed still took a toolset class of its own and a `UseToolset<T>()`.
 - **Decision:** `AddTool(method)` in an agent's constructor, with the toolsets' chain, backed by a static method of the
   agent. The agent offers its own tools after its toolsets' tools. They do not form a toolset: they get no tool list, no
-  stamp and no registration, so no other agent offers them and `Include` and `Exclude` do not pick them.
+  toolset stamp and no registration, so no other agent offers them and `Include` and `Exclude` do not pick them.
 - **As built:** the generator reads them with the toolsets' parser and writes their overrides, factories and functions
   into the agent, where the agent's `Settings`, its `Configure{Tool}()` methods and its declaration list them as they
-  list a toolset's tools. The analyzer applies every tool rule; a name is unique across the toolsets and the agents' own
-  tools of the compilation and the toolsets of its references (TSH007), and against the agent's toolsets (TSH025). The
-  module stamp lists the own tools that require approval, for TSH024. No stamp carries an agent's own tools, so TSH007
-  does not compare them with those of a referenced project's agents.
+  list a toolset's tools. The analyzer applies every tool rule. An own tool's name differs from the agent's toolsets'
+  (TSH025) and from every tool of the agents its standing approvals reach or come from (TSH007), since an approval names
+  its tool: handoffs pass the conversation on, directly or through other agents, and a sub-agent runs with its caller's
+  approvals (D33) but without a conversation, so it hands off nothing. The module stamp lists each agent's tools, its
+  own tools and those that require approval, at stamp version 4, so a handoff or sub-agent into a referenced project's
+  agent is checked too; that agent's own uses are not stamped.
 - **Where:** `Agents/Agent.cs`, `Parsing/ToolsetParser.cs`, `Parsing/AgentParser.cs`, `Parsing/Catalog.cs`,
   `Emitting/AgentEmitter.cs`.
 - **Alternatives:** a second, lighter base class for small tasks, such as `AgentTask<TResult>` with instructions and
   a typed result, a second concept beside `Agent` (the owner's open question); `AIFunctionFactory` functions in
   `WithTools`, which reflect, skip the analyzer and settings, and need JSON metadata the generator never checks;
-  own tools pickable from a `ToolList<TAgent>`, which would let one agent offer another's tools.
+  own tools pickable from a `ToolList<TAgent>`, which would let one agent offer another's tools; own tools unique
+  across the host like toolsets' tools, which made two agents' one-off tools clash; unique per agent alone, which lets a
+  standing approval reach another agent's tool of the same name.
 
 ### D24. Tool approval uses Microsoft.Extensions.AI's contents, with standing approvals and rules
 
@@ -272,8 +277,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   every approval) or `Abstain`, which the mode resolves (D52). A layer above `FunctionInvokingChatClient` answers the
   requests rules and standing approvals decide and continues the loop, so only the rest reach the host. It also stores
   the requests and its own answers when a run ends asking, as `FunctionInvokingChatClient` keeps them out of what the
-  checkpoint layer below it sees. Approvals match tools by name, which is unique per agent (TSH007, and a runtime check
-  for MCP tools).
+  checkpoint layer below it sees. Approvals match tools by name, which is unique per agent and across the agents its
+  approvals reach by handoff or as a sub-agent (TSH007, and a runtime check for MCP tools).
 - **Where:** `Approval/ApprovalChatClient.cs`, `Approval/ToolApproval.cs`.
 - **Alternatives:** an approval callback the run awaits, which holds a run open across requests; a Typeshift approval
   type, a second vocabulary.

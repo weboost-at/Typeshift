@@ -140,8 +140,9 @@ internal partial class BillingAgent : Agent
 - A tool with settings declares them with `WithSettings<T>()` and takes the record as a parameter
   ([Tool settings](./tool-settings.md)). It then gets a `Configure{Tool}()`, and its configurable members join the
   agent's `Settings`, as a toolset's tool does.
-- Its name must be unique among your project's tools ([TSH007](./diagnostics.md#tsh007)) and the tools of the toolsets
-  the agent uses ([TSH025](./diagnostics.md#tsh025)).
+- Its name must differ from the tools of the toolsets the agent uses ([TSH025](./diagnostics.md#tsh025)) and from the
+  tools of the agents it hands a conversation to or receives one from, directly or through other agents, and of its
+  sub-agents and their callers ([TSH007](./diagnostics.md#tsh007)). Other agents may have a tool of the same name.
 
 No other agent can offer this agent's tools, so move the tool into a toolset once a second agent needs it. `Include`
 and `Exclude` pick only from toolsets, so the agent always offers its own tools.

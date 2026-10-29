@@ -97,10 +97,15 @@ id type as accessible as what exposes it. There are four cases:
 
 ## TSH007
 
-**Tool name is not unique.** A tool name must be unique across the tools of your project's toolsets and agents, and
-those of the toolsets in the projects it references, the built-in toolsets aside ([TSH025](#tsh025) covers those). Names
+**Tool name is not unique.** A tool name must be unique across the tools of your project's toolsets and those of the
+toolsets in the projects it references, the built-in toolsets aside ([TSH025](#tsh025) covers those). Names
 that differ only in their underscores, such as `get_v2` and `get_v_2`, count as the same, because they map to the same
 generated property. Give one of the tools another name with `WithName("...")`.
+
+An agent's own tool needs a unique name only among the tools of the agents its standing approvals reach, and of those
+whose approvals reach it: the agents it hands off to, directly or through other agents, the agents that hand off to it,
+its sub-agents and the agents that call it as one. A standing approval names its tool, so it would reach another tool
+of the same name. Two agents that never share approvals may each have a tool of one name.
 
 ## TSH008
 

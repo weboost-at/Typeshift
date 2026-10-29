@@ -177,8 +177,12 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
             foreach (var (tool, addTool) in declarations)
             {
-                tools.Add((tool.Name, type, addTool.Syntax.GetLocation()));
-                found.Tools.Add((tool, addTool.Syntax.GetLocation()));
+                var location = addTool.Syntax.GetLocation();
+                found.Tools.Add((tool, location));
+
+                // D57: an agent's own tools clash only across the handoffs of a conversation
+                if (baseType == "Agent") found.OwnTools.Add((type, tool.Name, location));
+                else tools.Add((tool.Name, type, location));
             }
         });
     }
@@ -329,8 +333,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         return containing is IMethodSymbol { MethodKind: MethodKind.Constructor };
     }
 
-    // D13: a tool name is unique across everything the host sees, the tools the references stamp too; within one
-    // toolset or agent the parser reports it
+    // D13: a toolset's tool name is unique across everything the host sees, the tools the references stamp too;
+    // within one toolset or agent the parser reports it
     private static void ReportClashesAcrossToolsets(
         CompilationAnalysisContext context,
         IEnumerable<(string Name, INamedTypeSymbol Owner, Location Location)> tools)
@@ -537,6 +541,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             ReportNamesOfferedTwice(context, agents[type], toolsets);
         }
 
+        ReportClashesAcrossHandoffs(context, agents, ResolveTarget, [.. found.OwnTools]);
+
         ModuleAgent? ResolveTarget(INamedTypeSymbol agent) =>
             agents.TryGetValue(agent, out var own)
                 ? Catalog.Summarize(Catalog.Resolve(own.Model, toolsets))
@@ -574,6 +580,101 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
                 Descriptors.OfferedTwice,
                 agent.Type.Locations.FirstOrDefault(),
                 $"The tool name '{name.Key}'"));
+        }
+    }
+
+    // D13, D33, D57: a standing approval names its tool and reaches every agent a handoff passes the conversation to
+    // and every sub-agent, so an agent's own tool shares no name with a tool of those; agents it never reaches may
+    private static void ReportClashesAcrossHandoffs(
+        CompilationAnalysisContext context,
+        Dictionary<INamedTypeSymbol, FoundAgent> agents,
+        System.Func<INamedTypeSymbol, ModuleAgent?> resolve,
+        IReadOnlyList<(INamedTypeSymbol Agent, string Name, Location Location)> ownTools)
+    {
+        var reported = new HashSet<(Location, string)>();
+
+        foreach (var from in agents.Keys)
+        {
+            if (resolve(from) is not { } source) continue;
+
+            ReportDropped(from, source);
+
+            foreach (var to in Reaches(from, agents))
+            {
+                if (resolve(to) is not { } target) continue;
+
+                // A referenced agent's own tool has no location here, so its clash goes on the agent that reaches it
+                Report(from, source, target, from.Locations.FirstOrDefault());
+                Report(to, target, source, from.Locations.FirstOrDefault());
+            }
+        }
+
+        // An own tool named like a tool of the agent's toolsets but for its underscores, which the agent leaves out;
+        // the same name is TSH025, and two own tools of one agent the parser reports
+        void ReportDropped(INamedTypeSymbol agent, ModuleAgent offered)
+        {
+            var own = ownTools.Where(tool => SymbolEqualityComparer.Default.Equals(tool.Agent, agent)).ToList();
+
+            var dropped = own.Where(tool => !offered.Tools.Contains(tool.Name)
+                && own.Count(other => Names.ToPascalCase(other.Name) == Names.ToPascalCase(tool.Name)) == 1);
+
+            foreach (var tool in dropped)
+            {
+                Add(tool.Location, tool.Name);
+            }
+        }
+
+        void Report(INamedTypeSymbol owner, ModuleAgent own, ModuleAgent other, Location? fallback)
+        {
+            var taken = new HashSet<string>(other.Tools.Select(Names.ToPascalCase));
+            var otherOwn = new HashSet<string>(other.OwnTools.Select(Names.ToPascalCase));
+
+            foreach (var name in own.OwnTools.Where(name => taken.Contains(Names.ToPascalCase(name))))
+            {
+                var declared = ownTools.FirstOrDefault(tool =>
+                    SymbolEqualityComparer.Default.Equals(tool.Agent, owner) && tool.Name == name);
+
+                // A clash with the other agent's own tool is reported there already, when that agent is this project's
+                if (declared.Location is null && otherOwn.Contains(Names.ToPascalCase(name))) continue;
+
+                Add(declared.Location ?? fallback ?? Location.None, name);
+            }
+        }
+
+        void Add(Location location, string name)
+        {
+            if (!reported.Add((location, name))) return;
+
+            context.ReportDiagnostic(
+                Diagnostic.Create(Descriptors.DuplicateToolName, location, name, Names.ToPascalCase(name)));
+        }
+    }
+
+    // The agents a standing approval of an agent reaches: a handoff passes the conversation on, and a sub-agent runs
+    // with its caller's approvals but without a conversation, so it hands off nothing; a referenced agent's own uses
+    // are not stamped
+    private static IEnumerable<INamedTypeSymbol> Reaches(
+        INamedTypeSymbol from,
+        Dictionary<INamedTypeSymbol, FoundAgent> agents)
+    {
+        var reached = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default) { from };
+        var handedOff = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default) { from };
+        var called = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+        var next = new Stack<(INamedTypeSymbol Agent, bool AsSubAgent)>([(from, false)]);
+
+        while (next.Count > 0)
+        {
+            var (agent, asSubAgent) = next.Pop();
+            if (!agents.TryGetValue(agent, out var found)) continue;
+
+            foreach (var use in found.Uses.Where(use => use.SubAgent || !asSubAgent))
+            {
+                var subAgent = use.SubAgent || asSubAgent;
+                if (!(subAgent ? called : handedOff).Add(use.Target)) continue;
+
+                next.Push((use.Target, subAgent));
+                if (reached.Add(use.Target)) yield return use.Target;
+            }
         }
     }
 
@@ -672,6 +773,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         public ConcurrentDictionary<string, bool> JsonTypes { get; } = [];
 
         public ConcurrentBag<FoundAgent> Agents { get; } = [];
+
+        public ConcurrentBag<(INamedTypeSymbol Agent, string Name, Location Location)> OwnTools { get; } = [];
 
         public ConcurrentBag<ToolsetSummary> Toolsets { get; } = [];
     }

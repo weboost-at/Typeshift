@@ -734,7 +734,7 @@ global using IChatClientProvider = global::Typeshift.IChatClientProvider<string>
 
 [assembly: global::Typeshift.Generated.GeneratedModule(
     typeof(global::Typeshift.Generated.SubjectModule),
-    3,
+    4,
     typeof(global::System.Guid),
     typeof(string))]
 
@@ -745,7 +745,7 @@ namespace Typeshift.Generated;
 /// </summary>
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
 [global::Typeshift.Generated.ModuleToolset(typeof(global::Demo.TicketToolset))]
-[global::Typeshift.Generated.ModuleAgent(typeof(global::Demo.DeskAgent), "DeskAgent", "desk_agent", "refund_order")]
+[global::Typeshift.Generated.ModuleAgent(typeof(global::Demo.DeskAgent), "DeskAgent", "desk_agent", "refund_order", Tools = new string[] { "close_ticket", "look_up_customer", "refund_order" }, OwnTools = new string[] { "look_up_customer", "refund_order" })]
 public static class SubjectModule
 {
     /// <summary>

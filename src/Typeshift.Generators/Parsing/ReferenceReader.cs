@@ -10,7 +10,7 @@ namespace Typeshift.Generators.Parsing;
 internal static class ReferenceReader
 {
     // Raised whenever the stamps change shape; a reference with another version is TSH020
-    public const int StampVersion = 3;
+    public const int StampVersion = 4;
 
     public static ReferenceModel Read(Compilation compilation, CancellationToken ct)
     {
@@ -88,8 +88,17 @@ internal static class ReferenceReader
             Kind: (string)arguments[1].Value!,
             Name: (string)arguments[2].Value!,
             Described: stamp.NamedArguments.Any(argument => argument is { Key: "Described", Value.Value: true }),
-            ApprovalTools: approvalTools);
+            ApprovalTools: approvalTools,
+            Tools: ReadNames(stamp, "Tools"),
+            OwnTools: ReadNames(stamp, "OwnTools"));
     }
+
+    private static EquatableArray<string> ReadNames(AttributeData stamp, string argument) =>
+        stamp.NamedArguments
+            .Where(named => named.Key == argument && named.Value.Kind == TypedConstantKind.Array)
+            .SelectMany(named => named.Value.Values)
+            .Select(name => (string)name.Value!)
+            .ToEquatableArray();
 
     public static INamedTypeSymbol? GetModule(IAssemblySymbol assembly) =>
         GetModuleStamp(assembly)?.ConstructorArguments[0].Value as INamedTypeSymbol;

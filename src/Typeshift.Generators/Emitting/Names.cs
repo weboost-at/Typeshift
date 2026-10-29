@@ -50,6 +50,10 @@ internal static class Names
 
     public static string Literal(string text) => SymbolDisplay.FormatLiteral(text, quote: true);
 
+    // A string array for an attribute's named argument
+    public static string Array(IEnumerable<string> texts) =>
+        $"new string[] {{ {string.Join(", ", texts.Select(Literal))} }}";
+
     // A hint name takes no '@', which a name spelled like a keyword carries
     public static string HintName(string fullName) => $"{fullName.Replace("global::", "").Replace("@", "")}.g.cs";
 

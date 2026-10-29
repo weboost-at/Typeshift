@@ -27,7 +27,12 @@ internal static class Catalog
             Kind: output.Agent.Kind,
             Name: output.Agent.Name,
             Described: output.Agent.Description is not null,
-            ApprovalTools: approvalTools);
+            ApprovalTools: approvalTools,
+            Tools: output.Tools.Select(offered => offered.Tool.Name).ToEquatableArray(),
+            OwnTools: output.Tools
+                .Where(offered => offered.Owner == output.Agent.Type.FullName)
+                .Select(offered => offered.Tool.Name)
+                .ToEquatableArray());
     }
 
     // A use of a toolset the catalog lacks is skipped (TSH019), and so is a tool already offered (TSH025, or a name
