@@ -16,8 +16,8 @@ public static class Demo
 
     // FRICTION: this library cannot call AddTypeshift() for its hosts, since only the generator of the calling project
     // intercepts the call (D1), so each demo calls it next to this and names the provider itself. The store is
-    // registered here as ITypeshiftStore<Guid> directly, since WithStore<T>() takes a type the container must be able
-    // to construct, and this store takes a directory.
+    // registered here as each store interface directly, as WithStore<T>() would, since WithStore<T>() takes a type the
+    // container must be able to construct, and this store takes a directory.
     public static IServiceCollection AddDemoServices(
         this IServiceCollection services,
         ProviderCatalog catalog,
@@ -27,6 +27,8 @@ public static class Demo
         services.AddSingleton(canned);
         services.AddSingleton<ClientCache>();
         services.AddSingleton(new JsonFileStore(DataDirectory));
+        services.AddSingleton<ISettingsStore<Guid>>(provider => provider.GetRequiredService<JsonFileStore>());
+        services.AddSingleton<IConversationStore<Guid>>(provider => provider.GetRequiredService<JsonFileStore>());
         services.AddSingleton<ITypeshiftStore<Guid>>(provider => provider.GetRequiredService<JsonFileStore>());
 
         return services;

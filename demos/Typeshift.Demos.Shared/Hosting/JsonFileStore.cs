@@ -10,38 +10,36 @@ public sealed class JsonFileStore(string directory) : ITypeshiftStore<Guid>
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    // One writer at a time keeps revisions honest; a demo has no second process to guard against
+    // One writer at a time keeps versions honest; a demo has no second process to guard against
     private readonly SemaphoreSlim _writing = new(1, 1);
 
-    public async Task<Stored<TData>?> LoadAsync<TData>(Guid id, CancellationToken ct)
-        where TData : class, IStorable<TData>
+    public async Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken ct)
     {
-        var path = DocumentPath(TData.Kind, id);
+        var path = DocumentPath(kind, id);
         if (!File.Exists(path)) return null;
 
         var row = JsonSerializer.Deserialize<DocumentRow>(await File.ReadAllTextAsync(path, ct), Json)!;
-        return new Stored<TData>(TData.Deserialize(row.Json, row.Version), row.Revision);
+        return new StoredDocument(row.Json, row.Version);
     }
 
-    public async Task<long> SaveAsync<TData>(Guid id, TData data, long revision, CancellationToken ct)
-        where TData : class, IStorable<TData>
+    public async Task<long> SaveAsync(Guid id, string kind, string json, long loadedVersion, CancellationToken ct)
     {
-        var path = DocumentPath(TData.Kind, id);
+        var path = DocumentPath(kind, id);
         await _writing.WaitAsync(ct);
 
         try
         {
             var current = File.Exists(path)
-                ? JsonSerializer.Deserialize<DocumentRow>(await File.ReadAllTextAsync(path, ct), Json)!.Revision
+                ? JsonSerializer.Deserialize<DocumentRow>(await File.ReadAllTextAsync(path, ct), Json)!.Version
                 : 0;
 
-            if (current != revision)
-                throw new StoreConflictException($"{TData.Kind} {id} is at revision {current}, not {revision}.");
+            if (current != loadedVersion)
+                throw new StoreConflictException($"{kind} {id} is at version {current}, not {loadedVersion}.");
 
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            var row = new DocumentRow(TData.Version, revision + 1, data.Serialize());
+            var row = new DocumentRow(loadedVersion + 1, json);
             await File.WriteAllTextAsync(path, JsonSerializer.Serialize(row, Json), ct);
-            return row.Revision;
+            return row.Version;
         }
         finally
         {
@@ -60,15 +58,14 @@ public sealed class JsonFileStore(string directory) : ITypeshiftStore<Guid>
         [
             .. lines
                 .Where(line => line.Length > 0)
-                .Select(line => JsonSerializer.Deserialize<EntryRow>(line, Json)!)
-                .Select(row => ConversationEntry.Deserialize(row.Json, row.Version))
+                .Select(ConversationEntry.Deserialize)
         ];
     }
 
     public async Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct)
     {
         var path = ConversationPath(conversation);
-        var line = JsonSerializer.Serialize(new EntryRow(ConversationEntry.Version, entry.Serialize()), Json);
+        var line = entry.Serialize();
         await _writing.WaitAsync(ct);
 
         try
@@ -93,7 +90,5 @@ public sealed class JsonFileStore(string directory) : ITypeshiftStore<Guid>
     private string ConversationPath(Guid conversation) =>
         Path.Combine(directory, "conversations", $"{conversation}.jsonl");
 
-    private sealed record DocumentRow(int Version, long Revision, string Json);
-
-    private sealed record EntryRow(int Version, string Json);
+    private sealed record DocumentRow(long Version, string Json);
 }

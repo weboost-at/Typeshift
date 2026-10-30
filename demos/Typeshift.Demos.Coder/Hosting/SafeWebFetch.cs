@@ -1,13 +1,13 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
-using Typeshift.Toolsets;
+using Typeshift.Demos.Coder.Toolsets;
 
 namespace Typeshift.Demos.Coder.Hosting;
 
-// A fetcher that refuses loopback, private and link-local addresses where it connects, as the guide asks, since the
-// model picks the URLs; the page comes back as text with its tags stripped, capped
-public sealed partial class SafeWebFetch : IWebFetch, IDisposable
+// A fetcher that refuses loopback, private and link-local addresses where it connects, since the model picks the
+// URLs; the page comes back as text with its tags stripped, capped
+public sealed partial class SafeWebFetch : IDisposable
 {
     private const int MaxLength = 20_000;
 
@@ -20,7 +20,7 @@ public sealed partial class SafeWebFetch : IWebFetch, IDisposable
         Timeout = TimeSpan.FromSeconds(20)
     };
 
-    public async Task<WebPage> FetchAsync(Uri url, CancellationToken ct)
+    internal async Task<WebPage> FetchAsync(Uri url, CancellationToken ct)
     {
         var html = await _http.GetStringAsync(url, ct);
         var title = Title().Match(html) is { Success: true } match ? match.Groups[1].Value.Trim() : null;

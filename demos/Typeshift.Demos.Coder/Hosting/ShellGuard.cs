@@ -10,6 +10,9 @@ public sealed class ShellGuard : IToolApprovalRule
 
     private static readonly string[] Looks = ["git status", "git diff", "git log", "ls", "cat ", "wc "];
 
+    // A command that chains, pipes or substitutes another runs more than its start says, so it is never approved here
+    private static readonly char[] Chains = [';', '&', '|', '\n', '`', '$', '>', '<'];
+
     public ValueTask<ToolDecision> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct)
     {
         if (call is not { Name: "run_command", Arguments: { } arguments }
@@ -19,7 +22,7 @@ public sealed class ShellGuard : IToolApprovalRule
 
         var decision = Never.Any(never => command.Contains(never, StringComparison.Ordinal))
             ? ToolDecision.Reject($"'{command}' is never allowed in this workspace.")
-            : Looks.Any(looks => command.StartsWith(looks, StringComparison.Ordinal))
+            : Looks.Any(looks => command.StartsWith(looks, StringComparison.Ordinal)) && command.IndexOfAny(Chains) < 0
                 ? ToolDecision.Approve
                 : ToolDecision.Abstain;
 

@@ -1,14 +1,7 @@
-using Typeshift.Toolsets;
-
 namespace Typeshift.Demos.Coder.Hosting;
 
 // The folder the file and shell tools stay within, one per process here, one per customer in a web host
 public sealed record WorkspaceOptions(string Path);
-
-public sealed class WorkspaceRoot(WorkspaceOptions options) : IFileSystemRoot
-{
-    public string Path => options.Path;
-}
 
 // What the model knows about the workspace before it looks: its path and its top-level entries. Never stored, so
 // every run sees the current state

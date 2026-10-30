@@ -33,13 +33,12 @@ var canned = new CannedModels
 var services = new ServiceCollection();
 services.AddSingleton(TimeProvider.System);
 services.AddSingleton(new WorkspaceOptions(workspace));
+services.AddSingleton<SafeWebFetch>();
 services.AddDemoServices(catalog, canned);
 
 services.AddTypeshift()
     .WithChatClientProvider<RoutingChatClientProvider>()
     .WithRealtimeTracking()
-    .WithFileSystemRoot<WorkspaceRoot>()
-    .WithWebFetch<SafeWebFetch>()
     .WithApprovalRule<ShellGuard>()
     .WithToolMiddleware<AuditToolCalls>();
 
