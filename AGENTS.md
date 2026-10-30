@@ -98,7 +98,7 @@ style; the essentials:
 | Parameters the call fills, tool results | `guide/toolsets.md` | `builders.md` (link) |
 | Storable types of configurable members | `guide/tool-settings.md#configurable-members` | `builders.md` (link) |
 | Chat options and run options, their defaults | `guide/builders.md` | `defining-agents.md`, `conversations.md#compaction` |
-| Providers and models, the provider id type, the summary model | `guide/models.md` | `running-agents.md#chat-clients`, `registration.md#the-id-type`, `conversations.md#compaction` |
+| Providers and models, clients from configuration, keys per customer, wrapping clients, provider failures, the provider id type, the summary model | `guide/models.md` | `running-agents.md#chat-clients`, `registration.md#the-id-type`, `conversations.md#compaction` |
 | Approval and modes | `guide/tool-approval.md` | `builders.md` (link) |
 | Settings layers and precedence | `guide/settings-and-stores.md#settings-layering` | `tool-settings.md`, `defining-agents.md`, `running-agents.md` |
 | Getting an agent's host: injecting it, or resolving it from a scope | `guide/using-an-agent.md` | `getting-started.md` (step 4), `registration.md` (the lifetime), `running-agents.md` (lead) |
