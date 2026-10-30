@@ -3,11 +3,10 @@ using Microsoft.Extensions.AI;
 namespace Typeshift;
 
 /// <summary>
-/// Checks a store of yours against the rules Typeshift relies on, as a test of the store. Each check writes under the
-/// id it is given, so give it one nothing else uses, in a database for tests.
+/// Verifies a store of yours against the rules Typeshift relies on, from a test of the store.
 /// </summary>
 // D58: what a store must do, run against the store itself, so a broken rule fails a test instead of a run
-public static class StoreCheck
+public static class StoreExtensions
 {
     private const string Kind = "typeshift_check";
 
@@ -15,19 +14,71 @@ public static class StoreCheck
 
     private const string Agent = "typeshift_check";
 
-    /// <summary>
-    /// Saves and loads documents of two kinds under one id, and saves with a version another save replaced, as runs
-    /// and settings forms do.
-    /// </summary>
-    /// <typeparam name="TId">The id type.</typeparam>
-    /// <param name="store">The store.</param>
-    /// <param name="id">A settings id nothing is stored under yet.</param>
-    /// <param name="ct">Cancels the check.</param>
-    /// <returns>A task that completes once the store passed.</returns>
-    /// <exception cref="InvalidOperationException">
-    /// The store broke a rule, or something is stored under the id already; the message says which.
-    /// </exception>
-    public static async Task CheckSettingsAsync<TId>(ISettingsStore<TId> store, TId id, CancellationToken ct = default)
+    extension<TId>(ISettingsStore<TId> store) where TId : notnull
+    {
+        /// <summary>
+        /// Runs the rules for settings against this store, and the rules for conversations too when it is a
+        /// conversation store as well. It writes under the id it is given, so give it one nothing else uses, in a
+        /// database for tests.
+        /// </summary>
+        /// <param name="id">An id nothing is stored under yet, as a settings id and as a conversation id.</param>
+        /// <param name="ct">Cancels the check.</param>
+        /// <returns>A task that completes once the store passed.</returns>
+        /// <exception cref="InvalidOperationException">
+        /// The store broke a rule, or something is stored under the id already; the message says which.
+        /// </exception>
+        public Task VerifyAsync(TId id, CancellationToken ct = default) =>
+            VerifyEveryInterfaceAsync(store, store as IConversationStore<TId>, id, ct);
+    }
+
+    extension<TId>(IConversationStore<TId> store) where TId : notnull
+    {
+        /// <summary>
+        /// Runs the rules for conversations against this store, and the rules for settings too when it is a settings
+        /// store as well. It writes under the id it is given, so give it one nothing else uses, in a database for
+        /// tests.
+        /// </summary>
+        /// <param name="id">An id nothing is stored under yet, as a conversation id and as a settings id.</param>
+        /// <param name="ct">Cancels the check.</param>
+        /// <returns>A task that completes once the store passed.</returns>
+        /// <exception cref="InvalidOperationException">
+        /// The store broke a rule, or something is stored under the id already; the message says which.
+        /// </exception>
+        public Task VerifyAsync(TId id, CancellationToken ct = default) =>
+            VerifyEveryInterfaceAsync(store as ISettingsStore<TId>, store, id, ct);
+    }
+
+    // A store that is both would match both blocks above; this one is more specific, so the call compiles
+    extension<TId>(ITypeshiftStore<TId> store) where TId : notnull
+    {
+        /// <summary>
+        /// Runs the rules for settings and for conversations against this store. It writes under the id it is given,
+        /// so give it one nothing else uses, in a database for tests.
+        /// </summary>
+        /// <param name="id">An id nothing is stored under yet, as a settings id and as a conversation id.</param>
+        /// <param name="ct">Cancels the check.</param>
+        /// <returns>A task that completes once the store passed.</returns>
+        /// <exception cref="InvalidOperationException">
+        /// The store broke a rule, or something is stored under the id already; the message says which.
+        /// </exception>
+        public Task VerifyAsync(TId id, CancellationToken ct = default) =>
+            VerifyEveryInterfaceAsync(store, store, id, ct);
+    }
+
+    private static async Task VerifyEveryInterfaceAsync<TId>(
+        ISettingsStore<TId>? settings,
+        IConversationStore<TId>? conversations,
+        TId id,
+        CancellationToken ct)
+        where TId : notnull
+    {
+        if (settings is not null) await VerifySettingsAsync(settings, id, ct);
+        if (conversations is not null) await VerifyConversationsAsync(conversations, id, ct);
+    }
+
+    // Saves and loads documents of two kinds under one id, and saves with a version another save replaced, as runs
+    // and settings forms do
+    private static async Task VerifySettingsAsync<TId>(ISettingsStore<TId> store, TId id, CancellationToken ct)
         where TId : notnull
     {
         const string firstJson = """{"step":1}""";
@@ -35,7 +86,7 @@ public static class StoreCheck
         const string otherJson = """{"other":true}""";
 
         if (await store.LoadAsync(id, Kind, ct) is not null)
-            throw new InvalidOperationException($"LoadAsync returned a document for {id}: give the check a new id.");
+            throw new InvalidOperationException($"LoadAsync returned a document for {id}: give VerifyAsync a new id.");
 
         var first = await SaveAsync(Kind, firstJson, 0, "A first save at version 0 threw a StoreConflictException.");
         await EnsureStoredAsync(Kind, new(firstJson, first), "LoadAsync did not return the last save and version.");
@@ -119,28 +170,18 @@ public static class StoreCheck
         }
     }
 
-    /// <summary>
-    /// Appends runs and compaction summaries to a conversation and loads them back, whole and from the last summary
-    /// on, as runs do.
-    /// </summary>
-    /// <typeparam name="TId">The id type.</typeparam>
-    /// <param name="store">The store.</param>
-    /// <param name="conversation">A conversation id nothing is stored under yet.</param>
-    /// <param name="ct">Cancels the check.</param>
-    /// <returns>A task that completes once the store passed.</returns>
-    /// <exception cref="InvalidOperationException">
-    /// The store broke a rule, or something is stored under the id already; the message says which.
-    /// </exception>
-    public static async Task CheckConversationsAsync<TId>(
+    // Appends runs and compaction summaries to a conversation and loads them back, whole and from the last summary
+    // on, as runs do
+    private static async Task VerifyConversationsAsync<TId>(
         IConversationStore<TId> store,
         TId conversation,
-        CancellationToken ct = default)
+        CancellationToken ct)
         where TId : notnull
     {
         if ((await store.LoadConversationAsync(conversation, ct)).Count > 0)
         {
             throw new InvalidOperationException(
-                $"LoadConversationAsync returned entries for {conversation}: give the check a new id.");
+                $"LoadConversationAsync returned entries for {conversation}: give VerifyAsync a new id.");
         }
 
         ConversationEntry[] entries =

@@ -21,9 +21,8 @@ All notable changes to this project are documented here. The format follows
 - `System.Text.Json` and Newtonsoft.Json serialize a `ConversationEntry` as it is, with no settings: the first writes
   its stored JSON, the second that JSON as a string. Newtonsoft.Json used to read entries back with their contents
   emptied.
-- `StoreCheck.CheckSettingsAsync` and `StoreCheck.CheckConversationsAsync` run the rules Typeshift relies on against
-  your store, from a test of your own with any test framework, and throw an exception that names the rule your store
-  broke.
+- `store.VerifyAsync(id)` runs the rules Typeshift relies on against your store, for every interface it implements,
+  from a test of your own with any test framework, and throws an exception that names the rule your store broke.
 
 ### Changed
 

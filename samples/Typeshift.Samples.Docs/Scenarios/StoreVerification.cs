@@ -4,7 +4,7 @@ using Typeshift.Samples.Stores.EfCore;
 
 namespace Typeshift.Samples.Scenarios;
 
-internal static class StoreChecks
+internal static class StoreVerification
 {
     public static async Task RunAsync(IServiceProvider provider)
     {
@@ -12,11 +12,8 @@ internal static class StoreChecks
 
         // begin-snippet: store-check
         var store = new EfTypeshiftStore(contexts);
-        var settingsId = 9001;
-        var conversationId = 9001;
 
-        await StoreCheck.CheckSettingsAsync(store, settingsId);
-        await StoreCheck.CheckConversationsAsync(store, conversationId);
+        await store.VerifyAsync(9001);
         // end-snippet
     }
 }
