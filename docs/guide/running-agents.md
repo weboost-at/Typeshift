@@ -246,5 +246,6 @@ provider's client ([Observability](./production.md#observability)).
 - [Agent host](./generated-members.md#the-agent-host): every member of the host and its signature.
 - [Registration](./registration.md#the-chain): the chain calls and their lifetimes.
 - [Conversations](./conversations.md): storing, resuming and steering runs.
+- [Serving a chat endpoint](./chat-endpoint.md): runs, streaming and approvals behind ASP.NET Core endpoints.
 - [Settings and stores](./settings-and-stores.md#settings-layering): where each of a run's values comes from.
 - [Architecture](../contributing/architecture.md#a-run): the same pipeline from the code's side.

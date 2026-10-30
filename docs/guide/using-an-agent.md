@@ -106,3 +106,4 @@ Register the job with `services.AddHostedService<TicketDigest>()`, and the clock
 - [Registration](./registration.md#what-addtypeshift-registers): every service `AddTypeshift()` registers and its
   lifetime.
 - [Agent host](./generated-members.md#the-agent-host): every member of the host and its signature.
+- [Serving a chat endpoint](./chat-endpoint.md): the endpoints a chat UI talks to.

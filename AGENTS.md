@@ -106,6 +106,7 @@ style; the essentials:
 | The store's lifetime and contract, kinds, schema versions, versions, conversation entries and summaries, checking a store | `guide/implementing-a-store.md` | `settings-and-stores.md` (link), `conversations.md#what-is-stored` |
 | The `Settings` JSON, agent settings under a settings id | `guide/settings-and-stores.md` | `generated-members.md#settings` |
 | Conversations: storage, resume, steering, live updates, compaction | `guide/conversations.md` | |
+| A chat UI's endpoints: posting, streaming as server-sent events, approvals by their ids | `guide/chat-endpoint.md` | |
 | Generated members, `AgentHost` members and signatures | `guide/generated-members.md` | `running-agents.md` |
 | Spans and metrics, Native AOT | `guide/production.md` | |
 | Diagnostics | `guide/diagnostics.md` | every page, linked by ID |
