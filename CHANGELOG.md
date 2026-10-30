@@ -5,6 +5,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0-alpha.5] - 2026-10-30
+
 ### Added
 
 - `ISettingsStore` and `IConversationStore` split the store in two. A store implements either or both, and
@@ -18,18 +20,11 @@ All notable changes to this project are documented here. The format follows
   require approval, and the analyzer checks it like a toolset's tool. Its name may repeat another agent's tool, unless
   the two share standing approvals through a handoff or a sub-agent (TSH007). Module stamps carry each agent's tools,
   at stamp version 4.
-- `System.Text.Json` and Newtonsoft.Json serialize a `ConversationEntry` as it is, with no settings: the first writes
-  its stored JSON, the second that JSON as a string. Newtonsoft.Json used to read entries back with their contents
-  emptied.
 - `store.VerifyAsync(id)` runs the rules Typeshift relies on against your store, for every interface it implements,
   from a test of your own with any test framework, and throws an exception that names the rule your store broke.
 
 ### Changed
 
-- `ITypeshiftStore.LoadAsync` and `SaveAsync` are no longer generic. They take a document's id and kind, a save its
-  JSON too, and a load returns a `StoredDocument`. Typeshift serializes the agents' settings itself, so a store
-  handles strings and numbers only. A store moves over by taking `kind` and `json` where it called `TData.Kind` and
-  `Serialize()`, and returning `new StoredDocument(json, version)`.
 - A document's schema version travels in its JSON as `"$schemaVersion"`, left out at 1, so a store keeps the JSON and
   its version and nothing else. `SaveAsync` and `StoredDocument` carry no schema version, and
   `ConversationEntry.Deserialize` and the generated `Settings.Deserialize` take the JSON alone. A store moves over by
@@ -51,6 +46,22 @@ All notable changes to this project are documented here. The format follows
   `IWebSearch`, `IWebFetch`, `WithFileSystemRoot<T>()`, `WithWebSearch<T>()` and `WithWebFetch<T>()`. An app that used
   them declares the tools it needs in a toolset of its own. Compaction still keeps the latest call of a tool named
   `write_todos`.
+
+## [0.1.0-alpha.4] - 2026-10-28
+
+### Added
+
+- `System.Text.Json` and Newtonsoft.Json serialize a `ConversationEntry` as it is, with no settings: the first writes
+  its stored JSON, the second that JSON as a string. Newtonsoft.Json used to read entries back with their contents
+  emptied.
+
+### Changed
+
+- `ITypeshiftStore.LoadAsync` and `SaveAsync` are no longer generic. They take a document's id and kind, a save its
+  JSON and version too, and a load returns a `StoredDocument`. Typeshift serializes the agents' settings itself, so a
+  store handles strings and numbers only. A store moves over by taking `kind`, `json` and `version` where it called
+  `TData.Kind`, `Serialize()` and `TData.Version`, and returning `new StoredDocument(json, version, revision)`; the
+  stored data stays the same.
 
 ## [0.1.0-alpha.3] - 2026-10-27
 
