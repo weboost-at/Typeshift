@@ -244,3 +244,4 @@ conversation](./tool-approval.md#approving-for-the-conversation) and the backgro
 - [Builders](./builders.md#runoptionsbuilder): the run options of compaction and their defaults.
 - [Models and providers](./models.md#the-summary-model): which model summarizes, and its provider.
 - [Multiple agents](./multi-agent.md#handoff): handoffs, which need a conversation.
+- [Serving a chat endpoint](./chat-endpoint.md): a conversation per chat, behind ASP.NET Core endpoints.

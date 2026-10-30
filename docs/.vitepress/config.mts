@@ -40,6 +40,7 @@ const sidebar = {
         { text: 'Models and providers', link: '/guide/models' },
         { text: 'Settings and stores', link: '/guide/settings-and-stores' },
         { text: 'Conversations', link: '/guide/conversations' },
+        { text: 'Serving a chat endpoint', link: '/guide/chat-endpoint' },
         { text: 'In production', link: '/guide/production' }
       ]
     },

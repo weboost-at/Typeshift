@@ -34,7 +34,11 @@ await using (var provider = services.BuildServiceProvider(new ServiceProviderOpt
     await MultiAgent.RunAsync(provider);
 }
 
+var web = Path.Combine(Path.GetTempPath(), $"typeshift-samples-web-{Guid.NewGuid():N}.db");
+await ChatEndpoint.RunAsync(client, web);
+
 Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
 File.Delete(database);
+File.Delete(web);
 
 return 0;
