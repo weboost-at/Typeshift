@@ -39,14 +39,16 @@ nuget.org keeps later packages under the name.
    release.
 3. Set `PackageValidationBaselineVersion` in `src/Typeshift/Typeshift.csproj` to the last released version, so the
    next pack fails on a breaking change nobody meant. It is not set yet; once it is, keep it on the latest release.
-4. Commit, then tag and push the tag:
+4. Check the demos, which CI never builds: `dotnet build demos/Typeshift.Demos.slnx`, then run each one offline as
+   `demos/README.md` shows. A demo that broke gets fixed before the tag, or the release notes say so.
+5. Commit, then tag and push the tag:
 
    ```shell
    git tag -a v0.2.0 -m "Typeshift 0.2.0"
    git push origin v0.2.0
    ```
 
-5. Approve the `release` environment if it asks, then check the package on nuget.org and the GitHub release. If the
+6. Approve the `release` environment if it asks, then check the package on nuget.org and the GitHub release. If the
    GitHub release fails, rerun the failed job. The push skips packages nuget.org already has.
 
 A tag with a hyphen, such as `v0.2.0-alpha.1`, creates a prerelease on GitHub, and nuget.org marks it prerelease
