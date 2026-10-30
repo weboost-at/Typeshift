@@ -120,10 +120,11 @@ well, so an agent's settings can delegate to the overrides of a toolset in anoth
 
 ## Conversations
 
-A run with a conversation id goes through `ConversationChatClient`. It loads the entries from the last summary on
-(`LoadConversationSinceCompactionAsync`) and builds the history without unanswered calls and errors. It registers the
-run in `LiveRuns`, which allows one per conversation in a process, stores the input, and ends the run with an entry of
-its own.
+A run with a conversation id goes through `ConversationChatClient`. It claims the conversation in `LiveRuns`, which
+allows one run per conversation in a process, then loads the entries from the last summary on
+(`LoadConversationSinceCompactionAsync`) and builds the history without unanswered calls, errors and the approval
+requests a later run passed by. It stores the input, without answers to those requests, begins the run in `LiveRuns`,
+and ends the run with an entry of its own.
 
 Inside the tool loop, `CheckpointChatClient` stores the steps before each model call, tool results first and then
 any steering input it takes in, and stores each response as it arrives. `ConversationRun` holds what one run stored
@@ -133,7 +134,7 @@ that `ConversationTracker.WatchAsync` registered (D47).
 ## Approval and modes
 
 `ApprovalChatClient` sits above `FunctionInvokingChatClient`. Before the tool loop runs, it binds the host's answers
-to the requests the conversation stored and drops what no stored request matches. It also collects the standing
+to the open requests the history holds and drops what no request matches. It also collects the standing
 approvals and switches the mode on an approved plan.
 
 After each pass of the tool loop, it answers the requests that rules, standing approvals and auto mode decide, and
