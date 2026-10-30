@@ -3,7 +3,6 @@ using System.ClientModel.Primitives;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using OpenAI;
 using Typeshift.Samples.Agents;
 using Typeshift.Samples.Hosting;
@@ -75,26 +74,22 @@ internal static class Models
         // begin-snippet: tenant-chat-client-provider-registration
         services.AddTypeshift()
             .WithChatClientProvider<TenantChatClientProvider>();
-
-        services.AddSingleton<TenantClients>();
         // end-snippet
     }
 
-    public static void ShowWrappedClient(IServiceCollection services, string apiKey, ILoggerFactory loggers)
+    public static void ShowWrappedClient(IServiceCollection services, string apiKey)
     {
         // begin-snippet: wrapped-chat-client
         var openAi = new OpenAIClient(apiKey)
             .GetChatClient("gpt-5-mini")
-            .AsIChatClient()
-            .AsBuilder()
-            .UseLogging(loggers)
-            .Build();
+            .AsIChatClient();
 
-        services.AddKeyedSingleton("openai", openAi);
+        services.AddKeyedChatClient("openai", openAi)
+            .UseLogging();
         // end-snippet
     }
 
-    public static OpenAIClient ShowRetries(string apiKey)
+    public static void ShowRetries(IServiceCollection services, string apiKey)
     {
         // begin-snippet: client-retries
         var options = new OpenAIClientOptions
@@ -102,10 +97,12 @@ internal static class Models
             RetryPolicy = new ClientRetryPolicy(maxRetries: 5)
         };
 
-        var openAi = new OpenAIClient(new ApiKeyCredential(apiKey), options);
-        // end-snippet
+        var openAi = new OpenAIClient(new ApiKeyCredential(apiKey), options)
+            .GetChatClient("gpt-5-mini")
+            .AsIChatClient();
 
-        return openAi;
+        services.AddKeyedSingleton("openai", openAi);
+        // end-snippet
     }
 
     public static CodingAgent.Settings ShowSummaryProvider()

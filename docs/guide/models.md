@@ -1,6 +1,6 @@
 ---
 title: Models and providers
-description: Name an agent's model by provider and model, return its client from your IChatClientProvider, configure providers and keys per customer, and handle a provider that fails.
+description: Name an agent's model by provider and model, return its client from your IChatClientProvider, configure providers and keys per customer, handle a failing provider, and pick the summary model.
 ---
 
 # Models and providers
@@ -43,18 +43,14 @@ services.AddTypeshift()
 services.AddKeyedSingleton("openai", openAi);
 services.AddKeyedSingleton("anthropic", anthropic);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L17-L23' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client-provider-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L16-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client-provider-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ::: info The provider is scoped
 Typeshift resolves your provider from each run's scope, so it can use that request's services, such as the current
-customer's credentials or your `DbContext`. Typeshift never disposes a client you return, and it instruments each
-provider and model once, whatever instance you return. So you may return a client per customer, and a client you
-create for a single run is yours to dispose.
+customer or your `DbContext` ([A key per customer](#a-key-per-customer)). Typeshift never disposes a client you
+return, and it instruments each provider and model once, whatever instance you return.
 :::
-
-If no provider is registered, a run throws an `InvalidOperationException` that tells you to call
-`WithChatClientProvider<T>()`.
 
 ## A real client
 
@@ -76,14 +72,12 @@ var openAi = new OpenAIClient(apiKey)
 
 services.AddKeyedSingleton("openai", openAi);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L28-L34' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-client' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L27-L33' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - Typeshift names the model in every request as `ChatOptions.ModelId`, so this one client serves every OpenAI model
   your agents name. The model you pass to `GetChatClient` only names the client.
 - `OpenAIClient` is in the `OpenAI` namespace. Read the API key from your app's configuration, never from code.
-- Register the client as the adapter returns it, or wrapped in the middleware that
-  [Wrapping a client](#wrapping-a-client) allows.
 
 A local server with an OpenAI-compatible API, such as LM Studio or Ollama, works with the same package. Point the
 client at its endpoint, and name its models in `WithModel`, here as `WithModel("local", "qwen3-8b")`.
@@ -103,7 +97,7 @@ var local = new OpenAIClient(new ApiKeyCredential("none"), options)
 
 services.AddKeyedSingleton("local", local);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L39-L50' title='Snippet source file'>snippet source</a> | <a href='#snippet-local-chat-client' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L38-L49' title='Snippet source file'>snippet source</a> | <a href='#snippet-local-chat-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 For other providers, such as Anthropic or Azure OpenAI, register the `IChatClient` of their own package.
@@ -114,8 +108,9 @@ tests reads the same requests: the model in `ChatOptions.ModelId`, the agent's i
 
 ## Providers from configuration
 
-Your app can read its providers from configuration instead of code, so adding a provider or moving one to another
-endpoint changes only `appsettings.json`:
+Your app can read its providers from [configuration](https://learn.microsoft.com/dotnet/core/extensions/configuration)
+instead of code, so adding a provider or moving one to another endpoint changes only `appsettings.json`. A local
+server takes any key, so its entry may hold one, such as `none`:
 
 ```json
 {
@@ -126,7 +121,8 @@ endpoint changes only `appsettings.json`:
 }
 ```
 
-Each entry under `Providers` becomes one keyed client, here for providers with an OpenAI-compatible API:
+Each entry under `Providers` becomes a keyed singleton `IChatClient`, registered under the entry's name, here for
+providers with an OpenAI-compatible API:
 
 <!-- snippet: providers-from-configuration -->
 <a id='snippet-providers-from-configuration'></a>
@@ -146,110 +142,99 @@ foreach (var provider in configuration.GetSection("Providers").GetChildren())
     services.AddKeyedSingleton(provider.Key, client);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L55-L70' title='Snippet source file'>snippet source</a> | <a href='#snippet-providers-from-configuration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L54-L69' title='Snippet source file'>snippet source</a> | <a href='#snippet-providers-from-configuration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - The entry's name, such as `openai`, is the provider your agents name in `WithModel` and your users pick in their
   settings, so the `KeyedChatClientProvider` above finds each client by it.
-- Keep the keys out of `appsettings.json`. ASP.NET Core reads `Providers:openai:ApiKey` from user secrets in
-  development and from the environment variable `Providers__openai__ApiKey` in production, as it reads every setting.
-- A provider without a key fails at startup, so a missing secret never surfaces in the middle of a run. A local server
-  takes any key, such as `none`.
+- Keep real keys out of `appsettings.json`. The .NET host reads `Providers:openai:ApiKey` from
+  [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) in development and from the
+  environment variable `Providers__openai__ApiKey` in every environment.
+- A provider without a key fails at startup, so a missing secret never surfaces in the middle of a run.
+
+```bash
+dotnet user-secrets set "Providers:openai:ApiKey" "<your key>"
+```
 
 ## A key per customer
 
-When each customer brings their own API key, the client depends on who is asking. Typeshift resolves your provider
-from each run's scope, so it can read the current customer, and a singleton keeps one client per customer and
-provider:
+When each customer brings their own API key, the client depends on who is asking. Because your provider is scoped, it
+can read the current customer and fetch that customer's key for each run:
 
 <!-- snippet: tenant-chat-client-provider -->
 <a id='snippet-tenant-chat-client-provider'></a>
 ```cs
-internal sealed class TenantChatClientProvider(ICurrentCustomer customer, TenantClients clients) : IChatClientProvider
+internal sealed class TenantChatClientProvider(ICurrentCustomer customer, ITenantKeys keys) : IChatClientProvider
 {
-    public ValueTask<IChatClient> GetChatClientAsync(string provider, string model, CancellationToken ct) =>
-        ValueTask.FromResult(clients.Get(customer.Id, provider));
-}
-
-// A singleton: a client keeps its connections open, so one per run would open new ones on every run
-internal sealed class TenantClients(ITenantKeys keys) : IDisposable
-{
-    private readonly ConcurrentDictionary<(int Customer, string Provider), IChatClient> _clients = [];
-
-    public IChatClient Get(int customer, string provider) =>
-        _clients.GetOrAdd((customer, provider), key => new OpenAIClient(keys.GetApiKey(key.Customer, key.Provider))
-            .GetChatClient("default")
-            .AsIChatClient());
-
-    // Call it when a customer changes a key, so the next run builds a client with the new one
-    public void Forget(int customer, string provider)
+    // A client per run, with the customer's current key
+    public async ValueTask<IChatClient> GetChatClientAsync(string provider, string model, CancellationToken ct)
     {
-        if (_clients.TryRemove((customer, provider), out var client)) client.Dispose();
-    }
+        if (provider != "openai") throw new InvalidOperationException($"No client for the provider '{provider}'.");
 
-    public void Dispose()
-    {
-        foreach (var client in _clients.Values)
-        {
-            client.Dispose();
-        }
+        var key = await keys.GetApiKeyAsync(customer.Id, provider, ct);
+
+        return new OpenAIClient(key)
+            .GetChatClient(model)
+            .AsIChatClient();
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/TenantChatClientProvider.cs#L7-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-tenant-chat-client-provider' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/TenantChatClientProvider.cs#L6-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-tenant-chat-client-provider' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Register the provider on the chain, and its cache as a singleton:
+Register it on the chain, in place of a provider for your app's own keys:
 
 <!-- snippet: tenant-chat-client-provider-registration -->
 <a id='snippet-tenant-chat-client-provider-registration'></a>
 ```cs
 services.AddTypeshift()
     .WithChatClientProvider<TenantChatClientProvider>();
-
-services.AddSingleton<TenantClients>();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L75-L80' title='Snippet source file'>snippet source</a> | <a href='#snippet-tenant-chat-client-provider-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L74-L77' title='Snippet source file'>snippet source</a> | <a href='#snippet-tenant-chat-client-provider-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - `ICurrentCustomer` and `ITenantKeys` stand for services of your app: who the request is for, and where you keep the
-  keys your customers entered.
-- A client per run works too, since Typeshift never disposes a client you return, but every run would open new
-  connections to the provider. The cache keeps one client per customer and provider for as long as your app runs.
-- A cached client keeps the key it was created with. When a customer changes their key, call `Forget`, so the next run
-  creates a client with the new one.
+  keys your customers entered. Both may be scoped, since the provider is.
+- A new client per run costs little, because every `OpenAIClient` shares one `HttpClient`, and it always holds the
+  customer's current key. A client library whose clients each open their own connections needs a cache instead, kept
+  in a singleton and keyed by the API key, so a changed key gets a new client.
+- `GetChatClientAsync` throws for any provider but `openai`, so a run that names another fails before it starts
+  ([When a provider fails](#when-a-provider-fails)).
 
 ## Wrapping a client
 
-You may wrap a provider's client in Microsoft.Extensions.AI middleware before you register it, for example to log each
-request:
+You may wrap a provider's client before Typeshift gets it, with the `Use...` calls of Microsoft.Extensions.AI's
+[client pipeline](https://learn.microsoft.com/dotnet/ai/microsoft-extensions-ai), for example to log each request.
+`AddKeyedChatClient` registers the client and returns its builder, which resolves the `ILoggerFactory` from your
+services:
 
 <!-- snippet: wrapped-chat-client -->
 <a id='snippet-wrapped-chat-client'></a>
 ```cs
 var openAi = new OpenAIClient(apiKey)
     .GetChatClient("gpt-5-mini")
-    .AsIChatClient()
-    .AsBuilder()
-    .UseLogging(loggers)
-    .Build();
+    .AsIChatClient();
 
-services.AddKeyedSingleton("openai", openAi);
+services.AddKeyedChatClient("openai", openAi)
+    .UseLogging();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L85-L94' title='Snippet source file'>snippet source</a> | <a href='#snippet-wrapped-chat-client' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L82-L89' title='Snippet source file'>snippet source</a> | <a href='#snippet-wrapped-chat-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Wrap what concerns a single request, such as logging, caching or a policy of your own written as a
-`DelegatingChatClient`. Two kinds of middleware repeat what Typeshift already does:
+Wrap what concerns a single request, such as logging or a policy of your own written as a `DelegatingChatClient`. At
+the `Trace` level, `UseLogging()` logs every message and answer in full, and those are your customers' data
+([Message content](./production.md#message-content)). Two wrappers repeat what Typeshift already does:
 
-- `UseFunctionInvocation()` runs a second tool loop inside the one Typeshift runs, and a run that answers an
+- `UseFunctionInvocation()` runs a second tool loop inside the one Typeshift runs. Its tool calls bypass your
+  [tool middleware](./middleware.md) and the run's limits, such as `WithMaxToolIterations`, and a run that answers an
   [approval request](./tool-approval.md) fails.
-- `UseOpenTelemetry()` writes a second span for every model call, because Typeshift instruments each client itself,
-  with `chat {model}` spans on its `Typeshift` source ([Spans](./production.md#spans)).
+- `UseOpenTelemetry()` records every model call again, on Microsoft.Extensions.AI's own source and meter. Typeshift
+  already writes a `chat {model}` span and the metrics for each call ([Spans](./production.md#spans)), so an app that
+  listens to both sees every call twice.
 
 Leave retries to the client library, which knows which of its errors are worth another try. The OpenAI client retries
-timeouts, rate limits and server errors on its own, and its `RetryPolicy` sets how often. `ClientRetryPolicy` is in
-the `System.ClientModel.Primitives` namespace:
+timeouts, rate limits and server errors three times by default, and its `RetryPolicy` sets how many times.
+`ClientRetryPolicy` is in the `System.ClientModel.Primitives` namespace:
 
 <!-- snippet: client-retries -->
 <a id='snippet-client-retries'></a>
@@ -259,9 +244,13 @@ var options = new OpenAIClientOptions
     RetryPolicy = new ClientRetryPolicy(maxRetries: 5)
 };
 
-var openAi = new OpenAIClient(new ApiKeyCredential(apiKey), options);
+var openAi = new OpenAIClient(new ApiKeyCredential(apiKey), options)
+    .GetChatClient("gpt-5-mini")
+    .AsIChatClient();
+
+services.AddKeyedSingleton("openai", openAi);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L99-L106' title='Snippet source file'>snippet source</a> | <a href='#snippet-client-retries' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L94-L105' title='Snippet source file'>snippet source</a> | <a href='#snippet-client-retries' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## The provider id type
@@ -314,9 +303,9 @@ WithChatOptions()
 the layer below, so set both when you switch providers.
 
 Leave out `WithModel` but keep `Configurable(o => o.ModelId)`, and the choice is the user's. Every run then needs a
-provider and a model from stored settings or from the run's own settings, and a run without them throws an
-`InvalidOperationException` that names the agent. Store the pick under a settings id, from a settings page that
-offers your providers and their models, for example:
+provider and a model from stored settings or from the run's own settings, and a run without them fails before it
+starts ([When a provider fails](#when-a-provider-fails)). Store the pick under a settings id, from a settings page
+that offers your providers and their models, for example:
 
 <!-- snippet: configure-settings -->
 <a id='snippet-configure-settings'></a>
@@ -363,7 +352,7 @@ var settings = new CodingAgent.Settings
     SummaryModel = "gpt-5-mini"
 };
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L113-L119' title='Snippet source file'>snippet source</a> | <a href='#snippet-summary-provider' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L110-L116' title='Snippet source file'>snippet source</a> | <a href='#snippet-summary-provider' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 | Named | The summary runs on |
@@ -380,22 +369,28 @@ cannot serve the model, the run fails. Make the summary model configurable where
 
 ## When a provider fails
 
-What your code sees depends on whether the run fails before or after it calls the model:
+What your code sees depends on whether the run fails before or after it touches the conversation:
 
 | What fails | Your code gets | The run's conversation |
 |---|---|---|
 | No chat client provider is registered | An `InvalidOperationException` that names `WithChatClientProvider<T>()` | Unchanged |
 | The run resolved no provider or no model | An `InvalidOperationException` that names the agent | Unchanged |
-| Your provider throws, such as for a provider it does not know | Your provider's exception | Unchanged |
-| The model call fails, such as on a wrong key, an unknown model or a rate limit that outlasts the retries | The client library's exception, such as OpenAI's `ClientResultException` | Ends with an entry that holds an `ErrorContent` |
+| Your provider throws for the run's model, such as for a provider it does not know | Your provider's exception | Unchanged |
+| Your provider throws for the summary model, when compaction asks for it during the run | Your provider's exception | Ends with an entry that holds an `ErrorContent` |
+| The model call fails, such as on a wrong key, an unknown model or a rate limit that outlasts the retries | The client library's exception | Ends with an entry that holds an `ErrorContent` |
 
-- Typeshift asks your provider for the client before the run starts, so the first three fail before anything is
-  stored, and you can run the agent again once you fixed the cause.
-- A model call that fails ends the run ([What is stored](./conversations.md#what-is-stored)), and the run's
-  `invoke_agent` span carries the exception's type as `error.type` ([Spans](./production.md#spans)). A streaming run
-  throws the same exception from the loop over its updates.
-- A model a user picked is checked only when a run calls it, so a typo saved on a settings page fails a later run.
-  Check the pick against the models the provider offers when your settings page saves it.
+- Typeshift asks your provider for the run's client before it touches the conversation, so the first three fail
+  before anything is stored, and before the run's `invoke_agent` span starts. Run the agent again once you fix the
+  cause.
+- A run that fails later has stored its input already ([What is stored](./conversations.md#what-is-stored)), so a
+  retry with the same input puts it into the conversation twice. `ResumeAsync` refuses such a conversation, because
+  its last run ended.
+- The OpenAI client throws a `ClientResultException`, from `System.ClientModel`, with the HTTP status in `Status`. A
+  timeout that outlasts the retries throws an `AggregateException` instead.
+- A streaming run throws each of these from the loop over its updates.
+- Typeshift never checks a model's name: the provider rejects an unknown one when a run calls it, so a typo saved on
+  a settings page fails a later run. Check the pick against the models the provider offers when your settings page
+  saves it.
 
 ## Related
 

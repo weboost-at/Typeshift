@@ -178,7 +178,7 @@ var openAi = new OpenAIClient(apiKey)
 
 services.AddKeyedSingleton("openai", openAi);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L28-L34' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-client' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L27-L33' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `OpenAIClient` is in the `OpenAI` namespace, and `apiKey` comes from your app's configuration, for example an
