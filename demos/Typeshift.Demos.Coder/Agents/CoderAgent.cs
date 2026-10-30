@@ -1,5 +1,5 @@
 using Typeshift.Demos.Coder.Hosting;
-using Typeshift.Toolsets;
+using Typeshift.Demos.Coder.Toolsets;
 
 namespace Typeshift.Demos.Coder.Agents;
 
@@ -15,11 +15,9 @@ internal partial class CoderAgent : Agent
             .Configurable(o => o.Instructions);
 
         UseToolset<TodoToolset>();
-        UseToolset<FileSystemToolset>();
+        UseToolset<FileToolset>();
         UseToolset<ShellToolset>();
-
-        UseToolset<WebToolset>()
-            .Include(t => t.WebFetch);
+        UseToolset<WebToolset>();
 
         UseAgent<ExplorerAgent>()
             .InBackground();

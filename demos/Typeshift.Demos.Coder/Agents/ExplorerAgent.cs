@@ -1,4 +1,4 @@
-using Typeshift.Toolsets;
+using Typeshift.Demos.Coder.Toolsets;
 
 namespace Typeshift.Demos.Coder.Agents;
 
@@ -12,7 +12,7 @@ internal partial class ExplorerAgent : Agent
         WithChatOptions()
             .Configurable(o => o.ModelId);
 
-        UseToolset<FileSystemToolset>()
+        UseToolset<FileToolset>()
             .Include(t => t.ListFiles)
             .Include(t => t.SearchFiles)
             .Include(t => t.ReadFile);

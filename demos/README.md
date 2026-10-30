@@ -7,7 +7,7 @@ builds them.
 | Demo | Shows |
 |---|---|
 | [MultiProvider](./Typeshift.Demos.MultiProvider/README.md) | Users define model providers at runtime and pick a model per user; every `CLUNKY n` comment marks where the current library gets in the way. |
-| [Coder](./Typeshift.Demos.Coder/README.md) | A long-running coding agent: plan mode, approval and rules, the built-in toolsets, a background explorer, compaction, a conversation on disk that resumes, steering, the live list of runs. |
+| [Coder](./Typeshift.Demos.Coder/README.md) | A long-running coding agent: plan mode, approval and rules, file, shell and web toolsets of its own, a background explorer, compaction, a conversation on disk that resumes, steering, the live list of runs. |
 | [Support](./Typeshift.Demos.Support/README.md) | A support desk of four agents: handoffs, a sub-agent, an MCP server, a context provider, middleware, settings per customer, typed output. |
 
 `Typeshift.Demos.Shared` holds what every host writes: the provider catalog and routing (`providers.json`), a JSON
