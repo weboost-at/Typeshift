@@ -116,8 +116,10 @@ numbers only. Keep each document in a row keyed by the id and the kind, with the
 [version](#versions):
 
 - **The id** is the settings id your app passed, such as a customer's.
-- **The kind** is the agent's class name, or what its `WithStorageKind("...")` sets. Under one settings id, each agent
-  has a document of its own, so the id and the kind together are the key.
+- **The kind** is the agent's class name, or what its `WithStorageKind("...")` sets. One settings id holds a document
+  per agent of a run, sub-agents and handoffs included
+  ([Sub-agents and handoffs](./settings-and-stores.md#sub-agents-and-handoffs)), so the id and the kind together are
+  the key.
 - **The JSON** is the record as Typeshift wrote it ([The stored JSON](./settings-and-stores.md#the-stored-json)).
   Keep it as text and return it unchanged.
 
@@ -347,11 +349,45 @@ public async Task AppendConversationAsync(int conversation, ConversationEntry en
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L58-L105' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-conversations' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`LoadConversationAsync` still returns every entry, summaries included, for your app's own use, such as showing the
-whole history. Runs call it too in one case: when the last summary has no `StandingApprovals`, as one stored by a
-Typeshift version before 0.1.0-alpha.3, they read the whole conversation. Compaction always fills them in, even as
-an empty list, so test your store with a summary compaction wrote, for example by giving an agent a small
-`WithMaxInputTokens`, rather than with an entry you built yourself.
+`LoadConversationAsync` still returns every entry, summaries included, for your app's own use, such as showing the whole
+history. Runs call it too in one case: when the last summary has no `StandingApprovals`, as one stored by a Typeshift
+version before 0.1.0-alpha.3, they read the whole conversation. Compaction always fills them in, even as an empty list,
+so set them on any summary you build for a test of your own, as [`VerifyAsync`](#check-your-store) does.
+
+## Check your store
+
+`VerifyAsync` runs this page's rules for keys, versions and conversation entries against your store. Call it on your
+store from a test of your own in any test framework, with the store over a test database:
+
+<!-- snippet: store-check -->
+<a id='snippet-store-check'></a>
+```cs
+var store = new EfTypeshiftStore(contexts);
+
+await store.VerifyAsync(9001);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/StoreVerification.cs#L13-L17' title='Snippet source file'>snippet source</a> | <a href='#snippet-store-check' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- It runs the rules of every interface your store implements: the settings rules for an `ISettingsStore`, the
+  conversation rules for an `IConversationStore`, and both for a store that is both, even when you call it through
+  one of the interfaces.
+- A broken rule throws an `InvalidOperationException` whose message names the rule and what to change, such as
+  keying documents by id and kind together. An exception your store throws itself passes through as it is, except
+  where a `StoreConflictException` belongs: there the message names the type your store threw instead.
+- For settings, it saves a document, then one of another kind under the same id, and loads both back. It then saves
+  the first document at version 0, and with its old version after a save with the current one. Those two saves must
+  throw a `StoreConflictException` and leave the document as it was. Every save that succeeds must return a new
+  version other than 0.
+- For conversations, it appends a run's input and its end, then two summaries with `IsSummary` and
+  `StandingApprovals` set, each followed by a run's end. After the first run and again at the end, it loads the
+  conversation whole and from the last summary on, which is every entry while there is no summary. Each entry must
+  come back unchanged, in the order it was appended.
+- It writes under the id you pass, as a settings id and as a conversation id, so calling it twice with one id fails
+  with a message that asks for a new id. Give each call an id nothing else uses, such as a new `Guid`, or start from
+  an empty database, as the docs sample does.
+- It makes one call at a time, so it cannot catch two saves that race. A store that reads the version and then
+  writes passes it and still loses saves under load ([What a save must do](#what-a-save-must-do)).
 
 ## Related
 

@@ -24,6 +24,7 @@ await using (var provider = services.BuildServiceProvider(new ServiceProviderOpt
         await db.Database.EnsureCreatedAsync();
     }
 
+    await StoreVerification.RunAsync(provider);
     await AgentSettings.RunAsync(provider);
     await RunningAgents.RunAsync(provider);
     await Conversations.RunAsync(provider, CancellationToken.None);

@@ -567,6 +567,26 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   plain word for the schema while store authors handle the store's number in every call; `version` for the parameter,
   which reads as the version to write; `expectedVersion`, which the owner found unclear.
 
+### D58. A store's own tests check it against the contract
+
+- **Status:** owner.
+- **Decision:** `store.VerifyAsync(id)`, an extension method on `ISettingsStore`, `IConversationStore` and
+  `ITypeshiftStore`, runs the rules Typeshift relies on against a store and throws an `InvalidOperationException` that
+  names the rule a store broke. It runs the rules of every interface the store implements, whichever one it is called
+  through, so a store that is both cannot pass on one alone. It needs no test framework, so a store's tests in any
+  framework can call it. It writes under the id it is given, as a settings id and as a conversation id, so tests pass
+  one that nothing else uses.
+- **Details:** the steps are on [Implementing a store](../guide/implementing-a-store.md#check-your-store). The summary
+  entries have `StandingApprovals` set, as compaction writes them, and entries carry fixed times, so the check reads
+  no clock. A store's own exception where a conflict belongs is named in the message. A conversation id with entries,
+  or a settings id that holds the check's own document, fails with a message that asks for a new id and names no rule.
+- **Where:** `Storage/StoreExtensions.cs`.
+- **Alternatives:** `StoreCheck.CheckSettingsAsync` and `CheckConversationsAsync`, two static methods named for the
+  interface rather than called on the store, which the owner found clunky and which let a store that is both pass on
+  one; one named case per rule for a `[Theory]`, which adds API and leans on a test framework; an abstract xUnit test
+  class in a package of its own, which ties stores to one test framework; a checking decorator around the registered
+  store, which finds a broken rule only when a run hits it.
+
 ### D42. Settings ids and conversation ids are separate; conversations grow by appending
 
 - **Status:** owner.
