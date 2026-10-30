@@ -12,20 +12,7 @@ internal static class Catalog
         new(
             toolset.Type.FullName,
             toolset.Type.Accessibility == "public",
-            toolset.Tools
-                .Select(tool => new ToolSummary(
-                    Name: tool.Name,
-                    Property: Names.ToolProperty(tool.Name),
-                    Factory: Names.FactoryName(tool.Name),
-                    Settings: tool.Settings?.Type,
-                    Overrides: tool.Settings?.HasConfigurable is true
-                        ? $"{toolset.Type.FullName}.{Names.OverridesName(tool.Name)}"
-                        : null,
-                    Members: tool.Settings?.Properties
-                        .Select(property => new SettingMember(property.Name, property.Type))
-                        .ToEquatableArray() ?? default,
-                    RequiresApproval: tool.RequiresApproval))
-                .ToEquatableArray());
+            toolset.Tools.Select(tool => Summarize(toolset.Type, tool)).ToEquatableArray());
 
     // D33, D34: the agent as its module stamps it, for the agents that use it
     public static ModuleAgent Summarize(AgentOutput output)
@@ -40,7 +27,12 @@ internal static class Catalog
             Kind: output.Agent.Kind,
             Name: output.Agent.Name,
             Described: output.Agent.Description is not null,
-            ApprovalTools: approvalTools);
+            ApprovalTools: approvalTools,
+            Tools: output.Tools.Select(offered => offered.Tool.Name).ToEquatableArray(),
+            OwnTools: output.Tools
+                .Where(offered => offered.Owner == output.Agent.Type.FullName)
+                .Select(offered => offered.Tool.Name)
+                .ToEquatableArray());
     }
 
     // A use of a toolset the catalog lacks is skipped (TSH019), and so is a tool already offered (TSH025, or a name
@@ -66,6 +58,14 @@ internal static class Catalog
             }
         }
 
+        // D57: the agent's own tools come after its toolsets'
+        foreach (var tool in agent.Tools.Select(own => Summarize(agent.Type, own)))
+        {
+            if (offered.Any(other => Clashes(other.Tool, tool))) continue;
+
+            offered.Add(new OfferedTool(agent.Type.FullName, tool));
+        }
+
         return new AgentOutput(agent, offered.ToEquatableArray());
     }
 
@@ -75,6 +75,21 @@ internal static class Catalog
             ? toolset.Tools.Where(tool => AgentParser.Offers(use.Excludes, use.Picks, tool.Property))
             : use.Picks.Select(pick => toolset.Tools.FirstOrDefault(tool => tool.Property == pick))
                 .OfType<ToolSummary>();
+
+    // The generated members of a tool live in the toolset or the agent that declares it
+    private static ToolSummary Summarize(TypeModel owner, ToolModel tool) =>
+        new(
+            Name: tool.Name,
+            Property: Names.ToolProperty(tool.Name),
+            Factory: Names.FactoryName(tool.Name),
+            Settings: tool.Settings?.Type,
+            Overrides: tool.Settings?.HasConfigurable is true
+                ? $"{owner.FullName}.{Names.OverridesName(tool.Name)}"
+                : null,
+            Members: tool.Settings?.Properties
+                .Select(property => new SettingMember(property.Name, property.Type))
+                .ToEquatableArray() ?? default,
+            RequiresApproval: tool.RequiresApproval);
 
     private static bool Clashes(ToolSummary offered, ToolSummary tool) =>
         offered.Name == tool.Name || Names.ToPascalCase(offered.Name) == Names.ToPascalCase(tool.Name);

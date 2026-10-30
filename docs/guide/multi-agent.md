@@ -86,7 +86,7 @@ rejected unless a standing approval or a rule covers it. The analyzer warns abou
 UseAgent<ExploreAgent>()
     .InBackground();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L19-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-background-sub-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L15-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-background-sub-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 When the sub-agent finishes, its answer reaches the calling run as a message before the run's next model call.
@@ -98,7 +98,7 @@ When the sub-agent finishes, its answer reaches the calling run as a message bef
   conversation's next run tells the model it was lost, so the model can call it again.
 
 The sub-agent itself is an agent like any other. This one explores the workspace with a fast model and offers only
-the file tools that read, so none of its calls needs approval:
+the reading tools of the app's `WorkspaceToolset`, so none of its calls needs approval:
 
 <!-- snippet: sub-agent -->
 <a id='snippet-sub-agent'></a>
@@ -112,7 +112,7 @@ internal partial class ExploreAgent : Agent
         WithChatOptions()
             .WithModel("openai", "gpt-5-mini");
 
-        UseToolset<FileSystemToolset>()
+        UseToolset<WorkspaceToolset>()
             .Include(t => t.ReadFile)
             .Include(t => t.ListFiles)
             .Include(t => t.SearchFiles);

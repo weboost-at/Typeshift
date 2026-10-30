@@ -134,6 +134,58 @@ public static class AgentSources
         }
         """;
 
+    // Tools of the agent's own next to a toolset's: one that reads, with settings, and one that asks first
+    public const string OwnTools =
+        """
+        #pragma warning disable CS1591
+
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        namespace Demo;
+
+        public record LookUpSettings
+        {
+            public int Limit { get; init; } = 3;
+        }
+
+        public partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                WithChatOptions()
+                    .WithModel("openai", "fast-model");
+
+                UseToolset<TicketToolset>().Include(t => t.CloseTicket);
+
+                AddTool(LookUpCustomer)
+                    .WithDescription("Looks a customer up.")
+                    .ReadOnly()
+                    .WithSettings<LookUpSettings>()
+                    .Configurable(s => s.Limit);
+
+                AddTool(RefundOrder)
+                    .WithDescription("Refunds an order.")
+                    .RequiresApproval();
+
+                ConfigureLookUpCustomer()
+                    .WithLimit(5);
+            }
+
+            /// <param name="email">The customer's email address.</param>
+            private static string LookUpCustomer(string email, LookUpSettings settings) => email;
+
+            private static void RefundOrder(int order)
+            {
+            }
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) => services.AddTypeshift();
+        }
+        """;
+
     // A tool named like a configurable option, a Configure method of the user's own, an agent nested in a class
     public const string Clashes =
         """

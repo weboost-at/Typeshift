@@ -16,18 +16,18 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
     // end-snippet
 
     // begin-snippet: ef-core-save
-    public async Task<long> SaveAsync(int id, string kind, string json, long expectedVersion, CancellationToken ct)
+    public async Task<long> SaveAsync(int id, string kind, string json, long loadedVersion, CancellationToken ct)
     {
         await using var db = await contexts.CreateDbContextAsync(ct);
 
-        var rows = expectedVersion == 0
+        var rows = loadedVersion == 0
             ? await InsertAsync(db, id, kind, json, ct)
-            : await UpdateAsync(db, id, kind, json, expectedVersion, ct);
+            : await UpdateAsync(db, id, kind, json, loadedVersion, ct);
 
         // Each statement checks and writes in one step, so a save that changed no row lost to another save
         return rows == 1
-            ? expectedVersion + 1
-            : throw new StoreConflictException($"{kind} {id} was saved after version {expectedVersion}.");
+            ? loadedVersion + 1
+            : throw new StoreConflictException($"{kind} {id} was saved after version {loadedVersion}.");
     }
 
     private static Task<int> InsertAsync(TypeshiftDb db, int id, string kind, string json, CancellationToken ct) =>
@@ -44,14 +44,14 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
         int id,
         string kind,
         string json,
-        long expectedVersion,
+        long loadedVersion,
         CancellationToken ct) =>
         db.Documents
-            .Where(row => row.Id == id && row.Kind == kind && row.Version == expectedVersion)
+            .Where(row => row.Id == id && row.Kind == kind && row.Version == loadedVersion)
             .ExecuteUpdateAsync(
                 set => set
                     .SetProperty(row => row.Json, json)
-                    .SetProperty(row => row.Version, expectedVersion + 1),
+                    .SetProperty(row => row.Version, loadedVersion + 1),
                 ct);
     // end-snippet
 

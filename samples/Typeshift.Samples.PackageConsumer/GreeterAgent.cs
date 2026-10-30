@@ -14,7 +14,5 @@ public partial class GreeterAgent : Agent
             .WithModel("any-provider", "any-model");
 
         UseToolset<GreetingToolset>();
-
-        UseToolset<Typeshift.Toolsets.TodoToolset>();
     }
 }

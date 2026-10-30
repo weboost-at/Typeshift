@@ -46,7 +46,7 @@ internal static class AgentSettings
             "Expected a stale version to conflict.");
 
         await ExpectConflictAsync(
-            () => support.SaveSettingsAsync(settingsId, lost, expectedVersion: 0),
+            () => support.SaveSettingsAsync(settingsId, lost, loadedVersion: 0),
             "Expected a second first save to conflict.");
 
         var after = await support.LoadSettingsAsync(settingsId);

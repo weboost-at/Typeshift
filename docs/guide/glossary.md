@@ -11,7 +11,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | Term | Meaning |
 |---|---|
 | **Agent** | A `partial` class deriving from `Agent` that bundles chat options, instructions, tools and their settings for one job. See [Agents](./defining-agents.md). |
-| **Agent host** | `AgentHost<TAgent>`, which runs one agent with the services of the scope it was resolved from. See [Running agents](./running-agents.md). |
+| **Agent host** | `AgentHost<TAgent>`, which runs one agent with the services of the scope it was resolved from. See [Using an agent](./using-an-agent.md). |
 | **Approval request** | The `ToolApprovalRequestContent` a run ends with when it needs approval. You answer it in the conversation's next run. See [Approval and modes](./tool-approval.md). |
 | **Approval rule** | An `IToolApprovalRule` that approves, rejects or abstains on a tool call before your app is asked. |
 | **Chat client provider** | The `IChatClientProvider` your app registers with `WithChatClientProvider<T>()`, which returns the `IChatClient` for a provider and a model. |
@@ -45,7 +45,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | **Steering** | Input a user sends while a run works, which you hand to that run with `ConversationTracker.TrySteer`. See [Steering](./conversations.md#steering). |
 | **Store** | What your app registers with `WithStore<T>()` to keep settings (`ISettingsStore`), conversations (`IConversationStore`) or both (`ITypeshiftStore`). See [Settings and stores](./settings-and-stores.md). |
 | **Sub-agent** | Another agent offered as a tool with `UseAgent<T>()`. It works in a context of its own and answers with text. |
-| **Tool** | A static method a toolset declares with `AddTool`, offered to the model as a generated `AIFunction`. |
+| **Tool** | A static method that a toolset or an agent declares with `AddTool`, offered to the model as a generated `AIFunction`. |
 | **Tool list** | `ToolList<TToolset>`, the type `Include` and `Exclude` pick tools from. The generated `{Toolset}ToolList` gives it one property per tool. |
 | **Toolset** | A `partial` class deriving from `Toolset` that declares the tools of one domain. See [Toolsets](./toolsets.md). |
 | **Version** | The number that marks a stored document's current state; each save gives the document a new one. A save passes the version it loaded, so it fails when another save came first. Not the schema version. See [Save with a version](./implementing-a-store.md#save-with-a-version). |

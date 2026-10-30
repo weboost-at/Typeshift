@@ -1,6 +1,7 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Typeshift.Samples.Agents;
+using Typeshift.Samples.Hosting;
 using Typeshift.Samples.Knowledge;
 using Typeshift.Samples.Tickets;
 
@@ -18,6 +19,17 @@ internal static class RunningAgents
 
         Console.WriteLine($"{answer.Messages[^1].AuthorName}: {answer.Text}");
         // end-snippet
+
+        await using (var request = provider.CreateAsyncScope())
+        {
+            var desk = request.ServiceProvider.GetRequiredService<RefundDesk>();
+            var injected = await desk.AnswerAsync("Where is my refund?", CancellationToken.None);
+            Expect(injected == answer.Text, "a host injected into a service answers");
+        }
+
+        var digest = new TicketDigest(provider.GetRequiredService<IServiceScopeFactory>(), TimeProvider.System);
+        var digested = await digest.DigestAsync(CancellationToken.None);
+        Expect(digested.Length > 0, "a background job answers from a scope of its own");
 
         // begin-snippet: run-with-settings-id
         var settingsId = 42;

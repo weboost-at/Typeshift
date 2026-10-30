@@ -11,7 +11,7 @@ internal sealed class Compaction
 {
     public const string ClearedResult = "[Cleared to save context; call the tool again if you need this result.]";
 
-    // D32, D37: the latest write_todos call and its result stay, whatever goes
+    // D32: the latest call of a tool named write_todos and its result stay, whatever goes
     public const string WriteTodos = "write_todos";
 
     private const string SummaryInstructions =

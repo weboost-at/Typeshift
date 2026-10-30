@@ -100,14 +100,13 @@ and `anthropic`, and `KeyedChatClientProvider` returns the client registered und
 |---|---|
 | Each toolset | Singleton |
 | Each agent | Singleton |
-| `AgentHost<TAgent>` per agent | Transient, so it runs with the services of the scope it was resolved from |
+| `AgentHost<TAgent>` per agent | Transient, so it runs with the services of the scope it was resolved from ([Using an agent](./using-an-agent.md)) |
 | The JSON contexts of each assembly, which tools ask before the defaults | Singleton |
 | `ConversationTracker` and the core services runs need | Singleton |
 
-The generator writes a registration module for each project that declares toolsets or agents. `AddTypeshift()` runs
-the modules from three places: the project that calls it, every project it references that declares toolsets or agents,
-and the library's [built-in toolsets](./built-in-toolsets.md). Each module registers once per service collection, so a
-second call to `AddTypeshift()` only returns another chain.
+The generator writes a registration module for each project that declares toolsets or agents. `AddTypeshift()` runs the
+modules of the project that calls it and of every project it references that declares toolsets or agents. Each module
+registers once per service collection, so a second call to `AddTypeshift()` only returns another chain.
 
 Because the generator intercepts the call, it works only in a project that references the package, and only when you
 call it on the service collection, such as `services.AddTypeshift()` or `builder.Services.AddTypeshift()`. A call the
@@ -129,9 +128,6 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 | `WithRunMiddleware<TMiddleware>()` | One more `IRunMiddleware`. The first registered is the outermost. | Scoped | Wrapping every run. |
 | `WithToolMiddleware<TMiddleware>()` | One more `IToolMiddleware`. The first registered is the outermost. | Scoped | Wrapping every tool call. |
 | `WithMcpToolProvider<TProvider>()` | `IMcpToolProvider` | Scoped | Agents with `UseMcpServer`. |
-| `WithFileSystemRoot<TRoot>()` | `IFileSystemRoot` | Scoped | `FileSystemToolset`, `ShellToolset`. |
-| `WithWebSearch<TSearch>()` | `IWebSearch` | Scoped | `web_search`. |
-| `WithWebFetch<TFetch>()` | `IWebFetch` | Scoped | `web_fetch`. |
 
 Scoped services resolve from the run's scope, so they can differ per request and use the current customer's
 credentials, folder or rules, for example.
@@ -139,7 +135,8 @@ credentials, folder or rules, for example.
 ## Related
 
 - [Getting started](./getting-started.md): the setup, step by step.
-- [Running agents](./running-agents.md): resolving a host from a scope and running an agent.
+- [Using an agent](./using-an-agent.md): injecting a host or resolving it from a scope.
+- [Running agents](./running-agents.md): running an agent.
 - [Settings and stores](./settings-and-stores.md): the store `WithStore<T>()` registers.
 - [Generated members](./generated-members.md#per-project): the module, the aliases and the interceptor the generator
   writes.

@@ -175,6 +175,72 @@ public static class ReferenceSources
         }
         """;
 
+    public const string HelpAgentWithOwnTool =
+        """
+        using Typeshift;
+
+        namespace Help;
+
+        public partial class HelpAgent : Agent
+        {
+            public HelpAgent()
+            {
+                WithDescription("Helps.");
+
+                AddTool(Close).WithDescription("Closes a ticket.");
+            }
+
+            private static void Close(int number)
+            {
+            }
+        }
+        """;
+
+    public const string HelpAgentHandoffWithOwnTool =
+        """
+        using Typeshift;
+        using Help;
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent()
+            {
+                AddTool(CloseLead).WithName("close").WithDescription("Closes a lead.");
+
+                UseHandoff<HelpAgent>();
+            }
+
+            private static void CloseLead(int lead)
+            {
+            }
+        }
+        """;
+
+    public const string HelpAgentHandoffWithToolset =
+        """
+        using Typeshift;
+        using Help;
+
+        internal partial class LeadToolset : Toolset
+        {
+            public LeadToolset() => AddTool(Close).WithDescription("Closes a lead.");
+
+            public static void Close(int lead)
+            {
+            }
+        }
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent()
+            {
+                UseToolset<LeadToolset>();
+
+                UseHandoff<HelpAgent>();
+            }
+        }
+        """;
+
     public const string HelpAgentUse =
         """
         using Typeshift;

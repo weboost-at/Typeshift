@@ -123,6 +123,115 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_An_Agents_Tool_Named_Like_A_Toolsets_It_Does_Not_Use_TSH007_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentToolNamedLikeAToolsets);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH007");
+    }
+
+    [Fact]
+    public void Given_Two_Agents_With_Tools_Of_One_Name_And_No_Handoff_TSH007_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentToolsOfOneNameWithoutHandoff);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH007");
+    }
+
+    [Fact]
+    public void Given_A_Handoff_Between_Agents_With_Tools_Of_One_Name_TSH007_Is_Reported_On_Both_Tools()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentToolsOfOneNameAcrossHandoff);
+
+        // Assert
+        run.Assert.ReportsAmong("TSH007", DiagnosticSeverity.Error, "AddTool(FindOrder)");
+        run.Assert.ReportsAmong("TSH007", DiagnosticSeverity.Error, "AddTool(FindTicket)");
+    }
+
+    [Fact]
+    public void Given_A_Sub_Agent_With_A_Tool_Named_Like_Its_Callers_TSH007_Is_Reported_On_Both_Tools()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentToolsOfOneNameAcrossSubAgent);
+
+        // Assert
+        run.Assert.ReportsAmong("TSH007", DiagnosticSeverity.Error, "AddTool(FindOrder)");
+        run.Assert.ReportsAmong("TSH007", DiagnosticSeverity.Error, "AddTool(FindTicket)");
+    }
+
+    [Fact]
+    public void Given_Agents_Handing_Off_To_Each_Other_With_Tools_Of_One_Name_TSH007_Is_Reported_Once_On_Each_Tool()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentToolsOfOneNameInAHandoffCircle);
+
+        // Assert
+        run.Assert.ReportsAmong("TSH007", DiagnosticSeverity.Error, "AddTool(FindOrder)");
+        run.Assert.ReportsAmong("TSH007", DiagnosticSeverity.Error, "AddTool(FindTicket)");
+    }
+
+    [Fact]
+    public void Given_An_Agents_Tool_Named_Like_Its_Toolsets_But_For_Underscores_TSH007_Is_Reported_On_The_Own_Tool()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentToolLikeItsToolsetsButForUnderscores);
+
+        // Assert
+        run.Assert.Reports("TSH007", DiagnosticSeverity.Error, "AddTool(GetOwn)");
+    }
+
+    [Fact]
+    public void Given_Handoffs_Reaching_An_Agent_With_A_Toolset_Tool_Of_One_Name_TSH007_Is_Reported_On_The_Own_Tool()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentToolLikeAToolsetsAtTheEndOfHandoffs);
+
+        // Assert
+        run.Assert.Reports("TSH007", DiagnosticSeverity.Error, "AddTool(CloseDesk)");
+    }
+
+    [Fact]
+    public void Given_A_Handoff_To_A_References_Agent_With_A_Tool_Of_One_Name_TSH007_Is_Reported_On_The_Own_Tool()
+    {
+        // Arrange
+        var reference = CompileReference("Help", ReferenceSources.HelpAgentWithOwnTool);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.HelpAgentHandoffWithOwnTool));
+
+        // Assert
+        run.Assert.Reports("TSH007", DiagnosticSeverity.Error, "AddTool(CloseLead)");
+    }
+
+    [Fact]
+    public void Given_A_Handoff_To_A_References_Agent_With_A_Tool_Of_A_Toolsets_Name_TSH007_Is_Reported_On_The_Agent()
+    {
+        // Arrange
+        var reference = CompileReference("Help", ReferenceSources.HelpAgentWithOwnTool);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.HelpAgentHandoffWithToolset));
+
+        // Assert
+        run.Assert.Reports("TSH007", DiagnosticSeverity.Error, "LeadAgent");
+    }
+
+    [Fact]
+    public void Given_An_Agents_Tool_Of_An_Instance_Method_TSH003_Is_Reported_On_The_Argument()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentToolOfAnInstanceMethod);
+
+        // Assert
+        run.Assert.Reports("TSH003", DiagnosticSeverity.Error, "Close");
+    }
+
+    [Fact]
     public void Given_Two_Toolsets_With_A_Tool_Of_One_Name_TSH007_Is_Reported_On_The_Second()
     {
         // Act
@@ -625,6 +734,19 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Sub_Agent_With_A_Tool_Of_Its_Own_That_Needs_Approval_TSH024_Is_Reported_On_The_Use()
+    {
+        // Act
+        var run = Run(DiagnosticSources.SubAgentWithOwnToolNeedingApproval);
+
+        // Assert
+        run.Assert.Reports("TSH024", DiagnosticSeverity.Warning, "UseAgent<HelpAgent>")
+            .GetMessage()
+            .Should()
+            .Contain("close");
+    }
+
+    [Fact]
     public void Given_A_Sub_Agent_Offering_A_Tool_That_Needs_Approval_TSH024_Is_Reported_On_The_Use()
     {
         // Act
@@ -799,20 +921,6 @@ public class DiagnosticTests : GeneratorTestBase
             .Should()
             .Contain("which settings cannot store as one value");
         run.Assert.GeneratesValidCode();
-    }
-
-    [Fact]
-    public void Given_A_Tool_Named_Like_A_Built_In_One_TSH025_Is_Reported_Only_On_The_Agent_Offering_Both()
-    {
-        // Act
-        var run = Run(DiagnosticSources.BuiltInToolName);
-
-        // Assert
-        run.Assert.DoesNotReport("TSH007");
-        run.Assert.Reports("TSH025", DiagnosticSeverity.Error, "SearchAgent")
-            .GetMessage()
-            .Should()
-            .Contain("web_search");
     }
 
     [Theory]

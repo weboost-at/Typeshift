@@ -12,12 +12,17 @@ All notable changes to this project are documented here. The format follows
   `ITypeshiftStore` is both in one, so an existing store compiles unchanged. A call that loads or saves without a
   matching store throws, naming the interface it needs, and TSH028 reports a store that implements neither interface
   for the build's id type.
+- An agent may declare tools of its own with `AddTool(method)` in its constructor, backed by a static method of the
+  agent that may be private. The call returns the same chain as a toolset's tool. The agent offers these tools after
+  its toolsets' tools: each gets a `Configure{Tool}()`, its configurable members join the agent's `Settings`, it can
+  require approval, and the analyzer checks it like a toolset's tool. Its name may repeat another agent's tool, unless
+  the two share standing approvals through a handoff or a sub-agent (TSH007). Module stamps carry each agent's tools,
+  at stamp version 4.
 - `System.Text.Json` and Newtonsoft.Json serialize a `ConversationEntry` as it is, with no settings: the first writes
   its stored JSON, the second that JSON as a string. Newtonsoft.Json used to read entries back with their contents
   emptied.
-- `StoreCheck.CheckSettingsAsync` and `StoreCheck.CheckConversationsAsync` run the rules Typeshift relies on against
-  your store, from a test of your own with any test framework, and throw an exception that names the rule your store
-  broke.
+- `store.VerifyAsync(id)` runs the rules Typeshift relies on against your store, for every interface it implements,
+  from a test of your own with any test framework, and throws an exception that names the rule your store broke.
 
 ### Changed
 
@@ -34,9 +39,18 @@ All notable changes to this project are documented here. The format follows
   without it a document reads as schema version 1.
 - The number a store keeps for each document is its version, and the record's number its schema version.
   `StoredDocument.Revision` and `Stored<T>.Revision` are `Version`, and `SaveAsync` and `SaveSettingsAsync` take
-  `expectedVersion` where they took `revision`, so `StoredDocument.Version` now holds what `Revision` held.
+  `loadedVersion` where they took `revision`, so `StoredDocument.Version` now holds what `Revision` held.
   `WithSettingsVersion(n)` is `WithSchemaVersion(n)`, and `IStorable.Version`, `Settings.Version` and
   `ConversationEntry.Version` are `SchemaVersion`. A store renames its revision column, or keeps it and maps it.
+- The package icon and the docs site's touch icon are a white tile with an ink and a red chevron, where the tile was
+  ink with a white and a red chevron.
+
+### Removed
+
+- The built-in toolsets: `TodoToolset`, `FileSystemToolset`, `ShellToolset` and `WebToolset`, with `IFileSystemRoot`,
+  `IWebSearch`, `IWebFetch`, `WithFileSystemRoot<T>()`, `WithWebSearch<T>()` and `WithWebFetch<T>()`. An app that used
+  them declares the tools it needs in a toolset of its own. Compaction still keeps the latest call of a tool named
+  `write_todos`.
 
 ## [0.1.0-alpha.3] - 2026-10-27
 
