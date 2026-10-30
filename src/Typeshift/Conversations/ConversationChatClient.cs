@@ -82,12 +82,12 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         Activity? activity,
         CancellationToken ct)
     {
-        var (conversation, entries) = await LoadAsync(options, ct);
+        var (conversation, entries, claim, answering) = await LoadAsync(options, ct);
 
-        if (AnsweringAgent(entries) is { } answering)
+        if (answering is not null)
             return await answering.RunAsync(messages, SettingsId(options), conversation, null, ct);
 
-        var (run, call, runOptions) = await BeginAsync(messages, options, conversation, entries, activity);
+        var (run, call, runOptions) = await BeginAsync(messages, options, conversation, entries, claim, activity);
         run.Publisher = CreatePublisher(run);
         var handedOff = false;
 
@@ -139,9 +139,9 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         Activity? activity,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        var (conversation, entries) = await LoadAsync(options, ct);
+        var (conversation, entries, claim, answering) = await LoadAsync(options, ct);
 
-        if (AnsweringAgent(entries) is { } answering)
+        if (answering is not null)
         {
             await foreach (var update in answering.RunStreamingAsync(messages, SettingsId(options), conversation, ct))
             {
@@ -151,7 +151,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             yield break;
         }
 
-        var (run, call, runOptions) = await BeginAsync(messages, options, conversation, entries, activity);
+        var (run, call, runOptions) = await BeginAsync(messages, options, conversation, entries, claim, activity);
 
         var publisher = CreatePublisher(run);
 
@@ -238,23 +238,39 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         return further;
     }
 
-    // The run's conversation from its last summary, loaded once: for the agent that answers and for the run's history
-    private async Task<(object? Conversation, IReadOnlyList<ConversationEntry> Entries)> LoadAsync(
-        ChatOptions? options,
-        CancellationToken ct)
+    // The run's conversation from its last summary, claimed and loaded once: for the agent that answers, which then
+    // runs it under a claim of its own, and for the run's history (D50)
+    private async Task<(
+        object? Conversation,
+        IReadOnlyList<ConversationEntry> Entries,
+        RunClaim? Claim,
+        IAgentHost? Answering)> LoadAsync(ChatOptions? options, CancellationToken ct)
     {
         var conversation = options is null ? null : GetConversation(options);
-        if (conversation is null) return (null, []);
+        if (conversation is null) return (null, [], null, null);
 
-        var entries = await Store.LoadConversationSinceCompactionAsync(conversation, ct);
+        var claim = Runs.Claim(conversation);
 
-        // D24: a summary an earlier version stored keeps no standing approvals, so the run reads them all
-        if (entries is [{ IsSummary: true, StandingApprovals: null }, ..])
+        try
         {
-            entries = await Store.LoadConversationAsync(conversation, ct);
-        }
+            var entries = await Store.LoadConversationSinceCompactionAsync(conversation, ct);
 
-        return (conversation, entries);
+            // D24: a summary an earlier version stored keeps no standing approvals, so the run reads them all
+            if (entries is [{ IsSummary: true, StandingApprovals: null }, ..])
+            {
+                entries = await Store.LoadConversationAsync(conversation, ct);
+            }
+
+            var answering = AnsweringAgent(entries);
+            if (answering is not null) Runs.Release(claim);
+
+            return (conversation, entries, claim, answering);
+        }
+        catch
+        {
+            Runs.Release(claim);
+            throw;
+        }
     }
 
     // D34: the agent that answered the conversation last answers its next run, if this agent's handoffs reach it
@@ -320,6 +336,26 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         ChatOptions? options,
         object? conversation,
         IReadOnlyList<ConversationEntry> entries,
+        RunClaim? claim,
+        Activity? activity)
+    {
+        try
+        {
+            return await BeginClaimedAsync(messages, options, conversation, entries, claim, activity);
+        }
+        catch
+        {
+            Runs.Release(claim);
+            throw;
+        }
+    }
+
+    private async Task<(ConversationRun Run, List<ChatMessage> Call, ResolvedChatOptions Options)> BeginClaimedAsync(
+        IEnumerable<ChatMessage> messages,
+        ChatOptions? options,
+        object? conversation,
+        IReadOnlyList<ConversationEntry> entries,
+        RunClaim? claim,
         Activity? activity)
     {
         // D24: a request is the model's, never the host's; one in the input is dropped before anything stores it
@@ -341,6 +377,11 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             throw new InvalidOperationException(
                 $"Conversation {conversation} has no interrupted run to resume: run it with input instead.");
         }
+
+        // D24: an answer to a request the last run did not leave open may run nothing, so nothing stores it either; the
+        // run goes on without it, as it did with the answer dropped
+        var open = ConversationHistory.OpenRequests(entries);
+        input = [.. input.Select(message => WithoutClosedAnswers(message, open)).OfType<ChatMessage>()];
 
         // D52: a conversation keeps its mode, unless the run's settings name one
         if (!runOptions.RunSetsMode && entries.LastOrDefault(entry => entry.Mode is not null)?.Mode is { } kept)
@@ -380,7 +421,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             runOptions.Tools = [.. runOptions.Tools ?? [], .. handoffs];
         }
 
-        Runs.Begin(run);
+        Runs.Begin(run, claim);
         run.MarkStored(history);
 
         if (input.Count > 0) await run.AppendAsync(input);
@@ -404,6 +445,18 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
         var kept = message.Clone();
         kept.Contents = [.. message.Contents.Where(content => content is not ToolApprovalRequestContent)];
+        return kept.Contents.Count > 0 ? kept : null;
+    }
+
+    private static ChatMessage? WithoutClosedAnswers(ChatMessage message, HashSet<string> open)
+    {
+        static bool IsClosed(AIContent content, HashSet<string> open) =>
+            content is ToolApprovalResponseContent answer && !open.Contains(answer.RequestId);
+
+        if (!message.Contents.Any(content => IsClosed(content, open))) return message;
+
+        var kept = message.Clone();
+        kept.Contents = [.. message.Contents.Where(content => !IsClosed(content, open))];
         return kept.Contents.Count > 0 ? kept : null;
     }
 

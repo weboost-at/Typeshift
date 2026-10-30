@@ -104,8 +104,8 @@ carry a call of its own, but the call that runs is always the one your app saw, 
 that matches no stored request is dropped, and when a request gets more than one answer, the first one counts.
 
 ::: warning A request left unanswered is dropped
-The next run drops every stored request it has no answer for, and the model sees that call as never made. Answer
-every request in `ApprovalRequests` in the same run.
+The next run drops every stored request it has no answer for, and the model sees that call as never made. An answer
+that comes in a later run runs nothing, so answer every request in `ApprovalRequests` in the same run.
 :::
 
 ## Approving for the conversation

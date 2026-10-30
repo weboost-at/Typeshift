@@ -69,6 +69,33 @@ public class ConversationStoreTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Run_Loading_Its_Conversation_A_Second_Run_Of_It_Fails()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithStore<GatedLoadStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+        var store = provider.GetRequiredService<GatedLoadStore>();
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var first = host.RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+        await store.Loading.Task;
+
+        // Act
+        var second = () => host.RunAsync(Data.Agent.FollowUp, conversationId: Data.Agent.ConversationId, ct: Ct);
+
+        // Assert
+        await second.Should().ThrowAsync<InvalidOperationException>().WithMessage("*TrySteer*");
+        store.Gate.SetResult();
+        await first;
+    }
+
+    [Fact]
     public async Task Given_A_Store_That_Fails_To_Append_The_Run_Still_Answers()
     {
         // Arrange

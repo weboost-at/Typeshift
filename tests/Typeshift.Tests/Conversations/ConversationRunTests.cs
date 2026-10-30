@@ -227,6 +227,27 @@ public class ConversationRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Run_That_Failed_To_Begin_The_Next_Run_Of_The_Conversation_Runs()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason));
+
+        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+
+        var resume = () => Host<ProbeAgent>().ResumeAsync(Data.Agent.ConversationId, ct: Ct);
+        await resume.Should().ThrowAsync<InvalidOperationException>();
+
+        // Act
+        var response = await Host<ProbeAgent>()
+            .RunAsync(Data.Agent.FollowUp, conversationId: Data.Agent.ConversationId, ct: Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Agent.Reason);
+    }
+
+    [Fact]
     public async Task Given_A_Run_Going_On_A_Second_Run_Of_The_Conversation_Fails()
     {
         // Arrange

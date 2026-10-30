@@ -267,6 +267,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   the run with `ToolApprovalRequestContent`s, listed by `response.ApprovalRequests`. The host answers with
   `CreateResponse(approved)` in the next run of the conversation; the stored request is the one that runs, an answer to
   no stored request is dropped, a request keeps its first answer, and an unanswered request is left out of the next run.
+  Only the requests the conversation's last run left unanswered are open: a later run's history leaves out the others,
+  and an answer to one is dropped before anything stores it, so a request a run passed by can neither run its call nor
+  give a standing approval afterwards.
   A request in the input is dropped before anything stores it, so a host's input cannot bring a call of its own past the
   rules. Standing approvals hold beyond what compaction left: a summary entry stores them. Calls in the same
   response that need no approval wait with it and run once the host answered (the tool loop asks for every call of a
@@ -667,7 +670,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   the moment it exists, tool results before the next model call. A run without an ending entry was interrupted:
   `ResumeAsync(conversationId)` (and `ResumeStreamingAsync`) continues it without new input, leaving out a call that
   was in flight; a new run on the conversation also starts from its steps. One run per conversation at a time in a
-  process; across processes it is the host's to ensure. Resuming a conversation whose last run ended throws.
+  process, claimed before the run loads the conversation, so no run reads it while another still stores its end;
+  across processes it is the host's to ensure. Resuming a conversation whose last run ended throws.
 - **Alternatives:** one entry per run, rewritten at each step (a whole-run write per model call); re-running the
   interrupted tool call, unsafe for side effects; a `RunAsync` with a null input in place of `ResumeAsync`.
 - **Where:** `Conversations/`, the checkpoint layer of D29.
