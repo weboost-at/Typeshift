@@ -1,5 +1,4 @@
 using System.Net.ServerSentEvents;
-using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -11,64 +10,73 @@ namespace Typeshift.Samples.Web;
 
 internal static class ChatEndpoints
 {
-    public static void MapChats(this IEndpointRouteBuilder app)
+    extension(IEndpointRouteBuilder app)
     {
-        // begin-snippet: chat-endpoint
-        var chat = app.MapGroup("/chats/{chatId:int}")
-            .AddEndpointFilter<ChatOwnerFilter>();
-
-        chat.MapPost("/messages", async (
-            int chatId,
-            ChatInput input,
-            AgentHost<SupportAgent> support,
-            ICurrentCustomer customer,
-            CancellationToken ct) =>
+        public void MapChats()
         {
-            var answer = await support.RunAsync(input.Text, settingsId: customer.Id, conversationId: chatId, ct: ct);
-            return ChatReply.From(answer);
-        });
-        // end-snippet
+            // begin-snippet: chat-endpoint
+            var chat = app.MapGroup("/chats/{chatId:int}")
+                .AddEndpointFilter<ChatOwnerFilter>();
 
-        // begin-snippet: chat-stream-endpoint
-        chat.MapPost("/messages/stream", (
-            int chatId,
-            ChatInput input,
-            AgentHost<SupportAgent> support,
-            ICurrentCustomer customer,
-            CancellationToken ct) =>
-        {
-            var updates = support.RunStreamingAsync(
-                input.Text,
-                settingsId: customer.Id,
-                conversationId: chatId,
-                ct: ct);
+            chat.MapPost("/messages", async (
+                int chatId,
+                ChatInput input,
+                AgentHost<SupportAgent> support,
+                ICurrentCustomer customer,
+                CancellationToken ct) =>
+            {
+                var response = await support.RunAsync(
+                    input.Text,
+                    settingsId: customer.Id,
+                    conversationId: chatId,
+                    ct: ct);
 
-            return TypedResults.ServerSentEvents(Events(updates, ct));
-        });
-        // end-snippet
+                return ChatReply.From(response);
+            });
+            // end-snippet
 
-        // begin-snippet: chat-approval-endpoint
-        chat.MapPost("/approvals", async (
-            int chatId,
-            ApprovalAnswer[] answers,
-            AgentHost<SupportAgent> support,
-            ICurrentCustomer customer,
-            CancellationToken ct) =>
-        {
-            var reply = new ChatMessage(ChatRole.User, [.. answers.Select(answer => answer.ToResponse())]);
+            // begin-snippet: chat-stream-endpoint
+            chat.MapPost("/messages/stream", (
+                int chatId,
+                ChatInput input,
+                AgentHost<SupportAgent> support,
+                ICurrentCustomer customer,
+                CancellationToken ct) =>
+            {
+                var updates = support.RunStreamingAsync(
+                    input.Text,
+                    settingsId: customer.Id,
+                    conversationId: chatId,
+                    ct: ct);
 
-            var answer = await support.RunAsync(reply, settingsId: customer.Id, conversationId: chatId, ct: ct);
-            return ChatReply.From(answer);
-        });
-        // end-snippet
+                return TypedResults.ServerSentEvents(Events(updates));
+            });
+            // end-snippet
+
+            // begin-snippet: chat-approval-endpoint
+            chat.MapPost("/approvals", async Task<IResult> (
+                int chatId,
+                ApprovalAnswer[] answers,
+                AgentHost<SupportAgent> support,
+                ICurrentCustomer customer,
+                CancellationToken ct) =>
+            {
+                // No answers would drop every pending request
+                if (answers.Length == 0) return TypedResults.BadRequest();
+
+                var reply = new ChatMessage(ChatRole.User, [.. answers.Select(answer => answer.ToResponse())]);
+
+                var resumed = await support.RunAsync(reply, settingsId: customer.Id, conversationId: chatId, ct: ct);
+                return TypedResults.Ok(ChatReply.From(resumed));
+            });
+            // end-snippet
+        }
     }
 
     // begin-snippet: chat-stream-events
-    private static async IAsyncEnumerable<SseItem<object>> Events(
-        IAsyncEnumerable<ChatResponseUpdate> updates,
-        [EnumeratorCancellation] CancellationToken ct)
+    private static async IAsyncEnumerable<SseItem<object>> Events(IAsyncEnumerable<ChatResponseUpdate> updates)
     {
-        await foreach (var update in updates.WithCancellation(ct))
+        await foreach (var update in updates)
         {
             if (update.Text is { Length: > 0 } text) yield return new SseItem<object>(text, "text");
 

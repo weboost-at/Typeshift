@@ -34,7 +34,7 @@ internal sealed record ApprovalAnswer(
     bool ForConversation = false,
     string? Reason = null)
 {
-    // Typeshift runs the call it stored with the request, so the call here only names it
+    // The call only fills in the request: Typeshift runs the call it stored under RequestId
     public ToolApprovalResponseContent ToResponse()
     {
         var request = new ToolApprovalRequestContent(RequestId, new FunctionCallContent(CallId, Tool));

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
@@ -62,10 +63,27 @@ internal static class ChatEndpoint
         var ticket = await app.Services.GetRequiredService<ITicketClient>().GetAsync(1234, default);
         if (ticket is not { Closed: true }) throw new InvalidOperationException("Expected the approved call to run.");
 
-        var stream = await http.PostAsJsonAsync("/chats/43/messages/stream", new ChatInput("Where is my refund?"));
+        var stream = await http.PostAsJsonAsync("/chats/43/messages/stream", new ChatInput("Close ticket 1234."));
         var events = await stream.Content.ReadAsStringAsync();
-        if (!events.Contains("event: text", StringComparison.Ordinal))
-            throw new InvalidOperationException($"Expected text events: {events}");
+        if (!events.Contains("event: approval", StringComparison.Ordinal))
+            throw new InvalidOperationException($"Expected an approval event: {events}");
+
+        var streamed = JsonSerializer.Deserialize<PendingApproval>(
+            events.Split('\n').Single(line => line.StartsWith("data: {", StringComparison.Ordinal))[6..],
+            JsonSerializerOptions.Web)!;
+
+        ApprovalAnswer[] always =
+            [new(streamed.RequestId, streamed.CallId, streamed.Tool, Approved: true, ForConversation: true)];
+        await PostAsync<ChatReply>(http, "/chats/43/approvals", always);
+
+        var again = await PostAsync<ChatReply>(http, "/chats/43/messages", new ChatInput("Close ticket 1234 again."));
+        if (again.Approvals.Count > 0) throw new InvalidOperationException("Expected the standing approval.");
+
+        var text = await http.PostAsJsonAsync("/chats/41/messages/stream", new ChatInput("Where is my refund?"));
+        var answer = await text.Content.ReadAsStringAsync();
+        var textEvent = $"event: text\ndata: {JsonSerializer.Serialize(CannedChatClient.Answer)}";
+        if (!answer.Contains(textEvent, StringComparison.Ordinal))
+            throw new InvalidOperationException($"Expected the answer as a JSON string: {answer}");
 
         await app.StopAsync();
     }
