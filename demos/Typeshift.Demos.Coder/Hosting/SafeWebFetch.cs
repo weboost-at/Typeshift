@@ -5,8 +5,8 @@ using Typeshift.Demos.Coder.Toolsets;
 
 namespace Typeshift.Demos.Coder.Hosting;
 
-// A fetcher that refuses loopback, private and link-local addresses where it connects, as the guide asks, since the
-// model picks the URLs; the page comes back as text with its tags stripped, capped
+// A fetcher that refuses loopback, private and link-local addresses where it connects, since the model picks the
+// URLs; the page comes back as text with its tags stripped, capped
 public sealed partial class SafeWebFetch : IDisposable
 {
     private const int MaxLength = 20_000;

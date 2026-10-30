@@ -1,36 +1,39 @@
 using System.Diagnostics;
-using Microsoft.Extensions.DependencyInjection;
-using Typeshift.Demos.Coder.Hosting;
+using System.Text;
 
 namespace Typeshift.Demos.Coder.Toolsets;
 
-// One command at a time in the workspace; ShellGuard decides the obvious calls before the host is asked
+// Runs one command at a time in the workspace, ported from the built-in toolset 0.1.0-alpha.4 shipped; ShellGuard
+// decides the obvious calls before the host is asked
 internal partial class ShellToolset : Toolset
 {
+    // How long the streams are read past the timeout, for what a process the command left behind still writes
+    private static readonly TimeSpan DrainTime = TimeSpan.FromSeconds(1);
+
     public ShellToolset()
     {
         AddTool(RunCommandAsync)
             .RequiresApproval()
-            .WithSettings<RunCommandSettings>();
+            .WithSettings<ShellSettings>();
     }
 
     /// <summary>
-    /// Runs a shell command in the workspace and returns what it wrote, such as a test run's results.
+    /// Runs a shell command in the workspace and returns its exit code and output.
     /// </summary>
-    /// <param name="command">The command line.</param>
-    /// <param name="settings">The shell and the timeout.</param>
+    /// <param name="command">The command line, for the shell the settings name.</param>
+    /// <param name="settings">The shell, the timeout and the output's limit.</param>
     /// <param name="services">The run's services.</param>
-    /// <param name="ct">Cancels the command.</param>
-    /// <returns>The exit code and both streams; exit code -1 when the command timed out.</returns>
+    /// <param name="ct">Cancels the command, which is killed.</param>
+    /// <returns>What the command did.</returns>
     public static async Task<CommandResult> RunCommandAsync(
         string command,
-        RunCommandSettings settings,
+        ShellSettings settings,
         IServiceProvider services,
         CancellationToken ct)
     {
         var start = new ProcessStartInfo(settings.Shell)
         {
-            WorkingDirectory = services.GetRequiredService<WorkspaceOptions>().Path,
+            WorkingDirectory = WorkspacePaths.Of(services),
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             RedirectStandardInput = true,
@@ -40,35 +43,91 @@ internal partial class ShellToolset : Toolset
         start.ArgumentList.Add("-c");
         start.ArgumentList.Add(command);
 
-        using var limit = new CancellationTokenSource(settings.Timeout, services.GetRequiredService<TimeProvider>());
+        // The timeout runs from before the start, so a command never outlives it
+        using var limit = new CancellationTokenSource(settings.Timeout, Time(services));
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct, limit.Token);
+
+        // A process left in the background holds the pipes open, so reading outlasts the timeout by a moment
+        using var drain = new CancellationTokenSource(settings.Timeout + DrainTime, Time(services));
+        using var reading = CancellationTokenSource.CreateLinkedTokenSource(ct, drain.Token);
 
         using var process = Process.Start(start)
             ?? throw new InvalidOperationException($"The shell '{settings.Shell}' did not start.");
 
         process.StandardInput.Close();
 
-        var output = process.StandardOutput.ReadToEndAsync(ct);
-        var error = process.StandardError.ReadToEndAsync(ct);
+        // Killing the command at its timeout ends its streams, which are read to their end
+        var output = Capture(process.StandardOutput, settings.MaxOutputLength, reading.Token);
+        var error = Capture(process.StandardError, settings.MaxOutputLength, reading.Token);
+
+        var timedOut = false;
 
         try
         {
             await process.WaitForExitAsync(timeout.Token);
         }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        catch (OperationCanceledException)
         {
             process.Kill(entireProcessTree: true);
-            return new CommandResult(-1, await output, await error, TimedOut: true);
+            ct.ThrowIfCancellationRequested();
+            timedOut = true;
         }
 
-        return new CommandResult(process.ExitCode, await output, await error, TimedOut: false);
+        var result = new CommandResult(timedOut ? -1 : process.ExitCode, await output, await error, timedOut);
+        ct.ThrowIfCancellationRequested();
+
+        return result;
+    }
+
+    private static TimeProvider Time(IServiceProvider services) =>
+        services.GetService(typeof(TimeProvider)) as TimeProvider ?? TimeProvider.System;
+
+    // The stream's start and end, within the limit, read to its end so the process never blocks on a full pipe
+    private static async Task<string> Capture(StreamReader stream, int limit, CancellationToken stop)
+    {
+        var start = new StringBuilder();
+        var end = new Queue<char>();
+        var skipped = 0L;
+        var buffer = new char[4096];
+
+        while (await ReadAsync(stream, buffer, stop) is var read and > 0)
+        {
+            foreach (var character in buffer.AsSpan(0, read))
+            {
+                if (start.Length < limit / 2)
+                {
+                    start.Append(character);
+                    continue;
+                }
+
+                end.Enqueue(character);
+                if (end.Count > limit / 2 && end.TryDequeue(out _)) skipped++;
+            }
+        }
+
+        return skipped == 0
+            ? start.Append(end.ToArray()).ToString()
+            : $"{start}\n[{skipped} characters left out]\n{new string([.. end])}";
+    }
+
+    // Stopping reads as the end of the stream
+    private static async Task<int> ReadAsync(StreamReader stream, char[] buffer, CancellationToken stop)
+    {
+        try
+        {
+            return await stream.ReadAsync(buffer, stop);
+        }
+        catch (OperationCanceledException)
+        {
+            return 0;
+        }
     }
 }
 
 /// <summary>
-/// The shell run_command uses and how long a command may take.
+/// How commands run.
 /// </summary>
-internal sealed record RunCommandSettings
+internal sealed record ShellSettings
 {
     /// <summary>
     /// The shell, run as <c>{Shell} -c {command}</c>.
@@ -79,6 +138,11 @@ internal sealed record RunCommandSettings
     /// How long a command may run before it is killed.
     /// </summary>
     public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// The most characters of each stream the model receives, its start and its end.
+    /// </summary>
+    public int MaxOutputLength { get; init; } = 64 * 1024;
 }
 
 /// <summary>

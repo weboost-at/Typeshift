@@ -12,3 +12,7 @@ builds them.
 
 `Typeshift.Demos.Shared` holds what every host writes: the provider catalog and routing (`providers.json`), a JSON
 file store, a scripted model, and a console listener for the spans.
+
+The demos keep conversations and settings under `.typeshift/` in the current directory. Delete that folder after
+updating to a Typeshift version whose store format changed, such as 0.1.0-alpha.5: the demos read older files as
+empty conversations.
