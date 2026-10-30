@@ -98,9 +98,10 @@ time, so make tools with side effects safe to repeat.
 
 ## One run at a time
 
-Within a process, a conversation has one run at a time. Starting a second while the first goes on, or still loads the
-conversation, throws an `InvalidOperationException`, so [steer](#steering) the running one or wait until it ends.
-Across processes, keeping to one run per conversation is up to your app.
+Within a process, a conversation has one run at a time. Starting a second while the first goes on throws an
+`InvalidOperationException`, so [steer](#steering) the running one or wait until it ends. A run that starts while
+another is still loading the conversation waits until that run has begun. Across processes, keeping to one run per
+conversation is up to your app.
 
 ## Live runs
 

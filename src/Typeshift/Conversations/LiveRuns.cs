@@ -16,18 +16,26 @@ internal sealed class LiveRuns
         [.. _runs.Values.Select(claim => claim.Run).OfType<ConversationRun>()];
 
     // D50: one run per conversation at a time in a process. A run claims its conversation before it loads it, so no
-    // run reads a conversation whose last run is still storing its end
-    public RunClaim? Claim(object? conversation)
+    // run reads a conversation whose last run is still storing its end. A claim still loading is waited for, as a run
+    // that began is refused, so the host's fallback for steering a run that ended keeps working (D51)
+    public async Task<RunClaim?> ClaimAsync(object? conversation, CancellationToken ct)
     {
         if (conversation is null) return null;
 
         var claim = new RunClaim(conversation);
 
-        if (!_runs.TryAdd(conversation, claim))
+        while (!_runs.TryAdd(conversation, claim))
         {
-            throw new InvalidOperationException(
-                $"A run of conversation {conversation} is going on in this process: steer it with "
-                + "ConversationTracker.TrySteer, or wait until it ends.");
+            if (!_runs.TryGetValue(conversation, out var held)) continue;
+
+            if (held.Run is not null)
+            {
+                throw new InvalidOperationException(
+                    $"A run of conversation {conversation} is going on in this process: steer it with "
+                    + "ConversationTracker.TrySteer, or wait until it ends.");
+            }
+
+            await held.Settled.WaitAsync(ct);
         }
 
         return claim;
@@ -37,14 +45,17 @@ internal sealed class LiveRuns
     {
         if (claim is null) return;
 
-        claim.Run = run;
+        claim.Begin(run);
         PublishRun(run, ended: false);
     }
 
     // A claim whose run never began, because another agent answers the conversation or the run failed to begin
     public void Release(RunClaim? claim)
     {
-        if (claim is { Run: null }) _runs.TryRemove(new KeyValuePair<object, RunClaim>(claim.Conversation, claim));
+        if (claim is not { Run: null }) return;
+
+        _runs.TryRemove(new KeyValuePair<object, RunClaim>(claim.Conversation, claim));
+        claim.Settle();
     }
 
     // A handoff ends its run before the run's own end does, which then finds it gone
@@ -147,7 +158,22 @@ internal sealed class LiveRuns
 // A conversation's place in this process, held from before its run loads it until the run ends
 internal sealed class RunClaim(object conversation)
 {
+    private readonly TaskCompletionSource _settled = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private ConversationRun? _run;
+
     public object Conversation => conversation;
 
-    public ConversationRun? Run { get; set; }
+    public ConversationRun? Run => Volatile.Read(ref _run);
+
+    // Done once the run began or the claim was let go: a run waiting for the conversation then tries again
+    public Task Settled => _settled.Task;
+
+    // A full fence, so a watcher that subscribes meanwhile either lists the run or hears its start (D54)
+    public void Begin(ConversationRun run)
+    {
+        Interlocked.Exchange(ref _run, run);
+        _settled.TrySetResult();
+    }
+
+    public void Settle() => _settled.TrySetResult();
 }

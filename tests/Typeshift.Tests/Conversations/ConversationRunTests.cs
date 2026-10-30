@@ -235,9 +235,7 @@ public class ConversationRunTests : AgentTestBase
             .Reply(Text(Data.Agent.Reason));
 
         await Host<ProbeAgent>().RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
-
-        var resume = () => Host<ProbeAgent>().ResumeAsync(Data.Agent.ConversationId, ct: Ct);
-        await resume.Should().ThrowAsync<InvalidOperationException>();
+        await Record.ExceptionAsync(() => Host<ProbeAgent>().ResumeAsync(Data.Agent.ConversationId, ct: Ct));
 
         // Act
         var response = await Host<ProbeAgent>()

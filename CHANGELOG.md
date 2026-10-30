@@ -12,7 +12,8 @@ All notable changes to this project are documented here. The format follows
   answered now; an answer to any other is dropped before anything stores it.
 - A run that loaded a conversation while the conversation's last run was still ending could miss that run's last
   entries, such as its approval requests, and drop the answers to them. A run now claims its conversation before it
-  loads it, so the second run throws, as a second run of a running conversation does.
+  loads it: a second run throws, as it does while a run goes on, and one that starts while another still loads the
+  conversation waits until that run has begun.
 
 ## [0.1.0-alpha.5] - 2026-10-30
 

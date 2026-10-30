@@ -212,8 +212,8 @@ the response before the conversation stores how the run ended.
 4. **Context providers.** Each context provider the agent uses can add instructions, messages and tools to this run.
    The conversation stores none of it, so every run calls the providers again
    ([Context providers](./middleware.md#context-providers)).
-5. **Approval and mode.** If the input carries your app's answers to approval requests the conversation stored, the
-   run matches each answer to its request. In plan mode, it offers the model only the read-only tools and
+5. **Approval and mode.** If the input carries your app's answers to the approval requests the conversation's last
+   run left open, the run matches each answer to its request. In plan mode, it offers the model only the read-only tools and
    `exit_plan_mode`. After each pass of the tool loop, approval rules, standing approvals and auto mode decide every
    call they can. If calls remain that only your app can decide, the run stores their requests and ends
    ([Approval and modes](./tool-approval.md)).
