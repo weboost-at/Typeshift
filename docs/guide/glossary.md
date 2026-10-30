@@ -48,7 +48,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | **Tool** | A static method that a toolset or an agent declares with `AddTool`, offered to the model as a generated `AIFunction`. |
 | **Tool list** | `ToolList<TToolset>`, the type `Include` and `Exclude` pick tools from. The generated `{Toolset}ToolList` gives it one property per tool. |
 | **Toolset** | A `partial` class deriving from `Toolset` that declares the tools of one domain. See [Toolsets](./toolsets.md). |
-| **Version** | The number that marks a stored document's current state; each save gives the document a new one. A save passes the version it loaded, so it fails when another save came first. Not the schema version. See [Versions](./implementing-a-store.md#versions). |
+| **Version** | The number that marks a stored document's current state; each save gives the document a new one. A save passes the version it loaded, so it fails when another save came first. Not the schema version. See [Save with a version](./implementing-a-store.md#save-with-a-version). |
 
 ## Related
 

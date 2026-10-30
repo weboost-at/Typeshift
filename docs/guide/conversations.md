@@ -39,12 +39,12 @@ against your own record of the conversation, as you would for any other id from 
 
 A conversation is a list of entries, appended as they happen: each run's input, every model response with its model and
 token usage, the tool results of each round of calls, and an entry that ends the run and records its mode. Your store
-receives each entry through `AppendConversationAsync` ([Implementing a store](./implementing-a-store.md#conversations)).
+receives each entry through `AppendConversationAsync` ([Implementing a store](./implementing-a-store.md#append-to-a-conversation)).
 
 Each entry is a `ConversationEntry`: the name of its agent in `Agent`, its `Messages` and the time it was stored in
 `At`, plus the `Model` and `Usage` of a model response, and `EndsRun` on the entry that ends a run. `IsSummary` is true
 on the entry [compaction](#compaction) appends when it summarizes, which is how your code and your store tell a summary
-apart ([Recognizing a summary](./implementing-a-store.md#recognizing-a-summary)).
+apart ([Start from the last summary](./implementing-a-store.md#start-from-the-last-summary)).
 
 An entry serializes itself with `Serialize()` and `ConversationEntry.Deserialize(json)`, and JSON libraries handle it as
 it is. `System.Text.Json` writes and reads that same JSON, and Newtonsoft.Json writes it as a string, so a store or an
@@ -240,7 +240,7 @@ conversation](./tool-approval.md#approving-for-the-conversation) and the backgro
 
 - [Running agents](./running-agents.md): passing a conversation id to a run.
 - [How a run works](./running-agents.md#how-a-run-works): where a run resumes and stores its steps.
-- [Implementing a store](./implementing-a-store.md#conversations): the store methods that keep conversations.
+- [Implementing a store](./implementing-a-store.md#append-to-a-conversation): the store methods that keep conversations.
 - [Builders](./builders.md#runoptionsbuilder): the run options of compaction and their defaults.
 - [Models and providers](./models.md#the-summary-model): which model summarizes, and its provider.
 - [Multiple agents](./multi-agent.md#handoff): handoffs, which need a conversation.

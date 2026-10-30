@@ -114,7 +114,7 @@ store of settings and a store of conversations take one call each.
 
 ::: warning The store is a singleton
 `WithStore<T>()` registers the store as a singleton, so one instance serves every run at the same time. It cannot
-take scoped services, such as a `DbContext`: [the store is a singleton](./implementing-a-store.md#the-store-is-a-singleton)
+take scoped services, such as a `DbContext`: [Register your store](./implementing-a-store.md#register-your-store)
 shows how to build one around that.
 :::
 
@@ -148,7 +148,7 @@ await support.ConfigureAsync(settingsId, settings => settings with
 
 A settings form does it in two steps: it loads the settings with their version and saves them back with it. The
 version tells the store which state the form loaded, so the save throws a `StoreConflictException` when someone saved
-in between ([Versions](./implementing-a-store.md#versions) explains the number):
+in between ([Save with a version](./implementing-a-store.md#save-with-a-version) explains the number):
 
 <!-- snippet: load-and-save-settings -->
 <a id='snippet-load-and-save-settings'></a>
@@ -198,7 +198,7 @@ values of the layer below.
 ::: warning A renamed member loses its stored value
 A configurable member that is renamed or removed reads as missing, so its stored value no longer applies. When that
 matters, raise the agent's schema version with `WithSchemaVersion(2)` and migrate the documents of the older
-schema version ([Settings documents](./implementing-a-store.md#settings-documents)).
+schema version ([Migrate older settings](./implementing-a-store.md#migrate-older-settings)).
 :::
 
 ## Related
