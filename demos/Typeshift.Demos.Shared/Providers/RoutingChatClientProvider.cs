@@ -12,8 +12,7 @@ namespace Typeshift.Demos.Providers;
 public sealed class CannedModels : Dictionary<string, IChatClient>;
 
 /// <summary>
-/// The clients built so far, by model. Typeshift never disposes a provider's client and instruments each instance
-/// once, so the same instance must come back for the same model, and the app owns their lifetime.
+/// The clients built so far, by model. Typeshift never disposes a provider's client, so the app owns their lifetime.
 /// </summary>
 // CLUNKY 4: IChatClientProvider is scoped, one per request, but clients must live for the process, so the cache is a
 // singleton of its own and the provider is a thin shell over it. Every host writes this pair.
