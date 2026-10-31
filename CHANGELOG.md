@@ -14,6 +14,12 @@ All notable changes to this project are documented here. The format follows
   entries, such as its approval requests, and drop the answers to them. A run now claims its conversation before it
   loads it: a second run throws, as it does while a run goes on, and one that starts while another still loads the
   conversation waits until that run has begun.
+- A streaming run stored its approval requests only after the host had read them, so a host that stopped reading at
+  a request left it unstored, and the answer to it ran nothing. The run now stores the requests first.
+- A provider that numbers its calls per response, such as a local server with an OpenAI-compatible API, made the run
+  that answered a later approval request fail with a duplicate key, because the conversation held the call's id
+  already, and could pair a call left without a result with a later call's result. A call whose id the conversation
+  holds, in its history or not, is now renamed, as `call_1_2`, before anything stores or runs it.
 - A run that started while a handoff passed the conversation to the other agent could take the conversation first, so
   the handed-off run failed. A handoff now passes its claim on the conversation to the agent handed to, and so does a
   run passed on to the agent that answers the conversation; a run that starts meanwhile waits, then throws as it does
