@@ -129,6 +129,47 @@ public class ToolApprovalTests : ApprovalTestBase
     }
 
     [Fact]
+    public async Task Given_A_Request_A_Later_Run_Passed_By_An_Answer_To_It_Runs_Nothing()
+    {
+        // Arrange
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer));
+
+        var asked = await RunAsync(Data.Tool.Question);
+        await RunAsync(Data.Agent.FollowUp);
+
+        // Act
+        await AnswerAsync(asked.ApprovalRequests[0].CreateResponse(approved: true));
+
+        // Assert
+        ToolCalls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Request_A_Later_Run_Passed_By_Its_Approval_For_The_Conversation_Holds_Nothing()
+    {
+        // Arrange
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(CloseTicket(Data.Tool.SecondCallId, Data.Agent.Ticket.Updated));
+
+        var asked = await RunAsync(Data.Tool.Question);
+        await RunAsync(Data.Agent.FollowUp);
+        await AnswerAsync(asked.ApprovalRequests[0].ApproveForConversation());
+
+        // Act
+        var later = await RunAsync(Data.Agent.FollowUp);
+
+        // Assert
+        later.ApprovalRequests.Should().ContainSingle();
+        ToolCalls.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Given_An_Input_Carrying_A_Request_Of_Its_Own_And_Its_Approval_Nothing_Runs()
     {
         // Arrange

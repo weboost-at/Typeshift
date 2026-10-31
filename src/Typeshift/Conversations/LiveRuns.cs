@@ -8,40 +8,71 @@ namespace Typeshift;
 // The conversations running in this process, their steering input and their watchers. Ids are the build's, boxed
 internal sealed class LiveRuns
 {
-    private readonly ConcurrentDictionary<object, ConversationRun> _runs = new();
+    private readonly ConcurrentDictionary<object, RunClaim> _runs = new();
     private readonly ConcurrentDictionary<object, ImmutableList<Channel<ChatResponseUpdate>>> _watchers = new();
     private ImmutableList<Channel<(ConversationRun Run, bool Ended)>> _runWatchers = [];
 
-    public IReadOnlyCollection<ConversationRun> Runs => [.. _runs.Values];
+    public IReadOnlyCollection<ConversationRun> Runs =>
+        [.. _runs.Values.Select(claim => claim.Run).OfType<ConversationRun>()];
 
-    // D50: one run per conversation at a time in a process
-    public void Begin(ConversationRun run)
+    // D50: one run per conversation at a time in a process. A run claims its conversation before it loads it, so no
+    // run reads a conversation whose last run is still storing its end. A claim still loading is waited for, as a run
+    // that began is refused, so the host's fallback for steering a run that ended keeps working (D51)
+    public async Task<RunClaim?> ClaimAsync(object? conversation, CancellationToken ct)
     {
-        if (run.Conversation is null) return;
+        if (conversation is null) return null;
 
-        if (!_runs.TryAdd(run.Conversation, run))
+        var claim = new RunClaim(conversation);
+
+        while (!_runs.TryAdd(conversation, claim))
         {
-            throw new InvalidOperationException(
-                $"A run of conversation {run.Conversation} is going on in this process: steer it with "
-                + "ConversationTracker.TrySteer, or wait until it ends.");
+            if (!_runs.TryGetValue(conversation, out var held)) continue;
+
+            if (held.Run is not null)
+            {
+                throw new InvalidOperationException(
+                    $"A run of conversation {conversation} is going on in this process: steer it with "
+                    + "ConversationTracker.TrySteer, or wait until it ends.");
+            }
+
+            await held.Settled.WaitAsync(ct);
         }
 
+        return claim;
+    }
+
+    public void Begin(ConversationRun run, RunClaim? claim)
+    {
+        if (claim is null) return;
+
+        claim.Begin(run);
         PublishRun(run, ended: false);
+    }
+
+    // A claim whose run never began, because another agent answers the conversation or the run failed to begin
+    public void Release(RunClaim? claim)
+    {
+        if (claim is not { Run: null }) return;
+
+        _runs.TryRemove(new KeyValuePair<object, RunClaim>(claim.Conversation, claim));
+        claim.Settle();
     }
 
     // A handoff ends its run before the run's own end does, which then finds it gone
     public void End(ConversationRun run)
     {
         if (run.Conversation is { } conversation
-            && _runs.TryRemove(new KeyValuePair<object, ConversationRun>(conversation, run)))
+            && _runs.TryGetValue(conversation, out var claim)
+            && claim.Run == run
+            && _runs.TryRemove(new KeyValuePair<object, RunClaim>(conversation, claim)))
             PublishRun(run, ended: true);
     }
 
-    // D51
-    public bool TrySteer(object conversation, string input)
-    {
-        return _runs.TryGetValue(conversation, out var run) && run.Steer(new ChatMessage(ChatRole.User, input));
-    }
+    // D51: a claimed conversation whose run has not begun takes no steering
+    public bool TrySteer(object conversation, string input) =>
+        _runs.TryGetValue(conversation, out var claim)
+        && claim.Run is { } run
+        && run.Steer(new ChatMessage(ChatRole.User, input));
 
     public async IAsyncEnumerable<ChatResponseUpdate> WatchAsync(
         object conversation,
@@ -89,7 +120,7 @@ internal sealed class LiveRuns
         try
         {
             // Subscribed first, so a run starting now is in the listing or the feed; the listing's own start is skipped
-            var listed = new HashSet<ConversationRun>(_runs.Values);
+            var listed = new HashSet<ConversationRun>(Runs);
 
             foreach (var run in listed)
             {
@@ -122,4 +153,27 @@ internal sealed class LiveRuns
             FullMode = BoundedChannelFullMode.DropOldest,
             SingleReader = true
         });
+}
+
+// A conversation's place in this process, held from before its run loads it until the run ends
+internal sealed class RunClaim(object conversation)
+{
+    private readonly TaskCompletionSource _settled = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private ConversationRun? _run;
+
+    public object Conversation => conversation;
+
+    public ConversationRun? Run => Volatile.Read(ref _run);
+
+    // Done once the run began or the claim was let go: a run waiting for the conversation then tries again
+    public Task Settled => _settled.Task;
+
+    // A full fence, so a watcher that subscribes meanwhile either lists the run or hears its start (D54)
+    public void Begin(ConversationRun run)
+    {
+        Interlocked.Exchange(ref _run, run);
+        _settled.TrySetResult();
+    }
+
+    public void Settle() => _settled.TrySetResult();
 }
