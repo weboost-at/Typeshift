@@ -1,6 +1,6 @@
 ---
 title: Getting started
-description: Build and run a first agent in four steps, then see how the pieces fit and what your app implements.
+description: Build and run a first agent in four steps, then see how the pieces fit, what your app implements, and the docs for coding assistants.
 ---
 
 # Getting started
@@ -291,6 +291,22 @@ that uses them:
 | `ITypeshiftStore`, or `ISettingsStore` and `IConversationStore` | Settings ids and conversation ids. A singleton; `InMemoryTypeshiftStore` serves tests and samples. | [Implementing a store](./implementing-a-store.md) |
 | `IContextProvider` | Memory, documents or other data added to every run of an agent. | [Context providers](./middleware.md#context-providers) |
 | `IToolApprovalRule`, `IRunMiddleware`, `IToolMiddleware`, `IMcpToolProvider` | Approval rules, middleware and MCP servers. | [The chain](./registration.md#the-chain) |
+
+## Docs for coding assistants
+
+The guide is also published as Markdown for coding assistants such as GitHub Copilot, Claude Code or Cursor. Point
+your assistant at one of these files, so it looks up the API these pages describe instead of guessing from what it
+learned in training:
+
+| File | Holds |
+|---|---|
+| [`https://weboost-at.github.io/Typeshift/llms.txt`](https://weboost-at.github.io/Typeshift/llms.txt) | The guide's pages, each with a link and its one-line description |
+| [`https://weboost-at.github.io/Typeshift/llms-full.txt`](https://weboost-at.github.io/Typeshift/llms-full.txt) | Every page of the guide in one file |
+| A guide page's address with `.md`, such as [`toolsets.md`](https://weboost-at.github.io/Typeshift/guide/toolsets.md) | That page alone |
+
+`llms.txt` suits an assistant that fetches pages as it needs them, because it then reads only the pages of the task
+at hand. Add `llms-full.txt` to the context of one that cannot fetch. `llms.txt` follows the
+[llms.txt](https://llmstxt.org) format, and all three are rebuilt with the site, so they match the pages you read here.
 
 ## Related
 

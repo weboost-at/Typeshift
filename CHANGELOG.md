@@ -5,6 +5,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- The docs site publishes the guide as Markdown for coding assistants: `llms.txt` lists its pages, `llms-full.txt`
+  holds them all in one file, and each guide page is also served at its address with `.md`.
+
 ### Fixed
 
 - An answer to an approval request that a later run of the conversation passed by ran the call, and approving it for
