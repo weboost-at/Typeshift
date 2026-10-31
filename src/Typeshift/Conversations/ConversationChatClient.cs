@@ -106,6 +106,9 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             var last = await base.GetResponseAsync(call, runOptions, ct);
             var response = last;
 
+            // D60: the requests the run answered something after, which it then no longer returns
+            var passed = new HashSet<string>();
+
             while (true)
             {
                 await run.StoreResultsAsync(last.Messages);
@@ -126,18 +129,23 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                         Runs.Release(handed);
                     }
 
-                    return ChatResponses.Merge(ChatResponses.Merge(response, new ChatResponse(result)), answer);
+                    var merged = ChatResponses.Merge(ChatResponses.Merge(response, new ChatResponse(result)), answer);
+                    return ChatResponses.WithoutRequests(merged, passed);
                 }
 
                 if (!GoesFurther(runOptions, ref calls) || !await run.GoesOnAsync(ct)) break;
 
                 call = [.. call, .. last.Messages];
                 last = await base.GetResponseAsync(call, runOptions, ct);
+
+                if (ConversationHistory.Answers(last.Messages))
+                    passed.UnionWith(ConversationHistory.RequestIds(response.Messages));
+
                 response = ChatResponses.Merge(response, last);
             }
 
             await run.EndAsync(null);
-            return response;
+            return ChatResponses.WithoutRequests(response, passed);
         }
         catch (Exception exception) when (!handedOff)
         {
@@ -415,18 +423,18 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                 $"Conversation {conversation} has no interrupted run to resume: run it with input instead.");
         }
 
-        // D24: an answer to a request the last run did not leave open may run nothing, so nothing stores it either; the
-        // run goes on without it, as it did with the answer dropped
+        // D60: an answer to a request the last run did not leave open would run nothing, so the run throws before it
+        // stores anything or calls the model, and the host can tell its user the request has closed
         var open = ConversationHistory.OpenRequests(entries);
 
-        input =
-        [
-            .. input
-                .Select(message => Without(
-                    message,
-                    content => content is ToolApprovalResponseContent answer && !open.Contains(answer.RequestId)))
-                .OfType<ChatMessage>()
-        ];
+        var closed = input.SelectMany(message => message.Contents)
+            .OfType<ToolApprovalResponseContent>()
+            .Select(answer => answer.RequestId)
+            .Where(request => !open.Contains(request))
+            .ToList();
+
+        if (closed.Count > 0)
+            throw ApprovalClosedException.For(conversation, ConversationHistory.Closed(entries, closed));
 
         // D52: a conversation keeps its mode, unless the run's settings name one
         if (!runOptions.RunSetsMode && entries.LastOrDefault(entry => entry.Mode is not null)?.Mode is { } kept)

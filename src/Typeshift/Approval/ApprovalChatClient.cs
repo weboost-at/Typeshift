@@ -31,7 +31,8 @@ internal sealed class ApprovalChatClient(IChatClient inner, Func<int, IChatClien
             var answers = await DecideAsync(response.Messages, resolved, standing, cancellationToken);
             decided.UnionWith(answers.Select(answer => answer.RequestId));
 
-            if (!await ContinueAsync(response.Messages, answers, resolved)) return Without(merged, decided);
+            if (!await ContinueAsync(response.Messages, answers, resolved))
+                return ChatResponses.WithoutRequests(merged, decided);
 
             call = [.. call, .. response.Messages, new ChatMessage(ChatRole.User, [.. answers])];
         }
@@ -318,33 +319,6 @@ internal sealed class ApprovalChatClient(IChatClient inner, Func<int, IChatClien
     }
 
     private static bool IsPlanningTool(AITool tool) => ReadOnlyFunction.IsReadOnly(tool) || tool is SubAgentFunction;
-
-    private static ChatResponse Without(ChatResponse response, HashSet<string> answered)
-    {
-        if (answered.Count == 0) return response;
-
-        var messages = response.Messages
-            .Select(message =>
-            {
-                if (!message.Contents.Any(content => IsAnswered(content, answered))) return message;
-
-                var left = message.Clone();
-                left.Contents = [.. message.Contents.Where(content => !IsAnswered(content, answered))];
-                return left.Contents.Count > 0 ? left : null;
-            })
-            .OfType<ChatMessage>()
-            .ToList();
-
-        return new ChatResponse(messages)
-        {
-            ModelId = response.ModelId,
-            FinishReason = response.FinishReason,
-            Usage = response.Usage,
-            ResponseId = response.ResponseId,
-            CreatedAt = response.CreatedAt,
-            AdditionalProperties = response.AdditionalProperties
-        };
-    }
 
     private static bool IsRequest(AIContent content) => content is ToolApprovalRequestContent;
 

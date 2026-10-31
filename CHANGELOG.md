@@ -5,6 +5,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- An answer to an approval request that is no longer open throws `ApprovalClosedException` before the run stores
+  anything or calls the model, where the run dropped the answer and called the model with no new input. Its
+  `Requests` say why each request is closed: answered already, passed by, or unknown. Catch it to tell your user that
+  the approval has expired, as the chat endpoint sample does with 409 Conflict.
+- A run that goes on after it asked for approval, for steering input or a background agent's answer, closes its
+  requests once it answers, as a new message does, and leaves them out of its `ApprovalRequests`. An answer to one
+  ran the call, although the model had gone on without it.
+
 ### Fixed
 
 - An answer to an approval request that a later run of the conversation passed by ran the call, and approving it for

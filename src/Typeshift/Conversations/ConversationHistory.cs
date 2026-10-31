@@ -3,7 +3,7 @@ using Microsoft.Extensions.AI;
 namespace Typeshift;
 
 // D46: what a run starts from: the stored messages, without the error messages and the calls that never got a result,
-// since providers reject both, and without the requests a later run passed by (D24). A call that waited for approval
+// since providers reject both, and without the requests that closed (D24, D60). A call that waited for approval
 // is in the conversation twice: as the model made it, before its request, and as the tool loop made it again once the
 // call was answered, next to its result; only the second stays, so each call goes out once
 internal static class ConversationHistory
@@ -46,31 +46,60 @@ internal static class ConversationHistory
         return usable;
     }
 
-    // D24: the requests the host may still answer, those the conversation's last run left without an answer. A later
-    // run dropped every request it had no answer for, so an answer to one of those runs nothing
+    // D24, D60: the requests the host may still answer, those the conversation's last run left without an answer and
+    // answered nothing after, as it answers steering input. A later run dropped every request it had no answer for,
+    // and a later answer of the same run went on without them, so an answer to one of those would run nothing
     public static HashSet<string> OpenRequests(IReadOnlyList<ConversationEntry> entries)
     {
         var since = SinceSummary(entries);
 
         // The last run begins after the last end another entry follows
         var start = since.Take(since.Count - 1).ToList().FindLastIndex(entry => entry.EndsRun) + 1;
+        var replied = Replied(since);
+        var open = new HashSet<string>();
 
-        var replied = since.SelectMany(entry => entry.Messages)
+        foreach (var entry in since.Skip(start))
+        {
+            if (!entry.EndsRun && !entry.IsSummary && Answers(entry.Messages)) open.Clear();
+            open.UnionWith(RequestIds(entry.Messages).Where(request => !replied.Contains(request)));
+        }
+
+        return open;
+    }
+
+    // D60: why each request is not open: answered, passed by, or none the conversation holds since its summary
+    public static Dictionary<string, ApprovalClosedReason> Closed(
+        IReadOnlyList<ConversationEntry> entries,
+        IEnumerable<string> requests)
+    {
+        var since = SinceSummary(entries);
+        var replied = Replied(since);
+        var asked = RequestIds(since.SelectMany(entry => entry.Messages)).ToHashSet();
+
+        return requests.Distinct()
+            .ToDictionary(
+                request => request,
+                request => replied.Contains(request) ? ApprovalClosedReason.Answered
+                    : asked.Contains(request) ? ApprovalClosedReason.PassedBy
+                    : ApprovalClosedReason.Unknown);
+    }
+
+    // Whether the agent answered in these messages: anything of its own but the approval requests it left
+    public static bool Answers(IEnumerable<ChatMessage> messages) =>
+        messages.Any(message => message.Role == ChatRole.Assistant
+            && message.Contents.Any(content => content is not ToolApprovalRequestContent));
+
+    public static IEnumerable<string> RequestIds(IEnumerable<ChatMessage> messages) =>
+        messages.SelectMany(message => message.Contents)
+            .OfType<ToolApprovalRequestContent>()
+            .Select(request => request.RequestId);
+
+    private static HashSet<string> Replied(IEnumerable<ConversationEntry> entries) =>
+        entries.SelectMany(entry => entry.Messages)
             .SelectMany(message => message.Contents)
             .OfType<ToolApprovalResponseContent>()
             .Select(answer => answer.RequestId)
             .ToHashSet();
-
-        return
-        [
-            .. since.Skip(start)
-                .SelectMany(entry => entry.Messages)
-                .SelectMany(message => message.Contents)
-                .OfType<ToolApprovalRequestContent>()
-                .Select(request => request.RequestId)
-                .Where(request => !replied.Contains(request))
-        ];
-    }
 
     // D32: compaction stored what it left of the history; what came before is in it
     public static IReadOnlyList<ConversationEntry> SinceSummary(IReadOnlyList<ConversationEntry> entries)

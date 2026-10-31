@@ -265,12 +265,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** approved.
 - **Decision:** `RequiresApproval()` wraps the tool in `ApprovalRequiredAIFunction`; `FunctionInvokingChatClient` ends
   the run with `ToolApprovalRequestContent`s, listed by `response.ApprovalRequests`. The host answers with
-  `CreateResponse(approved)` in the next run of the conversation; the stored request is the one that runs, an answer to
-  no stored request is dropped, a request keeps its first answer, and an unanswered request is left out of the next run.
-  Only the requests the conversation's last run left unanswered are open: a later run's history leaves out the others,
-  and an answer to one is dropped before anything stores it, so a request a later run passed by can neither run its
-  call nor give a standing approval. A request stays open while its own run goes on with steering input, which the
-  model receives after it.
+  `CreateResponse(approved)` in the next run of the conversation; the stored request is the one that runs, a request
+  keeps its first answer, and an unanswered request is left out of the next run. Only the requests the conversation's
+  last run left unanswered, and answered nothing after, are open: a later run's history leaves out the others, and an
+  answer to one throws before anything stores it (D60), so a closed request can neither run its call nor give a
+  standing approval.
   A request in the input is dropped before anything stores it, so a host's input cannot bring a call of its own past the
   rules. Standing approvals hold beyond what compaction left: a summary entry stores them. Calls in the same
   response that need no approval wait with it and run once the host answered (the tool loop asks for every call of a
@@ -749,6 +748,31 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Alternatives:** dropping answered requests from the history, which leaves calls and results keyed by a reused id;
   ids Typeshift makes up for every call, which hides the provider's ids even where they are unique; translating back
   to the provider's id on the way down, which a provider that numbers per response would then see twice.
+
+### D60. An answer to a closed request throws; a run's later answer closes its requests
+
+- **Status:** owner (asked on the pull request to confirm).
+- **Context:** an answer to a request that was not open was dropped and the run went on. A second tab, a retried post
+  or a UI that kept an old prompt then made a model call with no new input, which the host paid for and could not
+  tell from a run that worked. A request also stayed open while its own run went on with steering input, so the model
+  answered "never mind", and a later click still ran the call.
+- **Decision:** a request is open while the conversation's last run left it without an answer and stored no answer
+  of the agent after it. Steering input or a background agent's answer that the run answers closes the requests
+  before it, as a new message does, and the run's response leaves them out of `ApprovalRequests`; a streaming run has
+  sent them already. A run whose input answers a request that is not open throws `ApprovalClosedException` before it
+  stores anything or calls the model, and releases its claim. The exception names each request with an
+  `ApprovalClosedReason`: answered, by the host or a rule; passed by; or unknown, for an id the conversation holds no
+  request of since its last summary, and for every answer in a run without a conversation.
+- **Details:** the rule reads only the stored entries, with no new field, so it holds across processes. An answer of
+  the agent is an entry that neither ends the run nor is a summary and holds an assistant message with contents other
+  than requests: a model response, or run middleware's answer. A model call that fails stores no response, so its
+  requests stay open.
+- **Where:** `Conversations/ConversationHistory.cs`, `Conversations/ConversationChatClient.cs`,
+  `Approval/ApprovalClosedException.cs`.
+- **Alternatives:** dropping the answer and calling the model, as before; dropping it without a model call, which the
+  host still cannot tell from a run that answered; holding steering input back until the requests are answered, which
+  looks to the user as if their message was lost; a field on the entry that marks a request closed, which every store
+  would have to keep.
 
 ## Repository
 

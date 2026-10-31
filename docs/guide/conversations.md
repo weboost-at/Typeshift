@@ -141,7 +141,8 @@ await foreach (var run in tracker.WatchRunsAsync(ct))
 
 `TrySteer` hands new input to a conversation's run while it works, for example when a user adds a request halfway
 through. The model receives it before its next call, and the run does not end before then. The input is stored like
-any other.
+any other. When the run had asked for approval, its requests close once it answers the input, as they would for a new
+message ([When a request closes](./tool-approval.md#when-a-request-closes)).
 
 `TrySteer` returns false when no run of the conversation is going on in this process, or when that run is already
 ending. Start a run with the input instead:

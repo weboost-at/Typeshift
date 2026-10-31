@@ -100,12 +100,45 @@ run that asked had used up its rounds. Calls that a rule, a standing approval or
 run and count toward its limit. Such a run may make one round more than the limit.
 
 Typeshift matches each answer to the request the conversation stored and runs the call stored with it. An answer can
-carry a call of its own, but the call that runs is always the one your app saw, with the same arguments. An answer
-that matches no stored request is dropped, and when a request gets more than one answer, the first one counts.
+carry a call of its own, but the call that runs is always the one your app saw, with the same arguments. When a run
+carries more than one answer to a request, the first one counts.
 
-::: warning A request left unanswered is dropped
-The next run drops every stored request it has no answer for, and the model sees that call as never made. An answer
-that comes in a later run runs nothing, so answer every request in `ApprovalRequests` in the same run.
+## When a request closes
+
+A request stays open until the conversation goes on without it. It closes when:
+
+- a run answers it, or an approval rule does;
+- the conversation's next run starts with other input, such as a new message, since that run drops every request it
+  has no answer for, and the model sees the call as never made;
+- its own run goes on and answers something after it, such as [steering input](./conversations.md#steering). The
+  run's `ApprovalRequests` then leave it out.
+
+An answer to a closed request throws `ApprovalClosedException` before the run stores anything or calls the model, so
+your app learns that its prompt is out of date. That happens when your user approved in a second tab already, when a
+retry posts the same answers twice, or when a UI keeps an old prompt clickable after a new message. `Requests` says
+why each request is closed, as an `ApprovalClosedReason` (`Answered`, `PassedBy` or `Unknown`), so your app can tell
+the user that the approval has expired:
+
+<!-- snippet: approval-closed -->
+<a id='snippet-approval-closed'></a>
+```cs
+try
+{
+    await support.RunAsync(approval, conversationId: conversationId);
+}
+catch (ApprovalClosedException closed)
+{
+    foreach (var (request, reason) in closed.Requests)
+        Console.WriteLine($"The approval {request} has expired: {reason}.");
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L35-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-closed' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+::: warning Answer every request in the same run
+The next run closes every request it has no answer for, so answer all of `ApprovalRequests` at once. A streaming run
+sends its requests the moment it asks. If steering input then reaches the run and the run answers it, those requests
+close although the stream has carried them, and an answer to them throws.
 :::
 
 ## Approving for the conversation
@@ -122,7 +155,7 @@ var always = new ChatMessage(ChatRole.User, [again.ApprovalRequests[0].ApproveFo
 
 await support.RunAsync(always, conversationId: conversationId);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L35-L41' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-for-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L47-L53' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-for-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Approval rules

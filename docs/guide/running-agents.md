@@ -203,8 +203,9 @@ the response before the conversation stores how the run ended.
    through the same layers, and adds the sub-agents and the tools of MCP servers after them. The layers resolve once,
    when the run starts ([settings layering](./settings-and-stores.md#settings-layering)).
 2. **Resume the conversation.** With a conversation id, the run puts the stored entries ahead of the new input, so the
-   model sees the whole conversation, and stores the input. It keeps the conversation's mode unless the run's settings
-   name one. If an earlier run [handed the conversation off](./multi-agent.md#handoff) to another agent, the agent
+   model sees the whole conversation, and stores the input. An input that answers an approval request that has
+   closed throws instead, before anything is stored ([When a request closes](./tool-approval.md#when-a-request-closes)).
+   It keeps the conversation's mode unless the run's settings name one. If an earlier run [handed the conversation off](./multi-agent.md#handoff) to another agent, the agent
    that answered last answers this run too. Without a conversation id, the run starts fresh and stores nothing. Within
    one process, a conversation has one run at a time, and starting a second while the first goes on throws
    ([Conversations](./conversations.md)).
