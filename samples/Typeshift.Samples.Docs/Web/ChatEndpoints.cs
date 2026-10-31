@@ -78,7 +78,7 @@ internal static class ChatEndpoints
                 }
                 catch (ApprovalClosedException)
                 {
-                    // Answered in another tab, posted twice, or passed by a later message: the UI drops the prompt
+                    // Answered already, in another tab or by a retry, or passed by a newer message: the UI drops it
                     return TypedResults.Conflict();
                 }
             });

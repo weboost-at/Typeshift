@@ -46,25 +46,18 @@ internal static class ConversationHistory
         return usable;
     }
 
-    // D24, D60: the requests the host may still answer, those the conversation's last run left without an answer and
-    // answered nothing after, as it answers steering input. A later run dropped every request it had no answer for,
-    // and a later answer of the same run went on without them, so an answer to one of those would run nothing
+    // D24, D60: the requests the host may still answer, those the conversation's last run left open. A later run
+    // dropped every request it had no answer for, so an answer to one of those would run nothing
     public static HashSet<string> OpenRequests(IReadOnlyList<ConversationEntry> entries)
     {
         var since = SinceSummary(entries);
 
         // The last run begins after the last end another entry follows
         var start = since.Take(since.Count - 1).ToList().FindLastIndex(entry => entry.EndsRun) + 1;
-        var replied = Replied(since);
-        var open = new HashSet<string>();
 
-        foreach (var entry in since.Skip(start))
-        {
-            if (!entry.EndsRun && !entry.IsSummary && Answers(entry.Messages)) open.Clear();
-            open.UnionWith(RequestIds(entry.Messages).Where(request => !replied.Contains(request)));
-        }
-
-        return open;
+        var open = new OpenRequests();
+        open.Add(since.Skip(start).SelectMany(entry => entry.Messages));
+        return [.. open.Ids];
     }
 
     // D60: why each request is not open: answered, passed by, or none the conversation holds since its summary
@@ -83,11 +76,6 @@ internal static class ConversationHistory
                     : asked.Contains(request) ? ApprovalClosedReason.PassedBy
                     : ApprovalClosedReason.Unknown);
     }
-
-    // Whether the agent answered in these messages: anything of its own but the approval requests it left
-    public static bool Answers(IEnumerable<ChatMessage> messages) =>
-        messages.Any(message => message.Role == ChatRole.Assistant
-            && message.Contents.Any(content => content is not ToolApprovalRequestContent));
 
     public static IEnumerable<string> RequestIds(IEnumerable<ChatMessage> messages) =>
         messages.SelectMany(message => message.Contents)

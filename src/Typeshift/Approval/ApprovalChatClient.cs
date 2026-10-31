@@ -120,7 +120,7 @@ internal sealed class ApprovalChatClient(IChatClient inner, Func<int, IChatClien
                 + "for it: run with a conversation id, approve the calls with a rule, or run in auto mode.");
         }
 
-        await conversation.AppendAsync([new ChatMessage(ChatRole.Assistant, [.. Requests(response)])]);
+        await conversation.AppendRequestsAsync([.. Requests(response)], left);
         if (answers.Count > 0) await conversation.AppendAsync([new ChatMessage(ChatRole.User, [.. answers])]);
 
         return false;

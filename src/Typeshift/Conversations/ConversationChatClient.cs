@@ -106,9 +106,6 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             var last = await base.GetResponseAsync(call, runOptions, ct);
             var response = last;
 
-            // D60: the requests the run answered something after, which it then no longer returns
-            var passed = new HashSet<string>();
-
             while (true)
             {
                 await run.StoreResultsAsync(last.Messages);
@@ -129,23 +126,19 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                         Runs.Release(handed);
                     }
 
-                    var merged = ChatResponses.Merge(ChatResponses.Merge(response, new ChatResponse(result)), answer);
-                    return ChatResponses.WithoutRequests(merged, passed);
+                    var asked = ChatResponses.Merge(OnlyOpen(response, run), new ChatResponse(result));
+                    return ChatResponses.Merge(asked, answer);
                 }
 
                 if (!GoesFurther(runOptions, ref calls) || !await run.GoesOnAsync(ct)) break;
 
                 call = [.. call, .. last.Messages];
                 last = await base.GetResponseAsync(call, runOptions, ct);
-
-                if (ConversationHistory.Answers(last.Messages))
-                    passed.UnionWith(ConversationHistory.RequestIds(response.Messages));
-
                 response = ChatResponses.Merge(response, last);
             }
 
             await run.EndAsync(null);
-            return ChatResponses.WithoutRequests(response, passed);
+            return OnlyOpen(response, run);
         }
         catch (Exception exception) when (!handedOff)
         {
@@ -253,6 +246,12 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             Runs.End(run);
         }
     }
+
+    // D60: a run returns the requests it left open, without those it answered steering input after
+    private static ChatResponse OnlyOpen(ChatResponse response, ConversationRun run) =>
+        ChatResponses.WithoutRequests(
+            response,
+            ConversationHistory.RequestIds(response.Messages).Where(request => !run.IsOpen(request)).ToHashSet());
 
     // D47: only a conversation has watchers, and only realtime tracking feeds them
     private LivePublisher? CreatePublisher(ConversationRun run) =>

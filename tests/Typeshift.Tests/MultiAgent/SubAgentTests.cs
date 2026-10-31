@@ -279,6 +279,37 @@ public class SubAgentTests : MultiAgentTestBase
             .Contain(text => text.Contains("helper_agent was lost"));
     }
 
+    [Fact]
+    public async Task Given_A_Request_While_A_Background_Sub_Agent_Works_The_Run_Returns_It_And_Its_Approval_Runs()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Call(Data.Tool.SecondCallId, "close_ticket", ("number", Data.Agent.Ticket.Default)))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        HelperClient.Reply(gate, Text(Data.Agent.Reason));
+
+        var running = Host<GuardedBackgroundLeadAgent>()
+            .RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+
+        await ChatClient.RequestedAsync(2);
+        gate.SetResult();
+        var asked = await running;
+
+        // Act
+        await Host<GuardedBackgroundLeadAgent>().RunAsync(
+            new ChatMessage(ChatRole.User, [asked.ApprovalRequests.Single().CreateResponse(approved: true)]),
+            conversationId: Data.Agent.ConversationId,
+            ct: Ct);
+
+        // Assert
+        ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
+    }
+
     private static string? Result(IEnumerable<ChatMessage> request) =>
         request.SelectMany(message => message.Contents).OfType<FunctionResultContent>().Single().Result?.ToString();
 }

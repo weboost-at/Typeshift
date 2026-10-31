@@ -91,7 +91,45 @@ public partial class BackgroundLeadAgent : Agent
         UseAgent<HelperAgent>().InBackground();
     }
 }
+
+// Asks for approval while its helper works in the background
+public partial class GuardedBackgroundLeadAgent : Agent
+{
+    public GuardedBackgroundLeadAgent()
+    {
+        WithChatOptions().WithModel("scripted", "lead-model");
+
+        UseToolset<GuardedToolset>().Include(t => t.CloseTicket);
+
+        UseAgent<HelperAgent>().InBackground();
+    }
+}
 #pragma warning restore TSH024
+
+// Hands the conversation to an agent that asks for approval
+public partial class GuardedFrontAgent : Agent
+{
+    public GuardedFrontAgent()
+    {
+        WithDescription("Finds out what the customer needs.");
+
+        WithChatOptions().WithModel("scripted", "front-model");
+
+        UseHandoff<GuardedBackAgent>();
+    }
+}
+
+public partial class GuardedBackAgent : Agent
+{
+    public GuardedBackAgent()
+    {
+        WithDescription("Closes tickets.");
+
+        WithChatOptions().WithModel("scripted", "back-model");
+
+        UseToolset<GuardedToolset>().Include(t => t.CloseTicket);
+    }
+}
 
 public partial class FrontAgent : Agent
 {

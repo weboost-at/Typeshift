@@ -11,15 +11,15 @@ All notable changes to this project are documented here. The format follows
   anything or calls the model, where the run dropped the answer and called the model with no new input. Its
   `Requests` say why each request is closed: answered already, passed by, or unknown. Catch it to tell your user that
   the approval has expired, as the chat endpoint sample does with 409 Conflict.
-- A run that goes on after it asked for approval, for steering input or a background agent's answer, closes its
-  requests once it answers, as a new message does, and leaves them out of its `ApprovalRequests`. An answer to one
-  ran the call, although the model had gone on without it.
+- A run that takes steering input after it asked for approval closes its requests once it answers the input, as a
+  new message does, and leaves them out of its `ApprovalRequests`. An answer to one ran the call, although the model
+  had gone on without it. A background agent's answer closes none.
 
 ### Fixed
 
 - An answer to an approval request that a later run of the conversation passed by ran the call, and approving it for
   the conversation gave the tool a standing approval. Only the requests the last run left without an answer can be
-  answered now; an answer to any other is dropped before anything stores it.
+  answered now; an answer to any other runs nothing and stores nothing.
 - A run that loaded a conversation while the conversation's last run was still ending could miss that run's last
   entries, such as its approval requests, and drop the answers to them. A run now claims its conversation before it
   loads it: a second run throws, as it does while a run goes on, and one that starts while another still loads the
@@ -34,6 +34,9 @@ All notable changes to this project are documented here. The format follows
   the handed-off run failed. A handoff now passes its claim on the conversation to the agent handed to, and so does a
   run passed on to the agent that answers the conversation; a run that starts meanwhile waits, then throws as it does
   while any run goes on.
+- Live updates of a run that does not stream carried every approval request the run stored, those a rule, a standing
+  approval or auto mode answered included, and an answer to one of those now throws. They carry only the requests
+  left to your app.
 
 ## [0.1.0-alpha.5] - 2026-10-30
 

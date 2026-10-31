@@ -2,7 +2,8 @@ namespace Typeshift;
 
 /// <summary>
 /// Thrown by a run whose input answers an approval request that is no longer open, before the run stores anything or
-/// calls the model. Only the requests the conversation's last run left without an answer are open.
+/// calls the model. The requests the conversation's last run left without an answer are open, until that run answers
+/// steering input that came after them.
 /// </summary>
 /// <param name="message">The message, naming the conversation and each request.</param>
 /// <param name="requests">Why each answered request is closed, by its id.</param>
@@ -44,18 +45,19 @@ public sealed class ApprovalClosedException(string message, IReadOnlyDictionary<
 public enum ApprovalClosedReason
 {
     /// <summary>
-    /// An earlier run of the conversation answered it, or an approval rule did.
+    /// An earlier run of the conversation answered it, or Typeshift did: an approval rule, a standing approval, auto
+    /// mode, or the answer to a call next to one that needed approval.
     /// </summary>
     Answered,
 
     /// <summary>
-    /// The model went on without the call: a later run of the conversation, or steering input that the request's own
-    /// run answered.
+    /// The model went on without the call: a later run of the conversation started with other input, or the request's
+    /// own run answered steering input that came after it.
     /// </summary>
     PassedBy,
 
     /// <summary>
-    /// The conversation holds no request with this id since its last summary.
+    /// The conversation holds no request with this id since its last summary, or the run has no conversation.
     /// </summary>
     Unknown
 }

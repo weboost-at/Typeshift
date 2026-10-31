@@ -110,14 +110,15 @@ A request stays open until the conversation goes on without it. It closes when:
 - a run answers it, or an approval rule does;
 - the conversation's next run starts with other input, such as a new message, since that run drops every request it
   has no answer for, and the model sees the call as never made;
-- its own run goes on and answers something after it, such as [steering input](./conversations.md#steering). The
-  run's `ApprovalRequests` then leave it out.
+- its own run takes [steering input](./conversations.md#steering) after it and answers the input. The run's
+  `ApprovalRequests` then leave it out. A background agent's answer closes no request, since the run waits for it
+  before it ends.
 
 An answer to a closed request throws `ApprovalClosedException` before the run stores anything or calls the model, so
-your app learns that its prompt is out of date. That happens when your user approved in a second tab already, when a
-retry posts the same answers twice, or when a UI keeps an old prompt clickable after a new message. `Requests` says
-why each request is closed, as an `ApprovalClosedReason` (`Answered`, `PassedBy` or `Unknown`), so your app can tell
-the user that the approval has expired:
+your app learns that its prompt is out of date. That happens when your user approved in a second tab after the first
+answer's run ended, when a retry posts the same answers again, or when a UI keeps an old prompt clickable after a new
+message. `Requests` says why each request is closed, as an `ApprovalClosedReason` (`Answered`, `PassedBy` or
+`Unknown`), so your app can tell the user that the approval has expired:
 
 <!-- snippet: approval-closed -->
 <a id='snippet-approval-closed'></a>
@@ -134,6 +135,9 @@ catch (ApprovalClosedException closed)
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L35-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-closed' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
+
+One closed answer rejects the whole input: the answers to open requests in it don't run, and nothing of it is
+stored. Run again without the answers `Requests` names to keep the rest.
 
 ::: warning Answer every request in the same run
 The next run closes every request it has no answer for, so answer all of `ApprovalRequests` at once. A streaming run
