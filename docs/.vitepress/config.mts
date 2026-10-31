@@ -1,5 +1,6 @@
 import { defineConfig } from 'vitepress'
 import { withMermaid } from 'vitepress-plugin-mermaid'
+import llmstxt from 'vitepress-plugin-llms'
 
 const repository = 'https://github.com/weboost-at/Typeshift'
 
@@ -124,7 +125,9 @@ export default withMermaid(
     },
     // Mermaid alone is a chunk of several megabytes, loaded only by pages with a diagram
     vite: {
-      build: { chunkSizeWarningLimit: 4000 }
+      build: { chunkSizeWarningLimit: 4000 },
+      // llms.txt, llms-full.txt and a .md copy of each page, for the coding assistants of the library's users
+      plugins: [llmstxt({ ignoreFiles: ['contributing/**'] })]
     }
   })
 )
