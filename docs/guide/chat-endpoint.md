@@ -165,8 +165,9 @@ private static async IAsyncEnumerable<SseItem<object>> Events(IAsyncEnumerable<C
   `approval` event holds the `PendingApproval` with camelCase names. Parse each event's data with `JSON.parse`.
 - A browser reads the events with `fetch` and a reader over the response's body, because
   [`EventSource`](https://developer.mozilla.org/docs/Web/API/EventSource) sends only GET requests.
-- A run that asks for approval sends its `approval` events last, then stores the requests and ends. Post the answers
-  once the stream has ended, when the reader reports that it is done.
+- A run that asks for approval stores the requests, sends its `approval` events last, and then ends. Post the answers
+  once the stream has ended, when the reader reports that it is done. A reader that stops at an `approval` event
+  leaves the run to end on its own, and the answers still work.
 
 ## Answer the approvals
 

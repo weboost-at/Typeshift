@@ -14,6 +14,8 @@ All notable changes to this project are documented here. The format follows
   entries, such as its approval requests, and drop the answers to them. A run now claims its conversation before it
   loads it: a second run throws, as it does while a run goes on, and one that starts while another still loads the
   conversation waits until that run has begun.
+- A streaming run stored its approval requests only after the host had read them, so a host that stopped reading at
+  a request left it unstored, and the answer to it ran nothing. The run now stores the requests first.
 
 ## [0.1.0-alpha.5] - 2026-10-30
 

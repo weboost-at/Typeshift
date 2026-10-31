@@ -484,6 +484,30 @@ public class ToolApprovalTests : ApprovalTestBase
     }
 
     [Fact]
+    public async Task Given_A_Streaming_Run_Left_At_Its_Request_The_Approval_Still_Runs_The_Call()
+    {
+        // Arrange
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer));
+
+        ToolApprovalRequestContent? request = null;
+
+        await foreach (var update in Host<GuardedAgent>()
+            .RunStreamingAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct))
+        {
+            request = update.Contents.OfType<ToolApprovalRequestContent>().FirstOrDefault();
+            if (request is not null) break;
+        }
+
+        // Act
+        await AnswerAsync(request!.CreateResponse(approved: true));
+
+        // Assert
+        ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
+    }
+
+    [Fact]
     public async Task Given_A_Streaming_Run_And_A_Rule_That_Approves_No_Request_Reaches_The_Host()
     {
         // Arrange

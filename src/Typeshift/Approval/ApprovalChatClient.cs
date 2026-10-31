@@ -73,6 +73,9 @@ internal sealed class ApprovalChatClient(IChatClient inner, Func<int, IChatClien
             var answers = await DecideAsync(response.Messages, resolved, standing, cancellationToken);
             var answered = answers.Select(answer => answer.RequestId).ToHashSet();
 
+            // D24: the requests are stored before the host sees them, so a host that stops reading at one answers it
+            var goesOn = await ContinueAsync(response.Messages, answers, resolved);
+
             foreach (var update in updates.Where(update => update.Contents.Any(IsRequest)))
             {
                 var left = update.Contents.Where(content => !IsAnswered(content, answered)).ToList();
@@ -81,7 +84,7 @@ internal sealed class ApprovalChatClient(IChatClient inner, Func<int, IChatClien
                     yield return new ChatResponseUpdate(update.Role, left) { AuthorName = update.AuthorName };
             }
 
-            if (!await ContinueAsync(response.Messages, answers, resolved)) yield break;
+            if (!goesOn) yield break;
 
             // Rebuilt from the updates, the response holds new text the checkpoints stored already
             var rebuilt = response.Messages.Where(message => message.Role == ChatRole.Assistant);
