@@ -82,17 +82,17 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         Activity? activity,
         CancellationToken ct)
     {
-        var (conversation, entries) = await LoadAsync(options, ct);
+        var (conversation, entries, claim, answering) = await LoadAsync(options, ct);
 
-        if (AnsweringAgent(entries) is { } answering)
+        if (answering is not null)
             return await answering.RunAsync(messages, SettingsId(options), conversation, null, ct);
 
-        var (run, call, runOptions) = await BeginAsync(messages, options, conversation, entries, activity);
-        run.Publisher = CreatePublisher(run);
+        var (run, call, runOptions) = await BeginAsync(messages, options, conversation, entries, claim, activity);
         var handedOff = false;
 
         try
         {
+            run.Publisher = CreatePublisher(run);
             var calls = runOptions.AgentRun!.ModelCalls;
             var last = await base.GetResponseAsync(call, runOptions, ct);
             var response = last;
@@ -139,9 +139,9 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         Activity? activity,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        var (conversation, entries) = await LoadAsync(options, ct);
+        var (conversation, entries, claim, answering) = await LoadAsync(options, ct);
 
-        if (AnsweringAgent(entries) is { } answering)
+        if (answering is not null)
         {
             await foreach (var update in answering.RunStreamingAsync(messages, SettingsId(options), conversation, ct))
             {
@@ -151,15 +151,16 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             yield break;
         }
 
-        var (run, call, runOptions) = await BeginAsync(messages, options, conversation, entries, activity);
+        var (run, call, runOptions) = await BeginAsync(messages, options, conversation, entries, claim, activity);
 
-        var publisher = CreatePublisher(run);
-
+        LivePublisher? publisher = null;
         var ended = false;
         var calls = runOptions.AgentRun!.ModelCalls;
 
         try
         {
+            publisher = CreatePublisher(run);
+
             while (true)
             {
                 var updates = new List<ChatResponseUpdate>();
@@ -238,23 +239,39 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         return further;
     }
 
-    // The run's conversation from its last summary, loaded once: for the agent that answers and for the run's history
-    private async Task<(object? Conversation, IReadOnlyList<ConversationEntry> Entries)> LoadAsync(
-        ChatOptions? options,
-        CancellationToken ct)
+    // The run's conversation from its last summary, claimed and loaded once: for the agent that answers, which then
+    // runs it under a claim of its own, and for the run's history (D50)
+    private async Task<(
+        object? Conversation,
+        IReadOnlyList<ConversationEntry> Entries,
+        RunClaim? Claim,
+        IAgentHost? Answering)> LoadAsync(ChatOptions? options, CancellationToken ct)
     {
         var conversation = options is null ? null : GetConversation(options);
-        if (conversation is null) return (null, []);
+        if (conversation is null) return (null, [], null, null);
 
-        var entries = await Store.LoadConversationSinceCompactionAsync(conversation, ct);
+        var claim = await Runs.ClaimAsync(conversation, ct);
 
-        // D24: a summary an earlier version stored keeps no standing approvals, so the run reads them all
-        if (entries is [{ IsSummary: true, StandingApprovals: null }, ..])
+        try
         {
-            entries = await Store.LoadConversationAsync(conversation, ct);
-        }
+            var entries = await Store.LoadConversationSinceCompactionAsync(conversation, ct);
 
-        return (conversation, entries);
+            // D24: a summary an earlier version stored keeps no standing approvals, so the run reads them all
+            if (entries is [{ IsSummary: true, StandingApprovals: null }, ..])
+            {
+                entries = await Store.LoadConversationAsync(conversation, ct);
+            }
+
+            if (AnsweringAgent(entries) is not { } answering) return (conversation, entries, claim, null);
+
+            Runs.Release(claim);
+            return (conversation, entries, null, answering);
+        }
+        catch
+        {
+            Runs.Release(claim);
+            throw;
+        }
     }
 
     // D34: the agent that answered the conversation last answers its next run, if this agent's handoffs reach it
@@ -320,10 +337,33 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         ChatOptions? options,
         object? conversation,
         IReadOnlyList<ConversationEntry> entries,
+        RunClaim? claim,
+        Activity? activity)
+    {
+        try
+        {
+            return await BeginClaimedAsync(messages, options, conversation, entries, claim, activity);
+        }
+        catch
+        {
+            Runs.Release(claim);
+            throw;
+        }
+    }
+
+    private async Task<(ConversationRun Run, List<ChatMessage> Call, ResolvedChatOptions Options)> BeginClaimedAsync(
+        IEnumerable<ChatMessage> messages,
+        ChatOptions? options,
+        object? conversation,
+        IReadOnlyList<ConversationEntry> entries,
+        RunClaim? claim,
         Activity? activity)
     {
         // D24: a request is the model's, never the host's; one in the input is dropped before anything stores it
-        var input = messages.Select(WithoutRequests).OfType<ChatMessage>().ToList();
+        var input = messages
+            .Select(message => Without(message, content => content is ToolApprovalRequestContent))
+            .OfType<ChatMessage>()
+            .ToList();
         var runOptions = ResolvedChatOptions.From(options ?? new ChatOptions());
 
         // Options the raw path made itself run with the agent's provider and run options, as its tool loop does
@@ -341,6 +381,19 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             throw new InvalidOperationException(
                 $"Conversation {conversation} has no interrupted run to resume: run it with input instead.");
         }
+
+        // D24: an answer to a request the last run did not leave open may run nothing, so nothing stores it either; the
+        // run goes on without it, as it did with the answer dropped
+        var open = ConversationHistory.OpenRequests(entries);
+
+        input =
+        [
+            .. input
+                .Select(message => Without(
+                    message,
+                    content => content is ToolApprovalResponseContent answer && !open.Contains(answer.RequestId)))
+                .OfType<ChatMessage>()
+        ];
 
         // D52: a conversation keeps its mode, unless the run's settings name one
         if (!runOptions.RunSetsMode && entries.LastOrDefault(entry => entry.Mode is not null)?.Mode is { } kept)
@@ -380,7 +433,6 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             runOptions.Tools = [.. runOptions.Tools ?? [], .. handoffs];
         }
 
-        Runs.Begin(run);
         run.MarkStored(history);
 
         // D59: the ids of what the history leaves out, and of the background calls a summary left working
@@ -388,6 +440,9 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         run.HoldCallIds(entries.FirstOrDefault()?.BackgroundCalls?.Keys ?? []);
 
         if (input.Count > 0) await run.AppendAsync(input);
+
+        // Last, so nothing that fails before it leaves the conversation claimed by a run that never ends
+        Runs.Begin(run, claim);
 
         return (run, call, runOptions);
     }
@@ -402,12 +457,12 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             : new ReportedCall(ConversationHistory.From([.. entries.Take(last)]), entries[last].Usage!);
     }
 
-    private static ChatMessage? WithoutRequests(ChatMessage message)
+    private static ChatMessage? Without(ChatMessage message, Func<AIContent, bool> dropped)
     {
-        if (!message.Contents.Any(content => content is ToolApprovalRequestContent)) return message;
+        if (!message.Contents.Any(dropped)) return message;
 
         var kept = message.Clone();
-        kept.Contents = [.. message.Contents.Where(content => content is not ToolApprovalRequestContent)];
+        kept.Contents = [.. message.Contents.Where(content => !dropped(content))];
         return kept.Contents.Count > 0 ? kept : null;
     }
 
