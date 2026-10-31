@@ -69,11 +69,10 @@ dotnet mdsnippets && git diff --exit-code
 - Run the whole suite three times before you call a change done. All green every time.
 - The docs site: `npm ci`, then `npm run docs:check` (markdownlint, the docs rules, a build that fails on dead links)
   or `npm run docs:dev`.
-- The demos in `demos/` stay outside the solution and CI, by the owner's choice, and no scheduled build checks them.
-  So build them once when you start on the repository: `dotnet build demos/Typeshift.Demos.slnx -c Release`. If one
-  fails, give the owner a short note, in the chat or on the PR you open, and go on with your task. A change to public
-  API also builds them before you push. When it breaks one, fix it in the same PR, or say so under a **Demos** heading
-  in the PR's description, so the owner knows to check them.
+- The demos in `demos/` stay outside the solution and CI, by the owner's choice. Until a scheduled workflow builds
+  them, build them at the start of each session: `dotnet build demos/Typeshift.Demos.slnx -c Release`. If the build
+  fails, give the owner a short note and go on with your task. A change to public API builds them again before you
+  push; when it breaks one, fix it in the same PR, or say so under a **Demos** heading in the PR's description.
 
 ## Docs
 
