@@ -13,6 +13,8 @@ public sealed class GatedBackProvider(ScriptedChatClient client, ProviderGate ga
         {
             gate.Holding.SetResult();
             await gate.Release.Task.WaitAsync(ct);
+
+            if (gate.Failure is { } failure) throw failure;
         }
 
         return client;
@@ -26,6 +28,8 @@ public sealed class ProviderGate
     public TaskCompletionSource Holding { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
     public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public Exception? Failure { get; set; }
 
     public bool TakeHold() => Interlocked.Exchange(ref _held, 1) == 0;
 }

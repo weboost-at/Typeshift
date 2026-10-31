@@ -124,6 +124,54 @@ public class HandoffTests : MultiAgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Handoff_Whose_Agent_Fails_Before_It_Begins_A_Run_Waiting_For_The_Conversation_Runs()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithStore<InMemoryTypeshiftStore>().WithChatClientProvider<GatedBackProvider>();
+        services.AddSingleton(ChatClient).AddSingleton<ProviderGate>();
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var front = scope.ServiceProvider.GetRequiredService<AgentHost<FrontAgent>>();
+        var gate = provider.GetRequiredService<ProviderGate>();
+        gate.Failure = new InvalidOperationException(Data.Agent.Reason);
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer));
+
+        var first = front.RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+        await gate.Holding.Task;
+
+        // Act
+        var second = front.RunAsync(Data.Agent.FollowUp, conversationId: Data.Agent.ConversationId, ct: Ct);
+        gate.Release.SetResult();
+
+        // Assert
+        await FluentActions.Awaiting(() => first).Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage(Data.Agent.Reason);
+        (await second).Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_A_Handoff_Back_To_The_First_Agent_In_The_Same_Run_The_First_Agent_Answers()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Call(Data.Tool.SecondCallId, "handoff_to_front_agent"))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await RunAsync(Data.Tool.Question);
+
+        // Assert
+        response.Messages[^1].AuthorName.Should().Be("front_agent");
+        Tracker.Runs.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Given_A_Handoff_To_An_Agent_It_Does_Not_Know_The_Run_Goes_On_And_Ends()
     {
         // Arrange

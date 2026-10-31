@@ -15,7 +15,9 @@ All notable changes to this project are documented here. The format follows
   loads it: a second run throws, as it does while a run goes on, and one that starts while another still loads the
   conversation waits until that run has begun.
 - A run that started while a handoff passed the conversation to the other agent could take the conversation first, so
-  the handed-off run failed. A handoff now passes its claim on the conversation to the agent handed to.
+  the handed-off run failed. A handoff now passes its claim on the conversation to the agent handed to, and so does a
+  run passed on to the agent that answers the conversation; a run that starts meanwhile waits, then throws as it does
+  while any run goes on.
 
 ## [0.1.0-alpha.5] - 2026-10-30
 

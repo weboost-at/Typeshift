@@ -31,12 +31,12 @@ internal sealed class SubAgentFunction(AgentUse use, Agent agent) : AIFunction
         var input = new ChatMessage(ChatRole.User, Input(arguments));
         var host = use.Host(caller.Services);
 
-        if (!use.Background) return (await host.RunAsync([input], options.SettingsId, null, caller, ct)).Text;
+        if (!use.Background) return (await host.RunAsync([input], options.SettingsId, null, caller, null, ct)).Text;
 
         run.StartBackground(
             Name,
             context.CallContent.CallId,
-            stop => host.RunAsync([input], options.SettingsId, null, caller, stop));
+            stop => host.RunAsync([input], options.SettingsId, null, caller, null, stop));
 
         return $"{Name} works in the background; its answer arrives as a message once it is done.";
     }
