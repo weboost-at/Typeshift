@@ -49,7 +49,7 @@ internal sealed class LiveRuns
         PublishRun(run, ended: false);
     }
 
-    // A claim whose run never began, because another agent answers the conversation or the run failed to begin
+    // A claim whose run never began: the run failed to begin, or a claim handed on was never taken
     public void Release(RunClaim? claim)
     {
         if (claim is not { Run: null }) return;
@@ -58,7 +58,19 @@ internal sealed class LiveRuns
         claim.Settle();
     }
 
-    // A handoff ends its run before the run's own end does, which then finds it gone
+    // D34: a handoff ends its run and keeps the conversation, in a claim of its own for the agent handed to, so no run
+    // starts in between; the run holds its claim until then, so nothing else replaced it
+    public RunClaim HandOff(ConversationRun run)
+    {
+        var handed = new RunClaim(run.Conversation!);
+
+        _runs[run.Conversation!] = handed;
+        PublishRun(run, ended: true);
+
+        return handed;
+    }
+
+    // A handoff replaces its run's claim before the run's own end, which then finds it gone
     public void End(ConversationRun run)
     {
         if (run.Conversation is { } conversation

@@ -452,8 +452,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   entry of the agent handed to, and lets that agent resume the run; a run without a conversation does not offer
   handoffs, and a call of an agent it does not hand off to is answered by the tool loop as an unknown tool. Tool results
   after which the tool loop made no model call are stored before the run ends, a handoff's and a terminating tool's
-  alike.
-- **Where:** `Conversations/ConversationChatClient.cs`.
+  alike. The handing agent's run swaps its claim on the conversation (D50) for a claim of the agent handed to, and
+  passes it to that agent's run, as a run passed on to the agent that answers the conversation is passed its claim;
+  so no run starts between the two. A run that starts then waits, as for any run still loading, and is refused once
+  the agent handed to began. The claim travels as an argument and in the run's options rather than in an
+  `AsyncLocal`, which a value set before a stream's `yield` loses and code the agent's run calls would carry along.
+- **Where:** `Conversations/ConversationChatClient.cs`, `Conversations/LiveRuns.cs`.
 
 ### D35. MCP servers through a host provider
 

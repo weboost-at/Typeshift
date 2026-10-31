@@ -130,7 +130,7 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
         object? conversationId,
         object? settings,
         CancellationToken ct) =>
-        RunAsync(input is null ? [] : [input], settingsId, conversationId, settings, null, ct);
+        RunAsync(input is null ? [] : [input], settingsId, conversationId, settings, null, null, ct);
 
     internal async Task<ChatResponse<TResult>> RunCoreAsync<TResult>(
         ChatMessage input,
@@ -152,7 +152,7 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
         object? conversationId,
         object? settings,
         CancellationToken ct) =>
-        RunStreamingAsync(input is null ? [] : [input], settingsId, conversationId, settings, ct);
+        RunStreamingAsync(input is null ? [] : [input], settingsId, conversationId, settings, null, ct);
 
     internal IStoreAccess Store => _services.GetRequiredService<IStoreAccess>();
 
@@ -163,15 +163,17 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
         object? settingsId,
         object? conversation,
         AgentRun? caller,
+        RunClaim? claim,
         CancellationToken ct) =>
-        RunAsync(messages, settingsId, conversation, null, caller, ct);
+        RunAsync(messages, settingsId, conversation, null, caller, claim, ct);
 
     IAsyncEnumerable<ChatResponseUpdate> IAgentHost.RunStreamingAsync(
         IEnumerable<ChatMessage> messages,
         object? settingsId,
         object? conversation,
+        RunClaim? claim,
         CancellationToken ct) =>
-        RunStreamingAsync(messages, settingsId, conversation, null, ct);
+        RunStreamingAsync(messages, settingsId, conversation, null, claim, ct);
 
     private async Task<ChatResponse> RunAsync(
         IEnumerable<ChatMessage> messages,
@@ -179,9 +181,11 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
         object? conversation,
         object? settings,
         AgentRun? caller,
+        RunClaim? claim,
         CancellationToken ct)
     {
         var options = await ResolveRunAsync(settingsId, conversation, settings, caller, ct);
+        options.Claim = claim;
         using var client = await CreateChatClientAsync(options, ct);
 
         return await client.GetResponseAsync(messages, options, ct);
@@ -192,9 +196,11 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
         object? settingsId,
         object? conversation,
         object? settings,
+        RunClaim? claim,
         [EnumeratorCancellation] CancellationToken ct)
     {
         var options = await ResolveRunAsync(settingsId, conversation, settings, null, ct);
+        options.Claim = claim;
         using var client = await CreateChatClientAsync(options, ct);
 
         await foreach (var update in client.GetStreamingResponseAsync(messages, options, ct))

@@ -170,7 +170,8 @@ queue.
 
 `ConversationChatClient` declares the handoff tools when the run has a conversation. When the tool loop passes a
 handoff call out, it continues the run with the agent handed to, and it sends the conversation's next run to the
-agent that answered last (D33, D34).
+agent that answered last (D33, D34). Either way it passes its claim on the conversation to that agent's run, so no
+other run starts in between (D50).
 
 ## MCP servers
 
