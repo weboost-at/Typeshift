@@ -72,6 +72,10 @@ When the store fails to save, the failure is logged and recorded on the run's sp
 answer. Whenever a run loads the conversation, it leaves tool calls that never got a result and error messages out of
 what the model sees, because providers reject them.
 
+Some providers, such as local servers with an OpenAI-compatible API, number their tool calls per response, so a later
+call can get an id the conversation holds already. Typeshift renames such a call, as `call_1_2`, before it stores or
+runs it, so the stored entries, `ApprovalRequests` and the tool's result all carry the new id.
+
 ## Resuming
 
 Each model response is stored as it arrives, and tool results before the next model call, so an app that crashes

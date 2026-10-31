@@ -21,6 +21,9 @@ internal sealed class ConversationRun(
     private readonly List<(AIContent? After, ChatMessage Message)> _injected = [];
     private readonly HashSet<AIContent> _stored = new(ReferenceEqualityComparer.Instance);
 
+    // D59: every call id the conversation holds, the calls its history leaves out included
+    private readonly HashSet<string> _callIds = [];
+
     // What context providers and run middleware added, which the conversation never stores
     private readonly HashSet<AIContent> _transient = new(ReferenceEqualityComparer.Instance);
 
@@ -147,9 +150,29 @@ internal sealed class ConversationRun(
     // The history and the input a run starts from are stored already
     public void MarkStored(IEnumerable<ChatMessage> messages)
     {
-        foreach (var content in messages.SelectMany(message => message.Contents))
+        var list = messages.ToList();
+
+        foreach (var content in list.SelectMany(message => message.Contents))
         {
             _stored.Add(content);
+        }
+
+        HoldCallIds(UniqueCallIdsChatClient.Ids(list));
+    }
+
+    public void HoldCallIds(IEnumerable<string> ids)
+    {
+        lock (_callIds)
+        {
+            _callIds.UnionWith(ids);
+        }
+    }
+
+    public void AddCallIdsTo(HashSet<string> used)
+    {
+        lock (_callIds)
+        {
+            used.UnionWith(_callIds);
         }
     }
 

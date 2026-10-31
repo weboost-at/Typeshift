@@ -16,6 +16,10 @@ All notable changes to this project are documented here. The format follows
   conversation waits until that run has begun.
 - A streaming run stored its approval requests only after the host had read them, so a host that stopped reading at
   a request left it unstored, and the answer to it ran nothing. The run now stores the requests first.
+- A provider that numbers its calls per response, such as a local server with an OpenAI-compatible API, made the run
+  that answered a later approval request fail with a duplicate key, because the conversation held the call's id
+  already, and could pair a call left without a result with a later call's result. A call whose id the conversation
+  holds, in its history or not, is now renamed, as `call_1_2`, before anything stores or runs it.
 
 ## [0.1.0-alpha.5] - 2026-10-30
 
