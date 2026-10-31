@@ -352,8 +352,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** outermost first: conversation tracking (resume, run boundaries, live updates, the `invoke_agent`
   span), run middleware, context providers, approval (standing approvals and rules), `FunctionInvokingChatClient`
   (handoff, run options, tool middleware as its `FunctionInvoker`), checkpoints (each step appended before compaction
-  sees it; steering input and background answers injected here), compaction, `OpenTelemetryChatClient`, the
-  provider's client behind a wrapper that never disposes it.
+  sees it; steering input and background answers injected here), unique call ids (D59), compaction,
+  `OpenTelemetryChatClient`, the provider's client behind a wrapper that never disposes it.
   Checkpoints and compaction sit inside the tool loop, so they act before every model call. The approval layer builds
   a `FunctionInvokingChatClient` per round, whose iteration limit is that round's, so calls on one client never share
   a limit.
@@ -586,6 +586,21 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   one; one named case per rule for a `[Theory]`, which adds API and leans on a test framework; an abstract xUnit test
   class in a package of its own, which ties stores to one test framework; a checking decorator around the registered
   store, which finds a broken rule only when a run hits it.
+
+### D59. A call id the conversation holds already is renamed
+
+- **Status:** approved.
+- **Context:** some providers, such as local servers with an OpenAI-compatible API, number their calls per response,
+  so a later response reuses a call id the conversation holds. `FunctionInvokingChatClient` keys approval requests by
+  an id made from the call id, and the conversation's history keys calls and results by call id, so a reused id made
+  the answering run fail with a duplicate key.
+- **Decision:** a layer between the checkpoints and compaction gives each call of a response an id the call it sees
+  does not hold, the history, the run's own steps and the response's earlier calls included: a reused id gets a
+  numbered suffix, as `call_1_2`. It renames before the checkpoints store the response and before the tool loop reads
+  it, so the stored conversation, the approval requests and the tool results all use the new id.
+- **Where:** `Hosting/UniqueCallIdsChatClient.cs`, `AgentHost.cs`.
+- **Alternatives:** dropping answered requests from the history, which leaves calls and results keyed by a reused id;
+  ids Typeshift makes up for every call, which hides the provider's ids even where they are unique.
 
 ### D42. Settings ids and conversation ids are separate; conversations grow by appending
 

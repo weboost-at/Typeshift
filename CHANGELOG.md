@@ -5,6 +5,12 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- A provider that numbers its calls per response, such as a local server with an OpenAI-compatible API, made the run
+  that answered a later approval request fail with a duplicate key, because the conversation held the call's id
+  already. A call whose id the conversation holds is now renamed, as `call_1_2`, before anything stores or runs it.
+
 ## [0.1.0-alpha.5] - 2026-10-30
 
 ### Added

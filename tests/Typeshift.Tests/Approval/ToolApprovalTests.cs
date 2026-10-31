@@ -443,6 +443,52 @@ public class ToolApprovalTests : ApprovalTestBase
     }
 
     [Fact]
+    public async Task Given_A_Provider_That_Reuses_Call_Ids_Across_Runs_A_Later_Approval_Runs_Its_Call()
+    {
+        // Arrange
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket.Updated))
+            .Reply(Text(Data.Tool.Answer));
+
+        var first = await RunAsync(Data.Tool.Question);
+        await AnswerAsync(first.ApprovalRequests[0].CreateResponse(approved: true));
+        var second = await RunAsync(Data.Agent.FollowUp);
+
+        // Act
+        await AnswerAsync(second.ApprovalRequests[0].CreateResponse(approved: true));
+
+        // Assert
+        ToolCalls.Should().Equal(
+            $"close_ticket {Data.Agent.Ticket.Default}",
+            $"close_ticket {Data.Agent.Ticket.Updated}");
+    }
+
+    [Fact]
+    public async Task Given_A_Provider_That_Reuses_Call_Ids_Across_Streaming_Runs_A_Later_Approval_Runs_Its_Call()
+    {
+        // Arrange
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket.Updated))
+            .Reply(Text(Data.Tool.Answer));
+
+        var first = await StreamAsync(Data.Tool.Question);
+        await StreamAnswerAsync(first.ApprovalRequests[0].CreateResponse(approved: true));
+        var second = await StreamAsync(Data.Agent.FollowUp);
+
+        // Act
+        await StreamAnswerAsync(second.ApprovalRequests[0].CreateResponse(approved: true));
+
+        // Assert
+        ToolCalls.Should().Equal(
+            $"close_ticket {Data.Agent.Ticket.Default}",
+            $"close_ticket {Data.Agent.Ticket.Updated}");
+    }
+
+    [Fact]
     public async Task Given_A_Streaming_Run_And_A_Rule_That_Approves_No_Request_Reaches_The_Host()
     {
         // Arrange
