@@ -7,6 +7,13 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- An answer to an approval request that a later run of the conversation passed by ran the call, and approving it for
+  the conversation gave the tool a standing approval. Only the requests the last run left without an answer can be
+  answered now; an answer to any other is dropped before anything stores it.
+- A run that loaded a conversation while the conversation's last run was still ending could miss that run's last
+  entries, such as its approval requests, and drop the answers to them. A run now claims its conversation before it
+  loads it: a second run throws, as it does while a run goes on, and one that starts while another still loads the
+  conversation waits until that run has begun.
 - A streaming run stored its approval requests only after the host had read them, so a host that stopped reading at
   a request left it unstored, and the answer to it ran nothing. The run now stores the requests first.
 
