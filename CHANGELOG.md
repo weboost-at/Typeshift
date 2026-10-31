@@ -7,8 +7,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- The docs site publishes the guide for coding assistants: `llms.txt` lists its pages, `llms-full.txt` holds them
-  all in one file, and each page is also served as Markdown at its address with `.md`.
+- The docs site publishes the guide as Markdown for coding assistants: `llms.txt` lists its pages, `llms-full.txt`
+  holds them all in one file, and each guide page is also served at its address with `.md`.
 
 ### Fixed
 

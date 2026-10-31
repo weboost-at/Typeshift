@@ -109,8 +109,8 @@ description: Pause a run until your app approves a tool call, and let rules deci
 ```
 
 `title` is the page's name as people would say it, shown in the browser tab and in search. `description` is one
-sentence of at most 200 characters, shown in search results, link previews and the site's `llms.txt`, which lists
-the guide for coding assistants. Both are required.
+sentence of at most 200 characters, shown in search results, link previews and, for guide pages, the site's
+[`llms.txt`](../guide/getting-started.md#docs-for-coding-assistants). Both are required.
 
 ## Formatting
 

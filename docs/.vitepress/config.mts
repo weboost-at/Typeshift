@@ -1,8 +1,12 @@
 import { defineConfig } from 'vitepress'
 import { withMermaid } from 'vitepress-plugin-mermaid'
 import llmstxt from 'vitepress-plugin-llms'
+import { readdir, readFile, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
 
 const repository = 'https://github.com/weboost-at/Typeshift'
+const site = 'https://weboost-at.github.io'
+const description = 'Code-defined agents and toolsets for .NET on Microsoft.Extensions.AI'
 
 // GitHub Pages serves a project site under the repository's name; the Pages workflow passes the real base
 const base = process.env.DOCS_BASE ?? '/Typeshift/'
@@ -83,7 +87,7 @@ const sidebar = {
 export default withMermaid(
   defineConfig({
     title: 'Typeshift',
-    description: 'Code-defined agents and toolsets for .NET on Microsoft.Extensions.AI',
+    description,
     base,
     // VitePress leaves head links alone, so they carry the base themselves
     head: [
@@ -92,6 +96,19 @@ export default withMermaid(
       ['link', { rel: 'apple-touch-icon', href: `${base}brand/apple-touch-icon.png` }]
     ],
     cleanUrls: true,
+    // The Markdown copies keep the text of mdsnippets' source links, and llms-full.txt sits above the guide that its
+    // pages' relative links point into
+    async buildEnd({ outDir }) {
+      for (const file of await readdir(outDir, { recursive: true })) {
+        if (!/\.(md|txt)$/.test(file)) continue
+
+        const path = join(outDir, file)
+        let text = (await readFile(path, 'utf8')).replaceAll('\n\nsnippet source | anchor\n', '\n')
+        if (file === 'llms-full.txt') text = text.replaceAll('](./', `](${site}${base}guide/`)
+
+        await writeFile(path, text)
+      }
+    },
     lastUpdated: true,
     // The page templates are shown on the writing page, never served as pages
     srcExclude: ['**/templates/**'],
@@ -126,8 +143,16 @@ export default withMermaid(
     // Mermaid alone is a chunk of several megabytes, loaded only by pages with a diagram
     vite: {
       build: { chunkSizeWarningLimit: 4000 },
-      // llms.txt, llms-full.txt and a .md copy of each page, for the coding assistants of the library's users
-      plugins: [llmstxt({ ignoreFiles: ['contributing/**'] })]
+      // llms.txt, llms-full.txt and a .md copy of each guide page, for the coding assistants of the library's users;
+      // the contributing pages are for this repository
+      plugins: [
+        llmstxt({
+          domain: site,
+          description,
+          sidebar: { '/guide/': sidebar['/guide/'] },
+          ignoreFiles: ['contributing/**']
+        })
+      ]
     }
   })
 )
