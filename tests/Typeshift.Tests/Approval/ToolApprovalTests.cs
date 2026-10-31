@@ -489,6 +489,70 @@ public class ToolApprovalTests : ApprovalTestBase
     }
 
     [Fact]
+    public async Task Given_An_Unanswered_Request_Whose_Id_A_Later_Call_Reuses_That_Calls_Approval_Runs_It()
+    {
+        // Arrange
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket.Updated))
+            .Reply(Text(Data.Tool.Answer));
+
+        await RunAsync(Data.Tool.Question);
+        var second = await RunAsync(Data.Agent.FollowUp);
+
+        // Act
+        await AnswerAsync(second.ApprovalRequests[0].CreateResponse(approved: true));
+
+        // Assert
+        ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Updated}");
+    }
+
+    [Fact]
+    public async Task Given_An_Unanswered_Streamed_Request_Whose_Id_A_Later_Call_Reuses_That_Calls_Approval_Runs_It()
+    {
+        // Arrange
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket.Updated))
+            .Reply(Text(Data.Tool.Answer));
+
+        await StreamAsync(Data.Tool.Question);
+        var second = await StreamAsync(Data.Agent.FollowUp);
+
+        // Act
+        await StreamAnswerAsync(second.ApprovalRequests[0].CreateResponse(approved: true));
+
+        // Assert
+        ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Updated}");
+    }
+
+    [Fact]
+    public async Task Given_A_Call_Left_At_The_Limit_Whose_Id_A_Later_Call_Reuses_Each_Call_Goes_Out_With_Its_Result()
+    {
+        // Arrange
+        var settings = new GuardedAgent.Settings { MaxToolIterations = 1 };
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "read_ticket", ("number", Data.Agent.Ticket.Default)))
+            .Reply(Call(Data.Tool.SecondCallId, "read_ticket", ("number", Data.Agent.Ticket.Updated)))
+            .Reply(Call(Data.Tool.SecondCallId, "read_ticket", ("number", Data.Agent.Ticket.Updated)))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer));
+
+        var host = Host<GuardedAgent>();
+        await host.RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, settings: settings, ct: Ct);
+        await host.RunAsync(Data.Agent.FollowUp, conversationId: Data.Agent.ConversationId, settings: settings, ct: Ct);
+
+        // Act
+        await host.RunAsync(Data.Agent.Steering, conversationId: Data.Agent.ConversationId, settings: settings, ct: Ct);
+
+        // Assert
+        var sent = ChatClient.Requests[^1].SelectMany(message => message.Contents).ToList();
+        var results = sent.OfType<FunctionResultContent>().Select(result => result.CallId);
+        sent.OfType<FunctionCallContent>().Select(call => call.CallId).Should().BeEquivalentTo(results);
+    }
+
+    [Fact]
     public async Task Given_A_Streaming_Run_And_A_Rule_That_Approves_No_Request_Reaches_The_Host()
     {
         // Arrange

@@ -383,6 +383,10 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         Runs.Begin(run);
         run.MarkStored(history);
 
+        // D59: the ids of what the history leaves out, and of the background calls a summary left working
+        run.HoldCallIds(UniqueCallIdsChatClient.Ids(entries.SelectMany(entry => entry.Messages)));
+        run.HoldCallIds(entries.FirstOrDefault()?.BackgroundCalls?.Keys ?? []);
+
         if (input.Count > 0) await run.AppendAsync(input);
 
         return (run, call, runOptions);

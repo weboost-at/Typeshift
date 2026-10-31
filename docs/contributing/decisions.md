@@ -587,21 +587,6 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   class in a package of its own, which ties stores to one test framework; a checking decorator around the registered
   store, which finds a broken rule only when a run hits it.
 
-### D59. A call id the conversation holds already is renamed
-
-- **Status:** approved.
-- **Context:** some providers, such as local servers with an OpenAI-compatible API, number their calls per response,
-  so a later response reuses a call id the conversation holds. `FunctionInvokingChatClient` keys approval requests by
-  an id made from the call id, and the conversation's history keys calls and results by call id, so a reused id made
-  the answering run fail with a duplicate key.
-- **Decision:** a layer between the checkpoints and compaction gives each call of a response an id the call it sees
-  does not hold, the history, the run's own steps and the response's earlier calls included: a reused id gets a
-  numbered suffix, as `call_1_2`. It renames before the checkpoints store the response and before the tool loop reads
-  it, so the stored conversation, the approval requests and the tool results all use the new id.
-- **Where:** `Hosting/UniqueCallIdsChatClient.cs`, `AgentHost.cs`.
-- **Alternatives:** dropping answered requests from the history, which leaves calls and results keyed by a reused id;
-  ids Typeshift makes up for every call, which hides the provider's ids even where they are unique.
-
 ### D42. Settings ids and conversation ids are separate; conversations grow by appending
 
 - **Status:** owner.
@@ -655,7 +640,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   conversation id. On resume, unanswered calls and error messages are left out. A failed save is logged and traced,
   and the answer returns. The agent's name goes on `AuthorName`, never into `AdditionalProperties`.
 - **Details:** the end of a run is an entry of its own (`EndsRun`), with an `ErrorContent` when the run failed, was
-  cancelled or its stream was left early. The checkpoints know what they stored by reference, since the tool loop
+  cancelled or its stream was left early. Calls and results pair by call id, which D59 keeps unique in a conversation. The checkpoints know what they stored by reference, since the tool loop
   hands the same messages on; a streamed response is stored from the updates, and the tool loop's own messages
   built from those updates are matched by count.
 - **Where:** `Conversations/ConversationChatClient.cs`, `Conversations/CheckpointChatClient.cs`,
@@ -729,6 +714,29 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Where:** `Conversations/LiveRuns.cs`, `Conversations/ConversationTracker.cs`.
 - **Alternatives:** C# events, where a slow or throwing handler runs inside the run; a separate change record, which
   needs one more id-type alias.
+
+### D59. A call id the conversation holds already is renamed
+
+- **Status:** owner.
+- **Context:** some providers, such as local servers with an OpenAI-compatible API, number their tool calls per
+  response, so a later response reuses a call id the conversation holds. `FunctionInvokingChatClient` keys approval
+  requests by an id made from the call id, and the history keys calls and results by call id (D46), so a reused id made
+  the run that answered an approval fail with a duplicate key, and left a call that never got a result paired with
+  another call's result.
+- **Decision:** a layer between the checkpoints and compaction gives a function call of the provider's response a
+  numbered suffix, as `call_1_2`, when its id is in use: in the messages of the model call, in any entry the run
+  loaded, its history leaving them out or not, in what the run stored since, or earlier in the same response. A result
+  the provider returned with a renamed call follows it. The layer renames before the checkpoints store the response
+  and before the tool loop reads it, so the stored entries, the approval requests and the tool results carry the new
+  id, and the provider receives it in later calls; the renamed call drops the provider's raw item, which an adapter
+  would send back with the old id. A response with a conversation id keeps its ids, since a provider that keeps the
+  conversation itself matches the results to them. The chat spans of a call that did not stream show the provider's
+  ids, everything else the new ones.
+- **Where:** `Hosting/UniqueCallIdsChatClient.cs`, `Conversations/ConversationRun.cs` (the ids the run holds),
+  `AgentHost.cs`.
+- **Alternatives:** dropping answered requests from the history, which leaves calls and results keyed by a reused id;
+  ids Typeshift makes up for every call, which hides the provider's ids even where they are unique; translating back
+  to the provider's id on the way down, which a provider that numbers per response would then see twice.
 
 ## Repository
 
