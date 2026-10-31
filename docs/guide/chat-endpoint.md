@@ -158,7 +158,7 @@ private static async IAsyncEnumerable<SseItem<object>> Events(IAsyncEnumerable<C
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L76-L90' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-events' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L89-L103' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-events' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - Both events carry JSON, written with your app's JSON options: a `text` event holds its text as a JSON string, and an
@@ -189,12 +189,29 @@ chat.MapPost("/approvals", async Task<IResult> (
 
     var reply = new ChatMessage(ChatRole.User, [.. answers.Select(answer => answer.ToResponse())]);
 
-    var resumed = await support.RunAsync(reply, settingsId: customer.Id, conversationId: chatId, ct: ct);
-    return TypedResults.Ok(ChatReply.From(resumed));
+    try
+    {
+        var resumed = await support.RunAsync(
+            reply,
+            settingsId: customer.Id,
+            conversationId: chatId,
+            ct: ct);
+
+        return TypedResults.Ok(ChatReply.From(resumed));
+    }
+    catch (ApprovalClosedException)
+    {
+        // Answered already, in another tab or by a retry, or passed by a newer message: the UI drops it
+        return TypedResults.Conflict();
+    }
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L56-L72' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-approval-endpoint' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L56-L85' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-approval-endpoint' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
+
+An answer to a request that has closed, for example one the user approved in another tab already, throws
+`ApprovalClosedException` before the run calls the model. The endpoint answers it with 409 Conflict, so the UI can
+drop the prompt ([When a request closes](./tool-approval.md#when-a-request-closes)).
 
 `ToResponse` rebuilds each request from its ids and answers it, with a
 [standing approval](./tool-approval.md#approving-for-the-conversation) of the tool when the user chose one:
@@ -228,7 +245,7 @@ internal sealed record ApprovalAnswer(
   `RequestId` ([Approving or rejecting](./tool-approval.md#approving-or-rejecting)), and a standing approval goes to
   that call's tool. Decide on the stored call with an [approval rule](./tool-approval.md#approval-rules), never on the
   `Tool` the UI sent.
-- Post an answer to every pending approval at once, since the next run drops each request it has no answer for, and
+- Post an answer to every pending approval at once, since the next run closes each request it has no answer for, and
   clear the UI's pending approvals when the user sends a new message instead.
 - The answering run passes the customer's settings id again
   ([Tracking a conversation](./conversations.md#tracking-a-conversation)).

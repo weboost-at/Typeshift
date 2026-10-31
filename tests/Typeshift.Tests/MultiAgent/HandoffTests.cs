@@ -242,6 +242,33 @@ public class HandoffTests : MultiAgentTestBase
         ChatClient.Requests[1][^1].Text.Should().Be(Data.Agent.Steering);
     }
 
+    [Fact]
+    public async Task Given_A_Closed_Request_Of_The_Agent_Handed_To_An_Answer_Throws_And_Frees_The_Conversation()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_guarded_back_agent"))
+            .Reply(Call(Data.Tool.SecondCallId, "close_ticket", ("number", Data.Agent.Ticket.Default)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var asked = await Host<GuardedFrontAgent>()
+            .RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+
+        await Host<GuardedFrontAgent>()
+            .RunAsync(Data.Agent.FollowUp, conversationId: Data.Agent.ConversationId, ct: Ct);
+
+        // Act
+        var answer = () => Host<GuardedFrontAgent>().RunAsync(
+            new ChatMessage(ChatRole.User, [asked.ApprovalRequests.Single().CreateResponse(approved: true)]),
+            conversationId: Data.Agent.ConversationId,
+            ct: Ct);
+
+        // Assert
+        await answer.Should().ThrowAsync<ApprovalClosedException>();
+        Tracker.Runs.Should().BeEmpty();
+        ToolCalls.Should().BeEmpty();
+    }
+
     private Task<ChatResponse> RunAsync(string input) =>
         Host<FrontAgent>().RunAsync(input, conversationId: Data.Agent.ConversationId, ct: Ct);
 }
