@@ -9,6 +9,9 @@ namespace Typeshift;
 internal sealed class LiveRuns
 {
     private readonly ConcurrentDictionary<object, RunClaim> _runs = new();
+
+    // D34: the claim a handoff passed on in this async flow, waiting for the run of the agent handed to
+    private readonly AsyncLocal<RunClaim?> _handed = new();
     private readonly ConcurrentDictionary<object, ImmutableList<Channel<ChatResponseUpdate>>> _watchers = new();
     private ImmutableList<Channel<(ConversationRun Run, bool Ended)>> _runWatchers = [];
 
@@ -21,6 +24,15 @@ internal sealed class LiveRuns
     public async Task<RunClaim?> ClaimAsync(object? conversation, CancellationToken ct)
     {
         if (conversation is null) return null;
+
+        if (_handed.Value is { Run: null } handed
+            && Equals(handed.Conversation, conversation)
+            && _runs.TryGetValue(conversation, out var current)
+            && current == handed)
+        {
+            _handed.Value = null;
+            return handed;
+        }
 
         var claim = new RunClaim(conversation);
 
@@ -56,6 +68,24 @@ internal sealed class LiveRuns
 
         _runs.TryRemove(new KeyValuePair<object, RunClaim>(claim.Conversation, claim));
         claim.Settle();
+    }
+
+    // D34: a handoff ends its run and keeps the conversation, in a claim of its own for the agent handed to, so no run
+    // starts in between. Called in the flow that runs that agent next, which takes the claim; that flow lets go of it
+    // if the agent's run never began
+    public RunClaim? HandOff(ConversationRun run)
+    {
+        if (run.Conversation is not { } conversation
+            || !_runs.TryGetValue(conversation, out var claim)
+            || claim.Run != run)
+            return null;
+
+        var handed = new RunClaim(conversation);
+        if (!_runs.TryUpdate(conversation, handed, claim)) return null;
+
+        _handed.Value = handed;
+        PublishRun(run, ended: true);
+        return handed;
     }
 
     // A handoff ends its run before the run's own end does, which then finds it gone

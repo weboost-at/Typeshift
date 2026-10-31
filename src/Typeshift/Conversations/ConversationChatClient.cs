@@ -106,7 +106,17 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                 if (handoff is var (result, target))
                 {
                     handedOff = true;
-                    var answer = await target.RunAsync([], runOptions.SettingsId, run.Conversation, null, ct);
+                    var handed = Runs.HandOff(run);
+                    ChatResponse answer;
+
+                    try
+                    {
+                        answer = await target.RunAsync([], runOptions.SettingsId, run.Conversation, null, ct);
+                    }
+                    finally
+                    {
+                        Runs.Release(handed);
+                    }
 
                     return ChatResponses.Merge(ChatResponses.Merge(response, new ChatResponse(result)), answer);
                 }
@@ -183,11 +193,21 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
                     yield return new ChatResponseUpdate(ChatRole.Tool, result.Contents);
 
-                    var answer = target.RunStreamingAsync([], runOptions.SettingsId, run.Conversation, ct);
+                    // Handed on here, in the flow that starts the other agent's run, which then takes the claim
+                    var handed = Runs.HandOff(run);
 
-                    await foreach (var update in answer)
+                    try
                     {
-                        yield return update;
+                        var answer = target.RunStreamingAsync([], runOptions.SettingsId, run.Conversation, ct);
+
+                        await foreach (var update in answer)
+                        {
+                            yield return update;
+                        }
+                    }
+                    finally
+                    {
+                        Runs.Release(handed);
                     }
 
                     yield break;
@@ -310,8 +330,8 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     }
 
     // D34: the call's result is stored, and the run is the other agent's from here: it resumes the conversation,
-    // so this agent neither ends the run nor holds it; input steered to it is stored for the other agent. Null for a
-    // call of no agent this one hands off to
+    // so this agent neither ends the run nor holds it, and the caller hands its claim on; input steered to it is
+    // stored for the other agent. Null for a call of no agent this one hands off to
     private async Task<(ChatMessage Result, IAgentHost Target)?> HandOffAsync(
         ConversationRun run,
         FunctionCallContent call)
@@ -327,7 +347,6 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
         await run.AppendHandoffAsync(result, target.Agent.Name);
         await run.CloseAsync(target.Agent.Name);
-        Runs.End(run);
 
         return (result, target);
     }

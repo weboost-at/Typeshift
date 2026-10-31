@@ -1,6 +1,7 @@
 using Typeshift.Tests.MultiAgent.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift.Tests.MultiAgent;
 
@@ -44,6 +45,82 @@ public class HandoffTests : MultiAgentTestBase
         // Assert
         Models[^1].Model.Should().Be("back-model");
         response.Messages[^1].AuthorName.Should().Be("back_agent");
+    }
+
+    [Fact]
+    public async Task Given_A_Run_Starting_While_A_Handoff_Passes_On_The_Conversation_The_Agent_Handed_To_Answers()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithStore<InMemoryTypeshiftStore>().WithChatClientProvider<GatedBackProvider>();
+        services.AddSingleton(ChatClient).AddSingleton<ProviderGate>();
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var front = scope.ServiceProvider.GetRequiredService<AgentHost<FrontAgent>>();
+        var gate = provider.GetRequiredService<ProviderGate>();
+
+        var answering = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(answering, Text(Data.Tool.Answer));
+
+        var first = front.RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+        await gate.Holding.Task;
+
+        // Act
+        var second = front.RunAsync(Data.Agent.FollowUp, conversationId: Data.Agent.ConversationId, ct: Ct);
+        gate.Release.SetResult();
+
+        var settled = await Task.WhenAny(first, second);
+        answering.SetResult();
+
+        // Assert
+        settled.Should().BeSameAs(second);
+        await FluentActions.Awaiting(() => second).Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*TrySteer*");
+        (await first).Messages[^1].AuthorName.Should().Be("back_agent");
+    }
+
+    [Fact]
+    public async Task Given_A_Run_Starting_While_A_Streamed_Handoff_Passes_On_The_Conversation_The_Agent_Answers()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithStore<InMemoryTypeshiftStore>().WithChatClientProvider<GatedBackProvider>();
+        services.AddSingleton(ChatClient).AddSingleton<ProviderGate>();
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var front = scope.ServiceProvider.GetRequiredService<AgentHost<FrontAgent>>();
+        var gate = provider.GetRequiredService<ProviderGate>();
+
+        var answering = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(answering, Text(Data.Tool.Answer));
+
+        var first = front
+            .RunStreamingAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct)
+            .ToListAsync(Ct)
+            .AsTask();
+
+        await gate.Holding.Task;
+
+        // Act
+        var second = front.RunAsync(Data.Agent.FollowUp, conversationId: Data.Agent.ConversationId, ct: Ct);
+        gate.Release.SetResult();
+
+        var settled = await Task.WhenAny(first, second);
+        answering.SetResult();
+
+        // Assert
+        settled.Should().BeSameAs(second);
+        await FluentActions.Awaiting(() => second).Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*TrySteer*");
+        (await first).ToChatResponse().Messages[^1].AuthorName.Should().Be("back_agent");
     }
 
     [Fact]
