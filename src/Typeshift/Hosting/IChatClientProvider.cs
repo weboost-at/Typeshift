@@ -11,9 +11,9 @@ namespace Typeshift;
 public interface IChatClientProvider<TProviderId> where TProviderId : notnull
 {
     /// <summary>
-    /// Returns the client that serves a provider's model, the same instance for the same pair where possible, since
-    /// Typeshift instruments each instance once and keeps that as long as the instance lives. Typeshift sends the
-    /// model as <see cref="ChatOptions.ModelId"/> and never disposes the client.
+    /// Returns the client that serves a provider's model. It may be a new instance for each run, since Typeshift
+    /// instruments each provider and model once, whatever instance it gets. Typeshift sends the model as
+    /// <see cref="ChatOptions.ModelId"/> and never disposes the client.
     /// </summary>
     /// <param name="provider">The provider, as the agent's code or settings name it.</param>
     /// <param name="model">The model, as the provider's API names it.</param>
