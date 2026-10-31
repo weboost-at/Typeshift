@@ -277,7 +277,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   every approval) or `Abstain`, which the mode resolves (D52). A layer above `FunctionInvokingChatClient` answers the
   requests rules and standing approvals decide and continues the loop, so only the rest reach the host. It also stores
   the requests and its own answers when a run ends asking, as `FunctionInvokingChatClient` keeps them out of what the
-  checkpoint layer below it sees. Approvals match tools by name, which is unique per agent and across the agents its
+  checkpoint layer below it sees; a streaming run stores them before the host reads them, so a host that stops
+  reading at a request can still answer it. Approvals match tools by name, which is unique per agent and across the agents its
   approvals reach by handoff or as a sub-agent (TSH007, and a runtime check for MCP tools).
 - **Where:** `Approval/ApprovalChatClient.cs`, `Approval/ToolApproval.cs`.
 - **Alternatives:** an approval callback the run awaits, which holds a run open across requests; a Typeshift approval
