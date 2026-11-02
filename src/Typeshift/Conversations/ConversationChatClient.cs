@@ -126,7 +126,8 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                         Runs.Release(handed);
                     }
 
-                    return ChatResponses.Merge(ChatResponses.Merge(response, new ChatResponse(result)), answer);
+                    var asked = ChatResponses.Merge(OnlyOpen(response, run), new ChatResponse(result));
+                    return ChatResponses.Merge(asked, answer);
                 }
 
                 if (!GoesFurther(runOptions, ref calls) || !await run.GoesOnAsync(ct)) break;
@@ -137,7 +138,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             }
 
             await run.EndAsync(null);
-            return response;
+            return OnlyOpen(response, run);
         }
         catch (Exception exception) when (!handedOff)
         {
@@ -245,6 +246,12 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             Runs.End(run);
         }
     }
+
+    // D60: a run returns the requests it left open, without those it answered steering input after
+    private static ChatResponse OnlyOpen(ChatResponse response, ConversationRun run) =>
+        ChatResponses.WithoutRequests(
+            response,
+            ConversationHistory.RequestIds(response.Messages).Where(request => !run.IsOpen(request)).ToHashSet());
 
     // D47: only a conversation has watchers, and only realtime tracking feeds them
     private LivePublisher? CreatePublisher(ConversationRun run) =>
@@ -415,18 +422,18 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                 $"Conversation {conversation} has no interrupted run to resume: run it with input instead.");
         }
 
-        // D24: an answer to a request the last run did not leave open may run nothing, so nothing stores it either; the
-        // run goes on without it, as it did with the answer dropped
+        // D60: an answer to a request the last run did not leave open would run nothing, so the run throws before it
+        // stores anything or calls the model, and the host can tell its user the request has closed
         var open = ConversationHistory.OpenRequests(entries);
 
-        input =
-        [
-            .. input
-                .Select(message => Without(
-                    message,
-                    content => content is ToolApprovalResponseContent answer && !open.Contains(answer.RequestId)))
-                .OfType<ChatMessage>()
-        ];
+        var closed = input.SelectMany(message => message.Contents)
+            .OfType<ToolApprovalResponseContent>()
+            .Select(answer => answer.RequestId)
+            .Where(request => !open.Contains(request))
+            .ToList();
+
+        if (closed.Count > 0)
+            throw ApprovalClosedException.For(conversation, ConversationHistory.Closed(entries, closed));
 
         // D52: a conversation keeps its mode, unless the run's settings name one
         if (!runOptions.RunSetsMode && entries.LastOrDefault(entry => entry.Mode is not null)?.Mode is { } kept)

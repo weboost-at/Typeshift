@@ -60,6 +60,10 @@ internal static class ChatEndpoint
         ApprovalAnswer[] answers = [new(pending.RequestId, pending.CallId, pending.Tool, Approved: true)];
         await PostAsync<ChatReply>(http, "/chats/42/approvals", answers);
 
+        var twice = await http.PostAsJsonAsync("/chats/42/approvals", answers);
+        if (twice.StatusCode != HttpStatusCode.Conflict)
+            throw new InvalidOperationException("Expected the answers posted again to conflict.");
+
         var ticket = await app.Services.GetRequiredService<ITicketClient>().GetAsync(1234, default);
         if (ticket is not { Closed: true }) throw new InvalidOperationException("Expected the approved call to run.");
 

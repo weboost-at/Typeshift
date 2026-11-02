@@ -66,8 +66,21 @@ internal static class ChatEndpoints
 
                 var reply = new ChatMessage(ChatRole.User, [.. answers.Select(answer => answer.ToResponse())]);
 
-                var resumed = await support.RunAsync(reply, settingsId: customer.Id, conversationId: chatId, ct: ct);
-                return TypedResults.Ok(ChatReply.From(resumed));
+                try
+                {
+                    var resumed = await support.RunAsync(
+                        reply,
+                        settingsId: customer.Id,
+                        conversationId: chatId,
+                        ct: ct);
+
+                    return TypedResults.Ok(ChatReply.From(resumed));
+                }
+                catch (ApprovalClosedException)
+                {
+                    // Answered already, in another tab or by a retry, or passed by a newer message: the UI drops it
+                    return TypedResults.Conflict();
+                }
             });
             // end-snippet
         }

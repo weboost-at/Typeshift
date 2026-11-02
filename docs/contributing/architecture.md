@@ -123,8 +123,8 @@ well, so an agent's settings can delegate to the overrides of a toolset in anoth
 A run with a conversation id goes through `ConversationChatClient`. It claims the conversation in `LiveRuns`, which
 allows one run per conversation in a process, then loads the entries from the last summary on
 (`LoadConversationSinceCompactionAsync`) and builds the history without unanswered calls, errors and the approval
-requests a later run passed by. It stores the input, without answers to those requests, begins the run in `LiveRuns`,
-and ends the run with an entry of its own.
+requests that closed. It throws `ApprovalClosedException` when the input answers one of those (D60), stores the
+input, begins the run in `LiveRuns`, and ends the run with an entry of its own.
 
 Inside the tool loop, `CheckpointChatClient` stores the steps before each model call, tool results first and then
 any steering input it takes in, and stores each response as it arrives. `ConversationRun` holds what one run stored

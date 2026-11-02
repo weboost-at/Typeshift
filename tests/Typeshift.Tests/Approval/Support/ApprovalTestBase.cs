@@ -51,6 +51,15 @@ public abstract class ApprovalTestBase : AgentTestBase
             .ToListAsync(Ct))
         .ToChatResponse();
 
+    // The requests the conversation stored, whether a response returned them or not
+    protected async Task<List<ToolApprovalRequestContent>> StoredRequestsAsync() =>
+    [
+        .. (await EntriesAsync(Data.Agent.ConversationId))
+            .SelectMany(entry => entry.Messages)
+            .SelectMany(message => message.Contents)
+            .OfType<ToolApprovalRequestContent>()
+    ];
+
     protected ChatResponseUpdate CloseTicket(string callId, int number) =>
         Call(callId, "close_ticket", ("number", number));
 

@@ -27,6 +27,9 @@ internal sealed class ConversationRun(
     // What context providers and run middleware added, which the conversation never stores
     private readonly HashSet<AIContent> _transient = new(ReferenceEqualityComparer.Instance);
 
+    // D60: the approval requests this run left open, by what it stored, as the next run reads them
+    private OpenRequests _requests = new();
+
     // D33: the background sub-agents still working by call id, and a signal for each answer or steering input
     private readonly ConcurrentDictionary<string, string> _background = [];
     private readonly SemaphoreSlim _arrived = new(0);
@@ -188,6 +191,8 @@ internal sealed class ConversationRun(
 
     public bool IsTransient(ChatMessage message) => message.Contents.Any(_transient.Contains);
 
+    public bool IsOpen(string request) => _requests.Contains(request);
+
     // The tool loop's list with the steering input put back where it went in; the steps not stored yet (tool results)
     // are stored, then the steering input waiting is taken in and stored (D51)
     public async Task<List<ChatMessage>> PrepareCallAsync(IEnumerable<ChatMessage> messages)
@@ -250,6 +255,16 @@ internal sealed class ConversationRun(
     // D32: what compaction left of the history, which later runs start from without reading what came before
     public Task AppendSummaryAsync(IReadOnlyList<ChatMessage> messages) => AppendAsync(messages, summary: true);
 
+    // D24: every request is stored, since the answers the approval layer gave bind to them, but watchers see only
+    // those left to the host, as the host of a streaming run does
+    public async Task AppendRequestsAsync(
+        IReadOnlyList<ToolApprovalRequestContent> requests,
+        IReadOnlyList<ToolApprovalRequestContent> left)
+    {
+        await AppendAsync([new ChatMessage(ChatRole.Assistant, [.. requests])], published: false);
+        if (Conversation is not null) Publish([new ChatMessage(ChatRole.Assistant, [.. left]) { AuthorName = Agent }]);
+    }
+
     public async Task AppendResponseAsync(ChatResponse response, ChatOptions? options, bool streamed)
     {
         await AppendAsync([.. response.Messages], response.ModelId ?? options?.ModelId, response.Usage);
@@ -263,7 +278,8 @@ internal sealed class ConversationRun(
         UsageDetails? usage = null,
         bool endsRun = false,
         bool summary = false,
-        string? answering = null)
+        string? answering = null,
+        bool published = true)
     {
         foreach (var message in messages)
         {
@@ -271,9 +287,14 @@ internal sealed class ConversationRun(
         }
 
         MarkStored(messages);
+
+        // A summary is where the next run starts reading, so the requests it keeps are all that may stay open
+        if (summary) _requests = new OpenRequests();
+        _requests.Add(messages);
+
         if (Conversation is null) return;
 
-        if (!endsRun && !summary) Publish(messages);
+        if (published && !endsRun && !summary) Publish(messages);
 
         var entry = new ConversationEntry(answering ?? Agent, messages, time.GetUtcNow())
         {

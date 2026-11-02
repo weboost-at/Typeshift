@@ -265,12 +265,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** approved.
 - **Decision:** `RequiresApproval()` wraps the tool in `ApprovalRequiredAIFunction`; `FunctionInvokingChatClient` ends
   the run with `ToolApprovalRequestContent`s, listed by `response.ApprovalRequests`. The host answers with
-  `CreateResponse(approved)` in the next run of the conversation; the stored request is the one that runs, an answer to
-  no stored request is dropped, a request keeps its first answer, and an unanswered request is left out of the next run.
-  Only the requests the conversation's last run left unanswered are open: a later run's history leaves out the others,
-  and an answer to one is dropped before anything stores it, so a request a later run passed by can neither run its
-  call nor give a standing approval. A request stays open while its own run goes on with steering input, which the
-  model receives after it.
+  `CreateResponse(approved)` in the next run of the conversation; the stored request is the one that runs, a request
+  keeps its first answer, and an unanswered request is left out of the next run. Only the requests the conversation's
+  last run left unanswered, and did not pass by after steering input, are open: a later run's history leaves out the others, and an
+  answer to one throws before anything stores it (D60), so a closed request can neither run its call nor give a
+  standing approval.
   A request in the input is dropped before anything stores it, so a host's input cannot bring a call of its own past the
   rules. Standing approvals hold beyond what compaction left: a summary entry stores them. Calls in the same
   response that need no approval wait with it and run once the host answered (the tool loop asks for every call of a
@@ -749,6 +748,36 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Alternatives:** dropping answered requests from the history, which leaves calls and results keyed by a reused id;
   ids Typeshift makes up for every call, which hides the provider's ids even where they are unique; translating back
   to the provider's id on the way down, which a provider that numbers per response would then see twice.
+
+### D60. An answer to a closed request throws; steering that the run answers closes its requests
+
+- **Status:** owner (asked on the pull request to confirm).
+- **Context:** an answer to a request that was not open was dropped and the run went on. A second tab, a retried post
+  or a UI that kept an old prompt then made a model call with no new input, which the host paid for and could not
+  tell from a run that worked. A request also stayed open while its own run went on with steering input, so the model
+  answered "never mind", and a later click still ran the call.
+- **Decision:** a request is open while the conversation's last run left it without an answer, until the agent
+  answers steering input stored after it. Then it closes, as it would for a new message, and the run's response
+  leaves it out of `ApprovalRequests`; a streaming run has sent it already. A background agent's answer closes
+  nothing, since a run that asks waits for its background agents before it ends. A run whose input answers a request
+  that is not open throws `ApprovalClosedException` before it stores anything or calls the model, and releases its
+  claim. The exception names each request with an `ApprovalClosedReason`: answered, by the host or by Typeshift
+  (a rule, a standing approval, auto mode, or a call next to one that needed approval); passed by; or unknown, for an
+  id the conversation holds no request of since its last summary, and for every answer in a run without a
+  conversation. One closed answer rejects the whole input.
+- **Details:** `OpenRequests` reads the stored messages in order, with no new field, so the rule holds across
+  processes, and the run feeds it what it stores, so the requests a run returns are those the next run finds open.
+  An answer of the agent is an assistant message with contents other than requests and errors: a model response,
+  even a request's own call, or run middleware's answer. Steering input is a user message with more than answers and
+  without a background agent's mark. A model call that fails before any of its response arrives stores nothing, so
+  its requests stay open; a stream that fails after some text has stored it, and closes them. Watchers see only the
+  requests left to the host, though every request is stored for the answers the approval layer gave.
+- **Where:** `Conversations/OpenRequests.cs`, `Conversations/ConversationHistory.cs`,
+  `Conversations/ConversationRun.cs`, `Conversations/ConversationChatClient.cs`, `Approval/ApprovalClosedException.cs`.
+- **Alternatives:** dropping the answer and calling the model, as before; dropping it without a model call, which the
+  host still cannot tell from a run that answered; holding steering input back until the requests are answered, which
+  looks to the user as if their message was lost; a field on the entry that marks a request closed, which every store
+  would have to keep.
 
 ## Repository
 
