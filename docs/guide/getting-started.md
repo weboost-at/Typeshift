@@ -24,10 +24,10 @@ The types on this page are in the `Typeshift` namespace, which the package does 
 `using Microsoft.Extensions.DependencyInjection;`, and in a console app the `Microsoft.Extensions.DependencyInjection`
 package, which builds the service provider.
 
-Turn on XML docs in a `Directory.Build.props` next to your solution, since tools take their descriptions from them; without them the build
-warns with [TSH011](./diagnostics.md#tsh011). The same file sets `TypeshiftIdType`, the type of the settings ids and
-conversation ids you pass to runs. Leave it out, and ids are `Guid`s, so step 4 does not compile with the ids 42 and
-1:
+Turn on XML docs in a `Directory.Build.props` next to your solution, since tools take their descriptions from them;
+without them the build warns with [TSH011](./diagnostics.md#tsh011). The same file sets `TypeshiftIdType`, the type of
+the settings ids and conversation ids you pass to runs. Leave it out, and ids are `Guid`s, so step 4 does not compile
+with the ids 42 and 1:
 
 ```xml
 <Project>
