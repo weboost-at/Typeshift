@@ -122,7 +122,9 @@ export default withMermaid(
         { text: 'Guide', link: '/guide/getting-started', activeMatch: '/guide/' },
         { text: 'Diagnostics', link: '/guide/diagnostics' },
         { text: 'Contributing', link: '/contributing/', activeMatch: '/contributing/' },
-        { text: 'Changelog', link: `${repository}/blob/main/CHANGELOG.md` }
+        { text: 'Changelog', link: `${repository}/blob/main/CHANGELOG.md` },
+        // As Marten and Wolverine do: the whole guide in one file, for a coding assistant's context
+        { text: 'LLM Friendly Docs', link: `${site}${base}llms-full.txt` }
       ],
       sidebar,
       socialLinks: [{ icon: 'github', link: repository }],
