@@ -148,7 +148,19 @@ if (next is null)
 
 while (next is not null && !session.IsCancellationRequested)
 {
-    var response = await RunAsync(coder.RunStreamingAsync(next, settingsId, conversationId, ct: session.Token));
+    ChatResponse response;
+
+    try
+    {
+        response = await RunAsync(coder.RunStreamingAsync(next, settingsId, conversationId, ct: session.Token));
+    }
+    catch (ApprovalClosedException)
+    {
+        // What you typed while it asked steered the run, which answered that instead of waiting for the approval
+        Demo.Note("That approval has expired: the agent went on with what you typed.");
+        response = new ChatResponse();
+    }
+
     next = ConsoleApprover.Answer(response, ReadLine, approveAll);
 
     if (next is null && !Demo.Flag(args, "--once") && !approveAll)
