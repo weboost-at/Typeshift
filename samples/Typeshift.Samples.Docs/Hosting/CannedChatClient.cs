@@ -1,12 +1,13 @@
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using Microsoft.Extensions.AI;
 
 namespace Typeshift.Samples.Hosting;
 
 // Stands in for a provider's client, so the guide's scenarios run without a network. It answers as a model would in
 // each scenario: a plan in plan mode, a call of close_ticket when asked to close a ticket, of a sub-agent it is
-// offered, a handoff to billing about a charge, JSON when the run asks for it, otherwise one fixed answer; once a
-// tool answered, it answers in text
+// offered, a handoff to billing about a charge, of find_companies for the city it is given, JSON when the run asks for
+// it, otherwise one fixed answer; once a tool answered, it answers in text, listing the companies find_companies found
 internal sealed class CannedChatClient : IChatClient
 {
     public const string Answer = "Your refund was approved and reaches your account within five days.";
@@ -50,6 +51,8 @@ internal sealed class CannedChatClient : IChatClient
                 Call("research_agent", ("input", "Which robotics companies are in Vienna?")),
             (false, _) when offers.Contains("handoff_to_billing_agent") && input.Contains("charged") =>
                 Call("handoff_to_billing_agent"),
+            (false, _) when offers.Contains("find_companies") => Call("find_companies", ("city", input)),
+            (true, _) when offers.Contains("find_companies") => new TextContent(Companies(messages[^1])),
             (_, ChatResponseFormatJson) =>
                 new TextContent("""{ "Invoice": "INV-7", "State": "Approved", "Expected": "2026-11-02" }"""),
             _ => new TextContent(Answer)
@@ -57,6 +60,19 @@ internal sealed class CannedChatClient : IChatClient
 
         return new ChatMessage(ChatRole.Assistant, [content]);
     }
+
+    // The names find_companies returned, listed as a model would
+    private static string Companies(ChatMessage results) =>
+        "Found "
+        + string.Join(
+            " and ",
+            results.Contents
+                .OfType<FunctionResultContent>()
+                .Select(result => result.Result)
+                .OfType<JsonElement>()
+                .SelectMany(found => found.EnumerateArray())
+                .Select(company => company.GetProperty("name").GetString()))
+        + ".";
 
     private static FunctionCallContent Call(string name, params (string Name, object Value)[] arguments) =>
         new(
