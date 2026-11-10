@@ -6,6 +6,7 @@
 /// <summary>
 /// The runs and stored settings of <see cref="global::Research.ResearchAgent"/>.
 /// </summary>
+[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
 internal static class TypeshiftHost_8Research13ResearchAgent
 {
     extension(global::Typeshift.AgentHost<global::Research.ResearchAgent> host)

@@ -6,6 +6,7 @@
 /// <summary>
 /// The runs and stored settings of <see cref="global::Demo.DeskAgent"/>.
 /// </summary>
+[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
 public static class TypeshiftHost_4Demo9DeskAgent
 {
     extension(global::Typeshift.AgentHost<global::Demo.DeskAgent> host)

@@ -501,6 +501,9 @@ internal static class AgentEmitter
         writer.Line();
         Docs.WriteSummary(writer, $"The runs and stored settings of <see cref=\"{agent.Type.FullName}\"/>.");
 
+        // Hidden, so the class stays out of type completion in every file; the members stay in member completion
+        writer.Line(Names.Hidden);
+
         using (writer.Block($"{access} static class {HostClassName(agent.Type)}"))
         using (writer.Block($"extension({host} host)"))
         {

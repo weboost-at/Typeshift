@@ -20,6 +20,9 @@ All notable changes to this project are documented here. The format follows
   new message does, and leaves them out of its `ApprovalRequests`. An answer to one ran the call, although the model
   had gone on without it. A background agent's answer closes none.
 - The package targets .NET 11 instead of .NET 10, so your app needs .NET 11 and its SDK.
+- The class of an agent's host members is `TypeshiftHost_4Demo12SupportAgent` for `Demo.SupportAgent`, in the global
+  namespace and hidden from type completion, where it was `SupportAgentHostExtensions` in the agent's namespace. Code
+  that called the members through the class's name, or with `using static`, calls them on the host instead.
 
 ### Fixed
 
@@ -45,9 +48,7 @@ All notable changes to this project are documented here. The format follows
   left to your app.
 - The typed members of an agent's host, such as `RunAsync`, are in scope in every file. They lived in the agent's
   namespace, so a file that named the agent in full, without importing its namespace, found no `RunAsync` on
-  `AgentHost<TAgent>`. Their class is `TypeshiftHost_4Demo12SupportAgent` for `Demo.SupportAgent` now, in the global
-  namespace, so code that called them through the old class name, `SupportAgentHostExtensions`, calls them on the
-  host instead.
+  `AgentHost<TAgent>`.
 
 ## [0.1.0-alpha.5] - 2026-10-30
 

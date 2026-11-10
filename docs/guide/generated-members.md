@@ -203,7 +203,8 @@ has a public or internal parameterless constructor. For any other agent, the ana
 
 The class lives in the global namespace, so the typed members are in scope in every file, whatever it imports. Its
 name spells out the agent's full name, each part after its length, such as `TypeshiftHost_4Demo12SupportAgent` for
-`Demo.SupportAgent`, so no two agents share one. You call the members on the host and never need the class's name.
+`Demo.SupportAgent`, so no two agents share one. Editors leave the class out of type completion, since you call the
+members on the host and never need its name.
 
 ### Hidden members
 
