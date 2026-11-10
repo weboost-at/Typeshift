@@ -1,6 +1,6 @@
 # Typeshift
 
-Code-defined agents and toolsets for .NET 10 on Microsoft.Extensions.AI. A source generator turns them into
+Code-defined agents and toolsets for .NET 11 on Microsoft.Extensions.AI. A source generator turns them into
 reflection-free `AIFunction`s, a typed settings record per agent, and one `services.AddTypeshift()` call.
 
 **Alpha:** the API will change between releases.
@@ -8,7 +8,7 @@ reflection-free `AIFunction`s, a typed settings record per agent, and one `servi
 ## Install
 
 Add the package to every project that declares toolsets or agents, or calls `AddTypeshift()`: it carries the source
-generator, and NuGet does not pass generators on to referencing projects. Requires the .NET 10 SDK and C# 14.
+generator, and NuGet does not pass generators on to referencing projects. Requires the .NET 11 SDK.
 
 Projects that declare toolsets also need `<GenerateDocumentationFile>true</GenerateDocumentationFile>`: tools take
 their descriptions from XML docs, which the compiler reads only then, and without it the build warns with

@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- D61: one source, a build per .NET version -->
-    <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
+    <!-- D61: .NET 11 only, until .NET 12 brings the next LTS -->
+    <TargetFramework>net11.0</TargetFramework>
     <IsAotCompatible>true</IsAotCompatible>
     <IsTrimmable>true</IsTrimmable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
