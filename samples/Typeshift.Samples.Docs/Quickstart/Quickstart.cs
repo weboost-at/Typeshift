@@ -50,6 +50,16 @@ internal static class Quickstart
 
         Console.WriteLine();
 
+        // begin-snippet: own-settings
+        await research.ConfigureAsync(settings => settings with { Temperature = 0.2f });
+
+        var everyRun = await research.RunAsync("Graz");
+        // end-snippet
+
+        var own = await research.LoadSettingsAsync();
+        if (own.Data.Temperature != 0.2f || everyRun.Text.Length == 0)
+            throw new InvalidOperationException("Expected the agent's own settings.");
+
         var stored = await research.LoadSettingsAsync(settingsId);
 
         if (stored.Data.Temperature != 0.4f) throw new InvalidOperationException("Expected the configured settings.");

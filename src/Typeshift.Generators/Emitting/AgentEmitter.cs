@@ -16,6 +16,9 @@ internal static class AgentEmitter
 
     private const string Runs = "global::Typeshift.Generated.AgentRuns";
 
+    private const string SettingsIdDoc =
+        "The id of the stored settings to apply over the agent's own, or null for none.";
+
     private const string Tools =
         "global::System.Collections.Generic.IEnumerable<global::Microsoft.Extensions.AI.AITool>";
 
@@ -516,7 +519,7 @@ internal static class AgentEmitter
                 writer,
                 "Resolves the options of a run, for the raw path: <c>CreateChatClientAsync</c>, then the client. "
                 + "<c>ChatOptions.ConversationId</c> names the conversation there.");
-            Docs.WriteParam(writer, "settingsId", "The id of the stored settings to apply, or null for none.");
+            Docs.WriteParam(writer, "settingsId", SettingsIdDoc);
             Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
             Docs.WriteParam(writer, "ct", "Cancels the resolution.");
             Docs.WriteReturns(writer, "The options, with the agent's tools.");
@@ -588,6 +591,62 @@ internal static class AgentEmitter
                     {CancellationToken} ct = default) =>
                     {Runs}.ConfigureAsync<{types}>(host, settingsId, configure, ct);
                 """);
+            writer.Line();
+
+            // D66: the agent's own settings, which every run applies, under no id
+            Docs.WriteSummary(writer, "Loads the agent's own settings, which every run applies.");
+            Docs.WriteParam(writer, "ct", "Cancels the load.");
+            Docs.WriteReturns(
+                writer,
+                "The settings and the version <c>SaveSettingsAsync</c> takes; empty settings at version 0 when none "
+                + "are stored.");
+            writer.Lines(
+                $"""
+                public {Task}<global::Typeshift.Stored<{settings}>> LoadSettingsAsync(
+                    {CancellationToken} ct = default) =>
+                    {Runs}.LoadSettingsAsync<{types}>(host, null, ct);
+                """);
+            writer.Line();
+
+            Docs.WriteSummary(
+                writer,
+                "Saves the agent's own settings, unless another save came since they were loaded.");
+            Docs.WriteParam(writer, "settings", "The settings.");
+            Docs.WriteParam(
+                writer,
+                "loadedVersion",
+                "The version <c>LoadSettingsAsync</c> returned, 0 when it loaded none.");
+            Docs.WriteParam(writer, "ct", "Cancels the save.");
+            Docs.WriteReturns(writer, "The new version, to pass to the next save.");
+            Docs.WriteException(writer, "global::Typeshift.StoreConflictException", "Another save came first.");
+            writer.Lines(
+                $"""
+                public {Task}<long> SaveSettingsAsync(
+                    {settings} settings,
+                    long loadedVersion,
+                    {CancellationToken} ct = default) =>
+                    {Runs}.SaveSettingsAsync<{types}>(host, null, settings, loadedVersion, ct);
+                """);
+            writer.Line();
+
+            Docs.WriteSummary(
+                writer,
+                "Changes the agent's own settings, reloading and changing them again whenever another save came "
+                + "first, up to ten times.");
+            Docs.WriteParam(writer, "configure", "Returns the changed settings; called again after a lost save.");
+            Docs.WriteParam(writer, "ct", "Cancels the change.");
+            Docs.WriteReturns(writer, "The settings saved.");
+            Docs.WriteException(
+                writer,
+                "global::Typeshift.StoreConflictException",
+                "Another save came first ten times in a row.");
+            writer.Lines(
+                $"""
+                public {Task}<{settings}> ConfigureAsync(
+                    global::System.Func<{settings}, {settings}> configure,
+                    {CancellationToken} ct = default) =>
+                    {Runs}.ConfigureAsync<{types}>(host, null, configure, ct);
+                """);
         }
     }
 
@@ -604,7 +663,7 @@ internal static class AgentEmitter
             writer,
             "Continues the conversation's run that was interrupted, from its last stored step, without new input.");
         Docs.WriteParam(writer, "conversationId", "The conversation's id.");
-        Docs.WriteParam(writer, "settingsId", "The id of the stored settings to apply, or null for none.");
+        Docs.WriteParam(writer, "settingsId", SettingsIdDoc);
         Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
         Docs.WriteParam(writer, "ct", "Cancels the run.");
         Docs.WriteReturns(
@@ -634,7 +693,7 @@ internal static class AgentEmitter
                 Docs.WriteSummary(writer, $"{summary}, with the stored and the run's settings over the agent's code.");
 
             Docs.WriteParam(writer, "input", "The user's message.");
-            Docs.WriteParam(writer, "settingsId", "The id of the stored settings to apply, or null for none.");
+            Docs.WriteParam(writer, "settingsId", SettingsIdDoc);
             Docs.WriteParam(
                 writer,
                 "conversationId",

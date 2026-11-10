@@ -57,13 +57,15 @@ public static class ModuleRegistration
         var keepsSettings = typeof(ISettingsStore<TId>).IsAssignableFrom(type);
         var keepsConversations = typeof(IConversationStore<TId>).IsAssignableFrom(type);
         var isTypeshiftStore = typeof(ITypeshiftStore<TId>).IsAssignableFrom(type);
+        var keepsAgentSettings = typeof(IAgentSettingsStore).IsAssignableFrom(type);
 
-        if (!keepsSettings && !keepsConversations)
+        if (!keepsSettings && !keepsConversations && !keepsAgentSettings)
             throw new InvalidOperationException(
-                $"{type.Name} is no ISettingsStore<{typeof(TId).Name}> or IConversationStore<{typeof(TId).Name}>, a "
-                + "store of the build's id type (TSH028).");
+                $"{type.Name} is no ISettingsStore<{typeof(TId).Name}>, IConversationStore<{typeof(TId).Name}> or "
+                + "IAgentSettingsStore, a store of the build's id type (TSH028).");
 
         if (keepsSettings) services.AddSingleton(provider => (ISettingsStore<TId>)store(provider));
+        if (keepsAgentSettings) services.AddSingleton(provider => (IAgentSettingsStore)store(provider));
         if (keepsConversations) services.AddSingleton(provider => (IConversationStore<TId>)store(provider));
         if (isTypeshiftStore) services.AddSingleton(provider => (ITypeshiftStore<TId>)store(provider));
     }

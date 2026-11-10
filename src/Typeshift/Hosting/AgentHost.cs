@@ -90,12 +90,14 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
         }
     }
 
-    // D27: the agent's code, its stored settings, then the run's; values a layer leaves null keep the one below
+    // D27, D66: the agent's code, its own stored settings, those under the settings id, then the run's; values a layer
+    // leaves null keep the one below
     internal async Task<ChatOptions> ResolveOptionsCoreAsync(object? settingsId, object? settings, CancellationToken ct)
     {
         var declaration = Agent.GeneratedDeclaration;
+        var ownSettings = Store.KeepsAgentSettings ? await declaration.LoadSettingsAsync(Store, null, ct) : null;
         var stored = settingsId is null ? null : await declaration.LoadSettingsAsync(Store, settingsId, ct);
-        IReadOnlyList<object> layers = [.. new[] { stored, settings }.OfType<object>()];
+        IReadOnlyList<object> layers = [.. new[] { ownSettings, stored, settings }.OfType<object>()];
 
         var options = new ResolvedChatOptions(Agent.ChatOptions)
         {

@@ -9,6 +9,9 @@ All notable changes to this project are documented here. The format follows
 
 - The docs site publishes the guide as Markdown for coding assistants: `llms.txt` lists its pages, `llms-full.txt`
   holds them all in one file, and each guide page is also served at its address with `.md`.
+- Each agent has settings of its own, which every run applies under no settings id: `ConfigureAsync(configure)`,
+  `LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)`, kept by an `IAgentSettingsStore`.
+  `InMemoryTypeshiftStore` implements it, and a settings id's settings apply over the agent's own.
 
 ### Changed
 

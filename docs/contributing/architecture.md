@@ -90,7 +90,8 @@ Microsoft.Extensions.AI's defaults, which reflect outside Native AOT (D45).
 1. The generated `RunAsync` passes the input, the settings id (boxed) and the run's `Settings` to `AgentRuns`, which
    calls the host.
 2. `AgentHost<T>` resolves the options. It starts from a copy of the agent's chat options and its instructions, and
-   applies each settings layer through the generated declaration: the stored settings, then the run's. Each layer
+   applies each settings layer through the generated declaration: the agent's own stored settings, those under the
+   settings id, then the run's. Each layer
    reaches the configurable options and the run options. Then come the offered tools, created with their layered
    settings (D27), the sub-agents (D33) and the MCP servers' tools (D35).
 3. It asks the scope's `IChatClientProvider` for the client of the run's provider and model and builds the pipeline,
@@ -106,8 +107,10 @@ Microsoft.Extensions.AI's defaults, which reflect outside Native AOT (D45).
 
 ## Storage
 
-`ISettingsStore<TId>` keeps documents by id and kind, as JSON with a version (D38, D41), and
-`IConversationStore<TId>` keeps conversation entries. `ITypeshiftStore<TId>` is both in one. `WithStore<T>()` registers
+`ISettingsStore<TId>` keeps documents by id and kind, as JSON with a version (D38, D41), `IAgentSettingsStore` keeps
+the agents' own by kind alone (D66), and `IConversationStore<TId>` keeps conversation entries. `ITypeshiftStore<TId>`
+is the first and the last in one. A null settings id reaches `IAgentSettingsStore`, and a run loads from it only when
+one is registered. `WithStore<T>()` registers
 each of them the store implements, so a host may keep settings and conversations in two stores. The library never sees
 the id type. The interceptor registers `StoreAccess<TId>` through `AddCoreServices<TId>`, and runs reach it as
 `IStoreAccess` with boxed ids (D11). `StoreAccess` serializes and reads the documents, so a store handles strings and

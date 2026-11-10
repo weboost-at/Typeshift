@@ -1,13 +1,14 @@
 ---
 title: Settings and stores
-description: How a run's settings layer from the code through stored settings to the run, and the one store that keeps settings and conversations.
+description: How a run's settings layer from the code through stored settings to the run, and the stores that keep settings and conversations.
 ---
 
 # Settings and stores
 
-Typeshift stores each agent's `Settings` under a settings id, and conversations under a conversation id. Settings go
-through an `ISettingsStore` and conversations through an `IConversationStore`, which you
-[implement](./implementing-a-store.md) with the id type you already use, in one class or in two.
+Typeshift stores each agent's `Settings`, as the agent's own or under a settings id, and conversations under a
+conversation id. An agent's own settings go through an `IAgentSettingsStore`, settings under an id through an
+`ISettingsStore`, and conversations through an `IConversationStore`. You [implement](./implementing-a-store.md) the
+ones your app needs, in one class or in several.
 
 ## Settings layering
 
@@ -35,7 +36,8 @@ live here too. Because this layer is reviewed, compiled code, it may set any set
 
 **3. The stored settings.** `ConfigureAsync(42, ...)` stores `Limit = 2` and `Temperature = 0.4f`, so every run with
 settings id 42 searches with 2, at a temperature of 0.4. `IncludeInactive` cannot be stored, because
-`ResearchAgent.Settings` has only the configurable members.
+`ResearchAgent.Settings` has only the configurable members. Below the settings of the id lie the agent's own stored
+settings, which every run applies, with a settings id or without one ([Agent settings](#agent-settings)).
 
 **4. The run.** A run that passes `FindCompanies = new() { Limit = 1 }` in its settings searches with 1, for that run
 only. It leaves `Temperature` null, so the stored 0.4 holds.
@@ -47,7 +49,7 @@ The highest layer that sets a value wins:
 | Layer | Set by | May set | Holds for |
 |---|---|---|---|
 | 4. The run | The `settings` argument of `RunAsync` and the other runs | Configurable members | That run |
-| 3. Stored | `Settings` under the run's settings id: `ConfigureAsync`, `SaveSettingsAsync` | Configurable members | Every run with that settings id |
+| 3. Stored | The agent's own `Settings`, then those under the run's settings id: `ConfigureAsync`, `SaveSettingsAsync` | Configurable members | Every run, or every run with that settings id |
 | 2. The agent's code | `Configure{Tool}()`, `WithChatOptions()`, `WithRunOptions()`, `GetInstructions()` | Every settable member | Every run of the agent |
 | 1. The code's defaults | The settings record's parameterless constructor; the run options' defaults | Every member | Every run |
 
@@ -81,8 +83,8 @@ own settings name a mode switches the conversation to it, and so does an approve
 
 ### Sub-agents and handoffs
 
-Sub-agents and handoffs keep the settings id, but not the run's settings. A sub-agent runs with its own settings stored
-under the caller's settings id, in the caller's mode. An agent handed off to answers with its own stored settings under
+Sub-agents and handoffs keep the settings id, but not the run's settings. A sub-agent runs with its own stored
+settings, the agent's own and those under the caller's settings id, in the caller's mode. An agent handed off to answers with its own stored settings under
 the same id. Run settings apply only to the agent the run started on ([Multiple agents](./multi-agent.md)).
 
 ## Registering a store
@@ -119,14 +121,32 @@ shows how to build one around that.
 :::
 
 Without a store, agents run from their code alone. A run that passes neither a settings id nor a conversation id
-works, tools included. Every call that loads or saves, such as a run with either id or `ConfigureAsync`, throws an
+works, tools included. A run applies the agents' own settings only when a registered store implements
+`IAgentSettingsStore`, as `InMemoryTypeshiftStore` does. Every call that loads or saves, such as a run with either id or `ConfigureAsync`, throws an
 `InvalidOperationException` that names `WithStore<T>()` and the interface no registered store implements.
 
 ## Agent settings
 
+An app whose agents need one set of settings each stores them as the agent's own, under no id. Every run of the agent
+applies them:
+
+<!-- snippet: own-settings -->
+<a id='snippet-own-settings'></a>
+```cs
+await research.ConfigureAsync(settings => settings with { Temperature = 0.2f });
+
+var everyRun = await research.RunAsync("Graz");
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L53-L57' title='Snippet source file'>snippet source</a> | <a href='#snippet-own-settings' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+`LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)` load and save them as the members below do for
+a settings id, and `ConfigureAsync(configure)` retries the same way.
+
 A settings id stands for whatever you decide: a customer, a team, a user, or a settings profile of your own. Under one
 settings id, each agent has its own document, because each agent's `Settings` is its own kind, so a store keys
-documents by id and kind together.
+documents by id and kind together. The settings of an id apply over the agent's own, so the agent's own act as the
+defaults of every id.
 
 `ConfigureAsync` loads an agent's settings, applies your change and saves them. When another save came in between, it
 loads them again and reapplies your change, ten tries in all. If the tenth save loses too, it throws the store's

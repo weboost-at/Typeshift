@@ -27,7 +27,8 @@ public abstract class AgentDeclaration
 
     internal abstract IEnumerable<AITool> CreateTools(Agent agent, IReadOnlyList<object> layers, ToolJson json);
 
-    internal abstract Task<object?> LoadSettingsAsync(IStoreAccess store, object id, CancellationToken ct);
+    // A null id loads the agent's own settings (D66)
+    internal abstract Task<object?> LoadSettingsAsync(IStoreAccess store, object? id, CancellationToken ct);
 }
 
 /// <summary>
@@ -51,7 +52,7 @@ public abstract class AgentDeclaration<TAgent, TSettings> : AgentDeclaration
 
     internal sealed override async Task<object?> LoadSettingsAsync(
         IStoreAccess store,
-        object id,
+        object? id,
         CancellationToken ct) =>
         (await store.LoadAsync<TSettings>(id, ct))?.Data;
 

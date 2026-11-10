@@ -546,6 +546,25 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   store keeps; renaming the conversation methods (`LoadAsync`, `AppendAsync`), which would clash with the settings
   methods in a class that implements both.
 
+### D66. Each agent has settings of its own, under no id
+
+- **Status:** owner.
+- **Context:** the owner asked for "a configurable, storable agent settings record for a single agent", stored "keyed
+  by the kind" alone, so that a simple app needs no settings ids.
+- **Decision:** `IAgentSettingsStore` keeps a document per kind, with a version, and no id. `ConfigureAsync(configure)`,
+  `LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)` are the members of D41 without the id. Every
+  run of the agent applies its own settings, over its code and under the settings of a settings id, so they are the
+  stored layer of an app without settings ids and the defaults of every id in one with them. `InMemoryTypeshiftStore`
+  implements the interface, and `WithStore<T>()` registers it as it does the other two (D38). A run loads them only
+  when a store of them is registered, so a store without them leaves runs as they were. Loading or saving them
+  without one throws, naming `IAgentSettingsStore`.
+- **Where:** `Storage/IAgentSettingsStore.cs`, `Storage/StoreAccess.cs`, `Hosting/AgentHost.cs`,
+  `Generated/AgentRuns.cs`, `Emitting/AgentEmitter.cs`, `Analysis/TypeshiftAnalyzer.cs`.
+- **Alternatives:** the agent's own settings in place of a settings id's instead of under them, which leaves an app
+  with ids no stored defaults; a reserved id, such as `Guid.Empty`, which not every id type has and a store cannot
+  tell from a real one; two more methods on `ITypeshiftStore<TId>`, which every store implementing it would have to
+  add; settings without an id on `ISettingsStore<TId>`, which ties them to an id type.
+
 ### D39. Kinds are stable names
 
 - **Status:** owner.

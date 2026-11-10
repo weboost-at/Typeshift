@@ -133,36 +133,36 @@ public static class AgentRuns
         host.ResolveOptionsCoreAsync(settingsId, settings, ct);
 
     /// <summary>
-    /// Loads the settings stored under an id.
+    /// Loads the settings stored under an id, or the agent's own.
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <typeparam name="TSettings">The agent's settings record.</typeparam>
     /// <param name="host">The host, with the run's services.</param>
-    /// <param name="settingsId">The id.</param>
+    /// <param name="settingsId">The id, or null for the agent's own settings.</param>
     /// <param name="ct">Cancels the load.</param>
     /// <returns>The settings and their version; empty settings at version 0 when none are stored.</returns>
     public static async Task<Stored<TSettings>> LoadSettingsAsync<TAgent, TSettings>(
         AgentHost<TAgent> host,
-        object settingsId,
+        object? settingsId,
         CancellationToken ct)
         where TAgent : Agent
         where TSettings : class, IStorable<TSettings>, new() =>
         await host.Store.LoadAsync<TSettings>(settingsId, ct) ?? new Stored<TSettings>(new TSettings(), 0);
 
     /// <summary>
-    /// Saves settings under an id if the stored version is still the one loaded.
+    /// Saves settings under an id, or as the agent's own, if the stored version is still the one loaded.
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <typeparam name="TSettings">The agent's settings record.</typeparam>
     /// <param name="host">The host, with the run's services.</param>
-    /// <param name="settingsId">The id.</param>
+    /// <param name="settingsId">The id, or null for the agent's own settings.</param>
     /// <param name="settings">The settings.</param>
     /// <param name="loadedVersion">The version <c>LoadSettingsAsync</c> returned, 0 when it loaded none.</param>
     /// <param name="ct">Cancels the save.</param>
     /// <returns>The new version, to pass to the next save.</returns>
     public static Task<long> SaveSettingsAsync<TAgent, TSettings>(
         AgentHost<TAgent> host,
-        object settingsId,
+        object? settingsId,
         TSettings settings,
         long loadedVersion,
         CancellationToken ct)
@@ -171,20 +171,20 @@ public static class AgentRuns
         host.Store.SaveAsync(settingsId, settings, loadedVersion, ct);
 
     /// <summary>
-    /// Changes the settings stored under an id, reloading and changing them again whenever another save came first, up
-    /// to ten times.
+    /// Changes the settings stored under an id, or the agent's own, reloading and changing them again whenever another
+    /// save came first, up to ten times.
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <typeparam name="TSettings">The agent's settings record.</typeparam>
     /// <param name="host">The host, with the run's services.</param>
-    /// <param name="settingsId">The id.</param>
+    /// <param name="settingsId">The id, or null for the agent's own settings.</param>
     /// <param name="configure">Returns the changed settings; called again after a lost save.</param>
     /// <param name="ct">Cancels the change.</param>
     /// <returns>The settings saved.</returns>
     /// <exception cref="StoreConflictException">Another save came first ten times in a row.</exception>
     public static async Task<TSettings> ConfigureAsync<TAgent, TSettings>(
         AgentHost<TAgent> host,
-        object settingsId,
+        object? settingsId,
         Func<TSettings, TSettings> configure,
         CancellationToken ct)
         where TAgent : Agent
