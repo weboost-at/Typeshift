@@ -83,7 +83,8 @@ public static class StoreExtensions
             VerifyAgentDocumentsAsync(store, kind, ct);
     }
 
-    // D66: a store that keeps agents' own settings too is checked under kinds named after the id, as fresh as it is
+    // D66: a store that keeps agents' own settings too is checked under new kinds, since they take no id, and its
+    // agents' own documents must stay apart from an id's of the same kind
     private static async Task VerifyEveryInterfaceAsync<TId>(
         object store,
         ISettingsStore<TId>? settings,
@@ -94,8 +95,52 @@ public static class StoreExtensions
     {
         if (settings is not null) await VerifySettingsAsync(settings, id, ct);
         if (conversations is not null) await VerifyConversationsAsync(conversations, id, ct);
-        if (store is IAgentSettingsStore agents) await VerifyAgentDocumentsAsync(agents, $"{Kind}_{id}", ct);
+        if (store is not IAgentSettingsStore agents) return;
+
+        await VerifyAgentDocumentsAsync(agents, NewKind(), ct);
+        if (settings is not null) await VerifyApartAsync(settings, agents, id, NewKind(), ct);
     }
+
+    // A store that keeps both in one table and forgets the id in a load of an agent's own document would hand every
+    // id's settings to all of them
+    private static async Task VerifyApartAsync<TId>(
+        ISettingsStore<TId> settings,
+        IAgentSettingsStore agents,
+        TId id,
+        string kind,
+        CancellationToken ct)
+        where TId : notnull
+    {
+        const string idJson = """{"of":"id"}""";
+        const string agentJson = """{"of":"agent"}""";
+        const string apart = "keep an agent's own documents apart from the documents of the same kind under an id.";
+
+        var saved = await settings.SaveAsync(id, kind, idJson, 0, ct);
+
+        if (await agents.LoadAsync(kind, ct) is not null)
+            throw Broken($"An agent's own load returned a document saved under an id: {apart}");
+
+        long own;
+
+        try
+        {
+            own = await agents.SaveAsync(kind, agentJson, 0, ct);
+        }
+        catch (StoreConflictException exception)
+        {
+            throw Broken(
+                $"A first save of an agent's own document conflicted with one under an id: {apart}",
+                exception);
+        }
+
+        if (await settings.LoadAsync(id, kind, ct) != new StoredDocument(idJson, saved))
+            throw Broken($"Saving an agent's own document replaced the one under an id: {apart}");
+
+        if (await agents.LoadAsync(kind, ct) != new StoredDocument(agentJson, own))
+            throw Broken($"An agent's own load did not return its last save and version: {apart}");
+    }
+
+    private static string NewKind() => $"{Kind}_{Guid.NewGuid():N}";
 
     private static Task VerifySettingsAsync<TId>(ISettingsStore<TId> store, TId id, CancellationToken ct)
         where TId : notnull =>

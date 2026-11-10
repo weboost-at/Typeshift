@@ -83,9 +83,10 @@ own settings name a mode switches the conversation to it, and so does an approve
 
 ### Sub-agents and handoffs
 
-Sub-agents and handoffs keep the settings id, but not the run's settings. A sub-agent runs with its own stored
-settings, the agent's own and those under the caller's settings id, in the caller's mode. An agent handed off to answers with its own stored settings under
-the same id. Run settings apply only to the agent the run started on ([Multiple agents](./multi-agent.md)).
+Sub-agents and handoffs keep the settings id, but not the run's settings. A sub-agent runs with the stored settings
+of its own kind, those of the agent and those under the caller's settings id, in the caller's mode. An agent handed
+off to answers with the stored settings of its kind under the same id. Run settings apply only to the agent the run
+started on ([Multiple agents](./multi-agent.md)).
 
 ## Registering a store
 
@@ -120,10 +121,11 @@ take scoped services, such as a `DbContext`: [Register your store](./implementin
 shows how to build one around that.
 :::
 
-Without a store, agents run from their code alone. A run that passes neither a settings id nor a conversation id
-works, tools included. A run applies the agents' own settings only when a registered store implements
-`IAgentSettingsStore`, as `InMemoryTypeshiftStore` does. Every call that loads or saves, such as a run with either id or `ConfigureAsync`, throws an
-`InvalidOperationException` that names `WithStore<T>()` and the interface no registered store implements.
+Without a store, agents run from their code alone. A run that passes neither a settings id nor a conversation id works,
+tools included. A run applies the agents' own settings only when a registered store implements `IAgentSettingsStore`, as
+`InMemoryTypeshiftStore` does. For each store interface, the last `WithStore<T>()` call wins, so a second store that
+also implements it takes its place. Every call that loads or saves, such as a run with either id or `ConfigureAsync`,
+throws an `InvalidOperationException` that names `WithStore<T>()` and the interface no registered store implements.
 
 ## Agent settings
 
@@ -133,7 +135,7 @@ applies them:
 <!-- snippet: own-settings -->
 <a id='snippet-own-settings'></a>
 ```cs
-await research.ConfigureAsync(settings => settings with { Temperature = 0.2f });
+await research.ConfigureAsync(settings => settings with { Temperature = 0.3f });
 
 var everyRun = await research.RunAsync("Graz");
 ```
@@ -145,8 +147,7 @@ a settings id, and `ConfigureAsync(configure)` retries the same way.
 
 A settings id stands for whatever you decide: a customer, a team, a user, or a settings profile of your own. Under one
 settings id, each agent has its own document, because each agent's `Settings` is its own kind, so a store keys
-documents by id and kind together. The settings of an id apply over the agent's own, so the agent's own act as the
-defaults of every id.
+documents by id and kind together.
 
 `ConfigureAsync` loads an agent's settings, applies your change and saves them. When another save came in between, it
 loads them again and reapplies your change, ten tries in all. If the tenth save loses too, it throws the store's

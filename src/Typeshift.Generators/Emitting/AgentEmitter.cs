@@ -604,7 +604,7 @@ internal static class AgentEmitter
                 $"""
                 public {Task}<global::Typeshift.Stored<{settings}>> LoadSettingsAsync(
                     {CancellationToken} ct = default) =>
-                    {Runs}.LoadSettingsAsync<{types}>(host, null, ct);
+                    {Runs}.LoadAgentSettingsAsync<{types}>(host, ct);
                 """);
             writer.Line();
 
@@ -625,7 +625,7 @@ internal static class AgentEmitter
                     {settings} settings,
                     long loadedVersion,
                     {CancellationToken} ct = default) =>
-                    {Runs}.SaveSettingsAsync<{types}>(host, null, settings, loadedVersion, ct);
+                    {Runs}.SaveAgentSettingsAsync<{types}>(host, settings, loadedVersion, ct);
                 """);
             writer.Line();
 
@@ -645,7 +645,7 @@ internal static class AgentEmitter
                 public {Task}<{settings}> ConfigureAsync(
                     global::System.Func<{settings}, {settings}> configure,
                     {CancellationToken} ct = default) =>
-                    {Runs}.ConfigureAsync<{types}>(host, null, configure, ct);
+                    {Runs}.ConfigureAgentSettingsAsync<{types}>(host, configure, ct);
                 """);
         }
     }

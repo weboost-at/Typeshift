@@ -43,14 +43,20 @@ services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite("Data Sou
 
 ## Implement the interfaces
 
-A store has five methods in two interfaces. `ISettingsStore` keeps settings with the first two, and `IConversationStore`
-keeps conversations with the other three. The store on this page implements `ITypeshiftStore`, which is both. When
-settings and conversations live in different databases, implement each interface in a class of its own and
-[register each](./settings-and-stores.md#registering-a-store).
+A store has five methods in two interfaces. `ISettingsStore` keeps settings under a settings id with the first two, and
+`IConversationStore` keeps conversations with the other three. The store on this page implements `ITypeshiftStore`,
+which is both. When settings and conversations live in different databases, implement each interface in a class of its
+own and [register each](./settings-and-stores.md#registering-a-store).
 
 An app that keeps [each agent's own settings](./settings-and-stores.md#agent-settings) implements `IAgentSettingsStore`
 too, or alone when it has no settings ids. Its `LoadAsync(kind)` and `SaveAsync(kind, json, loadedVersion)` work as
-the settings methods below, keyed by the kind alone, so a table keyed by the kind holds their documents.
+the settings methods below, keyed by the kind alone. Every run of every agent calls `LoadAsync(kind)`, so keep it
+cheap, for example with a cache.
+
+::: warning Keep an agent's own documents apart from an id's
+In a table that holds both, an agent's own document has no id. A load that forgets to ask for that returns a
+customer's document as every customer's defaults. `VerifyAsync` checks for this.
+:::
 
 You implement four of the methods, and `LoadConversationSinceCompactionAsync` has a default you may replace by declaring
 the method in your store. Every id has your build's [id type](./registration.md#the-id-type), which is `Guid` unless

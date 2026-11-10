@@ -27,8 +27,10 @@ public abstract class AgentDeclaration
 
     internal abstract IEnumerable<AITool> CreateTools(Agent agent, IReadOnlyList<object> layers, ToolJson json);
 
-    // A null id loads the agent's own settings (D66)
-    internal abstract Task<object?> LoadSettingsAsync(IStoreAccess store, object? id, CancellationToken ct);
+    internal abstract Task<object?> LoadSettingsAsync(IStoreAccess store, object id, CancellationToken ct);
+
+    // D66: the agent's own settings, under no id
+    internal abstract Task<object?> LoadAgentSettingsAsync(IStoreAccess store, CancellationToken ct);
 }
 
 /// <summary>
@@ -52,9 +54,12 @@ public abstract class AgentDeclaration<TAgent, TSettings> : AgentDeclaration
 
     internal sealed override async Task<object?> LoadSettingsAsync(
         IStoreAccess store,
-        object? id,
+        object id,
         CancellationToken ct) =>
         (await store.LoadAsync<TSettings>(id, ct))?.Data;
+
+    internal sealed override async Task<object?> LoadAgentSettingsAsync(IStoreAccess store, CancellationToken ct) =>
+        (await store.LoadAgentSettingsAsync<TSettings>(ct))?.Data;
 
     /// <summary>
     /// Applies the chat and run options one settings layer sets.

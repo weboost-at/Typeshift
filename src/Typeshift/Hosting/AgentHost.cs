@@ -95,9 +95,13 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
     internal async Task<ChatOptions> ResolveOptionsCoreAsync(object? settingsId, object? settings, CancellationToken ct)
     {
         var declaration = Agent.GeneratedDeclaration;
-        var ownSettings = Store.KeepsAgentSettings ? await declaration.LoadSettingsAsync(Store, null, ct) : null;
-        var stored = settingsId is null ? null : await declaration.LoadSettingsAsync(Store, settingsId, ct);
-        IReadOnlyList<object> layers = [.. new[] { ownSettings, stored, settings }.OfType<object>()];
+        var loads = new[]
+        {
+            Store.KeepsAgentSettings ? declaration.LoadAgentSettingsAsync(Store, ct) : Task.FromResult<object?>(null),
+            settingsId is null ? Task.FromResult<object?>(null) : declaration.LoadSettingsAsync(Store, settingsId, ct)
+        };
+        object?[] loaded = [.. await Task.WhenAll(loads), settings];
+        IReadOnlyList<object> layers = [.. loaded.OfType<object>()];
 
         var options = new ResolvedChatOptions(Agent.ChatOptions)
         {

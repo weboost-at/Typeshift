@@ -28,6 +28,25 @@ public class SubAgentTests : MultiAgentTestBase
     }
 
     [Fact]
+    public async Task Given_The_Sub_Agents_Own_Settings_Its_Run_Applies_Them()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Tool.Answer));
+
+        HelperClient.Reply(Text(Data.Agent.Reason));
+        await Host<HelperAgent>()
+            .ConfigureAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+
+        // Act
+        await Host<LeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        HelperClient.Options[0]!.Temperature.Should().Be(Data.Agent.Temperature);
+    }
+
+    [Fact]
     public async Task Given_A_Sub_Agent_It_Answers_In_A_Fresh_Context_And_Its_Answer_Is_The_Result()
     {
         // Arrange

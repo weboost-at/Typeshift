@@ -51,7 +51,11 @@ public static class ModuleRegistration
     }
 
     // D38: a store is registered as each store interface it implements; the type check reads no members
-    private static void AddStore<TId>(IServiceCollection services, Type type, Func<IServiceProvider, object> store)
+    private static void AddStore<TId>(
+        IServiceCollection services,
+        Type type,
+        IReadOnlyList<Type> idTypes,
+        Func<IServiceProvider, object> store)
         where TId : notnull
     {
         var keepsSettings = typeof(ISettingsStore<TId>).IsAssignableFrom(type);
@@ -59,10 +63,11 @@ public static class ModuleRegistration
         var isTypeshiftStore = typeof(ITypeshiftStore<TId>).IsAssignableFrom(type);
         var keepsAgentSettings = typeof(IAgentSettingsStore).IsAssignableFrom(type);
 
-        if (!keepsSettings && !keepsConversations && !keepsAgentSettings)
+        if ((!keepsSettings && !keepsConversations && !keepsAgentSettings) || idTypes.Any(id => id != typeof(TId)))
             throw new InvalidOperationException(
-                $"{type.Name} is no ISettingsStore<{typeof(TId).Name}>, IConversationStore<{typeof(TId).Name}> or "
-                + "IAgentSettingsStore, a store of the build's id type (TSH028).");
+                $"{type.Name} is no store of the build's id type, {typeof(TId).Name}: implement "
+                + $"ISettingsStore<{typeof(TId).Name}>, IConversationStore<{typeof(TId).Name}> or IAgentSettingsStore, "
+                + "and no store interface of another id type (TSH028).");
 
         if (keepsSettings) services.AddSingleton(provider => (ISettingsStore<TId>)store(provider));
         if (keepsAgentSettings) services.AddSingleton(provider => (IAgentSettingsStore)store(provider));

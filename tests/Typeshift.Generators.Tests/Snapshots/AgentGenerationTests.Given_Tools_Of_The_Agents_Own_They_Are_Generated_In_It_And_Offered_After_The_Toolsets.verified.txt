@@ -497,7 +497,7 @@ public static class DeskAgentHostExtensions
         /// </returns>
         public global::System.Threading.Tasks.Task<global::Typeshift.Stored<global::Demo.DeskAgent.Settings>> LoadSettingsAsync(
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.LoadSettingsAsync<global::Demo.DeskAgent, global::Demo.DeskAgent.Settings>(host, null, ct);
+            global::Typeshift.Generated.AgentRuns.LoadAgentSettingsAsync<global::Demo.DeskAgent, global::Demo.DeskAgent.Settings>(host, ct);
 
         /// <summary>
         /// Saves the agent's own settings, unless another save came since they were loaded.
@@ -511,7 +511,7 @@ public static class DeskAgentHostExtensions
             global::Demo.DeskAgent.Settings settings,
             long loadedVersion,
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.SaveSettingsAsync<global::Demo.DeskAgent, global::Demo.DeskAgent.Settings>(host, null, settings, loadedVersion, ct);
+            global::Typeshift.Generated.AgentRuns.SaveAgentSettingsAsync<global::Demo.DeskAgent, global::Demo.DeskAgent.Settings>(host, settings, loadedVersion, ct);
 
         /// <summary>
         /// Changes the agent's own settings, reloading and changing them again whenever another save came first, up to
@@ -526,7 +526,7 @@ public static class DeskAgentHostExtensions
         public global::System.Threading.Tasks.Task<global::Demo.DeskAgent.Settings> ConfigureAsync(
             global::System.Func<global::Demo.DeskAgent.Settings, global::Demo.DeskAgent.Settings> configure,
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.ConfigureAsync<global::Demo.DeskAgent, global::Demo.DeskAgent.Settings>(host, null, configure, ct);
+            global::Typeshift.Generated.AgentRuns.ConfigureAgentSettingsAsync<global::Demo.DeskAgent, global::Demo.DeskAgent.Settings>(host, configure, ct);
     }
 }
 

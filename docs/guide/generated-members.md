@@ -278,8 +278,8 @@ In these signatures, `TId` is the build's [id type](./registration.md#the-id-typ
 ### `RunAsync`
 
 `RunAsync` runs the agent on one message, a `string` or a `ChatMessage`, which can carry images or approval answers.
-It layers the agent's code, the agent's own stored settings, the settings stored under `settingsId`, the mode the conversation's last run ended in,
-then `settings` ([Settings layering](./settings-and-stores.md#settings-layering)).
+It layers the agent's code, the stored settings, the mode the conversation's last run ended in, then `settings`
+([Settings layering](./settings-and-stores.md#settings-layering)).
 
 With a `conversationId`, it stores the run as it goes ([What a run stores](#what-a-run-stores)). Without one, it
 stores nothing and offers no handoffs. If the model then calls a tool that requires approval and no rule or mode
@@ -308,9 +308,9 @@ interrupted run.
 
 ### `ResolveOptionsAsync`
 
-`ResolveOptionsAsync` layers the agent's code, the agent's own stored settings, those under `settingsId`, then
-`settings`, and returns
-the run's `ChatOptions` without storing anything. The options hold the model, the instructions, the configurable
+`ResolveOptionsAsync` layers the agent's code, the stored settings, then `settings`
+([Settings layering](./settings-and-stores.md#settings-layering)), and returns the run's `ChatOptions` without
+storing anything. The options hold the model, the instructions, the configurable
 options and the tools. The tools come in this order: the toolsets' tools with their layered settings, the
 sub-agents, the tools of `WithTools`, then the MCP servers' tools.
 

@@ -471,7 +471,7 @@ public static class SupportAgentHostExtensions
         /// </returns>
         public global::System.Threading.Tasks.Task<global::Typeshift.Stored<global::Demo.SupportAgent.Settings>> LoadSettingsAsync(
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.LoadSettingsAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, null, ct);
+            global::Typeshift.Generated.AgentRuns.LoadAgentSettingsAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, ct);
 
         /// <summary>
         /// Saves the agent's own settings, unless another save came since they were loaded.
@@ -485,7 +485,7 @@ public static class SupportAgentHostExtensions
             global::Demo.SupportAgent.Settings settings,
             long loadedVersion,
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.SaveSettingsAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, null, settings, loadedVersion, ct);
+            global::Typeshift.Generated.AgentRuns.SaveAgentSettingsAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, settings, loadedVersion, ct);
 
         /// <summary>
         /// Changes the agent's own settings, reloading and changing them again whenever another save came first, up to
@@ -500,7 +500,7 @@ public static class SupportAgentHostExtensions
         public global::System.Threading.Tasks.Task<global::Demo.SupportAgent.Settings> ConfigureAsync(
             global::System.Func<global::Demo.SupportAgent.Settings, global::Demo.SupportAgent.Settings> configure,
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.ConfigureAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, null, configure, ct);
+            global::Typeshift.Generated.AgentRuns.ConfigureAgentSettingsAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, configure, ct);
     }
 }
 

@@ -23,6 +23,8 @@ All notable changes to this project are documented here. The format follows
   new message does, and leaves them out of its `ApprovalRequests`. An answer to one ran the call, although the model
   had gone on without it. A background agent's answer closes none.
 - The package targets .NET 11 instead of .NET 10, so your app needs .NET 11 and its SDK.
+- `LoadSettingsAsync(default)` loads the agent's own settings now, since the overload without an id wins. Pass the id
+  itself, such as `Guid.Empty`, to load the settings under it.
 
 ### Fixed
 

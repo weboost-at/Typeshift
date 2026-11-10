@@ -384,7 +384,7 @@ internal static class ResearchAgentHostExtensions
         /// </returns>
         public global::System.Threading.Tasks.Task<global::Typeshift.Stored<global::Research.ResearchAgent.Settings>> LoadSettingsAsync(
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.LoadSettingsAsync<global::Research.ResearchAgent, global::Research.ResearchAgent.Settings>(host, null, ct);
+            global::Typeshift.Generated.AgentRuns.LoadAgentSettingsAsync<global::Research.ResearchAgent, global::Research.ResearchAgent.Settings>(host, ct);
 
         /// <summary>
         /// Saves the agent's own settings, unless another save came since they were loaded.
@@ -398,7 +398,7 @@ internal static class ResearchAgentHostExtensions
             global::Research.ResearchAgent.Settings settings,
             long loadedVersion,
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.SaveSettingsAsync<global::Research.ResearchAgent, global::Research.ResearchAgent.Settings>(host, null, settings, loadedVersion, ct);
+            global::Typeshift.Generated.AgentRuns.SaveAgentSettingsAsync<global::Research.ResearchAgent, global::Research.ResearchAgent.Settings>(host, settings, loadedVersion, ct);
 
         /// <summary>
         /// Changes the agent's own settings, reloading and changing them again whenever another save came first, up to
@@ -413,7 +413,7 @@ internal static class ResearchAgentHostExtensions
         public global::System.Threading.Tasks.Task<global::Research.ResearchAgent.Settings> ConfigureAsync(
             global::System.Func<global::Research.ResearchAgent.Settings, global::Research.ResearchAgent.Settings> configure,
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.ConfigureAsync<global::Research.ResearchAgent, global::Research.ResearchAgent.Settings>(host, null, configure, ct);
+            global::Typeshift.Generated.AgentRuns.ConfigureAgentSettingsAsync<global::Research.ResearchAgent, global::Research.ResearchAgent.Settings>(host, configure, ct);
     }
 }
 

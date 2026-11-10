@@ -58,7 +58,8 @@ them. Each message names the agent that wrote it in `AuthorName`.
 
 ## Stored settings
 
-Pass a settings id, and the run layers the [settings stored](./settings-and-stores.md) under it over the agent's code:
+Pass a settings id, and the run layers the [settings stored](./settings-and-stores.md) under it over the agent's code
+and its own stored settings:
 
 <!-- snippet: run-with-settings-id -->
 <a id='snippet-run-with-settings-id'></a>
@@ -198,10 +199,10 @@ flowchart TD
 Each step wraps the steps below it, so the answer passes back up through them in reverse order: run middleware sees
 the response before the conversation stores how the run ended.
 
-1. **Resolve the options.** The host builds the run's `ChatOptions` from the agent's code, then the settings stored
-   under the settings id, then the run's own settings. It creates the tools the agent offers, their settings resolved
-   through the same layers, and adds the sub-agents and the tools of MCP servers after them. The layers resolve once,
-   when the run starts ([settings layering](./settings-and-stores.md#settings-layering)).
+1. **Resolve the options.** The host builds the run's `ChatOptions` from the agent's code, then the agent's own stored
+   settings and those under the settings id, then the run's own settings. It creates the tools the agent offers, their
+   settings resolved through the same layers, and adds the sub-agents and the tools of MCP servers after them. The
+   layers resolve once, when the run starts ([settings layering](./settings-and-stores.md#settings-layering)).
 2. **Resume the conversation.** With a conversation id, the run puts the stored entries ahead of the new input, so the
    model sees the whole conversation, and stores the input. An input that answers an approval request that has
    closed throws instead, before anything is stored

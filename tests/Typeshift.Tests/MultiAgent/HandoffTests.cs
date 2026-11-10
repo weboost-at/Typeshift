@@ -269,6 +269,23 @@ public class HandoffTests : MultiAgentTestBase
         ToolCalls.Should().BeEmpty();
     }
 
+    [Fact]
+    public async Task Given_The_Own_Settings_Of_The_Agent_Handed_To_It_Answers_With_Them()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer));
+
+        await Host<BackAgent>().ConfigureAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+
+        // Act
+        await RunAsync(Data.Tool.Question);
+
+        // Assert
+        ChatClient.Options[1]!.Temperature.Should().Be(Data.Agent.Temperature);
+    }
+
     private Task<ChatResponse> RunAsync(string input) =>
         Host<FrontAgent>().RunAsync(input, conversationId: Data.Agent.ConversationId, ct: Ct);
 }

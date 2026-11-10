@@ -9,12 +9,12 @@ namespace Typeshift;
 public sealed class TypeshiftBuilder
 {
     private readonly IServiceCollection _services;
-    private readonly Action<IServiceCollection, Type, Func<IServiceProvider, object>> _addStore;
+    private readonly Action<IServiceCollection, Type, IReadOnlyList<Type>, Func<IServiceProvider, object>> _addStore;
     private readonly Action<IServiceCollection, Func<IServiceProvider, object>> _addChatClientProvider;
 
     internal TypeshiftBuilder(
         IServiceCollection services,
-        Action<IServiceCollection, Type, Func<IServiceProvider, object>> addStore,
+        Action<IServiceCollection, Type, IReadOnlyList<Type>, Func<IServiceProvider, object>> addStore,
         Action<IServiceCollection, Func<IServiceProvider, object>> addChatClientProvider)
     {
         _services = services;
@@ -23,23 +23,38 @@ public sealed class TypeshiftBuilder
     }
 
     /// <summary>
-    /// Registers a store, a singleton, and turns persistence on for what it keeps: stored settings, conversations or
-    /// both. Call it twice for a store of settings and another of conversations. Without it, every call that loads or
+    /// Registers a store, a singleton, and turns persistence on for what it keeps: agents' own settings, stored
+    /// settings, conversations or several of them. Call it once per class, for example for a store of settings and
+    /// another of conversations; for each store interface, the last call wins. Without it, every call that loads or
     /// saves throws, naming this method.
     /// </summary>
     /// <typeparam name="TStore">
-    /// An <c>ISettingsStore</c>, an <c>IConversationStore</c> or both, an <c>ITypeshiftStore</c>, of the build's id
-    /// type (TSH028).
+    /// An <c>IAgentSettingsStore</c>, or an <c>ISettingsStore</c>, an <c>IConversationStore</c> or both, an
+    /// <c>ITypeshiftStore</c>, of the build's id type (TSH028).
     /// </typeparam>
     /// <returns>The same chain.</returns>
     public TypeshiftBuilder WithStore<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TStore>()
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.Interfaces)] TStore>()
         where TStore : class
     {
         _services.AddSingleton<TStore>();
-        _addStore(_services, typeof(TStore), provider => provider.GetRequiredService<TStore>());
+        var store = typeof(TStore);
+        _addStore(_services, store, IdTypes(store), provider => provider.GetRequiredService<TStore>());
         return this;
     }
+
+    // D66: a store may be of agents' own settings alone, so an interface of another id type is found by its own
+    // type arguments, not only by the absence of the build's
+    private static Type[] IdTypes(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type store) =>
+    [
+        .. store.GetInterfaces()
+            .Where(contract => contract.IsGenericType
+                && (contract.GetGenericTypeDefinition() == typeof(ISettingsStore<>)
+                    || contract.GetGenericTypeDefinition() == typeof(IConversationStore<>)))
+            .Select(contract => contract.GetGenericArguments()[0])
+    ];
 
     /// <summary>
     /// Registers the provider that returns the client of a provider's model, scoped.

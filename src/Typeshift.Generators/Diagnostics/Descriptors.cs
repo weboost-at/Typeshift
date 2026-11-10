@@ -151,8 +151,8 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor OtherStoreIdType = Error(
         "TSH028",
         "Store has another id type",
-        "'{0}' is no ISettingsStore<{1}>, IConversationStore<{1}> or IAgentSettingsStore, a store of the build's id "
-        + "type");
+        "'{0}' is no store of the build's id type, {1}: implement ISettingsStore<{1}>, IConversationStore<{1}> or "
+        + "IAgentSettingsStore, and no store interface of another id type");
 
     // {2} is NotFound or NotOneValue
     public static readonly DiagnosticDescriptor UnknownIdType = Error(

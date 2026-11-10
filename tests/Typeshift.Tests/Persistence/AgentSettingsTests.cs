@@ -1,3 +1,4 @@
+using Typeshift.Generated;
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Persistence.Support;
 using FluentAssertions;
@@ -47,7 +48,7 @@ public class AgentSettingsTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_The_Agents_Own_Settings_A_Settings_Id_Leaves_Them_As_They_Are()
+    public async Task Given_The_Agents_Own_Settings_Loading_Under_A_Settings_Id_Finds_None()
     {
         // Arrange
         var host = Host<ProbeAgent>();
@@ -58,6 +59,53 @@ public class AgentSettingsTests : AgentTestBase
 
         // Assert
         stored.Version.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Given_A_Save_Under_A_Settings_Id_The_Agents_Own_Settings_Stay_Empty()
+    {
+        // Arrange
+        var host = Host<ProbeAgent>();
+        await host.SaveSettingsAsync(Data.Persistence.SettingsId, new() { Model = Data.Agent.Model }, 0, Ct);
+
+        // Act
+        var own = await host.LoadSettingsAsync(Ct);
+
+        // Assert
+        own.Version.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Given_A_Null_Settings_Id_Saving_Throws_And_Leaves_The_Agents_Own_Settings_Alone()
+    {
+        // Arrange
+        var host = Host<ProbeAgent>();
+
+        // Act
+        var save = () => AgentRuns.SaveSettingsAsync<ProbeAgent, ProbeAgent.Settings>(
+            host,
+            null!,
+            new() { Model = Data.Agent.Model },
+            0,
+            Ct);
+
+        // Assert
+        await save.Should().ThrowAsync<ArgumentNullException>();
+        (await host.LoadSettingsAsync(Ct)).Version.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Given_The_Agents_Own_Settings_The_Resolved_Options_Hold_Them()
+    {
+        // Arrange
+        var host = Host<ProbeAgent>();
+        await host.ConfigureAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+
+        // Act
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+
+        // Assert
+        options.Temperature.Should().Be(Data.Agent.Temperature);
     }
 
     [Fact]
@@ -131,6 +179,21 @@ public class AgentSettingsTests : AgentTestBase
 
         // Assert
         Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, ProbeAgent.Model));
+    }
+
+    [Fact]
+    public void Given_A_Store_With_A_Store_Interface_Of_Another_Id_Type_Registering_It_Fails_Naming_TSH028()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+#pragma warning disable TSH028 // the analyzer reports it at build time; this checks the registration's own guard
+        var register = () => services.AddTypeshift().WithStore<InMemoryTypeshiftStore<int>>();
+#pragma warning restore TSH028
+
+        // Assert
+        register.Should().Throw<InvalidOperationException>().WithMessage("*TSH028*");
     }
 
     [Fact]
