@@ -20,7 +20,7 @@
 
   <!-- D61: C# 15's union types need .NET 11, so the union tests and their types build for net11.0 only -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <Compile Remove="**/Union*.cs" />
+    <Compile Remove="Agents/UnionResultTests.cs;Tools/UnionToolTests.cs;Tools/Support/UnionToolset.cs" />
   </ItemGroup>
 
   <ItemGroup>

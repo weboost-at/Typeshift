@@ -131,8 +131,9 @@ internal enum RefundState
 
 `T`'s XML docs describe its properties, as they describe the types tools take
 ([XML docs of parameter types](./registration.md#xml-docs-of-parameter-types)). Providers take only an object with
-properties as the schema of an answer. So a `T` of another shape, such as a number, a list or a
-[union](./toolsets.md#union-types), is asked for under a `data` property, and `Result` reads it from there. Under
+properties as the schema of an answer. So a `T` of another shape, such as a number, an enum, a list, a dictionary, a
+polymorphic type or a [union](./toolsets.md#union-types), is asked for under a `data` property, and `Result` reads it
+from there. Under
 [Native AOT](./production.md#native-aot), `T` needs JSON metadata.
 
 ## Streaming

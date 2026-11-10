@@ -24,7 +24,8 @@ internal partial class TicketLookupToolset : Toolset
         return key switch
         {
             int number => await tickets.GetAsync(number, ct),
-            string words => tickets.Search(words, includeClosed: true, limit: 1).FirstOrDefault()
+            string words => tickets.Search(words, includeClosed: true, limit: 1).FirstOrDefault(),
+            null => null
         };
     }
 }

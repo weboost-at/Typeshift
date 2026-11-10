@@ -25,6 +25,8 @@ All notable changes to this project are documented here. The format follows
 - A run that takes steering input after it asked for approval closes its requests once it answers the input, as a
   new message does, and leaves them out of its `ApprovalRequests`. An answer to one ran the call, although the model
   had gone on without it. A background agent's answer closes none.
+- `Result` of a typed run whose answer lacks the `data` property throws a `JsonException`, where it threw an
+  `InvalidOperationException`. `TryGetResult` returns false, as before.
 
 ### Fixed
 
@@ -50,7 +52,8 @@ All notable changes to this project are documented here. The format follows
   left to your app.
 - Each case in the schema of a union or of a polymorphic type names its type, which Anthropic's client needs. It
   rejected a tool or a typed run with such a type, and a typed run of an object union reached it with no schema at all.
-  `RunAsync<T>` asks for a union under a `data` property now, as Microsoft.Extensions.AI does for a number.
+  `RunAsync<T>` asks for a union, a polymorphic type or a dictionary under a `data` property now, as
+  Microsoft.Extensions.AI does for a number, since Anthropic's client sent no schema for them.
 
 ## [0.1.0-alpha.5] - 2026-10-30
 

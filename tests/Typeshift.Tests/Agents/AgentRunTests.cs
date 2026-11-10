@@ -273,6 +273,63 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_An_Enum_Result_Type_The_Run_Reads_It_Under_Data()
+    {
+        // Arrange
+        var answer = new { data = SearchMode.Thorough };
+        ChatClient.Reply(Text(JsonSerializer.Serialize(answer, Json.SerializerOptions)));
+
+        // Act
+        var response = await Host<ProbeAgent>().RunAsync<SearchMode>(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.Result.Should().Be(SearchMode.Thorough);
+    }
+
+    [Fact]
+    public async Task Given_A_Polymorphic_Result_Type_The_Run_Reads_It_Under_Data()
+    {
+        // Arrange
+        var circle = new Circle(Data.Tool.Lives);
+        var answer = new { data = (Shape)circle };
+        ChatClient.Reply(Text(JsonSerializer.Serialize(answer, Json.SerializerOptions)));
+
+        // Act
+        var response = await Host<ProbeAgent>().RunAsync<Shape>(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.Result.Should().Be(circle);
+    }
+
+    [Fact]
+    public async Task Given_A_Dictionary_Result_Type_The_Response_Schema_Holds_It_Under_Data()
+    {
+        // Arrange
+        var answer = new { data = new Dictionary<string, int> { [Data.Tool.Query] = Data.Tool.Lives } };
+        ChatClient.Reply(Text(JsonSerializer.Serialize(answer, Json.SerializerOptions)));
+
+        // Act
+        await Host<ProbeAgent>().RunAsync<Dictionary<string, int>>(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ResponseSchema().Assert.Properties("data");
+    }
+
+    [Fact]
+    public async Task Given_An_Answer_Without_Data_Its_Result_Cannot_Be_Read()
+    {
+        // Arrange
+        var answer = new { value = Data.Tool.Lives };
+        ChatClient.Reply(Text(JsonSerializer.Serialize(answer, Json.SerializerOptions)));
+
+        // Act
+        var response = await Host<ProbeAgent>().RunAsync<int>(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.TryGetResult(out _).Should().BeFalse();
+    }
+
+    [Fact]
     public async Task Given_A_Result_Type_With_Xml_Docs_The_Response_Schema_Describes_Its_Properties()
     {
         // Arrange

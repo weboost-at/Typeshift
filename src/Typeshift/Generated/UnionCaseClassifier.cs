@@ -34,15 +34,34 @@ internal sealed class UnionCaseClassifier(JsonSerializerOptions serializerOption
         var exact = TryCreate(context, _exact.Value);
         var lenient = TryCreate(context, serializerOptions);
 
-        if (exact is null) return lenient;
-        if (lenient is null) return exact;
+        if (exact is null && lenient is null) return null;
 
+        var cases = string.Join(", ", context.UnionCases.Select(@case => @case.CaseType.Name));
+        var union = context.DeclaringType.Name;
+
+        // The model reads the message (D53), so it names the cases a value may take
         return (ref Utf8JsonReader reader) =>
         {
             var copy = reader;
-            return exact(ref copy) ?? lenient(ref reader);
+            var token = Describe(reader.TokenType);
+
+            return exact?.Invoke(ref copy)
+                ?? lenient?.Invoke(ref reader)
+                ?? throw new JsonException($"A JSON {token} fits no single case of {union}: {cases}.");
         };
     }
+
+    private static string Describe(JsonTokenType token) =>
+        token switch
+        {
+            JsonTokenType.StartObject => "object",
+            JsonTokenType.StartArray => "array",
+            JsonTokenType.String => "string",
+            JsonTokenType.Number => "number",
+            JsonTokenType.True => "true",
+            JsonTokenType.False => "false",
+            _ => "null"
+        };
 
     private static JsonTypeClassifier? TryCreate(JsonTypeClassifierContext context, JsonSerializerOptions options)
     {

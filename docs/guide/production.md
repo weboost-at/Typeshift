@@ -123,8 +123,8 @@ In a project that publishes with Native AOT or sets `IsAotCompatible`, the analy
 
 A [union](./toolsets.md#union-types) of two records gets warning SYSLIB1227 in a context, because the source
 generator finds no classifier that tells the records apart. Typeshift's tools and runs pick the case by its
-properties without one, so you may suppress the warning for unions only they read. Code of yours that reads such a
-union still needs a classifier.
+properties without one, as [Union types](./toolsets.md#union-types) describes, so you may suppress the warning for
+unions only they read. Code of yours that reads such a union still needs a classifier.
 
 ### Everything else
 

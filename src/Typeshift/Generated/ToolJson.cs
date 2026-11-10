@@ -138,7 +138,10 @@ public sealed class ToolJson
     }
 
     private static bool IsObjectOfProperties(JsonObject schema) =>
-        schema["type"] is JsonValue type && type.GetValue<string>() is "object" && !schema.ContainsKey("anyOf");
+        schema["type"] is JsonValue type
+        && type.GetValue<string>() is "object"
+        && schema["properties"] is JsonObject
+        && !schema.ContainsKey("anyOf");
 
     private static JsonObject UnderData(JsonObject schema)
     {
@@ -156,10 +159,15 @@ public sealed class ToolJson
     // As Microsoft.Extensions.AI names the schema of a typed answer
     private static string SchemaName(Type type) => Regex.Replace(type.Name, "[^0-9A-Za-z_]", "_");
 
+    // A contract of its own for T, since a converter in the options loses to an enum's converter and a polymorphic
+    // type's metadata
     private JsonSerializerOptions WithResultUnderData<T>()
     {
-        var options = new JsonSerializerOptions(SerializerOptions);
-        options.Converters.Add(new DataConverter<T>(GetTypeInfo<T>()));
+        var options = new JsonSerializerOptions(SerializerOptions)
+        {
+            TypeInfoResolver = new DataResolver<T>(SerializerOptions.TypeInfoResolver!, GetTypeInfo<T>())
+        };
+
         options.MakeReadOnly();
         return options;
     }
@@ -214,6 +222,18 @@ public sealed class ToolJson
         }
 
         return schema;
+    }
+
+    private sealed class DataResolver<T>(IJsonTypeInfoResolver resolver, JsonTypeInfo<T> result) : IJsonTypeInfoResolver
+    {
+        public JsonTypeInfo? GetTypeInfo(Type type, JsonSerializerOptions options)
+        {
+            if (type != typeof(T)) return resolver.GetTypeInfo(type, options);
+
+            var info = JsonMetadataServices.CreateValueInfo<T>(options, new DataConverter<T>(result));
+            info.PolymorphismOptions = null;
+            return info;
+        }
     }
 
     // A typed answer under data, read as Microsoft.Extensions.AI reads one it wrapped itself

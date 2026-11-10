@@ -165,23 +165,26 @@ internal partial class TicketLookupToolset : Toolset
         return key switch
         {
             int number => await tickets.GetAsync(number, ct),
-            string words => tickets.Search(words, includeClosed: true, limit: 1).FirstOrDefault()
+            string words => tickets.Search(words, includeClosed: true, limit: 1).FirstOrDefault(),
+            null => null
         };
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketLookupToolset.cs#L5-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-union-parameter' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketLookupToolset.cs#L5-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-union-parameter' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - A JSON string binds the `string` case and a number the `int` case. A string that holds a number, such as `"42"`,
-  binds a number case when the union has no `string` case, as it would for an `int` parameter.
+  binds a number case when no case reads a JSON string, as it would for an `int` parameter.
 - An object binds the case whose properties it carries, so a union of two records needs no attribute.
-- When two cases take the same JSON, such as a `Guid` and a `string`, the call fails. Give such a union a classifier
-  with `[JsonUnion]`, as the
+- JSON `null` binds the empty union, whose `Value` is null. That is why the switch has a `null` arm.
+- Some unions JSON cannot tell apart: two cases that read a string, such as a `Guid` and a `string`, or two records
+  where one has every property of the other. A call with such a value fails, and the model reads which cases it
+  could have taken. Give the union a classifier of its own with `[JsonUnion]`, as the
   [System.Text.Json docs](https://learn.microsoft.com/dotnet/standard/serialization/system-text-json/union-types)
   show, and Typeshift uses it.
 - A result reaches the model as the JSON of its case, with nothing around it.
-- A union cannot be a configurable setting ([TSH012](./diagnostics.md#tsh012)).
+- A union is no [storable type](./tool-settings.md#storable-types), so it cannot be a configurable setting.
 
 ## What a toolset cannot be
 
