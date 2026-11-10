@@ -56,7 +56,7 @@ the method in your store. Every id has your build's [id type](./registration.md#
 |---|---|
 | `LoadAsync(id, kind)` | Returns the document of a kind under an id as a `StoredDocument`, with its JSON and version, or null when none is stored. |
 | `SaveAsync(id, kind, json, loadedVersion)` | Saves a document's JSON if its stored version still equals `loadedVersion` (0 when nothing is stored yet), and returns the new version. Throws a `StoreConflictException` when another save came first. |
-| `LoadConversationAsync(conversation)` | Returns every entry of a conversation, oldest first. Your app reads a whole history with it. |
+| `LoadConversationAsync(conversation)` | Returns every entry of a conversation, summaries included, oldest first. |
 | `LoadConversationSinceCompactionAsync(conversation)` | Returns what a run reads: the last summary and the entries after it ([Start from the last summary](#start-from-the-last-summary)). |
 | `AppendConversationAsync(conversation, entry)` | Appends one entry to a conversation. The first entry creates the conversation. |
 
