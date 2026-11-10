@@ -11,7 +11,7 @@ All notable changes to this project are documented here. The format follows
   holds them all in one file, and each guide page is also served at its address with `.md`.
 - A run takes an `IChatClient` registered under its provider, such as with `services.AddKeyedChatClient("openai",
   client)`, or the one registered for every agent with `services.AddChatClient(client)`, when no
-  `IChatClientProvider` serves it. An agent that names no model runs on that last client, with its own model, so a
+  `IChatClientProvider` is registered for it. An agent that names no model runs on that last client, with its own model, so a
   demo needs neither a provider class nor `WithModel`.
 
 ### Changed

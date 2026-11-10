@@ -214,7 +214,8 @@ internal sealed class Compaction
         var instrumented = run.Services.GetRequiredService<InstrumentedClients>();
 
         var provided = await clients.GetAsync(run.Services, provider, model, ct)
-            ?? throw new InvalidOperationException(ChatClients.NoClient(run.Agent.Name, provider, model));
+            ?? throw new InvalidOperationException(
+                ChatClients.NoClient($"the summary of the agent '{run.Agent.Name}'", provider, model));
         using var client = instrumented.Instrument(provided, provider, model);
 
         var response = await client.GetResponseAsync(

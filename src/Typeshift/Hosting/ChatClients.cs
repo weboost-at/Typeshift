@@ -14,13 +14,18 @@ internal abstract class ChatClients
         string? model,
         CancellationToken ct);
 
-    public static string NoClient(string agent, object? provider, string? model) =>
-        provider is null || model is null
-            ? $"No chat client serves the agent '{agent}', which names no model: register one for every agent with "
-              + "services.AddChatClient(client), or name a model with WithChatOptions().WithModel(provider, model)."
-            : $"No chat client serves the agent '{agent}' with '{model}' of '{provider}': register one for the "
-              + $"provider with services.AddKeyedChatClient(provider, client), one for every agent with "
-              + "services.AddChatClient(client), or an IChatClientProvider with WithChatClientProvider<T>().";
+    // What runs is the agent's run or its summary; each message names what would serve it
+    public static string NoClient(string what, object? provider, string? model) =>
+        (provider, model) switch
+        {
+            (null, null) => $"No chat client serves {what}, which names no model: register one for every agent with "
+                + "services.AddChatClient(client), or name a model with WithChatOptions().WithModel(provider, model).",
+            (null, _) => $"No chat client serves {what} on '{model}', which names no provider: register one for every "
+                + "agent with services.AddChatClient(client), or name the model's provider too.",
+            _ => $"No chat client serves {what} on {(model is null ? "" : $"'{model}' of ")}'{provider}': register "
+                + "one under the provider with services.AddKeyedChatClient(provider, client), one for every agent "
+                + "with services.AddChatClient(client), or an IChatClientProvider with WithChatClientProvider<T>()."
+        };
 }
 
 internal sealed class ChatClients<TProviderId> : ChatClients where TProviderId : notnull
@@ -36,6 +41,8 @@ internal sealed class ChatClients<TProviderId> : ChatClients where TProviderId :
         {
             return provider is TProviderId id
                 ? await clients.GetChatClientAsync(id, model, ct)
+                    ?? throw new InvalidOperationException(
+                        $"The IChatClientProvider returned no client for '{model}' of '{provider}'.")
                 : throw new InvalidOperationException(
                     $"The provider '{provider}' is a {provider.GetType().Name}, not a {typeof(TProviderId).Name}, the "
                     + "build's provider id type: build every project with the same TypeshiftProviderIdType.");

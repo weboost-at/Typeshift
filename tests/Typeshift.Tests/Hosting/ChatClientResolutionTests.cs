@@ -39,6 +39,20 @@ public class ChatClientResolutionTests : HostTestBase
     }
 
     [Fact]
+    public async Task Given_No_Model_And_A_Chat_Client_The_Client_Receives_No_Model()
+    {
+        // Arrange
+        _register = services => services.AddChatClient(ChatClient);
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<SchemaAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.ModelId.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Given_A_Model_And_A_Chat_Client_The_Client_Receives_The_Model()
     {
         // Arrange
@@ -78,6 +92,25 @@ public class ChatClientResolutionTests : HostTestBase
         _register = services =>
         {
             services.AddChatClient(Other);
+            services.AddScoped<IChatClientProvider, ScriptedChatClientProvider>();
+        };
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, ProbeAgent.Model));
+    }
+
+    [Fact]
+    public async Task Given_A_Chat_Client_Provider_It_Serves_The_Agents_Model_Over_A_Keyed_Client()
+    {
+        // Arrange
+        _register = services =>
+        {
+            services.AddKeyedChatClient(ProbeAgent.ModelProvider, Other);
             services.AddScoped<IChatClientProvider, ScriptedChatClientProvider>();
         };
 

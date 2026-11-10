@@ -40,18 +40,19 @@ services.AddChatClient(openAi);
 That client serves every agent whose provider has no client of its own. It also runs an agent that names no model at
 all: the run sends no `ModelId`, so the client's own model answers, and a demo or a local test needs nothing else.
 
-For each run, Typeshift takes the first of these that serves it:
+For each run, Typeshift takes its client from the first of these that your app registered for it:
 
-1. your `IChatClientProvider`, when the run has a provider and a model ([Your own provider](#your-own-provider));
+1. your `IChatClientProvider`, when the run names a provider and a model ([Your own provider](#your-own-provider)).
+   It decides alone: when it throws, the run fails, and Typeshift tries no client after it.
 2. the client registered under the run's provider;
-3. the client registered for every agent.
+3. the client registered for every agent, which also serves a run that names no provider.
 
-When none serves the run, it throws an `InvalidOperationException` that names what to register.
+When none is registered, the run throws an `InvalidOperationException` that names what to register.
 
 ## Your own provider
 
 Write an `IChatClientProvider` when a client depends on more than its provider, such as a key per customer. Its one
-method gets the provider and the model the run resolved, for every run and again when
+method gets the provider and the model of every run that names both, and again when
 [compaction](./conversations.md#compaction) needs the summary model. Register it with `WithChatClientProvider<T>()`,
 and [A key per customer](#a-key-per-customer) shows one.
 
@@ -85,7 +86,7 @@ services.AddKeyedChatClient("openai", openAi);
 <!-- endSnippet -->
 
 - Typeshift names the model in every request as `ChatOptions.ModelId`, so this one client serves every OpenAI model
-  your agents name. The model you pass to `GetChatClient` only names the client.
+  your agents name. The model you pass to `GetChatClient` answers only a run that names no model.
 - `OpenAIClient` is in the `OpenAI` namespace. Read the API key from your app's configuration, never from code.
 
 A local server with an OpenAI-compatible API, such as LM Studio or Ollama, works with the same package. Point the
@@ -312,8 +313,9 @@ WithChatOptions()
 the layer below, so set both when you switch providers.
 
 Leave out `WithModel` but keep `Configurable(o => o.ModelId)`, and the choice is the user's. Every run then needs a
-provider and a model from stored settings or from the run's own settings, and a run without them fails before it
-starts ([When a provider fails](#when-a-provider-fails)). Store the pick under a settings id, from a settings page
+provider and a model from stored settings or from the run's own settings. A run without them takes the client
+registered for every agent, or fails before it starts when there is none
+([When a provider fails](#when-a-provider-fails)). Store the pick under a settings id, from a settings page
 that offers your providers and their models, for example:
 
 <!-- snippet: configure-settings -->
@@ -387,8 +389,8 @@ What your code sees depends on whether the run fails before or after it touches 
 | Your provider throws for the summary model, when compaction asks for it during the run | Your provider's exception | Ends with an entry that holds an `ErrorContent` |
 | The model call fails, such as on a wrong key, an unknown model or a rate limit that outlasts the retries | The client library's exception | Ends with an entry that holds an `ErrorContent` |
 
-- Typeshift asks your provider for the run's client before it touches the conversation, so the first three fail
-  before anything is stored, and before the run's `invoke_agent` span starts. Run the agent again once you fix the
+- Typeshift finds the run's client before it touches the conversation, so the first two fail before anything is
+  stored, and before the run's `invoke_agent` span starts. Run the agent again once you fix the
   cause.
 - A run that fails later has stored its input already ([What is stored](./conversations.md#what-is-stored)), so a
   retry with the same input puts it into the conversation twice. `ResumeAsync` refuses such a conversation, because
