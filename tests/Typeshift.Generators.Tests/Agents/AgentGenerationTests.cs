@@ -28,6 +28,16 @@ public class AgentGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Caller_Outside_The_Agents_Namespace_Its_Host_Still_Offers_The_Typed_Members()
+    {
+        // Act
+        var run = Run(AgentSources.Tickets, AgentSources.Support, AgentSources.CallerOutsideTheAgentsNamespace);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
     public void Given_Tools_Of_The_Agents_Own_They_Are_Generated_In_It_And_Offered_After_The_Toolsets()
     {
         // Act
@@ -110,7 +120,7 @@ public class AgentGenerationTests : GeneratorTestBase
 
         // Assert
         run.Assert.GeneratesValidCode();
-        run.Output.GetTypeByMetadataName("Demo.Outer_HiddenAgentHostExtensions").Should().BeNull();
+        run.Output.GetTypeByMetadataName("Typeshift.Demo_Outer_HiddenAgentHostExtensions").Should().BeNull();
     }
 
     [Theory]

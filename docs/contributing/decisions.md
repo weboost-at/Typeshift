@@ -79,7 +79,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** carried (v0 D2), extended.
 - **Decision:** per toolset a `{Tool}Overrides` record per tool with configurable settings and a `{Toolset}ToolList`
   extension block; per agent the nested `Settings` record, a private `Configure{Tool}()` per offered tool with
-  settings and an `{Agent}HostExtensions` extension block; per assembly a module; per project the id aliases. Nested
+  settings and a `{Namespace}_{Agent}HostExtensions` extension block in the `Typeshift` namespace (D12); per assembly
+  a module; per project the id aliases. Nested
   classes join their containers' names with `_`; keywords get `@`. A clash with a user member is TSH018.
 - **Agents:** besides those, the hidden `Declaration` override, one private nested class `TypeshiftGenerated` (the
   declaration, the builders and the per-agent store of `Configure{Tool}()` values) and one private field
@@ -150,6 +151,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** `extension(AgentHost<TAgent> host)` per agent, in the agent's assembly, with `RunAsync`, `RunAsync<T>`,
   `RunStreamingAsync`, `ResumeAsync`, `ResumeStreamingAsync`, `LoadSettingsAsync`, `SaveSettingsAsync`, `ConfigureAsync`
   and `ResolveOptionsAsync`. They call hidden library methods, so the logic lives and is tested in the library.
+- **Namespace:** the blocks live in `Typeshift`, next to `AgentHost`, in a file of their own per agent. In the agent's
+  namespace, a file that named the agent in full or through an alias saw no typed members, and the owner asked why
+  `RunAsync` was missing at times.
 
 ## Declarations
 

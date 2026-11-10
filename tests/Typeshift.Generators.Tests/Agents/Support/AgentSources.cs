@@ -92,6 +92,23 @@ public static class AgentSources
         }
         """;
 
+    // Names the agent's type in full, without importing its namespace
+    public const string CallerOutsideTheAgentsNamespace =
+        """
+        #pragma warning disable CS1591
+
+        using Typeshift;
+
+        namespace App;
+
+        public static class Caller
+        {
+            public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> AskAsync(
+                AgentHost<Demo.SupportAgent> host) =>
+                host.RunAsync("Where is my refund?");
+        }
+        """;
+
     public const string Support =
         """
         #pragma warning disable CS1591

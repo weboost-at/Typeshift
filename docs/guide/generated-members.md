@@ -201,6 +201,10 @@ has a public or internal parameterless constructor. For any other agent, the ana
 [TSH016](./diagnostics.md#tsh016). A static class, as accessible as the agent, holds an extension block on
 `AgentHost<TAgent>` with the agent's [typed members](#typed-members).
 
+The class lives in the `Typeshift` namespace, next to `AgentHost`, so every file that names `AgentHost` sees the typed
+members, whether or not it imports the agent's namespace. Its name joins the agent's namespace and name, such as
+`Demo_SupportAgentHostExtensions`, so two agents of one name in different namespaces get a class each.
+
 ### Hidden members
 
 Every agent also gets:

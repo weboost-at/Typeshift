@@ -75,11 +75,28 @@ internal static class AgentEmitter
 
                 writer.Line();
                 ToolsetEmitter.WriteTools(writer, agent.Tools);
-            },
-            writer =>
-            {
-                if (agent.IsReachable) WriteHostMembers(writer, agent, idType, idTypeIsPublic);
             });
+    }
+
+    // D12: the typed members of the agent's host, in AgentHost's namespace, so every file that names AgentHost sees
+    // them; null for an agent the generated code cannot reach
+    public static string? EmitHost(AgentModel agent, string idType, bool idTypeIsPublic)
+    {
+        if (!agent.IsReachable) return null;
+
+        var writer = new SourceWriter();
+        writer.Line(SourceWriter.Header);
+        writer.Line("namespace Typeshift;");
+
+        WriteHostMembers(writer, agent, idType, idTypeIsPublic);
+        return writer.ToString();
+    }
+
+    // Unique in the Typeshift namespace, which holds the host members of every agent the project declares
+    public static string HostClassName(TypeModel agent)
+    {
+        var prefix = agent.Namespace is { } ns ? ns.Replace("@", "").Replace('.', '_') + "_" : "";
+        return $"{prefix}{agent.FlatName}HostExtensions";
     }
 
     // The user's own Configure{Tool}() wins; a tool without settings has nothing to configure
@@ -465,7 +482,6 @@ internal static class AgentEmitter
         }
     }
 
-    // D12: the typed members of the agent's host, next to the agent in its namespace
     private static void WriteHostMembers(SourceWriter writer, AgentModel agent, string idType, bool idTypeIsPublic)
     {
         // D6: a public agent's host members cannot take ids of a less accessible type (TSH006)
@@ -482,7 +498,7 @@ internal static class AgentEmitter
         writer.Line();
         Docs.WriteSummary(writer, $"The runs and stored settings of <see cref=\"{agent.Type.FullName}\"/>.");
 
-        using (writer.Block($"{access} static class {agent.Type.FlatName}HostExtensions"))
+        using (writer.Block($"{access} static class {HostClassName(agent.Type)}"))
         using (writer.Block($"extension({host} host)"))
         {
             run.Write(writer, "Runs the agent on a message", $"{Task}<{response}>", "RunAsync", "string",

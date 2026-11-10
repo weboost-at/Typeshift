@@ -43,6 +43,8 @@ All notable changes to this project are documented here. The format follows
 - Live updates of a run that does not stream carried every approval request the run stored, those a rule, a standing
   approval or auto mode answered included, and an answer to one of those now throws. They carry only the requests
   left to your app.
+- The typed members of an agent's host, such as `RunAsync`, live in the `Typeshift` namespace, next to `AgentHost`. A
+  file that named the agent in full, without importing its namespace, found no `RunAsync` on `AgentHost<TAgent>`.
 
 ## [0.1.0-alpha.5] - 2026-10-30
 
