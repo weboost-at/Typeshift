@@ -38,6 +38,8 @@ rewrite.
 | new | A project that only documents types gets a module, so a referencing host registers its docs (D55) | `ToolsetGenerationTests.Given_A_Schema_Annotations_Class_And_No_Toolsets_Or_Agents_A_Module_Registers_Its_Docs`, `AgentGenerationTests.Given_A_Reference_Of_Docs_Only_The_Interceptor_Registers_Its_Module` |
 | new | A tool returning `IAsyncEnumerable<T>` gives the model its items as one array; under AOT the list needs JSON metadata (D45) | `ToolInvocationTests.Given_A_Tool_That_Streams_Its_Results_The_Model_Receives_Them_As_One_Array`, `DiagnosticTests.Given_A_Stream_Whose_List_No_Context_Lists_Under_Native_Aot_TSH027_Is_Reported_On_Its_Tool` |
 | 7 | A nullable reference parameter is typed nullable | `ToolSchemaTests.Given_A_Nullable_Reference_Parameter_It_Is_Typed_As_Nullable` |
+| new | Each case of a union or polymorphic type's schema names its type, and accepts null when the parameter does (D62) | `ToolSchemaTests.Given_A_Polymorphic_Parameter_Each_Case_Of_Its_Schema_Names_Its_Type`, `..._Given_A_Nullable_Polymorphic_Parameter_Each_Case_Of_Its_Schema_Accepts_Null`, `UnionToolTests.Given_A_Union_Parameter_Each_Case_Of_Its_Schema_Names_Its_Type` |
+| new | On .NET 11, a union argument binds the case its JSON token picks, a number read from a string when no case takes a string, and an object the case whose properties it carries (D62) | `UnionToolTests` |
 | 8 | The schema matches `AIFunctionFactory`'s | `ToolSchemaTests.Given_The_Same_Method_The_Schema_Matches_AIFunctionFactory_Without_Descriptions` |
 | new | A recursive parameter type's `$ref`s point into its parameter, as `AIFunctionFactory`'s do | `ToolSchemaTests.Given_A_Recursive_Parameter_Type_The_Schema_Matches_AIFunctionFactory` |
 | 9 | Docs become descriptions | `ToolSchemaTests.Given_Param_Docs_They_Become_The_Parameter_Descriptions`, `..._Given_No_WithDescription_The_Summary_Is_The_Tool_Description` |
@@ -61,6 +63,7 @@ rewrite.
 | new | The provider id type types the alias, the `Provider` members and the core services (D56) | `AgentGenerationTests.Given_A_Provider_Id_Type_The_Alias_The_Settings_And_The_Core_Services_Use_It` |
 | new | A public agent's configurable model needs a provider id type as accessible (TSH006, D6) | `DiagnosticTests.Given_A_Public_Agent_Of_An_Internal_Provider_Id_Type_TSH006_Is_Reported_On_The_Model_Pick` |
 | new | Structured output and the raw path | `AgentRunTests.Given_A_Result_Type_The_Run_Returns_The_Models_Json_Typed`, `..._Given_Resolved_Options_The_Created_Client_Runs_The_Agent` |
+| new | A typed answer's schema carries `T`'s XML docs; a `T` other than an object of properties, a union among them, is asked for under `data` and read from there (D62) | `AgentRunTests.Given_A_Result_Type_With_Xml_Docs_The_Response_Schema_Describes_Its_Properties`, `..._Given_A_Number_Result_Type_The_Run_Reads_It_Under_Data`, `UnionResultTests` |
 | new | A run without a model or a provider fails, saying how to fix it | `AgentRunTests.Given_No_Model_The_Run_Fails_Saying_How_To_Set_One`, `AddTypeshiftTests.Given_No_Chat_Client_Provider_A_Run_Fails_Naming_The_Registration` |
 | new | Disposing a run's client leaves the provider's client alone | `AgentRunTests.Given_A_Run_The_Providers_Client_Outlives_It` |
 | new | An agent's own tools (`AddTool` in its constructor) are offered after its toolsets' tools, with settings, approval and the analyzer's tool rules (D57) | `OwnToolsTests`, `AgentGenerationTests.Given_Tools_Of_The_Agents_Own_They_Are_Generated_In_It_And_Offered_After_The_Toolsets`, `..._Given_Tools_Of_The_Agents_Own_The_Generated_Code_Compiles_Without_Warnings`, `DiagnosticTests.Given_An_Agents_Tool_Of_An_Instance_Method_TSH003_Is_Reported_On_The_Argument`, `..._Given_A_Sub_Agent_With_A_Tool_Of_Its_Own_That_Needs_Approval_TSH024_Is_Reported_On_The_Use` |
@@ -150,6 +153,10 @@ rewrite.
 - **Uses inside a referenced project.** TSH007 follows the handoffs and sub-agents of your project's agents into a
   referenced project's agent, but not that agent's own uses, which no stamp lists. An own tool of yours and one of an
   agent the referenced agent hands off to are not compared, in either project.
+- **Unions in settings.** A configurable member cannot be a union (TSH012), since the generator writes no stored
+  form for one.
+- **The empty union as a default.** A union parameter that defaults to `default` states `"default": null` in its
+  schema, which none of its cases accepts, although the tool binds JSON null to that default.
 - **One conversation through unrelated hosts.** An app that runs one conversation id through the hosts of two agents
   that never hand off to each other shares their standing approvals, and no diagnostic sees it.
 

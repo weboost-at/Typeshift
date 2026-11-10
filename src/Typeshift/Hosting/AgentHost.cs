@@ -141,9 +141,10 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
     {
         var options = await ResolveRunAsync(settingsId, conversationId, settings, null, ct);
         using var client = await CreateChatClientAsync(options, ct);
-        var json = _services.GetRequiredService<ToolJson>();
+        var result = _services.GetRequiredService<ToolJson>().GetResultFormat<TResult>();
+        options.ResponseFormat = result.Format;
 
-        return await client.GetResponseAsync<TResult>([input], json.SerializerOptions, options, cancellationToken: ct);
+        return new ChatResponse<TResult>(await client.GetResponseAsync([input], options, ct), result.SerializerOptions);
     }
 
     internal IAsyncEnumerable<ChatResponseUpdate> RunStreamingCoreAsync(

@@ -656,6 +656,29 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   build.
 - **Where:** `Analysis/TypeshiftAnalyzer.cs`, `samples/Typeshift.Samples.Console`.
 
+### D62. Union types in tools and typed runs
+
+- **Status:** owner.
+- **Context:** .NET 11 serializes a C# 15 union as its case, with no discriminator. Three things kept unions from
+  working in tools and typed runs. The web defaults read numbers from strings, so a union of a number and a string
+  could not read a string. Two object cases needed a `[JsonUnion]` classifier. And the exported schema names the type
+  the cases share once, on the union, so Anthropic's client rejected each case as having no type, and a typed run of
+  an object union sent no schema at all.
+- **Decision:**
+  - On .NET 11 the tool JSON options carry a union classifier. A JSON token picks its case as if numbers were
+    strict first, then as the web defaults read it, so `"7"` still reads as a number when no case takes a string. An
+    object picks the case whose properties it has, through System.Text.Json's structural classifier. A union's own
+    `[JsonUnion]` classifier wins, and a union neither pass tells apart keeps the serializer's classification.
+  - Every schema `ToolJson` builds copies a union's type onto each case that names none, and a nullable parameter
+    widens each case as well (D48). Polymorphic types get the same.
+  - A typed run builds its answer's schema as a tool's parameters are built, XML docs included, and holds anything
+    but an object of properties under `data`, as Microsoft.Extensions.AI holds a number. A converter reads the answer
+    from under `data`.
+- **Where:** `Generated/UnionCaseClassifier.cs`, `Generated/ToolJson.cs`, `Hosting/AgentHost.cs`.
+- **Alternatives:** a `[JsonUnion(TypeClassifier = ...)]` on every union, code each app writes; strict numbers
+  everywhere, which fails a model that sends `"5"` for a number; leaving the typed run's schema to
+  Microsoft.Extensions.AI, which neither types the cases nor holds an object union under `data`.
+
 ## Conversations
 
 ### D46. Tracking, carried and fixed

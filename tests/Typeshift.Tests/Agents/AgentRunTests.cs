@@ -259,6 +259,34 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Number_Result_Type_The_Run_Reads_It_Under_Data()
+    {
+        // Arrange
+        var answer = new { data = Data.Tool.Limit.Default };
+        ChatClient.Reply(Text(JsonSerializer.Serialize(answer, Json.SerializerOptions)));
+
+        // Act
+        var response = await Host<ProbeAgent>().RunAsync<int>(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.Result.Should().Be(Data.Tool.Limit.Default);
+    }
+
+    [Fact]
+    public async Task Given_A_Result_Type_With_Xml_Docs_The_Response_Schema_Describes_Its_Properties()
+    {
+        // Arrange
+        var company = new Company(Data.Agent.CompanyName, null);
+        ChatClient.Reply(Text(JsonSerializer.Serialize(company, Json.GetTypeInfo<Company>())));
+
+        // Act
+        await Host<ProbeAgent>().RunAsync<Company>(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ResponseSchema().Assert.ParameterDescription("name", "The company's registered name.");
+    }
+
+    [Fact]
     public async Task Given_Run_Settings_Of_A_Run_Option_The_Tool_Loop_Stops_After_It()
     {
         // Arrange

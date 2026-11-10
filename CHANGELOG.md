@@ -11,6 +11,10 @@ All notable changes to this project are documented here. The format follows
   holds them all in one file, and each guide page is also served at its address with `.md`.
 - The package carries a build for .NET 11 next to the one for .NET 10, so an app on .NET 11 gets the library compiled
   against .NET 11's own libraries.
+- On .NET 11, tools take and return C# 15 unions, and `RunAsync<T>` returns one. A JSON string binds a union's
+  `string` case and a number its number case, and an object binds the case whose properties it carries, so a union of
+  records needs no `[JsonUnion]` classifier.
+- `T`'s XML docs describe the schema `RunAsync<T>` asks the model to answer in, as they describe the types tools take.
 
 ### Changed
 
@@ -44,6 +48,9 @@ All notable changes to this project are documented here. The format follows
 - Live updates of a run that does not stream carried every approval request the run stored, those a rule, a standing
   approval or auto mode answered included, and an answer to one of those now throws. They carry only the requests
   left to your app.
+- Each case in the schema of a union or of a polymorphic type names its type, which Anthropic's client needs. It
+  rejected a tool or a typed run with such a type, and a typed run of an object union reached it with no schema at all.
+  `RunAsync<T>` asks for a union under a `data` property now, as Microsoft.Extensions.AI does for a number.
 
 ## [0.1.0-alpha.5] - 2026-10-30
 

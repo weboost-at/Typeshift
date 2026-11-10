@@ -129,9 +129,11 @@ internal enum RefundState
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L89-L98' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output-type' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`T`'s schema leaves out XML docs, which describe only tool parameters. Describe its properties with `[Description]`
-attributes when the model needs to know more than their names. Under [Native AOT](./production.md#native-aot), `T`
-needs JSON metadata.
+`T`'s XML docs describe its properties, as they describe the types tools take
+([XML docs of parameter types](./registration.md#xml-docs-of-parameter-types)). Providers take only an object with
+properties as the schema of an answer. So a `T` of another shape, such as a number, a list or a
+[union](./toolsets.md#union-types), is asked for under a `data` property, and `Result` reads it from there. Under
+[Native AOT](./production.md#native-aot), `T` needs JSON metadata.
 
 ## Streaming
 

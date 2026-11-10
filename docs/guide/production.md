@@ -121,6 +121,11 @@ Strings, `char`, `bool`, `short`, `int`, `long` and their unsigned forms, `float
 In a project that publishes with Native AOT or sets `IsAotCompatible`, the analyzer reports
 [TSH027](./diagnostics.md#tsh027) for every other tool type that no context lists.
 
+A [union](./toolsets.md#union-types) of two records gets warning SYSLIB1227 in a context, because the source
+generator finds no classifier that tells the records apart. Typeshift's tools and runs pick the case by its
+properties without one, so you may suppress the warning for unions only they read. Code of yours that reads such a
+union still needs a classifier.
+
 ### Everything else
 
 The generated `Settings` and overrides records serialize member by member, conversations go through

@@ -25,7 +25,8 @@ dotnet add package Typeshift --prerelease
 ## XML docs of parameter types
 
 The package brings [Weboost.SchemaAnnotations](https://github.com/weboost-at/SchemaAnnotations), which turns the XML
-docs of your types into descriptions of the properties a tool's parameters hold. Typeshift adds a hidden class to
+docs of your types into descriptions of the properties a tool's parameters hold, and of those of the answer
+`RunAsync<T>` asks for. Typeshift adds a hidden class to
 every project that sets `GenerateDocumentationFile`. Weboost.SchemaAnnotations collects the project's XML docs in that
 class, and the project's [registration module](#what-addtypeshift-registers) registers them when `AddTypeshift()`
 runs. A project of contracts with no toolsets or agents gets a module too, so the tools of the projects that

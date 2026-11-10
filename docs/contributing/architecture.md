@@ -83,7 +83,10 @@ operation action. `ParameterDocsSuppressor` suppresses CS1573 for the parameters
 `AIJsonUtilities.CreateJsonSchema` per parameter, with its description and default, nullable references widened to
 `[type, "null"]`, the `$ref`s of a recursive type rebased under its parameter, and properties described by the XML
 docs the modules registered (D55). For JSON metadata, `ToolJson` asks the modules' JSON contexts first, then
-Microsoft.Extensions.AI's defaults, which reflect outside Native AOT (D45).
+Microsoft.Extensions.AI's defaults, which reflect outside Native AOT (D45). Every schema it builds names a union's
+type on each case, and on .NET 11 its options pick a union's case by the JSON token, then by an object's properties
+(D62). `RunAsync<T>` asks it for the answer's response format, built as a parameter's schema is and held under `data`
+unless it is an object of properties.
 
 ## A run
 
