@@ -36,9 +36,7 @@ public sealed class ToolJson
                 [.. resolvers, AIJsonUtilities.DefaultOptions.TypeInfoResolver])
         };
 
-#if NET11_0_OR_GREATER
         options.TypeClassifiers.Add(new UnionCaseClassifier(options));
-#endif
 
         options.MakeReadOnly();
         SerializerOptions = options;

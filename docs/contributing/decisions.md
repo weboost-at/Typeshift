@@ -654,14 +654,14 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 ### D62. Union types in tools and typed runs
 
-- **Status:** owner.
+- **Status:** approved.
 - **Context:** .NET 11 serializes a C# 15 union as its case, with no discriminator. Three things kept unions from
   working in tools and typed runs. The web defaults read numbers from strings, so a union of a number and a string
   could not read a string. Two object cases needed a `[JsonUnion]` classifier. And the exported schema names the type
   the cases share once, on the union, so Anthropic's client rejected each case as having no type, and a typed run of
   an object union sent no schema at all.
 - **Decision:**
-  - On .NET 11 the tool JSON options carry a union classifier. A JSON token picks its case as if numbers were
+  - The tool JSON options carry a union classifier. A JSON token picks its case as if numbers were
     strict first, then as the web defaults read it, so `"7"` still reads as a number when no case takes a string. An
     object picks the case whose properties it has, through System.Text.Json's structural classifier. A value that
     fits no single case fails with a message naming the cases, which the model reads (D53). A union's own

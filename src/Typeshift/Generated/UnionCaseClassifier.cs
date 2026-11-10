@@ -1,4 +1,3 @@
-#if NET11_0_OR_GREATER
 using System.Collections.Concurrent;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -83,4 +82,3 @@ internal sealed class UnionCaseClassifier(JsonSerializerOptions serializerOption
         return exact;
     }
 }
-#endif

@@ -138,7 +138,7 @@ model provider.
 
 ## Union types
 
-On .NET 11, a tool can take or return a C# 15 union. The model sees a schema for each case and sends the JSON of the
+A tool can take or return a C# 15 union. The model sees a schema for each case and sends the JSON of the
 case it picks, and Typeshift binds the case that JSON fits:
 
 <!-- snippet: union-parameter -->
