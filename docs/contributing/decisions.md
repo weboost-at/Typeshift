@@ -114,8 +114,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   .NET 11.
 - **Decision:** the library builds for `net10.0` and `net11.0` from the same source, and the repository builds with
   the .NET 11 SDK.
-  - The runtime tests, the Native AOT sample and the package consumer target both, so CI runs each build of the
-    library in the tests, published as Native AOT and from the package.
+  - The runtime tests target both. The Native AOT sample targets `net11.0` and the package consumer `net10.0`, so
+    CI runs each build of the library once outside the tests, since `dotnet run` and `dotnet publish` take one
+    framework.
   - The docs sample targets `net11.0`, so a guide page can show C# 15.
   - The builds for .NET 10 compile at C# 14, as an app on .NET 10 does, so they keep proving that the generated code
     needs no more. The generator stays on Roslyn 5.0 (D8) and still runs in the .NET 10 SDK.

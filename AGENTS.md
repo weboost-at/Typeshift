@@ -60,9 +60,8 @@ dotnet slopwatch analyze --fail-on warning
 dotnet mdsnippets && git diff --exit-code
 ```
 
-- Cloud sessions run `.claude/hooks/session-start.sh`: the .NET 11 SDK and the .NET 10 runtime from
-  builds.dotnet.microsoft.com, the tools, the packages, and the skills pinned to reviewed commits: the owner's,
-  ponytail's and `humanizer`.
+- Cloud sessions run `.claude/hooks/session-start.sh`: the .NET SDK from Ubuntu's feed (dot.net is unreachable), the
+  tools, the packages, and the skills pinned to reviewed commits: the owner's, ponytail's and `humanizer`.
 - `global.json` pins the .NET 11 SDK, and the tests run on .NET 10 and .NET 11, so a machine needs the .NET 10
   runtime as well. D61 lists what targets which.
 - The build is warning-free with `TreatWarningsAsErrors`. The only suppressed warning is CS1591 in `tests/` and
