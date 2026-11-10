@@ -19,7 +19,7 @@ dotnet add package Typeshift --prerelease
 |---|---|
 | .NET 11 | The package targets `net11.0`. Generated members are extension blocks, which need C# 14 or later. |
 | The package in every project that declares toolsets or agents, or calls `AddTypeshift()` | The package carries the generator, and NuGet does not pass a generator on to the projects that reference yours ([TSH019](./diagnostics.md#tsh019), [TSH020](./diagnostics.md#tsh020)). |
-| `GenerateDocumentationFile` | Tools and the types they take get their descriptions from XML docs ([TSH011](./diagnostics.md#tsh011)). |
+| `GenerateDocumentationFile` | Tools, agents and the types tools take get their descriptions from XML docs ([TSH011](./diagnostics.md#tsh011)). |
 | `Typeshift.Generated` in `InterceptorsNamespaces` | The generator intercepts `AddTypeshift()` from that namespace. The package adds it for you. |
 
 ## XML docs of parameter types

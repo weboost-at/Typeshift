@@ -10,7 +10,9 @@ All notable changes to this project are documented here. The format follows
 - The docs site publishes the guide as Markdown for coding assistants: `llms.txt` lists its pages, `llms-full.txt`
   holds them all in one file, and each guide page is also served at its address with `.md`.
 - An agent without `WithDescription` takes its description from the `<summary>` of its XML docs, as a tool takes
-  its description from its method's, and that description satisfies TSH023.
+  its description from its method's. That description satisfies TSH023, names the agent's sub-agent tool and handoff,
+  and is the `gen_ai.agent.description` of its spans. Without `GenerateDocumentationFile`, TSH011 says the summary is
+  lost.
 
 ### Changed
 

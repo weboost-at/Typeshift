@@ -74,6 +74,19 @@ internal static class AgentParser
         agents = declarations.Agents;
         tools = ToolsetParser.ParseTools(agent, constructors, documented, reporter, ct);
 
+        // D14: as a tool's, an agent's summary describes it unless WithDescription says otherwise; without generated
+        // docs it is lost
+        var summary = XmlDocs.Read(agent, ct).Summary;
+        var description = declarations.Description ?? (string.IsNullOrEmpty(summary) ? null : summary);
+
+        if (description is null && !documented && XmlDocs.ReadUnparsed(agent, ct).Length > 0)
+        {
+            reporter.Report(
+                Descriptors.DocumentationOff,
+                agent.Locations.FirstOrDefault(),
+                $"The agent '{agent.Name}'");
+        }
+
         ReportHiddenProviderIdType(agent, providerIdType, declarations.ProviderPicks, reporter);
 
         if (notPartial is not null || clash is not null) return null;
@@ -88,8 +101,7 @@ internal static class AgentParser
             TypeModels.From(agent),
             unreachable is null,
             declarations.Name ?? ToolNames.ToSnakeCase(agent.Name),
-            // D14: as a tool's, an agent's summary describes it unless WithDescription says otherwise
-            declarations.Description ?? XmlDocs.Read(agent, ct).Summary,
+            description,
             declarations.Kind ?? agent.Name,
             declarations.SchemaVersion ?? 1,
             declarations.ChatOptions.ToEquatableArray(),

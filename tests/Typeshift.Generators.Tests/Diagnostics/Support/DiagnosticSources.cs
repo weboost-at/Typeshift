@@ -723,6 +723,17 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string AgentSummaryOnly =
+        """
+        using Typeshift;
+
+        /// <summary>Answers questions about the help center.</summary>
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
+        }
+        """;
+
     public const string SubAgentDescribedBySummary =
         """
         using Typeshift;

@@ -282,6 +282,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_An_Agents_Summary_Without_Generated_Docs_TSH011_Is_Reported_On_The_Agent()
+    {
+        // Act
+        var run = RunWithoutDocumentation(DiagnosticSources.AgentSummaryOnly);
+
+        // Assert
+        run.Assert.Reports("TSH011", DiagnosticSeverity.Warning, "HelpAgent");
+    }
+
+    [Fact]
     public void Given_A_Configurable_Member_Settings_Cannot_Store_TSH012_Is_Reported_On_The_Pick()
     {
         // Act
@@ -724,7 +734,7 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.SubAgentDescribedBySummary);
 
         // Assert
-        run.Reported.Should().NotContain(diagnostic => diagnostic.Id == "TSH023");
+        run.Assert.DoesNotReport("TSH023");
     }
 
     [Fact]
