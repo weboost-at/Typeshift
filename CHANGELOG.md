@@ -43,8 +43,11 @@ All notable changes to this project are documented here. The format follows
 - Live updates of a run that does not stream carried every approval request the run stored, those a rule, a standing
   approval or auto mode answered included, and an answer to one of those now throws. They carry only the requests
   left to your app.
-- The typed members of an agent's host, such as `RunAsync`, live in the `Typeshift` namespace, next to `AgentHost`. A
-  file that named the agent in full, without importing its namespace, found no `RunAsync` on `AgentHost<TAgent>`.
+- The typed members of an agent's host, such as `RunAsync`, are in scope in every file. They lived in the agent's
+  namespace, so a file that named the agent in full, without importing its namespace, found no `RunAsync` on
+  `AgentHost<TAgent>`. Their class is `TypeshiftHost_4Demo12SupportAgent` for `Demo.SupportAgent` now, in the global
+  namespace, so code that called them through the old class name, `SupportAgentHostExtensions`, calls them on the
+  host instead.
 
 ## [0.1.0-alpha.5] - 2026-10-30
 

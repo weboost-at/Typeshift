@@ -78,25 +78,28 @@ internal static class AgentEmitter
             });
     }
 
-    // D12: the typed members of the agent's host, in AgentHost's namespace, so every file that names AgentHost sees
-    // them; null for an agent the generated code cannot reach
+    // D12: the typed members of the agent's host, in the global namespace, so every file sees them whatever it
+    // imports; null for an agent the generated code cannot reach
     public static string? EmitHost(AgentModel agent, string idType, bool idTypeIsPublic)
     {
         if (!agent.IsReachable) return null;
 
         var writer = new SourceWriter();
         writer.Line(SourceWriter.Header);
-        writer.Line("namespace Typeshift;");
 
         WriteHostMembers(writer, agent, idType, idTypeIsPublic);
         return writer.ToString();
     }
 
-    // Unique in the Typeshift namespace, which holds the host members of every agent the project declares
+    // D12: each part of the agent's full name prefixed by its length, so no two agents share the global name
     public static string HostClassName(TypeModel agent)
     {
-        var prefix = agent.Namespace is { } ns ? ns.Replace("@", "").Replace('.', '_') + "_" : "";
-        return $"{prefix}{agent.FlatName}HostExtensions";
+        var parts = (agent.Namespace?.Split('.') ?? [])
+            .Concat(agent.ContainingTypes.Select(container => container.Substring(container.LastIndexOf(' ') + 1)))
+            .Append(agent.Name)
+            .Select(part => part.Replace("@", ""));
+
+        return "TypeshiftHost_" + string.Concat(parts.Select(part => $"{part.Length}{part}"));
     }
 
     // The user's own Configure{Tool}() wins; a tool without settings has nothing to configure

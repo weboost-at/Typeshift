@@ -114,7 +114,7 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
                     AgentEmitter.Emit(agent, pair.Left.Left.Right, pair.Left.Right, pair.Right));
 
                 if (AgentEmitter.EmitHost(agent.Agent, pair.Left.Left.Right, pair.Left.Right) is { } host)
-                    output.AddSource(Names.HintName($"{agent.Agent.Type.FullName}.Host"), host);
+                    output.AddSource(Names.HintName($"{agent.Agent.Type.FullName}+Host"), host);
             });
 
         context.RegisterSourceOutput(idType.Combine(providerId).Combine(assemblyName), static (output, pair) =>
