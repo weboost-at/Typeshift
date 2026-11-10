@@ -44,6 +44,26 @@ public sealed class TypeshiftBuilder
         return this;
     }
 
+    /// <summary>
+    /// Registers a store you created, such as a <c>FileAgentSettingsStore</c> over its folder, as <c>WithStore</c>
+    /// registers one it creates.
+    /// </summary>
+    /// <param name="store">The store, a singleton.</param>
+    /// <typeparam name="TStore">
+    /// An <c>IAgentSettingsStore</c>, or an <c>ISettingsStore</c>, an <c>IConversationStore</c> or both, an
+    /// <c>ITypeshiftStore</c>, of the build's id type (TSH028).
+    /// </typeparam>
+    /// <returns>The same chain.</returns>
+    public TypeshiftBuilder WithStore<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] TStore>(TStore store)
+        where TStore : class
+    {
+        ArgumentNullException.ThrowIfNull(store);
+        _services.AddSingleton(store);
+        _addStore(_services, typeof(TStore), IdTypes(typeof(TStore)), _ => store);
+        return this;
+    }
+
     // D66: a store may be of agents' own settings alone, so an interface of another id type is found by its own
     // type arguments, not only by the absence of the build's
     private static Type[] IdTypes(

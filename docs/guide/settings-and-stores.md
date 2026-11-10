@@ -145,6 +145,25 @@ var everyRun = await research.RunAsync("Graz");
 `LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)` load and save them as the members below do for
 a settings id, and `ConfigureAsync(configure)` retries the same way.
 
+`InMemoryTypeshiftStore` forgets them when the app stops. To keep them without a database, for example in a local
+tool or a single-agent service, register a `FileAgentSettingsStore` over a folder of your app:
+
+<!-- snippet: file-agent-settings -->
+<a id='snippet-file-agent-settings'></a>
+```cs
+var services = new ServiceCollection();
+
+services.AddTypeshift()
+    .WithStore(new FileAgentSettingsStore(folder))
+    .WithChatClientProvider<KeyedChatClientProvider>();
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/FileSettings.cs#L30-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-file-agent-settings' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+It keeps each agent's settings in a file named after its kind, `ResearchAgent.json` here, which you can read and
+back up like any other file. One process at a time may use the folder, and a kind other than letters, digits, `_`,
+`-` and `.` throws, so give such an agent a `WithStorageKind` that is a file name.
+
 A settings id stands for whatever you decide: a customer, a team, a user, or a settings profile of your own. Under one
 settings id, each agent has its own document, because each agent's `Settings` is its own kind, so a store keys
 documents by id and kind together.

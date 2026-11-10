@@ -572,6 +572,22 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   which a missing id of a reference type would reach; members of other names, such as `LoadOwnSettingsAsync`, which
   keep `LoadSettingsAsync(default)` meaning an id but give one record two sets of names.
 
+### D67. A store of agents' own settings in files
+
+- **Status:** owner.
+- **Context:** the owner asked for first-party support of simple setups; an app with one agent and no database
+  still has to keep its settings across restarts.
+- **Decision:** `FileAgentSettingsStore` keeps each agent's own settings (D66) in `<folder>/<kind>.json`, as
+  `{"version": n, "settings": {...}}`, so the file reads and edits by hand. A save checks the version under a lock,
+  writes a file beside the old one and moves it over, so a load reads the old file or the new one whole; loads share
+  deletion with that move, which Windows needs. One process at a time may use the folder. A kind that is no plain
+  file name throws, naming `WithStorageKind`. `WithStore(store)` registers a store your code created, since this one
+  takes its folder.
+- **Where:** `Storage/FileAgentSettingsStore.cs`, `DependencyInjection/TypeshiftBuilder.cs`.
+- **Alternatives:** a file store of settings ids and conversations too, a database in files that SQLite already is;
+  the folder from configuration, which ties the store to a configuration section the app may not have; one file for
+  every agent, where a save of one agent's settings rewrites the others'.
+
 ### D39. Kinds are stable names
 
 - **Status:** owner.
