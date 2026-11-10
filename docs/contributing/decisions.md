@@ -683,9 +683,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Context:** the owner asked for a strongly typed answer from a streaming run.
 - **Decision:** `RunStreamingAsync<TResult>` asks for the same response format as `RunAsync<TResult>` (D62) and
   returns a `StreamingRun<TResult>`. It streams the updates as `RunStreamingAsync` does and, once they are read to
-  the end, holds a `ChatResponse<TResult>` in `Response`. It runs when it is read and only once, since reading it
-  again would run the agent again.
-- **Where:** `Hosting/StreamingRun.cs`, `Hosting/AgentHost.cs`, `Generated/AgentRuns.cs`, `Emitting/AgentEmitter.cs`.
+  the end, holds a `ChatResponse<TResult>` in `Response`. It calls the model when it is read and only once, since
+  reading it again would run the agent again. Both typed runs take a `ChatMessage` as well, so the run that answers
+  an approval asks for the format again. The format is the run's, not the agent's: an agent handed the run off to, or
+  answering in a handed-off conversation, answers in it, and a sub-agent answers in its own.
+- **Where:** `Hosting/StreamingRun.cs`, `Hosting/AgentHost.cs`, `Hosting/ResolvedChatOptions.cs`,
+  `Conversations/ConversationChatClient.cs`, `Generated/AgentRuns.cs`, `Emitting/AgentEmitter.cs`.
 - **Alternatives:** partial objects parsed from the JSON as it grows, which needs a parser that reads incomplete JSON
   and gives up the types System.Text.Json checks; a list of updates the caller collects and a helper that reads the
   result from them, two calls where one serves.

@@ -130,7 +130,7 @@ unions only they read. Code of yours that reads such a union still needs a class
 
 The generated `Settings` and overrides records serialize member by member, conversations go through
 Microsoft.Extensions.AI's own contracts. None of these needs
-a context from you. `RunAsync<T>` does need one: list `T` in a context too. In the sample, `AppJsonContext` above
+a context from you. `RunAsync<T>` and `RunStreamingAsync<T>` do need one: list `T` in a context too. In the sample, `AppJsonContext` above
 lists `CompanyCount` because the app calls `RunAsync<CompanyCount>`.
 
 ## Related
@@ -138,5 +138,5 @@ lists `CompanyCount` because the app calls `RunAsync<CompanyCount>`.
 - [How a run works](./running-agents.md#how-a-run-works): the steps the spans of a run cover.
 - [Conversations](./conversations.md#live-updates): live updates of a run, for a UI.
 - [Toolsets](./toolsets.md#results): how a tool's result reaches the model as JSON.
-- [Running agents](./running-agents.md#structured-output): structured output with `RunAsync<T>`.
+- [Running agents](./running-agents.md#structured-output): structured output with `RunAsync<T>` and `RunStreamingAsync<T>`.
 - [Registration](./registration.md#what-addtypeshift-registers): what the generated modules register.

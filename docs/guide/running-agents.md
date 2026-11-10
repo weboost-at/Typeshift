@@ -152,8 +152,13 @@ Console.WriteLine($" ({summary.Response.Result.State})");
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L65-L72' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-streaming' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The run starts when you read it, and it runs once, so a second `await foreach` throws an
-`InvalidOperationException`. `Response` throws one too until the updates have ended.
+The updates carry the model's JSON as it writes it, under `data` for a `T` that is not an object, so show the user
+`Result` rather than the streamed text. The model is called when you read the updates, and they can be read once: a
+second `await foreach` throws an `InvalidOperationException`. `Response` throws one until the updates are read to the
+end, and keeps throwing when the run failed, was cancelled or was left early.
+
+Both typed runs also take a `ChatMessage`, so the run that answers an [approval](./tool-approval.md) asks for `T`
+again. An agent the run is [handed off](./multi-agent.md) to answers in `T` too.
 
 ## Streaming
 

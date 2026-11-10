@@ -15,6 +15,8 @@ All notable changes to this project are documented here. The format follows
 - `T`'s XML docs describe the schema `RunAsync<T>` asks the model to answer in, as they describe the types tools take.
 - `RunStreamingAsync<T>` streams a typed run: read its updates to the end, and its `Response` holds the answer typed,
   as `RunAsync<T>` returns it.
+- `RunAsync<T>` and `RunStreamingAsync<T>` take a `ChatMessage`, so the run that answers an approval asks for `T`
+  again.
 
 ### Changed
 
@@ -31,6 +33,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- `RunAsync<T>` on a conversation that a handoff passed on, or one that hands off itself, asked the agent that
+  answers for no schema. That agent answers in `T` now.
 - An answer to an approval request that a later run of the conversation passed by ran the call, and approving it for
   the conversation gave the tool a standing approval. Only the requests the last run left without an answer can be
   answered now; an answer to any other runs nothing and stores nothing.

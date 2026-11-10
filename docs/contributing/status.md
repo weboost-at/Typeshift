@@ -64,6 +64,7 @@ rewrite.
 | new | A public agent's configurable model needs a provider id type as accessible (TSH006, D6) | `DiagnosticTests.Given_A_Public_Agent_Of_An_Internal_Provider_Id_Type_TSH006_Is_Reported_On_The_Model_Pick` |
 | new | Structured output and the raw path | `AgentRunTests.Given_A_Result_Type_The_Run_Returns_The_Models_Json_Typed`, `..._Given_Resolved_Options_The_Created_Client_Runs_The_Agent` |
 | new | A streaming run of a result type yields the updates, asks for the type's schema and holds the typed answer once read; it runs once (D64) | `StreamingResultTests` |
+| new | A typed run keeps its format through an approval, a handoff and the agent a handed-off conversation goes to; an untyped one asks for none (D64) | `ToolApprovalTests.Given_An_Approval_In_A_Typed_Run_The_Run_Goes_On_In_Its_Format`, `HandoffTests.Given_A_Typed_Run_Handed_Off_The_Agent_Handed_To_Answers_In_Its_Format`, `..._Given_A_Typed_Streaming_Run_Handed_Off_The_Agent_Handed_To_Answers_In_Its_Format`, `..._Given_A_Conversation_Handed_Off_A_Typed_Run_Asks_The_Agent_That_Answered_For_Its_Format`, `..._Given_An_Untyped_Run_Handed_Off_The_Agent_Handed_To_Answers_In_Text` |
 | new | A typed answer's schema carries `T`'s XML docs; a `T` other than an object of properties, a union among them, is asked for under `data` and read from there (D62) | `AgentRunTests.Given_A_Result_Type_With_Xml_Docs_The_Response_Schema_Describes_Its_Properties`, `..._Given_A_Number_Result_Type_The_Run_Reads_It_Under_Data`, `..._Given_An_Enum_Result_Type_The_Run_Reads_It_Under_Data`, `..._Given_A_Polymorphic_Result_Type_The_Run_Reads_It_Under_Data`, `..._Given_A_Dictionary_Result_Type_The_Response_Schema_Holds_It_Under_Data`, `..._Given_An_Answer_Without_Data_Its_Result_Cannot_Be_Read`, `UnionResultTests` |
 | new | A run without a model or a provider fails, saying how to fix it | `AgentRunTests.Given_No_Model_The_Run_Fails_Saying_How_To_Set_One`, `AddTypeshiftTests.Given_No_Chat_Client_Provider_A_Run_Fails_Naming_The_Registration` |
 | new | Disposing a run's client leaves the provider's client alone | `AgentRunTests.Given_A_Run_The_Providers_Client_Outlives_It` |
@@ -154,6 +155,9 @@ rewrite.
 - **Uses inside a referenced project.** TSH007 follows the handoffs and sub-agents of your project's agents into a
   referenced project's agent, but not that agent's own uses, which no stamp lists. An own tool of yours and one of an
   agent the referenced agent hands off to are not compared, in either project.
+- **Steering in a typed stream.** `StreamingRun<T>.Response` is built from the whole stream. When the provider sets
+  no `MessageId` on its updates, two answers in one run (steering input, a background sub-agent's answer) merge into
+  one message, and `Result` reads the first of them, where `RunAsync<T>` reads the last.
 - **Unions in settings.** A configurable member cannot be a union (TSH012), since the generator writes no stored
   form for one.
 - **The empty union as a default.** A union parameter that defaults to `default` states `"default": null` in its

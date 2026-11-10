@@ -4,8 +4,8 @@ using Microsoft.Extensions.AI;
 namespace Typeshift;
 
 /// <summary>
-/// A run that streams its updates and, once they are read to the end, holds its answer typed. It runs when you read
-/// it, and only once.
+/// A run that streams its updates and, once they are read to the end, holds its answer typed. The model is called
+/// when you read the updates, and the updates can be read once.
 /// </summary>
 /// <typeparam name="TResult">The type the model answers in.</typeparam>
 public sealed class StreamingRun<TResult> : IAsyncEnumerable<ChatResponseUpdate>
@@ -24,7 +24,10 @@ public sealed class StreamingRun<TResult> : IAsyncEnumerable<ChatResponseUpdate>
     /// <summary>
     /// The run's response, with the answer typed in <c>Result</c>.
     /// </summary>
-    /// <exception cref="InvalidOperationException">The updates are not read to their end yet.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// The updates are not read to their end: not yet, or never, because the run failed, was cancelled or was left
+    /// early.
+    /// </exception>
     public ChatResponse<TResult> Response =>
         _response ?? throw new InvalidOperationException(
             "A streaming run has its response once its updates are read to the end.");
@@ -33,8 +36,10 @@ public sealed class StreamingRun<TResult> : IAsyncEnumerable<ChatResponseUpdate>
     /// Starts the run and streams its updates.
     /// </summary>
     /// <param name="cancellationToken">Cancels the run.</param>
-    /// <returns>The updates, with the tool calls running between them.</returns>
-    /// <exception cref="InvalidOperationException">The run's updates were read before.</exception>
+    /// <returns>
+    /// The updates, with the tool calls running between them. Their first <c>MoveNextAsync</c> throws an
+    /// <see cref="InvalidOperationException"/> when the updates were read before.
+    /// </returns>
     public async IAsyncEnumerator<ChatResponseUpdate> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
         if (Interlocked.Exchange(ref _read, 1) == 1)

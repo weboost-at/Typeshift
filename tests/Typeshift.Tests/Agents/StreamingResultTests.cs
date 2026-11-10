@@ -55,7 +55,77 @@ public class StreamingResultTests : AgentTestBase
     }
 
     [Fact]
-    public void Given_A_Streaming_Run_Not_Read_To_Its_End_Its_Response_Throws()
+    public async Task Given_A_Number_Result_A_Streaming_Run_Reads_It_From_Under_Data()
+    {
+        // Arrange
+        var json = JsonSerializer.Serialize(new { data = Data.Tool.Lives }, Json.SerializerOptions);
+        ChatClient.Reply(Text(json[..4]), Text(json[4..]));
+
+        var run = Host<ProbeAgent>().RunStreamingAsync<int>(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await run.ToListAsync(Ct);
+
+        // Assert
+        run.Response.Result.Should().Be(Data.Tool.Lives);
+    }
+
+    [Fact]
+    public async Task Given_A_Tool_Call_A_Streaming_Run_Asks_For_The_Schema_Again_After_It()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(JsonSerializer.Serialize(new ProbeSettings(), Json.GetTypeInfo<ProbeSettings>())));
+
+        // Act
+        await Host<ProbeAgent>().RunStreamingAsync<ProbeSettings>(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
+
+        // Assert
+        ChatClient.Options[1]!.ResponseFormat.Should().BeOfType<ChatResponseFormatJson>();
+    }
+
+    [Fact]
+    public async Task Given_A_Conversation_A_Streaming_Run_Stores_Its_Typed_Answer()
+    {
+        // Arrange
+        var json = JsonSerializer.Serialize(new ProbeSettings { Limit = 1 }, Json.GetTypeInfo<ProbeSettings>());
+        ChatClient.Reply(Text(json));
+
+        var run = Host<ProbeAgent>().RunStreamingAsync<ProbeSettings>(
+            Data.Tool.Question,
+            conversationId: Data.Agent.ConversationId,
+            ct: Ct);
+
+        // Act
+        await run.ToListAsync(Ct);
+
+        // Assert
+        var entries = await EntriesAsync(Data.Agent.ConversationId);
+        entries.SelectMany(entry => entry.Messages).Should().Contain(message => message.Text == json);
+    }
+
+    [Fact]
+    public async Task Given_A_Streaming_Run_Left_Early_Its_Response_Throws()
+    {
+        // Arrange
+        ChatClient.Reply(Text("{"), Text("}"));
+        var run = Host<ProbeAgent>().RunStreamingAsync<ProbeSettings>(Data.Tool.Question, ct: Ct);
+
+        await foreach (var _ in run.WithCancellation(Ct))
+        {
+            break;
+        }
+
+        // Act
+        var read = () => run.Response;
+
+        // Assert
+        read.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Given_A_Streaming_Run_Not_Read_Yet_Its_Response_Throws()
     {
         // Arrange
         var run = Host<ProbeAgent>().RunStreamingAsync<ProbeSettings>(Data.Tool.Question, ct: Ct);
