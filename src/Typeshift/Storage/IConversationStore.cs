@@ -11,7 +11,9 @@ namespace Typeshift;
 public interface IConversationStore<TId> where TId : notnull
 {
     /// <summary>
-    /// Loads the entries of a conversation, oldest first.
+    /// Loads every entry of a conversation, oldest first, summaries included. Call it to show a conversation's whole
+    /// history or to find a run a crash cut off. Runs read a conversation through
+    /// <see cref="LoadConversationSinceCompactionAsync"/> instead, whose default calls this method.
     /// </summary>
     /// <param name="conversation">The conversation's id.</param>
     /// <param name="ct">Cancels the load.</param>
@@ -19,9 +21,10 @@ public interface IConversationStore<TId> where TId : notnull
     Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(TId conversation, CancellationToken ct);
 
     /// <summary>
-    /// Loads the entries a run starts from: the conversation's last summary and the entries after it, or every entry
-    /// when compaction never summarized it. Override it where the store finds the last summary without reading the
-    /// rest; this one loads the whole conversation.
+    /// Loads what a run reads: the conversation's last summary and the entries after it, or every entry when
+    /// compaction never summarized it. The default loads the whole conversation through
+    /// <see cref="LoadConversationAsync"/> and drops what came before the summary. Override it when your store can
+    /// start at the last summary, so a long conversation is not read whole on every run.
     /// </summary>
     /// <param name="conversation">The conversation's id.</param>
     /// <param name="ct">Cancels the load.</param>
