@@ -48,31 +48,33 @@ internal sealed class CannedChatClient : IChatClient
             (false, _) when offers.Contains("close_ticket") && input.StartsWith("Close ticket") =>
                 Call("close_ticket", ("number", 1234), ("reason", "The refund was paid.")),
             (false, _) when offers.Contains("research_agent") =>
-                Call("research_agent", ("input", "Which robotics companies are in Vienna?")),
+                Call("research_agent", ("input", "Vienna")),
             (false, _) when offers.Contains("handoff_to_billing_agent") && input.Contains("charged") =>
                 Call("handoff_to_billing_agent"),
-            (false, _) when offers.Contains("find_companies") => Call("find_companies", ("city", input)),
-            (true, _) when offers.Contains("find_companies") => new TextContent(Companies(messages[^1])),
             (_, ChatResponseFormatJson) =>
                 new TextContent("""{ "Invoice": "INV-7", "State": "Approved", "Expected": "2026-11-02" }"""),
+            (false, _) when offers.Contains("find_companies") => Call("find_companies", ("city", input)),
+            (true, _) when offers.Contains("find_companies") => new TextContent(Companies(messages[^1])),
             _ => new TextContent(Answer)
         };
 
         return new ChatMessage(ChatRole.Assistant, [content]);
     }
 
-    // The names find_companies returned, listed as a model would
-    private static string Companies(ChatMessage results) =>
-        "Found "
-        + string.Join(
-            " and ",
-            results.Contents
-                .OfType<FunctionResultContent>()
-                .Select(result => result.Result)
-                .OfType<JsonElement>()
-                .SelectMany(found => found.EnumerateArray())
-                .Select(company => company.GetProperty("name").GetString()))
-        + ".";
+    // Getting started shows this answer, so it lists what the tool returned, as a model would
+    private static string Companies(ChatMessage results)
+    {
+        var names = results.Contents
+            .OfType<FunctionResultContent>()
+            .Select(result => result.Result)
+            .OfType<JsonElement>()
+            .Where(found => found.ValueKind == JsonValueKind.Array)
+            .SelectMany(found => found.EnumerateArray())
+            .Select(company => company.GetProperty("name").GetString())
+            .ToList();
+
+        return names.Count == 0 ? "Found no companies." : $"Found {string.Join(" and ", names)}.";
+    }
 
     private static FunctionCallContent Call(string name, params (string Name, object Value)[] arguments) =>
         new(
