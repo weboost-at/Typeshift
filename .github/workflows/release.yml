@@ -21,7 +21,7 @@ jobs:
 
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.x'
+          dotnet-version: '11.x'
 
       - run: dotnet tool restore
       - run: dotnet build -c Release -warnaserror
