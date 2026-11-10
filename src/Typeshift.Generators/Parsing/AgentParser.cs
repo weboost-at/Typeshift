@@ -88,7 +88,8 @@ internal static class AgentParser
             TypeModels.From(agent),
             unreachable is null,
             declarations.Name ?? ToolNames.ToSnakeCase(agent.Name),
-            declarations.Description,
+            // D14: as a tool's, an agent's summary describes it unless WithDescription says otherwise
+            declarations.Description ?? XmlDocs.Read(agent, ct).Summary,
             declarations.Kind ?? agent.Name,
             declarations.SchemaVersion ?? 1,
             declarations.ChatOptions.ToEquatableArray(),

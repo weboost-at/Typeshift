@@ -9,6 +9,8 @@ All notable changes to this project are documented here. The format follows
 
 - The docs site publishes the guide as Markdown for coding assistants: `llms.txt` lists its pages, `llms-full.txt`
   holds them all in one file, and each guide page is also served at its address with `.md`.
+- An agent without `WithDescription` takes its description from the `<summary>` of its XML docs, as a tool takes
+  its description from its method's, and that description satisfies TSH023.
 
 ### Changed
 

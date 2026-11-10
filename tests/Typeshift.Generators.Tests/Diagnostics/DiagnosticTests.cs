@@ -718,6 +718,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Sub_Agent_Described_By_Its_Summary_No_TSH023_Is_Reported()
+    {
+        // Act
+        var run = Run(DiagnosticSources.SubAgentDescribedBySummary);
+
+        // Assert
+        run.Reported.Should().NotContain(diagnostic => diagnostic.Id == "TSH023");
+    }
+
+    [Fact]
     public void Given_A_Sub_Agent_Of_A_Reference_Without_A_Description_TSH023_Is_Reported_On_The_Use()
     {
         // Arrange
