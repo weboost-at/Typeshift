@@ -27,8 +27,25 @@ conversation id on to the provider. Settings ids and conversation ids are indepe
 both. A conversation does not remember a settings id, so pass it to every run of the conversation that should use the
 stored settings, the run that answers an approval included.
 
-Typeshift never creates ids ([the id type](./registration.md#the-id-type)). You choose the conversation id, for
-example the key of your own record of the conversation, and pass the same id to every run of that conversation.
+## Conversation ids
+
+Typeshift never creates conversation ids. You pick one when a chat starts, usually the key of your own record of the
+chat, such as a row in a `Chats` table, and pass it to every run of that chat. Its type is the build's
+[id type](./registration.md#the-id-type), so with `Guid` ids and no record of your own, `Guid.CreateVersion7()` gives
+a new chat its id.
+
+Everything Typeshift keeps about a conversation is keyed by that id:
+
+| What | How the id keys it |
+|---|---|
+| The stored entries | The store appends each step under the id, and the next run loads them back. |
+| One run at a time | A second run of the same id in this process throws while the first goes on ([One run at a time](#one-run-at-a-time)). |
+| Live runs | `ConversationTracker.Runs` and `WatchRunsAsync` name each run's conversation ([Live runs](#live-runs)). |
+| Steering | `TrySteer` hands input to the run of that id ([Steering](#steering)). |
+| Live updates | `WatchAsync` follows the runs of that id ([Live updates](#live-updates)). |
+
+A run without a conversation id has none of these: it stores nothing, can be neither steered nor watched, and the next
+run starts from scratch.
 
 ::: danger Check the caller before you pass a conversation id
 Typeshift resumes whichever conversation it is given, so deciding who may see one is your app's job. Check the caller
@@ -110,8 +127,13 @@ conversation is up to your app.
 
 ## Live runs
 
-`ConversationTracker` lists the runs with a conversation id that are going on in this process, each with its
-conversation, the agent that answers, its model and when it started:
+`ConversationTracker` lets a UI follow runs as they happen, so a chat can show an answer while the agent writes it and
+a dashboard can show which chats are busy. Its list of runs and `WatchRunsAsync` work in every app. Following a
+conversation's updates with `WatchAsync` needs `WithRealtimeTracking()` on the chain, because publishing every update
+costs a little on every run ([Live updates](#live-updates)).
+
+`Runs` lists the runs with a conversation id that are going on in this process, each with its conversation, the agent
+that answers, its model and when it started:
 
 <!-- snippet: live-sessions -->
 <a id='snippet-live-sessions'></a>
@@ -166,7 +188,7 @@ To stop a run, cancel its token. It is stored up to where it stopped.
 With `WithRealtimeTracking()`, Typeshift publishes the updates of runs as they happen, and `WatchAsync` reads one
 conversation's updates until you cancel its token, which ends the loop with an `OperationCanceledException`, as with
 `WatchRunsAsync`. A streaming run publishes its updates as they stream; a run that does not stream publishes each
-model response and tool result as it stores it. A UI can forward them over SignalR, for example:
+model response and tool result as it stores it:
 
 <!-- snippet: watch-conversation -->
 <a id='snippet-watch-conversation'></a>
@@ -195,6 +217,30 @@ services.AddTypeshift()
 <!-- endSnippet -->
 
 Without `WithRealtimeTracking()`, `WatchAsync` throws an `InvalidOperationException`.
+
+A browser can follow a chat over SignalR. This hub streams a chat's text to whoever calls `Watch`, once it has checked
+that the chat belongs to the caller, as the [chat endpoint](./chat-endpoint.md) does for its requests:
+
+<!-- snippet: conversation-hub -->
+<a id='snippet-conversation-hub'></a>
+```cs
+internal sealed class ConversationHub(ConversationTracker tracker, IChats chats, ICurrentCustomer customer) : Hub
+{
+    // The browser calls connection.stream("Watch", chatId) and gets the text as the agent writes it
+    public async IAsyncEnumerable<string> Watch(int chatId, [EnumeratorCancellation] CancellationToken ct)
+    {
+        if (!await chats.BelongsToAsync(chatId, customer.Id, ct)) yield break;
+
+        await foreach (var update in tracker.WatchAsync(chatId, ct))
+            yield return update.Text;
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ConversationHub.cs#L7-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-conversation-hub' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- Register SignalR with `builder.Services.AddSignalR()` and map the hub with `app.MapHub<ConversationHub>("/hub")`.
+- SignalR cancels `ct` when the browser closes the stream or the connection drops, which ends the loop.
 
 ::: warning Live updates stay in their process
 A watcher sees only the runs of its own process. When your app runs in several processes, watch in the process that
