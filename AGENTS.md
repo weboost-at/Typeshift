@@ -1,8 +1,8 @@
 # Working on this repository
 
-Typeshift is a .NET 10 library for code-defined agents and toolsets on Microsoft.Extensions.AI, plus the Roslyn
-incremental generator that powers it. This file is the map: find your task below, read what it points at, and follow
-the playbook. That is meant to be enough; if you had to dig for something, add it here or to a playbook.
+Typeshift is a .NET 10 and .NET 11 library for code-defined agents and toolsets on Microsoft.Extensions.AI, plus the
+Roslyn incremental generator that powers it. This file is the map: find your task below, read what it points at, and
+follow the playbook. That is meant to be enough; if you had to dig for something, add it here or to a playbook.
 
 ## Start here
 
@@ -60,8 +60,12 @@ dotnet slopwatch analyze --fail-on warning
 dotnet mdsnippets && git diff --exit-code
 ```
 
-- Cloud sessions run `.claude/hooks/session-start.sh`: the .NET SDK from Ubuntu's feed (dot.net is unreachable), the
-  tools, the packages, and the skills pinned to reviewed commits: the owner's, ponytail's and `humanizer`.
+- Cloud sessions run `.claude/hooks/session-start.sh`: the .NET 11 SDK and the .NET 10 runtime from
+  builds.dotnet.microsoft.com, the tools, the packages, and the skills pinned to reviewed commits: the owner's,
+  ponytail's and `humanizer`.
+- `global.json` pins the .NET 11 SDK. The library and the runtime tests target `net10.0` and `net11.0` (D61), so
+  `dotnet test` runs them on both and needs both runtimes; the docs and AOT samples target `net11.0`, the package
+  consumer `net10.0`.
 - The build is warning-free with `TreatWarningsAsErrors`. The only suppressed warning is CS1591 in `tests/` and
   `samples/`.
 - Generator snapshots live in `tests/Typeshift.Generators.Tests/Snapshots`. A mismatch writes `.received.txt`; review

@@ -87,7 +87,7 @@ tools take their descriptions from XML docs ([TSH011](./diagnostics.md#tsh011)):
 ```csproj
 <PropertyGroup>
   <OutputType>Exe</OutputType>
-  <TargetFramework>net10.0</TargetFramework>
+  <TargetFramework>net11.0</TargetFramework>
   <PublishAot>true</PublishAot>
   <InvariantGlobalization>true</InvariantGlobalization>
   <GenerateDocumentationFile>true</GenerateDocumentationFile>

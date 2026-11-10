@@ -106,6 +106,19 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** consumers need C# 14 for the extension blocks anyway, so the generator uses Roslyn 5 APIs, and v0's
   4.14 pin and its trap are gone.
 
+### D61. The package targets .NET 10 and .NET 11
+
+- **Status:** owner.
+- **Context:** .NET 11 shipped with C# 15's union types, and the owner asked for them to work in tools and typed
+  runs. What a union needs from System.Text.Json, such as a case classifier on the options, is API of .NET 11.
+- **Decision:** the library builds for `net10.0` and `net11.0` from the same source, and the repository builds with
+  the .NET 11 SDK. The runtime tests run on both. The docs sample and the Native AOT sample target `net11.0`, the
+  package consumer `net10.0`, so CI runs each build of the package once outside the tests. The generator stays on
+  Roslyn 5.0 (D8), so it still runs in the .NET 10 SDK.
+- **Where:** `global.json`, `src/Typeshift/Typeshift.csproj`, the test and sample projects.
+- **Alternatives:** `net10.0` only, referencing System.Text.Json 11 from NuGet, which moves every .NET 10 app onto it;
+  `net11.0` only, which drops .NET 10, the LTS release.
+
 ### D9. Every project that declares toolsets or agents references the package
 
 - **Status:** carried (v0 D9). TSH020 catches a reference without it.

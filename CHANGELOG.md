@@ -9,6 +9,8 @@ All notable changes to this project are documented here. The format follows
 
 - The docs site publishes the guide as Markdown for coding assistants: `llms.txt` lists its pages, `llms-full.txt`
   holds them all in one file, and each guide page is also served at its address with `.md`.
+- The package carries a build for .NET 11 next to the one for .NET 10, so an app on .NET 11 gets the library compiled
+  against .NET 11's own libraries.
 
 ### Changed
 
