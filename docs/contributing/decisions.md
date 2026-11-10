@@ -472,6 +472,19 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `AsyncLocal`, which a value set before a stream's `yield` loses and code the agent's run calls would carry along.
 - **Where:** `Conversations/ConversationChatClient.cs`, `Conversations/LiveRuns.cs`.
 
+### D65. A sub-agent can answer in a type
+
+- **Status:** owner.
+- **Context:** the owner asked whether a sub-agent's answer can be held to a JSON type.
+- **Decision:** `UseAgent<T>().WithResult<TResult>()` runs the sub-agent with the response format of
+  `RunAsync<TResult>` (D62), reads the answer as `TResult` and hands the caller's model the result serialized again,
+  so the model reads `TResult`'s JSON without a `data` wrapper. An answer that is no `TResult` fails the call with a
+  message naming the type, which the calling model reads (D53). The chain runs at runtime, as `InBackground()` does,
+  so the generator reads nothing new.
+- **Where:** `Agents/AgentUse.cs`, `Agents/SubAgentResult.cs`, `Agents/SubAgentFunction.cs`, `Hosting/IAgentHost.cs`.
+- **Alternatives:** the sub-agent's text passed on unchecked, which leaves the calling model to find out what went
+  wrong; a schema on the tool's result, which no provider reads.
+
 ### D35. MCP servers through a host provider
 
 - **Status:** approved.

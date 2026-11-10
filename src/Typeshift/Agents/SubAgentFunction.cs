@@ -1,5 +1,7 @@
 using System.Text.Json;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
+using Typeshift.Generated;
 
 namespace Typeshift;
 
@@ -30,14 +32,19 @@ internal sealed class SubAgentFunction(AgentUse use, Agent agent) : AIFunction
 
         var input = new ChatMessage(ChatRole.User, Input(arguments));
         var host = use.Host(caller.Services);
+        var json = caller.Services.GetRequiredService<ToolJson>();
+        var format = use.Result?.GetFormat(json);
 
         if (!use.Background)
-            return (await host.RunAsync([input], options.SettingsId, null, caller, null, null, ct)).Text;
+        {
+            var response = await host.RunAsync([input], options.SettingsId, null, caller, null, format, ct);
+            return use.Result is { } result ? result.Read(response, json, Name) : response.Text;
+        }
 
         run.StartBackground(
             Name,
             context.CallContent.CallId,
-            stop => host.RunAsync([input], options.SettingsId, null, caller, null, null, stop));
+            stop => host.RunAsync([input], options.SettingsId, null, caller, null, format, stop));
 
         return $"{Name} works in the background; its answer arrives as a message once it is done.";
     }
