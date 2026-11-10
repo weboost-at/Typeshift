@@ -677,6 +677,19 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   everywhere, which fails a model that sends `"5"` for a number; leaving the typed run's schema to
   Microsoft.Extensions.AI, which neither types the cases nor holds an object union under `data`.
 
+### D64. A typed run can stream
+
+- **Status:** owner.
+- **Context:** the owner asked for a strongly typed answer from a streaming run.
+- **Decision:** `RunStreamingAsync<TResult>` asks for the same response format as `RunAsync<TResult>` (D62) and
+  returns a `StreamingRun<TResult>`. It streams the updates as `RunStreamingAsync` does and, once they are read to
+  the end, holds a `ChatResponse<TResult>` in `Response`. It runs when it is read and only once, since reading it
+  again would run the agent again.
+- **Where:** `Hosting/StreamingRun.cs`, `Hosting/AgentHost.cs`, `Generated/AgentRuns.cs`, `Emitting/AgentEmitter.cs`.
+- **Alternatives:** partial objects parsed from the JSON as it grows, which needs a parser that reads incomplete JSON
+  and gives up the types System.Text.Json checks; a list of updates the caller collects and a helper that reads the
+  result from them, two calls where one serves.
+
 ## Conversations
 
 ### D46. Tracking, carried and fixed

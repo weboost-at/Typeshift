@@ -13,6 +13,8 @@ All notable changes to this project are documented here. The format follows
   a number its number case, and an object binds the case whose properties it carries, so a union of records needs no
   `[JsonUnion]` classifier.
 - `T`'s XML docs describe the schema `RunAsync<T>` asks the model to answer in, as they describe the types tools take.
+- `RunStreamingAsync<T>` streams a typed run: read its updates to the end, and its `Response` holds the answer typed,
+  as `RunAsync<T>` returns it.
 
 ### Changed
 

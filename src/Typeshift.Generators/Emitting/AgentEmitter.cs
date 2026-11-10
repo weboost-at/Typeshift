@@ -507,6 +507,17 @@ internal static class AgentEmitter
                 message, $"{Runs}.RunStreamingAsync(host, input, settingsId, conversationId, settings, ct);");
             writer.Line();
 
+            Docs.WriteSummary(
+                writer,
+                "Runs the agent on a message, streaming the updates and asking the model for JSON of "
+                + "<typeparamref name=\"TResult\"/>'s schema. Read the updates to the end, and the run's "
+                + "<c>Response</c> holds the result.");
+            Docs.WriteTypeParam(writer, "TResult", "The result's type.");
+            run.Write(writer, null, "global::Typeshift.StreamingRun<TResult>", "RunStreamingAsync<TResult>", "string",
+                $"{Runs}.RunStreamingAsync<{agent.Type.FullName}, TResult>"
+                + $"(host, {user}, settingsId, conversationId, settings, ct);");
+            writer.Line();
+
             WriteResume(writer, "ResumeAsync", $"{Task}<{response}>", idType, settings, "ResumeAsync");
             writer.Line();
             WriteResume(writer, "ResumeStreamingAsync", Updates, idType, settings, "ResumeStreamingAsync");
@@ -645,7 +656,9 @@ internal static class AgentEmitter
                 writer,
                 returns.Contains("IAsyncEnumerable")
                     ? "The updates; they carry the agent's name as their author."
-                    : "The response; its messages carry the agent's name as their author.");
+                    : returns.Contains("StreamingRun")
+                        ? "The run, which streams its updates and then holds the response."
+                        : "The response; its messages carry the agent's name as their author.");
             writer.Lines(
                 $"""
                 public {returns} {name}(

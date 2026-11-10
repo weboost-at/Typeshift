@@ -349,6 +349,27 @@ public static class SupportAgentHostExtensions
             global::Typeshift.Generated.AgentRuns.RunStreamingAsync(host, input, settingsId, conversationId, settings, ct);
 
         /// <summary>
+        /// Runs the agent on a message, streaming the updates and asking the model for JSON of <typeparamref
+        /// name="TResult"/>'s schema. Read the updates to the end, and the run's <c>Response</c> holds the result.
+        /// </summary>
+        /// <typeparam name="TResult">The result's type.</typeparam>
+        /// <param name="input">The user's message.</param>
+        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="conversationId">
+        /// The id of the conversation the run resumes and is stored in, or null for none.
+        /// </param>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
+        /// <param name="ct">Cancels the run.</param>
+        /// <returns>The run, which streams its updates and then holds the response.</returns>
+        public global::Typeshift.StreamingRun<TResult> RunStreamingAsync<TResult>(
+            string input,
+            global::System.Guid? settingsId = null,
+            global::System.Guid? conversationId = null,
+            global::Demo.SupportAgent.Settings? settings = null,
+            global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.RunStreamingAsync<global::Demo.SupportAgent, TResult>(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settingsId, conversationId, settings, ct);
+
+        /// <summary>
         /// Continues the conversation's run that was interrupted, from its last stored step, without new input.
         /// </summary>
         /// <param name="conversationId">The conversation's id.</param>

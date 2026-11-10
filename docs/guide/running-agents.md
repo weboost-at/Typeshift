@@ -126,7 +126,7 @@ internal enum RefundState
     Paid
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L89-L98' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output-type' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L100-L109' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output-type' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `T`'s XML docs describe its properties, as they describe the types tools take
@@ -135,6 +135,25 @@ properties as the schema of an answer. So a `T` of another shape, such as a numb
 polymorphic type or a [union](./toolsets.md#union-types), is asked for under a `data` property, and `Result` reads it
 from there. Under
 [Native AOT](./production.md#native-aot), `T` needs JSON metadata.
+
+`RunStreamingAsync<T>` streams that answer as the model writes it. Read its updates to the end, and its `Response`
+holds the result:
+
+<!-- snippet: structured-streaming -->
+<a id='snippet-structured-streaming'></a>
+```cs
+var summary = support.RunStreamingAsync<RefundStatus>("Summarize the refund.", settingsId);
+
+await foreach (var update in summary)
+    Console.Write(update.Text);
+
+Console.WriteLine($" ({summary.Response.Result.State})");
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L65-L72' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-streaming' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+The run starts when you read it, and it runs once, so a second `await foreach` throws an
+`InvalidOperationException`. `Response` throws one too until the updates have ended.
 
 ## Streaming
 
@@ -147,7 +166,7 @@ updates, and the stream goes on with the model's next response:
 await foreach (var update in support.RunStreamingAsync("Where is my refund?", settingsId))
     Console.Write(update.Text);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L65-L68' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L76-L79' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 With `WithRealtimeTracking()`, anyone [watching the conversation](./conversations.md#live-updates) sees the updates
@@ -167,7 +186,7 @@ var options = await support.ResolveOptionsAsync(settingsId, run);
 using var client = await support.CreateChatClientAsync(options);
 var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "Where is my refund?")], options);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L72-L77' title='Snippet source file'>snippet source</a> | <a href='#snippet-raw-path' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L83-L88' title='Snippet source file'>snippet source</a> | <a href='#snippet-raw-path' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The client is the run's whole pipeline, the tool loop and the agent's run options included. It serves concurrent

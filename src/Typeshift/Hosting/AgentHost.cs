@@ -147,13 +147,27 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
         return new ChatResponse<TResult>(await client.GetResponseAsync([input], options, ct), result.SerializerOptions);
     }
 
+    // D64: the typed answer's format, as RunCoreAsync<TResult> asks for it, over a streaming run
+    internal StreamingRun<TResult> RunStreamingCoreAsync<TResult>(
+        ChatMessage input,
+        object? settingsId,
+        object? conversationId,
+        object? settings,
+        CancellationToken ct)
+    {
+        var result = _services.GetRequiredService<ToolJson>().GetResultFormat<TResult>();
+        return new StreamingRun<TResult>(
+            RunStreamingAsync([input], settingsId, conversationId, settings, null, result.Format, ct),
+            result.SerializerOptions);
+    }
+
     internal IAsyncEnumerable<ChatResponseUpdate> RunStreamingCoreAsync(
         ChatMessage? input,
         object? settingsId,
         object? conversationId,
         object? settings,
         CancellationToken ct) =>
-        RunStreamingAsync(input is null ? [] : [input], settingsId, conversationId, settings, null, ct);
+        RunStreamingAsync(input is null ? [] : [input], settingsId, conversationId, settings, null, null, ct);
 
     internal IStoreAccess Store => _services.GetRequiredService<IStoreAccess>();
 
@@ -174,7 +188,7 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
         object? conversation,
         RunClaim? claim,
         CancellationToken ct) =>
-        RunStreamingAsync(messages, settingsId, conversation, null, claim, ct);
+        RunStreamingAsync(messages, settingsId, conversation, null, claim, null, ct);
 
     private async Task<ChatResponse> RunAsync(
         IEnumerable<ChatMessage> messages,
@@ -198,10 +212,12 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
         object? conversation,
         object? settings,
         RunClaim? claim,
+        ChatResponseFormat? format,
         [EnumeratorCancellation] CancellationToken ct)
     {
         var options = await ResolveRunAsync(settingsId, conversation, settings, null, ct);
         options.Claim = claim;
+        if (format is not null) options.ResponseFormat = format;
         using var client = await CreateChatClientAsync(options, ct);
 
         await foreach (var update in client.GetStreamingResponseAsync(messages, options, ct))
