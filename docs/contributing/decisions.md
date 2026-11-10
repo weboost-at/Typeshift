@@ -578,13 +578,20 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Context:** the owner asked for first-party support of simple setups; an app with one agent and no database
   still has to keep its settings across restarts.
 - **Decision:** `FileAgentSettingsStore` keeps each agent's own settings (D66) in `<folder>/<kind>.json`, as
-  `{"version": n, "settings": {...}}`, so the file reads and edits by hand. A save checks the version under a lock,
-  writes a file beside the old one and moves it over, so a load reads the old file or the new one whole; loads share
-  deletion with that move, which Windows needs. One process at a time may use the folder. A kind that is no plain
-  file name throws, naming `WithStorageKind`. `WithStore(store)` registers a store your code created, since this one
-  takes its folder.
+  `{"kind": ..., "version": n, "settings": {...}}`, so the file reads and edits by hand. A save holds the kind's lock
+  file, opened with `FileShare.None`, so other stores and processes wait; it checks the version, writes a file of its
+  own beside the old one, flushes it to the disk and moves it over, so a load reads the old file or the new one whole.
+  Loads share deletion with that move, which Windows needs. A kind's file name keeps ASCII letters, digits, `_` and
+  `-` and escapes every other byte as `%XX`, so any kind maps to a file of the folder, one to one; a name Windows
+  reserves is escaped too. The file names its kind, so a file system that ignores case and gives two kinds one file
+  fails the load instead of handing one agent the other's settings. A file of another shape throws an
+  `InvalidDataException` that names it and the shape. `WithStore(store)` registers a store your code created, since
+  this one takes its folder, as each interface the instance implements, and the container leaves it undisposed.
 - **Where:** `Storage/FileAgentSettingsStore.cs`, `DependencyInjection/TypeshiftBuilder.cs`.
-- **Alternatives:** a file store of settings ids and conversations too, a database in files that SQLite already is;
+- **Alternatives:** one lock per store instance, which two instances or processes on one folder pass through, tearing
+  the file; refusing kinds that are no plain file name, which fails every run of an agent named in another script;
+  TSH022 ignoring case, which would reject kinds a case-sensitive store keeps apart;
+  a file store of settings ids and conversations too, a database in files that SQLite already is;
   the folder from configuration, which ties the store to a configuration section the app may not have; one file for
   every agent, where a save of one agent's settings rewrites the others'.
 

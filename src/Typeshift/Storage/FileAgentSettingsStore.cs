@@ -1,113 +1,211 @@
+using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace Typeshift;
 
 /// <summary>
 /// Keeps each agent's own settings in a JSON file named after its kind, in a folder: the store of a single-agent app
-/// or a local tool that has no database. One process at a time may use the folder.
+/// or a local tool that has no database. Several stores and processes may share the folder.
 /// </summary>
-// D67: a save writes a file beside the old one and moves it over, so a load reads the old file or the new one whole
-public sealed partial class FileAgentSettingsStore : IAgentSettingsStore
+// D67: a save holds the kind's lock file, writes a file of its own beside the old one and moves it over, so a load
+// reads the old file or the new one whole and two saves never pass the same version
+public sealed class FileAgentSettingsStore : IAgentSettingsStore
 {
+    private const string Shape = "{\"kind\": \"...\", \"version\": n, \"settings\": {...}}, with n from 1";
+
+    private static readonly HashSet<string> Reserved = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "CON", "PRN", "AUX", "NUL", "COM0", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+        "LPT0", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
+    };
+
     private readonly string _directory;
 
-    private readonly SemaphoreSlim _saves = new(1, 1);
+    private readonly TimeProvider _time;
+
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _saves = [];
 
     /// <summary>
     /// Creates the store over a folder, which its first save creates when it is missing.
     /// </summary>
-    /// <param name="directory">The folder, absolute or relative to the current directory.</param>
-    public FileAgentSettingsStore(string directory)
+    /// <param name="directory">
+    /// The folder. A relative one resolves against the current directory now, which for a service may be the system's
+    /// folder, so pass an absolute one there, such as one under <c>AppContext.BaseDirectory</c>.
+    /// </param>
+    /// <param name="time">
+    /// The clock a save waits on while another holds the kind's lock; the system's when null.
+    /// </param>
+    public FileAgentSettingsStore(string directory, TimeProvider? time = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
         _directory = Path.GetFullPath(directory);
+        _time = time ?? TimeProvider.System;
     }
 
     /// <inheritdoc />
+    /// <exception cref="InvalidDataException">The kind's file is no settings file of this store.</exception>
     public async Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct)
     {
         var path = PathOf(kind);
-        return File.Exists(path) ? Read(await ReadAsync(path, ct)) : null;
+        return await TryReadAsync(path, ct) is { } file ? Read(path, kind, file) : null;
     }
 
     /// <inheritdoc />
+    /// <exception cref="InvalidDataException">The kind's file is no settings file of this store.</exception>
     public async Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct)
     {
         var path = PathOf(kind);
-        await _saves.WaitAsync(ct);
+        var saves = _saves.GetOrAdd(path, _ => new SemaphoreSlim(1, 1));
+        await saves.WaitAsync(ct);
 
         try
         {
-            var stored = File.Exists(path) ? Read(await ReadAsync(path, ct)).Version : 0;
+            Directory.CreateDirectory(_directory);
+            await using var held = await LockAsync($"{path}.lock", ct);
+
+            var stored = await TryReadAsync(path, ct) is { } file ? Read(path, kind, file).Version : 0;
 
             if (stored != loadedVersion)
                 throw new StoreConflictException($"The agent's {kind} was saved since version {loadedVersion}.");
 
-            Directory.CreateDirectory(_directory);
-            var written = $"{path}.saving";
-            await File.WriteAllTextAsync(written, Write(json, loadedVersion + 1), ct);
-            File.Move(written, path, overwrite: true);
-
+            await ReplaceAsync(path, Write(kind, json, loadedVersion + 1), ct);
             return loadedVersion + 1;
         }
         finally
         {
-            _saves.Release();
+            saves.Release();
         }
     }
 
-    // A kind names a file of the folder, never a path out of it
-    private string PathOf(string kind) =>
-        FileName().IsMatch(kind) && kind is not ("." or "..")
-            ? Path.Combine(_directory, $"{kind}.json")
-            : throw new ArgumentException(
-                $"The kind '{kind}' is no file name: give the agent a WithStorageKind of letters, digits, '_', '-' "
-                + "and '.' only.",
-                nameof(kind));
+    // A file of its own, flushed to the disk before it takes the place of the old one, and gone if the save fails
+    private static async Task ReplaceAsync(string path, byte[] content, CancellationToken ct)
+    {
+        var written = $"{path}.{Guid.NewGuid():N}.saving";
+
+        try
+        {
+            await using (var file = new FileStream(written, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                await file.WriteAsync(content, ct);
+                file.Flush(flushToDisk: true);
+            }
+
+            File.Move(written, path, overwrite: true);
+        }
+        catch
+        {
+            File.Delete(written);
+            throw;
+        }
+    }
+
+    // FileShare.None is an exclusive lock on Unix and a sharing mode on Windows, so it keeps out other stores and
+    // processes as well
+    private async Task<FileStream> LockAsync(string path, CancellationToken ct)
+    {
+        while (true)
+        {
+            try
+            {
+                return new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            }
+            catch (IOException) when (File.Exists(path))
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(5), _time, ct);
+            }
+        }
+    }
 
     // A load may read while a save moves the new file over this one, which Windows allows only to a reader that shares
-    // deletion
-    private static async Task<string> ReadAsync(string path, CancellationToken ct)
+    // deletion; a missing file or folder means nothing is stored, any other failure is the caller's to see
+    private static async Task<string?> TryReadAsync(string path, CancellationToken ct)
     {
-        await using var file = new FileStream(
-            path,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.ReadWrite | FileShare.Delete,
-            bufferSize: 4096,
-            useAsync: true);
+        try
+        {
+            await using var file = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete,
+                bufferSize: 4096,
+                useAsync: true);
 
-        using var reader = new StreamReader(file, Encoding.UTF8);
-        return await reader.ReadToEndAsync(ct);
+            using var reader = new StreamReader(file, Encoding.UTF8);
+            return await reader.ReadToEndAsync(ct);
+        }
+        catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return null;
+        }
     }
 
-    // The settings as Typeshift wrote them, under the version a save must name
-    private static StoredDocument Read(string file)
+    // Any kind maps to a file of the folder, one to one: letters, digits, '_' and '-' stay, every other byte of its
+    // UTF-8 becomes %XX, and a name Windows reserves gets its first letter escaped
+    private string PathOf(string kind)
     {
-        using var document = JsonDocument.Parse(file);
-        var root = document.RootElement;
+        ArgumentException.ThrowIfNullOrEmpty(kind);
+        var name = new StringBuilder();
 
-        return new StoredDocument(root.GetProperty("settings").GetRawText(), root.GetProperty("version").GetInt64());
+        foreach (var value in Encoding.UTF8.GetBytes(kind))
+        {
+            if (char.IsAsciiLetterOrDigit((char)value) || value is (byte)'_' or (byte)'-') name.Append((char)value);
+            else name.Append('%').Append(value.ToString("X2"));
+        }
+
+        if (Reserved.Contains(name.ToString())) name.Remove(0, 1).Insert(0, $"%{(byte)kind[0]:X2}");
+
+        // NAME_MAX is 255 bytes, and a save writes a name 40 longer
+        return name.Length <= 200
+            ? Path.Combine(_directory, $"{name}.json")
+            : throw new ArgumentException(
+                $"The kind '{kind}' makes a file name too long: give the agent a shorter WithStorageKind.",
+                nameof(kind));
     }
 
-    private static string Write(string json, long version)
+    // The settings as Typeshift wrote them, under the version a save must name; a file of another kind is one that a
+    // file system ignoring case shares between two kinds
+    private static StoredDocument Read(string path, string kind, string file)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(file);
+            var root = document.RootElement;
+
+            if (root.TryGetProperty("kind", out var stored)
+                && (stored.ValueKind != JsonValueKind.String || stored.GetString() != kind))
+                throw new InvalidDataException(
+                    $"{path} holds the settings of '{stored.GetString()}', not of '{kind}': the file system ignores "
+                    + "case, so give one of the agents a WithStorageKind of its own.");
+
+            return root.TryGetProperty("version", out var version)
+                && version.TryGetInt64(out var number)
+                && number > 0
+                && root.TryGetProperty("settings", out var settings)
+                && settings.ValueKind == JsonValueKind.Object
+                    ? new StoredDocument(settings.GetRawText(), number)
+                    : throw new InvalidDataException($"{path} is no settings file: it holds {Shape}.");
+        }
+        catch (JsonException exception)
+        {
+            throw new InvalidDataException($"{path} is no JSON: it holds {Shape}.", exception);
+        }
+    }
+
+    private static byte[] Write(string kind, string json, long version)
     {
         using var stream = new MemoryStream();
 
         using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true }))
         {
             writer.WriteStartObject();
+            writer.WriteString("kind", kind);
             writer.WriteNumber("version", version);
             writer.WritePropertyName("settings");
             writer.WriteRawValue(json);
             writer.WriteEndObject();
         }
 
-        return Encoding.UTF8.GetString(stream.ToArray());
+        return stream.ToArray();
     }
-
-    [GeneratedRegex("^[A-Za-z0-9_.-]+$")]
-    private static partial Regex FileName();
 }

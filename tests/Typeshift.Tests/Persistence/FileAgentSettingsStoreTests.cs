@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Typeshift.Tests.Agents.Support;
+using Typeshift.Tests.Persistence.Support;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -46,7 +47,7 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_A_Save_The_File_Holds_The_Version_And_The_Settings_As_Json()
+    public async Task Given_A_Save_The_File_Holds_The_Kind_The_Version_And_The_Settings_As_Json()
     {
         // Arrange
         var store = new FileAgentSettingsStore(_folder);
@@ -55,23 +56,105 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
         await store.SaveAsync(Data.Persistence.Kind, """{"temperature":0.4}""", 0, Ct);
 
         // Assert
-        var path = Path.Combine(_folder, $"{Data.Persistence.Kind}.json");
-        using var file = JsonDocument.Parse(await File.ReadAllTextAsync(path, Ct));
+        using var file = JsonDocument.Parse(await File.ReadAllTextAsync(OnlyFile(), Ct));
+        file.RootElement.GetProperty("kind").GetString().Should().Be(Data.Persistence.Kind);
         file.RootElement.GetProperty("version").GetInt64().Should().Be(1);
         file.RootElement.GetProperty("settings").GetProperty("temperature").GetDouble().Should().Be(0.4);
     }
 
     [Fact]
-    public async Task Given_A_Kind_That_Is_No_File_Name_Saving_Fails_Naming_WithStorageKind()
+    public async Task Given_Two_Stores_Over_One_Folder_Saving_At_Once_Every_Save_Gets_A_Version_Of_Its_Own()
+    {
+        // Arrange
+        FileAgentSettingsStore[] stores = [new(_folder), new(_folder)];
+
+        // Act
+        var versions = await Task.WhenAll(Enumerable.Range(0, 40).Select(save => SaveUntilWonAsync(stores[save % 2])));
+
+        // Assert
+        versions.Should().OnlyHaveUniqueItems();
+        (await stores[0].LoadAsync(Data.Persistence.Kind, Ct))!.Version.Should().Be(40);
+    }
+
+    [Fact]
+    public async Task Given_Kinds_Of_Any_Characters_Each_Keeps_A_File_Of_Its_Own_In_The_Folder()
+    {
+        // Arrange
+        var store = new FileAgentSettingsStore(_folder);
+        string[] kinds = ["ÜbersetzerAgent", "../outside", "a/b", "a%2Fb", "NUL", "research agent"];
+
+        // Act
+        foreach (var kind in kinds) await store.SaveAsync(kind, "{}", 0, Ct);
+
+        // Assert
+        Directory.GetFiles(_folder, "*.json").Should().HaveCount(kinds.Length);
+        Directory.GetParent(_folder)!.GetFiles("outside*").Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Save_No_Unfinished_File_Is_Left_In_The_Folder()
     {
         // Arrange
         var store = new FileAgentSettingsStore(_folder);
 
         // Act
-        var save = () => store.SaveAsync("../outside", "{}", 0, Ct);
+        await store.SaveAsync(Data.Persistence.Kind, "{}", 0, Ct);
 
         // Assert
-        await save.Should().ThrowAsync<ArgumentException>().WithMessage("*WithStorageKind*");
+        Directory.GetFiles(_folder, "*.saving").Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_File_Edited_Into_Something_Else_Loading_Fails_Naming_The_File_And_Its_Shape()
+    {
+        // Arrange
+        var store = new FileAgentSettingsStore(_folder);
+        await store.SaveAsync(Data.Persistence.Kind, "{}", 0, Ct);
+        await File.WriteAllTextAsync(OnlyFile(), """{ "settings": {} }""", Ct);
+
+        // Act
+        var load = () => store.LoadAsync(Data.Persistence.Kind, Ct);
+
+        // Assert
+        await load.Should().ThrowAsync<InvalidDataException>().WithMessage($"{OnlyFile()}*\"version\": n*");
+    }
+
+    [Fact]
+    public async Task Given_A_File_Of_Another_Kind_Loading_Fails_Naming_WithStorageKind()
+    {
+        // Arrange
+        var store = new FileAgentSettingsStore(_folder);
+        await store.SaveAsync(Data.Persistence.Kind, "{}", 0, Ct);
+        var file = await File.ReadAllTextAsync(OnlyFile(), Ct);
+        await File.WriteAllTextAsync(OnlyFile(), file.Replace(Data.Persistence.Kind, "Other"), Ct);
+
+        // Act
+        var load = () => store.LoadAsync(Data.Persistence.Kind, Ct);
+
+        // Assert
+        await load.Should().ThrowAsync<InvalidDataException>().WithMessage("*WithStorageKind*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_Held_As_Its_Interface_It_Serves_Runs_And_The_Container_Leaves_It_Undisposed()
+    {
+        // Arrange
+        var store = new DisposalCountingStore(new FileAgentSettingsStore(_folder));
+
+        await using (var provider = Provider(store))
+        {
+            await using var scope = provider.CreateAsyncScope();
+            await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>().ConfigureAsync(
+                settings => settings with { Temperature = Data.Agent.Temperature },
+                Ct);
+        }
+
+        // Act
+        var stored = await store.LoadAsync("ProbeAgent", Ct);
+
+        // Assert
+        stored!.Version.Should().Be(1);
+        store.Disposed.Should().Be(0);
     }
 
     protected override ValueTask DisposeCoreAsync()
@@ -80,7 +163,27 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
         return ValueTask.CompletedTask;
     }
 
-    private ServiceProvider Provider(FileAgentSettingsStore store)
+    // A save as ConfigureAsync makes it: load, then save with the loaded version, again after each lost save
+    private async Task<long> SaveUntilWonAsync(FileAgentSettingsStore store)
+    {
+        while (true)
+        {
+            var loaded = await store.LoadAsync(Data.Persistence.Kind, Ct);
+
+            try
+            {
+                return await store.SaveAsync(Data.Persistence.Kind, "{}", loaded?.Version ?? 0, Ct);
+            }
+            catch (StoreConflictException)
+            {
+                Ct.ThrowIfCancellationRequested();
+            }
+        }
+    }
+
+    private string OnlyFile() => Directory.GetFiles(_folder, "*.json").Single();
+
+    private ServiceProvider Provider(IAgentSettingsStore store)
     {
         var services = new ServiceCollection();
         services.AddTypeshift().WithStore(store).WithChatClientProvider<ScriptedChatClientProvider>();

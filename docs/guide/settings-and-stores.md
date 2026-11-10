@@ -160,9 +160,15 @@ services.AddTypeshift()
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/FileSettings.cs#L30-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-file-agent-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-It keeps each agent's settings in a file named after its kind, `ResearchAgent.json` here, which you can read and
-back up like any other file. One process at a time may use the folder, and a kind other than letters, digits, `_`,
-`-` and `.` throws, so give such an agent a `WithStorageKind` that is a file name.
+It keeps each agent's settings in a file named after its kind, `ResearchAgent.json` here, which you can read, back up
+and edit by hand. Several stores and processes may share the folder, since a save takes a lock file of its kind first.
+
+- A relative folder resolves against the current directory when you create the store, which for a service may be the
+  system's folder. Pass an absolute one there, such as one under `AppContext.BaseDirectory`.
+- Characters other than ASCII letters, digits, `_` and `-` are escaped in the file name, so any kind has a file of its
+  own.
+- On a file system that ignores case, as on Windows and macOS, two kinds that differ only in case share a file. The
+  file names its kind, so a load of the other kind throws; give one of the agents a `WithStorageKind` of its own.
 
 A settings id stands for whatever you decide: a customer, a team, a user, or a settings profile of your own. Under one
 settings id, each agent has its own document, because each agent's `Settings` is its own kind, so a store keys

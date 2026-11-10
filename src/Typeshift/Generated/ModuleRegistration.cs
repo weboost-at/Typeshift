@@ -50,18 +50,22 @@ public static class ModuleRegistration
                     + "provider id type (TSH030).")));
     }
 
-    // D38: a store is registered as each store interface it implements; the type check reads no members
+    // D38: a store is registered as each store interface it implements; the type check reads no members. A store your
+    // app created is checked as the instance it is, and registered as that instance, which the container never disposes
     private static void AddStore<TId>(
         IServiceCollection services,
         Type type,
         IReadOnlyList<Type> idTypes,
+        object? instance,
         Func<IServiceProvider, object> store)
         where TId : notnull
     {
-        var keepsSettings = typeof(ISettingsStore<TId>).IsAssignableFrom(type);
-        var keepsConversations = typeof(IConversationStore<TId>).IsAssignableFrom(type);
-        var isTypeshiftStore = typeof(ITypeshiftStore<TId>).IsAssignableFrom(type);
-        var keepsAgentSettings = typeof(IAgentSettingsStore).IsAssignableFrom(type);
+        bool Keeps<TStore>() => instance is null ? typeof(TStore).IsAssignableFrom(type) : instance is TStore;
+
+        var keepsSettings = Keeps<ISettingsStore<TId>>();
+        var keepsConversations = Keeps<IConversationStore<TId>>();
+        var isTypeshiftStore = Keeps<ITypeshiftStore<TId>>();
+        var keepsAgentSettings = Keeps<IAgentSettingsStore>();
 
         if ((!keepsSettings && !keepsConversations && !keepsAgentSettings) || idTypes.Any(id => id != typeof(TId)))
             throw new InvalidOperationException(
@@ -69,10 +73,18 @@ public static class ModuleRegistration
                 + $"ISettingsStore<{typeof(TId).Name}>, IConversationStore<{typeof(TId).Name}> or IAgentSettingsStore, "
                 + "and no store interface of another id type (TSH028).");
 
-        if (keepsSettings) services.AddSingleton(provider => (ISettingsStore<TId>)store(provider));
-        if (keepsAgentSettings) services.AddSingleton(provider => (IAgentSettingsStore)store(provider));
-        if (keepsConversations) services.AddSingleton(provider => (IConversationStore<TId>)store(provider));
-        if (isTypeshiftStore) services.AddSingleton(provider => (ITypeshiftStore<TId>)store(provider));
+        Add<ISettingsStore<TId>>(keepsSettings);
+        Add<IConversationStore<TId>>(keepsConversations);
+        Add<ITypeshiftStore<TId>>(isTypeshiftStore);
+        Add<IAgentSettingsStore>(keepsAgentSettings);
+
+        void Add<TStore>(bool keeps) where TStore : class
+        {
+            if (!keeps) return;
+
+            if (instance is null) services.AddSingleton(provider => (TStore)store(provider));
+            else services.AddSingleton((TStore)instance);
+        }
     }
 
     /// <summary>

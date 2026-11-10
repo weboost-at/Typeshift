@@ -239,7 +239,7 @@ need none: `string`, `char`, `bool`, `short`, `ushort`, `int`, `uint`, `long`, `
 
 ## TSH028
 
-**Store has another id type.** `WithStore<T>()` takes a store of the build's id type. Implement `ISettingsStore`,
+**Store has another id type.** `WithStore<T>()` and `WithStore(store)` take a store of the build's id type. Implement `ISettingsStore`,
 `IConversationStore` or `ITypeshiftStore`, which is both. The generator writes these aliases for the build's id type,
 so they always have the right one. A store of `IAgentSettingsStore` alone takes no id, and one that is also a store of
 another id type is reported too.
