@@ -18,7 +18,8 @@ All notable changes to this project are documented here. The format follows
 - `RunAsync<T>` and `RunStreamingAsync<T>` take a `ChatMessage`, so the run that answers an approval asks for `T`
   again.
 - `UseAgent<T>().WithResult<TResult>()` holds a sub-agent's answer to the JSON of `TResult`, which the calling model
-  reads as the call's result. An answer without it fails the call, and the calling model reads why.
+  reads as the call's result, or as its answer in the background. An answer without it fails the call, and the
+  calling model reads why.
 
 ### Changed
 

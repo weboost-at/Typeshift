@@ -108,7 +108,9 @@ internal sealed record CityCompanies(string City, IReadOnlyList<string> Companie
 - The calling model gets an object it can read field by field, here a city and its companies, instead of prose it
   has to pick apart.
 - When the sub-agent answers without that JSON, the call fails, and the calling model reads why.
-- Under [Native AOT](./production.md#native-aot), `T` needs JSON metadata, as for `RunAsync<T>`.
+- In the background, the JSON arrives as the sub-agent's answer, and so does the failure.
+- Under [Native AOT](./production.md#native-aot), `T` needs JSON metadata, as for `RunAsync<T>`. Without it, the call
+  fails, and only the calling model reads why.
 
 ### In the background
 

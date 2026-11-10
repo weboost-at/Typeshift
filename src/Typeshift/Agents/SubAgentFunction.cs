@@ -5,7 +5,8 @@ using Typeshift.Generated;
 
 namespace Typeshift;
 
-// D33: a sub-agent as a tool: its answer's text is the result, or, in the background, a note that it started
+// D33, D65: a sub-agent as a tool: its answer's text or typed JSON is the result, or, in the background, a note that
+// it started
 internal sealed class SubAgentFunction(AgentUse use, Agent agent) : AIFunction
 {
     private static readonly JsonElement Schema = JsonElement.Parse(
@@ -35,19 +36,22 @@ internal sealed class SubAgentFunction(AgentUse use, Agent agent) : AIFunction
         var json = caller.Services.GetRequiredService<ToolJson>();
         var format = use.Result?.GetFormat(json);
 
-        if (!use.Background)
-        {
-            var response = await host.RunAsync([input], options.SettingsId, null, caller, null, format, ct);
-            return use.Result is { } result ? result.Read(response, json, Name) : response.Text;
-        }
+        Task<ChatResponse> RunAsync(CancellationToken token) =>
+            host.RunAsync([input], options.SettingsId, null, caller, null, format, token);
 
-        run.StartBackground(
-            Name,
-            context.CallContent.CallId,
-            stop => host.RunAsync([input], options.SettingsId, null, caller, null, format, stop));
+        if (!use.Background) return Answer(await RunAsync(ct), json);
+
+        run.StartBackground(Name, context.CallContent.CallId, async stop => Text(Answer(await RunAsync(stop), json)));
 
         return $"{Name} works in the background; its answer arrives as a message once it is done.";
     }
+
+    // D65: a typed answer reaches the calling model as its JSON, an answer of the wrong shape as the call's failure
+    private object Answer(ChatResponse response, ToolJson json) =>
+        use.Result is { } result ? result.Read(response, json, Name) : response.Text;
+
+    // A background answer arrives as a message, so a typed one as its JSON's text
+    private static string Text(object answer) => answer is JsonElement element ? element.GetRawText() : (string)answer;
 
     private static string Input(AIFunctionArguments arguments) =>
         arguments.TryGetValue("input", out var value)

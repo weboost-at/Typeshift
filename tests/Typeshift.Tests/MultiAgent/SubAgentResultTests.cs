@@ -57,7 +57,61 @@ public class SubAgentResultTests : MultiAgentTestBase
         await Host<TypedLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
-        Result(ChatClient.Requests[1])!.ToString().Should().Contain(nameof(HelperFinding));
+        Result(ChatClient.Requests[1])!.ToString().Should().Contain("did not answer in the JSON schema it was given");
+    }
+
+    [Fact]
+    public async Task Given_A_Sub_Agent_With_A_Number_Result_Its_Caller_Reads_The_Number_Without_Data()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Tool.Answer));
+
+        HelperClient.Reply(Text(JsonSerializer.Serialize(new { data = Data.Tool.Lives }, Json.SerializerOptions)));
+
+        // Act
+        await Host<CountingLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        var result = (JsonElement)Result(ChatClient.Requests[1])!;
+        result.GetInt32().Should().Be(Data.Tool.Lives);
+    }
+
+    [Fact]
+    public async Task Given_A_Background_Sub_Agent_With_A_Result_Type_Its_Answer_Arrives_As_The_Json()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Agent.Steering))
+            .Reply(Text(Data.Tool.Answer));
+
+        HelperClient.Reply(Text(Finding()));
+
+        // Act
+        await Host<BackgroundTypedLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Requests[^1][^1].Text.Should().EndWith(Finding());
+    }
+
+    [Fact]
+    public async Task Given_A_Background_Sub_Agent_Answering_Outside_Its_Result_Type_Its_Caller_Reads_Why()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Agent.Steering))
+            .Reply(Text(Data.Tool.Answer));
+
+        HelperClient.Reply(Text(Data.Agent.Reason));
+
+        // Act
+        await Host<BackgroundTypedLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Requests[^1][^1].Text.Should().Contain("did not answer in the JSON schema it was given");
     }
 
     private HelperFinding Expected() => new(Data.Agent.Ticket.Default, Data.Agent.Reason);

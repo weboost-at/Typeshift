@@ -23,6 +23,6 @@ internal sealed class SubAgentResult<TResult> : SubAgentResult
         return typed.TryGetResult(out var result)
             ? JsonSerializer.SerializeToElement(result, json.GetTypeInfo<TResult>())
             : throw new InvalidOperationException(
-                $"{agent} answered without the {typeof(TResult).Name} it was asked for: {response.Text}");
+                $"{agent} did not answer in the JSON schema it was given. It answered: {response.Text}");
     }
 }

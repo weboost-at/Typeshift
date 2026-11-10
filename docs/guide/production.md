@@ -130,7 +130,7 @@ unions only they read. Code of yours that reads such a union still needs a class
 
 The generated `Settings` and overrides records serialize member by member, conversations go through
 Microsoft.Extensions.AI's own contracts. None of these needs
-a context from you. `RunAsync<T>` and `RunStreamingAsync<T>` do need one: list `T` in a context too. In the sample, `AppJsonContext` above
+a context from you. `RunAsync<T>`, `RunStreamingAsync<T>` and a sub-agent's `WithResult<T>()` do need one: list `T` in a context too. In the sample, `AppJsonContext` above
 lists `CompanyCount` because the app calls `RunAsync<CompanyCount>`.
 
 ## Related
