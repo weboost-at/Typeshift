@@ -12,8 +12,8 @@
   <!-- end-snippet -->
 
   <PropertyGroup>
-    <!-- D61: CI publishes each as Native AOT -->
-    <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
+    <!-- D61: the build for .NET 11 runs published as Native AOT, the one for .NET 10 in the package consumer -->
+    <TargetFramework>net11.0</TargetFramework>
     <RootNamespace>Typeshift.Samples</RootNamespace>
   </PropertyGroup>
 
