@@ -1,8 +1,8 @@
 # Working on this repository
 
-Typeshift is a .NET 10 and .NET 11 library for code-defined agents and toolsets on Microsoft.Extensions.AI, plus the
-Roslyn incremental generator that powers it. This file is the map: find your task below, read what it points at, and
-follow the playbook. That is meant to be enough; if you had to dig for something, add it here or to a playbook.
+Typeshift is a .NET 11 library for code-defined agents and toolsets on Microsoft.Extensions.AI, plus the Roslyn
+incremental generator that powers it. This file is the map: find your task below, read what it points at, and follow
+the playbook. That is meant to be enough; if you had to dig for something, add it here or to a playbook.
 
 ## Start here
 
@@ -62,8 +62,7 @@ dotnet mdsnippets && git diff --exit-code
 
 - Cloud sessions run `.claude/hooks/session-start.sh`: the .NET SDK from Ubuntu's feed (dot.net is unreachable), the
   tools, the packages, and the skills pinned to reviewed commits: the owner's, ponytail's and `humanizer`.
-- `global.json` pins the .NET 11 SDK, and the tests run on .NET 10 and .NET 11, so a machine needs the .NET 10
-  runtime as well. D61 lists what targets which.
+- `global.json` pins the .NET 11 SDK, and every project targets `net11.0` (D61).
 - The build is warning-free with `TreatWarningsAsErrors`. The only suppressed warning is CS1591 in `tests/` and
   `samples/`.
 - Generator snapshots live in `tests/Typeshift.Generators.Tests/Snapshots`. A mismatch writes `.received.txt`; review

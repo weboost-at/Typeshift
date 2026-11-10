@@ -9,11 +9,9 @@ All notable changes to this project are documented here. The format follows
 
 - The docs site publishes the guide as Markdown for coding assistants: `llms.txt` lists its pages, `llms-full.txt`
   holds them all in one file, and each guide page is also served at its address with `.md`.
-- The package carries a build for .NET 11 next to the one for .NET 10, so an app on .NET 11 gets the library compiled
-  against .NET 11's own libraries.
-- On .NET 11, tools take and return C# 15 unions, and `RunAsync<T>` returns one. A JSON string binds a union's
-  `string` case and a number its number case, and an object binds the case whose properties it carries, so a union of
-  records needs no `[JsonUnion]` classifier.
+- Tools take and return C# 15 unions, and `RunAsync<T>` returns one. A JSON string binds a union's `string` case and
+  a number its number case, and an object binds the case whose properties it carries, so a union of records needs no
+  `[JsonUnion]` classifier.
 - `T`'s XML docs describe the schema `RunAsync<T>` asks the model to answer in, as they describe the types tools take.
 
 ### Changed
@@ -25,6 +23,7 @@ All notable changes to this project are documented here. The format follows
 - A run that takes steering input after it asked for approval closes its requests once it answers the input, as a
   new message does, and leaves them out of its `ApprovalRequests`. An answer to one ran the call, although the model
   had gone on without it. A background agent's answer closes none.
+- The package targets .NET 11 instead of .NET 10, so your app needs .NET 11 and its SDK.
 - `Result` of a typed run whose answer lacks the `data` property throws a `JsonException`, where it threw an
   `InvalidOperationException`. `TryGetResult` returns false, as before.
 

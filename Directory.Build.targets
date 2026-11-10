@@ -1,8 +1,0 @@
-<Project>
-
-  <!-- D61: the builds for .NET 10 compile at C# 14, the version an app on .NET 10 compiles the generated code with -->
-  <PropertyGroup Condition="'$(TargetFramework)' != 'net11.0'">
-    <LangVersion>14</LangVersion>
-  </PropertyGroup>
-
-</Project>
