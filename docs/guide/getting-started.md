@@ -10,8 +10,8 @@ the companies of a city.
 
 ## 1. Install
 
-Typeshift runs on .NET 10 and .NET 11, and needs C# 14 or later, the default language version of the .NET 10 SDK. Add the package to every project that
-declares toolsets or agents or calls `AddTypeshift()`. The package carries the source generator, and NuGet does not
+Typeshift needs .NET 10 or .NET 11 and C# 14 or later. Add the package to every project that declares toolsets or
+agents or calls `AddTypeshift()`. The package carries the source generator, and NuGet does not
 pass a generator on to the projects that reference yours, so each of them needs the package itself
 ([TSH020](./diagnostics.md#tsh020)):
 

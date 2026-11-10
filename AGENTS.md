@@ -63,9 +63,8 @@ dotnet mdsnippets && git diff --exit-code
 - Cloud sessions run `.claude/hooks/session-start.sh`: the .NET 11 SDK and the .NET 10 runtime from
   builds.dotnet.microsoft.com, the tools, the packages, and the skills pinned to reviewed commits: the owner's,
   ponytail's and `humanizer`.
-- `global.json` pins the .NET 11 SDK. The library and the runtime tests target `net10.0` and `net11.0` (D61), so
-  `dotnet test` runs them on both and needs both runtimes; the docs and AOT samples target `net11.0`, the package
-  consumer `net10.0`.
+- `global.json` pins the .NET 11 SDK, and the tests run on .NET 10 and .NET 11, so a machine needs the .NET 10
+  runtime as well. D61 lists what targets which.
 - The build is warning-free with `TreatWarningsAsErrors`. The only suppressed warning is CS1591 in `tests/` and
   `samples/`.
 - Generator snapshots live in `tests/Typeshift.Generators.Tests/Snapshots`. A mismatch writes `.received.txt`; review

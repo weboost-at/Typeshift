@@ -109,13 +109,18 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D61. The package targets .NET 10 and .NET 11
 
 - **Status:** owner.
-- **Context:** .NET 11 shipped with C# 15's union types, and the owner asked for them to work in tools and typed
-  runs. What a union needs from System.Text.Json, such as a case classifier on the options, is API of .NET 11.
+- **Context:** .NET 11 shipped with C# 15's union types, and the owner asked for .NET 11 support, unions first.
+  What a union needs from System.Text.Json, such as a case classifier on the serializer options, comes only with
+  .NET 11.
 - **Decision:** the library builds for `net10.0` and `net11.0` from the same source, and the repository builds with
-  the .NET 11 SDK. The runtime tests run on both. The docs sample and the Native AOT sample target `net11.0`, the
-  package consumer `net10.0`, so CI runs each build of the package once outside the tests. The generator stays on
-  Roslyn 5.0 (D8), so it still runs in the .NET 10 SDK.
-- **Where:** `global.json`, `src/Typeshift/Typeshift.csproj`, the test and sample projects.
+  the .NET 11 SDK.
+  - The runtime tests, the Native AOT sample and the package consumer target both, so CI runs each build of the
+    library in the tests, published as Native AOT and from the package.
+  - The docs sample targets `net11.0`, so a guide page can show C# 15.
+  - The builds for .NET 10 compile at C# 14, as an app on .NET 10 does, so they keep proving that the generated code
+    needs no more. The generator stays on Roslyn 5.0 (D8) and still runs in the .NET 10 SDK.
+- **Where:** `global.json`, `Directory.Build.targets`, `src/Typeshift/Typeshift.csproj`, the test and sample
+  projects.
 - **Alternatives:** `net10.0` only, referencing System.Text.Json 11 from NuGet, which moves every .NET 10 app onto it;
   `net11.0` only, which drops .NET 10, the LTS release.
 
