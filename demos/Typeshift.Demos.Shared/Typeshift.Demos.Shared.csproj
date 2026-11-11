@@ -3,7 +3,7 @@
   <!-- What every demo needs from a host: user-defined providers, a store on disk, a scripted model, console spans.
        It declares no toolsets or agents, so it needs no generator and no id type. -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <RootNamespace>Typeshift.Demos</RootNamespace>
   </PropertyGroup>
 

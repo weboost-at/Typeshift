@@ -18,7 +18,7 @@ dotnet test -c Release --no-build
 dotnet run --project samples/Typeshift.Samples.Docs -c Release --no-build
 ```
 
-The build treats warnings as errors and must stay free of them. Run the tests three times before you call a change
+The build needs the .NET 11 SDK. It treats warnings as errors and must stay free of them. Run the tests three times before you call a change
 done. Generator snapshots live in `tests/Typeshift.Generators.Tests/Snapshots`: a mismatch writes a `.received.txt`
 for you to review, and rerunning with `ACCEPT_SNAPSHOTS=1` accepts it. Open work goes into [Status](./status.md),
 never into a TODO in code, and a change people can see changes the docs in the same commit.

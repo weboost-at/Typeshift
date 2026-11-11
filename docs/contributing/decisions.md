@@ -106,6 +106,20 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** consumers need C# 14 for the extension blocks anyway, so the generator uses Roslyn 5 APIs, and v0's
   4.14 pin and its trap are gone.
 
+### D61. The package targets .NET 11 only
+
+- **Status:** approved.
+- **Context:** .NET 11 shipped with C# 15's union types, and the owner asked for .NET 11 support, unions first.
+  What a union needs from System.Text.Json, such as a case classifier on the serializer options, comes only with
+  .NET 11.
+- **Decision:** the library, its tests, the samples and the demos target `net11.0`, and the repository builds with
+  the .NET 11 SDK. There is no build for .NET 10: the next LTS release, .NET 12, is where the package moves next. The
+  generator stays on Roslyn 5.0 (D8), which every .NET 11 SDK exceeds.
+- **Where:** `global.json`, the project files.
+- **Alternatives:** a build for `net10.0` next to `net11.0` from the same source, which the owner declined, since .NET
+  12 brings an LTS release again; `net10.0` only, referencing System.Text.Json 11 from NuGet, which moves every .NET 10
+  app onto it.
+
 ### D9. Every project that declares toolsets or agents references the package
 
 - **Status:** carried (v0 D9). TSH020 catches a reference without it.
@@ -728,7 +742,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 ### D59. A call id the conversation holds already is renamed
 
-- **Status:** owner.
+- **Status:** approved.
 - **Context:** some providers, such as local servers with an OpenAI-compatible API, number their tool calls per
   response, so a later response reuses a call id the conversation holds. `FunctionInvokingChatClient` keys approval
   requests by an id made from the call id, and the history keys calls and results by call id (D46), so a reused id made

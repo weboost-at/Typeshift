@@ -19,6 +19,7 @@ All notable changes to this project are documented here. The format follows
 - A run that takes steering input after it asked for approval closes its requests once it answers the input, as a
   new message does, and leaves them out of its `ApprovalRequests`. An answer to one ran the call, although the model
   had gone on without it. A background agent's answer closes none.
+- The package targets .NET 11 instead of .NET 10, so your app needs .NET 11 and its SDK.
 
 ### Fixed
 

@@ -87,13 +87,12 @@ tools take their descriptions from XML docs ([TSH011](./diagnostics.md#tsh011)):
 ```csproj
 <PropertyGroup>
   <OutputType>Exe</OutputType>
-  <TargetFramework>net10.0</TargetFramework>
   <PublishAot>true</PublishAot>
   <InvariantGlobalization>true</InvariantGlobalization>
   <GenerateDocumentationFile>true</GenerateDocumentationFile>
 </PropertyGroup>
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Typeshift.Samples.Console.csproj#L5-L13' title='Snippet source file'>snippet source</a> | <a href='#snippet-aot-project' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Typeshift.Samples.Console.csproj#L5-L12' title='Snippet source file'>snippet source</a> | <a href='#snippet-aot-project' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ### Tool parameter and result types
