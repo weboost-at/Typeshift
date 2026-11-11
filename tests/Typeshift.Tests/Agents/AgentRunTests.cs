@@ -316,6 +316,17 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Result_Type_With_An_Exception_The_Run_Fails_Naming_The_Member()
+    {
+        // Act
+        var run = () => Host<ProbeAgent>().RunAsync<FailedLookup>(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<NotSupportedException>().WithMessage("*'exception.targetSite'*[JsonIgnore]*");
+        ChatClient.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Given_An_Answer_Without_Data_Its_Result_Cannot_Be_Read()
     {
         // Arrange

@@ -61,6 +61,9 @@ All notable changes to this project are documented here. The format follows
   Microsoft.Extensions.AI does for a number, since Anthropic's client sent no schema for them.
 
 ## [0.1.0-alpha.5] - 2026-10-30
+- A tool parameter or a `RunAsync<T>` type with a member System.Text.Json cannot handle, such as an `Exception`, sent
+  the provider a schema it rejected, with a message about a missing type. It now fails before the model is called,
+  naming the member.
 
 ### Added
 
