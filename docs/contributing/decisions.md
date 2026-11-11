@@ -672,6 +672,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
     but an object with properties under `data`, as Microsoft.Extensions.AI holds a number. A contract of its own for
     `T` reads the answer from under `data`, since a converter in the options loses to an enum's converter and to a
     polymorphic type's metadata.
+  - A schema node the serializer writes for a type it cannot handle, `"Unsupported .NET type"` with `not: true`,
+    throws a `NotSupportedException` that names the member, since a provider rejects the node far from its cause, as
+    the owner's `Exception` member showed.
 - **Where:** `Generated/UnionCaseClassifier.cs`, `Generated/ToolJson.cs`, `Hosting/AgentHost.cs`.
 - **Alternatives:** a `[JsonUnion(TypeClassifier = ...)]` on every union, code each app writes; strict numbers
   everywhere, which fails a model that sends `"5"` for a number; leaving the typed run's schema to

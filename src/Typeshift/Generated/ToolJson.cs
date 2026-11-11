@@ -46,7 +46,7 @@ public sealed class ToolJson
 
         _schemaOptions = new AIJsonSchemaCreateOptions
         {
-            TransformSchemaNode = (context, node) => TypeCases(annotator.Transform(context, node))
+            TransformSchemaNode = (context, node) => TypeCases(Supported(context, annotator.Transform(context, node)))
         };
     }
 
@@ -168,6 +168,28 @@ public sealed class ToolJson
 
         options.MakeReadOnly();
         return options;
+    }
+
+    // D62: the serializer writes a type it cannot read or write, such as the MethodBase of an Exception, as a schema
+    // nothing matches, which a provider rejects far from its cause
+    private static JsonNode Supported(AIJsonSchemaCreateContext context, JsonNode node)
+    {
+        if (node is not JsonObject schema || schema["$comment"]?.GetValue<string>() != "Unsupported .NET type")
+            return node;
+
+        List<string> names = [];
+        var path = context.Path;
+
+        for (var index = 0; index < path.Length - 1; index++)
+        {
+            if (path[index] == "properties") names.Add(path[index + 1]);
+        }
+
+        var member = names.Count == 0 ? context.TypeInfo.Type.Name : string.Join(".", names);
+
+        throw new NotSupportedException(
+            $"The model's schema cannot hold '{member}', a {context.TypeInfo.Type.Name}, which System.Text.Json "
+            + "cannot read or write: leave it out of the type the model sees, or mark it [JsonIgnore].");
     }
 
     // D62: the serializer names a type the cases of a union share once, on the union, and providers look for it on
