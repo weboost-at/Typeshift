@@ -136,6 +136,10 @@ polymorphic type or a [union](./toolsets.md#union-types), is asked for under a `
 from there. Under
 [Native AOT](./production.md#native-aot), `T` needs JSON metadata.
 
+A member that System.Text.Json cannot read or write, such as an `Exception`, whose `TargetSite` is a `MethodBase`,
+fails the run before it calls the model, naming the member. Leave such a member out of `T`, or mark it
+`[JsonIgnore]`, since the model could not send one anyway. A tool's parameters fail the same way.
+
 `RunStreamingAsync<T>` streams that answer as the model writes it. Read its updates to the end, and its `Response`
 holds the result:
 

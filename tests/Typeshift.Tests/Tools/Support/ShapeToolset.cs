@@ -23,3 +23,6 @@ public partial class ShapeToolset : Toolset
     /// <param name="outline">The shape of the outline, or null for none.</param>
     public static string Draw(Shape shape, Shape? outline) => $"{shape} {outline}";
 }
+
+// An answer that carries an Exception, whose TargetSite System.Text.Json cannot write a schema for
+public sealed record FailedLookup(string Message, Exception? Exception = null);
