@@ -674,8 +674,25 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 ### D43. The store is the persistence switch
 
-- **Status:** carried (v0 D26). Without `WithStore<T>()`, runs without a settings or conversation id work; everything
-  that loads or saves throws, naming `WithStore<T>()` and the store interface it needs (D38).
+- **Status:** carried (v0 D26), changed by D69. Once a store is registered, everything that loads or saves through a
+  store interface none of the registered stores implements throws, naming `WithStore<T>()` and the interface (D38).
+  Without any store, D69 keeps everything in memory.
+
+### D69. Without a store, everything is kept in memory
+
+- **Status:** owner.
+- **Context:** the owner asked for sane defaults, "for stock users to have a working library at their hands from the
+  get-go". Without `WithStore<T>()`, every settings save, every run with an id and every approval threw.
+- **Decision:** when no `ISettingsStore`, `IConversationStore` or `IAgentSettingsStore` of the build's id type is
+  registered, the store access keeps everything in an `InMemoryTypeshiftStore` of its own, a singleton like the
+  host's other services. The first save or append logs a warning, once, that names `WithStore<T>()` and says the data
+  is gone when the app stops; loads stay quiet, since a load of nothing loses nothing. Once any store is registered,
+  only registered stores serve, so an app that kept settings in a database and forgot a store of conversations still
+  gets the exception of D43 instead of conversations that vanish.
+- **Where:** `Storage/StoreAccess.cs`.
+- **Alternatives:** throwing as before, ceremony every first run hits; memory for each interface no registered store
+  implements, which hides a forgotten store in an app that chose one; a warning at startup, which an app that never
+  stores anything would see too.
 
 ### D44. Settings records serialize themselves
 
