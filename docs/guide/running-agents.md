@@ -1,9 +1,9 @@
 ---
-title: Running agents
+title: Running an agent
 description: Run an agent through its host with stored settings, run settings, typed output or streaming, and the steps every run passes through.
 ---
 
-# Running agents
+# Running an agent
 
 You run an agent through its host, `AgentHost<TAgent>`, which your app takes from the scope of the request or job that
 runs the agent ([Using an agent](./using-an-agent.md)).
