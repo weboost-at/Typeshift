@@ -578,6 +578,19 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Alternatives:** the tutorial's `Directory.Build.props`, a step of ceremony; docs on without hiding CS1591, which
   fails every build that treats warnings as errors.
 
+### D70. Instructions that never change are one call
+
+- **Status:** owner.
+- **Context:** the owner asked for less ceremony. Constant instructions took an override of `GetInstructions()`, three
+  lines outside the constructor that holds everything else an agent declares.
+- **Decision:** `WithInstructions(text)` in the constructor sets the instructions, and `GetInstructions()` returns
+  them unless the agent overrides it. The call runs when the agent is built, as the chat options' calls do, so the
+  text need not be a constant. An override still wins, for instructions built per run.
+- **Where:** `Agents/Agent.cs`.
+- **Alternatives:** `WithChatOptions().WithInstructions(...)`, beside the model, which would split the instructions
+  between `ChatOptions` and the override; reading them from the agent's XML docs, which already describe it to other
+  agents (D14).
+
 ### D39. Kinds are stable names
 
 - **Status:** owner.

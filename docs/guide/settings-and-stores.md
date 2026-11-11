@@ -48,7 +48,7 @@ The highest layer that sets a value wins:
 |---|---|---|---|
 | 4. The run | The `settings` argument of `RunAsync` and the other runs | Configurable members | That run |
 | 3. Stored | `Settings` under the run's settings id: `ConfigureAsync`, `SaveSettingsAsync` | Configurable members | Every run with that settings id |
-| 2. The agent's code | `Configure{Tool}()`, `WithChatOptions()`, `WithRunOptions()`, `GetInstructions()` | Every settable member | Every run of the agent |
+| 2. The agent's code | `Configure{Tool}()`, `WithChatOptions()`, `WithRunOptions()`, `WithInstructions()` or `GetInstructions()` | Every settable member | Every run of the agent |
 | 1. The code's defaults | The settings record's parameterless constructor; the run options' defaults | Every member | Every run |
 
 Because the layers resolve when a run starts, settings saved during a run apply from the next run on.
@@ -69,7 +69,7 @@ The model resolves through the layers like any other value. It stays as the code
 agent's code allows that. Its provider is a value of its own, so a layer that sets only `Model` keeps the provider of
 the layer below.
 
-Stored or run `Instructions` replace the text that `GetInstructions()` returns. Context providers and plan mode then
+Stored or run `Instructions` replace the agent's own, from `WithInstructions` or `GetInstructions()`. Context providers and plan mode then
 append to whatever instructions the layers resolved.
 
 ### The mode of a conversation
@@ -166,8 +166,8 @@ catch (StoreConflictException)
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L24-L35' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-and-save-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Saving `Instructions = null` removes the stored instructions, so runs with this settings id use those of
-`GetInstructions()` again. After a conflict, the sample loads the settings again, so you can show the user the current
+Saving `Instructions = null` removes the stored instructions, so runs with this settings id use the agent's own
+again. After a conflict, the sample loads the settings again, so you can show the user the current
 values before they save.
 
 ## The stored JSON

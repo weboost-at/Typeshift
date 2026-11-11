@@ -46,6 +46,9 @@ public abstract class Agent
 
     internal string? Instructions => GetInstructions();
 
+    // D70: what WithInstructions set, which GetInstructions returns unless the agent overrides it
+    private string? _instructions;
+
     /// <summary>
     /// What the generator read from the constructor.
     /// </summary>
@@ -64,6 +67,13 @@ public abstract class Agent
     protected void WithName(string name)
     {
     }
+
+    /// <summary>
+    /// Sets the agent's instructions, its system prompt, when they are the same for every run. Override
+    /// <see cref="GetInstructions"/> for instructions your code builds when a run starts.
+    /// </summary>
+    /// <param name="instructions">The instructions.</param>
+    protected void WithInstructions(string instructions) => _instructions = instructions;
 
     /// <summary>
     /// Describes what the agent does.
@@ -167,8 +177,9 @@ public abstract class Agent
     protected RunOptionsBuilder WithRunOptions() => new(this);
 
     /// <summary>
-    /// The agent's instructions, its system prompt; called whenever a run's options are resolved.
+    /// The agent's instructions, its system prompt; called whenever a run's options are resolved. Without an
+    /// override, the instructions <see cref="WithInstructions"/> set.
     /// </summary>
     /// <returns>The instructions, or null for none.</returns>
-    protected virtual string? GetInstructions() => null;
+    protected virtual string? GetInstructions() => _instructions;
 }
