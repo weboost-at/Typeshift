@@ -24,6 +24,8 @@ All notable changes to this project are documented here. The format follows
   new message does, and leaves them out of its `ApprovalRequests`. An answer to one ran the call, although the model
   had gone on without it. A background agent's answer closes none.
 - The package targets .NET 11 instead of .NET 10, so your app needs .NET 11 and its SDK.
+- The package turns on `GenerateDocumentationFile` unless your project sets it, and hides CS1591 then, so tools get their
+  descriptions with no `Directory.Build.props`.
 
 ### Fixed
 

@@ -23,14 +23,13 @@ Typeshift needs .NET 11. Add `using Typeshift;` to your files, and `using Micros
 to the `Program.cs` of step 4. A solution of several projects needs the package in more than one of them
 ([Project setup](./registration.md#project-setup)).
 
-Next to your solution, create a `Directory.Build.props` that turns on XML docs, because Typeshift builds each tool's
-description for the model from them. The same file sets the type of the ids you pass to runs. This tutorial uses `int`, which keeps
-the ids in its examples short:
+The package turns on XML docs in your project, because Typeshift builds each tool's description for the model from
+them. Next to your solution, create a `Directory.Build.props` that sets the type of the ids you pass to runs. This
+tutorial uses `int`, which keeps the ids in its examples short:
 
 ```xml
 <Project>
   <PropertyGroup>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- Ids are Guids unless you name another type. This sample uses int. -->
     <TypeshiftIdType>int</TypeshiftIdType>
   </PropertyGroup>

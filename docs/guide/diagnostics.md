@@ -125,9 +125,9 @@ reach nothing. Add the parameter to the method.
 
 ## TSH011
 
-**Tool relies on XML docs that are not generated.** The compiler reads XML docs only with
-`GenerateDocumentationFile`, so set it in the project. `WithDescription` is a way around it only when the parameters
-have no `<param>` docs, since it replaces only the `<summary>`.
+**Tool relies on XML docs that are not generated.** The compiler reads XML docs only with `GenerateDocumentationFile`,
+which the package turns on, so your project turned it off. Remove that setting. `WithDescription` is a way around it
+only when the parameters have no `<param>` docs, since it replaces only the `<summary>`.
 
 ## TSH012
 
