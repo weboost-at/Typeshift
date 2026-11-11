@@ -742,7 +742,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 ### D59. A call id the conversation holds already is renamed
 
-- **Status:** owner.
+- **Status:** approved.
 - **Context:** some providers, such as local servers with an OpenAI-compatible API, number their tool calls per
   response, so a later response reuses a call id the conversation holds. `FunctionInvokingChatClient` keys approval
   requests by an id made from the call id, and the history keys calls and results by call id (D46), so a reused id made
