@@ -30,6 +30,26 @@ public class ToolSchemaTests : UnitTestBase
     }
 
     [Fact]
+    public void Given_A_Polymorphic_Parameter_Each_Case_Of_Its_Schema_Names_Its_Type()
+    {
+        // Act
+        var draw = ShapeToolset.CreateDraw(Json);
+
+        // Assert
+        draw.JsonSchema.Assert.ParameterCaseTypes("shape", "object", "object");
+    }
+
+    [Fact]
+    public void Given_A_Nullable_Polymorphic_Parameter_Each_Case_Of_Its_Schema_Accepts_Null()
+    {
+        // Act
+        var draw = ShapeToolset.CreateDraw(Json);
+
+        // Assert
+        draw.JsonSchema.Assert.ParameterCasesAcceptNull("outline");
+    }
+
+    [Fact]
     public void Given_A_Nullable_Reference_Parameter_It_Is_Typed_As_Nullable()
     {
         // Act
