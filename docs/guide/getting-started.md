@@ -7,7 +7,8 @@ description: Build your first agent in four steps, from installing the package t
 
 In four steps you build an agent that looks up the companies of a city, and run it. You write the tool as a static
 method and the agent as a small class that offers it. Typeshift turns the method into the tool the model calls, and
-the build fails when the agent configures a tool it doesn't offer.
+the build fails when the agent configures a tool it doesn't offer. [What is Typeshift?](./what-is-typeshift.md)
+explains what the library is for, if you'd like that first.
 
 ## 1. Install
 
@@ -262,37 +263,6 @@ Found Danube Robotics.
 
 The record, the agent, the stored settings and the run are layers, and the highest one that sets a value wins.
 [Settings layering](./settings-and-stores.md#settings-layering) follows this limit through all four.
-
-## How the pieces fit
-
-```mermaid
-flowchart LR
-  subgraph compile [Compile time]
-    toolset[Toolset] --> generator[Source generator]
-    agent[Agent] --> generator
-    generator --> functions[An AIFunction per tool]
-    generator --> settings[A Settings record per agent]
-    generator --> registration["AddTypeshift()"]
-  end
-  subgraph runtime [Runtime]
-    host["AgentHost&lt;TAgent&gt;"] --> client[The provider's IChatClient]
-    host --> store[Your store]
-  end
-  registration --> host
-```
-
-`AddTypeshift()` registers an `AgentHost<TAgent>` per agent. The host resolves the settings, calls the model, runs the
-tools and stores the conversation.
-
-| Piece | What it is | Read |
-|---|---|---|
-| Toolset | A `partial` class deriving from `Toolset` that declares a group of related tools | [Toolsets](./toolsets.md) |
-| Tool settings | A record of values a tool needs that the model must not choose | [Tool settings](./tool-settings.md) |
-| Agent | A `partial` class deriving from `Agent`, with chat options, instructions and tools | [Agents](./defining-agents.md) |
-| Agent host | `AgentHost<TAgent>`, which runs one agent in the scope it was resolved from | [Using an agent](./using-an-agent.md) |
-| Store | Your `ITypeshiftStore`, or an `ISettingsStore` and an `IConversationStore`, which keep settings and conversations | [Settings and stores](./settings-and-stores.md) |
-
-The [glossary](./glossary.md) defines every other term.
 
 ## What your app implements
 
