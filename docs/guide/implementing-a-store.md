@@ -21,7 +21,7 @@ runs often call it at the same time, so plan for that before you write its first
 - **Any method can run while others are running**, even on the same document or conversation. Keep no state between
   calls, or guard what you keep.
 - **It knows nothing of the caller.** Your app decides who may use a settings id or a conversation id before it
-  passes one to a run ([Conversations](./conversations.md#tracking-a-conversation)), and the store keeps whatever it
+  passes one to a run ([Conversation ids](./conversations.md#conversation-ids)), and the store keeps whatever it
   is given.
 
 ::: warning A scoped DbContext breaks the store
@@ -48,16 +48,15 @@ keeps conversations with the other three. The store on this page implements `ITy
 settings and conversations live in different databases, implement each interface in a class of its own and
 [register each](./settings-and-stores.md#registering-a-store).
 
-You implement four of the methods, and `LoadConversationSinceCompactionAsync` has a default you may replace by declaring
-the method in your store. Every id has your build's [id type](./registration.md#the-id-type), which is `Guid` unless
+You implement all five. Every id has your build's [id type](./registration.md#the-id-type), which is `Guid` unless
 `TypeshiftIdType` names another; the samples on this page set it to `int`. Each method takes a `CancellationToken` last.
 
 | Method | Does |
 |---|---|
 | `LoadAsync(id, kind)` | Returns the document of a kind under an id as a `StoredDocument`, with its JSON and version, or null when none is stored. |
 | `SaveAsync(id, kind, json, loadedVersion)` | Saves a document's JSON if its stored version still equals `loadedVersion` (0 when nothing is stored yet), and returns the new version. Throws a `StoreConflictException` when another save came first. |
-| `LoadConversationAsync(conversation)` | Returns a conversation's entries, oldest first. |
-| `LoadConversationSinceCompactionAsync(conversation)` | Returns the conversation's last summary and the entries after it ([Start from the last summary](#start-from-the-last-summary)). |
+| `LoadConversationAsync(conversation)` | Returns every entry of a conversation, summaries included, oldest first. |
+| `LoadConversationSinceCompactionAsync(conversation)` | Returns what a run reads: the last summary and the entries after it ([Start from the last summary](#start-from-the-last-summary)). |
 | `AppendConversationAsync(conversation, entry)` | Appends one entry to a conversation. The first entry creates the conversation. |
 
 The database on this page has a table for settings, keyed by id and kind together
@@ -286,9 +285,9 @@ the summary, with `IsSummary` set to true. Every later run starts from the lates
 the runs need from before it, including the conversation's mode and its standing approvals.
 
 `LoadConversationSinceCompactionAsync` returns that entry and everything after it, oldest first, or every entry when
-the conversation has no summary. Its default calls `LoadConversationAsync` and drops what came before the summary, so
-a long conversation is read whole on every run. To read only what a run needs, copy `entry.IsSummary` into a column of
-its own when you append, and declare the method in your store to start at the last row that has it:
+the conversation has no summary. Every run calls it first, and an agent that compacts makes conversations long, so start
+at the last summary instead of reading the conversation whole: copy `entry.IsSummary` into a column of its own when you
+append, and start the query at the last row that has it:
 
 <!-- snippet: ef-core-conversations -->
 <a id='snippet-ef-core-conversations'></a>

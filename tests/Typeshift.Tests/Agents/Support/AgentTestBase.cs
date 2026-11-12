@@ -1,4 +1,6 @@
+using System.Text.Json;
 using Typeshift.Tests.Tools.Support;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift.Tests.Agents.Support;
@@ -18,6 +20,10 @@ public abstract class AgentTestBase : HostTestBase
 
     protected Task<IReadOnlyList<ConversationEntry>> EntriesAsync(Guid conversation) =>
         Services.GetRequiredService<ITypeshiftStore>().LoadConversationAsync(conversation, Ct);
+
+    // The JSON schema the run's first model call asked the answer to match
+    protected JsonElement ResponseSchema() =>
+        ((ChatResponseFormatJson)ChatClient.Options[0]!.ResponseFormat!).Schema!.Value;
 
     protected override void ConfigureServices(IServiceCollection services)
     {
