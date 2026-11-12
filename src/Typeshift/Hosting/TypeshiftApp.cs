@@ -6,7 +6,10 @@ namespace Typeshift;
 /// <summary>
 /// Typeshift for an app without a container of its own, such as a console tool or a script: every agent of this
 /// project and of the projects it references, on one chat client. Create it once, keep it while the app runs, and
-/// dispose it at the end; an app with a container calls <c>services.AddTypeshift()</c> instead.
+/// dispose it at the end. The app has one scope for its lifetime, so its scoped services, such as the chat client
+/// provider, approval rules, middleware, the MCP tool provider and the services tools resolve, are created once and
+/// shared by every run, concurrent ones included. An app with a container, or one that needs a scope per request,
+/// calls <c>services.AddTypeshift()</c> instead.
 /// </summary>
 public sealed class TypeshiftApp : IAsyncDisposable, IDisposable
 {
@@ -41,7 +44,8 @@ public sealed class TypeshiftApp : IAsyncDisposable, IDisposable
     public static TypeshiftApp Create(IChatClient client, Action<TypeshiftBuilder>? configure = null) =>
         throw new InvalidOperationException(
             "TypeshiftApp.Create() was not intercepted by the Typeshift generator. Reference the Typeshift package in "
-            + "the project that calls it, and keep the Typeshift.Generated namespace in InterceptorsNamespaces.");
+            + "the project that calls it, call it as TypeshiftApp.Create(client), not through using static, a method "
+            + "group or a dynamic argument, and keep the Typeshift.Generated namespace in InterceptorsNamespaces.");
 
     /// <summary>
     /// The host of an agent, ready to run.
@@ -57,17 +61,32 @@ public sealed class TypeshiftApp : IAsyncDisposable, IDisposable
     /// <returns>The disposal.</returns>
     public async ValueTask DisposeAsync()
     {
-        await _scope.DisposeAsync();
-        await _provider.DisposeAsync();
+        try
+        {
+            await _scope.DisposeAsync();
+        }
+        finally
+        {
+            await _provider.DisposeAsync();
+        }
     }
 
     /// <summary>
-    /// Disposes the app's services; prefer <see cref="DisposeAsync"/>, which also ends services that only dispose
-    /// asynchronously.
+    /// Disposes the app's services. Prefer <see cref="DisposeAsync"/>: this one throws when a service the app created
+    /// disposes only asynchronously.
     /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// A service the app created implements only <see cref="IAsyncDisposable"/>.
+    /// </exception>
     public void Dispose()
     {
-        _scope.Dispose();
-        _provider.Dispose();
+        try
+        {
+            _scope.Dispose();
+        }
+        finally
+        {
+            _provider.Dispose();
+        }
     }
 }

@@ -30,7 +30,9 @@ internal static class KnownTypes
 
     public const string RegistrationMethod = "AddTypeshift";
 
-    public const string App = "Typeshift.TypeshiftApp";
+    public const string AppName = "TypeshiftApp";
+
+    public const string App = "Typeshift." + AppName;
 
     public const string AppMethod = "Create";
 

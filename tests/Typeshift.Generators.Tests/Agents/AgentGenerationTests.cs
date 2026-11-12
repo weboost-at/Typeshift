@@ -123,6 +123,49 @@ public class AgentGenerationTests : GeneratorTestBase
         run.Assert.CompilesCleanly();
     }
 
+    [Theory]
+    [InlineData("TypeshiftApp")]
+    [InlineData("Typeshift.TypeshiftApp")]
+    [InlineData("global::Typeshift.TypeshiftApp")]
+    public void Given_Only_A_TypeshiftApp_Create_Call_It_Is_Intercepted(string receiver)
+    {
+        // Act
+        var run = Run(AgentSources.AppOnly(receiver));
+
+        // Assert
+        run.Assert.Intercepts($"{receiver}.Create(client)");
+    }
+
+    [Fact]
+    public void Given_Only_A_TypeshiftApp_Create_Call_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(AgentSources.AppOnly("TypeshiftApp"));
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
+    public void Given_A_Create_Method_Of_The_Projects_Own_The_Generator_Does_Not_Intercept_It()
+    {
+        // Act
+        var run = Run(AgentSources.OwnCreate);
+
+        // Assert
+        run.Assert.DoesNotIntercept("Factory.Create(client)");
+    }
+
+    [Fact]
+    public void Given_A_TypeshiftApp_Create_Call_Bound_At_Run_Time_The_Generator_Does_Not_Intercept_It()
+    {
+        // Act
+        var run = Run(AgentSources.DynamicApp);
+
+        // Assert
+        run.Assert.DoesNotIntercept("TypeshiftApp.Create(client)");
+    }
+
     [Fact]
     public void Given_A_Reference_Of_Docs_Only_The_Interceptor_Registers_Its_Module()
     {

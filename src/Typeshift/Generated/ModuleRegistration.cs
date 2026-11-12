@@ -85,8 +85,9 @@ public static class ModuleRegistration
     {
         ArgumentNullException.ThrowIfNull(client);
 
-        // D75: the client serves every agent, as one registered for every agent does (D63)
-        services.AddChatClient(client);
+        // D75: the client serves every agent, as one registered for every agent does (D63). An instance rather than
+        // AddChatClient's factory, so the container never disposes it
+        services.AddSingleton(client);
         configure?.Invoke(builder);
 
         return new TypeshiftApp(services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true }));
