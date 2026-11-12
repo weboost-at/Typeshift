@@ -74,6 +74,23 @@ public sealed class TelemetryTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Streaming_Raw_Call_Whose_Conversation_Id_Does_Not_Parse_Its_Span_Carries_The_Error()
+    {
+        // Arrange
+        var host = Host<ProbeAgent>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        options.ConversationId = Data.Persistence.ChatName;
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        // Act
+        var run = () => client.GetStreamingResponseAsync(Data.Tool.Question, options, Ct).ToListAsync(Ct).AsTask();
+
+        // Assert
+        await run.Should().ThrowAsync<FormatException>();
+        Activities.Run(Data.Persistence.ChatName).Status.Should().Be(ActivityStatusCode.Error);
+    }
+
+    [Fact]
     public async Task Given_A_Store_That_Fails_To_Append_The_Runs_Span_Records_The_Exception()
     {
         // Arrange

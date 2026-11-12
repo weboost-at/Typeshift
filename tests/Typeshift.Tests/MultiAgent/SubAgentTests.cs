@@ -7,6 +7,18 @@ namespace Typeshift.Tests.MultiAgent;
 
 public class SubAgentTests : MultiAgentTestBase
 {
+    private readonly RunEnds _ends = new();
+
+    protected override void ConfigureServices(IServiceCollection services)
+    {
+        base.ConfigureServices(services);
+
+        services.AddTypeshift()
+            .WithRunMiddleware<RunEndMiddleware>();
+
+        services.AddSingleton(_ends);
+    }
+
     [Fact]
     public async Task Given_A_Sub_Agent_It_Is_Offered_With_Its_Description_And_One_Input()
     {
@@ -25,6 +37,25 @@ public class SubAgentTests : MultiAgentTestBase
             .Select(name => name.GetString())
             .Should()
             .Equal("input");
+    }
+
+    [Fact]
+    public async Task Given_The_Sub_Agents_Own_Settings_Its_Run_Applies_Them()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Tool.Answer));
+
+        HelperClient.Reply(Text(Data.Agent.Reason));
+        await Host<HelperAgent>()
+            .ConfigureAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+
+        // Act
+        await Host<LeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        HelperClient.Options[0]!.Temperature.Should().Be(Data.Agent.Temperature);
     }
 
     [Fact]
@@ -214,6 +245,31 @@ public class SubAgentTests : MultiAgentTestBase
 
         // Assert
         ChatClient.Requests[0].Select(message => message.Text).Should().Contain(text => text.Contains("was lost"));
+    }
+
+    [Fact]
+    public async Task Given_A_Run_Cancelled_While_A_Background_Sub_Agent_Works_It_Ends_After_The_Sub_Agent()
+    {
+        // Arrange
+        using var cancel = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Agent.Steering));
+
+        HelperClient.Reply(new TaskCompletionSource(), Text(Data.Agent.Reason));
+
+        var running = Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, ct: cancel.Token);
+        await ChatClient.RequestedAsync(2);
+        await HelperClient.Requested;
+
+        // Act
+        await cancel.CancelAsync();
+        await Task.WhenAny(running);
+
+        // Assert
+        running.IsCanceled.Should().BeTrue();
+        _ends.Should().Contain("helper_agent");
     }
 
     [Fact]

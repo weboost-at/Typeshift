@@ -35,7 +35,6 @@ services.AddDemoServices(catalog, canned);
 
 services.AddTypeshift()
     .WithChatClientProvider<RoutingChatClientProvider>()
-    .WithRealtimeTracking()
     .WithMcpToolProvider<StatusMcpProvider>()
     .WithRunMiddleware<BlockedTopics>()
     .WithToolMiddleware<AuditedCalls>();

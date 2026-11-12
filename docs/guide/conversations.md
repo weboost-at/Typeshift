@@ -32,11 +32,34 @@ stored settings, the run that answers an approval included.
 You pick a conversation id when a chat starts, usually the key of your own record of the chat, such as a row in a
 `Chats` table, and pass it to every run of that chat. Its type is the build's [id type](./registration.md#the-id-type),
 so with `Guid` ids and no record of your own, `Guid.CreateVersion7()` gives a new chat its id. On the
-[raw path](./running-agents.md#the-raw-path), `ChatOptions.ConversationId` carries it as a string.
+[raw path](./running-agents.md#the-raw-path), `ChatOptions.ConversationId` carries it as a string. The response's
+`ConversationId` names the conversation a run was stored in.
 
 The store keeps a conversation's entries under its id, and `ConversationTracker` finds a running run by it to steer or
-watch it. Without a conversation id, a run stores nothing, so the next one starts from scratch. A tool call that needs
-your approval makes it throw, it offers no handoffs, and `ConversationTracker` never sees it.
+watch it. Without a conversation id, and without [`PersistAllConversations`](#keeping-every-conversation), a run
+stores nothing, so the next one starts from scratch. A tool call that needs your approval makes it throw, it offers no
+handoffs, and `ConversationTracker` never sees it.
+
+### Keeping every conversation
+
+To keep the runs that pass no conversation id as well, turn on `PersistAllConversations`:
+`AddTypeshift().WithOptions(options => options.PersistAllConversations = true)`. Such a run then starts a
+conversation under a new id, and its response's `ConversationId` names it, so the next run continues it with
+`support.WithConversationId(Guid.Parse(response.ConversationId!))`. A handoff continues that conversation.
+
+Some runs start no conversation, even with the option on:
+
+- A sub-agent's run, which belongs to its caller's conversation.
+- A run without input: it continues an interrupted run ([Resuming](#resuming)), and a new conversation has none.
+- A raw-path call whose options did not come from `ResolveOptionsAsync`, such as `ChatOptions` your code created, or
+  a call with no options at all ([the raw path](./running-agents.md#the-raw-path)).
+
+New ids follow [the build's id type](./registration.md#the-id-type). For `Guid`, they are `Guid`s of version 7, which
+sort by the time they were made, and for `string` the text of one. For any other id type, or a conversation store of
+another type than the build's, give them with `options.NewConversationIds(() => ...)`; without it, a build of another
+id type throws an `InvalidOperationException` on the first run that starts a conversation. Runs that start together
+call the function at the same time, so make it thread-safe, and have it return an id no conversation has on every
+call.
 
 ::: danger Check the caller before you pass a conversation id
 Typeshift resumes whichever conversation it is given, so deciding who may see one is your app's job. Check the caller
@@ -118,9 +141,9 @@ conversation is up to your app.
 
 ## Live runs
 
-`ConversationTracker` tells your app which conversations have a run going on in this process. With
-`WithRealtimeTracking()` it also hands out each run's updates, so a second tab or a support dashboard can follow a chat
-that another request is answering ([Live updates](#live-updates)).
+`ConversationTracker` tells your app which conversations have a run going on in this process. It also hands out each
+run's updates, so a second tab or a support dashboard can follow a chat that another request is answering
+([Live updates](#live-updates)).
 
 `Runs` lists the runs with a conversation id that are going on in this process, each with its conversation, the agent
 that answers, its model and when it started:
@@ -138,8 +161,7 @@ foreach (var run in tracker.Runs)
 
 `WatchRunsAsync` tells a UI when that list changes, so a list of running conversations needs no polling. It yields the
 runs going on, then each run as it starts and again as it ends, with `Ended` set, until you cancel its token.
-Cancelling ends the loop with an `OperationCanceledException`, so catch it where you stop watching. It works without
-`WithRealtimeTracking()`:
+Cancelling ends the loop with an `OperationCanceledException`, so catch it where you stop watching:
 
 <!-- snippet: watch-runs -->
 <a id='snippet-watch-runs'></a>
@@ -175,8 +197,8 @@ To stop a run, cancel its token. It is stored up to where it stopped.
 
 ## Live updates
 
-With `WithRealtimeTracking()`, Typeshift publishes the updates of runs as they happen, and `WatchAsync` reads one
-conversation's updates until you cancel its token, which ends the loop with an `OperationCanceledException`, as with
+Typeshift publishes the updates of runs as they happen, and `WatchAsync` reads one conversation's updates until you
+cancel its token, which ends the loop with an `OperationCanceledException`, as with
 `WatchRunsAsync`. A streaming run publishes its updates as they stream; a run that does not stream publishes each
 model response and tool result as it stores it. A browser can follow them over SignalR, as
 [Follow a chat from elsewhere](./chat-endpoint.md#follow-a-chat-from-elsewhere) shows:
@@ -192,7 +214,7 @@ await foreach (var update in tracker.WatchAsync(conversationId, ct))
 
 Text, reasoning and usage updates are merged and published at most every 100 ms, and other updates go out at once. A
 run never waits for a watcher, so a watcher that falls more than 256 updates behind loses the oldest ones. You can
-change both limits with `RealtimeTrackingOptions`:
+change both limits with `WithRealtimeTracking`:
 
 <!-- snippet: realtime-options -->
 <a id='snippet-realtime-options'></a>
@@ -204,10 +226,8 @@ services.AddTypeshift()
         MaxPendingUpdates = 1024
     });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L50-L57' title='Snippet source file'>snippet source</a> | <a href='#snippet-realtime-options' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L49-L56' title='Snippet source file'>snippet source</a> | <a href='#snippet-realtime-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
-
-Without `WithRealtimeTracking()`, `WatchAsync` throws an `InvalidOperationException`.
 
 ::: warning Live updates stay in their process
 A watcher sees only the runs of its own process. When your app runs in several processes, watch in the process that

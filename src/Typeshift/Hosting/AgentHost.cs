@@ -7,17 +7,25 @@ using Typeshift.Generated;
 namespace Typeshift;
 
 /// <summary>
-/// Runs <typeparamref name="TAgent"/> with the services of the scope it was resolved from: its tools and its chat
-/// client provider resolve there. Registered as transient by <c>AddTypeshift()</c>: inject it, or resolve it from a
-/// scope, never from the root provider. The generator adds the agent's typed members (D12): <c>RunAsync</c>,
-/// <c>RunAsync&lt;T&gt;</c>, <c>RunStreamingAsync</c>, <c>ResumeAsync</c>, <c>ResumeStreamingAsync</c>,
-/// <c>ResolveOptionsAsync</c>, <c>LoadSettingsAsync</c>, <c>SaveSettingsAsync</c> and <c>ConfigureAsync</c>.
+/// Runs <typeparamref name="TAgent"/> with the services of its scope: its tools and its chat client provider resolve
+/// there. Registered as transient by <c>AddTypeshift()</c>: inject it, or resolve it from a scope, never from the root
+/// provider. <see cref="TypeshiftRuntime.Agent{TAgent}"/> creates one in a scope of its own, which disposing the host
+/// disposes. The generator adds the agent's typed members (D12): <c>RunAsync</c>, <c>RunAsync&lt;T&gt;</c>,
+/// <c>RunStreamingAsync</c>, <c>ResumeAsync</c>, <c>ResumeStreamingAsync</c>, <c>ResolveOptionsAsync</c>,
+/// <c>LoadSettingsAsync</c>, <c>SaveSettingsAsync</c> and <c>ConfigureAsync</c>.
 /// </summary>
 /// <typeparam name="TAgent">The agent.</typeparam>
-public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
+public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposable where TAgent : Agent
 {
-    // D25: the scope's services, never a scope of its own
+    // D25: the services of the scope it was resolved from, or of the one the runtime created for it (D76)
     private readonly IServiceProvider _services;
+
+    // D76: only a host the runtime created owns its scope; one the container resolved leaves it to the container
+    private readonly AsyncServiceScope? _scope;
+
+    // D72: the ids WithSettingsId and WithConversationId gave, each with its type
+    private StoreId? _settingsId;
+    private StoreId? _conversationId;
 
     internal AgentHost(TAgent agent, IServiceProvider services)
     {
@@ -25,10 +33,73 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
         _services = services;
     }
 
+    internal AgentHost(TAgent agent, AsyncServiceScope scope) : this(agent, scope.ServiceProvider) => _scope = scope;
+
+    // D76: built rather than resolved where the library makes a host, since a scope keeps every disposable the
+    // container builds until it ends
+    internal static AgentHost<TAgent> In(IServiceProvider services) =>
+        new(services.GetRequiredService<TAgent>(), services);
+
     /// <summary>
     /// The agent as its code declares it.
     /// </summary>
     public TAgent Agent { get; }
+
+    /// <summary>
+    /// A host whose runs apply the settings stored under an id, over the agent's own, and whose settings members load,
+    /// save and configure them. The id's type picks the store: an <see cref="ISettingsStore{TId}"/> of that type.
+    /// </summary>
+    /// <param name="id">The id of the stored settings.</param>
+    /// <typeparam name="TId">The id's type.</typeparam>
+    /// <returns>
+    /// A host with the id, in this host's scope; this one keeps the ids it had. Disposing it leaves the scope to this
+    /// host.
+    /// </returns>
+    public AgentHost<TAgent> WithSettingsId<TId>(TId id) where TId : notnull
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        return Copy(new StoreId<TId>(id), _conversationId);
+    }
+
+    /// <summary>
+    /// A host whose runs resume a conversation and store what they add to it. The id's type picks the store: an
+    /// <see cref="IConversationStore{TId}"/> of that type.
+    /// </summary>
+    /// <param name="id">The conversation's id.</param>
+    /// <typeparam name="TId">The id's type.</typeparam>
+    /// <returns>
+    /// A host with the id, in this host's scope; this one keeps the ids it had. Disposing it leaves the scope to this
+    /// host.
+    /// </returns>
+    public AgentHost<TAgent> WithConversationId<TId>(TId id) where TId : notnull
+    {
+        ArgumentNullException.ThrowIfNull(id);
+        return Copy(_settingsId, new StoreId<TId>(id));
+    }
+
+    // D72, D76: a copy shares this host's scope but never owns it, so only the host the runtime created disposes it
+    private AgentHost<TAgent> Copy(StoreId? settingsId, StoreId? conversationId) =>
+        new(Agent, _services)
+        {
+            _settingsId = settingsId,
+            _conversationId = conversationId
+        };
+
+    // The settings id WithSettingsId gave, which the settings members use in place of the agent's own settings
+    internal StoreId? SettingsId => _settingsId;
+
+    // The id of a call: one of the build's id type the call passed, or the one the host was given
+    internal StoreId? SettingsIdOf(object? settingsId) =>
+        IdOf(settingsId, _settingsId, nameof(settingsId), nameof(WithSettingsId));
+
+    internal StoreId? ConversationIdOf(object? conversationId) =>
+        IdOf(conversationId, _conversationId, nameof(conversationId), nameof(WithConversationId));
+
+    // A resume needs a conversation, passed or given
+    internal StoreId ResumedConversation(object? conversationId) =>
+        ConversationIdOf(conversationId)
+        ?? throw new InvalidOperationException(
+            "A resume needs a conversation: call WithConversationId(id) on the host, or pass the conversation's id.");
 
     /// <summary>
     /// The raw path: creates the client of a run whose options <c>ResolveOptionsAsync</c> resolved. It takes the
@@ -89,12 +160,39 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
         }
     }
 
-    // D27: the agent's code, its stored settings, then the run's; values a layer leaves null keep the one below
-    internal async Task<ChatOptions> ResolveOptionsCoreAsync(object? settingsId, object? settings, CancellationToken ct)
+    /// <summary>
+    /// Disposes the scope of a host <see cref="TypeshiftRuntime.Agent{TAgent}"/> created, and with it the scoped
+    /// services its runs resolved. A host your app's container resolved, injected into a request for example, owns
+    /// nothing, and disposing it leaves its scope alone. So does a copy <c>WithSettingsId</c> or
+    /// <c>WithConversationId</c> made, which works only as long as the host it came from.
+    /// </summary>
+    /// <returns>The disposal.</returns>
+    public ValueTask DisposeAsync() => _scope?.DisposeAsync() ?? ValueTask.CompletedTask;
+
+    /// <summary>
+    /// Disposes the scope of a host <see cref="TypeshiftRuntime.Agent{TAgent}"/> created. Prefer
+    /// <see cref="DisposeAsync"/>: this one throws when a scoped service disposes only asynchronously.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// A service of the scope implements only <see cref="IAsyncDisposable"/>.
+    /// </exception>
+    public void Dispose() => _scope?.Dispose();
+
+    // D27, D66: the agent's code, its own stored settings, those under the settings id, then the run's; values a layer
+    // leaves null keep the one below
+    internal async Task<ChatOptions> ResolveOptionsCoreAsync(
+        StoreId? settingsId,
+        object? settings,
+        CancellationToken ct)
     {
         var declaration = Agent.GeneratedDeclaration;
-        var stored = settingsId is null ? null : await declaration.LoadSettingsAsync(Store, settingsId, ct);
-        IReadOnlyList<object> layers = [.. new[] { stored, settings }.OfType<object>()];
+        var loads = new[]
+        {
+            Store.KeepsAgentSettings ? declaration.LoadAgentSettingsAsync(Store, ct) : Task.FromResult<object?>(null),
+            settingsId is null ? Task.FromResult<object?>(null) : declaration.LoadSettingsAsync(Store, settingsId, ct)
+        };
+        object?[] loaded = [.. await Task.WhenAll(loads), settings];
+        IReadOnlyList<object> layers = [.. loaded.OfType<object>()];
 
         var options = new ResolvedChatOptions(Agent.ChatOptions)
         {
@@ -119,22 +217,25 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
         options.RunSetsMode = settings is not null && SetsMode(declaration, settings);
         options.SettingsId = settingsId;
 
+        // The raw path's conversation, which a run replaces with its own
+        options.Conversation = _conversationId;
+
         return options;
     }
 
     // A run without input resumes the conversation's interrupted run (D50)
     internal Task<ChatResponse> RunCoreAsync(
         ChatMessage? input,
-        object? settingsId,
-        object? conversationId,
+        StoreId? settingsId,
+        StoreId? conversationId,
         object? settings,
         CancellationToken ct) =>
         RunAsync(input is null ? [] : [input], settingsId, conversationId, settings, null, null, null, ct);
 
     internal async Task<ChatResponse<TResult>> RunCoreAsync<TResult>(
         ChatMessage input,
-        object? settingsId,
-        object? conversationId,
+        StoreId? settingsId,
+        StoreId? conversationId,
         object? settings,
         CancellationToken ct)
     {
@@ -147,8 +248,8 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
     // D64: the typed answer's format, as RunCoreAsync<TResult> asks for it, over a streaming run
     internal StreamingRun<TResult> RunStreamingCoreAsync<TResult>(
         ChatMessage input,
-        object? settingsId,
-        object? conversationId,
+        StoreId? settingsId,
+        StoreId? conversationId,
         object? settings,
         CancellationToken ct)
     {
@@ -160,20 +261,20 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
 
     internal IAsyncEnumerable<ChatResponseUpdate> RunStreamingCoreAsync(
         ChatMessage? input,
-        object? settingsId,
-        object? conversationId,
+        StoreId? settingsId,
+        StoreId? conversationId,
         object? settings,
         CancellationToken ct) =>
         RunStreamingAsync(input is null ? [] : [input], settingsId, conversationId, settings, null, null, ct);
 
-    internal IStoreAccess Store => _services.GetRequiredService<IStoreAccess>();
+    internal StoreAccess Store => _services.GetRequiredService<StoreAccess>();
 
     Agent IAgentHost.Agent => Agent;
 
     Task<ChatResponse> IAgentHost.RunAsync(
         IEnumerable<ChatMessage> messages,
-        object? settingsId,
-        object? conversation,
+        StoreId? settingsId,
+        StoreId? conversation,
         AgentRun? caller,
         RunClaim? claim,
         ChatResponseFormat? format,
@@ -182,8 +283,8 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
 
     IAsyncEnumerable<ChatResponseUpdate> IAgentHost.RunStreamingAsync(
         IEnumerable<ChatMessage> messages,
-        object? settingsId,
-        object? conversation,
+        StoreId? settingsId,
+        StoreId? conversation,
         RunClaim? claim,
         ChatResponseFormat? format,
         CancellationToken ct) =>
@@ -191,8 +292,8 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
 
     private async Task<ChatResponse> RunAsync(
         IEnumerable<ChatMessage> messages,
-        object? settingsId,
-        object? conversation,
+        StoreId? settingsId,
+        StoreId? conversation,
         object? settings,
         AgentRun? caller,
         RunClaim? claim,
@@ -209,8 +310,8 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
 
     private async IAsyncEnumerable<ChatResponseUpdate> RunStreamingAsync(
         IEnumerable<ChatMessage> messages,
-        object? settingsId,
-        object? conversation,
+        StoreId? settingsId,
+        StoreId? conversation,
         object? settings,
         RunClaim? claim,
         ChatResponseFormat? format,
@@ -258,6 +359,16 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
         return offered;
     }
 
+    private StoreId? IdOf(object? passed, StoreId? given, string parameter, string method) =>
+        (passed, given) switch
+        {
+            (null, _) => given,
+            (_, null) => Store.Wrap(passed),
+            _ => throw new ArgumentException(
+                $"The host has an id from {method} already: pass {parameter} to one of them, not both.",
+                parameter)
+        };
+
     // D64: a typed run's format, which an agent handed the run or answering in its place keeps
     private static void AskFor(ResolvedChatOptions options, ChatResponseFormat? format)
     {
@@ -274,8 +385,8 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
 
     // A sub-agent's run goes in its caller's mode (D33)
     private async Task<ResolvedChatOptions> ResolveRunAsync(
-        object? settingsId,
-        object? conversation,
+        StoreId? settingsId,
+        StoreId? conversation,
         object? settings,
         AgentRun? caller,
         CancellationToken ct)

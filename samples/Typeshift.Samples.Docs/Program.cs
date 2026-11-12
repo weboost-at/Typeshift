@@ -9,6 +9,10 @@ using Typeshift.Samples.Stores.EfCore;
 // checked at compile time, by the analyzer, and need no scenario of their own.
 await Quickstart.RunAsync();
 
+var settings = Path.Combine(Path.GetTempPath(), $"typeshift-samples-settings-{Guid.NewGuid():N}");
+await FileSettings.RunAsync(settings);
+Directory.Delete(settings, recursive: true);
+
 var database = Path.Combine(Path.GetTempPath(), $"typeshift-samples-{Guid.NewGuid():N}.db");
 var client = new CannedChatClient();
 

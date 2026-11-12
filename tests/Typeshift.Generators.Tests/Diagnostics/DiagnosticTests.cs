@@ -655,23 +655,33 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_A_Store_Of_Another_Id_Type_TSH028_Is_Reported_On_WithStore()
+    public void Given_A_Type_That_Is_No_Store_TSH028_Is_Reported_On_WithStore()
+    {
+        // Act
+        var run = Run(DiagnosticSources.NoStore);
+
+        // Assert
+        run.Assert.Reports("TSH028", DiagnosticSeverity.Error, "WithStore<Clock>");
+    }
+
+    [Fact]
+    public void Given_A_Store_Of_Another_Id_Type_TSH028_Is_Not_Reported()
     {
         // Act
         var run = Run(DiagnosticSources.OtherStoreIdType);
 
         // Assert
-        run.Assert.Reports("TSH028", DiagnosticSeverity.Error, "WithStore<InMemoryTypeshiftStore<int>>");
+        run.Assert.DoesNotReport("TSH028");
     }
 
     [Fact]
-    public void Given_A_Store_Of_Conversations_Of_Another_Id_Type_TSH028_Is_Reported_On_WithStore()
+    public void Given_A_Store_Of_Conversations_Of_Another_Id_Type_TSH028_Is_Not_Reported()
     {
         // Act
         var run = Run(DiagnosticSources.ConversationStoreOfAnotherIdType);
 
         // Assert
-        run.Assert.Reports("TSH028", DiagnosticSeverity.Error, "WithStore<EntryStore>");
+        run.Assert.DoesNotReport("TSH028");
     }
 
     [Fact]
@@ -679,6 +689,36 @@ public class DiagnosticTests : GeneratorTestBase
     {
         // Act
         var run = Run(DiagnosticSources.SettingsStoreOfTheBuildsIdType);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH028");
+    }
+
+    [Fact]
+    public void Given_A_Store_Of_Agent_Settings_And_Of_Settings_Of_Another_Id_Type_TSH028_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentSettingsStoreWithSettingsOfAnotherIdType);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH028");
+    }
+
+    [Fact]
+    public void Given_A_Store_Held_As_IAgentSettingsStore_TSH028_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentSettingsStoreHeldAsItsInterface);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH028");
+    }
+
+    [Fact]
+    public void Given_A_Store_Of_Agent_Settings_Alone_TSH028_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentSettingsStore);
 
         // Assert
         run.Assert.DoesNotReport("TSH028");

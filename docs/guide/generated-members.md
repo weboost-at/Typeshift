@@ -226,14 +226,15 @@ Every agent also gets:
 
 ## The agent host
 
-`AgentHost<TAgent>` runs one agent. Its own members are `Agent` and `CreateChatClientAsync`, and the generator adds
-the typed runs and settings of each agent.
+`AgentHost<TAgent>` runs one agent. Its own members are `Agent`, `CreateChatClientAsync`, `DisposeAsync` and
+`Dispose`, and the generator adds the typed runs and settings of each agent.
 
 ### The host's scope
 
 `AddTypeshift()` registers a host per agent as transient, so a host runs with the services of the scope it was
-resolved from. Tools, the chat client provider, middleware, context providers, approval rules and the MCP tool
-provider all resolve from that scope.
+resolved from. A host from `TypeshiftRuntime.Agent<TAgent>()` runs in a scope the runtime created for it
+([The runtime](./registration.md#the-runtime)). Tools, the chat client provider, middleware, context providers,
+approval rules and the MCP tool provider all resolve from the host's scope.
 
 Every member that loads or saves settings needs an `ISettingsStore`, and every member that loads or appends to a
 conversation needs an `IConversationStore`. [Registering a store](./settings-and-stores.md#registering-a-store) says
@@ -259,6 +260,14 @@ conversation, as a string of the id type. Disposing the client does not dispose 
 It throws an `InvalidOperationException` when no client is registered for the options' provider and model, and none
 for every agent.
 
+### `DisposeAsync` and `Dispose`
+
+`ValueTask DisposeAsync()` and `void Dispose()` dispose the scope of a host that `TypeshiftRuntime.Agent<TAgent>()`
+created, and with it the scoped services its runs resolved. A host your container resolved, such as one injected into
+a request, owns nothing, so disposing it does nothing. Dispose a host once its runs and streams are done, since they
+use its scope. `Dispose` throws an `InvalidOperationException` when a scoped service implements only
+`IAsyncDisposable`, so prefer `await using`.
+
 ### Typed members
 
 In these signatures, `TId` is the build's [id type](./registration.md#the-id-type) and `Settings` the agent's
@@ -276,16 +285,21 @@ In these signatures, `TId` is the build's [id type](./registration.md#the-id-typ
 | `RunStreamingAsync<TResult>(ChatMessage input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `StreamingRun<TResult>` |
 | `ResumeAsync(TId conversationId, TId? settingsId = null, Settings? settings = null)` | `Task<ChatResponse>` |
 | `ResumeStreamingAsync(TId conversationId, TId? settingsId = null, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
+| `ResumeAsync(Settings? settings = null)` | `Task<ChatResponse>` |
+| `ResumeStreamingAsync(Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
 | `ResolveOptionsAsync(TId? settingsId = null, Settings? settings = null)` | `Task<ChatOptions>` |
 | `LoadSettingsAsync(TId settingsId)` | `Task<Stored<Settings>>` |
 | `SaveSettingsAsync(TId settingsId, Settings settings, long loadedVersion)` | `Task<long>` |
 | `ConfigureAsync(TId settingsId, Func<Settings, Settings> configure)` | `Task<Settings>` |
+| `LoadSettingsAsync()` | `Task<Stored<Settings>>` |
+| `SaveSettingsAsync(Settings settings, long loadedVersion)` | `Task<long>` |
+| `ConfigureAsync(Func<Settings, Settings> configure)` | `Task<Settings>` |
 
 ### `RunAsync`
 
 `RunAsync` runs the agent on one message, a `string` or a `ChatMessage`, which can carry images or approval answers.
-It layers the agent's code, the settings stored under `settingsId`, the mode the conversation's last run ended in,
-then `settings` ([Settings layering](./settings-and-stores.md#settings-layering)).
+It layers the agent's code, the stored settings, the mode the conversation's last run ended in, then `settings`
+([Settings layering](./settings-and-stores.md#settings-layering)).
 
 With a `conversationId`, it stores the run as it goes ([What a run stores](#what-a-run-stores)). Without one, it
 stores nothing and offers no handoffs. If the model then calls a tool that requires approval and no rule or mode
@@ -301,7 +315,7 @@ answering agent's name as `AuthorName`.
 ### `RunStreamingAsync`
 
 `RunStreamingAsync` layers settings and stores the run like `RunAsync`, but streams the updates, with the tool calls
-running between them. With `WithRealtimeTracking()`, the updates are also published to
+running between them. The updates of a run with a conversation are also published to
 `ConversationTracker.WatchAsync`. `RunStreamingAsync<TResult>` is its typed form
 ([Structured output](./running-agents.md#structured-output)).
 
@@ -311,19 +325,23 @@ Both continue the conversation's interrupted run from its last stored step, with
 `RunAsync` and store the continuation in the same conversation. A tool call that was still running when the run
 stopped is left out, so the model decides again and may call the tool a second time
 ([Resuming](./conversations.md#resuming)). They throw an `InvalidOperationException` when the conversation has no
-interrupted run.
+interrupted run. The overloads without a conversation id resume the host's, from `WithConversationId(id)`, and throw
+when the host has none.
 
 ### `ResolveOptionsAsync`
 
-`ResolveOptionsAsync` layers the agent's code, the settings stored under `settingsId`, then `settings`, and returns
-the run's `ChatOptions` without storing anything. The options hold the model, the instructions, the configurable
+`ResolveOptionsAsync` layers the agent's code, the stored settings, then `settings`
+([Settings layering](./settings-and-stores.md#settings-layering)), and returns the run's `ChatOptions` without
+storing anything. The options hold the model, the instructions, the configurable
 options and the tools. The tools come in this order: the toolsets' tools with their layered settings, the
 sub-agents, the tools of `WithTools`, then the MCP servers' tools.
 
 ### `LoadSettingsAsync`
 
 `LoadSettingsAsync` loads the `Settings` stored under an id, with their version, or empty settings at version 0
-when none are stored. It layers nothing, so the record holds only what was stored.
+when none are stored. It layers nothing, so the record holds only what was stored. Without an id, it loads the
+agent's own settings, and `SaveSettingsAsync` and `ConfigureAsync` save them, through the `IAgentSettingsStore`. On a
+host from `WithSettingsId(id)`, the three take that id's settings instead.
 
 ### `SaveSettingsAsync`
 

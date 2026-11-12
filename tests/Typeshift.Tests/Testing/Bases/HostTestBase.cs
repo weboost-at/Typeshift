@@ -31,9 +31,13 @@ public abstract class HostTestBase : UnitTestBase, IAsyncDisposable
     {
         if (_scope.IsValueCreated) await _scope.Value.DisposeAsync();
         if (_services.IsValueCreated) await _services.Value.DisposeAsync();
+        await DisposeCoreAsync();
 
         GC.SuppressFinalize(this);
     }
+
+    // What a test class holds besides the container, such as files it wrote
+    protected virtual ValueTask DisposeCoreAsync() => ValueTask.CompletedTask;
 
     protected virtual void ConfigureServices(IServiceCollection services)
     {

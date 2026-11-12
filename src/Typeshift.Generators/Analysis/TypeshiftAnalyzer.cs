@@ -46,7 +46,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.AgentCircle,
         Descriptors.OfferedTwice,
         Descriptors.NoJsonMetadata,
-        Descriptors.OtherStoreIdType,
+        Descriptors.NoStore,
         Descriptors.UnknownIdType,
         Descriptors.OtherProviderIdType
     ];
@@ -97,7 +97,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         // The library's own builders make the calls a user may not
         if (context.Compilation.AssemblyName != KnownTypes.LibraryAssembly)
             context.RegisterOperationAction(
-                call => AnalyzeCall(call, idType, providerIdType),
+                call => AnalyzeCall(call, providerIdType),
                 OperationKind.Invocation);
 
         context.RegisterCompilationEndAction(end =>
@@ -239,10 +239,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
     private static Diagnostic UnknownIdType(string name, string? property, string reason) =>
         Diagnostic.Create(Descriptors.UnknownIdType, Location.None, name, property, reason);
 
-    private static void AnalyzeCall(
-        OperationAnalysisContext context,
-        ITypeSymbol? idType,
-        ITypeSymbol? providerIdType)
+    private static void AnalyzeCall(OperationAnalysisContext context, ITypeSymbol? providerIdType)
     {
         var invocation = (IInvocationOperation)context.Operation;
         var target = invocation.TargetMethod;
@@ -259,18 +256,16 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        // D11: the store serves ids of the build's type; an id type the build cannot find is TSH029 already
-        if (idType is not null
-            && target is { Name: "WithStore", TypeArguments.Length: 1 }
+        // D72: a store of any id type serves the ids of its type
+        if (target is { Name: "WithStore", TypeArguments.Length: 1 }
             && target.ContainingType.Is(KnownTypes.TypeshiftBuilder)
             && target.TypeArguments[0] is var store
-            && !IsStoreOf(store, idType))
+            && !IsStore(store))
         {
             context.ReportDiagnostic(Diagnostic.Create(
-                Descriptors.OtherStoreIdType,
+                Descriptors.NoStore,
                 ConstructorChains.GetCalledName(invocation).GetLocation(),
-                store.Name,
-                idType?.ToDisplayString()));
+                store.Name));
 
             return;
         }
@@ -297,15 +292,17 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    // D38: a store keeps settings, conversations or both, each by the build's id type
-    private static bool IsStoreOf(ITypeSymbol store, ITypeSymbol idType)
+    // D38, D66, D72: a store keeps settings or conversations, of any id type, or agents' own settings
+    private static bool IsStore(ITypeSymbol store)
     {
-        var contracts = store.AllInterfaces
-            .Where(contract => contract.Is(KnownTypes.SettingsStore) || contract.Is(KnownTypes.ConversationStore))
-            .ToList();
+        // A store your code holds as one of the interfaces is that interface too
+        IEnumerable<ITypeSymbol> implemented = store.TypeKind == TypeKind.Interface
+            ? [store, .. store.AllInterfaces]
+            : store.AllInterfaces;
 
-        return contracts.Count > 0
-            && contracts.All(contract => SymbolEqualityComparer.Default.Equals(contract.TypeArguments[0], idType));
+        return implemented.Any(contract => contract.Is(KnownTypes.SettingsStore)
+            || contract.Is(KnownTypes.ConversationStore)
+            || contract.Is(KnownTypes.AgentSettingsStore));
     }
 
     private static readonly string[] Builders =

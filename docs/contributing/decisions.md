@@ -137,10 +137,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** `<TypeshiftIdType>int</TypeshiftIdType>`, set once in `Directory.Build.props`, `Guid` by default. The
   library's id-carrying types are generic (`ITypeshiftStore<TId>`); the generator writes per project `global using`
   aliases (`ITypeshiftStore`, `ISettingsStore`, `IConversationStore`, `InMemoryTypeshiftStore`, `ConversationTracker`,
-  `LiveRun`) and generates typed members with the concrete type. A reference built with another id type is TSH021; a
-  store of another is TSH028. The interceptor closes the core services over the id type (`AddCoreServices<TId>`), so
-  `WithStore<T>()` needs none; behind the typed members, the library passes ids boxed to the store of that type. Module
-  stamps carry the id type.
+  `LiveRun`) and generates typed members with the concrete type. A reference built with another id type is TSH021.
+  The interceptor closes the core services over the id type (`AddCoreServices<TId>`), so `WithStore<T>()` needs none;
+  behind the typed members, the library passes ids boxed to the store of that type. Module stamps carry the id type.
+  D72 adds ids in code, each picking the store of its own type, and stores of any id type.
 - **Alternatives:** `AddTypeshift().WithIdType<int>()`, known only in the registering project, with generic run
   members checked at runtime; a generated interface per project, ambiguous under `InternalsVisibleTo`.
 - **Where:** `buildTransitive/Typeshift.props`, `Emitting/AliasEmitter.cs`.
@@ -314,9 +314,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Context:** v0 gave each tool call a fresh scope of the root container, so request-scoped services (the current
   customer) never reached tools, context or the chat client provider (audit finding 2).
-- **Decision:** `AgentHost<TAgent>` is transient and keeps the provider it was resolved from. Tools, context
-  providers, middleware, the MCP tool provider and the chat client provider resolve from it. Agents and toolsets stay
-  singletons, the store too.
+- **Decision:** `AgentHost<TAgent>` is transient and keeps the provider it was resolved from, or the scope
+  `TypeshiftRuntime.Agent<TAgent>()` created for it (D76). Tools, context providers, middleware, the MCP tool provider
+  and the chat client provider resolve from it. Agents and toolsets stay singletons, the store too.
 - **Alternatives:** a run-context tool parameter carrying the typed id, which built-in toolsets compiled before the
   host cannot type; per-call scopes, which lose the request.
 - **Where:** `AgentHost.cs`.
@@ -333,7 +333,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D27. Four settings layers
 
 - **Status:** brief. Code defaults, the agent's code, its stored `Settings`, the run. Stored tool
-  defaults (`ToolDefaults`) are gone, so resolving a run's settings is one document.
+  defaults (`ToolDefaults`) are gone, so resolving a run's settings is one document. The stored layer holds the
+  agent's own settings and, over them, those under the settings id (D66).
 
 ### D28. The model is a configurable option like any other
 
@@ -463,11 +464,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   the calling run as a message before a later model call, and the run does not end while sub-agents work. A
   sub-agent cannot ask the host: in the default mode its calls that need approval and that nothing approves are
   rejected (TSH024 warns). Circles are TSH026.
-- **As built:** the sub-agent's tool is a runtime `AIFunction` that resolves the agent's `AgentHost<T>` through a
-  factory `UseAgent<T>()` captured, so no generated code is needed; it finds its caller's run through
+- **As built:** the sub-agent's tool is a runtime `AIFunction` that builds the agent's `AgentHost<T>` over the
+  caller's services through a factory `UseAgent<T>()` captured (D76), so no generated code is needed; it finds its caller's run through
   `FunctionInvokingChatClient.CurrentContext`. Background answers join the run through the steering queue, so
   every run has a `ConversationRun`, which stores only with a conversation; the run's end cancels the sub-agents
-  still working, and the next run tells the model which ones it lost, after a crash, a cancellation or a failure,
+  still working and awaits them, so none outlives its run or the scope of a host disposed after it (D76), and the
+  next run tells the model which ones it lost, after a crash, a cancellation or a failure,
   including the ones a summary left working. TSH023 and TSH024 check the agents a compilation uses, a reference's
   through its module stamp, which carries the agent's name, whether it has a description and the tools it offers that
   require approval; tool stamps carry `RequiresApproval` for that list. TSH026 checks the compilation's own agents,
@@ -574,8 +576,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Details:** `WithStore<T>()` registers each interface `T` implements, so settings and conversations may live in
   two stores, each registered by its own call. Settings and conversations differ in shape and load: a few documents
   read once per run and saved with a version, against an append-only log written at every step. TSH028 reports a
-  store that implements neither interface for the build's id type, or either for another id type. Registration checks
-  the store's type with `IsAssignableFrom`, which reads no members and stays safe under trimming.
+  type that implements none of the store interfaces, of any id type (D72), and registration throws for the same types.
+  Registration reads the interfaces of the store's declared type, which `DynamicallyAccessedMembers` keeps under
+  trimming, and checks a store your app created against those of the build's id type as well.
 - **Alternatives:** v0's load and save only, which rewrote a whole conversation per turn; a generic append for any kind,
   a concept with one user; `LoadAsync<TData>` and `SaveAsync<TData>` over `IStorable` documents (up to 0.1.0-alpha.3),
   which made every store call `TData.Kind`, `Serialize` and `Deserialize` itself; one document per settings id holding
@@ -584,6 +587,66 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   keep; `WithSettingsStore<T>()` and `WithConversationStore<T>()`, two calls where the interfaces already say what a
   store keeps; renaming the conversation methods (`LoadAsync`, `AppendAsync`), which would clash with the settings
   methods in a class that implements both.
+
+### D66. Each agent has settings of its own, under no id
+
+- **Status:** owner.
+- **Context:** the owner asked for "a configurable, storable agent settings record for a single agent", stored "keyed
+  by the kind" alone, so that a simple app needs no settings ids.
+- **Decision:** `IAgentSettingsStore` keeps a document per kind, with a version, and no id. `ConfigureAsync(configure)`,
+  `LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)` are the members of D41 without the id. Every
+  run of the agent applies its own settings, over its code and under the settings of a settings id, so they are the
+  stored layer of an app without settings ids and the defaults of every id in one with them. `InMemoryTypeshiftStore`
+  implements the interface, and `WithStore<T>()` registers it as it does the other two (D38). A run loads them only
+  when a store of them is registered, so a store without them leaves runs as they were. Loading or saving them
+  without one throws, naming `IAgentSettingsStore`. They have paths of their own down to the store, and the members
+  that take an id throw on a null one, so a missing id never writes every id's defaults.
+- **Where:** `Storage/IAgentSettingsStore.cs`, `Storage/StoreAccess.cs`, `Storage/StoreExtensions.cs`,
+  `Storage/InMemoryTypeshiftStore.cs`, `Hosting/AgentHost.cs`, `Generated/AgentRuns.cs`,
+  `Generated/ModuleRegistration.cs`, `DependencyInjection/TypeshiftBuilder.cs`, `Emitting/AgentEmitter.cs`,
+  `Analysis/TypeshiftAnalyzer.cs`.
+- **Alternatives:** the agent's own settings in place of a settings id's instead of under them, which leaves an app
+  with ids no stored defaults; a reserved id, such as `Guid.Empty`, which not every id type has and a store cannot
+  tell from a real one; two more methods on `ITypeshiftStore<TId>`, which every store implementing it would have to
+  add; settings without an id on `ISettingsStore<TId>`, which ties them to an id type; a null settings id for them,
+  which a missing id of a reference type would reach; members of other names, such as `LoadOwnSettingsAsync`, which
+  keep `LoadSettingsAsync(default)` meaning an id but give one record two sets of names.
+
+### D67. A store of agents' own settings in files
+
+- **Status:** owner.
+- **Context:** the owner asked for first-party support of simple setups; an app with one agent and no database
+  still has to keep its settings across restarts. The owner then asked for a chain call that takes options, so that
+  "the user does not have to instantiate a class owned component by hand", that "file settings must only be exposed
+  under the file-store configuration", and that "a single store setting for the folder is enough".
+- **Decision:** the file store keeps each agent's own settings (D66) in `<folder>/settings/<kind>.json`, as
+  `{"kind": ..., "version": n, "settings": {...}}`, so the file reads and edits by hand. A save holds the kind's lock
+  file, opened with `FileShare.None`, so other stores and processes wait; it checks the version, writes a file of its
+  own beside the old one, flushes it to the disk and moves it over, so a load reads the old file or the new one whole.
+  Loads share deletion with that move, which Windows needs. A kind's file name keeps ASCII letters, digits, `_` and
+  `-` and escapes every other byte as `%XX`, so any kind maps to a file of the folder, one to one; a name Windows
+  reserves is escaped too. The file names its kind, so a file system that ignores case and gives two kinds one file
+  fails the load instead of handing one agent the other's settings. A file of another shape throws an
+  `InvalidDataException` that names it and the shape. `WithFileStore(configure)` and `FileStoreOptions` are the only
+  public parts, and `Folder` the only option. It defaults to `typeshift` under `AppContext.BaseDirectory`, which a
+  service finds whatever its current directory, resolves at registration, and a blank one throws there, naming the
+  option. The settings get the fixed `settings` folder in it, so a store of other data can take a folder beside it. The
+  container builds the internal `FileAgentSettingsStore` over that folder with the app's `TimeProvider`,
+  through the registration `WithStore<T>()` uses, so the last call wins for each interface. `WithStore(store)`
+  registers a store your code created, as each interface the instance implements, and the container leaves it
+  undisposed.
+- **Where:** `Storage/FileAgentSettingsStore.cs`, `Storage/FileStoreExtensions.cs`, `Storage/FileStoreOptions.cs`,
+  `DependencyInjection/TypeshiftBuilder.cs`.
+- **Alternatives:** one lock per store instance, which two instances or processes on one folder pass through, tearing
+  the file; refusing kinds that are no plain file name, which fails every run of an agent named in another script;
+  TSH022 ignoring case, which would reject kinds a case-sensitive store keeps apart;
+  a file store of settings ids and conversations too, a database in files that SQLite already is;
+  the folder from configuration, which ties the store to a configuration section the app may not have; one file for
+  every agent, where a save of one agent's settings rewrites the others'; `WithFileSettings` and a public
+  `FileSettingsOptions`, which exposed the settings outside the file store's configuration; a settings folder of its
+  own option, relative to `Folder` or absolute, a second setting where one folder is enough; a relative default
+  folder, which a service resolves against the system's folder; a public `FileAgentSettingsStore` registered with
+  `WithStore(store)`, which made every app create a class of Typeshift's and hand it the clock itself.
 
 ### D68. The package turns XML docs on
 
@@ -677,7 +740,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   names the rule a store broke. It runs the rules of every interface the store implements, whichever one it is called
   through, so a store that is both cannot pass on one alone. It needs no test framework, so a store's tests in any
   framework can call it. It writes under the id it is given, as a settings id and as a conversation id, so tests pass
-  one that nothing else uses.
+  one that nothing else uses. A store that is also an `IAgentSettingsStore` is checked under new kinds, and for
+  keeping its own documents apart from an id's; `VerifyAgentSettingsAsync(kind)` checks a store of them alone (D66).
 - **Details:** the steps are on [Implementing a store](../guide/implementing-a-store.md#check-your-store). The summary
   entries have `StandingApprovals` set, as compaction writes them, and entries carry fixed times, so the check reads
   no clock. A store's own exception where a conflict belongs is named in the message. A conversation id with entries,
@@ -704,33 +768,145 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 ### D43. The store is the persistence switch
 
-- **Status:** carried (v0 D26). Without `WithStore<T>()`, runs without a settings or conversation id work; everything
-  that loads or saves throws, naming `WithStore<T>()` and the store interface it needs (D38).
+- **Status:** carried (v0 D26), changed by D69. Once a store is registered, everything that loads or saves through a
+  store interface none of the registered stores implements throws, naming `WithStore<T>()` and the interface (D38).
+  Without any store, D69 keeps everything in memory.
 
-### D75. An app without a container creates a TypeshiftApp
+### D69. Without a store, everything is kept in memory
 
 - **Status:** owner.
-- **Context:** the owner asked for less ceremony, "Wolverine-style", and chose `TypeshiftApp.Create` over a factory on
-  each agent. A first run took a `ServiceCollection`, `AddTypeshift()`, a provider, a scope and a host from it.
-- **Decision:** `TypeshiftApp.Create(client, configure)` returns an app that owns a container and one scope, and
-  `app.Agent<TAgent>()` returns a host from that scope. With one scope for the app's lifetime, its scoped services
-  (the chat client provider, approval rules, middleware, the MCP tool provider and what tools resolve) act as
-  singletons of the app, shared by concurrent runs; an app that needs a scope per request uses `AddTypeshift()`. The
-  generator intercepts `Create` as it does `AddTypeshift()` (D1): the interceptor builds a `ServiceCollection`,
-  registers the core services and the modules with its own `AddTypeshift`, and `ModuleRegistration.CreateApp`
-  registers the client as an instance for every agent (D63), runs `configure` on the chain and builds the provider
-  with scope validation. The container never disposes an instance, so the client outlives the app. Disposing the app
-  disposes the provider even when disposing the scope throws. The generator reads only a `Create` whose receiver
-  names `TypeshiftApp` and skips a call bound at run time, such as one with a `dynamic` argument; a call it did not
+- **Context:** the owner asked for sane defaults, "for stock users to have a working library at their hands from the
+  get-go". Without `WithStore<T>()`, every settings save, every run with an id and every approval threw.
+- **Decision:** when no `ISettingsStore`, `IConversationStore` or `IAgentSettingsStore` of the build's id type is
+  registered, nor any store through `WithStore<T>()`, the store access keeps everything in an `InMemoryTypeshiftStore`
+  of its own per id type (D72), a singleton like the host's other services. The first save or append logs a warning,
+  once, that names `WithStore<T>()`, and `WithFileStore()` for agents' own settings, and says the data is gone when
+  the app stops; loads stay quiet, since a load of nothing loses nothing. Once any store is registered, only
+  registered stores serve, so an app that kept settings in a database and forgot a store of conversations still gets
+  the exception of D43 instead of conversations that vanish.
+- **Where:** `Storage/StoreAccess.cs`.
+- **Alternatives:** throwing as before, ceremony every first run hits; memory for each interface no registered store
+  implements, which hides a forgotten store in an app that chose one; a warning at startup, which an app that never
+  stores anything would see too.
+
+### D72. Ids are given in code, and their types pick the stores
+
+- **Status:** owner.
+- **Context:** the owner asked that the id type move from the build into code and become "more granular": settings
+  and conversations of one app may have ids of different types. One MSBuild property typed every id of the build.
+- **Decision:** `host.WithSettingsId(id)` and `host.WithConversationId(id)` return a copy of the host that carries the
+  id, typed by the call, so `WithSettingsId(42)` names an `ISettingsStore<int>` and `WithConversationId(chat)` an
+  `IConversationStore<Guid>`. The id goes down the run as a `StoreId<TId>`, which reaches the store of its type
+  through a generic call, so no type is made at run time and Native AOT keeps working; it is equal only to an id of
+  the same type and value, so conversation 5 as an `int` and as a `long` are two conversations. `WithStore<T>()`
+  registers a store as each store interface its declared type implements, of any id type, and TSH028 reports only a
+  type that is no store. `ConversationTracker` steers and watches conversations of any id type through generic
+  overloads, while its `Runs` lists those of the build's id type. A resume without an id resumes the host's
+  conversation, and the raw path keeps it. The settings members of a host with a settings id load, save and configure
+  the id's settings in place of the agent's own (D66). Without any store, D69 keeps one store in memory per id type,
+  and warns on the first write that one of them takes. The id parameters of the generated members stay, of the build's
+  id type (D11), until the docs and samples move to the scopes; a call that passes an id the host has already throws,
+  naming both. A copy runs in its host's scope and owns none of it (D76): disposing a copy leaves the scope alone,
+  so the copy works as long as the host it came from, and only a host the runtime created disposes the scope, once.
+- **Where:** `Hosting/AgentHost.cs`, `Storage/StoreId.cs`, `Storage/StoreAccess.cs`, `Generated/AgentRuns.cs`,
+  `Generated/ModuleRegistration.cs`, `DependencyInjection/TypeshiftBuilder.cs`, `Conversations/ConversationTracker.cs`,
+  `Analysis/TypeshiftAnalyzer.cs`.
+- **Alternatives:** an assembly attribute or two MSBuild properties, still one id type per build and outside code;
+  `ForSettings(id)` and `InConversation(id)`, names the owner turned down; ids as parameters of every generic run
+  member, which repeats them on every call and every overload; looking the store up by the id's runtime type, which
+  needs `MakeGenericType` and misses an id whose runtime type differs from its declared one; copies that share the
+  scope's ownership with their host, by a count, which keep it open while any copy lives and make each copy one more
+  thing to dispose.
+
+### D73. Every conversation can be kept
+
+- **Status:** owner.
+- **Context:** the owner asked for an option, "if enabled by the user in the global settings", that "automatically
+  generates conversation IDs when none was provided and stores them automatically", under a general configuration
+  prefix, and accepted `WithOptions(options => options.PersistAllConversations = true)`.
+- **Decision:** `TypeshiftOptions` holds what every run does, set by `WithOptions(configure)`, whose calls change one
+  instance. With `PersistAllConversations`, a run of the host's own that has input, no conversation, no
+  `ChatOptions.ConversationId` and no caller starts one: the conversation client gives a copy of the options a new id,
+  so options the app reuses never share it. A run without input continues an interrupted run (D50), which a new
+  conversation lacks, so it starts none, and neither does a raw-path call with options the app made, or none, since they
+  carry no host's run. New ids come from `NewConversationIds(create)`, typed like any id (D72), which concurrent runs
+  call at once, so it must be thread-safe and never repeat an id. Without it, they follow the build's id type, which
+  `BuildIds<TId>` knows: a `Guid` of version 7 from the injected clock, its text for `string`, and for any other type an
+  `InvalidOperationException` that names `NewConversationIds`. A sub-agent's run belongs to its caller's conversation
+  and starts none, and a handoff continues the caller's. Every run with a conversation names it in
+  `ChatResponse.ConversationId`, and each streaming update in a copy, since the tool loop still holds the update and
+  reads an update that names a conversation as one the service keeps, which would leave the history out of its next
+  call.
+- **Where:** `DependencyInjection/TypeshiftOptions.cs`, `DependencyInjection/TypeshiftBuilder.cs`,
+  `Conversations/ConversationChatClient.cs`, `Storage/StoreAccess.cs`.
+- **Alternatives:** `WithStoredConversations` or `TrackAll`, names the owner turned down for one under a general
+  prefix; `Guid.NewGuid()`, which does not sort by time; a `Guid` whatever the build's id type, which the store of an
+  `int` or `string` build cannot keep; reading the build's id type by reflection, which Native AOT warns about; ids
+  from the store, which would add a method every store must implement; naming the new conversation only in a header
+  or a property bag, which a typed run's response would hide.
+
+### D74. Live updates are on by default
+
+- **Status:** owner.
+- **Context:** the owner asked to "ship with sane defaults, for stock users to have a working library at their hands
+  from the get-go", and chose live updates on by default. `WatchAsync` threw until `WithRealtimeTracking()` was called.
+- **Decision:** `AddTypeshift()` registers the default `RealtimeTrackingOptions`, so runs with a conversation publish
+  their updates and `WatchAsync` reads them without a call. `WithRealtimeTracking(options)` replaces the options and
+  only tunes the intervals and limits. A publish with no watcher is one dictionary lookup, and merged text waits for
+  the next update, so no timer runs (D47).
+- **Where:** `Generated/ModuleRegistration.cs`, `DependencyInjection/TypeshiftBuilder.cs`,
+  `Conversations/ConversationTracker.cs`.
+- **Alternatives:** keeping it opt-in, which the owner turned down; a switch to turn it off, which nothing needs yet.
+
+### D75. An app without a container creates a TypeshiftRuntime
+
+- **Status:** owner.
+- **Context:** the owner asked for less ceremony, "Wolverine-style", and chose `TypeshiftRuntime.Create`, first named
+  `TypeshiftApp`, over a factory on each agent. A first run took a `ServiceCollection`, `AddTypeshift()`, a provider,
+  a scope and a host from it.
+- **Decision:** `TypeshiftRuntime.Create(client, configure)` builds a container and returns its runtime, which owns
+  it, and `runtime.Agent<TAgent>()` returns a host in a scope of its own (D76). The generator intercepts `Create` as
+  it does `AddTypeshift()` (D1): the interceptor builds a `ServiceCollection`, registers the core services and the
+  modules with its own `AddTypeshift`, and `ModuleRegistration.CreateRuntime` registers the client as an instance for
+  every agent (D63), runs `configure` on the chain and builds the provider with scope validation. The container never
+  disposes an instance, so the client outlives the runtime. The generator reads only a `Create` whose receiver names
+  `TypeshiftRuntime` and skips a call bound at run time, such as one with a `dynamic` argument; a call it did not
   intercept throws, saying how to call it. The generator's pass binds the call to its sole candidate when the
   `configure` lambda names an alias it has not written yet. The library references
   `Microsoft.Extensions.DependencyInjection`, the container, which it did not before.
-- **Where:** `Hosting/TypeshiftApp.cs`, `Generated/ModuleRegistration.cs`, `Parsing/InterceptParser.cs`,
+- **Where:** `Hosting/TypeshiftRuntime.cs`, `Generated/ModuleRegistration.cs`, `Parsing/InterceptParser.cs`,
   `Emitting/InterceptorEmitter.cs`.
 - **Alternatives:** a generated `Create` on each agent, which the owner turned down, and whose agents would not share
   a store or a tracker; a library `Create` that registers nothing, since only the generator knows the project's
   modules; a container of the library's own, which would serve neither scoped services nor the app's;
-  `AddChatClient(client)`, whose factory makes the container own the client and dispose it with the app.
+  `AddChatClient(client)`, whose factory makes the container own the client and dispose it with the runtime.
+
+### D76. The runtime is the root, and its hosts are units of work
+
+- **Status:** owner.
+- **Context:** D75's first design gave the app one scope for its lifetime, so every run shared its scoped services,
+  and an app with a container still built a scope by hand for each background job. The owner asked for one root in
+  both kinds of app, after Wolverine's `WolverineRuntime`, which creates short-lived `IMessageBus` instances, and
+  renamed `TypeshiftApp` to `TypeshiftRuntime`.
+- **Decision:** `AddCoreServices` registers `TypeshiftRuntime` as a singleton over the root provider, so a singleton
+  of the app, such as a background service, injects it. `Create` resolves that singleton from the container it builds
+  and hands it the container. Disposing that runtime disposes the container, which disposes the runtime again, and the
+  second call finds nothing left to dispose. A runtime your app's container created owns nothing, and disposing it
+  does nothing. `runtime.Agent<TAgent>()` creates an async scope and a host that owns it: one unit of work, whose runs
+  use that scope's services as D25 has every host use its scope's. `AgentHost<TAgent>` is `IAsyncDisposable` and
+  `IDisposable`. Disposing a host the runtime created disposes its scope; disposing one the container resolved, such
+  as one injected into a request, does nothing, since the container owns that scope, and so does disposing a copy from
+  `WithSettingsId` or `WithConversationId` (D72), which shares its host's scope. A scope keeps every disposable
+  the container builds until it ends, so the library builds the hosts of sub-agents and handoffs itself
+  (`AgentHost<TAgent>.In`) rather than resolving them, or a long-lived host would collect one for each run.
+  `runtime.Services` is the root provider, for singletons such as the `ConversationTracker`. A request still injects
+  `AgentHost<TAgent>` from its own scope. Your app lets a host's runs and streams finish before it disposes the host,
+  and a run that ends awaits the background sub-agents it stopped (D33), so none works on in a disposed scope.
+- **Where:** `Hosting/TypeshiftRuntime.cs`, `Hosting/AgentHost.cs`, `Agents/Agent.cs`,
+  `Generated/ModuleRegistration.cs`.
+- **Alternatives:** a separate `AgentScope` object that holds a scope and hands out hosts, which the owner turned
+  down; one scope for the runtime's lifetime, D75's first design, whose scoped services, such as the chat client
+  provider and what tools resolve, every run shared, concurrent ones included.
 
 ### D44. Settings records serialize themselves
 
@@ -820,8 +996,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D47. Live updates are a feed per conversation
 
 - **Status:** approved.
-- **Decision:** `WithRealtimeTracking(options)` turns publishing on; `ConversationTracker.WatchAsync(conversation)`
-  reads a bounded feed that drops its oldest updates when the watcher falls behind. A run never waits
+- **Decision:** runs publish their updates from the start (D74), and `WithRealtimeTracking(options)` tunes them;
+  `ConversationTracker.WatchAsync(conversation)` reads a bounded feed that drops its oldest updates when the watcher falls behind. A run never waits
   for a watcher. `PublishInterval` (100 ms) and `MaxPendingUpdates` (256) are options. `Runs` lists the runs of
   conversations going on in this process.
 - **Alternatives:** v0's process-wide events, awaited up to 5 s per model call.

@@ -1200,6 +1200,20 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string NoStore =
+        """
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal sealed class Clock;
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithStore<Clock>();
+        }
+        """;
+
     public const string OtherStoreIdType =
         """
         using Typeshift;
@@ -1236,6 +1250,72 @@ public static class DiagnosticSources
         {
             public static void Register(IServiceCollection services) =>
                 services.AddTypeshift().WithStore<EntryStore>();
+        }
+        """;
+
+    public const string AgentSettingsStore =
+        """
+        using System;
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal sealed class AgentStore : IAgentSettingsStore
+        {
+            public Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct) =>
+                throw new NotSupportedException();
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithStore<AgentStore>();
+        }
+        """;
+
+    public const string AgentSettingsStoreWithSettingsOfAnotherIdType =
+        """
+        using System;
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal sealed class MixedStore : IAgentSettingsStore, ISettingsStore<int>
+        {
+            public Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task<StoredDocument?> LoadAsync(int id, string kind, CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task<long> SaveAsync(int id, string kind, string json, long loadedVersion, CancellationToken ct) =>
+                throw new NotSupportedException();
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithStore<MixedStore>();
+        }
+        """;
+
+    public const string AgentSettingsStoreHeldAsItsInterface =
+        """
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services, IAgentSettingsStore store) =>
+                services.AddTypeshift().WithStore(store);
         }
         """;
 

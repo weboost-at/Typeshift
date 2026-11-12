@@ -27,13 +27,18 @@ services.AddTypeshift() --> InterceptParser --> InterceptorEmitter -------> AddT
 
 | Namespace | Holds |
 |---|---|
-| `Typeshift` | `Toolset` and the tool chain (`ToolBuilder`, the settings builders), `ToolName`, `ToolList<T>`; `Agent` and its chains (`ChatOptionsBuilder`, `ToolsetUse<T>`, `RunOptionsBuilder`), `RunOptions`; `AgentHost<T>`, `IChatClientProvider`, `TypeshiftBuilder`. |
+| `Typeshift` | `Toolset` and the tool chain (`ToolBuilder`, the settings builders), `ToolName`, `ToolList<T>`; `Agent` and its chains (`ChatOptionsBuilder`, `ToolsetUse<T>`, `RunOptionsBuilder`), `RunOptions`; `TypeshiftRuntime`, `AgentHost<T>`, `IChatClientProvider`, `TypeshiftBuilder`. |
 | `Typeshift.Generated` | What only generated code calls, hidden from editors (D10): `GeneratedToolFunction`, `ToolParameter`, `ToolJson`, `AgentDeclaration`, `AgentRuns`, `ModuleRegistration` and the stamps. |
 | `Microsoft.Extensions.DependencyInjection` | `AddTypeshift()`, which throws unless the generator intercepts it (D1). |
 
 At runtime the declaration chains only return the next builder or record a value, such as `WithDisplayName`, the
 chat and run options or `Configure{Tool}()`. Which tools exist, what an agent offers and what may change at runtime
 is decided by the generated code alone (D4).
+
+`TypeshiftRuntime` is a singleton over the root provider, which `AddCoreServices` registers. `Agent<TAgent>()`
+creates an async scope and a host that owns it, and disposing the host disposes the scope; a host the container
+resolved owns nothing. The runtime that `Create` returns owns the container it built, so disposing the runtime
+disposes the container. A runtime an app's own container created leaves that container alone (D76).
 
 ## The generator and the analyzer
 
@@ -63,7 +68,7 @@ what does not parse (D2).
 6. **Registration.** `Emitting/ModuleEmitter.cs` writes one module, stamped with `[GeneratedModule]`, per assembly
    that declares toolsets or agents. `Emitting/InterceptorEmitter.cs` intercepts every `AddTypeshift()` call and
    registers the core services, the project's module and its references' modules (D1). It intercepts every
-   `TypeshiftApp.Create` call too, which builds a container of the same registration (D75).
+   `TypeshiftRuntime.Create` call too, which builds a container of the same registration (D75).
 
 The analyzer checks what spans declarations in a compilation-end action: unique tool names, the references' stamps
 included, and references without a module. Calls the generator cannot read (TSH014, TSH015) it checks in an
@@ -94,7 +99,8 @@ unless it is an object of properties.
 1. The generated `RunAsync` passes the input, the settings id (boxed) and the run's `Settings` to `AgentRuns`, which
    calls the host.
 2. `AgentHost<T>` resolves the options. It starts from a copy of the agent's chat options and its instructions, and
-   applies each settings layer through the generated declaration: the stored settings, then the run's. Each layer
+   applies each settings layer through the generated declaration: the agent's own stored settings, those under the
+   settings id, then the run's. Each layer
    reaches the configurable options and the run options. Then come the offered tools, created with their layered
    settings (D27), the sub-agents (D33) and the MCP servers' tools (D35).
 3. It takes the client of the run's provider and model from the scope's `IChatClientProvider`, an `IChatClient` keyed
@@ -110,12 +116,17 @@ unless it is an object of properties.
 
 ## Storage
 
-`ISettingsStore<TId>` keeps documents by id and kind, as JSON with a version (D38, D41), and
-`IConversationStore<TId>` keeps conversation entries. `ITypeshiftStore<TId>` is both in one. `WithStore<T>()` registers
-each of them the store implements, so a host may keep settings and conversations in two stores. The library never sees
-the id type. The interceptor registers `StoreAccess<TId>` through `AddCoreServices<TId>`, and runs reach it as
-`IStoreAccess` with boxed ids (D11). `StoreAccess` serializes and reads the documents, so a store handles strings and
-numbers only. `VerifyAsync` runs the rules a store must keep against it, from the store's own tests (D58).
+`ISettingsStore<TId>` keeps documents by id and kind, as JSON with a version (D38, D41), `IAgentSettingsStore` keeps
+the agents' own by kind alone (D66), and `IConversationStore<TId>` keeps conversation entries. `ITypeshiftStore<TId>`
+is the first and the last in one. A null settings id reaches `IAgentSettingsStore`, and a run loads from it only when
+one is registered. `WithStore<T>()` registers
+each of them the store implements, of any id type, so a host may keep settings and conversations in two stores, under
+ids of two types. A run carries each id as a `StoreId<TId>`, from `WithSettingsId` and `WithConversationId` or from a
+generated member's parameter of the build's id type (D11), and the id reaches the store of its type through a generic
+call (D72). `StoreAccess` serializes and reads the documents, so a store handles strings and numbers only. `VerifyAsync` runs the rules a store must keep against it, from the store's own tests (D58).
+`WithFileStore` registers the internal `FileAgentSettingsStore`, which keeps agents' own settings in the `settings`
+folder of the file store's folder, a file per kind (D67). With no store registered at all, `StoreAccess` keeps
+everything in an `InMemoryTypeshiftStore` of its own per id type and warns on the first write (D69).
 
 The generator writes each agent's `Settings` as an `IStorable<Settings>`, with a kind, a schema version, `Serialize` and
 `Deserialize`. It is an `IJsonStorable<Settings>` too, whose `WriteJson` and `TryReadJson` serve `Serialize` and the

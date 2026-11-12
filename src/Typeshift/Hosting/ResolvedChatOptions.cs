@@ -21,9 +21,9 @@ internal sealed class ResolvedChatOptions : ChatOptions
     // D52: a run whose settings name a mode leaves the conversation's mode behind
     public bool RunSetsMode { get; set; }
 
-    public object? SettingsId { get; set; }
+    public StoreId? SettingsId { get; set; }
 
-    public object? Conversation { get; set; }
+    public StoreId? Conversation { get; set; }
 
     public AgentRun? AgentRun { get; set; }
 

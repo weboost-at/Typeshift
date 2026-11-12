@@ -8,10 +8,10 @@ namespace Typeshift;
 // even in the copies of messages it makes; the steering input and background answers waiting for the next model
 // call, and where in the tool loop's messages that input went. Without a conversation it stores nothing
 internal sealed class ConversationRun(
-    object? conversation,
+    StoreId? conversation,
     AgentRun run,
     string model,
-    IStoreAccess store,
+    StoreAccess store,
     TimeProvider time,
     ILogger logger)
 {
@@ -30,8 +30,10 @@ internal sealed class ConversationRun(
     // D60: the approval requests this run left open, by what it stored, as the next run reads them
     private OpenRequests _requests = new();
 
-    // D33: the background sub-agents still working by call id, and a signal for each answer or steering input
+    // D33: the background sub-agents still working by call id, the work of each, and a signal for each answer or
+    // steering input
     private readonly ConcurrentDictionary<string, string> _background = [];
+    private readonly ConcurrentBag<Task> _work = [];
     private readonly SemaphoreSlim _arrived = new(0);
     private readonly CancellationTokenSource _stopping = new();
 
@@ -44,7 +46,7 @@ internal sealed class ConversationRun(
 
     public const string BackgroundCall = "typeshift.background_call";
 
-    public object? Conversation { get; } = conversation;
+    public StoreId? Conversation { get; } = conversation;
 
     public string Agent { get; } = run.Agent.Name;
 
@@ -125,7 +127,7 @@ internal sealed class ConversationRun(
     {
         _background[callId] = agent;
 
-        _ = Task.Run(async () =>
+        _work.Add(Task.Run(async () =>
         {
             try
             {
@@ -147,7 +149,7 @@ internal sealed class ConversationRun(
                 _background.TryRemove(callId, out _);
                 _arrived.Release();
             }
-        });
+        }));
     }
 
     // The history and the input a run starts from are stored already
@@ -235,6 +237,9 @@ internal sealed class ConversationRun(
     public async Task EndAsync(string? error)
     {
         _stopping.Cancel();
+
+        // D33: a stopped sub-agent finishes before its run ends, so none works on in a scope disposed after the run
+        await Task.WhenAll(_work);
         await CloseAsync();
 
         await AppendAsync(

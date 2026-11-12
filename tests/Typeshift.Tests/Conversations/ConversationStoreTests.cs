@@ -2,9 +2,11 @@ using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Compaction.Support;
 using Typeshift.Tests.Conversations.Support;
 using Typeshift.Tests.Persistence.Support;
+using Typeshift.Tests.Testing.Fakes;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Typeshift.Tests.Conversations;
 
@@ -152,7 +154,7 @@ public class ConversationStoreTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_No_Store_A_Run_With_A_Conversation_Fails_Naming_WithStore()
+    public async Task Given_No_Store_A_Conversation_Is_Kept_In_Memory_And_Its_Next_Run_Resumes_It()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -160,14 +162,52 @@ public class ConversationStoreTests : AgentTestBase
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider();
-        await using var scope = provider.CreateAsyncScope();
+
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason));
+
+        await using (var first = provider.CreateAsyncScope())
+        {
+            await first.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+                .RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+        }
+
+        await using var second = provider.CreateAsyncScope();
 
         // Act
-        var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
-            .RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+        await second.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .RunAsync(Data.Agent.FollowUp, conversationId: Data.Agent.ConversationId, ct: Ct);
 
         // Assert
-        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*WithStore*");
+        ChatClient.Requests[1].Select(message => message.Text).Should().Contain(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_No_Store_The_First_Run_That_Stores_Warns_Once_That_It_Keeps_Them_In_Memory()
+    {
+        // Arrange
+        var logs = new WarningLog();
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton<ILoggerFactory>(logs);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason));
+
+        // Act
+        await host.RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+        await host.RunAsync(Data.Agent.FollowUp, conversationId: Data.Agent.ConversationId, ct: Ct);
+
+        // Assert
+        logs.Warnings.Should().ContainSingle();
+        logs.Warnings[0].Should().Contain("WithStore");
+        logs.Warnings[0].Should().Contain("WithFileStore");
     }
 
     [Fact]
@@ -232,18 +272,47 @@ public class ConversationStoreTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_No_Live_Updates_Watching_Fails_Naming_WithRealtimeTracking()
+    public void Given_Realtime_Options_They_Replace_The_Defaults()
     {
         // Arrange
+        var options = new RealtimeTrackingOptions { MaxPendingUpdates = 1024 };
         var services = new ServiceCollection();
-        services.AddTypeshift();
-
-        await using var provider = services.BuildServiceProvider();
 
         // Act
-        var watch = () => provider.GetRequiredService<ConversationTracker>().WatchAsync(Data.Agent.ConversationId, Ct);
+        services.AddTypeshift().WithRealtimeTracking(options);
 
         // Assert
-        watch.Should().Throw<InvalidOperationException>().WithMessage("*WithRealtimeTracking*");
+        using var provider = services.BuildServiceProvider();
+        provider.GetServices<RealtimeTrackingOptions>().Should().Equal(options);
+    }
+
+    [Fact]
+    public async Task Given_No_WithRealtimeTracking_A_Watcher_Receives_The_Updates_Of_A_Streaming_Run()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider(validateScopes: true);
+        await using var scope = provider.CreateAsyncScope();
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        await using var watch = provider.GetRequiredService<ConversationTracker>()
+            .WatchAsync(Data.Agent.ConversationId, watching.Token)
+            .GetAsyncEnumerator(Ct);
+
+        var next = watch.MoveNextAsync();
+
+        // Act
+        await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .RunStreamingAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct)
+            .ToListAsync(Ct);
+
+        // Assert
+        (await next).Should().BeTrue();
+        watch.Current.Text.Should().Be(Data.Tool.Answer);
     }
 }

@@ -60,8 +60,7 @@ services.AddSingleton(TimeProvider.System);
 services.AddDemoServices(catalog, canned);
 
 services.AddTypeshift()
-    .WithChatClientProvider<RoutingChatClientProvider>()
-    .WithRealtimeTracking();
+    .WithChatClientProvider<RoutingChatClientProvider>();
 
 await using var provider = services.BuildServiceProvider(new ServiceProviderOptions
 {

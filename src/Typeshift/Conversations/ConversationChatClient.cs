@@ -10,7 +10,8 @@ namespace Typeshift;
 // D46, D50: outermost, around the tool loop. It begins every run (its AgentRun, mode and invoke_agent span, D36),
 // and for a run with a conversation resumes it, marks where the run begins and ends, and publishes the updates of
 // streaming runs (D47). A run goes on while steering input or a background sub-agent's answer waits (D33, D51), and
-// a handoff continues it with the agent handed to (D34). The provider never receives the conversation id
+// a handoff continues it with the agent handed to (D34). The provider never receives the conversation id; the response
+// names it (D73)
 internal sealed class ConversationChatClient(IChatClient inner, Agent agent, IServiceProvider services)
     : DelegatingChatClient(inner)
 {
@@ -21,11 +22,13 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
+        options = WithNewConversation(messages, options);
         using var activity = Telemetry.StartRun(agent, options);
 
         try
         {
             var response = await RunAsync(messages, options, activity, cancellationToken);
+            if (Named(options) is { } conversation) response.ConversationId = conversation;
             Telemetry.Answered(activity, response.Usage);
             return response;
         }
@@ -41,8 +44,10 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         ChatOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
+        options = WithNewConversation(messages, options);
         using var activity = Telemetry.StartRun(agent, options);
         var usage = new UsageDetails();
+        string? conversation = null;
 
         await using var updates = RunStreamingAsync(messages, options, activity, cancellationToken)
             .GetAsyncEnumerator(cancellationToken);
@@ -51,6 +56,8 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         {
             try
             {
+                // In the try, so an id that does not parse fails the span
+                conversation ??= Named(options);
                 if (!await updates.MoveNextAsync()) break;
             }
             catch (Exception exception)
@@ -64,17 +71,43 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                 usage.Add(content.Details);
             }
 
-            yield return updates.Current;
+            // A copy, since the tool loop still holds the update, and one that names a conversation would make it
+            // leave the history to the service
+            yield return conversation is null ? updates.Current : Named(updates.Current, conversation);
         }
 
         Telemetry.Answered(activity, usage);
     }
 
+    // D73: a run of the host's own, with input and no conversation, starts one when every conversation is kept; a
+    // sub-agent's run belongs to its caller's, and a run without input resumes an interrupted run (D50)
+    private ChatOptions? WithNewConversation(IEnumerable<ChatMessage> messages, ChatOptions? options)
+    {
+        if (options is not ResolvedChatOptions { Conversation: null, ConversationId: null, Caller: null } resolved
+            || services.GetService<TypeshiftOptions>() is not { PersistAllConversations: true } typeshift
+            || !messages.Any())
+            return options;
+
+        var started = (ResolvedChatOptions)resolved.Clone();
+        started.Conversation = typeshift.NewConversationId() ?? Store.NewConversationId(Time);
+        return started;
+    }
+
+    private static ChatResponseUpdate Named(ChatResponseUpdate update, string conversation)
+    {
+        var named = update.Clone();
+        named.ConversationId = conversation;
+        return named;
+    }
+
+    // The conversation the run is stored in, as the response names it
+    private string? Named(ChatOptions? options) => options is null ? null : GetConversation(options)?.ToString();
+
     private LiveRuns Runs => services.GetRequiredService<LiveRuns>();
 
     private TimeProvider Time => services.GetService<TimeProvider>() ?? TimeProvider.System;
 
-    private IStoreAccess Store => services.GetRequiredService<IStoreAccess>();
+    private StoreAccess Store => services.GetRequiredService<StoreAccess>();
 
     private async Task<ChatResponse> RunAsync(
         IEnumerable<ChatMessage> messages,
@@ -286,7 +319,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             : null;
 
     // The id a typed run passes, or the raw path's ChatOptions.ConversationId in the build's id type
-    private object? GetConversation(ChatOptions options) =>
+    private StoreId? GetConversation(ChatOptions options) =>
         options switch
         {
             ResolvedChatOptions { Conversation: { } conversation } => conversation,
@@ -294,7 +327,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             _ => null
         };
 
-    private static object? SettingsId(ChatOptions? options) => (options as ResolvedChatOptions)?.SettingsId;
+    private static StoreId? SettingsId(ChatOptions? options) => (options as ResolvedChatOptions)?.SettingsId;
 
     private static ChatResponseFormat? ResultFormat(ChatOptions? options) =>
         (options as ResolvedChatOptions)?.ResultFormat;
@@ -313,7 +346,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     // The run's conversation from its last summary, claimed and loaded once: for the agent that answers, which takes
     // the claim on, and for the run's history (D50). A run handed a claim takes it in place of claiming (D34)
     private async Task<(
-        object? Conversation,
+        StoreId? Conversation,
         IReadOnlyList<ConversationEntry> Entries,
         RunClaim? Claim,
         IAgentHost? Answering)> LoadAsync(ChatOptions? options, CancellationToken ct)
@@ -404,7 +437,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     private async Task<(ConversationRun Run, List<ChatMessage> Call, ResolvedChatOptions Options)> BeginAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options,
-        object? conversation,
+        StoreId? conversation,
         IReadOnlyList<ConversationEntry> entries,
         RunClaim? claim,
         Activity? activity)
@@ -423,7 +456,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     private async Task<(ConversationRun Run, List<ChatMessage> Call, ResolvedChatOptions Options)> BeginClaimedAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options,
-        object? conversation,
+        StoreId? conversation,
         IReadOnlyList<ConversationEntry> entries,
         RunClaim? claim,
         Activity? activity)

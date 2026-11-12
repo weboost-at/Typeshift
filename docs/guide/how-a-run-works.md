@@ -31,18 +31,19 @@ the response before the conversation stores how the run ended.
 
 ## The steps
 
-1. **Resolve the options.** The host builds the run's `ChatOptions` from the agent's code, then the settings stored
-   under the settings id, then the run's own settings. It creates the tools the agent offers, their settings resolved
-   through the same layers, and adds the sub-agents and the tools of MCP servers after them. The layers resolve once,
-   when the run starts ([settings layering](./settings-and-stores.md#settings-layering)).
+1. **Resolve the options.** The host builds the run's `ChatOptions` from the agent's code, then the agent's own stored
+   settings and those under the settings id, then the run's own settings. It creates the tools the agent offers, their
+   settings resolved through the same layers, and adds the sub-agents and the tools of MCP servers after them. The
+   layers resolve once, when the run starts ([settings layering](./settings-and-stores.md#settings-layering)).
 2. **Resume the conversation.** With a conversation id, the run puts the stored entries ahead of the new input, so the
    model sees the whole conversation, and stores the input. An input that answers an approval request that has
    closed throws instead, before anything is stored
    ([When a request closes](./tool-approval.md#when-a-request-closes)). The run keeps the conversation's mode unless
    the run's settings name one. If an earlier run [handed the conversation off](./multi-agent.md#handoff) to another
    agent, the agent that answered last answers this run too. Without a conversation id, the run starts fresh and
-   stores nothing. Within one process, a conversation has one run at a time, and starting a second while the first
-   goes on throws ([Conversations](./conversations.md)).
+   stores nothing, unless [`PersistAllConversations`](./conversations.md#keeping-every-conversation) starts a
+   conversation for it. Within one process, a conversation has one run at a time, and starting a second while the
+   first goes on throws ([Conversations](./conversations.md)).
 3. **Run middleware.** Each `IRunMiddleware` wraps the rest of the run ([Middleware](./middleware.md)).
 4. **Context providers.** Each context provider the agent uses can add instructions, messages and tools to this run.
    The conversation stores none of it, so every run calls the providers again

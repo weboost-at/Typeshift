@@ -7,6 +7,14 @@ public class PersistenceTestData(Faker faker)
 {
     public Guid SettingsId { get; } = faker.Random.Guid();
 
+    // D72: ids of other types than the build's, which pick the stores of their types
+    public int NumberId { get; } = faker.Random.Int(1, int.MaxValue);
+
+    public string ChatName { get; } = $"chat-{faker.Random.AlphaNumeric(10)}";
+
+    // A kind nothing is stored under, for the checks of agents' own settings
+    public string Kind { get; } = $"{faker.Hacker.Noun()}_{faker.Random.AlphaNumeric(8)}";
+
     // Every member set, none to a default
     public EveryKindAgent.Settings EveryKind { get; } = new()
     {

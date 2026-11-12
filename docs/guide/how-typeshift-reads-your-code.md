@@ -32,7 +32,7 @@ your code the same way, so whatever the generator cannot read, the analyzer repo
 |---|---|---|
 | A toolset, a `partial` class that derives from `Toolset` | Each `AddTool` chain in the constructor, and the XML docs of each tool's method | An `AIFunction` per tool, which binds the model's arguments to your method, and a `{Tool}Overrides` record for a tool with configurable settings |
 | An agent, a `partial` class that derives from `Agent` | The chains in its constructor: the toolsets and tools it offers, its own tools, its chat options and which of them are configurable | The agent's `Settings` record, a `Configure{Tool}()` for each offered tool with settings, and the typed runs of its host |
-| `services.AddTypeshift()` or `TypeshiftApp.Create(...)` | The call | A replacement for the call, which registers the toolsets and agents of your project and of the projects it references |
+| `services.AddTypeshift()` or `TypeshiftRuntime.Create(...)` | The call | A replacement for the call, which registers the toolsets and agents of your project and of the projects it references |
 
 The generator finds toolsets and agents by their base class, so they carry no attribute.
 [Generated members](./generated-members.md) lists every member it writes and what triggers each one.
@@ -97,7 +97,7 @@ The same holds for the tools of your toolsets. A run can still offer tools the g
 
 ## How AddTypeshift() finds your agents
 
-`AddTypeshift()` and `TypeshiftApp.Create(...)` look like ordinary library methods, but the library's own versions
+`AddTypeshift()` and `TypeshiftRuntime.Create(...)` look like ordinary library methods, but the library's own versions
 throw. The generator replaces each call in your project with one that registers the toolsets and agents of that
 project and of every project it references. Only the generator knows them all, so one call registers everything, and
 you keep no list of toolsets or agents in step with your code.

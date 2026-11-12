@@ -27,7 +27,7 @@ internal static class RunningAgents
             Expect(injected == answer.Text, "a host injected into a service answers");
         }
 
-        var digest = new TicketDigest(provider.GetRequiredService<IServiceScopeFactory>(), TimeProvider.System);
+        var digest = new TicketDigest(provider.GetRequiredService<TypeshiftRuntime>(), TimeProvider.System);
         var digested = await digest.DigestAsync(CancellationToken.None);
         Expect(digested.Length > 0, "a background job answers from a scope of its own");
 

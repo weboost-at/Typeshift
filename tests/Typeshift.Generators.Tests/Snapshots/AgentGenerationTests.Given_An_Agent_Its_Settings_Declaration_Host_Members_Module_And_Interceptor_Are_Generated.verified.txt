@@ -15,7 +15,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// Runs the agent on a message, with the stored and the run's settings over the agent's code.
         /// </summary>
         /// <param name="input">The user's message.</param>
-        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="settingsId">
+        /// The id of the stored settings to apply over the agent's own, or null for none.
+        /// </param>
         /// <param name="conversationId">
         /// The id of the conversation the run resumes and is stored in, or null for none.
         /// </param>
@@ -35,7 +37,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// over the agent's code.
         /// </summary>
         /// <param name="input">The user's message.</param>
-        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="settingsId">
+        /// The id of the stored settings to apply over the agent's own, or null for none.
+        /// </param>
         /// <param name="conversationId">
         /// The id of the conversation the run resumes and is stored in, or null for none.
         /// </param>
@@ -56,7 +60,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// </summary>
         /// <typeparam name="TResult">The result's type.</typeparam>
         /// <param name="input">The user's message.</param>
-        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="settingsId">
+        /// The id of the stored settings to apply over the agent's own, or null for none.
+        /// </param>
         /// <param name="conversationId">
         /// The id of the conversation the run resumes and is stored in, or null for none.
         /// </param>
@@ -77,7 +83,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// </summary>
         /// <typeparam name="TResult">The result's type.</typeparam>
         /// <param name="input">The user's message.</param>
-        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="settingsId">
+        /// The id of the stored settings to apply over the agent's own, or null for none.
+        /// </param>
         /// <param name="conversationId">
         /// The id of the conversation the run resumes and is stored in, or null for none.
         /// </param>
@@ -97,7 +105,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// code.
         /// </summary>
         /// <param name="input">The user's message.</param>
-        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="settingsId">
+        /// The id of the stored settings to apply over the agent's own, or null for none.
+        /// </param>
         /// <param name="conversationId">
         /// The id of the conversation the run resumes and is stored in, or null for none.
         /// </param>
@@ -117,7 +127,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// the run's settings over the agent's code.
         /// </summary>
         /// <param name="input">The user's message.</param>
-        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="settingsId">
+        /// The id of the stored settings to apply over the agent's own, or null for none.
+        /// </param>
         /// <param name="conversationId">
         /// The id of the conversation the run resumes and is stored in, or null for none.
         /// </param>
@@ -139,7 +151,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// </summary>
         /// <typeparam name="TResult">The result's type.</typeparam>
         /// <param name="input">The user's message.</param>
-        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="settingsId">
+        /// The id of the stored settings to apply over the agent's own, or null for none.
+        /// </param>
         /// <param name="conversationId">
         /// The id of the conversation the run resumes and is stored in, or null for none.
         /// </param>
@@ -161,7 +175,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// </summary>
         /// <typeparam name="TResult">The result's type.</typeparam>
         /// <param name="input">The user's message.</param>
-        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="settingsId">
+        /// The id of the stored settings to apply over the agent's own, or null for none.
+        /// </param>
         /// <param name="conversationId">
         /// The id of the conversation the run resumes and is stored in, or null for none.
         /// </param>
@@ -180,7 +196,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// Continues the conversation's run that was interrupted, from its last stored step, without new input.
         /// </summary>
         /// <param name="conversationId">The conversation's id.</param>
-        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="settingsId">
+        /// The id of the stored settings to apply over the agent's own, or null for none.
+        /// </param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The response.</returns>
@@ -195,10 +213,25 @@ public static class TypeshiftHost_4Demo12SupportAgent
             global::Typeshift.Generated.AgentRuns.ResumeAsync(host, conversationId, settingsId, settings, ct);
 
         /// <summary>
+        /// Continues the run of the host's conversation, from <c>WithConversationId</c>, that was interrupted, from its
+        /// last stored step, without new input.
+        /// </summary>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
+        /// <param name="ct">Cancels the run.</param>
+        /// <returns>The response.</returns>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host has no conversation, or the conversation has no interrupted run.
+        /// </exception>
+        public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse> ResumeAsync(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.ResumeAsync(host, null, null, settings, ct);
+
+        /// <summary>
         /// Continues the conversation's run that was interrupted, from its last stored step, without new input.
         /// </summary>
         /// <param name="conversationId">The conversation's id.</param>
-        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="settingsId">
+        /// The id of the stored settings to apply over the agent's own, or null for none.
+        /// </param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The updates.</returns>
@@ -213,10 +246,25 @@ public static class TypeshiftHost_4Demo12SupportAgent
             global::Typeshift.Generated.AgentRuns.ResumeStreamingAsync(host, conversationId, settingsId, settings, ct);
 
         /// <summary>
+        /// Continues the run of the host's conversation, from <c>WithConversationId</c>, that was interrupted, from its
+        /// last stored step, without new input.
+        /// </summary>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
+        /// <param name="ct">Cancels the run.</param>
+        /// <returns>The updates.</returns>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host has no conversation, or the conversation has no interrupted run.
+        /// </exception>
+        public global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate> ResumeStreamingAsync(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.ResumeStreamingAsync(host, null, null, settings, ct);
+
+        /// <summary>
         /// Resolves the options of a run, for the raw path: <c>CreateChatClientAsync</c>, then the client.
         /// <c>ChatOptions.ConversationId</c> names the conversation there.
         /// </summary>
-        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="settingsId">
+        /// The id of the stored settings to apply over the agent's own, or null for none.
+        /// </param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the resolution.</param>
         /// <returns>The options, with the agent's tools.</returns>
@@ -272,6 +320,47 @@ public static class TypeshiftHost_4Demo12SupportAgent
             global::System.Func<global::Demo.SupportAgent.Settings, global::Demo.SupportAgent.Settings> configure,
             global::System.Threading.CancellationToken ct = default) =>
             global::Typeshift.Generated.AgentRuns.ConfigureAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, settingsId, configure, ct);
+
+        /// <summary>
+        /// Loads the agent's own settings, which every run applies.
+        /// </summary>
+        /// <param name="ct">Cancels the load.</param>
+        /// <returns>
+        /// The settings and the version <c>SaveSettingsAsync</c> takes; empty settings at version 0 when none are
+        /// stored.
+        /// </returns>
+        public global::System.Threading.Tasks.Task<global::Typeshift.Stored<global::Demo.SupportAgent.Settings>> LoadSettingsAsync(
+            global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.LoadAgentSettingsAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, ct);
+
+        /// <summary>
+        /// Saves the agent's own settings, unless another save came since they were loaded.
+        /// </summary>
+        /// <param name="settings">The settings.</param>
+        /// <param name="loadedVersion">The version <c>LoadSettingsAsync</c> returned, 0 when it loaded none.</param>
+        /// <param name="ct">Cancels the save.</param>
+        /// <returns>The new version, to pass to the next save.</returns>
+        /// <exception cref="global::Typeshift.StoreConflictException">Another save came first.</exception>
+        public global::System.Threading.Tasks.Task<long> SaveSettingsAsync(
+            global::Demo.SupportAgent.Settings settings,
+            long loadedVersion,
+            global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.SaveAgentSettingsAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, settings, loadedVersion, ct);
+
+        /// <summary>
+        /// Changes the agent's own settings, reloading and changing them again whenever another save came first, up to
+        /// ten times.
+        /// </summary>
+        /// <param name="configure">Returns the changed settings; called again after a lost save.</param>
+        /// <param name="ct">Cancels the change.</param>
+        /// <returns>The settings saved.</returns>
+        /// <exception cref="global::Typeshift.StoreConflictException">
+        /// Another save came first ten times in a row.
+        /// </exception>
+        public global::System.Threading.Tasks.Task<global::Demo.SupportAgent.Settings> ConfigureAsync(
+            global::System.Func<global::Demo.SupportAgent.Settings, global::Demo.SupportAgent.Settings> configure,
+            global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.ConfigureAgentSettingsAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, configure, ct);
     }
 }
 

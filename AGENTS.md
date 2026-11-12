@@ -99,7 +99,7 @@ style; the essentials:
 |---|---|---|
 | What Typeshift is for, what it builds on and leaves to you, how its pieces fit | `guide/what-is-typeshift.md` | `index.md` (the pitch) |
 | Package setup, requirements, the id type | `guide/registration.md` | `getting-started.md` (the steps) |
-| An app without a container (`TypeshiftApp.Create`) | `guide/registration.md#without-a-container` | |
+| The runtime: `TypeshiftRuntime.Create` without a container, injecting it, its hosts as units of work | `guide/registration.md#the-runtime` | `using-an-agent.md#run-from-a-background-job` (the job's host), `generated-members.md` (`DisposeAsync`) |
 | `AddTypeshift()` chain calls and lifetimes | `guide/registration.md#the-chain` | each feature page shows its own `With...` call |
 | Builder calls of toolsets and agents | `guide/builders.md` | `toolsets.md`, `tool-settings.md`, `defining-agents.md` |
 | Why declarations are read at compile time: what the generator reads, the rules and limits that follow | `guide/how-typeshift-reads-your-code.md` | `builders.md#rules-for-every-chain` (the rules), `what-is-typeshift.md#why-agents-in-code` (agents in code) |
@@ -109,10 +109,12 @@ style; the essentials:
 | Providers and models, clients from configuration, keys per customer, wrapping clients, provider failures, the provider id type, the summary model | `guide/models.md` | `running-agents.md#chat-clients`, `registration.md#the-id-type`, `conversations.md#compaction` |
 | Approval and modes | `guide/tool-approval.md` | `builders.md` (link) |
 | Settings layers and precedence | `guide/settings-and-stores.md#settings-layering` | `tool-settings.md`, `defining-agents.md`, `running-agents.md` |
-| Getting an agent's host: injecting it, or resolving it from a scope | `guide/using-an-agent.md` | `getting-started.md` (step 4), `registration.md` (the lifetime), `running-agents.md` (lead) |
+| Getting an agent's host: injecting it, resolving it from a scope, or taking it from the runtime in a job | `guide/using-an-agent.md` | `getting-started.md` (step 4), `registration.md` (the lifetime), `running-agents.md` (lead) |
 | The order of a run's steps | `guide/how-a-run-works.md` | `contributing/architecture.md#a-run` (the code's side) |
 | The store's lifetime and contract, kinds, schema versions, versions, conversation entries and summaries, checking a store | `guide/implementing-a-store.md` | `settings-and-stores.md` (link), `conversations.md#what-is-stored` |
-| The `Settings` JSON, agent settings under a settings id | `guide/settings-and-stores.md` | `generated-members.md#settings` |
+| The `Settings` JSON, an agent's own settings and those under a settings id | `guide/settings-and-stores.md` | `generated-members.md#settings` |
+| Keeping every conversation (`WithOptions`, `PersistAllConversations`, `NewConversationIds`) | `guide/conversations.md#keeping-every-conversation` | `registration.md#the-chain` |
+| Ids in code (`WithSettingsId`, `WithConversationId`), stores of several id types | `guide/settings-and-stores.md#ids-of-your-own-types` | `registration.md#the-id-type`, `diagnostics.md#tsh028` |
 | Conversations: storage, resume, steering, live updates, compaction | `guide/conversations.md` | |
 | A chat UI's endpoints: posting, streaming as server-sent events, approvals by their ids | `guide/chat-endpoint.md` | |
 | Generated members, `AgentHost` members and signatures | `guide/generated-members.md` | `running-agents.md` |

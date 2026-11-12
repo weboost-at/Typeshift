@@ -38,18 +38,30 @@ This page builds a store on Entity Framework Core. Register its context factory 
 ```cs
 services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite("Data Source=typeshift.db"));
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L43-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L42-L44' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Implement the interfaces
 
-A store has five methods in two interfaces. `ISettingsStore` keeps settings with the first two, and `IConversationStore`
-keeps conversations with the other three. The store on this page implements `ITypeshiftStore`, which is both. When
-settings and conversations live in different databases, implement each interface in a class of its own and
-[register each](./settings-and-stores.md#registering-a-store).
+A store has five methods in two interfaces. `ISettingsStore` keeps settings under a settings id with the first two, and
+`IConversationStore` keeps conversations with the other three. The store on this page implements `ITypeshiftStore`,
+which is both. When settings and conversations live in different databases, implement each interface in a class of its
+own and [register each](./settings-and-stores.md#registering-a-store).
 
-You implement all five. Every id has your build's [id type](./registration.md#the-id-type), which is `Guid` unless
-`TypeshiftIdType` names another; the samples on this page set it to `int`. Each method takes a `CancellationToken` last.
+An app that keeps [each agent's own settings](./settings-and-stores.md#agent-settings) implements `IAgentSettingsStore`
+too, or alone when it has no settings ids. Its `LoadAsync(kind)` and `SaveAsync(kind, json, loadedVersion)` work as
+the settings methods below, keyed by the kind alone. Every run of every agent calls `LoadAsync(kind)`, so keep it
+cheap, for example with a cache.
+
+::: warning Keep an agent's own documents apart from an id's
+In a table that holds both, an agent's own document has no id. A load that forgets to ask for that returns a
+customer's document as every customer's defaults. `VerifyAsync` checks for this.
+:::
+
+You implement all five. Every id has your store's id type, the type argument of its interfaces, and the samples on
+this page use `int`: runs with ids of that type reach your store, as
+[Ids of your own types](./settings-and-stores.md#ids-of-your-own-types) shows. Each method takes a `CancellationToken`
+last.
 
 | Method | Does |
 |---|---|
@@ -378,7 +390,9 @@ await store.VerifyAsync(9001);
 
 - It runs the rules of every interface your store implements: the settings rules for an `ISettingsStore`, the
   conversation rules for an `IConversationStore`, and both for a store that is both, even when you call it through
-  one of the interfaces.
+  one of the interfaces. A store that is also an `IAgentSettingsStore` gets the settings rules for agents' own
+  settings, under kinds named after the id. For a store of agents' own settings alone, call
+  `VerifyAgentSettingsAsync(kind)` with a kind nothing is stored under.
 - A broken rule throws an `InvalidOperationException` whose message names the rule and what to change, such as
   keying documents by id and kind together. An exception your store throws itself passes through as it is, except
   where a `StoreConflictException` belongs: there the message names the type your store threw instead.

@@ -12,8 +12,8 @@ internal interface IAgentHost
     // asks for a typed answer (D64)
     Task<ChatResponse> RunAsync(
         IEnumerable<ChatMessage> messages,
-        object? settingsId,
-        object? conversation,
+        StoreId? settingsId,
+        StoreId? conversation,
         AgentRun? caller,
         RunClaim? claim,
         ChatResponseFormat? format,
@@ -21,8 +21,8 @@ internal interface IAgentHost
 
     IAsyncEnumerable<ChatResponseUpdate> RunStreamingAsync(
         IEnumerable<ChatMessage> messages,
-        object? settingsId,
-        object? conversation,
+        StoreId? settingsId,
+        StoreId? conversation,
         RunClaim? claim,
         ChatResponseFormat? format,
         CancellationToken ct);

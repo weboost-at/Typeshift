@@ -70,7 +70,7 @@ compile-time half, and [How a run works](./how-a-run-works.md) the steps of a ru
 | Tool settings | A record of values a tool needs that the model must not choose | [Tool settings](./tool-settings.md) |
 | Agent | A `partial` class deriving from `Agent`, with chat options, instructions and tools | [Agents](./defining-agents.md) |
 | Agent host | `AgentHost<TAgent>`, which runs one agent in the scope it was resolved from | [Using an agent](./using-an-agent.md) |
-| Store | Your `ITypeshiftStore`, or an `ISettingsStore` and an `IConversationStore`, which keep settings and conversations | [Settings and stores](./settings-and-stores.md) |
+| Store | Your `ITypeshiftStore`, or an `ISettingsStore` and an `IConversationStore`, which keep settings and conversations; an `IAgentSettingsStore` for each agent's own settings | [Settings and stores](./settings-and-stores.md) |
 
 The [glossary](./glossary.md) defines every other term.
 

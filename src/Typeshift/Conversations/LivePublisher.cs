@@ -5,7 +5,7 @@ namespace Typeshift;
 // D47: text, reasoning and usage merge until the interval passes; anything else goes out at once, after them
 internal sealed class LivePublisher(
     LiveRuns runs,
-    object conversation,
+    StoreId conversation,
     RealtimeTrackingOptions options,
     TimeProvider time)
 {

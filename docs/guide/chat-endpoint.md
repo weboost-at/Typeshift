@@ -172,9 +172,9 @@ private static async IAsyncEnumerable<SseItem<object>> Events(IAsyncEnumerable<C
 ## Follow a chat from elsewhere
 
 The browser that posts a message reads the answer from its own stream. Another tab, or a support dashboard that
-watches a customer's chat, follows it through `ConversationTracker.WatchAsync` instead, which needs
-`WithRealtimeTracking()` ([Live updates](./conversations.md#live-updates)). This SignalR hub checks that the chat
-belongs to the caller, as the group's filter does, and then streams the chat's text:
+watches a customer's chat, follows it through `ConversationTracker.WatchAsync` instead
+([Live updates](./conversations.md#live-updates)). This SignalR hub checks that the chat belongs to the caller, as the
+group's filter does, and then streams the chat's text:
 
 <!-- snippet: conversation-hub -->
 <a id='snippet-conversation-hub'></a>

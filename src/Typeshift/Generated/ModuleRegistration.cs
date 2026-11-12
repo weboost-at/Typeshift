@@ -33,13 +33,18 @@ public static class ModuleRegistration
             provider.GetServices<JsonContextRegistration>().Select(registration => registration.Resolver),
             provider.GetServices<SchemaAnnotationsRegistration>().Select(registration => registration.Source)));
 
-        services.TryAddSingleton<IStoreAccess>(provider => new StoreAccess<TId>(provider, parse));
+        services.TryAddSingleton(provider => new StoreAccess(provider, new BuildIds<TId>(parse)));
         services.TryAddSingleton<LiveRuns>();
         services.TryAddSingleton<InstrumentedClients>();
         services.TryAddSingleton<ChatClients, ChatClients<TProviderId>>();
+        // D74: live updates are on from the start; WithRealtimeTracking tunes them
+        services.TryAddSingleton(new RealtimeTrackingOptions());
         services.TryAddSingleton(provider => new ConversationTracker<TId>(
             provider.GetRequiredService<LiveRuns>(),
-            provider.GetService<RealtimeTrackingOptions>()));
+            provider.GetRequiredService<RealtimeTrackingOptions>()));
+
+        // D76: the root's services, whatever scope resolves it
+        services.TryAddSingleton(provider => new TypeshiftRuntime(provider));
 
         return new TypeshiftBuilder(
             services,
@@ -51,33 +56,55 @@ public static class ModuleRegistration
                     + "provider id type (TSH030).")));
     }
 
-    // D38: a store is registered as each store interface it implements; the type check reads no members
-    private static void AddStore<TId>(IServiceCollection services, Type type, Func<IServiceProvider, object> store)
+    // D38, D72: a store is registered as each store interface it implements, of any id type; the type check reads no
+    // members. A store your app created is checked as the instance it is as well, and registered as that instance,
+    // which the container never disposes
+    private static void AddStore<TId>(
+        IServiceCollection services,
+        Type type,
+        IReadOnlyList<Type> contracts,
+        object? instance,
+        Func<IServiceProvider, object> store)
         where TId : notnull
     {
-        var keepsSettings = typeof(ISettingsStore<TId>).IsAssignableFrom(type);
-        var keepsConversations = typeof(IConversationStore<TId>).IsAssignableFrom(type);
-        var isTypeshiftStore = typeof(ITypeshiftStore<TId>).IsAssignableFrom(type);
+        List<Type> kept = [.. contracts];
 
-        if (!keepsSettings && !keepsConversations)
+        if (instance is not null)
+        {
+            Keep<ISettingsStore<TId>>();
+            Keep<IConversationStore<TId>>();
+            Keep<ITypeshiftStore<TId>>();
+            Keep<IAgentSettingsStore>();
+        }
+
+        if (kept.Count == 0)
             throw new InvalidOperationException(
-                $"{type.Name} is no ISettingsStore<{typeof(TId).Name}> or IConversationStore<{typeof(TId).Name}>, a "
-                + "store of the build's id type (TSH028).");
+                $"{type.Name} is no store: implement ISettingsStore<TId>, IConversationStore<TId> or "
+                + "IAgentSettingsStore (TSH028).");
 
-        if (keepsSettings) services.AddSingleton(provider => (ISettingsStore<TId>)store(provider));
-        if (keepsConversations) services.AddSingleton(provider => (IConversationStore<TId>)store(provider));
-        if (isTypeshiftStore) services.AddSingleton(provider => (ITypeshiftStore<TId>)store(provider));
+        services.TryAddSingleton<RegisteredStores>();
+
+        foreach (var contract in kept)
+        {
+            if (instance is null) services.AddSingleton(contract, provider => store(provider));
+            else services.AddSingleton(contract, instance);
+        }
+
+        void Keep<TStore>()
+        {
+            if (instance is TStore && !kept.Contains(typeof(TStore))) kept.Add(typeof(TStore));
+        }
     }
 
     /// <summary>
-    /// Builds the app <c>TypeshiftApp.Create</c> returns, over the services its interceptor registered.
+    /// Builds the container <c>TypeshiftRuntime.Create</c> registered and returns its runtime, which owns it.
     /// </summary>
     /// <param name="services">The services, with the core services and the modules registered.</param>
     /// <param name="builder">The registration chain the core services returned.</param>
     /// <param name="client">The chat client of every run.</param>
     /// <param name="configure">What else the app registers; null for nothing.</param>
-    /// <returns>The app.</returns>
-    public static TypeshiftApp CreateApp(
+    /// <returns>The runtime.</returns>
+    public static TypeshiftRuntime CreateRuntime(
         IServiceCollection services,
         TypeshiftBuilder builder,
         IChatClient client,
@@ -90,7 +117,8 @@ public static class ModuleRegistration
         services.AddSingleton(client);
         configure?.Invoke(builder);
 
-        return new TypeshiftApp(services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true }));
+        return TypeshiftRuntime.Owning(
+            services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true }));
     }
 
     /// <summary>
@@ -130,7 +158,7 @@ public static class ModuleRegistration
         services.AddSingleton(_ => create());
 
         // D25: transient, so the host keeps the provider of the scope it is resolved from
-        services.AddTransient(provider => new AgentHost<TAgent>(provider.GetRequiredService<TAgent>(), provider));
+        services.AddTransient(AgentHost<TAgent>.In);
     }
 
     /// <summary>
