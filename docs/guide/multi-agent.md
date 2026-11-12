@@ -20,8 +20,8 @@ conversation over to one.
 
 ## Sub-agents
 
-`UseAgent<T>()` offers another agent as a tool. The tool is named like the agent, described by its
-`WithDescription`, and takes one `input` parameter:
+`UseAgent<T>()` offers another agent as a tool. The tool has the agent's name and description, and takes one `input`
+parameter:
 
 <!-- snippet: agent-as-tool -->
 <a id='snippet-agent-as-tool'></a>
