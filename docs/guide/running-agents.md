@@ -5,8 +5,10 @@ description: Run an agent through its host with stored settings, run settings, t
 
 # Running an agent
 
-You run an agent through its host, `AgentHost<TAgent>`, which your app takes from the scope of the request or job that
-runs the agent ([Using an agent](./using-an-agent.md)).
+You run an agent through its host, `AgentHost<TAgent>`: pass the user's message, and get back the model's answer with
+the tool calls it made on the way. A run can apply a customer's stored settings, change them for one run, ask for a
+typed answer, or stream as the model writes. [Using an agent](./using-an-agent.md) shows where your app gets the
+host.
 
 ## Registration
 
