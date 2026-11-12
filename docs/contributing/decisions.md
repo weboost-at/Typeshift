@@ -435,7 +435,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Decision:** `UseAgent<T>()` offers a tool named like the agent, with its description and one `input` string. A
   call runs it in a fresh context with the same settings id, the caller's mode, standing approvals and rules, and no
-  conversation of its own, and returns its text. `.InBackground()` makes the tool return at once; the answer reaches
+  conversation of its own, and returns its text, or its JSON with `.WithResult<T>()` (D65). `.InBackground()` makes the tool return at once; the answer reaches
   the calling run as a message before a later model call, and the run does not end while sub-agents work. A
   sub-agent cannot ask the host: in the default mode its calls that need approval and that nothing approves are
   rejected (TSH024 warns). Circles are TSH026.
@@ -471,6 +471,21 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   the agent handed to began. The claim travels as an argument and in the run's options rather than in an
   `AsyncLocal`, which a value set before a stream's `yield` loses and code the agent's run calls would carry along.
 - **Where:** `Conversations/ConversationChatClient.cs`, `Conversations/LiveRuns.cs`.
+
+### D65. A sub-agent can answer in a type
+
+- **Status:** owner.
+- **Context:** the owner asked whether a sub-agent's answer can be held to a JSON type.
+- **Decision:** `UseAgent<T>().WithResult<TResult>()` runs the sub-agent with the response format of
+  `RunAsync<TResult>` (D62), reads the answer as `TResult` and hands the caller's model the result serialized again,
+  so the model reads `TResult`'s JSON without a `data` wrapper. An answer that is no `TResult` fails the call, and
+  the calling model reads that the sub-agent did not answer in the schema it was given, with what it answered (D53).
+  In the background the answer goes the same way: its JSON arrives as the message, or the failure does. The chain runs
+  at runtime, as `InBackground()` does, so the generator reads nothing new.
+- **Where:** `Agents/AgentUse.cs`, `Agents/SubAgentResult.cs`, `Agents/SubAgentFunction.cs`,
+  `Conversations/ConversationRun.cs`.
+- **Alternatives:** the sub-agent's text passed on unchecked, which leaves the calling model to find out what went
+  wrong; a schema on the tool's result, which no provider reads.
 
 ### D35. MCP servers through a host provider
 
