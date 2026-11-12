@@ -37,9 +37,11 @@ public static class ModuleRegistration
         services.TryAddSingleton<LiveRuns>();
         services.TryAddSingleton<InstrumentedClients>();
         services.TryAddSingleton<ChatClients, ChatClients<TProviderId>>();
+        // D74: live updates are on from the start; WithRealtimeTracking tunes them
+        services.TryAddSingleton(new RealtimeTrackingOptions());
         services.TryAddSingleton(provider => new ConversationTracker<TId>(
             provider.GetRequiredService<LiveRuns>(),
-            provider.GetService<RealtimeTrackingOptions>()));
+            provider.GetRequiredService<RealtimeTrackingOptions>()));
 
         // D76: the root's services, whatever scope resolves it
         services.TryAddSingleton(provider => new TypeshiftRuntime(provider));

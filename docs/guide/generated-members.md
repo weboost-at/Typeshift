@@ -315,7 +315,7 @@ answering agent's name as `AuthorName`.
 ### `RunStreamingAsync`
 
 `RunStreamingAsync` layers settings and stores the run like `RunAsync`, but streams the updates, with the tool calls
-running between them. With `WithRealtimeTracking()`, the updates are also published to
+running between them. The updates of a run with a conversation are also published to
 `ConversationTracker.WatchAsync`. `RunStreamingAsync<TResult>` is its typed form
 ([Structured output](./running-agents.md#structured-output)).
 

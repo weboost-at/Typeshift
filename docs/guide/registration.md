@@ -129,14 +129,13 @@ A typical registration, with the chain:
 ```cs
 services.AddTypeshift()
     .WithStore<EfTypeshiftStore>()
-    .WithRealtimeTracking()
     .WithRunMiddleware<BlockedTopics>()
     .WithToolMiddleware<AuditToolCalls>();
 
 services.AddKeyedSingleton("openai", fast);
 services.AddKeyedSingleton("anthropic", reasoning);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L18-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L18-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `fast` and `reasoning` are `IChatClient`s your app creates. The last two lines register them under the keys `openai`
@@ -176,7 +175,7 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 | `WithFileStore(Action<FileStoreOptions>? configure = null)` | The file store as `IAgentSettingsStore`, built by the container with your app's `TimeProvider`. By default, `Folder` is `typeshift` under `AppContext.BaseDirectory`; the settings files lie in its `settings` folder. | Singleton | Agents' own settings, kept in files ([Agent settings](./settings-and-stores.md#agent-settings)). |
 | `WithChatClientProvider<TProvider>()` | `TProvider`, and `IChatClientProvider` resolving to it | Scoped | Every run with a provider and a model, before any `IChatClient` you registered ([Registering clients](./models.md#registering-clients)). |
 | `WithOptions(options => ...)` | `TypeshiftOptions`, which each call changes further, such as `PersistAllConversations` | Singleton | Keeping the runs without a conversation id ([Keeping every conversation](./conversations.md#keeping-every-conversation)). |
-| `WithRealtimeTracking(RealtimeTrackingOptions? options = null)` | The options. By default, `PublishInterval` is 100 ms and `MaxPendingUpdates` 256. | Singleton | `ConversationTracker.WatchAsync`. |
+| `WithRealtimeTracking(RealtimeTrackingOptions? options = null)` | The options of live updates, in place of the defaults: `PublishInterval` of 100 ms and `MaxPendingUpdates` of 256. Live updates are on without it. | Singleton | Tuning `ConversationTracker.WatchAsync`. |
 | `WithApprovalRule<TRule>()` | One more `IToolApprovalRule` | Scoped | Deciding calls before your app is asked. |
 | `WithRunMiddleware<TMiddleware>()` | One more `IRunMiddleware`. The first registered is the outermost. | Scoped | Wrapping every run. |
 | `WithToolMiddleware<TMiddleware>()` | One more `IToolMiddleware`. The first registered is the outermost. | Scoped | Wrapping every tool call. |

@@ -141,9 +141,9 @@ conversation is up to your app.
 
 ## Live runs
 
-`ConversationTracker` tells your app which conversations have a run going on in this process. With
-`WithRealtimeTracking()` it also hands out each run's updates, so a second tab or a support dashboard can follow a chat
-that another request is answering ([Live updates](#live-updates)).
+`ConversationTracker` tells your app which conversations have a run going on in this process. It also hands out each
+run's updates, so a second tab or a support dashboard can follow a chat that another request is answering
+([Live updates](#live-updates)).
 
 `Runs` lists the runs with a conversation id that are going on in this process, each with its conversation, the agent
 that answers, its model and when it started:
@@ -161,8 +161,7 @@ foreach (var run in tracker.Runs)
 
 `WatchRunsAsync` tells a UI when that list changes, so a list of running conversations needs no polling. It yields the
 runs going on, then each run as it starts and again as it ends, with `Ended` set, until you cancel its token.
-Cancelling ends the loop with an `OperationCanceledException`, so catch it where you stop watching. It works without
-`WithRealtimeTracking()`:
+Cancelling ends the loop with an `OperationCanceledException`, so catch it where you stop watching:
 
 <!-- snippet: watch-runs -->
 <a id='snippet-watch-runs'></a>
@@ -198,8 +197,8 @@ To stop a run, cancel its token. It is stored up to where it stopped.
 
 ## Live updates
 
-With `WithRealtimeTracking()`, Typeshift publishes the updates of runs as they happen, and `WatchAsync` reads one
-conversation's updates until you cancel its token, which ends the loop with an `OperationCanceledException`, as with
+Typeshift publishes the updates of runs as they happen, and `WatchAsync` reads one conversation's updates until you
+cancel its token, which ends the loop with an `OperationCanceledException`, as with
 `WatchRunsAsync`. A streaming run publishes its updates as they stream; a run that does not stream publishes each
 model response and tool result as it stores it. A browser can follow them over SignalR, as
 [Follow a chat from elsewhere](./chat-endpoint.md#follow-a-chat-from-elsewhere) shows:
@@ -215,7 +214,7 @@ await foreach (var update in tracker.WatchAsync(conversationId, ct))
 
 Text, reasoning and usage updates are merged and published at most every 100 ms, and other updates go out at once. A
 run never waits for a watcher, so a watcher that falls more than 256 updates behind loses the oldest ones. You can
-change both limits with `RealtimeTrackingOptions`:
+change both limits with `WithRealtimeTracking`:
 
 <!-- snippet: realtime-options -->
 <a id='snippet-realtime-options'></a>
@@ -227,10 +226,8 @@ services.AddTypeshift()
         MaxPendingUpdates = 1024
     });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L50-L57' title='Snippet source file'>snippet source</a> | <a href='#snippet-realtime-options' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L49-L56' title='Snippet source file'>snippet source</a> | <a href='#snippet-realtime-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
-
-Without `WithRealtimeTracking()`, `WatchAsync` throws an `InvalidOperationException`.
 
 ::: warning Live updates stay in their process
 A watcher sees only the runs of its own process. When your app runs in several processes, watch in the process that
