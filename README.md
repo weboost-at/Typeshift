@@ -7,13 +7,13 @@
   <img src="docs/public/brand/logo.svg" alt="Typeshift by weboost" height="56">
 </picture>
 
-**Code-defined agents and toolsets for .NET 10, built on [Microsoft.Extensions.AI](https://learn.microsoft.com/dotnet/ai/microsoft-extensions-ai).**
+**Code-defined agents and toolsets for .NET 11, built on [Microsoft.Extensions.AI](https://learn.microsoft.com/dotnet/ai/microsoft-extensions-ai).**
 
 <a href="https://www.nuget.org/packages/Typeshift"><img src="https://img.shields.io/nuget/vpre/Typeshift?style=flat-square&label=nuget" alt="NuGet"></a>
 <a href="https://github.com/weboost-at/Typeshift/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/weboost-at/Typeshift/ci.yml?branch=main&style=flat-square&label=ci" alt="CI"></a>
 <a href="https://weboost-at.github.io/Typeshift/"><img src="https://img.shields.io/badge/docs-guide-blue?style=flat-square" alt="Documentation"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License: MIT"></a>
-<img src="https://img.shields.io/badge/.NET-10-512bd4?style=flat-square" alt=".NET 10">
+<img src="https://img.shields.io/badge/.NET-11-512bd4?style=flat-square" alt=".NET 11">
 
 **[Documentation](https://weboost-at.github.io/Typeshift/)** ·
 [Getting started](https://weboost-at.github.io/Typeshift/guide/getting-started) ·
@@ -27,29 +27,18 @@ Build AI agents for .NET with just a few lines of code, and let the compiler cat
 > Typeshift is in alpha: the API may change between releases. [Status](docs/contributing/status.md) lists what is
 > open.
 
-## Why Typeshift?
-
-- **Design your toolsets.** `AddTool(FindCompanies)` turns a static method into a tool, and its XML docs become what
-  the model reads. Group your tools by feature, domain or permission level, as you like.
-- **Create an agent.** A few chained calls in its constructor pick the model, the tools and their settings.
-- **Catch mistakes at compile time.** Configuring a tool the agent does not offer does not compile, and the analyzer
-  reports the rest as [diagnostics](https://weboost-at.github.io/Typeshift/guide/diagnostics).
-- **Store settings per customer.** Each agent gets a generated `Settings` record of what you mark configurable. Store
-  it in your database, under the id type you already use.
-- **Stay on Microsoft.Extensions.AI.** Any `IChatClient` serves a model, nothing uses reflection, and your app
-  publishes with Native AOT.
-
 ## Quick start
 
 ```bash
 dotnet add package Typeshift --prerelease
 ```
 
-The types are in the `Typeshift` namespace, so add `using Typeshift;` to your files.
+Typeshift needs .NET 11. Its types are in the `Typeshift` namespace, so add `using Typeshift;` to your files.
 
 ### 1. Write a toolset
 
-A tool is a static method. Its XML docs describe it to the model, and its settings stay out of the model's reach:
+A tool is a static method, and its XML docs tell the model what it does. The model never sees the `settings`
+parameter: Typeshift fills it in from your code, stored settings or the run.
 
 <!-- snippet: quickstart-toolset -->
 <a id='snippet-quickstart-toolset'></a>
@@ -91,7 +80,20 @@ internal sealed record Company(string Name, string City, bool Active);
 <!-- endSnippet -->
 
 <details>
-<summary><b>What the model sees</b></summary>
+<summary><b>The settings record, and what the model sees</b></summary>
+
+<!-- snippet: quickstart-settings-record -->
+<a id='snippet-quickstart-settings-record'></a>
+```cs
+internal record FindCompaniesSettings
+{
+    public int Limit { get; init; } = 5;
+
+    public bool IncludeInactive { get; init; }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/FindCompaniesSettings.cs#L3-L10' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings-record' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
 
 ```json
 {
@@ -111,7 +113,8 @@ internal sealed record Company(string Name, string City, bool Active);
 
 ### 2. Write an agent
 
-The constructor picks the model, the tools and their settings. `Configurable` names what may change at runtime:
+An agent picks its model, its instructions and its tools in its constructor. `Configurable` names what stored
+settings may change, and `ConfigureFindCompanies()` sets the tool's limit for this agent:
 
 <!-- snippet: quickstart-agent -->
 <a id='snippet-quickstart-agent'></a>
@@ -141,78 +144,68 @@ internal partial class ResearchAgent : Agent
 
 ### 3. Run it
 
-`AddTypeshift()` registers every toolset and agent. You bring a chat client provider, which returns the `IChatClient`
-of a provider's model, and a store for settings and conversations:
+Every run needs an `IChatClient`. For OpenAI, with the `Microsoft.Extensions.AI.OpenAI` package and a key from your
+configuration:
 
-<!-- snippet: quickstart-registration -->
-<a id='snippet-quickstart-registration'></a>
+<!-- snippet: openai-chat-client -->
+<a id='snippet-openai-chat-client'></a>
 ```cs
-var services = new ServiceCollection();
-
-services.AddTypeshift()
-    .WithStore<InMemoryTypeshiftStore<int>>()
-    .WithChatClientProvider<KeyedChatClientProvider>();
-
-services.AddKeyedSingleton<IChatClient>("openai", new CannedChatClient());
-
-await using var provider = services.BuildServiceProvider(validateScopes: true);
+var client = new OpenAIClient(apiKey)
+    .GetChatClient("gpt-5-mini")
+    .AsIChatClient();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L70-L80' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L127-L131' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-chat-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`CannedChatClient` is a fake that lets the samples run without a network. In your app, register a real client in its
-place, such as [OpenAI's](https://weboost-at.github.io/Typeshift/guide/models#a-real-client).
+A console app or a script creates the runtime with that client and takes the agent's host from it:
 
-<details>
-<summary><b>The chat client provider</b></summary>
-
-<!-- snippet: chat-client-provider -->
-<a id='snippet-chat-client-provider'></a>
+<!-- snippet: typeshift-runtime -->
+<a id='snippet-typeshift-runtime'></a>
 ```cs
-internal sealed class KeyedChatClientProvider(IServiceProvider services) : IChatClientProvider<string>
-{
-    // One client per provider serves all its models: Typeshift puts the model into every request
-    public ValueTask<IChatClient> GetChatClientAsync(string provider, string model, CancellationToken ct) =>
-        ValueTask.FromResult(
-            services.GetKeyedService<IChatClient>(provider)
-                ?? throw new InvalidOperationException($"No IChatClient is registered for the provider '{provider}'."));
-}
+await using var runtime = TypeshiftRuntime.Create(client);
+await using var research = runtime.Agent<ResearchAgent>();
+
+var answer = await research.RunAsync("Vienna");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/KeyedChatClientProvider.cs#L6-L15' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client-provider' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/NoContainer.cs#L11-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-typeshift-runtime' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-</details>
+In an app with a container, such as ASP.NET Core, `AddTypeshift()` registers every toolset and agent, and you inject
+the agent's host where you run it:
 
-Store settings under an id you own, then run the agent:
-
-<!-- snippet: quickstart-settings -->
-<a id='snippet-quickstart-settings'></a>
+<!-- snippet: minimal-api -->
+<a id='snippet-minimal-api'></a>
 ```cs
-await using var scope = provider.CreateAsyncScope();
-var research = scope.ServiceProvider.GetRequiredService<AgentHost<ResearchAgent>>();
-var settingsId = 42;
+builder.Services.AddTypeshift();
+builder.Services.AddChatClient(client);
 
-await research.WithSettingsId(settingsId).ConfigureAsync(settings => settings with
-{
-    Temperature = 0.4f,
-    FindCompanies = settings.FindCompanies with { Limit = 2 }
-});
+var app = builder.Build();
+
+app.MapGet("/research/{city}", async (string city, AgentHost<ResearchAgent> research) =>
+    (await research.RunAsync(city)).Text);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L22-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/MinimalApi.cs#L21-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-minimal-api' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-<!-- snippet: quickstart-run -->
-<a id='snippet-quickstart-run'></a>
-```cs
-var answer = await research.WithSettingsId(settingsId).WithConversationId(1).RunAsync("Vienna");
+That is all this agent needs: Typeshift keeps settings and conversations in memory until you
+[register a store](https://weboost-at.github.io/Typeshift/guide/implementing-a-store#register-your-store).
+[Getting started](https://weboost-at.github.io/Typeshift/guide/getting-started) explains every line, and
+[what your app implements](https://weboost-at.github.io/Typeshift/guide/getting-started#what-your-app-implements) lists
+the interfaces that later features ask for.
 
-Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L34-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
+## What makes Typeshift different
 
-The [getting started](https://weboost-at.github.io/Typeshift/guide/getting-started) guide explains every line, and
-lists [what your app implements](https://weboost-at.github.io/Typeshift/guide/getting-started#what-your-app-implements).
+- **Catch mistakes at compile time.** Configure a tool the agent doesn't offer, and the build fails. The analyzer
+  reports the rest as you type, each [diagnostic](https://weboost-at.github.io/Typeshift/guide/diagnostics) with how
+  to fix it.
+- **Store settings per customer.** Each agent gets a typed `Settings` record that holds only what you mark
+  `Configurable`, such as its instructions or a tool's search limit. Keep one per customer under the ids you already
+  use, and everything else stays as your code sets it.
+- **Stay on Microsoft.Extensions.AI.** Any `IChatClient` serves a model, tools are `AIFunction`s, and a run returns a
+  `ChatResponse`, so you keep the providers and types you already use.
+- **Publish with Native AOT.** Typeshift writes the tool bindings and the settings serialization when you build, so
+  its generated code never reflects over your types. The analyzer names each tool type that still needs
+  [JSON metadata](https://weboost-at.github.io/Typeshift/guide/native-aot#tool-parameter-and-result-types).
 
 ## What's in the box
 
@@ -220,7 +213,7 @@ lists [what your app implements](https://weboost-at.github.io/Typeshift/guide/ge
 |---|---|
 | [Tool settings](https://weboost-at.github.io/Typeshift/guide/tool-settings) | Limits and timeouts the model cannot choose, set in code, per customer or per run |
 | [Composable agents](https://weboost-at.github.io/Typeshift/guide/defining-agents) | Agents built from toolsets, [sub-agents and handoffs](https://weboost-at.github.io/Typeshift/guide/multi-agent) |
-| [One store](https://weboost-at.github.io/Typeshift/guide/settings-and-stores) | Settings and conversations in your database, behind four methods |
+| [Settings and stores](https://weboost-at.github.io/Typeshift/guide/settings-and-stores) | Settings per customer and conversations, kept in memory or in your database |
 | [Conversations](https://weboost-at.github.io/Typeshift/guide/conversations) | Resume after a crash, steer a run while it works, watch it live |
 | [Tool approval](https://weboost-at.github.io/Typeshift/guide/tool-approval) | Let your app approve a call before it runs |
 | [Plan and auto modes](https://weboost-at.github.io/Typeshift/guide/tool-approval#the-three-modes) | Let the agent plan first, or run without interruptions |
@@ -229,11 +222,9 @@ lists [what your app implements](https://weboost-at.github.io/Typeshift/guide/ge
 | [MCP servers](https://weboost-at.github.io/Typeshift/guide/mcp) | Offer an MCP server's tools to an agent |
 | [Long-running agents](https://weboost-at.github.io/Typeshift/guide/conversations#compaction) | Compaction and crash recovery for hundreds of model calls |
 | [Observability](https://weboost-at.github.io/Typeshift/guide/observability) | OpenTelemetry spans and metrics for every run |
-| [Native AOT](https://weboost-at.github.io/Typeshift/guide/native-aot) | Publish your app without reflection or trim warnings |
 
-### A coding agent in one class
-
-A workspace toolset, a background sub-agent, plan mode and compaction, together:
+<details>
+<summary><b>A coding agent in one class</b>: a workspace toolset, a background sub-agent, plan mode and compaction</summary>
 
 <!-- snippet: coding-agent -->
 <a id='snippet-coding-agent'></a>
@@ -268,6 +259,8 @@ internal partial class CodingAgent : Agent
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
+
+</details>
 
 ## Contributing
 

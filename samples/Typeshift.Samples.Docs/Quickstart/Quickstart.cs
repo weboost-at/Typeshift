@@ -63,20 +63,4 @@ internal static class Quickstart
 
         if (stored.Data.Temperature != 0.4f) throw new InvalidOperationException("Expected the configured settings.");
     }
-
-    // The README's quickstart still shows this registration with a provider class of the app's own
-    internal static async Task RegisterWithProviderAsync()
-    {
-        // begin-snippet: quickstart-registration
-        var services = new ServiceCollection();
-
-        services.AddTypeshift()
-            .WithStore<InMemoryTypeshiftStore<int>>()
-            .WithChatClientProvider<KeyedChatClientProvider>();
-
-        services.AddKeyedSingleton<IChatClient>("openai", new CannedChatClient());
-
-        await using var provider = services.BuildServiceProvider(validateScopes: true);
-        // end-snippet
-    }
 }
