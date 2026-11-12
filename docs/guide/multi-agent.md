@@ -1,12 +1,13 @@
 ---
-title: Multiple agents
+title: Sub-agents and handoffs
 description: Let an agent call another agent as a sub-agent, or hand the conversation to it.
 ---
 
-# Multiple agents
+# Sub-agents and handoffs
 
-An agent can work with others in two ways. It calls one as a sub-agent, a tool that answers with text, or it hands the
-conversation over to one.
+Split a job across agents when one agent would need too many tools, or instructions too long to follow well. An agent
+can call another as a sub-agent, a tool that answers its question, or hand the conversation over to it, so that agent
+goes on with the customer.
 
 ## Sub-agent or handoff
 

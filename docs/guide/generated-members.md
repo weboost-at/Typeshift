@@ -1,9 +1,9 @@
 ---
-title: Generated members and the host
+title: AgentHost and generated members
 description: Every member the generator writes for your toolsets and agents, what triggers it, and every member of AgentHost<TAgent> with its signature.
 ---
 
-# Generated members and the host
+# AgentHost and generated members
 
 The generator adds members to your toolsets and agents, and to `AgentHost<TAgent>`, the class that runs an agent. Each
 section names the declaration that adds a member.
@@ -220,7 +220,7 @@ Every agent also gets:
 |---|---|---|
 | `{Assembly}Module` (hidden) | A toolset or an agent in the assembly | Registers the assembly's toolsets, agents, hosts, JSON contexts and XML docs; see [Registration](./registration.md#what-addtypeshift-registers). |
 | `[GeneratedModule]` (hidden) | The same | Stamps the module, its version and the id type for the projects that reference the assembly. |
-| `TypeshiftSchemaAnnotations_{Assembly}` (hidden) | `GenerateDocumentationFile`, unless `TypeshiftSchemaAnnotations` is `false` | Added by the package's build, not the generator. It carries the `[SchemaAnnotations]` attribute that makes Weboost.SchemaAnnotations collect the XML docs of your types; see [Registration](./registration.md#xml-docs-of-parameter-types). |
+| `TypeshiftSchemaAnnotations_{Assembly}` (hidden) | `GenerateDocumentationFile`, on unless the project turns it off, and `TypeshiftSchemaAnnotations`, unless `false` | Added by the package's build, not the generator. It carries the `[SchemaAnnotations]` attribute that makes Weboost.SchemaAnnotations collect the XML docs of your types; see [Registration](./registration.md#xml-docs-of-parameter-types). |
 | `ITypeshiftStore`, `ISettingsStore`, `IConversationStore`, `InMemoryTypeshiftStore`, `ConversationTracker`, `LiveRun`, `IChatClientProvider` | A reference to the package | `global using` aliases that close the library's types over the [id type](./registration.md#the-id-type), and `IChatClientProvider` over the [provider id type](./models.md#the-provider-id-type). |
 | The `AddTypeshift()` interceptor | A call of `services.AddTypeshift()` | See [Registration](./registration.md). |
 
@@ -289,12 +289,15 @@ In these signatures, `TId` is the build's [id type](./registration.md#the-id-typ
 | `LoadSettingsAsync(TId settingsId)` | `Task<Stored<Settings>>` |
 | `SaveSettingsAsync(TId settingsId, Settings settings, long loadedVersion)` | `Task<long>` |
 | `ConfigureAsync(TId settingsId, Func<Settings, Settings> configure)` | `Task<Settings>` |
+| `LoadSettingsAsync()` | `Task<Stored<Settings>>` |
+| `SaveSettingsAsync(Settings settings, long loadedVersion)` | `Task<long>` |
+| `ConfigureAsync(Func<Settings, Settings> configure)` | `Task<Settings>` |
 
 ### `RunAsync`
 
 `RunAsync` runs the agent on one message, a `string` or a `ChatMessage`, which can carry images or approval answers.
-It layers the agent's code, the settings stored under `settingsId`, the mode the conversation's last run ended in,
-then `settings` ([Settings layering](./settings-and-stores.md#settings-layering)).
+It layers the agent's code, the stored settings, the mode the conversation's last run ended in, then `settings`
+([Settings layering](./settings-and-stores.md#settings-layering)).
 
 With a `conversationId`, it stores the run as it goes ([What a run stores](#what-a-run-stores)). Without one, it
 stores nothing and offers no handoffs. If the model then calls a tool that requires approval and no rule or mode
@@ -324,15 +327,17 @@ interrupted run.
 
 ### `ResolveOptionsAsync`
 
-`ResolveOptionsAsync` layers the agent's code, the settings stored under `settingsId`, then `settings`, and returns
-the run's `ChatOptions` without storing anything. The options hold the model, the instructions, the configurable
+`ResolveOptionsAsync` layers the agent's code, the stored settings, then `settings`
+([Settings layering](./settings-and-stores.md#settings-layering)), and returns the run's `ChatOptions` without
+storing anything. The options hold the model, the instructions, the configurable
 options and the tools. The tools come in this order: the toolsets' tools with their layered settings, the
 sub-agents, the tools of `WithTools`, then the MCP servers' tools.
 
 ### `LoadSettingsAsync`
 
 `LoadSettingsAsync` loads the `Settings` stored under an id, with their version, or empty settings at version 0
-when none are stored. It layers nothing, so the record holds only what was stored.
+when none are stored. It layers nothing, so the record holds only what was stored. Without an id, it loads the
+agent's own settings, and `SaveSettingsAsync` and `ConfigureAsync` save them, through the `IAgentSettingsStore`.
 
 ### `SaveSettingsAsync`
 

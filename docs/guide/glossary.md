@@ -38,7 +38,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | **Run options** | How a run's tool loop goes, with its mode, its limits and compaction. Set with `WithRunOptions()`. |
 | **Runtime** | `TypeshiftRuntime`, the root of Typeshift in your app, which gives you a host with a scope of its own. `TypeshiftRuntime.Create` builds one without a container, and `AddTypeshift()` registers one. See [The runtime](./registration.md#the-runtime). |
 | **Schema version** | The number in a stored document's JSON, `"$schemaVersion"`, that names the shape of the record that wrote it: 1 unless the agent's `WithSchemaVersion(n)` raises it. Reading a newer one fails. See [The stored JSON](./settings-and-stores.md#the-stored-json). |
-| **Settings** | An agent's generated `Settings` record, with exactly the values that may change at runtime. Stored under a settings id, or passed for one run. |
+| **Settings** | An agent's generated `Settings` record, with exactly the values that may change at runtime. Stored as the agent's own, stored under a settings id, or passed for one run. |
 | **Settings id** | The id your app stores an agent's `Settings` under, such as one per customer, team or user. |
 | **Settings record** | The record a tool receives its settings in, declared with `WithSettings<T>()` or `WithConfigurableSettings<T>()`. The model never sees it. |
 | **Stamp** | A hidden attribute the generator writes so that other assemblies can read a toolset's tools or a project's module. |
@@ -53,5 +53,5 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 
 ## Related
 
-- [Getting started](./getting-started.md#how-the-pieces-fit): how the pieces fit together.
+- [What is Typeshift?](./what-is-typeshift.md#how-the-pieces-fit): how the pieces fit together.
 - [Writing style](../contributing/writing.md): for contributors, how these docs use the terms above.

@@ -47,7 +47,9 @@ public partial class HelperAgent : Agent
     {
         WithDescription(About);
 
-        WithChatOptions().WithModel("scripted", Model);
+        WithChatOptions()
+            .WithModel("scripted", Model)
+            .Configurable(o => o.Temperature);
 
         UseToolset<GuardedToolset>();
     }
@@ -186,7 +188,9 @@ public partial class BackAgent : Agent
     {
         WithDescription("Settles billing.");
 
-        WithChatOptions().WithModel("scripted", "back-model");
+        WithChatOptions()
+            .WithModel("scripted", "back-model")
+            .Configurable(o => o.Temperature);
 
         UseHandoff<FrontAgent>();
     }

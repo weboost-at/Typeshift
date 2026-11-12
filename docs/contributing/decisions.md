@@ -333,7 +333,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D27. Four settings layers
 
 - **Status:** brief. Code defaults, the agent's code, its stored `Settings`, the run. Stored tool
-  defaults (`ToolDefaults`) are gone, so resolving a run's settings is one document.
+  defaults (`ToolDefaults`) are gone, so resolving a run's settings is one document. The stored layer holds the
+  agent's own settings and, over them, those under the settings id (D66).
 
 ### D28. The model is a configurable option like any other
 
@@ -575,7 +576,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Details:** `WithStore<T>()` registers each interface `T` implements, so settings and conversations may live in
   two stores, each registered by its own call. Settings and conversations differ in shape and load: a few documents
   read once per run and saved with a version, against an append-only log written at every step. TSH028 reports a
-  store that implements neither interface for the build's id type, or either for another id type. Registration checks
+  store that implements neither interface for the build's id type, nor `IAgentSettingsStore` (D66), or either for
+  another id type, and registration throws for the same stores. Registration checks
   the store's type with `IsAssignableFrom`, which reads no members and stays safe under trimming.
 - **Alternatives:** v0's load and save only, which rewrote a whole conversation per turn; a generic append for any kind,
   a concept with one user; `LoadAsync<TData>` and `SaveAsync<TData>` over `IStorable` documents (up to 0.1.0-alpha.3),
@@ -585,6 +587,57 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   keep; `WithSettingsStore<T>()` and `WithConversationStore<T>()`, two calls where the interfaces already say what a
   store keeps; renaming the conversation methods (`LoadAsync`, `AppendAsync`), which would clash with the settings
   methods in a class that implements both.
+
+### D66. Each agent has settings of its own, under no id
+
+- **Status:** owner.
+- **Context:** the owner asked for "a configurable, storable agent settings record for a single agent", stored "keyed
+  by the kind" alone, so that a simple app needs no settings ids.
+- **Decision:** `IAgentSettingsStore` keeps a document per kind, with a version, and no id. `ConfigureAsync(configure)`,
+  `LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)` are the members of D41 without the id. Every
+  run of the agent applies its own settings, over its code and under the settings of a settings id, so they are the
+  stored layer of an app without settings ids and the defaults of every id in one with them. `InMemoryTypeshiftStore`
+  implements the interface, and `WithStore<T>()` registers it as it does the other two (D38). A run loads them only
+  when a store of them is registered, so a store without them leaves runs as they were. Loading or saving them
+  without one throws, naming `IAgentSettingsStore`. They have paths of their own down to the store, and the members
+  that take an id throw on a null one, so a missing id never writes every id's defaults.
+- **Where:** `Storage/IAgentSettingsStore.cs`, `Storage/StoreAccess.cs`, `Storage/StoreExtensions.cs`,
+  `Storage/InMemoryTypeshiftStore.cs`, `Hosting/AgentHost.cs`, `Generated/AgentRuns.cs`,
+  `Generated/ModuleRegistration.cs`, `DependencyInjection/TypeshiftBuilder.cs`, `Emitting/AgentEmitter.cs`,
+  `Analysis/TypeshiftAnalyzer.cs`.
+- **Alternatives:** the agent's own settings in place of a settings id's instead of under them, which leaves an app
+  with ids no stored defaults; a reserved id, such as `Guid.Empty`, which not every id type has and a store cannot
+  tell from a real one; two more methods on `ITypeshiftStore<TId>`, which every store implementing it would have to
+  add; settings without an id on `ISettingsStore<TId>`, which ties them to an id type; a null settings id for them,
+  which a missing id of a reference type would reach; members of other names, such as `LoadOwnSettingsAsync`, which
+  keep `LoadSettingsAsync(default)` meaning an id but give one record two sets of names.
+
+### D68. The package turns XML docs on
+
+- **Status:** owner.
+- **Context:** the owner asked for less ceremony and sane defaults, and a project without
+  `GenerateDocumentationFile` got tools without descriptions (TSH011), a step every tutorial reader had to take.
+- **Decision:** the package's props set `GenerateDocumentationFile` to `true` when the project leaves it empty, and
+  add CS1591 to `NoWarn` only then, so a project that never documented its public members gets no warning for each.
+  The props run before the project's own properties, so a project that sets the property, either way, keeps its
+  choice. The package consumer sample sets no `GenerateDocumentationFile`, checks a tool's description and the docs of
+  a type it takes, and carries an undocumented public type.
+- **Where:** `buildTransitive/Typeshift.props`, `samples/Typeshift.Samples.PackageConsumer`.
+- **Alternatives:** the tutorial's `Directory.Build.props`, a step of ceremony; docs on without hiding CS1591, which
+  fails every build that treats warnings as errors.
+
+### D70. Instructions that never change are one call
+
+- **Status:** owner.
+- **Context:** the owner asked for less ceremony. Constant instructions took an override of `GetInstructions()`, three
+  lines outside the constructor that holds everything else an agent declares.
+- **Decision:** `WithInstructions(text)` in the constructor sets the instructions, and `GetInstructions()` returns
+  them unless the agent overrides it. The call runs when the agent is built, as the chat options' calls do, so the
+  text need not be a constant. An override still wins, for instructions built per run.
+- **Where:** `Agents/Agent.cs`.
+- **Alternatives:** `WithChatOptions().WithInstructions(...)`, beside the model, which would split the instructions
+  between `ChatOptions` and the override; reading them from the agent's XML docs, which already describe it to other
+  agents (D14).
 
 ### D71. Every conversation store implements the load from the last summary
 
@@ -651,7 +704,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   names the rule a store broke. It runs the rules of every interface the store implements, whichever one it is called
   through, so a store that is both cannot pass on one alone. It needs no test framework, so a store's tests in any
   framework can call it. It writes under the id it is given, as a settings id and as a conversation id, so tests pass
-  one that nothing else uses.
+  one that nothing else uses. A store that is also an `IAgentSettingsStore` is checked under new kinds, and for
+  keeping its own documents apart from an id's; `VerifyAgentSettingsAsync(kind)` checks a store of them alone (D66).
 - **Details:** the steps are on [Implementing a store](../guide/implementing-a-store.md#check-your-store). The summary
   entries have `StandingApprovals` set, as compaction writes them, and entries carry fixed times, so the check reads
   no clock. A store's own exception where a conflict belongs is named in the message. A conversation id with entries,

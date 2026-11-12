@@ -1,12 +1,14 @@
 ---
-title: Running agents
+title: Running an agent
 description: Run an agent through its host with stored settings, run settings, typed output or streaming, and the steps every run passes through.
 ---
 
-# Running agents
+# Running an agent
 
-You run an agent through its host, `AgentHost<TAgent>`, which your app takes from the scope of the request or job that
-runs the agent ([Using an agent](./using-an-agent.md)).
+You run an agent through its host, `AgentHost<TAgent>`: pass the user's message, and get back the model's answer with
+the tool calls it made on the way. A run can apply a customer's stored settings, change them for one run, ask for a
+typed answer, or stream as the model writes. [Using an agent](./using-an-agent.md) shows where your app gets the
+host.
 
 ## Registration
 
@@ -56,7 +58,8 @@ them. Each message names the agent that wrote it in `AuthorName`.
 
 ## Stored settings
 
-Pass a settings id, and the run layers the [settings stored](./settings-and-stores.md) under it over the agent's code:
+Pass a settings id, and the run layers the [settings stored](./settings-and-stores.md) under it over the agent's code
+and its own stored settings:
 
 <!-- snippet: run-with-settings-id -->
 <a id='snippet-run-with-settings-id'></a>
@@ -227,10 +230,10 @@ flowchart TD
 Each step wraps the steps below it, so the answer passes back up through them in reverse order: run middleware sees
 the response before the conversation stores how the run ended.
 
-1. **Resolve the options.** The host builds the run's `ChatOptions` from the agent's code, then the settings stored
-   under the settings id, then the run's own settings. It creates the tools the agent offers, their settings resolved
-   through the same layers, and adds the sub-agents and the tools of MCP servers after them. The layers resolve once,
-   when the run starts ([settings layering](./settings-and-stores.md#settings-layering)).
+1. **Resolve the options.** The host builds the run's `ChatOptions` from the agent's code, then the agent's own stored
+   settings and those under the settings id, then the run's own settings. It creates the tools the agent offers, their
+   settings resolved through the same layers, and adds the sub-agents and the tools of MCP servers after them. The
+   layers resolve once, when the run starts ([settings layering](./settings-and-stores.md#settings-layering)).
 2. **Resume the conversation.** With a conversation id, the run puts the stored entries ahead of the new input, so the
    model sees the whole conversation, and stores the input. An input that answers an approval request that has
    closed throws instead, before anything is stored

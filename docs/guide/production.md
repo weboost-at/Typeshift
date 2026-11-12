@@ -79,8 +79,8 @@ type that lacks it at compile time.
 
 ### The project
 
-To publish your app with Native AOT, set `PublishAot` in its project. Keep `GenerateDocumentationFile` on, because
-tools take their descriptions from XML docs ([TSH011](./diagnostics.md#tsh011)):
+To publish your app with Native AOT, set `PublishAot` in its project. XML docs stay on, as the package turns them on,
+so tools keep their descriptions ([TSH011](./diagnostics.md#tsh011)):
 
 <!-- snippet: aot-project -->
 <a id='snippet-aot-project'></a>
@@ -89,10 +89,9 @@ tools take their descriptions from XML docs ([TSH011](./diagnostics.md#tsh011)):
   <OutputType>Exe</OutputType>
   <PublishAot>true</PublishAot>
   <InvariantGlobalization>true</InvariantGlobalization>
-  <GenerateDocumentationFile>true</GenerateDocumentationFile>
 </PropertyGroup>
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Typeshift.Samples.Console.csproj#L5-L12' title='Snippet source file'>snippet source</a> | <a href='#snippet-aot-project' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Typeshift.Samples.Console.csproj#L5-L11' title='Snippet source file'>snippet source</a> | <a href='#snippet-aot-project' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ### Tool parameter and result types

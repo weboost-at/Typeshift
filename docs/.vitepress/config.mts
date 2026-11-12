@@ -12,18 +12,19 @@ const description = 'Code-defined agents and toolsets for .NET on Microsoft.Exte
 const base = process.env.DOCS_BASE ?? '/Typeshift/'
 
 // The sidebar order is the reading order: the Introduction first, which takes a reader from nothing to an app that
-// uses the library, then building, running and controlling agents, then the reference. The Introduction has no
-// `collapsed` key, so it is always open; the others start collapsed, and VitePress opens one when it holds the current
-// page.
+// uses the library, then building agents, running them, their settings and storage, production, and the reference.
+// The Introduction has no `collapsed` key, so it is always open; the others start collapsed, and VitePress opens one
+// when it holds the current page.
 // docs/.vitepress/lint.mjs fails on a page the sidebar leaves out.
 const sidebar = {
   '/guide/': [
     {
       text: 'Introduction',
       items: [
+        { text: 'What is Typeshift?', link: '/guide/what-is-typeshift' },
         { text: 'Getting started', link: '/guide/getting-started' },
-        { text: 'Using an agent', link: '/guide/using-an-agent' },
-        { text: 'Implementing a store', link: '/guide/implementing-a-store' }
+        { text: 'Registration', link: '/guide/registration' },
+        { text: 'Using an agent', link: '/guide/using-an-agent' }
       ]
     },
     {
@@ -33,37 +34,43 @@ const sidebar = {
         { text: 'Toolsets', link: '/guide/toolsets' },
         { text: 'Tool settings', link: '/guide/tool-settings' },
         { text: 'Agents', link: '/guide/defining-agents' },
+        { text: 'Models and providers', link: '/guide/models' },
         { text: 'MCP servers', link: '/guide/mcp' },
-        { text: 'Multiple agents', link: '/guide/multi-agent' }
+        { text: 'Sub-agents and handoffs', link: '/guide/multi-agent' }
       ]
     },
     {
       text: 'Running agents',
       collapsed: true,
       items: [
-        { text: 'Running agents', link: '/guide/running-agents' },
-        { text: 'Models and providers', link: '/guide/models' },
-        { text: 'Settings and stores', link: '/guide/settings-and-stores' },
+        { text: 'Running an agent', link: '/guide/running-agents' },
         { text: 'Conversations', link: '/guide/conversations' },
-        { text: 'Serving a chat endpoint', link: '/guide/chat-endpoint' },
-        { text: 'In production', link: '/guide/production' }
+        { text: 'Approval and modes', link: '/guide/tool-approval' },
+        { text: 'Middleware and context', link: '/guide/middleware' },
+        { text: 'Serving a chat endpoint', link: '/guide/chat-endpoint' }
       ]
     },
     {
-      text: 'Controlling runs',
+      text: 'Settings and storage',
       collapsed: true,
       items: [
-        { text: 'Approval and modes', link: '/guide/tool-approval' },
-        { text: 'Middleware and context', link: '/guide/middleware' }
+        { text: 'Settings and stores', link: '/guide/settings-and-stores' },
+        { text: 'Implementing a store', link: '/guide/implementing-a-store' }
+      ]
+    },
+    {
+      text: 'Production',
+      collapsed: true,
+      items: [
+        { text: 'In production', link: '/guide/production' }
       ]
     },
     {
       text: 'Reference',
       collapsed: true,
       items: [
-        { text: 'Registration', link: '/guide/registration' },
         { text: 'Builders', link: '/guide/builders' },
-        { text: 'Generated members', link: '/guide/generated-members' },
+        { text: 'AgentHost and generated members', link: '/guide/generated-members' },
         { text: 'Diagnostics', link: '/guide/diagnostics' },
         { text: 'Glossary', link: '/guide/glossary' }
       ]

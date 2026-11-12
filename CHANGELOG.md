@@ -33,6 +33,11 @@ All notable changes to this project are documented here. The format follows
   client)`, or the one registered for every agent with `services.AddChatClient(client)`, when no
   `IChatClientProvider` is registered for it. An agent that names no model runs on that last client, with its own model, so a
   demo needs neither a provider class nor `WithModel`.
+- `WithInstructions("...")` sets an agent's instructions in its constructor; override `GetInstructions()` only for
+  instructions your code builds per run.
+- Each agent has settings of its own, which every run applies under no settings id: `ConfigureAsync(configure)`,
+  `LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)`, kept by an `IAgentSettingsStore`.
+  `InMemoryTypeshiftStore` implements it, and a settings id's settings apply over the agent's own.
 
 ### Changed
 
@@ -55,6 +60,10 @@ All notable changes to this project are documented here. The format follows
 - The class of an agent's host members is `TypeshiftHost_4Demo12SupportAgent` for `Demo.SupportAgent`, in the global
   namespace and hidden from type completion, where it was `SupportAgentHostExtensions` in the agent's namespace. Code
   that called the members through the class's name, or with `using static`, calls them on the host instead.
+- The package turns on `GenerateDocumentationFile` unless your project sets it, and hides CS1591 then, so tools get their
+  descriptions with no `Directory.Build.props`.
+- `LoadSettingsAsync(default)` loads the agent's own settings now, since the overload without an id wins. Pass the id
+  itself, such as `Guid.Empty`, to load the settings under it.
 
 ### Fixed
 

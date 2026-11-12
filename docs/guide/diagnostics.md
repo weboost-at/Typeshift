@@ -126,8 +126,9 @@ reach nothing. Add the parameter to the method.
 ## TSH011
 
 **XML docs are not generated.** A tool or an agent takes its description from its `<summary>`, but the compiler reads
-XML docs only with `GenerateDocumentationFile`, so set it in the project. `WithDescription` is a way around it only
-when a tool's parameters have no `<param>` docs, since it replaces only the `<summary>`.
+XML docs only with `GenerateDocumentationFile`, which the package turns on, so your project turned it off. Remove that
+setting. `WithDescription` is a way around it only when a tool's parameters have no `<param>` docs, since it replaces
+only the `<summary>`.
 
 ## TSH012
 
@@ -241,7 +242,8 @@ need none: `string`, `char`, `bool`, `short`, `ushort`, `int`, `uint`, `long`, `
 
 **Store has another id type.** `WithStore<T>()` takes a store of the build's id type. Implement `ISettingsStore`,
 `IConversationStore` or `ITypeshiftStore`, which is both. The generator writes these aliases for the build's id type,
-so they always have the right one.
+so they always have the right one. A store of `IAgentSettingsStore` alone takes no id, and one that is also a store of
+another id type is reported too.
 
 ## TSH029
 

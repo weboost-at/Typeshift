@@ -7,6 +7,9 @@ public class PersistenceTestData(Faker faker)
 {
     public Guid SettingsId { get; } = faker.Random.Guid();
 
+    // A kind nothing is stored under, for the checks of agents' own settings
+    public string Kind { get; } = $"{faker.Hacker.Noun()}_{faker.Random.AlphaNumeric(8)}";
+
     // Every member set, none to a default
     public EveryKindAgent.Settings EveryKind { get; } = new()
     {

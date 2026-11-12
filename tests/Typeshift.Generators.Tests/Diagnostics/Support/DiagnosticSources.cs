@@ -1239,6 +1239,60 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string AgentSettingsStore =
+        """
+        using System;
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal sealed class AgentStore : IAgentSettingsStore
+        {
+            public Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct) =>
+                throw new NotSupportedException();
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithStore<AgentStore>();
+        }
+        """;
+
+    public const string AgentSettingsStoreWithSettingsOfAnotherIdType =
+        """
+        using System;
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal sealed class MixedStore : IAgentSettingsStore, ISettingsStore<int>
+        {
+            public Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task<StoredDocument?> LoadAsync(int id, string kind, CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task<long> SaveAsync(int id, string kind, string json, long loadedVersion, CancellationToken ct) =>
+                throw new NotSupportedException();
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithStore<MixedStore>();
+        }
+        """;
+
     public const string SettingsStoreOfTheBuildsIdType =
         """
         using System;

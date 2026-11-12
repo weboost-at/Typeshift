@@ -7,7 +7,8 @@ description: Build your first agent in four steps, from installing the package t
 
 In four steps you build an agent that looks up the companies of a city, and run it. You write the tool as a static
 method and the agent as a small class that offers it. Typeshift turns the method into the tool the model calls, and
-the build fails when the agent configures a tool it doesn't offer.
+the build fails when the agent configures a tool it doesn't offer. [What is Typeshift?](./what-is-typeshift.md)
+explains what the library is for, if you'd like that first.
 
 ## 1. Install
 
@@ -23,14 +24,13 @@ Typeshift needs .NET 11. Add `using Typeshift;` to your files, and `using Micros
 to the `Program.cs` of step 4. A solution of several projects needs the package in more than one of them
 ([Project setup](./registration.md#project-setup)).
 
-Next to your solution, create a `Directory.Build.props` that turns on XML docs, because Typeshift builds each tool's
-description for the model from them. The same file sets the type of the ids you pass to runs. This tutorial uses `int`, which keeps
-the ids in its examples short:
+The package turns on XML docs in your project, because Typeshift builds each tool's description for the model from
+them. Next to your solution, create a `Directory.Build.props` that sets the type of the ids you pass to runs. This
+tutorial uses `int`, which keeps the ids in its examples short:
 
 ```xml
 <Project>
   <PropertyGroup>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- Ids are Guids unless you name another type. This sample uses int. -->
     <TypeshiftIdType>int</TypeshiftIdType>
   </PropertyGroup>
@@ -106,8 +106,7 @@ Only your code can change `IncludeInactive`, because it isn't marked `Configurab
 
 ## 3. Write an agent
 
-An agent picks its model and the toolsets it offers in its constructor, and returns its instructions from
-`GetInstructions()`:
+An agent picks its instructions, its model and the toolsets it offers, all in its constructor:
 
 <!-- snippet: quickstart-agent -->
 <a id='snippet-quickstart-agent'></a>
@@ -117,6 +116,7 @@ internal partial class ResearchAgent : Agent
     public ResearchAgent()
     {
         WithDescription("Researches the companies of a city.");
+        WithInstructions("Find companies with the find_companies tool and list them.");
 
         WithChatOptions()
             .WithModel("openai", "gpt-5-mini")
@@ -129,14 +129,9 @@ internal partial class ResearchAgent : Agent
         ConfigureFindCompanies()
             .WithLimit(3);
     }
-
-    protected override string GetInstructions() =>
-        """
-        Find companies with the find_companies tool and list them.
-        """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/ResearchAgent.cs#L3-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/ResearchAgent.cs#L3-L23' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - `WithModel("openai", "gpt-5-mini")` names a provider and the model as that provider calls it. Step 4 registers the
@@ -263,37 +258,6 @@ Found Danube Robotics.
 The record, the agent, the stored settings and the run are layers, and the highest one that sets a value wins.
 [Settings layering](./settings-and-stores.md#settings-layering) follows this limit through all four.
 
-## How the pieces fit
-
-```mermaid
-flowchart LR
-  subgraph compile [Compile time]
-    toolset[Toolset] --> generator[Source generator]
-    agent[Agent] --> generator
-    generator --> functions[An AIFunction per tool]
-    generator --> settings[A Settings record per agent]
-    generator --> registration["AddTypeshift()"]
-  end
-  subgraph runtime [Runtime]
-    host["AgentHost&lt;TAgent&gt;"] --> client[The provider's IChatClient]
-    host --> store[Your store]
-  end
-  registration --> host
-```
-
-`AddTypeshift()` registers an `AgentHost<TAgent>` per agent. The host resolves the settings, calls the model, runs the
-tools and stores the conversation.
-
-| Piece | What it is | Read |
-|---|---|---|
-| Toolset | A `partial` class deriving from `Toolset` that declares a group of related tools | [Toolsets](./toolsets.md) |
-| Tool settings | A record of values a tool needs that the model must not choose | [Tool settings](./tool-settings.md) |
-| Agent | A `partial` class deriving from `Agent`, with chat options, instructions and tools | [Agents](./defining-agents.md) |
-| Agent host | `AgentHost<TAgent>`, which runs one agent in the scope it was resolved from | [Using an agent](./using-an-agent.md) |
-| Store | Your `ITypeshiftStore`, or an `ISettingsStore` and an `IConversationStore`, which keep settings and conversations | [Settings and stores](./settings-and-stores.md) |
-
-The [glossary](./glossary.md) defines every other term.
-
 ## What your app implements
 
 Your app implements a few interfaces when it needs the feature that uses them:
@@ -301,7 +265,7 @@ Your app implements a few interfaces when it needs the feature that uses them:
 | Interface | Needed for | Read |
 |---|---|---|
 | `IChatClientProvider` | A client that depends on more than its provider, such as a key per customer. | [Your own provider](./models.md#your-own-provider) |
-| `ITypeshiftStore`, or `ISettingsStore` and `IConversationStore` | Settings ids and conversation ids. A singleton; `InMemoryTypeshiftStore` serves tests and samples. | [Implementing a store](./implementing-a-store.md) |
+| `ITypeshiftStore`, or `ISettingsStore` and `IConversationStore` | Settings ids and conversation ids; `IAgentSettingsStore` for each agent's own settings. A singleton; `InMemoryTypeshiftStore` serves tests and samples. | [Implementing a store](./implementing-a-store.md) |
 | `IContextProvider` | Memory, documents or other data added to every run of an agent. | [Context providers](./middleware.md#context-providers) |
 | `IToolApprovalRule`, `IRunMiddleware`, `IToolMiddleware`, `IMcpToolProvider` | Approval rules, middleware and MCP servers. | [The chain](./registration.md#the-chain) |
 

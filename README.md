@@ -132,6 +132,7 @@ internal partial class ResearchAgent : Agent
     public ResearchAgent()
     {
         WithDescription("Researches the companies of a city.");
+        WithInstructions("Find companies with the find_companies tool and list them.");
 
         WithChatOptions()
             .WithModel("openai", "gpt-5-mini")
@@ -144,14 +145,9 @@ internal partial class ResearchAgent : Agent
         ConfigureFindCompanies()
             .WithLimit(3);
     }
-
-    protected override string GetInstructions() =>
-        """
-        Find companies with the find_companies tool and list them.
-        """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/ResearchAgent.cs#L3-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/ResearchAgent.cs#L3-L23' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ### 3. Run it
@@ -172,7 +168,7 @@ services.AddKeyedSingleton<IChatClient>("openai", new CannedChatClient());
 
 await using var provider = services.BuildServiceProvider(validateScopes: true);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L60-L70' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L70-L80' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `CannedChatClient` is a fake that lets the samples run without a network. In your app, register a real client in its

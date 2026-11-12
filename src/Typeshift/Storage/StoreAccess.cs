@@ -3,12 +3,20 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Typeshift;
 
 // D11: the library is compiled before the host picks its id type, so runs pass ids as objects to the store of the
-// build's type, which the generated registration names
+// build's id type, which the generated registration names
 internal interface IStoreAccess
 {
+    // D66: whether runs have an agent's own settings to load, which no settings id reaches
+    bool KeepsAgentSettings { get; }
+
     Task<Stored<TData>?> LoadAsync<TData>(object id, CancellationToken ct) where TData : class, IStorable<TData>;
 
     Task<long> SaveAsync<TData>(object id, TData data, long loadedVersion, CancellationToken ct)
+        where TData : class, IStorable<TData>;
+
+    Task<Stored<TData>?> LoadAgentSettingsAsync<TData>(CancellationToken ct) where TData : class, IStorable<TData>;
+
+    Task<long> SaveAgentSettingsAsync<TData>(TData data, long loadedVersion, CancellationToken ct)
         where TData : class, IStorable<TData>;
 
     Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(object conversation, CancellationToken ct);
@@ -39,15 +47,32 @@ internal sealed class StoreAccess<TId>(IServiceProvider services, Func<string, T
             "No conversation store is registered: call WithStore<T>() after AddTypeshift() with an IConversationStore "
             + "to keep conversations.");
 
+    // Every run asks, so the lookup runs once
+    private readonly Lazy<IAgentSettingsStore?> _agentSettingsStore = new(services.GetService<IAgentSettingsStore>);
+
+    private IAgentSettingsStore AgentSettingsStore =>
+        _agentSettingsStore.Value
+        ?? throw new InvalidOperationException(
+            "No agent settings store is registered: call WithStore<T>() after AddTypeshift() with an "
+            + "IAgentSettingsStore, such as InMemoryTypeshiftStore, to load or save an agent's own settings.");
+
+    public bool KeepsAgentSettings => _agentSettingsStore.Value is not null;
+
     public async Task<Stored<TData>?> LoadAsync<TData>(object id, CancellationToken ct)
         where TData : class, IStorable<TData> =>
-        await SettingsStore.LoadAsync((TId)id, TData.Kind, ct) is { } document
-            ? new Stored<TData>(TData.Deserialize(document.Json), document.Version)
-            : null;
+        Read<TData>(await SettingsStore.LoadAsync((TId)id, TData.Kind, ct));
 
     public Task<long> SaveAsync<TData>(object id, TData data, long loadedVersion, CancellationToken ct)
         where TData : class, IStorable<TData> =>
         SettingsStore.SaveAsync((TId)id, TData.Kind, data.Serialize(), loadedVersion, ct);
+
+    public async Task<Stored<TData>?> LoadAgentSettingsAsync<TData>(CancellationToken ct)
+        where TData : class, IStorable<TData> =>
+        Read<TData>(await AgentSettingsStore.LoadAsync(TData.Kind, ct));
+
+    public Task<long> SaveAgentSettingsAsync<TData>(TData data, long loadedVersion, CancellationToken ct)
+        where TData : class, IStorable<TData> =>
+        AgentSettingsStore.SaveAsync(TData.Kind, data.Serialize(), loadedVersion, ct);
 
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(object conversation, CancellationToken ct) =>
         ConversationStore.LoadConversationAsync((TId)conversation, ct);
@@ -66,4 +91,7 @@ internal sealed class StoreAccess<TId>(IServiceProvider services, Func<string, T
                 $"{typeof(TId).Name} is not parsable, so ChatOptions.ConversationId cannot name a conversation: "
                 + "run through the agent's generated members instead.")
             : parse(id);
+
+    private static Stored<TData>? Read<TData>(StoredDocument? document) where TData : class, IStorable<TData> =>
+        document is null ? null : new Stored<TData>(TData.Deserialize(document.Json), document.Version);
 }

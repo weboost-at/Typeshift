@@ -108,7 +108,7 @@ internal sealed record PendingApproval(
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatContracts.cs#L5-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-contracts' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`ApprovalRequests` lists the calls that wait for approval ([A run that asks](./tool-approval.md#a-run-that-asks)).
+`ApprovalRequests` lists the calls that wait for approval ([When a call needs approval](./tool-approval.md#when-a-call-needs-approval)).
 `PendingApproval` keeps the tool and its arguments, which the UI shows when it asks, and the ids the UI sends back with
 the user's answer. Show the arguments as the model sent them, because those are the arguments the call runs with.
 
