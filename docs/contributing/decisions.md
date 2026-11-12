@@ -36,9 +36,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Context:** v0 reported TSH diagnostics without syntax trees, so `#pragma` and `.editorconfig` could not reach
   them, and locations in the models broke caching.
 - **Decision:** a `DiagnosticAnalyzer` in the same package reports every TSH diagnostic at real locations; the parser
-  takes a report callback, a no-op in the generator. Compilation-wide checks (unique names, references, the provider id type)
-  are compilation-end actions. The analyzer sees generated code, so it checks picks and the store type semantically.
-  A `DiagnosticSuppressor` silences CS1573 for tool parameters the model never sees.
+  takes a report callback, a no-op in the generator. Compilation-wide checks (unique names, references, the provider id
+  type) are compilation-end actions. The analyzer sees generated code, so it checks picks and the store type
+  semantically. A `DiagnosticSuppressor` silences CS1573 for tool parameters the model never sees.
 - **Alternatives:** the generator reporting with real locations, which keeps syntax nodes out of cached models only
   with v0's plumbing.
 - **Where:** `src/Typeshift.Generators/Analysis/`.
@@ -78,10 +78,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - **Status:** carried (v0 D2), extended.
 - **Decision:** per toolset a `{Tool}Overrides` record per tool with configurable settings and a `{Toolset}ToolList`
-  extension block; per agent the nested `Settings` record, a private `Configure{Tool}()` per offered tool with
-  settings and a `TypeshiftHost_{full name}` extension block in the global namespace (D12); per assembly a module;
-  per project the `IChatClientProvider` alias (D56). Nested classes join their containers' names with `_`; keywords get `@`. A clash with a
-  user member is TSH018.
+  extension block; per agent the nested `Settings` record, a private `Configure{Tool}()` per offered tool with settings
+  and a `TypeshiftHost_{full name}` extension block in the global namespace (D12); per assembly a module; per project
+  the `IChatClientProvider` alias (D56). Nested classes join their containers' names with `_`; keywords get `@`. A clash
+  with a user member is TSH018.
 - **Agents:** besides those, the hidden `Declaration` override, one private nested class `TypeshiftGenerated` (the
   declaration, the builders and the per-agent store of `Configure{Tool}()` values) and one private field
   `_typeshift`, so an agent gains as few names as possible. A tool's member in `Settings` named like an option or a
@@ -267,7 +267,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   (TSH025) and from every tool of the agents its standing approvals reach or come from (TSH007), since an approval names
   its tool: handoffs pass the conversation on, directly or through other agents, and a sub-agent runs with its caller's
   approvals (D33) but without a conversation, so it hands off nothing. The module stamp lists each agent's tools, its
-  own tools and those that require approval, at stamp version 4, so a handoff or sub-agent into a referenced project's
+  own tools and those that require approval, at stamp version 5, so a handoff or sub-agent into a referenced project's
   agent is checked too; that agent's own uses are not stamped.
 - **Where:** `Agents/Agent.cs`, `Parsing/ToolsetParser.cs`, `Parsing/AgentParser.cs`, `Parsing/Catalog.cs`,
   `Emitting/AgentEmitter.cs`.
@@ -351,11 +351,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   names such as `lmstudio/qwen/qwen3-8b`, split them again, and wrapped each client to put the provider's own id back
   into the request.
 - **Decision:** `WithModel(provider, model)`. `IChatClientProvider<TProviderId>` has one method,
-  `GetChatClientAsync(provider, model, ct)`, resolved scoped from the run's services, and `ChatOptions.ModelId`
-  carries the model alone. The provider id type is the MSBuild property `TypeshiftProviderIdType`, `string` by
-  default, a type settings store as one value (a string, a number, a `Guid` or an enum), with a generated
-  `IChatClientProvider` alias. The summary model is the run's model unless named, and its provider the run's provider: the agent's
-  code names a summary model only, and only settings (`SummaryProvider`) name another provider for it.
+  `GetChatClientAsync(provider, model, ct)`, resolved scoped from the run's services, and `ChatOptions.ModelId` carries
+  the model alone. The provider id type is the MSBuild property `TypeshiftProviderIdType`, `string` by default, a type
+  settings store as one value (a string, a number, a `Guid` or an enum), with a generated `IChatClientProvider` alias.
+  The summary model is the run's model unless named, and its provider the run's provider: the agent's code names a
+  summary model only, and only settings (`SummaryProvider`) name another provider for it.
 - **As built:** the library keeps providers boxed (`Agent.Provider`, `ResolvedChatOptions.Provider` and
   `SummaryProvider`), and `ChatClients<TProviderId>`, which the interceptor's `AddCoreServices<TProviderId>`
   registers, unboxes them for the host's provider. Generated `ApplySettings` sets the providers through
@@ -566,10 +566,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - **Status:** approved; split at the owner's request.
 - **Decision:** `ISettingsStore<TId>`: `LoadAsync` and `SaveAsync` of documents as JSON, keyed by id and kind, with a
-  version. `IConversationStore<TId>`: `LoadConversationAsync` and `AppendConversationAsync` of
-  `ConversationEntry`s keyed by the conversation id; `LoadConversationSinceCompactionAsync`, which runs call and every
-  store implements (D71). `ITypeshiftStore<TId>` is both in one. The library serializes the documents (each agent's `Settings`), so a store implements no
-  generic method and handles strings and numbers only.
+  version. `IConversationStore<TId>`: `LoadConversationAsync` and `AppendConversationAsync` of `ConversationEntry`s
+  keyed by the conversation id; `LoadConversationSinceCompactionAsync`, which runs call and every store implements
+  (D71). `ITypeshiftStore<TId>` is both in one. The library serializes the documents (each agent's `Settings`), so a
+  store implements no generic method and handles strings and numbers only.
 - **Details:** `WithStore<T>()` registers each interface `T` implements, so settings and conversations may live in
   two stores, each registered by its own call. Settings and conversations differ in shape and load: a few documents
   read once per run and saved with a version, against an append-only log written at every step. TSH028 reports a
@@ -774,19 +774,22 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Context:** the owner asked for sane defaults, "for stock users to have a working library at their hands from the
   get-go". Without `WithStore<T>()`, every settings save, every run with an id and every approval threw.
-- **Decision:** until a store is registered with `WithStore<T>()`, which `WithFileStore()` calls too, the store
-  access keeps what no service of the container keeps in an `InMemoryTypeshiftStore` of its own per id type (D72), a
-  singleton like the host's other services. `WithStore<T>()` alone is the switch: a store your app adds to the
-  container without it serves its own interface, and the memory keeps the rest. The first save or append to the
-  memory logs a warning, once, that names `WithStore<T>()`, and `WithFileStore()` for agents' own settings, and says
-  the data is gone when the app stops; loads stay quiet, since a load of nothing loses nothing. Once a store is
-  registered with `WithStore<T>()`, only registered stores serve, so an app that kept settings in a database and
-  forgot a store of conversations still gets the exception of D43 instead of conversations that vanish.
-- **Where:** `Storage/StoreAccess.cs`.
+- **Decision:** when the container holds no store, the store access keeps everything in an `InMemoryTypeshiftStore`
+  of its own per id type (D72), a singleton like the host's other services. A store is any registration, without a
+  key, of `IAgentSettingsStore` or of an `ISettingsStore<>`, `IConversationStore<>` or `ITypeshiftStore<>` of any id
+  type, whether `WithStore<T>()` made it or your app did. `AddCoreServices` hands the store access the service
+  collection, which it reads once, at the first store call, comparing each service type by its generic definition so
+  no type is made at run time. The first save or append logs a warning, once, that names `WithStore<T>()`, and
+  `WithFileStore()` for agents' own settings, and says the data is gone when the app stops; loads stay quiet, since
+  a load of nothing loses nothing. Once any store is registered, only registered stores serve, so an app that kept
+  settings in a database and forgot a store of conversations still gets the exception of D43 instead of
+  conversations that vanish.
+- **Where:** `Storage/StoreAccess.cs`, `Generated/ModuleRegistration.cs`.
 - **Alternatives:** throwing as before, ceremony every first run hits; memory for each interface no registered store
   implements, which hides a forgotten store in an app that chose one; a warning at startup, which an app that never
-  stores anything would see too; memory off as well once a store of the build's id type, or of agents' own settings,
-  was in the container without `WithStore<T>()`, a rule that went with the build's id type (D72).
+  stores anything would see too; asking the container for the stores of the build's id type, which went with that
+  type (D72); `WithStore<T>()` alone as the switch, which kept the settings of an app that registered its store of
+  conversations itself in memory, under a warning that no store was registered.
 
 ### D72. Ids are given in code, and their types pick the stores
 
@@ -858,14 +861,14 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Where:** `DependencyInjection/TypeshiftOptions.cs`, `DependencyInjection/TypeshiftBuilder.cs`,
   `Conversations/ConversationChatClient.cs`, `Hosting/ResolvedChatOptions.cs`, `Hosting/AgentHost.cs`,
   `Storage/StoreAccess.cs`.
-- **Alternatives:** `WithStoredConversations` or `TrackAll`, names the owner turned down for one under a general
-  prefix; `Guid.NewGuid()`, which does not sort by time; ids of the build's id type, a `Guid` or its text for `string`,
-  which went with the build's id type (D72); the id type of the registered conversation store, which an app with
-  stores of several id types cannot pick; a `Guid` on the raw path too, whose text in `ChatOptions.ConversationId`
-  then named another conversation, under a string id, and lost the history; a string for every new id, which would
-  move the conversations of typed runs out of an app's `IConversationStore<Guid>`; reading an id type by reflection, which Native AOT warns about; ids from
-  the store, which would add a method every store must implement; naming the new conversation only in a header
-  or a property bag, which a typed run's response would hide.
+- **Alternatives:** `WithStoredConversations` or `TrackAll`, names the owner turned down for one under a general prefix;
+  `Guid.NewGuid()`, which does not sort by time; ids of the build's id type, a `Guid` or its text for `string`, which
+  went with the build's id type (D72); the id type of the registered conversation store, which an app with stores of
+  several id types cannot pick; a `Guid` on the raw path too, whose text in `ChatOptions.ConversationId` then named
+  another conversation, under a string id, and lost the history; a string for every new id, which would move the
+  conversations of typed runs out of an app's `IConversationStore<Guid>`; reading an id type by reflection, which Native
+  AOT warns about; ids from the store, which would add a method every store must implement; naming the new conversation
+  only in a header or a property bag, which a typed run's response would hide.
 
 ### D74. Live updates are on by default
 

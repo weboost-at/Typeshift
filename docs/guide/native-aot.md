@@ -78,6 +78,8 @@ services.AddTypeshift()
 - `WithConversationTracker<Guid>()` registers the tracker of `Guid` ids as a singleton of its own, so the container
   makes no generic type while your app runs.
 - The tracker of `string` ids, or of ids of any other reference type, needs no call.
+- Inject or resolve the tracker itself, never `IEnumerable<ConversationTracker<Guid>>`: that list holds this tracker
+  and the container's own, and under Native AOT resolving it throws.
 - Outside Native AOT the container makes every tracker itself, and the call does no harm there, so an app that runs
   both ways keeps it.
 

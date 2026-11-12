@@ -26,7 +26,8 @@ public static class ModuleRegistration
             provider.GetServices<JsonContextRegistration>().Select(registration => registration.Resolver),
             provider.GetServices<SchemaAnnotationsRegistration>().Select(registration => registration.Source)));
 
-        services.TryAddSingleton(provider => new StoreAccess(provider));
+        // D69: the registrations too, so a store the app registers without WithStore turns the memory off
+        services.TryAddSingleton(provider => new StoreAccess(provider, services));
         services.TryAddSingleton<LiveRuns>();
         services.TryAddSingleton<InstrumentedClients>();
         services.TryAddSingleton<ChatClients, ChatClients<TProviderId>>();

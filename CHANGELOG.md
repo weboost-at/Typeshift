@@ -79,10 +79,9 @@ All notable changes to this project are documented here. The format follows
   that called the members through the class's name, or with `using static`, calls them on the host instead.
 - The package turns on `GenerateDocumentationFile` unless your project sets it, and hides CS1591 then, so tools get their
   descriptions with no `Directory.Build.props`.
-- Until you register a store with `WithStore<T>()` or `WithFileStore()`, settings and conversations are kept in
-  memory, and the first save logs a warning, where every load and save threw. A store you add to the container
-  without the chain serves its own interface. Once you register a store with the chain, an interface none of your
-  stores implements still throws.
+- Without any store, settings and conversations are kept in memory, and the first save logs a warning, where every
+  load and save threw. Once you register a store, with the chain or in the container yourself, an interface none of
+  your stores implements still throws.
 - The container has a `ConversationTracker<TId>` for every id type you inject, where it had the tracker of the build's
   id type only. Under Native AOT, register the tracker of a value type with `WithConversationTracker<TId>()`.
 - The raw path's `ChatOptions.ConversationId` names a conversation under a `string` id, in your

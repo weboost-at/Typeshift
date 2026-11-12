@@ -901,6 +901,20 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Leftover_TypeshiftIdType_Naming_An_Unknown_Type_TSH029_Is_Not_Reported()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.ToolTypeWithoutJsonMetadata);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.With("TypeshiftIdType", "TenantId"));
+
+        // Assert
+        run.Assert.DoesNotReport("TSH029");
+        run.Assert.GeneratesValidCode();
+    }
+
+    [Fact]
     public void Given_A_Provider_Id_Type_The_Build_Cannot_Find_TSH029_Is_Reported_On_The_Compilation()
     {
         // Arrange

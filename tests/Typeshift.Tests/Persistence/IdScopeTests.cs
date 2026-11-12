@@ -324,30 +324,28 @@ public class IdScopeTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_Only_A_Store_Registered_Without_WithStore_What_It_Does_Not_Keep_Is_Kept_In_Memory()
+    public async Task Given_A_Store_Registered_Without_WithStore_What_It_Does_Not_Keep_Fails_Naming_The_Store()
     {
         // Arrange
-        ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
-
         var services = new ServiceCollection();
         services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
-        services.AddSingleton<ISettingsStore<Guid>>(new InMemoryTypeshiftStore<Guid>());
+        services.AddSingleton<IConversationStore<Guid>>(new InMemoryTypeshiftStore<Guid>());
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider(validateScopes: true);
         await using var scope = provider.CreateAsyncScope();
 
         var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
-            .WithConversationId(Data.Agent.ConversationId);
-
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
+            .WithSettingsId(Data.Persistence.SettingsId);
 
         // Act
-        await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        var configure = () => host.ConfigureAsync(
+            settings => settings with { Temperature = Data.Agent.Temperature },
+            Ct);
 
         // Assert
-        ChatClient.Requests[1].Select(message => message.Text)
-            .Should().Equal(Data.Tool.Question, Data.Tool.Answer, Data.Agent.FollowUp);
+        await configure.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("No ISettingsStore<Guid> is registered*");
     }
 
     protected override void ConfigureServices(IServiceCollection services)

@@ -87,8 +87,6 @@ public sealed class TypeshiftBuilder
                 $"{type.Name} is no store: implement ISettingsStore<TId>, IConversationStore<TId> or "
                 + "IAgentSettingsStore (TSH028).");
 
-        _services.TryAddSingleton<RegisteredStores>();
-
         foreach (var contract in contracts)
         {
             if (instance is null) _services.AddSingleton(contract, provider => store(provider));
@@ -99,15 +97,10 @@ public sealed class TypeshiftBuilder
     // D72: the store interfaces a type implements, of whatever id types, the type itself when it is one
     private static Type[] Contracts(
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type store) =>
-        [.. (store.IsInterface ? store.GetInterfaces().Append(store) : store.GetInterfaces()).Where(IsContract)];
-
-    private static bool IsContract(Type contract) =>
-        contract == typeof(IAgentSettingsStore)
-        || (contract.IsGenericType
-            && contract.GetGenericTypeDefinition() is var definition
-            && (definition == typeof(ISettingsStore<>)
-                || definition == typeof(IConversationStore<>)
-                || definition == typeof(ITypeshiftStore<>)));
+        [
+            .. (store.IsInterface ? store.GetInterfaces().Append(store) : store.GetInterfaces())
+                .Where(StoreAccess.IsStoreInterface)
+        ];
 
     /// <summary>
     /// Registers the provider that returns the client of a provider's model, scoped. It serves a run before any
@@ -147,7 +140,8 @@ public sealed class TypeshiftBuilder
     /// Registers the <see cref="ConversationTracker{TId}"/> of an id type as its own singleton, for an app published
     /// with Native AOT: there the container cannot make the tracker of a value type, such as <see cref="Guid"/> or
     /// <see cref="int"/>, from the one it has for every id type. Elsewhere, and for <see cref="string"/> ids, the
-    /// container has it without this call.
+    /// container has it without this call. Inject or resolve the tracker itself: all trackers of the type, as an
+    /// <c>IEnumerable</c>, are this one and the container's, and under Native AOT resolving them throws.
     /// </summary>
     /// <typeparam name="TId">The type of the conversation ids, as <c>WithConversationId</c> gives them.</typeparam>
     /// <returns>The same chain.</returns>

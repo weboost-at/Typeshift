@@ -148,13 +148,12 @@ take scoped services, such as a `DbContext`: [Register your store](./implementin
 shows how to build one around that.
 :::
 
-Until you register a store with `WithStore<T>()` or `WithFileStore()`, Typeshift keeps settings and conversations in
-memory, so everything works from the first run on, and the first save or stored run logs a warning that names
-`WithStore<T>()`, and `WithFileStore()` for agents' own settings. The memory is gone when the app stops, so register
-a store before your app keeps anything it must not lose. A store you add to the container yourself, without the
-chain, serves its own interface and leaves the memory on for the rest.
+Without any store, Typeshift keeps settings and conversations in memory, so everything works from the first run on,
+and the first save or stored run logs a warning that names `WithStore<T>()`, and `WithFileStore()` for agents' own
+settings. The memory is gone when the app stops, so register a store before your app keeps anything it must not lose.
 
-Once you register a store with the chain, Typeshift uses only the stores you registered. For each store interface, the last call
+Once you register a store, with the chain or in the container yourself, Typeshift uses only the stores you
+registered. For each store interface, the last call
 that registers a store wins, so a second store that also implements it takes its place. A run applies the agents' own
 settings only when a registered store implements `IAgentSettingsStore`, as `InMemoryTypeshiftStore<TId>` does. A call
 that needs an interface none of your stores implements, such as a run with a conversation id and a store of settings

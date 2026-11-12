@@ -5,13 +5,13 @@ using Microsoft.Extensions.Logging;
 namespace Typeshift;
 
 // D72: each id names the store of its own type, so the stores of an app may have several
-internal sealed class StoreAccess(IServiceProvider services)
+internal sealed class StoreAccess(IServiceProvider services, IServiceCollection registrations)
 {
     private readonly ConcurrentDictionary<Type, object> _memory = [];
 
-    // D69: an app that registered no store with WithStore keeps in memory what no service of its container keeps, so
-    // a stock setup works; one that registered any store chose, and an interface no store of it implements throws
-    private readonly Lazy<bool> _inMemory = new(() => services.GetService<RegisteredStores>() is null);
+    // D69: an app whose container holds no store, through WithStore or registered by the app itself, keeps everything
+    // in memory, so a stock setup works; one with any store chose, and an interface no store of it implements throws
+    private readonly Lazy<bool> _inMemory = new(() => !registrations.Any(IsStoreRegistration));
 
     // Every run asks, so the lookup runs once
     private readonly Lazy<IAgentSettingsStore?> _agentSettingsStore = new(services.GetService<IAgentSettingsStore>);
@@ -98,12 +98,22 @@ internal sealed class StoreAccess(IServiceProvider services)
             ? (InMemoryTypeshiftStore<TId>)_memory.GetOrAdd(typeof(TId), static _ => new InMemoryTypeshiftStore<TId>())
             : null;
 
+    // D38, D72: a store interface of any id type, told by its definition, so no type is made at run time
+    public static bool IsStoreInterface(Type type) =>
+        type == typeof(IAgentSettingsStore)
+        || (type.IsGenericType
+            && type.GetGenericTypeDefinition() is var definition
+            && (definition == typeof(ISettingsStore<>)
+                || definition == typeof(IConversationStore<>)
+                || definition == typeof(ITypeshiftStore<>)));
+
     private static Stored<TData>? Read<TData>(StoredDocument? document) where TData : class, IStorable<TData> =>
         document is null ? null : new Stored<TData>(TData.Deserialize(document.Json), document.Version);
-}
 
-// Registered by WithStore, whatever the store's id type
-internal sealed class RegisteredStores;
+    // A keyed store serves no run, which resolves stores without a key
+    private static bool IsStoreRegistration(ServiceDescriptor registration) =>
+        !registration.IsKeyedService && IsStoreInterface(registration.ServiceType);
+}
 
 // The C# names an error message gives the common id types
 internal static class TypeNames

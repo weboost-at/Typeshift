@@ -280,6 +280,27 @@ public class PersistAllConversationsTests : MultiAgentTestBase
     }
 
     [Fact]
+    public async Task Given_New_Conversation_Ids_Of_Ints_A_Raw_Call_Stores_Its_Conversation_Under_The_Text_Of_A_Guid()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        await using var provider = KeepingStringConversations(options => options.NewConversationIds(
+            () => Data.Persistence.NumberId));
+        await using var scope = provider.CreateAsyncScope();
+
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        // Act
+        var response = await client.GetResponseAsync(Data.Tool.Question, options, Ct);
+
+        // Assert
+        Guid.Parse(response.ConversationId!).Version.Should().Be(7);
+    }
+
+    [Fact]
     public async Task Given_Every_Conversation_Kept_A_Sub_Agents_Run_Stores_Only_Its_Callers_Conversation()
     {
         // Arrange
