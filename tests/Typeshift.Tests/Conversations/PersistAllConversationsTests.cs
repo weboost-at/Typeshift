@@ -1,12 +1,17 @@
 using Typeshift.Tests.Agents.Support;
+using Typeshift.Tests.Conversations.Support;
+using Typeshift.Tests.MultiAgent.Support;
 using FluentAssertions;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift.Tests.Conversations;
 
 // D73: with every conversation kept, a run without a conversation id starts one, and the response names it
-public class PersistAllConversationsTests : AgentTestBase
+public class PersistAllConversationsTests : MultiAgentTestBase
 {
+    private RecordingStore Store { get; } = new();
+
     [Fact]
     public async Task Given_Every_Conversation_Kept_A_Run_Without_An_Id_Stores_One_And_The_Response_Names_It()
     {
@@ -97,6 +102,42 @@ public class PersistAllConversationsTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Build_Of_Guid_Ids_A_New_Conversation_Id_Is_A_Guid_Of_Version_7_At_The_Clocks_Time()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var conversation = Guid.Parse(response.ConversationId!);
+
+        // Assert
+        conversation.Version.Should().Be(7);
+        Convert.ToInt64(conversation.ToString("N")[..12], 16).Should().Be(Time.GetUtcNow().ToUnixTimeMilliseconds());
+    }
+
+    [Fact]
+    public void Given_A_Build_Of_String_Ids_A_New_Conversation_Id_Is_The_Text_Of_A_Guid_Of_Version_7()
+    {
+        // Act
+        var conversation = new BuildIds<string>(text => text).NewConversationId(Time);
+
+        // Assert
+        conversation.Value.Should().BeOfType<string>();
+        Guid.Parse(conversation.ToString()).Version.Should().Be(7);
+    }
+
+    [Fact]
+    public void Given_A_Build_Of_Another_Id_Type_A_New_Conversation_Id_Fails_Naming_NewConversationIds()
+    {
+        // Act
+        var create = () => new BuildIds<int>(int.Parse).NewConversationId(Time);
+
+        // Assert
+        create.Should().Throw<InvalidOperationException>().WithMessage("*NewConversationIds*");
+    }
+
+    [Fact]
     public async Task Given_New_Conversation_Ids_Of_Another_Type_A_New_Conversation_Is_Stored_Under_One()
     {
         // Arrange
@@ -128,6 +169,96 @@ public class PersistAllConversationsTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_Every_Conversation_Kept_A_Raw_Call_Without_Input_Starts_No_Conversation()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        // Act
+        await client.GetResponseAsync([], options, Ct);
+
+        // Assert
+        Store.Conversations.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_Every_Conversation_Kept_A_Raw_Call_With_Options_Of_Its_Own_Starts_No_Conversation()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>();
+
+        var options = new ChatOptions
+        {
+            ModelId = ProbeAgent.Model
+        };
+
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        // Act
+        await client.GetResponseAsync(Data.Tool.Question, options, Ct);
+
+        // Assert
+        Store.Conversations.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_Every_Conversation_Kept_A_Sub_Agents_Run_Stores_Only_Its_Callers_Conversation()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Tool.Answer));
+
+        HelperClient.Reply(Text(Data.Agent.Reason));
+
+        // Act
+        var response = await Host<LeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        Store.Conversations.Should().Equal(Guid.Parse(response.ConversationId!));
+    }
+
+    [Fact]
+    public async Task Given_Every_Conversation_Kept_A_Handoff_Answers_In_The_Callers_New_Conversation()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await Host<FrontAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var conversation = Guid.Parse(response.ConversationId!);
+
+        // Assert
+        Store.Conversations.Should().Equal(conversation);
+        (await EntriesAsync(conversation))[^1].Agent.Should().Be("back_agent");
+    }
+
+    [Fact]
+    public async Task Given_Every_Conversation_Kept_A_Streamed_Handoff_Answers_In_The_Callers_New_Conversation()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var updates = await Host<FrontAgent>().RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
+        var conversation = Guid.Parse(updates[^1].ConversationId!);
+
+        // Assert
+        Store.Conversations.Should().Equal(conversation);
+        (await EntriesAsync(conversation))[^1].Agent.Should().Be("back_agent");
+    }
+
+    [Fact]
     public async Task Given_Conversations_Kept_Only_By_Id_A_Run_Without_One_Names_No_Conversation()
     {
         // Arrange
@@ -150,9 +281,10 @@ public class PersistAllConversationsTests : AgentTestBase
         response.ConversationId.Should().BeNull();
     }
 
+    // The store registered last serves the build's ids, so a test sees each conversation a run stored
     protected override void ConfigureServices(IServiceCollection services)
     {
         base.ConfigureServices(services);
-        services.AddTypeshift().WithOptions(options => options.PersistAllConversations = true);
+        services.AddTypeshift().WithStore(Store).WithOptions(options => options.PersistAllConversations = true);
     }
 }

@@ -29,8 +29,9 @@ All notable changes to this project are documented here. The format follows
   store of that type, so settings under `int` ids and conversations under `string` ids serve one app. `WithStore<T>()`
   takes stores of any id type, and TSH028 reports only a type that is no store.
 - `AddTypeshift().WithOptions(options => options.PersistAllConversations = true)` keeps the runs that pass no
-  conversation id too: each starts a conversation under a new `Guid` of version 7, or an id of
-  `options.NewConversationIds(...)`.
+  conversation id too: each run with input starts a conversation under a new id of the build's id type, a `Guid` of
+  version 7 or its text for `string`, or under an id of `options.NewConversationIds(...)`, which a build of any other
+  id type needs.
 
 ### Changed
 

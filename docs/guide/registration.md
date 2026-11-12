@@ -63,8 +63,10 @@ public id type, since its host members take ids of it ([TSH006](./diagnostics.md
 
 Generated members take the id type, as in `RunAsync(input, settingsId: 42)`. The generator also writes aliases that
 close `ITypeshiftStore`, `ISettingsStore`, `IConversationStore`, `InMemoryTypeshiftStore`, `ConversationTracker` and
-`LiveRun` over it, so you use these names without a type argument. The library never creates ids; your code chooses
-them. If a referenced project was built with another id type, the analyzer reports [TSH021](./diagnostics.md#tsh021).
+`LiveRun` over it, so you use these names without a type argument. Your code chooses the ids. The library creates
+one only when you keep every conversation, for a conversation a run starts without an id
+([Keeping every conversation](./conversations.md#keeping-every-conversation)). If a referenced project was built with
+another id type, the analyzer reports [TSH021](./diagnostics.md#tsh021).
 In code, `WithSettingsId(id)` and `WithConversationId(id)` take ids of any type, each picking the store of its type:
 see [Ids of your own types](./settings-and-stores.md#ids-of-your-own-types).
 

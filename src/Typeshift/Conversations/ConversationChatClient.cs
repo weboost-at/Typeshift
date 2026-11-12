@@ -22,7 +22,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        options = WithNewConversation(options);
+        options = WithNewConversation(messages, options);
         using var activity = Telemetry.StartRun(agent, options);
 
         try
@@ -44,10 +44,10 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         ChatOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        options = WithNewConversation(options);
+        options = WithNewConversation(messages, options);
         using var activity = Telemetry.StartRun(agent, options);
         var usage = new UsageDetails();
-        var conversation = Named(options);
+        string? conversation = null;
 
         await using var updates = RunStreamingAsync(messages, options, activity, cancellationToken)
             .GetAsyncEnumerator(cancellationToken);
@@ -56,6 +56,8 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         {
             try
             {
+                // In the try, so an id that does not parse fails the span
+                conversation ??= Named(options);
                 if (!await updates.MoveNextAsync()) break;
             }
             catch (Exception exception)
@@ -77,16 +79,17 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         Telemetry.Answered(activity, usage);
     }
 
-    // D73: a run of the host's own, with no conversation, starts one when every conversation is kept; a sub-agent's
-    // run belongs to its caller's
-    private ChatOptions? WithNewConversation(ChatOptions? options)
+    // D73: a run of the host's own, with input and no conversation, starts one when every conversation is kept; a
+    // sub-agent's run belongs to its caller's, and a run without input resumes an interrupted run (D50)
+    private ChatOptions? WithNewConversation(IEnumerable<ChatMessage> messages, ChatOptions? options)
     {
         if (options is not ResolvedChatOptions { Conversation: null, ConversationId: null, Caller: null } resolved
-            || services.GetService<TypeshiftOptions>() is not { PersistAllConversations: true } typeshift)
+            || services.GetService<TypeshiftOptions>() is not { PersistAllConversations: true } typeshift
+            || !messages.Any())
             return options;
 
         var started = (ResolvedChatOptions)resolved.Clone();
-        started.Conversation = typeshift.NewConversationId(Time);
+        started.Conversation = typeshift.NewConversationId() ?? Store.NewConversationId(Time);
         return started;
     }
 

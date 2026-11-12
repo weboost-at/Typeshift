@@ -35,11 +35,21 @@ every run of that conversation. The response's `ConversationId` names the conver
 To keep the runs that pass no conversation id as well, turn on `PersistAllConversations`:
 `AddTypeshift().WithOptions(options => options.PersistAllConversations = true)`. Such a run then starts a
 conversation under a new id, and its response's `ConversationId` names it, so the next run continues it with
-`support.WithConversationId(Guid.Parse(response.ConversationId!))`. A sub-agent's run belongs to its caller and starts
-none.
+`support.WithConversationId(Guid.Parse(response.ConversationId!))`. A handoff continues that conversation.
 
-New ids are `Guid`s of version 7, which sort by the time they were made. If your conversation store has ids of
-another type, give them with `options.NewConversationIds(() => ...)`, which returns a new id of that type each time.
+Some runs start no conversation, even with the option on:
+
+- A sub-agent's run, which belongs to its caller's conversation.
+- A run without input: it continues an interrupted run ([Resuming](#resuming)), and a new conversation has none.
+- A raw-path call whose options did not come from `ResolveOptionsAsync`, such as `ChatOptions` your code created, or
+  a call with no options at all ([the raw path](./running-agents.md#the-raw-path)).
+
+New ids follow [the build's id type](./registration.md#the-id-type). For `Guid`, they are `Guid`s of version 7, which
+sort by the time they were made, and for `string` the text of one. For any other id type, or a conversation store of
+another type than the build's, give them with `options.NewConversationIds(() => ...)`; without it, a build of another
+id type throws an `InvalidOperationException` on the first run that starts a conversation. Runs that start together
+call the function at the same time, so make it thread-safe, and have it return an id no conversation has on every
+call.
 
 ::: danger Check the caller before you pass a conversation id
 Typeshift resumes whichever conversation it is given, so deciding who may see one is your app's job. Check the caller

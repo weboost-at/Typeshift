@@ -33,6 +33,9 @@ internal sealed class StoreAccess(IServiceProvider services, BuildIds build)
     // The raw path names its conversation in ChatOptions.ConversationId, a string
     public StoreId Parse(string id) => build.Parse(id);
 
+    // D73: the id of a conversation a run starts, when the app gives none
+    public StoreId NewConversationId(TimeProvider time) => build.NewConversationId(time);
+
     public async Task<Stored<TData>?> LoadAsync<TData>(StoreId id, CancellationToken ct)
         where TData : class, IStorable<TData> =>
         Read<TData>(await id.LoadAsync(this, TData.Kind, ct));
@@ -119,6 +122,8 @@ internal abstract class BuildIds
 
     public abstract StoreId Parse(string id);
 
+    public abstract StoreId NewConversationId(TimeProvider time);
+
     // A store of the build's id type registered without WithStore
     public abstract bool HasStore(IServiceProvider services);
 }
@@ -133,6 +138,17 @@ internal sealed class BuildIds<TId>(Func<string, TId>? parse) : BuildIds where T
                 $"{typeof(TId).Name} is not parsable, so ChatOptions.ConversationId cannot name a conversation: "
                 + "run through the agent's generated members instead.")
             : new StoreId<TId>(parse(id));
+
+    // D73: a Guid of version 7, ordered by the clock the host injects, or its text; other types have no new ids
+    public override StoreId NewConversationId(TimeProvider time) =>
+        Guid.CreateVersion7(time.GetUtcNow()) switch
+        {
+            TId id => new StoreId<TId>(id),
+            var guid when guid.ToString() is TId text => new StoreId<TId>(text),
+            _ => throw new InvalidOperationException(
+                $"New conversations need ids of the build's id type, {TypeNames.Of<TId>()}, and Typeshift makes "
+                + "only Guid and string ids: give them with WithOptions(options => options.NewConversationIds(...)).")
+        };
 
     public override bool HasStore(IServiceProvider services) =>
         services.GetService<ISettingsStore<TId>>() is not null
