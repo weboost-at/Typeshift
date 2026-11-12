@@ -16,7 +16,7 @@ public class ConversationStoreTests : AgentTestBase
     public async Task Given_A_Summary_The_Store_Loads_It_And_The_Entries_After_It()
     {
         // Arrange
-        ITypeshiftStore store = new InMemoryTypeshiftStore();
+        ITypeshiftStore<Guid> store = new InMemoryTypeshiftStore<Guid>();
         var conversation = Data.Agent.ConversationId;
 
         ConversationEntry[] entries =
@@ -51,7 +51,8 @@ public class ConversationStoreTests : AgentTestBase
 
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
-        var host = scope.ServiceProvider.GetRequiredService<AgentHost<CompactingAgent>>();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<CompactingAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
         var settings = new CompactingAgent.Settings { MaxInputTokens = 1_000 };
 
         ChatClient
@@ -60,11 +61,11 @@ public class ConversationStoreTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer))
             .Reply(Text(Data.Tool.Answer));
 
-        await host.RunAsync(new string('x', Page), conversationId: Data.Agent.ConversationId, ct: Ct);
-        await host.RunAsync(Data.Agent.FollowUp, conversationId: Data.Agent.ConversationId, settings: settings, ct: Ct);
+        await host.RunAsync(new string('x', Page), ct: Ct);
+        await host.RunAsync(Data.Agent.FollowUp, settings: settings, ct: Ct);
 
         // Act
-        await host.RunAsync(Data.Agent.Steering, conversationId: Data.Agent.ConversationId, ct: Ct);
+        await host.RunAsync(Data.Agent.Steering, ct: Ct);
 
         // Assert
         provider.GetRequiredService<CountingLoadStore>().WholeLoads.Should().Be(0);
@@ -80,18 +81,19 @@ public class ConversationStoreTests : AgentTestBase
 
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
-        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
         var store = provider.GetRequiredService<GatedLoadStore>();
 
         var answering = new TaskCompletionSource();
         ChatClient.Reply(answering, Text(Data.Tool.Answer));
 
         store.HoldNextLoad();
-        var first = host.RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+        var first = host.RunAsync(Data.Tool.Question, ct: Ct);
         await store.Loading.Task;
 
         // Act
-        var second = host.RunAsync(Data.Agent.FollowUp, conversationId: Data.Agent.ConversationId, ct: Ct);
+        var second = host.RunAsync(Data.Agent.FollowUp, ct: Ct);
         store.Gate.SetResult();
 
         // Assert
@@ -111,21 +113,22 @@ public class ConversationStoreTests : AgentTestBase
 
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
-        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
         var store = provider.GetRequiredService<GatedLoadStore>();
 
         ChatClient
             .Reply(Text(Data.Tool.Answer))
             .Reply(Text(Data.Agent.Reason));
 
-        await host.RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, ct: Ct);
 
         store.HoldNextLoad();
-        var resume = host.ResumeAsync(Data.Agent.ConversationId, ct: Ct);
+        var resume = host.ResumeAsync(ct: Ct);
         await store.Loading.Task;
 
         // Act
-        var second = host.RunAsync(Data.Agent.FollowUp, conversationId: Data.Agent.ConversationId, ct: Ct);
+        var second = host.RunAsync(Data.Agent.FollowUp, ct: Ct);
         store.Gate.SetResult();
 
         // Assert
@@ -147,7 +150,8 @@ public class ConversationStoreTests : AgentTestBase
 
         // Act
         var response = await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
-            .RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
@@ -170,14 +174,16 @@ public class ConversationStoreTests : AgentTestBase
         await using (var first = provider.CreateAsyncScope())
         {
             await first.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
-                .RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+                .WithConversationId(Data.Agent.ConversationId)
+                .RunAsync(Data.Tool.Question, ct: Ct);
         }
 
         await using var second = provider.CreateAsyncScope();
 
         // Act
         await second.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
-            .RunAsync(Data.Agent.FollowUp, conversationId: Data.Agent.ConversationId, ct: Ct);
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Agent.FollowUp, ct: Ct);
 
         // Assert
         ChatClient.Requests[1].Select(message => message.Text).Should().Contain(Data.Tool.Answer);
@@ -194,15 +200,16 @@ public class ConversationStoreTests : AgentTestBase
 
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
-        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
 
         ChatClient
             .Reply(Text(Data.Tool.Answer))
             .Reply(Text(Data.Agent.Reason));
 
         // Act
-        await host.RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
-        await host.RunAsync(Data.Agent.FollowUp, conversationId: Data.Agent.ConversationId, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
 
         // Assert
         logs.Warnings.Should().ContainSingle();
@@ -223,7 +230,8 @@ public class ConversationStoreTests : AgentTestBase
 
         // Act
         var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
-            .RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*IConversationStore*");
@@ -245,7 +253,8 @@ public class ConversationStoreTests : AgentTestBase
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
         var conversations = provider.GetRequiredService<CountingLoadStore>();
-        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithSettingsId(Data.Persistence.SettingsId);
 
         var stored = new ProbeAgent.Settings
         {
@@ -254,14 +263,11 @@ public class ConversationStoreTests : AgentTestBase
         };
 
         ChatClient.Reply(Text(Data.Tool.Answer));
-        await host.SaveSettingsAsync(Data.Persistence.SettingsId, stored, 0, Ct);
+        await host.SaveSettingsAsync(stored, 0, Ct);
 
         // Act
-        await host.RunAsync(
-            Data.Tool.Question,
-            Data.Persistence.SettingsId,
-            conversationId: Data.Agent.ConversationId,
-            ct: Ct);
+        await host.WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
 
         var entries = await conversations.LoadConversationAsync(Data.Agent.ConversationId, Ct);
 
@@ -300,7 +306,7 @@ public class ConversationStoreTests : AgentTestBase
         await using var scope = provider.CreateAsyncScope();
 
         using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
-        await using var watch = provider.GetRequiredService<ConversationTracker>()
+        await using var watch = provider.GetRequiredService<ConversationTracker<Guid>>()
             .WatchAsync(Data.Agent.ConversationId, watching.Token)
             .GetAsyncEnumerator(Ct);
 
@@ -308,7 +314,8 @@ public class ConversationStoreTests : AgentTestBase
 
         // Act
         await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
-            .RunStreamingAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct)
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunStreamingAsync(Data.Tool.Question, ct: Ct)
             .ToListAsync(Ct);
 
         // Assert

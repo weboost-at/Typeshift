@@ -37,7 +37,7 @@ All notable changes to this project are documented here. The format follows
   instructions your code builds per run.
 - Each agent has settings of its own, which every run applies under no settings id: `ConfigureAsync(configure)`,
   `LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)`, kept by an `IAgentSettingsStore`.
-  `InMemoryTypeshiftStore` implements it, and a settings id's settings apply over the agent's own.
+  `InMemoryTypeshiftStore<TId>` implements it, and a settings id's settings apply over the agent's own.
 - `WithFileStore()` keeps each agent's own settings in a JSON file, for an app without a database: in the `settings`
   folder of a `typeshift` folder beside your app's assemblies, unless `store => store.Folder = folder` names another.
   `WithStore(store)` registers a store you created.
@@ -45,9 +45,12 @@ All notable changes to this project are documented here. The format follows
   store of that type, so settings under `int` ids and conversations under `string` ids serve one app. `WithStore<T>()`
   takes stores of any id type, and TSH028 reports only a type that is no store.
 - `AddTypeshift().WithOptions(options => options.PersistAllConversations = true)` keeps the runs that pass no
-  conversation id too: each run with input starts a conversation under a new id of the build's id type, a `Guid` of
-  version 7 or its text for `string`, or under an id of `options.NewConversationIds(...)`, which a build of any other
-  id type needs.
+  conversation id too: each run with input starts a conversation under a new id, a `Guid` of version 7, or under an id
+  of `options.NewConversationIds(...)` for a conversation store of another id type. A raw-path call's new id is a
+  string, the `Guid`'s text unless `NewConversationIds` makes strings, so the response's `ConversationId` continues it
+  in `ChatOptions.ConversationId`.
+- `WithConversationTracker<TId>()` registers the `ConversationTracker<TId>` of one id type as a singleton of its own,
+  which an app published with Native AOT needs for a value type such as `Guid`.
 
 ### Changed
 
@@ -55,7 +58,7 @@ All notable changes to this project are documented here. The format follows
   injected into a request, does nothing, so code that injects hosts works as before.
 - A run that ends while background sub-agents work, for example cancelled or failed, waits until the sub-agents it
   stops have stopped, so none works on after the run.
-- Live updates are on without `WithRealtimeTracking()`, so `ConversationTracker.WatchAsync` reads a conversation's
+- Live updates are on without `WithRealtimeTracking()`, so `ConversationTracker<TId>.WatchAsync` reads a conversation's
   updates from the start, where it threw. `WithRealtimeTracking(options)` only tunes them now.
 - The response of a run with a conversation names it in `ChatResponse.ConversationId`, and so does each update of a
   streaming run, where it was null.
@@ -76,18 +79,37 @@ All notable changes to this project are documented here. The format follows
   that called the members through the class's name, or with `using static`, calls them on the host instead.
 - The package turns on `GenerateDocumentationFile` unless your project sets it, and hides CS1591 then, so tools get their
   descriptions with no `Directory.Build.props`.
-- `LoadSettingsAsync(default)` loads the agent's own settings now, since the overload without an id wins. Pass the id
-  itself, such as `Guid.Empty`, to load the settings under it.
 - Without any store, settings and conversations are kept in memory, and the first save logs a warning, where every
-  load and save threw. Once you register a store, an interface none of your stores implements still throws.
+  load and save threw. Once you register a store, with the chain or in the container yourself, an interface none of
+  your stores implements still throws.
+- The container has a `ConversationTracker<TId>` for every id type you inject, where it had the tracker of the build's
+  id type only. Under Native AOT, register the tracker of a value type with `WithConversationTracker<TId>()`.
+- The raw path's `ChatOptions.ConversationId` names a conversation under a `string` id, in your
+  `IConversationStore<string>`, where its text was parsed into the build's id type. For a conversation under an id of
+  another type, resolve the options on `host.WithConversationId(id)`.
+- TSH021 and TSH029 cover the provider id type alone, titled "Referenced assembly has another provider id type" and
+  "Provider id type cannot be used", and TSH006 no longer reports a public agent of a less accessible id type. Module
+  stamps are at version 5, so a referenced project built with an earlier Typeshift is TSH020 until it is rebuilt.
 
-### Deprecated
+### Removed
 
-- `TypeshiftIdType`, the `settingsId` and `conversationId` parameters of the generated members, their overloads that
-  take an id first, and the aliases `ITypeshiftStore`, `ISettingsStore`, `IConversationStore`,
-  `InMemoryTypeshiftStore`, `ConversationTracker` and `LiveRun` are removed in a coming release. Give ids with
-  `host.WithSettingsId(id)` and `host.WithConversationId(id)`, and name the id type, as in `ITypeshiftStore<int>`; the
-  docs and samples do both.
+- `TypeshiftIdType`, the MSBuild property that typed every settings and conversation id of a build. Delete it from
+  your `Directory.Build.props`: a host's ids take their types from `WithSettingsId` and `WithConversationId`.
+- The `global using` aliases `ITypeshiftStore`, `ISettingsStore`, `IConversationStore`, `InMemoryTypeshiftStore`,
+  `ConversationTracker` and `LiveRun`. Name the id type instead, as in `ITypeshiftStore<Guid>`,
+  `InMemoryTypeshiftStore<int>` or `ConversationTracker<string>`. The `IChatClientProvider` alias stays.
+- The `settingsId` and `conversationId` parameters of the generated `RunAsync`, `RunAsync<T>`, `RunStreamingAsync` and
+  `RunStreamingAsync<T>`, and the `settingsId` parameter of `ResolveOptionsAsync`. Give the ids to the host:
+  `support.RunAsync(input, settingsId: 42, conversationId: chat)` is
+  `support.WithSettingsId(42).WithConversationId(chat).RunAsync(input)`, and `settings` may now go second without its
+  name.
+- The generated overloads that took an id first: `ResumeAsync(conversationId, ...)`,
+  `ResumeStreamingAsync(conversationId, ...)`, `LoadSettingsAsync(settingsId)`,
+  `SaveSettingsAsync(settingsId, settings, loadedVersion)` and `ConfigureAsync(settingsId, configure)`. Call the member
+  without the id on a host that has it, such as `support.WithConversationId(chat).ResumeAsync()` or
+  `support.WithSettingsId(42).ConfigureAsync(configure)`. A `LoadSettingsAsync(default)` left over loads the agent's
+  own settings.
+- `AddCoreServices<TId, TProviderId>`, which only generated code calls, is `AddCoreServices<TProviderId>`.
 
 ### Fixed
 

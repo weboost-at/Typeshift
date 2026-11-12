@@ -170,7 +170,7 @@ private static async IAsyncEnumerable<SseItem<object>> Events(IAsyncEnumerable<C
 ## Follow a chat from elsewhere
 
 The browser that posts a message reads the answer from its own stream. Another tab, or a support dashboard that
-watches a customer's chat, follows it through `ConversationTracker.WatchAsync` instead
+watches a customer's chat, follows it through `ConversationTracker<TId>.WatchAsync` instead
 ([Live updates](./conversations.md#live-updates)). This SignalR hub checks that the chat belongs to the caller, as the
 group's filter does, and then streams the chat's text:
 
@@ -193,9 +193,9 @@ internal sealed class ConversationHub(ConversationTracker<int> tracker, IChats c
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ConversationHub.cs#L7-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-conversation-hub' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-- The hub takes `ConversationTracker<int>` because the docs samples set `TypeshiftIdType` to `int`. In a default app
-  it is `ConversationTracker<Guid>`, whose `WatchAsync` takes a chat id of any type
-  ([Ids](./registration.md#ids)).
+- The hub takes `ConversationTracker<int>` because the sample's chats have `int` ids. Inject the tracker of your
+  chats' id type, such as `ConversationTracker<Guid>`; the container has one for every id type
+  ([Live runs](./conversations.md#live-runs)).
 - Register SignalR with `builder.Services.AddSignalR()`, and map the hub behind your authentication, for example
   `app.MapHub<ConversationHub>("/hub").RequireAuthorization()`. In a hub, the current customer comes from the
   connection's user, so `ICurrentCustomer` reads it from there.

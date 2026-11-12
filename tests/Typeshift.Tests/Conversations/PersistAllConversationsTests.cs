@@ -102,7 +102,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
     }
 
     [Fact]
-    public async Task Given_A_Build_Of_Guid_Ids_A_New_Conversation_Id_Is_A_Guid_Of_Version_7_At_The_Clocks_Time()
+    public async Task Given_No_NewConversationIds_A_New_Conversation_Id_Is_A_Guid_Of_Version_7_At_The_Clocks_Time()
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
@@ -117,24 +117,27 @@ public class PersistAllConversationsTests : MultiAgentTestBase
     }
 
     [Fact]
-    public void Given_A_Build_Of_String_Ids_A_New_Conversation_Id_Is_The_Text_Of_A_Guid_Of_Version_7()
+    public async Task Given_No_NewConversationIds_And_No_Store_Of_Guid_Conversations_A_Run_Fails_Naming_Them()
     {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift()
+            .WithStore<InMemoryTypeshiftStore<int>>()
+            .WithOptions(options => options.PersistAllConversations = true)
+            .WithChatClientProvider<ScriptedChatClientProvider>();
+
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider(validateScopes: true);
+        await using var scope = provider.CreateAsyncScope();
+
         // Act
-        var conversation = new BuildIds<string>(text => text).NewConversationId(Time);
+        var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
-        conversation.Value.Should().BeOfType<string>();
-        Guid.Parse(conversation.ToString()).Version.Should().Be(7);
-    }
-
-    [Fact]
-    public void Given_A_Build_Of_Another_Id_Type_A_New_Conversation_Id_Fails_Naming_NewConversationIds()
-    {
-        // Act
-        var create = () => new BuildIds<int>(int.Parse).NewConversationId(Time);
-
-        // Assert
-        create.Should().Throw<InvalidOperationException>().WithMessage("*NewConversationIds*");
+        await run.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("No IConversationStore<Guid> is registered*NewConversationIds*");
     }
 
     [Fact]
@@ -208,6 +211,96 @@ public class PersistAllConversationsTests : MultiAgentTestBase
     }
 
     [Fact]
+    public async Task Given_The_Id_A_Raw_Response_Names_A_Raw_Call_With_It_Resumes_The_Conversation()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
+
+        await using var provider = KeepingStringConversations();
+        await using var scope = provider.CreateAsyncScope();
+
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        var first = await client.GetResponseAsync(Data.Tool.Question, options, Ct);
+        options.ConversationId = first.ConversationId;
+
+        // Act
+        await client.GetResponseAsync(Data.Agent.FollowUp, options, Ct);
+
+        // Assert
+        ChatClient.Requests[1].Select(message => message.Text)
+            .Should().Equal(Data.Tool.Question, Data.Tool.Answer, Data.Agent.FollowUp);
+    }
+
+    [Fact]
+    public async Task Given_Every_Conversation_Kept_A_Raw_Call_Stores_One_Under_The_Text_Of_A_Guid_Of_Version_7()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        await using var provider = KeepingStringConversations();
+        await using var scope = provider.CreateAsyncScope();
+
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        // Act
+        var response = await client.GetResponseAsync(Data.Tool.Question, options, Ct);
+
+        // Assert
+        var entries = await provider.GetRequiredService<IConversationStore<string>>()
+            .LoadConversationAsync(response.ConversationId!, Ct);
+
+        Guid.Parse(response.ConversationId!).Version.Should().Be(7);
+        entries.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_New_Conversation_Ids_Of_Strings_A_Raw_Call_Stores_Its_Conversation_Under_One()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        await using var provider = KeepingStringConversations(options => options.NewConversationIds(
+            () => Data.Persistence.ChatName));
+        await using var scope = provider.CreateAsyncScope();
+
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        // Act
+        var response = await client.GetResponseAsync(Data.Tool.Question, options, Ct);
+
+        // Assert
+        response.ConversationId.Should().Be(Data.Persistence.ChatName);
+    }
+
+    [Fact]
+    public async Task Given_New_Conversation_Ids_Of_Ints_A_Raw_Call_Stores_Its_Conversation_Under_The_Text_Of_A_Guid()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        await using var provider = KeepingStringConversations(options => options.NewConversationIds(
+            () => Data.Persistence.NumberId));
+        await using var scope = provider.CreateAsyncScope();
+
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        // Act
+        var response = await client.GetResponseAsync(Data.Tool.Question, options, Ct);
+
+        // Assert
+        Guid.Parse(response.ConversationId!).Version.Should().Be(7);
+    }
+
+    [Fact]
     public async Task Given_Every_Conversation_Kept_A_Sub_Agents_Run_Stores_Only_Its_Callers_Conversation()
     {
         // Arrange
@@ -266,7 +359,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
 
         var services = new ServiceCollection();
         services.AddTypeshift()
-            .WithStore<InMemoryTypeshiftStore>()
+            .WithStore<InMemoryTypeshiftStore<Guid>>()
             .WithChatClientProvider<ScriptedChatClientProvider>();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
@@ -281,7 +374,21 @@ public class PersistAllConversationsTests : MultiAgentTestBase
         response.ConversationId.Should().BeNull();
     }
 
-    // The store registered last serves the build's ids, so a test sees each conversation a run stored
+    // D73: every conversation kept, in a store of string ids, which the raw path names its conversations by
+    private ServiceProvider KeepingStringConversations(Action<TypeshiftOptions>? configure = null)
+    {
+        var services = new ServiceCollection();
+        services.AddTypeshift()
+            .WithStore<InMemoryTypeshiftStore<string>>()
+            .WithOptions(options => options.PersistAllConversations = true)
+            .WithOptions(options => configure?.Invoke(options))
+            .WithChatClientProvider<ScriptedChatClientProvider>();
+
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+        return services.BuildServiceProvider(validateScopes: true);
+    }
+
+    // The store registered last serves the Guid ids, so a test sees each conversation a run stored
     protected override void ConfigureServices(IServiceCollection services)
     {
         base.ConfigureServices(services);

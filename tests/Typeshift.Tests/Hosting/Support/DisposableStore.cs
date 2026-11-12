@@ -1,9 +1,9 @@
 namespace Typeshift.Tests.Hosting.Support;
 
 // A singleton that records whether the container disposed it
-public sealed class DisposableStore : ISettingsStore, IDisposable
+public sealed class DisposableStore : ISettingsStore<Guid>, IDisposable
 {
-    private readonly InMemoryTypeshiftStore _store = new();
+    private readonly InMemoryTypeshiftStore<Guid> _store = new();
 
     public bool Disposed { get; private set; }
 

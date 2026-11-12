@@ -57,6 +57,32 @@ generator finds no classifier that tells the records apart. Typeshift's tools an
 properties without one, as [Union types](./toolsets.md#union-types) describes, so you may suppress the warning for
 unions only they read. Code of yours that reads such a union still needs a classifier.
 
+## Trackers of value-type ids
+
+The container gives your app a `ConversationTracker<TId>` for each id type it asks for, by closing one open-generic
+registration over that type. Under Native AOT, the container refuses to close it over a value type, such as `Guid` or
+`int`, because the code for that type may not have been compiled, and resolving the tracker throws an
+`InvalidOperationException`. Register the tracker of each value type your app injects in the chain instead:
+
+<!-- snippet: aot-tracker -->
+<a id='snippet-aot-tracker'></a>
+```cs
+services.AddTypeshift()
+    .WithStore<InMemoryTypeshiftStore<Guid>>()
+    .WithConversationTracker<Guid>()
+    .WithChatClientProvider<ScriptedChatClientProvider>();
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L10-L15' title='Snippet source file'>snippet source</a> | <a href='#snippet-aot-tracker' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- `WithConversationTracker<Guid>()` registers the tracker of `Guid` ids as a singleton of its own, so the container
+  makes no generic type while your app runs.
+- The tracker of `string` ids, or of ids of any other reference type, needs no call.
+- Inject or resolve the tracker itself, never `IEnumerable<ConversationTracker<Guid>>`: that list holds this tracker
+  and the container's own, and under Native AOT resolving it throws.
+- Outside Native AOT the container makes every tracker itself, and the call does no harm there, so an app that runs
+  both ways keeps it.
+
 ## Everything else
 
 The generated `Settings` and overrides records serialize member by member, and conversations go through
@@ -70,4 +96,5 @@ Microsoft.Extensions.AI's own contracts, so none of them needs a context from yo
 - [Running an agent](./running-agents.md#structured-output): structured output with `RunAsync<T>` and
   `RunStreamingAsync<T>`.
 - [Registration](./registration.md#what-addtypeshift-registers): what the generated modules register.
+- [Conversations](./conversations.md#live-runs): the tracker, and the runs it lists.
 - [Observability](./observability.md): the spans and metrics every run records.

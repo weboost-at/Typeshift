@@ -1,4 +1,3 @@
-using Typeshift.Generated;
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Persistence.Support;
 using FluentAssertions;
@@ -37,10 +36,10 @@ public class AgentSettingsTests : AgentTestBase
         var customer = new ProbeAgent.Settings { Temperature = Data.Agent.Temperature };
 
         await host.SaveSettingsAsync(own, 0, Ct);
-        await host.SaveSettingsAsync(Data.Persistence.SettingsId, customer, 0, Ct);
+        await host.WithSettingsId(Data.Persistence.SettingsId).SaveSettingsAsync(customer, 0, Ct);
 
         // Act
-        await host.RunAsync(Data.Tool.Question, Data.Persistence.SettingsId, ct: Ct);
+        await host.WithSettingsId(Data.Persistence.SettingsId).RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
         Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, Data.Agent.Model));
@@ -55,7 +54,7 @@ public class AgentSettingsTests : AgentTestBase
         await host.ConfigureAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
 
         // Act
-        var stored = await host.LoadSettingsAsync(Data.Persistence.SettingsId, Ct);
+        var stored = await host.WithSettingsId(Data.Persistence.SettingsId).LoadSettingsAsync(Ct);
 
         // Assert
         stored.Version.Should().Be(0);
@@ -66,7 +65,8 @@ public class AgentSettingsTests : AgentTestBase
     {
         // Arrange
         var host = Host<ProbeAgent>();
-        await host.SaveSettingsAsync(Data.Persistence.SettingsId, new() { Model = Data.Agent.Model }, 0, Ct);
+        var customer = host.WithSettingsId(Data.Persistence.SettingsId);
+        await customer.SaveSettingsAsync(new() { Model = Data.Agent.Model }, 0, Ct);
 
         // Act
         var own = await host.LoadSettingsAsync(Ct);
@@ -82,12 +82,7 @@ public class AgentSettingsTests : AgentTestBase
         var host = Host<ProbeAgent>();
 
         // Act
-        var save = () => AgentRuns.SaveSettingsAsync<ProbeAgent, ProbeAgent.Settings>(
-            host,
-            null!,
-            new() { Model = Data.Agent.Model },
-            0,
-            Ct);
+        var save = () => host.WithSettingsId<string>(null!).SaveSettingsAsync(new(), 0, Ct);
 
         // Assert
         await save.Should().ThrowAsync<ArgumentNullException>();

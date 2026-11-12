@@ -43,7 +43,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | **Settings record** | The record a tool receives its settings in, declared with `WithSettings<T>()` or `WithConfigurableSettings<T>()`. The model never sees it. |
 | **Stamp** | A hidden attribute the generator writes so that other assemblies can read a toolset's tools or a project's module. |
 | **Standing approval** | An approval for every later call of a tool in a conversation, given with `ApproveForConversation()`. |
-| **Steering** | Input a user sends while a run works, which you hand to that run with `ConversationTracker.TrySteer`. See [Steering](./conversations.md#steering). |
+| **Steering** | Input a user sends while a run works, which you hand to that run with `ConversationTracker<TId>.TrySteer`. See [Steering](./conversations.md#steering). |
 | **Store** | What your app registers with `WithStore<T>()` to keep settings (`ISettingsStore<TId>`), conversations (`IConversationStore<TId>`) or both (`ITypeshiftStore<TId>`). See [Settings and stores](./settings-and-stores.md). |
 | **Sub-agent** | Another agent offered as a tool with `UseAgent<T>()`. It works in a context of its own and answers with text. |
 | **Tool** | A static method that a toolset or an agent declares with `AddTool`, offered to the model as a generated `AIFunction`. |

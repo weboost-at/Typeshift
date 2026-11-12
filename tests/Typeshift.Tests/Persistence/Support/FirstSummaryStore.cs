@@ -1,9 +1,9 @@
 namespace Typeshift.Tests.Persistence.Support;
 
 // Starts a conversation at its first summary, as a store that looks the summary up by the lowest key would
-public sealed class FirstSummaryStore : IConversationStore
+public sealed class FirstSummaryStore : IConversationStore<Guid>
 {
-    private readonly InMemoryTypeshiftStore _store = new();
+    private readonly InMemoryTypeshiftStore<Guid> _store = new();
 
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(Guid conversation, CancellationToken ct) =>
         _store.LoadConversationAsync(conversation, ct);

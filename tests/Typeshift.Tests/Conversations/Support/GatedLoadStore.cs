@@ -2,9 +2,9 @@ namespace Typeshift.Tests.Conversations.Support;
 
 // A store in memory that holds the next load of a conversation until its gate opens, as a slow database would while
 // another run of the conversation starts
-public sealed class GatedLoadStore : ITypeshiftStore
+public sealed class GatedLoadStore : ITypeshiftStore<Guid>
 {
-    private readonly InMemoryTypeshiftStore _store = new();
+    private readonly InMemoryTypeshiftStore<Guid> _store = new();
     private int _holding;
 
     public TaskCompletionSource Loading { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -32,7 +32,7 @@ public sealed class GatedLoadStore : ITypeshiftStore
             await Gate.Task.WaitAsync(ct);
         }
 
-        return await ((IConversationStore)_store).LoadConversationSinceCompactionAsync(conversation, ct);
+        return await ((IConversationStore<Guid>)_store).LoadConversationSinceCompactionAsync(conversation, ct);
     }
 
     public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct) =>

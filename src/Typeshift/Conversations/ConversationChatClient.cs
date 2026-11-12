@@ -47,7 +47,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         options = WithNewConversation(messages, options);
         using var activity = Telemetry.StartRun(agent, options);
         var usage = new UsageDetails();
-        string? conversation = null;
+        var conversation = Named(options);
 
         await using var updates = RunStreamingAsync(messages, options, activity, cancellationToken)
             .GetAsyncEnumerator(cancellationToken);
@@ -56,8 +56,6 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         {
             try
             {
-                // In the try, so an id that does not parse fails the span
-                conversation ??= Named(options);
                 if (!await updates.MoveNextAsync()) break;
             }
             catch (Exception exception)
@@ -80,7 +78,8 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     }
 
     // D73: a run of the host's own, with input and no conversation, starts one when every conversation is kept; a
-    // sub-agent's run belongs to its caller's, and a run without input resumes an interrupted run (D50)
+    // sub-agent's run belongs to its caller's, and a run without input resumes an interrupted run (D50). On the raw
+    // path the id is a string, so the response's ConversationId names the same conversation when the app passes it back
     private ChatOptions? WithNewConversation(IEnumerable<ChatMessage> messages, ChatOptions? options)
     {
         if (options is not ResolvedChatOptions { Conversation: null, ConversationId: null, Caller: null } resolved
@@ -89,7 +88,10 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             return options;
 
         var started = (ResolvedChatOptions)resolved.Clone();
-        started.Conversation = typeshift.NewConversationId() ?? Store.NewConversationId(Time);
+        started.Conversation = resolved.HostRun
+            ? typeshift.NewConversationId(Time)
+            : typeshift.NewRawConversationId(Time);
+
         return started;
     }
 
@@ -101,7 +103,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     }
 
     // The conversation the run is stored in, as the response names it
-    private string? Named(ChatOptions? options) => options is null ? null : GetConversation(options)?.ToString();
+    private static string? Named(ChatOptions? options) => options is null ? null : GetConversation(options)?.ToString();
 
     private LiveRuns Runs => services.GetRequiredService<LiveRuns>();
 
@@ -318,12 +320,12 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             ? new LivePublisher(Runs, run.Conversation, realtime, Time)
             : null;
 
-    // The id a typed run passes, or the raw path's ChatOptions.ConversationId in the build's id type
-    private StoreId? GetConversation(ChatOptions options) =>
+    // D72: the host's conversation, or the raw path's ChatOptions.ConversationId, a string id
+    private static StoreId? GetConversation(ChatOptions options) =>
         options switch
         {
             ResolvedChatOptions { Conversation: { } conversation } => conversation,
-            { ConversationId: { } text } => Store.Parse(text),
+            { ConversationId: { } text } => new StoreId<string>(text),
             _ => null
         };
 

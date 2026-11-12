@@ -99,20 +99,6 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_A_Public_Agent_Of_An_Internal_Id_Type_TSH006_Is_Reported_On_The_Agent()
-    {
-        // Arrange
-        var compilation = Compile(DiagnosticSources.PublicAgentOfInternalIdType);
-
-        // Act
-        var run = Run(compilation, properties: BuildProperties.WithIdType("Demo.TenantId"));
-
-        // Assert
-        run.Assert.Reports("TSH006", DiagnosticSeverity.Error, "SupportAgent");
-        run.Assert.GeneratesValidCode();
-    }
-
-    [Fact]
     public void Given_Two_Tools_Mapping_To_One_Member_TSH007_Is_Reported_On_The_Second()
     {
         // Act
@@ -578,10 +564,10 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_A_Reference_Of_Toolsets_Only_Built_With_Another_Id_Type_TSH021_Is_Not_Reported()
+    public void Given_A_Reference_Of_Toolsets_Only_Built_With_Another_Provider_Id_Type_TSH021_Is_Not_Reported()
     {
         // Arrange
-        var properties = BuildProperties.WithIdType("int");
+        var properties = BuildProperties.WithProviderIdType("int");
         var reference = CompileReference("Companies", properties, ReferenceSources.CompanyToolset);
 
         // Act
@@ -589,24 +575,6 @@ public class DiagnosticTests : GeneratorTestBase
 
         // Assert
         run.Assert.DoesNotReport("TSH021");
-    }
-
-    [Fact]
-    public void Given_A_Reference_With_Agents_Built_With_Another_Id_Type_TSH021_Is_Reported()
-    {
-        // Arrange
-        var properties = BuildProperties.WithIdType("int");
-        var reference = CompileReference(
-            "Companies",
-            properties,
-            ReferenceSources.CompanyToolset,
-            ReferenceSources.CompanyAgent);
-
-        // Act
-        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.SameNamedToolset));
-
-        // Assert
-        run.Assert.ReportsOnTheCompilation("TSH021", DiagnosticSeverity.Error).GetMessage().Should().Contain("int");
     }
 
     [Fact]
@@ -685,10 +653,10 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_A_Store_Of_Settings_Alone_Of_The_Builds_Id_Type_TSH028_Is_Not_Reported()
+    public void Given_A_Store_Of_Settings_Alone_TSH028_Is_Not_Reported()
     {
         // Act
-        var run = Run(DiagnosticSources.SettingsStoreOfTheBuildsIdType);
+        var run = Run(DiagnosticSources.SettingsStoreAlone);
 
         // Assert
         run.Assert.DoesNotReport("TSH028");
@@ -933,19 +901,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_An_Id_Type_The_Build_Cannot_Find_TSH029_Is_Reported_On_The_Compilation()
+    public void Given_A_Leftover_TypeshiftIdType_Naming_An_Unknown_Type_TSH029_Is_Not_Reported()
     {
         // Arrange
         var compilation = Compile(DiagnosticSources.ToolTypeWithoutJsonMetadata);
 
         // Act
-        var run = Run(compilation, properties: BuildProperties.WithIdType("TenantId"));
+        var run = Run(compilation, properties: BuildProperties.With("TypeshiftIdType", "TenantId"));
 
         // Assert
-        run.Assert.ReportsOnTheCompilation("TSH029", DiagnosticSeverity.Error)
-            .GetMessage()
-            .Should()
-            .Contain("TenantId");
+        run.Assert.DoesNotReport("TSH029");
         run.Assert.GeneratesValidCode();
     }
 

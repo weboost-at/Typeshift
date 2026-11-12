@@ -126,9 +126,8 @@ public class RunMiddlewareTests : MiddlewareTestBase
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer), Text(Data.Agent.FollowUp));
 
-        var stream = Host<ContextAgent>().RunStreamingAsync(
+        var stream = Host<ContextAgent>().WithConversationId(Data.Agent.ConversationId).RunStreamingAsync(
             Data.Tool.Question,
-            conversationId: Data.Agent.ConversationId,
             ct: Ct);
 
         // Act
@@ -185,7 +184,7 @@ public class RunMiddlewareTests : MiddlewareTestBase
         var approval = new ChatMessage(ChatRole.User, [asked.ApprovalRequests[0].CreateResponse(approved: true)]);
 
         // Act
-        await Host<ContextAgent>().RunAsync(approval, conversationId: Data.Agent.ConversationId, ct: Ct);
+        await Host<ContextAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(approval, ct: Ct);
 
         // Assert
         ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");

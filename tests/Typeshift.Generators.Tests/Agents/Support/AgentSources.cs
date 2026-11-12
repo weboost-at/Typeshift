@@ -333,7 +333,7 @@ public static class AgentSources
         internal static class Program
         {
             public static TypeshiftRuntime Start(IChatClient client) =>
-                TypeshiftRuntime.Create(client, typeshift => typeshift.WithStore<InMemoryTypeshiftStore>());
+                TypeshiftRuntime.Create(client, typeshift => typeshift.WithStore<InMemoryTypeshiftStore<int>>());
         }
         """;
 

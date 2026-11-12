@@ -24,29 +24,28 @@ public abstract class ApprovalTestBase : AgentTestBase
     }
 
     protected Task<ChatResponse> RunAsync(string input, AgentMode? mode = null) =>
-        Host<GuardedAgent>().RunAsync(
+        Host<GuardedAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
             input,
-            conversationId: Data.Agent.ConversationId,
             settings: mode is null ? null : new() { Mode = mode },
             ct: Ct);
 
     protected Task<ChatResponse> AnswerAsync(params AIContent[] answers) =>
-        Host<GuardedAgent>().RunAsync(
+        Host<GuardedAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
             new ChatMessage(ChatRole.User, [.. answers]),
-            conversationId: Data.Agent.ConversationId,
             ct: Ct);
 
     protected async Task<ChatResponse> StreamAsync(string input) =>
         (await Host<GuardedAgent>()
-            .RunStreamingAsync(input, conversationId: Data.Agent.ConversationId, ct: Ct)
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunStreamingAsync(input, ct: Ct)
             .ToListAsync(Ct))
         .ToChatResponse();
 
     protected async Task<ChatResponse> StreamAnswerAsync(params AIContent[] answers) =>
         (await Host<GuardedAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
             .RunStreamingAsync(
                 new ChatMessage(ChatRole.User, [.. answers]),
-                conversationId: Data.Agent.ConversationId,
                 ct: Ct)
             .ToListAsync(Ct))
         .ToChatResponse();

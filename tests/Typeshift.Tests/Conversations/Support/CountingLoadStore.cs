@@ -1,9 +1,9 @@
 namespace Typeshift.Tests.Conversations.Support;
 
 // A store in memory that counts the whole conversations it loaded, as a store whose conversations grow long would
-public sealed class CountingLoadStore : IConversationStore
+public sealed class CountingLoadStore : IConversationStore<Guid>
 {
-    private readonly IConversationStore _store = new InMemoryTypeshiftStore();
+    private readonly IConversationStore<Guid> _store = new InMemoryTypeshiftStore<Guid>();
 
     public int WholeLoads { get; private set; }
 

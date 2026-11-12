@@ -17,8 +17,8 @@ public sealed class TypeshiftRuntime : IAsyncDisposable, IDisposable
     internal TypeshiftRuntime(IServiceProvider services) => Services = services;
 
     /// <summary>
-    /// The root services, for singletons <see cref="Agent{TAgent}"/> does not reach, such as the
-    /// <c>ConversationTracker</c>. Scoped services resolve only from a scope.
+    /// The root services, for singletons <see cref="Agent{TAgent}"/> does not reach, such as a
+    /// <see cref="ConversationTracker{TId}"/>. Scoped services resolve only from a scope.
     /// </summary>
     public IServiceProvider Services { get; }
 

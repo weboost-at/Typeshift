@@ -110,10 +110,11 @@ internal static class Descriptors
         "'{0}' declares toolsets or agents but carries no module of this Typeshift version, so AddTypeshift() "
         + "cannot register them: reference the Typeshift package in its project, at this version");
 
-    public static readonly DiagnosticDescriptor OtherIdType = Error(
+    public static readonly DiagnosticDescriptor ReferenceOfOtherProviderIdType = Error(
         "TSH021",
-        "Referenced assembly has another id type",
-        "'{0}' was built with {1} '{2}', this project with '{3}': set {1} once, in Directory.Build.props");
+        "Referenced assembly has another provider id type",
+        "'{0}' was built with TypeshiftProviderIdType '{1}', this project with '{2}': set TypeshiftProviderIdType "
+        + "once, in Directory.Build.props");
 
     public static readonly DiagnosticDescriptor SharedKind = Error(
         "TSH022",
@@ -152,11 +153,11 @@ internal static class Descriptors
         "Type is no store",
         "'{0}' is no store: implement ISettingsStore<TId>, IConversationStore<TId> or IAgentSettingsStore");
 
-    // {2} is NotFound or NotOneValue
-    public static readonly DiagnosticDescriptor UnknownIdType = Error(
+    // {1} is NotFound or NotOneValue
+    public static readonly DiagnosticDescriptor UnusableProviderIdType = Error(
         "TSH029",
-        "Id type cannot be used",
-        "{0} names '{1}', {2}");
+        "Provider id type cannot be used",
+        "TypeshiftProviderIdType names '{0}', {1}");
 
     public const string NotFound =
         "which the build cannot find: give a C# keyword such as int, or the type's full name with its namespace";

@@ -219,10 +219,9 @@ Every agent also gets:
 | Member | Triggered by | Is |
 |---|---|---|
 | `{Assembly}Module` (hidden) | A toolset or an agent in the assembly | Registers the assembly's toolsets, agents, hosts, JSON contexts and XML docs; see [Registration](./registration.md#what-addtypeshift-registers). |
-| `[GeneratedModule]` (hidden) | The same | Stamps the module, its version and the id type for the projects that reference the assembly. |
+| `[GeneratedModule]` (hidden) | The same | Stamps the module, its version and the provider id type for the projects that reference the assembly. |
 | `TypeshiftSchemaAnnotations_{Assembly}` (hidden) | `GenerateDocumentationFile`, on unless the project turns it off, and `TypeshiftSchemaAnnotations`, unless `false` | Added by the package's build, not the generator. It carries the `[SchemaAnnotations]` attribute that makes Weboost.SchemaAnnotations collect the XML docs of your types; see [Registration](./registration.md#xml-docs-of-parameter-types). |
 | `IChatClientProvider` | A reference to the package | A `global using` alias that closes `IChatClientProvider<TProviderId>` over the [provider id type](./models.md#the-provider-id-type). |
-| `ITypeshiftStore`, `ISettingsStore`, `IConversationStore`, `InMemoryTypeshiftStore`, `ConversationTracker`, `LiveRun` | The same | `global using` aliases over the build's [id type](./registration.md#ids), which a coming release removes. Name the id type instead, as in `ITypeshiftStore<int>`. |
 | The `AddTypeshift()` interceptor | A call of `services.AddTypeshift()` | See [Registration](./registration.md). |
 
 ## The agent host
@@ -266,9 +265,8 @@ an `ISettingsStore<TId>` for a settings id, an `IConversationStore<TId>` for a c
 options and the tool loop.
 
 Calling the client with those options runs and stores like `RunAsync`, in the conversation of the host that resolved
-them. On options of a host without a conversation id, `ChatOptions.ConversationId` can name one, as the text of an id
-of the build's [id type](./registration.md#ids), which a coming release removes. Disposing the client does not
-dispose the one your provider returned.
+them. On options of a host without a conversation id, `ChatOptions.ConversationId` can name one, a `string` id in the
+`IConversationStore<string>`. Disposing the client does not dispose the one your provider returned.
 
 It throws an `InvalidOperationException` when no client is registered for the options' provider and model, and none
 for every agent.
@@ -283,39 +281,26 @@ use its scope. `Dispose` throws an `InvalidOperationException` when a scoped ser
 
 ### Typed members
 
-In these signatures, `TId` is the build's [id type](./registration.md#ids) and `Settings` the agent's
-[generated `Settings` record](#settings). Every member takes a `CancellationToken ct = default` last. Give the ids
-with [`WithSettingsId` and `WithConversationId`](#withsettingsid-and-withconversationid) and leave the `settingsId`
-and `conversationId` parameters out: they are still accepted, and a coming release removes them, along with the
-overloads marked below.
+In these signatures, `Settings` is the agent's [generated `Settings` record](#settings). Every member takes a
+`CancellationToken ct = default` last. None takes an id: each uses the host's, from
+[`WithSettingsId` and `WithConversationId`](#withsettingsid-and-withconversationid).
 
 | Member | Returns |
 |---|---|
-| `RunAsync(string input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `Task<ChatResponse>` |
-| `RunAsync(ChatMessage input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `Task<ChatResponse>` |
-| `RunAsync<TResult>(string input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
-| `RunAsync<TResult>(ChatMessage input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
-| `RunStreamingAsync(string input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
-| `RunStreamingAsync(ChatMessage input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
-| `RunStreamingAsync<TResult>(string input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `StreamingRun<TResult>` |
-| `RunStreamingAsync<TResult>(ChatMessage input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `StreamingRun<TResult>` |
+| `RunAsync(string input, Settings? settings = null)` | `Task<ChatResponse>` |
+| `RunAsync(ChatMessage input, Settings? settings = null)` | `Task<ChatResponse>` |
+| `RunAsync<TResult>(string input, Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
+| `RunAsync<TResult>(ChatMessage input, Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
+| `RunStreamingAsync(string input, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
+| `RunStreamingAsync(ChatMessage input, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
+| `RunStreamingAsync<TResult>(string input, Settings? settings = null)` | `StreamingRun<TResult>` |
+| `RunStreamingAsync<TResult>(ChatMessage input, Settings? settings = null)` | `StreamingRun<TResult>` |
 | `ResumeAsync(Settings? settings = null)` | `Task<ChatResponse>` |
 | `ResumeStreamingAsync(Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
-| `ResolveOptionsAsync(TId? settingsId = null, Settings? settings = null)` | `Task<ChatOptions>` |
+| `ResolveOptionsAsync(Settings? settings = null)` | `Task<ChatOptions>` |
 | `LoadSettingsAsync()` | `Task<Stored<Settings>>` |
 | `SaveSettingsAsync(Settings settings, long loadedVersion)` | `Task<long>` |
 | `ConfigureAsync(Func<Settings, Settings> configure)` | `Task<Settings>` |
-| `ResumeAsync(TId conversationId, TId? settingsId = null, Settings? settings = null)`, removed in a coming release | `Task<ChatResponse>` |
-| `ResumeStreamingAsync(TId conversationId, TId? settingsId = null, Settings? settings = null)`, removed in a coming release | `IAsyncEnumerable<ChatResponseUpdate>` |
-| `LoadSettingsAsync(TId settingsId)`, removed in a coming release | `Task<Stored<Settings>>` |
-| `SaveSettingsAsync(TId settingsId, Settings settings, long loadedVersion)`, removed in a coming release | `Task<long>` |
-| `ConfigureAsync(TId settingsId, Func<Settings, Settings> configure)`, removed in a coming release | `Task<Settings>` |
-
-::: warning Pass `settings` by name
-The id parameters come before `settings`, so a positional `RunAsync(input, run)` does not compile: write
-`RunAsync(input, settings: run)`. An id passed to a call on a host that has that id already throws an
-`ArgumentException`.
-:::
 
 ### `RunAsync`
 
@@ -338,7 +323,7 @@ answering agent's name as `AuthorName`.
 
 `RunStreamingAsync` layers settings and stores the run like `RunAsync`, but streams the updates, with the tool calls
 running between them. The updates of a run with a conversation are also published to
-`ConversationTracker.WatchAsync`. `RunStreamingAsync<TResult>` is its typed form
+`ConversationTracker<TId>.WatchAsync`. `RunStreamingAsync<TResult>` is its typed form
 ([Structured output](./running-agents.md#structured-output)).
 
 ### `ResumeAsync` and `ResumeStreamingAsync`

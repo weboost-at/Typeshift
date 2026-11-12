@@ -17,7 +17,7 @@ public class ChatClientResolutionTests : HostTestBase
     protected override void ConfigureServices(IServiceCollection services)
     {
         services.AddTypeshift()
-            .WithStore<InMemoryTypeshiftStore>();
+            .WithStore<InMemoryTypeshiftStore<Guid>>();
 
         services.AddSingleton(ChatClient);
         services.AddSingleton(Models);

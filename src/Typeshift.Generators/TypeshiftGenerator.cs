@@ -48,17 +48,7 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             .Select(static (call, _) => call!)
             .Collect();
 
-        // D11: the id type of every typed member, the aliases and the stamps
-        var idType = context.AnalyzerConfigOptionsProvider
-            .Combine(context.CompilationProvider)
-            .Select(static (pair, _) => IdTypes.Display(IdTypes.Read(pair.Left.GlobalOptions), pair.Right));
-
-        // D6: whether a public agent's host members may stay public
-        var idTypeIsPublic = context.AnalyzerConfigOptionsProvider
-            .Combine(context.CompilationProvider)
-            .Select(static (pair, _) => IdTypes.IsPublic(IdTypes.Read(pair.Left.GlobalOptions), pair.Right));
-
-        // D56: the provider id type of the Settings members, the alias and the core services
+        // D56: the provider id type of the Settings members, the alias, the stamps and the core services
         var providerId = context.AnalyzerConfigOptionsProvider
             .Combine(context.CompilationProvider)
             .Select(static (pair, _) => IdTypes.Provider(pair.Left.GlobalOptions, pair.Right));
@@ -89,11 +79,9 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             .Combine(contexts)
             .Combine(annotations)
             .Combine(assemblyName)
-            .Combine(idType)
             .Combine(providerId)
             .Select(static (pair, _) => CreateModule(
-                pair.Left.Left.Left.Left.Left.Left,
-                pair.Left.Left.Left.Left.Left.Right,
+                pair.Left.Left.Left.Left.Left,
                 pair.Left.Left.Left.Left.Right,
                 pair.Left.Left.Left.Right,
                 pair.Left.Left.Right,
@@ -104,26 +92,22 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(toolsets, static (output, toolset) =>
             output.AddSource(Names.HintName(toolset.Type.FullName), ToolsetEmitter.Emit(toolset)));
 
-        context.RegisterSourceOutput(
-            outputs.Combine(idType).Combine(idTypeIsPublic).Combine(providerId),
-            static (output, pair) =>
-            {
-                var agent = pair.Left.Left.Left;
-                output.AddSource(
-                    Names.HintName(agent.Agent.Type.FullName),
-                    AgentEmitter.Emit(agent, pair.Left.Left.Right, pair.Left.Right, pair.Right));
+        context.RegisterSourceOutput(outputs.Combine(providerId), static (output, pair) =>
+        {
+            var agent = pair.Left;
+            output.AddSource(Names.HintName(agent.Agent.Type.FullName), AgentEmitter.Emit(agent, pair.Right));
 
-                if (AgentEmitter.EmitHost(agent.Agent, pair.Left.Left.Right, pair.Left.Right) is { } host)
-                    output.AddSource(Names.HintName($"{agent.Agent.Type.FullName}+Host"), host);
-            });
+            if (AgentEmitter.EmitHost(agent.Agent) is { } host)
+                output.AddSource(Names.HintName($"{agent.Agent.Type.FullName}+Host"), host);
+        });
 
-        context.RegisterSourceOutput(idType.Combine(providerId).Combine(assemblyName), static (output, pair) =>
+        context.RegisterSourceOutput(providerId.Combine(assemblyName), static (output, pair) =>
         {
             if (pair.Right == KnownTypes.LibraryAssembly) return;
 
             output.AddSource(
                 Names.HintName($"{Names.GeneratedNamespace}.Aliases"),
-                AliasEmitter.Emit(pair.Left.Left, pair.Left.Right.Type));
+                AliasEmitter.Emit(pair.Left.Type));
         });
 
         context.RegisterSourceOutput(module, static (output, model) =>
@@ -133,17 +117,11 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             output.AddSource(Names.HintName($"{Names.GeneratedNamespace}.{model.Name}"), ModuleEmitter.Emit(model));
         });
 
-        var idParser = context.AnalyzerConfigOptionsProvider
-            .Combine(context.CompilationProvider)
-            .Select(static (pair, _) => IdTypes.Parser(IdTypes.Read(pair.Left.GlobalOptions), pair.Right));
-
         context.RegisterSourceOutput(
-            calls.Combine(module).Combine(references).Combine(idType).Combine(idParser).Combine(providerId),
+            calls.Combine(module).Combine(references).Combine(providerId),
             static (output, pair) => EmitInterceptor(
                 output,
-                pair.Left.Left.Left.Left.Left,
-                pair.Left.Left.Left.Left.Right,
-                pair.Left.Left.Left.Right,
+                pair.Left.Left.Left,
                 pair.Left.Left.Right,
                 pair.Left.Right,
                 pair.Right.Type));
@@ -156,7 +134,6 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
         ImmutableArray<string> contexts,
         ImmutableArray<string> annotations,
         string assemblyName,
-        string idType,
         string providerIdType)
     {
         if (toolsets.IsEmpty && outputs.IsEmpty && annotations.IsEmpty) return null;
@@ -174,7 +151,6 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
         return new ModuleModel(
             Name: ModuleEmitter.GetName(assemblyName),
             AssemblyName: assemblyName,
-            IdType: idType,
             ProviderIdType: providerIdType,
             Toolsets: reachableToolsets,
             Agents: reachableAgents,
@@ -187,8 +163,6 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
         ImmutableArray<InterceptModel> calls,
         ModuleModel? module,
         ReferenceModel references,
-        string idType,
-        string idParser,
         string providerIdType)
     {
         if (calls.IsEmpty) return;
@@ -197,6 +171,6 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
 
         output.AddSource(
             Names.HintName($"{Names.GeneratedNamespace}.{KnownTypes.RegistrationMethod}Interceptor"),
-            InterceptorEmitter.Emit(calls, [.. own, .. references.Modules], idType, idParser, providerIdType));
+            InterceptorEmitter.Emit(calls, [.. own, .. references.Modules], providerIdType));
     }
 }

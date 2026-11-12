@@ -74,7 +74,7 @@ public sealed class TelemetryTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_A_Streaming_Raw_Call_Whose_Conversation_Id_Does_Not_Parse_Its_Span_Carries_The_Error()
+    public async Task Given_A_Streaming_Raw_Call_Whose_Conversation_No_Store_Keeps_Its_Span_Carries_The_Error()
     {
         // Arrange
         var host = Host<ProbeAgent>();
@@ -86,7 +86,7 @@ public sealed class TelemetryTests : AgentTestBase
         var run = () => client.GetStreamingResponseAsync(Data.Tool.Question, options, Ct).ToListAsync(Ct).AsTask();
 
         // Assert
-        await run.Should().ThrowAsync<FormatException>();
+        await run.Should().ThrowAsync<InvalidOperationException>();
         Activities.Run(Data.Persistence.ChatName).Status.Should().Be(ActivityStatusCode.Error);
     }
 
@@ -104,7 +104,8 @@ public sealed class TelemetryTests : AgentTestBase
 
         // Act
         await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
-            .RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
         Activities.Run(Data.Agent.ConversationId).Events.Select(@event => @event.Name).Should().Contain("exception");
@@ -136,20 +137,23 @@ public sealed class TelemetryTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<InMemoryTypeshiftStore>().WithChatClientProvider<ClientPerCallProvider>();
+        services.AddTypeshift()
+            .WithStore<InMemoryTypeshiftStore<Guid>>()
+            .WithChatClientProvider<ClientPerCallProvider>();
         services.AddSingleton(ChatClient);
 
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
-        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
 
         ChatClient
             .Reply(Text(Data.Tool.Answer))
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await host.RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
-        await host.RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
         Activities.Runs(Data.Agent.ConversationId)
@@ -161,5 +165,5 @@ public sealed class TelemetryTests : AgentTestBase
     }
 
     private Task<ChatResponse> RunAsync() =>
-        Host<ProbeAgent>().RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+        Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
 }

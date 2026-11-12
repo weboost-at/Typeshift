@@ -88,18 +88,13 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     // The settings id WithSettingsId gave, which the settings members use in place of the agent's own settings
     internal StoreId? SettingsId => _settingsId;
 
-    // The id of a call: one of the build's id type the call passed, or the one the host was given
-    internal StoreId? SettingsIdOf(object? settingsId) =>
-        IdOf(settingsId, _settingsId, nameof(settingsId), nameof(WithSettingsId));
+    internal StoreId? ConversationId => _conversationId;
 
-    internal StoreId? ConversationIdOf(object? conversationId) =>
-        IdOf(conversationId, _conversationId, nameof(conversationId), nameof(WithConversationId));
-
-    // A resume needs a conversation, passed or given
-    internal StoreId ResumedConversation(object? conversationId) =>
-        ConversationIdOf(conversationId)
+    // A resume needs a conversation
+    internal StoreId ResumedConversation =>
+        _conversationId
         ?? throw new InvalidOperationException(
-            "A resume needs a conversation: call WithConversationId(id) on the host, or pass the conversation's id.");
+            "A resume needs a conversation: resume on a host from WithConversationId(id).");
 
     /// <summary>
     /// The raw path: creates the client of a run whose options <c>ResolveOptionsAsync</c> resolved. It takes the
@@ -359,16 +354,6 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         return offered;
     }
 
-    private StoreId? IdOf(object? passed, StoreId? given, string parameter, string method) =>
-        (passed, given) switch
-        {
-            (null, _) => given,
-            (_, null) => Store.Wrap(passed),
-            _ => throw new ArgumentException(
-                $"The host has an id from {method} already: pass {parameter} to one of them, not both.",
-                parameter)
-        };
-
     // D64: a typed run's format, which an agent handed the run or answering in its place keeps
     private static void AskFor(ResolvedChatOptions options, ChatResponseFormat? format)
     {
@@ -393,6 +378,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     {
         var options = (ResolvedChatOptions)await ResolveOptionsCoreAsync(settingsId, settings, ct);
         options.Conversation = conversation;
+        options.HostRun = true;
 
         if (caller is not null)
         {

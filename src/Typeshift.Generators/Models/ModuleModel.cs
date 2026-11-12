@@ -4,7 +4,6 @@ namespace Typeshift.Generators.Models;
 internal sealed record ModuleModel(
     string Name,
     string AssemblyName,
-    string IdType,
     string ProviderIdType,
     EquatableArray<string> Toolsets,
     EquatableArray<ModuleAgent> Agents,

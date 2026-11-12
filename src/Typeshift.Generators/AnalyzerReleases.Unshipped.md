@@ -25,7 +25,7 @@ TSH017 | Typeshift | Error | Toolset or agent is generic or derives from another
 TSH018 | Typeshift | Error | Member clashes with a generated member
 TSH019 | Typeshift | Error | Toolset was not compiled with the generator
 TSH020 | Typeshift | Warning | Referenced assembly was not compiled with the generator
-TSH021 | Typeshift | Error | Referenced assembly has another id type
+TSH021 | Typeshift | Error | Referenced assembly has another provider id type
 TSH022 | Typeshift | Error | Two agents share a settings kind
 TSH023 | Typeshift | Error | Agent cannot be a tool or a handoff target
 TSH024 | Typeshift | Warning | Sub-agent offers tools that need approval
@@ -33,5 +33,5 @@ TSH025 | Typeshift | Error | Tool is offered twice
 TSH026 | Typeshift | Error | Agents call each other in a circle
 TSH027 | Typeshift | Error | Tool type has no JSON metadata under Native AOT
 TSH028 | Typeshift | Error | Type is no store
-TSH029 | Typeshift | Error | Id type cannot be used
+TSH029 | Typeshift | Error | Provider id type cannot be used
 TSH030 | Typeshift | Error | Provider has another id type

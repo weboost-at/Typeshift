@@ -4,15 +4,15 @@ using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Typeshift.Generators.Tests.Testing;
 
-// The MSBuild properties a project passes to the generator and the analyzer, build_property.TypeshiftIdType say
+// The MSBuild properties a project passes to the generator and the analyzer, build_property.PublishAot for example
 public sealed class BuildProperties(IReadOnlyDictionary<string, string> global) : AnalyzerConfigOptionsProvider
 {
     public static readonly BuildProperties None = new(new Dictionary<string, string>());
 
     public override AnalyzerConfigOptions GlobalOptions { get; } = new Options(global);
 
-    public static BuildProperties WithIdType(string idType) =>
-        new(new Dictionary<string, string> { ["build_property.TypeshiftIdType"] = idType });
+    public static BuildProperties With(string property, string value) =>
+        new(new Dictionary<string, string> { [$"build_property.{property}"] = value });
 
     public static BuildProperties WithProviderIdType(string providerIdType) =>
         new(new Dictionary<string, string> { ["build_property.TypeshiftProviderIdType"] = providerIdType });

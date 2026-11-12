@@ -53,7 +53,7 @@ public class HandoffTests : MultiAgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<InMemoryTypeshiftStore>().WithChatClientProvider<GatedBackProvider>();
+        services.AddTypeshift().WithStore<InMemoryTypeshiftStore<Guid>>().WithChatClientProvider<GatedBackProvider>();
         services.AddSingleton(ChatClient).AddSingleton<ProviderGate>();
 
         await using var provider = services.BuildServiceProvider();
@@ -67,11 +67,11 @@ public class HandoffTests : MultiAgentTestBase
             .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
             .Reply(answering, Text(Data.Tool.Answer));
 
-        var first = front.RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+        var first = front.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
         await gate.Holding.Task;
 
         // Act
-        var second = front.RunAsync(Data.Agent.FollowUp, conversationId: Data.Agent.ConversationId, ct: Ct);
+        var second = front.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Agent.FollowUp, ct: Ct);
         gate.Release.SetResult();
 
         var settled = await Task.WhenAny(first, second);
@@ -89,7 +89,7 @@ public class HandoffTests : MultiAgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<InMemoryTypeshiftStore>().WithChatClientProvider<GatedBackProvider>();
+        services.AddTypeshift().WithStore<InMemoryTypeshiftStore<Guid>>().WithChatClientProvider<GatedBackProvider>();
         services.AddSingleton(ChatClient).AddSingleton<ProviderGate>();
 
         await using var provider = services.BuildServiceProvider();
@@ -104,14 +104,15 @@ public class HandoffTests : MultiAgentTestBase
             .Reply(answering, Text(Data.Tool.Answer));
 
         var first = front
-            .RunStreamingAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct)
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunStreamingAsync(Data.Tool.Question, ct: Ct)
             .ToListAsync(Ct)
             .AsTask();
 
         await gate.Holding.Task;
 
         // Act
-        var second = front.RunAsync(Data.Agent.FollowUp, conversationId: Data.Agent.ConversationId, ct: Ct);
+        var second = front.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Agent.FollowUp, ct: Ct);
         gate.Release.SetResult();
 
         var settled = await Task.WhenAny(first, second);
@@ -129,7 +130,7 @@ public class HandoffTests : MultiAgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<InMemoryTypeshiftStore>().WithChatClientProvider<GatedBackProvider>();
+        services.AddTypeshift().WithStore<InMemoryTypeshiftStore<Guid>>().WithChatClientProvider<GatedBackProvider>();
         services.AddSingleton(ChatClient).AddSingleton<ProviderGate>();
 
         await using var provider = services.BuildServiceProvider();
@@ -142,11 +143,11 @@ public class HandoffTests : MultiAgentTestBase
             .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
             .Reply(Text(Data.Tool.Answer));
 
-        var first = front.RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+        var first = front.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
         await gate.Holding.Task;
 
         // Act
-        var second = front.RunAsync(Data.Agent.FollowUp, conversationId: Data.Agent.ConversationId, ct: Ct);
+        var second = front.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Agent.FollowUp, ct: Ct);
         gate.Release.SetResult();
 
         // Assert
@@ -211,7 +212,8 @@ public class HandoffTests : MultiAgentTestBase
 
         // Act
         var updates = await Host<FrontAgent>()
-            .RunStreamingAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct)
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunStreamingAsync(Data.Tool.Question, ct: Ct)
             .ToListAsync(Ct);
 
         // Assert
@@ -253,15 +255,16 @@ public class HandoffTests : MultiAgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         var asked = await Host<GuardedFrontAgent>()
-            .RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
 
         await Host<GuardedFrontAgent>()
-            .RunAsync(Data.Agent.FollowUp, conversationId: Data.Agent.ConversationId, ct: Ct);
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Agent.FollowUp, ct: Ct);
 
         // Act
-        var answer = () => Host<GuardedFrontAgent>().RunAsync(
+        var answer = () => Host<GuardedFrontAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
             new ChatMessage(ChatRole.User, [asked.ApprovalRequests.Single().CreateResponse(approved: true)]),
-            conversationId: Data.Agent.ConversationId,
             ct: Ct);
 
         // Assert
@@ -280,7 +283,8 @@ public class HandoffTests : MultiAgentTestBase
 
         // Act
         var response = await Host<FrontAgent>()
-            .RunAsync<int>(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync<int>(Data.Tool.Question, ct: Ct);
 
         // Assert
         ChatClient.Options[1]!.ResponseFormat.Should().BeOfType<ChatResponseFormatJson>();
@@ -296,7 +300,8 @@ public class HandoffTests : MultiAgentTestBase
             .Reply(Text(Lives()));
 
         var run = Host<FrontAgent>()
-            .RunStreamingAsync<int>(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunStreamingAsync<int>(Data.Tool.Question, ct: Ct);
 
         // Act
         await run.ToListAsync(Ct);
@@ -319,7 +324,8 @@ public class HandoffTests : MultiAgentTestBase
 
         // Act
         var response = await Host<FrontAgent>()
-            .RunAsync<int>(Data.Agent.FollowUp, conversationId: Data.Agent.ConversationId, ct: Ct);
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync<int>(Data.Agent.FollowUp, ct: Ct);
 
         // Assert
         ChatClient.Options[2]!.ResponseFormat.Should().BeOfType<ChatResponseFormatJson>();
@@ -361,5 +367,5 @@ public class HandoffTests : MultiAgentTestBase
     private string Lives() => JsonSerializer.Serialize(new { data = Data.Tool.Lives }, Json.SerializerOptions);
 
     private Task<ChatResponse> RunAsync(string input) =>
-        Host<FrontAgent>().RunAsync(input, conversationId: Data.Agent.ConversationId, ct: Ct);
+        Host<FrontAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(input, ct: Ct);
 }

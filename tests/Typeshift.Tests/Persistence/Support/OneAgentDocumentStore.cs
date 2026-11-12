@@ -2,9 +2,9 @@ namespace Typeshift.Tests.Persistence.Support;
 
 // Keeps one document of agents' own settings whatever its kind, as a store that missed that each agent has its own;
 // settings under an id and conversations work
-public sealed class OneAgentDocumentStore : ITypeshiftStore, IAgentSettingsStore
+public sealed class OneAgentDocumentStore : ITypeshiftStore<Guid>, IAgentSettingsStore
 {
-    private readonly InMemoryTypeshiftStore _store = new();
+    private readonly InMemoryTypeshiftStore<Guid> _store = new();
 
     public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken ct) =>
         _store.LoadAsync(id, kind, ct);

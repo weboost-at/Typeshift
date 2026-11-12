@@ -1,9 +1,9 @@
 namespace Typeshift.Tests.Persistence.Support;
 
 // Writes first and compares the version after, as an upsert that counts an update as two rows can
-public sealed class WriteThenConflictStore : ISettingsStore
+public sealed class WriteThenConflictStore : ISettingsStore<Guid>
 {
-    private readonly InMemoryTypeshiftStore _store = new();
+    private readonly InMemoryTypeshiftStore<Guid> _store = new();
 
     public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken ct) =>
         _store.LoadAsync(id, kind, ct);

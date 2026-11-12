@@ -111,11 +111,11 @@ public class SubAgentTests : MultiAgentTestBase
             .Reply(Text(Data.Agent.Reason));
 
         var lead = Host<TrustingLeadAgent>();
-        var asked = await lead.RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+        var asked = await lead.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
         var always = new ChatMessage(ChatRole.User, [asked.ApprovalRequests[0].ApproveForConversation()]);
 
         // Act
-        await lead.RunAsync(always, conversationId: Data.Agent.ConversationId, ct: Ct);
+        await lead.WithConversationId(Data.Agent.ConversationId).RunAsync(always, ct: Ct);
 
         // Assert
         ToolCalls.Should().Equal(
@@ -200,7 +200,7 @@ public class SubAgentTests : MultiAgentTestBase
     public async Task Given_An_Interrupted_Run_With_A_Background_Sub_Agent_The_Model_Hears_It_Was_Lost()
     {
         // Arrange
-        var store = Services.GetRequiredService<ITypeshiftStore>();
+        var store = Services.GetRequiredService<ITypeshiftStore<Guid>>();
         var conversation = Data.Agent.ConversationId;
 
         ChatMessage[] steps =
@@ -214,7 +214,7 @@ public class SubAgentTests : MultiAgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<BackgroundLeadAgent>().ResumeAsync(conversation, ct: Ct);
+        await Host<BackgroundLeadAgent>().WithConversationId(conversation).ResumeAsync(ct: Ct);
 
         // Assert
         ChatClient.Requests[0][^1].Text.Should().Contain("helper_agent was lost");
@@ -224,7 +224,7 @@ public class SubAgentTests : MultiAgentTestBase
     public async Task Given_A_Cancelled_Run_With_A_Background_Sub_Agent_The_Next_Run_Hears_It_Was_Lost()
     {
         // Arrange
-        var store = Services.GetRequiredService<ITypeshiftStore>();
+        var store = Services.GetRequiredService<ITypeshiftStore<Guid>>();
         var conversation = Data.Agent.ConversationId;
 
         ChatMessage[] steps =
@@ -241,7 +241,7 @@ public class SubAgentTests : MultiAgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<BackgroundLeadAgent>().RunAsync(Data.Agent.FollowUp, conversationId: conversation, ct: Ct);
+        await Host<BackgroundLeadAgent>().WithConversationId(conversation).RunAsync(Data.Agent.FollowUp, ct: Ct);
 
         // Assert
         ChatClient.Requests[0].Select(message => message.Text).Should().Contain(text => text.Contains("was lost"));
@@ -287,9 +287,8 @@ public class SubAgentTests : MultiAgentTestBase
         HelperClient.Reply(gate, Text(Data.Agent.Reason));
 
         // Act
-        var running = Host<BackgroundLeadAgent>().RunAsync(
+        var running = Host<BackgroundLeadAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
             new string('x', Page),
-            conversationId: Data.Agent.ConversationId,
             settings: new() { MaxInputTokens = 1_000 },
             ct: Ct);
 
@@ -306,7 +305,7 @@ public class SubAgentTests : MultiAgentTestBase
     public async Task Given_A_Summary_That_Left_A_Background_Sub_Agent_Working_The_Next_Run_Hears_It_Was_Lost()
     {
         // Arrange
-        var store = Services.GetRequiredService<ITypeshiftStore>();
+        var store = Services.GetRequiredService<ITypeshiftStore<Guid>>();
         var conversation = Data.Agent.ConversationId;
 
         var summary = new ConversationEntry(
@@ -326,7 +325,7 @@ public class SubAgentTests : MultiAgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<BackgroundLeadAgent>().RunAsync(Data.Agent.FollowUp, conversationId: conversation, ct: Ct);
+        await Host<BackgroundLeadAgent>().WithConversationId(conversation).RunAsync(Data.Agent.FollowUp, ct: Ct);
 
         // Assert
         ChatClient.Requests[0]
@@ -350,16 +349,16 @@ public class SubAgentTests : MultiAgentTestBase
         HelperClient.Reply(gate, Text(Data.Agent.Reason));
 
         var running = Host<GuardedBackgroundLeadAgent>()
-            .RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
 
         await ChatClient.RequestedAsync(2);
         gate.SetResult();
         var asked = await running;
 
         // Act
-        await Host<GuardedBackgroundLeadAgent>().RunAsync(
+        await Host<GuardedBackgroundLeadAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
             new ChatMessage(ChatRole.User, [asked.ApprovalRequests.Single().CreateResponse(approved: true)]),
-            conversationId: Data.Agent.ConversationId,
             ct: Ct);
 
         // Assert

@@ -52,16 +52,6 @@ ids ([Ids of your own types](./settings-and-stores.md#ids-of-your-own-types)).
 Typeshift creates an id only when you keep every conversation, for a conversation a run starts without one
 ([Keeping every conversation](./conversations.md#keeping-every-conversation)).
 
-::: info `TypeshiftIdType` still sets the build's id type
-The MSBuild property `TypeshiftIdType` is still accepted, and a coming release removes it. It is `Guid` unless set.
-The container has the `ConversationTracker<TId>` of that type only, so a default app's tracker is
-`ConversationTracker<Guid>`. Its `TrySteer` and `WatchAsync` take ids of any type, but `Runs` and `WatchRunsAsync`
-list only the conversations under ids of the build's type. An app that lists its running conversations under `int`
-ids sets the property to `int`, as the docs samples do. The generated members also still take `settingsId` and
-`conversationId` parameters of that type, which the same release removes, so give ids with `WithSettingsId` and
-`WithConversationId` instead.
-:::
-
 Providers have an id type of their own, `TypeshiftProviderIdType`, which is `string` unless set. See
 [the provider id type](./models.md#the-provider-id-type).
 
@@ -99,7 +89,7 @@ where no request's scope is at hand, such as in a background service, and take a
 so disposing it does nothing. A request injects the host itself, from the request's scope
 ([Using an agent](./using-an-agent.md)).
 
-`runtime.Services` holds the root services, for singletons such as the `ConversationTracker`. Scoped services are
+`runtime.Services` holds the root services, for singletons such as a `ConversationTracker<TId>`. Scoped services are
 not among them, since each lives in a scope, such as the one a host has.
 
 ::: warning Dispose every host the runtime gives you
@@ -142,7 +132,7 @@ and `anthropic`, and a run takes the client registered under its provider
 | `AgentHost<TAgent>` per agent | Transient, so it runs with the services of the scope it was resolved from ([Using an agent](./using-an-agent.md)) |
 | `TypeshiftRuntime`, which gives each host a scope of its own ([The runtime](#the-runtime)) | Singleton |
 | The JSON contexts of each assembly, which tools ask before the defaults | Singleton |
-| `ConversationTracker<TId>` of the build's id type ([Ids](#ids)), and the core services runs need | Singleton |
+| `ConversationTracker<TId>` of each id type your app asks for ([Live runs](./conversations.md#live-runs)), and the core services runs need | Singleton |
 
 The generator writes a registration module for each project that declares toolsets or agents. `AddTypeshift()` runs the
 modules of the project that calls it and of every project it references that declares toolsets or agents. Each module
@@ -162,11 +152,12 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 | Call | Registers | Lifetime | Needed by |
 |---|---|---|---|
 | `WithStore<TStore>()` | `TStore`, and each of `IAgentSettingsStore`, `ISettingsStore<TId>`, `IConversationStore<TId>` and `ITypeshiftStore<TId>` it implements, of any id type, resolving to it. Call it once for each class. | Singleton, so it takes no scoped services ([Implementing a store](./implementing-a-store.md#register-your-store)) | Keeping agents' own settings, settings ids and conversations across restarts. Without any store, they are kept in memory, and the first save logs a warning. |
-| `WithStore(store)` | The store you created yourself, as each store interface the instance implements. The container never disposes it. | Singleton, your app's | The same. |
+| `WithStore(store)` | The store you created yourself, as each store interface its declared type implements. The container never disposes it. | Singleton, your app's | The same. |
 | `WithFileStore(Action<FileStoreOptions>? configure = null)` | The file store as `IAgentSettingsStore`, built by the container with your app's `TimeProvider`. By default, `Folder` is `typeshift` under `AppContext.BaseDirectory`; the settings files lie in its `settings` folder. | Singleton | Agents' own settings, kept in files ([Agent settings](./settings-and-stores.md#agent-settings)). |
 | `WithChatClientProvider<TProvider>()` | `TProvider`, and `IChatClientProvider` resolving to it | Scoped | Every run with a provider and a model, before any `IChatClient` you registered ([Registering clients](./models.md#registering-clients)). |
 | `WithOptions(options => ...)` | `TypeshiftOptions`, which each call changes further, such as `PersistAllConversations` | Singleton | Keeping the runs without a conversation id ([Keeping every conversation](./conversations.md#keeping-every-conversation)). |
-| `WithRealtimeTracking(RealtimeTrackingOptions? options = null)` | The options of live updates, in place of the defaults: `PublishInterval` of 100 ms and `MaxPendingUpdates` of 256. Live updates are on without it. | Singleton | Tuning `ConversationTracker.WatchAsync`. |
+| `WithRealtimeTracking(RealtimeTrackingOptions? options = null)` | The options of live updates, in place of the defaults: `PublishInterval` of 100 ms and `MaxPendingUpdates` of 256. Live updates are on without it. | Singleton | Tuning `ConversationTracker<TId>.WatchAsync`. |
+| `WithConversationTracker<TId>()` | The `ConversationTracker<TId>` of one id type, closed, as a singleton of its own | Singleton | An app published with Native AOT that injects the tracker of a value type, such as `Guid` or `int` ([Native AOT](./native-aot.md#trackers-of-value-type-ids)). |
 | `WithApprovalRule<TRule>()` | One more `IToolApprovalRule` | Scoped | Deciding calls before your app is asked. |
 | `WithRunMiddleware<TMiddleware>()` | One more `IRunMiddleware`. The first registered is the outermost. | Scoped | Wrapping every run. |
 | `WithToolMiddleware<TMiddleware>()` | One more `IToolMiddleware`. The first registered is the outermost. | Scoped | Wrapping every tool call. |

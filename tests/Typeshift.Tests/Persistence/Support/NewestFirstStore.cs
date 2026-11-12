@@ -1,9 +1,9 @@
 namespace Typeshift.Tests.Persistence.Support;
 
 // Returns a conversation newest first, as a store that sorts by a descending key would; its settings are right
-public sealed class NewestFirstStore : ITypeshiftStore
+public sealed class NewestFirstStore : ITypeshiftStore<Guid>
 {
-    private readonly InMemoryTypeshiftStore _store = new();
+    private readonly InMemoryTypeshiftStore<Guid> _store = new();
 
     public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken ct) =>
         _store.LoadAsync(id, kind, ct);

@@ -151,9 +151,9 @@ public class CompactionTests : AgentTestBase
             .Reply(Text(Data.Agent.FollowUp));
 
         var run = Host<CompactingAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
             .RunStreamingAsync(
                 Data.Tool.Question,
-                conversationId: Data.Agent.ConversationId,
                 settings: settings,
                 ct: Ct)
             .ToListAsync(Ct);
@@ -251,9 +251,9 @@ public class CompactionTests : AgentTestBase
 
         // Act
         await Host<CompactingAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
             .RunStreamingAsync(
                 Data.Tool.Question,
-                conversationId: Data.Agent.ConversationId,
                 settings: new() { MaxInputTokens = 1_500, TargetInputTokens = 1_000 },
                 ct: Ct)
             .ToListAsync(Ct);
@@ -263,7 +263,9 @@ public class CompactionTests : AgentTestBase
     }
 
     private Task<ChatResponse> RunAsync(string input, CompactingAgent.Settings? settings = null) =>
-        Host<CompactingAgent>().RunAsync(input, conversationId: Data.Agent.ConversationId, settings: settings, ct: Ct);
+        Host<CompactingAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(input, settings: settings, ct: Ct);
 
     private ChatResponseUpdate Read(string callId, int length) => Call(callId, "read", ("length", length));
 
