@@ -118,10 +118,10 @@ public abstract class Agent
     /// <summary>
     /// Offers another agent as a tool named like it and described like it, with one <c>input</c>
     /// parameter. A call runs it in a fresh context, with the caller's settings id, mode, standing approvals and
-    /// rules, and returns its answer's text.
+    /// rules, and returns its answer's text, or its JSON with <c>WithResult</c>.
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>
-    /// <returns>The use, to run it in the background.</returns>
+    /// <returns>The use, to run it in the background or to hold its answer to a type.</returns>
     protected AgentUse UseAgent<TAgent>() where TAgent : Agent
     {
         var use = new AgentUse(services => services.GetRequiredService<AgentHost<TAgent>>());

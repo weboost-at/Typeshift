@@ -435,7 +435,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Decision:** `UseAgent<T>()` offers a tool named like the agent, with its description and one `input` string. A
   call runs it in a fresh context with the same settings id, the caller's mode, standing approvals and rules, and no
-  conversation of its own, and returns its text. `.InBackground()` makes the tool return at once; the answer reaches
+  conversation of its own, and returns its text, or its JSON with `.WithResult<T>()` (D65). `.InBackground()` makes the tool return at once; the answer reaches
   the calling run as a message before a later model call, and the run does not end while sub-agents work. A
   sub-agent cannot ask the host: in the default mode its calls that need approval and that nothing approves are
   rejected (TSH024 warns). Circles are TSH026.
@@ -471,6 +471,21 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   the agent handed to began. The claim travels as an argument and in the run's options rather than in an
   `AsyncLocal`, which a value set before a stream's `yield` loses and code the agent's run calls would carry along.
 - **Where:** `Conversations/ConversationChatClient.cs`, `Conversations/LiveRuns.cs`.
+
+### D65. A sub-agent can answer in a type
+
+- **Status:** owner.
+- **Context:** the owner asked whether a sub-agent's answer can be held to a JSON type.
+- **Decision:** `UseAgent<T>().WithResult<TResult>()` runs the sub-agent with the response format of
+  `RunAsync<TResult>` (D62), reads the answer as `TResult` and hands the caller's model the result serialized again,
+  so the model reads `TResult`'s JSON without a `data` wrapper. An answer that is no `TResult` fails the call, and
+  the calling model reads that the sub-agent did not answer in the schema it was given, with what it answered (D53).
+  In the background the answer goes the same way: its JSON arrives as the message, or the failure does. The chain runs
+  at runtime, as `InBackground()` does, so the generator reads nothing new.
+- **Where:** `Agents/AgentUse.cs`, `Agents/SubAgentResult.cs`, `Agents/SubAgentFunction.cs`,
+  `Conversations/ConversationRun.cs`.
+- **Alternatives:** the sub-agent's text passed on unchecked, which leaves the calling model to find out what went
+  wrong; a schema on the tool's result, which no provider reads.
 
 ### D35. MCP servers through a host provider
 
@@ -528,8 +543,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** approved; split at the owner's request.
 - **Decision:** `ISettingsStore<TId>`: `LoadAsync` and `SaveAsync` of documents as JSON, keyed by id and kind, with a
   version. `IConversationStore<TId>`: `LoadConversationAsync` and `AppendConversationAsync` of
-  `ConversationEntry`s keyed by the conversation id; `LoadConversationSinceCompactionAsync`, which runs call, defaults
-  to the whole load and drops what came before the last summary. `ITypeshiftStore<TId>` is both in one. Each has a
+  `ConversationEntry`s keyed by the conversation id; `LoadConversationSinceCompactionAsync`, which runs call and every
+  store implements (D71). `ITypeshiftStore<TId>` is both in one. Each has a
   `global using` alias. The library serializes the documents (each agent's `Settings`), so a store implements no
   generic method and handles strings and numbers only.
 - **Details:** `WithStore<T>()` registers each interface `T` implements, so settings and conversations may live in
@@ -545,6 +560,20 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   keep; `WithSettingsStore<T>()` and `WithConversationStore<T>()`, two calls where the interfaces already say what a
   store keeps; renaming the conversation methods (`LoadAsync`, `AppendAsync`), which would clash with the settings
   methods in a class that implements both.
+
+### D71. Every conversation store implements the load from the last summary
+
+- **Status:** owner.
+- **Context:** the owner asked that the code, not only the docs, lead a store's author to the load runs call. It had a
+  default on the interface that read the whole conversation, so a store that never knew of it read every entry on
+  every run, however long compaction had let the conversation grow.
+- **Decision:** `LoadConversationSinceCompactionAsync` has no default, so a store that leaves it out fails to build,
+  and the IDE's fix inserts it with the XML docs that say what it returns. `entries.SinceLastSummary()`, an extension
+  on the entries, is the one-line body of a store that can only read whole conversations.
+- **Where:** `Storage/IConversationStore.cs`, `Storage/ConversationEntries.cs`, `Storage/InMemoryTypeshiftStore.cs`.
+- **Alternatives:** the default with an analyzer warning on `WithStore<T>()`, which can be suppressed, and whose "does
+  any agent compact" a compilation cannot always answer for agents of other projects; only the docs, which the owner
+  found not enough; dropping `LoadConversationAsync` instead, which a chat UI needs for the whole history.
 
 ### D39. Kinds are stable names
 
@@ -652,6 +681,50 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   build.
 - **Where:** `Analysis/TypeshiftAnalyzer.cs`, `samples/Typeshift.Samples.Console`.
 
+### D62. Union types in tools and typed runs
+
+- **Status:** approved.
+- **Context:** .NET 11 serializes a C# 15 union as its case, with no discriminator. Three things kept unions from
+  working in tools and typed runs. The web defaults read numbers from strings, so a union of a number and a string
+  could not read a string. Two object cases needed a `[JsonUnion]` classifier. And the exported schema names the type
+  the cases share once, on the union, so Anthropic's client rejected each case as having no type, and a typed run of
+  an object union sent no schema at all.
+- **Decision:**
+  - The tool JSON options carry a union classifier. A JSON token picks its case as if numbers were
+    strict first, then as the web defaults read it, so `"7"` still reads as a number when no case takes a string. An
+    object picks the case whose properties it has, through System.Text.Json's structural classifier. A value that
+    fits no single case fails with a message naming the cases, which the model reads (D53). A union's own
+    `[JsonUnion]` classifier wins, and a union neither pass can tell apart keeps the serializer's classification.
+  - Every schema `ToolJson` builds copies a union's type onto each case that names none, and a nullable parameter
+    widens each case as well (D48). Polymorphic types get the same.
+  - A typed run builds its answer's schema as a tool's parameters are built, XML docs included, and holds anything
+    but an object with properties under `data`, as Microsoft.Extensions.AI holds a number. A contract of its own for
+    `T` reads the answer from under `data`, since a converter in the options loses to an enum's converter and to a
+    polymorphic type's metadata.
+  - A schema node the serializer writes for a type it cannot handle, `"Unsupported .NET type"` with `not: true`,
+    throws a `NotSupportedException` that names the member, since a provider rejects the node far from its cause, as
+    the owner's `Exception` member showed.
+- **Where:** `Generated/UnionCaseClassifier.cs`, `Generated/ToolJson.cs`, `Hosting/AgentHost.cs`.
+- **Alternatives:** a `[JsonUnion(TypeClassifier = ...)]` on every union, code each app writes; strict numbers
+  everywhere, which fails a model that sends `"5"` for a number; leaving the typed run's schema to
+  Microsoft.Extensions.AI, which neither types the cases nor holds an object union under `data`.
+
+### D64. A typed run can stream
+
+- **Status:** owner.
+- **Context:** the owner asked for a strongly typed answer from a streaming run.
+- **Decision:** `RunStreamingAsync<TResult>` asks for the same response format as `RunAsync<TResult>` (D62) and
+  returns a `StreamingRun<TResult>`. It streams the updates as `RunStreamingAsync` does and, once they are read to
+  the end, holds a `ChatResponse<TResult>` in `Response`. It calls the model when it is read and only once, since
+  reading it again would run the agent again. Both typed runs take a `ChatMessage` as well, so the run that answers
+  an approval asks for the format again. The format is the run's, not the agent's: an agent handed the run off to, or
+  answering in a handed-off conversation, answers in it, and a sub-agent answers in its own.
+- **Where:** `Hosting/StreamingRun.cs`, `Hosting/AgentHost.cs`, `Hosting/ResolvedChatOptions.cs`,
+  `Conversations/ConversationChatClient.cs`, `Generated/AgentRuns.cs`, `Emitting/AgentEmitter.cs`.
+- **Alternatives:** partial objects parsed from the JSON as it grows, which needs a parser that reads incomplete JSON
+  and gives up the types System.Text.Json checks; a list of updates the caller collects and a helper that reads the
+  result from them, two calls where one serves.
+
 ## Conversations
 
 ### D46. Tracking, carried and fixed
@@ -742,7 +815,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 ### D59. A call id the conversation holds already is renamed
 
-- **Status:** owner.
+- **Status:** approved.
 - **Context:** some providers, such as local servers with an OpenAI-compatible API, number their tool calls per
   response, so a later response reuses a call id the conversation holds. `FunctionInvokingChatClient` keys approval
   requests by an id made from the call id, and the history keys calls and results by call id (D46), so a reused id made
