@@ -48,8 +48,7 @@ keeps conversations with the other three. The store on this page implements `ITy
 settings and conversations live in different databases, implement each interface in a class of its own and
 [register each](./settings-and-stores.md#registering-a-store).
 
-You implement four of the methods, and `LoadConversationSinceCompactionAsync` has a default you may replace by declaring
-the method in your store. Every id has your build's [id type](./registration.md#the-id-type), which is `Guid` unless
+You implement all five. Every id has your build's [id type](./registration.md#the-id-type), which is `Guid` unless
 `TypeshiftIdType` names another; the samples on this page set it to `int`. Each method takes a `CancellationToken` last.
 
 | Method | Does |
@@ -286,9 +285,9 @@ the summary, with `IsSummary` set to true. Every later run starts from the lates
 the runs need from before it, including the conversation's mode and its standing approvals.
 
 `LoadConversationSinceCompactionAsync` returns that entry and everything after it, oldest first, or every entry when
-the conversation has no summary. Its default calls `LoadConversationAsync` and drops what came before the summary, so
-a long conversation is read whole on every run. To read only what a run needs, copy `entry.IsSummary` into a column of
-its own when you append, and declare the method in your store to start at the last row that has it:
+the conversation has no summary. Every run calls it first, and an agent that compacts makes conversations long, so start
+at the last summary instead of reading the conversation whole: copy `entry.IsSummary` into a column of its own when you
+append, and start the query at the last row that has it:
 
 <!-- snippet: ef-core-conversations -->
 <a id='snippet-ef-core-conversations'></a>

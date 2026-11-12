@@ -543,8 +543,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** approved; split at the owner's request.
 - **Decision:** `ISettingsStore<TId>`: `LoadAsync` and `SaveAsync` of documents as JSON, keyed by id and kind, with a
   version. `IConversationStore<TId>`: `LoadConversationAsync` and `AppendConversationAsync` of
-  `ConversationEntry`s keyed by the conversation id; `LoadConversationSinceCompactionAsync`, which runs call, defaults
-  to the whole load and drops what came before the last summary. `ITypeshiftStore<TId>` is both in one. Each has a
+  `ConversationEntry`s keyed by the conversation id; `LoadConversationSinceCompactionAsync`, which runs call and every
+  store implements (D71). `ITypeshiftStore<TId>` is both in one. Each has a
   `global using` alias. The library serializes the documents (each agent's `Settings`), so a store implements no
   generic method and handles strings and numbers only.
 - **Details:** `WithStore<T>()` registers each interface `T` implements, so settings and conversations may live in
@@ -560,6 +560,20 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   keep; `WithSettingsStore<T>()` and `WithConversationStore<T>()`, two calls where the interfaces already say what a
   store keeps; renaming the conversation methods (`LoadAsync`, `AppendAsync`), which would clash with the settings
   methods in a class that implements both.
+
+### D71. Every conversation store implements the load from the last summary
+
+- **Status:** owner.
+- **Context:** the owner asked that the code, not only the docs, lead a store's author to the load runs call. It had a
+  default on the interface that read the whole conversation, so a store that never knew of it read every entry on
+  every run, however long compaction had let the conversation grow.
+- **Decision:** `LoadConversationSinceCompactionAsync` has no default, so a store that leaves it out fails to build,
+  and the IDE's fix inserts it with the XML docs that say what it returns. `entries.SinceLastSummary()`, an extension
+  on the entries, is the one-line body of a store that can only read whole conversations.
+- **Where:** `Storage/IConversationStore.cs`, `Storage/ConversationEntries.cs`, `Storage/InMemoryTypeshiftStore.cs`.
+- **Alternatives:** the default with an analyzer warning on `WithStore<T>()`, which can be suppressed, and whose "does
+  any agent compact" a compilation cannot always answer for agents of other projects; only the docs, which the owner
+  found not enough; dropping `LoadConversationAsync` instead, which a chat UI needs for the whole history.
 
 ### D39. Kinds are stable names
 

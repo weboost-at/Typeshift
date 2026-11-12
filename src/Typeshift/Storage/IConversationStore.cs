@@ -12,7 +12,7 @@ public interface IConversationStore<TId> where TId : notnull
 {
     /// <summary>
     /// Loads every entry of a conversation, oldest first, summaries included, such as a chat UI shows. Runs start from
-    /// <see cref="LoadConversationSinceCompactionAsync"/>, whose default calls this method.
+    /// <see cref="LoadConversationSinceCompactionAsync"/> instead.
     /// </summary>
     /// <param name="conversation">The conversation's id.</param>
     /// <param name="ct">Cancels the load.</param>
@@ -20,21 +20,15 @@ public interface IConversationStore<TId> where TId : notnull
     Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(TId conversation, CancellationToken ct);
 
     /// <summary>
-    /// Loads what a run reads: the conversation's last summary and the entries after it, or every entry when
-    /// compaction never summarized it. The default loads the whole conversation through
-    /// <see cref="LoadConversationAsync"/> and drops what came before the summary. Implement it in the store when the
-    /// store can start at the last summary, so a long conversation is not read whole on every run.
+    /// Loads what every run reads first: the conversation's last summary and the entries after it, or every entry when
+    /// compaction never summarized it. An agent that compacts writes a summary, and with this load a long conversation
+    /// is not read whole on every run, so start the store's query at the last summary. A store that cannot loads the
+    /// whole conversation and returns <c>entries.SinceLastSummary()</c>.
     /// </summary>
     /// <param name="conversation">The conversation's id.</param>
     /// <param name="ct">Cancels the load.</param>
     /// <returns>The entries, oldest first; none for a conversation never stored.</returns>
-    async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
-        TId conversation,
-        CancellationToken ct)
-    {
-        var entries = await LoadConversationAsync(conversation, ct);
-        return ConversationHistory.SinceSummary(entries);
-    }
+    Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(TId conversation, CancellationToken ct);
 
     /// <summary>
     /// Appends an entry to a conversation, creating it on the first. Runs append as they go, so this is the hot path.

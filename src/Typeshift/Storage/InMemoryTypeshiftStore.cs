@@ -48,6 +48,12 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId> where TId
     }
 
     /// <inheritdoc />
+    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
+        TId conversation,
+        CancellationToken ct) =>
+        (await LoadConversationAsync(conversation, ct)).SinceLastSummary();
+
+    /// <inheritdoc />
     public Task AppendConversationAsync(TId conversation, ConversationEntry entry, CancellationToken ct)
     {
         var entries = _conversations.GetOrAdd(conversation, _ => []);
