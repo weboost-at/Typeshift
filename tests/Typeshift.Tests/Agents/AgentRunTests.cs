@@ -391,6 +391,33 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_Instructions_Set_In_The_Constructor_A_Run_Sends_Them()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<InstructedAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.Instructions.Should().Be(InstructedAgent.Prompt);
+    }
+
+    [Fact]
+    public async Task Given_Instructions_Set_In_The_Constructor_A_Runs_Own_Replace_Them()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var run = new InstructedAgent.Settings { Instructions = Data.Agent.Reason };
+        await Host<InstructedAgent>().RunAsync(Data.Tool.Question, settings: run, ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.Instructions.Should().Be(Data.Agent.Reason);
+    }
+
+    [Fact]
     public async Task Given_No_Model_The_Run_Fails_Saying_How_To_Set_One()
     {
         // Act

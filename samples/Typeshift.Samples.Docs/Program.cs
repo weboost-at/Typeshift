@@ -11,6 +11,8 @@ await Quickstart.RunAsync();
 
 var database = Path.Combine(Path.GetTempPath(), $"typeshift-samples-{Guid.NewGuid():N}.db");
 var client = new CannedChatClient();
+
+await NoContainer.RunAsync(client);
 var services = Registration.Register(new ServiceCollection(), client, client, database);
 
 await using (var provider = services.BuildServiceProvider(new ServiceProviderOptions

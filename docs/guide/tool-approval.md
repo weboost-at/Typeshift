@@ -9,7 +9,7 @@ Some tools must not run unasked, such as closing a ticket. When the model calls 
 to your app, which approves or rejects it in the conversation's next run. Approval rules, standing approvals and the
 run's mode decide which calls need asking at all.
 
-## The round trip
+## How approval works
 
 ```mermaid
 sequenceDiagram
@@ -29,8 +29,8 @@ sequenceDiagram
   Host-->>App: The response
 ```
 
-Because no [approval rule](#approval-rules) or [standing approval](#approving-for-the-conversation) decides the call
-to `close_ticket`, the run stores the request in the conversation and ends. Your app sends its answer in the
+Here no [approval rule](#approval-rules) or [standing approval](#approving-for-the-conversation) decides the call to
+`close_ticket`, so the run stores the request in the conversation and ends. Your app sends its answer in the
 conversation's next run, and the stored call runs once that answer approves it. Requests and answers are
 Microsoft.Extensions.AI's `ToolApprovalRequestContent` and `ToolApprovalResponseContent`.
 
@@ -51,7 +51,7 @@ AddTool(CloseTicketAsync)
 [context provider](./middleware.md#context-providers) adds needs approval when you wrap it in
 `ApprovalRequiredAIFunction`.
 
-## A run that asks
+## When a call needs approval
 
 When the model calls such a tool, the run ends without making the call. `ApprovalRequests`, which Typeshift adds to
 `ChatResponse`, lists each waiting call, with the tool's name and the arguments the model sent:
@@ -71,8 +71,8 @@ foreach (var request in answer.ApprovalRequests)
 If the model called other tools in the same response, those calls wait too, even when they need no approval, and run
 once your app has answered.
 
-A run that asks needs a [conversation](./conversations.md) to store the request in. A run without a conversation id
-throws, naming the tool, so run with one, approve the calls with a rule, or use [auto mode](#auto-mode).
+Asking needs a [conversation](./conversations.md) to store the request in. A run without a conversation id throws,
+naming the tool. Run with one, approve the calls with a rule, or use [auto mode](#auto-mode).
 
 ## Approving or rejecting
 
@@ -91,13 +91,18 @@ var resumed = await support.RunAsync(approval, conversationId: conversationId);
 <!-- endSnippet -->
 
 Approved calls run. A rejected call reaches the model as rejected, and the run goes on. To tell the model why, pass a
-reason with the rejection: `CreateResponse(approved: false, reason)`. A conversation does not remember a settings
-id, so the run that answers passes the same settings id as the run that asked, or it runs on the agent's code alone.
+reason with the rejection: `CreateResponse(approved: false, reason)`.
 
+Send the settings id again with the answers, because the
+[conversation doesn't keep it](./conversations.md#tracking-a-conversation). Without it, the approved call runs on the
+agent's code instead of your customer's stored settings.
+
+::: details Approvals and the run's limit of tool rounds
 `WithMaxToolIterations` limits how many rounds of tool calls one run makes. The calls you approve run in the next run,
-because the run that asked for approval has ended. The next run starts its own count, so those calls run even when the
-run that asked had used up its rounds. Calls that a rule, a standing approval or auto mode approves go on in the same
-run and count toward its limit. Such a run may make one round more than the limit.
+which starts its own count, so they run even when the run that asked had used up its rounds. Calls that a rule, a
+standing approval or auto mode approves go on in the same run and count toward its limit, and such a run may make one
+round more than the limit.
+:::
 
 Typeshift matches each answer to the request the conversation stored and runs the call stored with it. An answer can
 carry a call of its own, but the call that runs is always the one your app saw, with the same arguments. When a run
@@ -173,7 +178,7 @@ abstains on the rest. Register it with `WithApprovalRule<T>()`, and Typeshift re
 services.AddTypeshift()
     .WithApprovalRule<ShellGuard>();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L63-L66' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L62-L65' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Every rule sees every call that requires approval, with the arguments the model sent, so it decides on exactly the

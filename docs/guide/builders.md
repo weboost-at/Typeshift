@@ -75,8 +75,9 @@ marked `[Obsolete]` out without a `NotConfigurable` call.
 | `UseMcpServer(string server)` | Offers the tools of an MCP server that your app's `IMcpToolProvider` connects. `.RequiresApproval()` makes every call to its tools wait for approval, and `.ReadOnly()` lets plan mode offer them. |
 | `UseContext<TProvider>()` | Adds what an `IContextProvider` returns to every run. The run's services resolve the provider, or create it when none is registered. |
 
-The agent's instructions come from `GetInstructions()`, a virtual method you override. Typeshift calls it each time it
-resolves a run's options, so it runs for every run.
+The agent's instructions come from `WithInstructions(...)` in its constructor, or from `GetInstructions()`, a virtual
+method you override when your code builds them. Typeshift calls it each time it resolves a run's options, so it runs
+for every run.
 
 ## ChatOptionsBuilder
 
@@ -88,7 +89,7 @@ run change an option, even one the code never sets, and makes it a member of the
 | Call | Sets | May be configurable |
 |---|---|---|
 | `WithModel(TProviderId provider, string model)` | `ModelId`, and the [provider](./models.md) that serves it | Yes, as `Provider` and `Model` |
-| `GetInstructions()`, overridden in the agent | `Instructions` | Yes |
+| `WithInstructions(...)` in the agent, or `GetInstructions()` overridden | `Instructions` | Yes |
 | `WithTemperature(float temperature)` | `Temperature` | Yes |
 | `WithMaxOutputTokens(int tokens)` | `MaxOutputTokens` | Yes |
 | `WithTopP(float topP)` | `TopP` | Yes |
