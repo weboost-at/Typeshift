@@ -299,7 +299,7 @@ call with a rule, or run in `Auto` mode.
 answering agent's name as `AuthorName`.
 
 `RunAsync<TResult>` asks the model for JSON of `TResult`'s schema and returns it typed in `Result`. Under
-[Native AOT](./production.md#native-aot), `TResult` needs JSON metadata.
+[Native AOT](./native-aot.md), `TResult` needs JSON metadata.
 
 ### `RunStreamingAsync`
 
