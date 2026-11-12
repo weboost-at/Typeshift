@@ -38,6 +38,9 @@ All notable changes to this project are documented here. The format follows
 - Each agent has settings of its own, which every run applies under no settings id: `ConfigureAsync(configure)`,
   `LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)`, kept by an `IAgentSettingsStore`.
   `InMemoryTypeshiftStore` implements it, and a settings id's settings apply over the agent's own.
+- `WithFileStore()` keeps each agent's own settings in a JSON file, for an app without a database: in the `settings`
+  folder of a `typeshift` folder beside your app's assemblies, unless `store => store.Folder = folder` names another.
+  `WithStore(store)` registers a store you created.
 
 ### Changed
 

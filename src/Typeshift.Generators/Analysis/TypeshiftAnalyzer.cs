@@ -300,11 +300,17 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
     // D38, D66: a store keeps settings, conversations or both, each by the build's id type, or agents' own settings
     private static bool IsStoreOf(ITypeSymbol store, ITypeSymbol idType)
     {
-        var contracts = store.AllInterfaces
+        // A store your code holds as one of the interfaces is that interface too
+        IEnumerable<ITypeSymbol> implemented = store.TypeKind == TypeKind.Interface
+            ? [store, .. store.AllInterfaces]
+            : store.AllInterfaces;
+
+        var contracts = implemented
             .Where(contract => contract.Is(KnownTypes.SettingsStore) || contract.Is(KnownTypes.ConversationStore))
+            .OfType<INamedTypeSymbol>()
             .ToList();
 
-        var keepsAgentSettings = store.AllInterfaces.Any(contract => contract.Is(KnownTypes.AgentSettingsStore));
+        var keepsAgentSettings = implemented.Any(contract => contract.Is(KnownTypes.AgentSettingsStore));
 
         return (contracts.Count > 0 || keepsAgentSettings)
             && contracts.All(contract => SymbolEqualityComparer.Default.Equals(contract.TypeArguments[0], idType));

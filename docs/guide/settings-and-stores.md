@@ -122,9 +122,10 @@ shows how to build one around that.
 
 Without a store, agents run from their code alone. A run that passes neither a settings id nor a conversation id works,
 tools included. A run applies the agents' own settings only when a registered store implements `IAgentSettingsStore`, as
-`InMemoryTypeshiftStore` does. For each store interface, the last `WithStore<T>()` call wins, so a second store that
-also implements it takes its place. Every call that loads or saves, such as a run with either id or `ConfigureAsync`,
-throws an `InvalidOperationException` that names `WithStore<T>()` and the interface no registered store implements.
+`InMemoryTypeshiftStore` does. For each store interface, the last call that registers a store wins, so a second store
+that also implements it takes its place. Every call that loads or saves, such as a run with either id or
+`ConfigureAsync`, throws an `InvalidOperationException` that names `WithStore<T>()` and the interface no registered
+store implements.
 
 ## Agent settings
 
@@ -143,6 +144,35 @@ var everyRun = await research.RunAsync("Graz");
 
 `LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)` load and save them as the members below do for
 a settings id, and `ConfigureAsync(configure)` retries the same way.
+
+`InMemoryTypeshiftStore` forgets them when the app stops. To keep them without a database, for example in a local
+tool or a single-agent service, register the file store with `WithFileStore`:
+
+<!-- snippet: file-agent-settings -->
+<a id='snippet-file-agent-settings'></a>
+```cs
+var services = new ServiceCollection();
+
+services.AddTypeshift()
+    .WithFileStore(store => store.Folder = folder)
+    .WithChatClientProvider<KeyedChatClientProvider>();
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/FileSettings.cs#L30-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-file-agent-settings' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+The file store keeps agents' settings in its `settings` folder, a file named after each agent's kind:
+`settings/ResearchAgent.json` here. You can read, back up and edit the file by hand. Several processes may share the
+folder, since a save takes a lock file of its kind first.
+
+- Without a `Folder`, the store lies in a `typeshift` folder under `AppContext.BaseDirectory`, beside your app's
+  assemblies, so a service finds it whatever its current directory is. Set one when your app may not write there, as
+  is usual for an install folder under Program Files.
+- A relative `Folder` resolves against the current directory when you register the store, which for a service may be
+  the system's folder.
+- Characters other than ASCII letters, digits, `_` and `-` are escaped in the file name, so any kind has a file of its
+  own.
+- On a file system that ignores case, as on Windows and macOS, two kinds that differ only in case share a file. The
+  file names its kind, so a load of the other kind throws; give one of the agents a `WithStorageKind` of its own.
 
 A settings id stands for whatever you decide: a customer, a team, a user, or a settings profile of your own. Under one
 settings id, each agent has its own document, because each agent's `Settings` is its own kind, so a store keys

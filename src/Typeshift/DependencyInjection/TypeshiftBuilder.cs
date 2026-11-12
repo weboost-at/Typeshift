@@ -3,18 +3,26 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift;
 
+// Registers a store of the type, or the instance your app created, as each store interface it implements (D38)
+internal delegate void StoreRegistration(
+    IServiceCollection services,
+    Type type,
+    IReadOnlyList<Type> idTypes,
+    object? instance,
+    Func<IServiceProvider, object> store);
+
 /// <summary>
 /// The registration chain <c>AddTypeshift()</c> starts.
 /// </summary>
 public sealed class TypeshiftBuilder
 {
     private readonly IServiceCollection _services;
-    private readonly Action<IServiceCollection, Type, IReadOnlyList<Type>, Func<IServiceProvider, object>> _addStore;
+    private readonly StoreRegistration _addStore;
     private readonly Action<IServiceCollection, Func<IServiceProvider, object>> _addChatClientProvider;
 
     internal TypeshiftBuilder(
         IServiceCollection services,
-        Action<IServiceCollection, Type, IReadOnlyList<Type>, Func<IServiceProvider, object>> addStore,
+        StoreRegistration addStore,
         Action<IServiceCollection, Func<IServiceProvider, object>> addChatClientProvider)
     {
         _services = services;
@@ -40,7 +48,39 @@ public sealed class TypeshiftBuilder
     {
         _services.AddSingleton<TStore>();
         var store = typeof(TStore);
-        _addStore(_services, store, IdTypes(store), provider => provider.GetRequiredService<TStore>());
+        _addStore(_services, store, IdTypes(store), null, provider => provider.GetRequiredService<TStore>());
+        return this;
+    }
+
+    /// <summary>
+    /// Registers a store you created yourself, as each store interface the instance implements. Your app owns the
+    /// instance, so the container never disposes it.
+    /// </summary>
+    /// <param name="store">The store, a singleton.</param>
+    /// <typeparam name="TStore">
+    /// The store's type as your code declares it: an <c>IAgentSettingsStore</c>, or an <c>ISettingsStore</c>, an
+    /// <c>IConversationStore</c> or both, an <c>ITypeshiftStore</c>, of the build's id type (TSH028).
+    /// </typeparam>
+    /// <returns>The same chain.</returns>
+    public TypeshiftBuilder WithStore<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] TStore>(TStore store)
+        where TStore : class
+    {
+        ArgumentNullException.ThrowIfNull(store);
+        if (!typeof(TStore).IsInterface) _services.AddSingleton(store);
+        _addStore(_services, typeof(TStore), IdTypes(typeof(TStore)), store, _ => store);
+        return this;
+    }
+
+    // A store the container builds, as WithStore<TStore>() does, from a factory: WithFileStore's over its folder
+    internal TypeshiftBuilder WithStore<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] TStore>(
+        Func<IServiceProvider, TStore> create)
+        where TStore : class
+    {
+        _services.AddSingleton(create);
+        var store = typeof(TStore);
+        _addStore(_services, store, IdTypes(store), null, provider => provider.GetRequiredService<TStore>());
         return this;
     }
 

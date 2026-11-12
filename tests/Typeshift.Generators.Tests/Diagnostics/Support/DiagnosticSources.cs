@@ -1293,6 +1293,18 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string AgentSettingsStoreHeldAsItsInterface =
+        """
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services, IAgentSettingsStore store) =>
+                services.AddTypeshift().WithStore(store);
+        }
+        """;
+
     public const string SettingsStoreOfTheBuildsIdType =
         """
         using System;
