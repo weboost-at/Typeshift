@@ -6,9 +6,9 @@ description: Get an agent's host from dependency injection and run the agent fro
 # Using an agent
 
 Your app uses an agent through its host, `AgentHost<TAgent>`, which `services.AddTypeshift()` registers for every
-agent ([Registration](./registration.md)). You get the host like any other service, from the scope of the request or
-job that runs the agent, so the agent's tools see that scope's services. [Running agents](./running-agents.md) covers
-what a run takes and returns.
+agent ([Registration](./registration.md)). A request gets the host like any other service, from its scope, and a
+background job takes one from the runtime, which gives the host a scope of its own. Either way, the agent's tools see
+the services of that request or job. [Running agents](./running-agents.md) covers what a run takes and returns.
 
 ## Inject the host in a web app
 
@@ -65,12 +65,12 @@ chat client provider. Without it, every run shares one instance of each scoped s
 ## Run from a background job
 
 A `BackgroundService` is a singleton, so a host it took in its constructor would come from the root provider. Take
-`IServiceScopeFactory` instead, and create a scope for each job:
+the `TypeshiftRuntime` in its place, which `AddTypeshift()` registers, and get a host from it for each job:
 
 <!-- snippet: background-host -->
 <a id='snippet-background-host'></a>
 ```cs
-internal sealed class TicketDigest(IServiceScopeFactory scopes, TimeProvider time) : BackgroundService
+internal sealed class TicketDigest(TypeshiftRuntime runtime, TimeProvider time) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -84,19 +84,20 @@ internal sealed class TicketDigest(IServiceScopeFactory scopes, TimeProvider tim
 
     public async Task<string> DigestAsync(CancellationToken ct)
     {
-        // A scope for each job, so the run gets scoped services of its own, as a request would
-        await using var scope = scopes.CreateAsyncScope();
-        var support = scope.ServiceProvider.GetRequiredService<AgentHost<SupportAgent>>();
+        // A host for each job, so the run gets scoped services of its own, as a request would
+        await using var support = runtime.Agent<SupportAgent>();
 
         var answer = await support.RunAsync("Summarize the tickets opened today.", ct: ct);
         return answer.Text;
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/TicketDigest.cs#L7-L30' title='Snippet source file'>snippet source</a> | <a href='#snippet-background-host' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/TicketDigest.cs#L6-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-background-host' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Register the job with `services.AddHostedService<TicketDigest>()`, and the clock its timer waits on with
+`runtime.Agent<SupportAgent>()` gives the job's host a scope of its own, as a request has, and `await using`
+disposes that scope when the job is done ([The runtime](./registration.md#the-runtime)). Register the job with
+`services.AddHostedService<TicketDigest>()`, and the clock its timer waits on with
 `services.AddSingleton(TimeProvider.System)`. A test can register a fake `TimeProvider` instead.
 
 ## Related
@@ -104,6 +105,6 @@ Register the job with `services.AddHostedService<TicketDigest>()`, and the clock
 - [Getting started](./getting-started.md): a first toolset, agent and run.
 - [Running agents](./running-agents.md): settings ids, run settings, typed output, streaming and the raw path.
 - [Registration](./registration.md#what-addtypeshift-registers): every service `AddTypeshift()` registers and its
-  lifetime.
+  lifetime, and [the runtime](./registration.md#the-runtime).
 - [Agent host](./generated-members.md#the-agent-host): every member of the host and its signature.
 - [Serving a chat endpoint](./chat-endpoint.md): the endpoints a chat UI talks to.

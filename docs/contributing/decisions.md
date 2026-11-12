@@ -314,9 +314,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Context:** v0 gave each tool call a fresh scope of the root container, so request-scoped services (the current
   customer) never reached tools, context or the chat client provider (audit finding 2).
-- **Decision:** `AgentHost<TAgent>` is transient and keeps the provider it was resolved from. Tools, context
-  providers, middleware, the MCP tool provider and the chat client provider resolve from it. Agents and toolsets stay
-  singletons, the store too.
+- **Decision:** `AgentHost<TAgent>` is transient and keeps the provider it was resolved from, or the scope
+  `TypeshiftRuntime.Agent<TAgent>()` created for it (D76). Tools, context providers, middleware, the MCP tool provider
+  and the chat client provider resolve from it. Agents and toolsets stay singletons, the store too.
 - **Alternatives:** a run-context tool parameter carrying the typed id, which built-in toolsets compiled before the
   host cannot type; per-call scopes, which lose the request.
 - **Where:** `AgentHost.cs`.
@@ -680,30 +680,50 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** carried (v0 D26). Without `WithStore<T>()`, runs without a settings or conversation id work; everything
   that loads or saves throws, naming `WithStore<T>()` and the store interface it needs (D38).
 
-### D75. An app without a container creates a TypeshiftApp
+### D75. An app without a container creates a TypeshiftRuntime
 
 - **Status:** owner.
-- **Context:** the owner asked for less ceremony, "Wolverine-style", and chose `TypeshiftApp.Create` over a factory on
-  each agent. A first run took a `ServiceCollection`, `AddTypeshift()`, a provider, a scope and a host from it.
-- **Decision:** `TypeshiftApp.Create(client, configure)` returns an app that owns a container and one scope, and
-  `app.Agent<TAgent>()` returns a host from that scope. With one scope for the app's lifetime, its scoped services
-  (the chat client provider, approval rules, middleware, the MCP tool provider and what tools resolve) act as
-  singletons of the app, shared by concurrent runs; an app that needs a scope per request uses `AddTypeshift()`. The
-  generator intercepts `Create` as it does `AddTypeshift()` (D1): the interceptor builds a `ServiceCollection`,
-  registers the core services and the modules with its own `AddTypeshift`, and `ModuleRegistration.CreateApp`
-  registers the client as an instance for every agent (D63), runs `configure` on the chain and builds the provider
-  with scope validation. The container never disposes an instance, so the client outlives the app. Disposing the app
-  disposes the provider even when disposing the scope throws. The generator reads only a `Create` whose receiver
-  names `TypeshiftApp` and skips a call bound at run time, such as one with a `dynamic` argument; a call it did not
+- **Context:** the owner asked for less ceremony, "Wolverine-style", and chose `TypeshiftRuntime.Create`, first named
+  `TypeshiftApp`, over a factory on each agent. A first run took a `ServiceCollection`, `AddTypeshift()`, a provider,
+  a scope and a host from it.
+- **Decision:** `TypeshiftRuntime.Create(client, configure)` builds a container and returns its runtime, which owns
+  it, and `runtime.Agent<TAgent>()` returns a host in a scope of its own (D76). The generator intercepts `Create` as
+  it does `AddTypeshift()` (D1): the interceptor builds a `ServiceCollection`, registers the core services and the
+  modules with its own `AddTypeshift`, and `ModuleRegistration.CreateRuntime` registers the client as an instance for
+  every agent (D63), runs `configure` on the chain and builds the provider with scope validation. The container never
+  disposes an instance, so the client outlives the runtime. The generator reads only a `Create` whose receiver names
+  `TypeshiftRuntime` and skips a call bound at run time, such as one with a `dynamic` argument; a call it did not
   intercept throws, saying how to call it. The generator's pass binds the call to its sole candidate when the
   `configure` lambda names an alias it has not written yet. The library references
   `Microsoft.Extensions.DependencyInjection`, the container, which it did not before.
-- **Where:** `Hosting/TypeshiftApp.cs`, `Generated/ModuleRegistration.cs`, `Parsing/InterceptParser.cs`,
+- **Where:** `Hosting/TypeshiftRuntime.cs`, `Generated/ModuleRegistration.cs`, `Parsing/InterceptParser.cs`,
   `Emitting/InterceptorEmitter.cs`.
 - **Alternatives:** a generated `Create` on each agent, which the owner turned down, and whose agents would not share
   a store or a tracker; a library `Create` that registers nothing, since only the generator knows the project's
   modules; a container of the library's own, which would serve neither scoped services nor the app's;
-  `AddChatClient(client)`, whose factory makes the container own the client and dispose it with the app.
+  `AddChatClient(client)`, whose factory makes the container own the client and dispose it with the runtime.
+
+### D76. The runtime is the root, and its hosts are units of work
+
+- **Status:** owner.
+- **Context:** D75's first design gave the app one scope for its lifetime, so every run shared its scoped services,
+  and an app with a container still built a scope by hand for each background job. The owner asked for one root in
+  both kinds of app, after Wolverine's `WolverineRuntime`, which creates short-lived `IMessageBus` instances, and
+  renamed `TypeshiftApp` to `TypeshiftRuntime`.
+- **Decision:** `AddCoreServices` registers `TypeshiftRuntime` as a singleton over the root provider, so a singleton
+  of the app, such as a background service, injects it. `Create` resolves that singleton from the container it builds
+  and hands it the container. Disposing that runtime disposes the container, which disposes the runtime again, and the
+  second call finds nothing left to dispose. A runtime your app's container created owns nothing, and disposing it
+  does nothing. `runtime.Agent<TAgent>()` creates an async scope and a host that owns it: one unit of work, whose runs
+  use that scope's services as D25 has every host use its scope's. `AgentHost<TAgent>` is `IAsyncDisposable` and
+  `IDisposable`. Disposing a host the runtime created disposes its scope; disposing one the container resolved, such
+  as one injected into a request or a sub-agent's or a handoff's through `use.Host(services)`, does nothing, since the
+  container owns that scope and keeps the host until the scope ends. `runtime.Services` is the root provider, for
+  singletons such as the `ConversationTracker`. A request still injects `AgentHost<TAgent>` from its own scope.
+- **Where:** `Hosting/TypeshiftRuntime.cs`, `Hosting/AgentHost.cs`, `Generated/ModuleRegistration.cs`.
+- **Alternatives:** a separate `AgentScope` object that holds a scope and hands out hosts, which the owner turned
+  down; one scope for the runtime's lifetime, D75's first design, whose scoped services, such as the chat client
+  provider and what tools resolve, every run shared, concurrent ones included.
 
 ### D44. Settings records serialize themselves
 
