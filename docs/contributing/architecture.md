@@ -122,8 +122,9 @@ is the first and the last in one. A host without a settings id reaches `IAgentSe
 only when one is registered. `WithStore<T>()` registers each of them the store implements, of any id type, so a host
 may keep settings and conversations in two stores, under ids of two types. A run carries each id as a `StoreId<TId>`,
 from `WithSettingsId` and `WithConversationId`, and the id reaches the store of its type through a generic call
-(D72). The raw path's `ChatOptions.ConversationId` becomes a `StoreId<string>`, and a conversation that
-`PersistAllConversations` starts a `StoreId<Guid>` unless `NewConversationIds` gives another (D73).
+(D72). The raw path's `ChatOptions.ConversationId` becomes a `StoreId<string>`. A conversation that
+`PersistAllConversations` starts is a `StoreId<Guid>` unless `NewConversationIds` gives another, and on the raw path a
+`StoreId<string>`, so its response's id names it again (D73).
 `StoreAccess` serializes and reads the documents, so a store handles strings and numbers only. `VerifyAsync` runs the rules a store must keep against it, from the store's own tests (D58).
 `WithFileStore` registers the internal `FileAgentSettingsStore`, which keeps agents' own settings in the `settings`
 folder of the file store's folder, a file per kind (D67). Until `WithStore<T>()` registers a store, `StoreAccess` keeps

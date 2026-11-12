@@ -49,9 +49,10 @@ tool call that needs your approval makes it throw, it offers no handoffs, and no
 To keep the runs of a host without a conversation id as well, turn on `PersistAllConversations`:
 `AddTypeshift().WithOptions(options => options.PersistAllConversations = true)`. Such a run then starts a
 conversation under a new id, and its response's `ConversationId` names it, so the next run continues it with
-`support.WithConversationId(Guid.Parse(response.ConversationId!))`. A handoff continues that conversation. On the
-[raw path](./running-agents.md#the-raw-path), continue it the same way, with options resolved on that host: the text
-in `ChatOptions.ConversationId` names a conversation under a `string` id, which is a different conversation.
+`support.WithConversationId(Guid.Parse(response.ConversationId!))`. A handoff continues that conversation. A call on
+the [raw path](./running-agents.md#the-raw-path) names its conversation in `ChatOptions.ConversationId`, a string, so
+the conversation it starts is under a `string` id, and the next call continues it with
+`options.ConversationId = response.ConversationId`.
 
 Some runs start no conversation, even with the option on:
 
@@ -60,12 +61,13 @@ Some runs start no conversation, even with the option on:
 - A raw-path call whose options did not come from `ResolveOptionsAsync`, such as `ChatOptions` your code created, or
   a call with no options at all ([the raw path](./running-agents.md#the-raw-path)).
 
-New ids are `Guid`s of version 7, which sort by the time they were made, so they go to your
-`IConversationStore<Guid>`. For a conversation store of another id type, give them with
-`options.NewConversationIds(() => ...)`. Without it, an app whose stores keep no conversations under `Guid` ids throws
-an `InvalidOperationException` on the first run that starts a conversation, naming `NewConversationIds`. Runs that
-start together call the function at the same time, so make it thread-safe, and have it return an id no conversation
-has on every call.
+New ids are `Guid`s of version 7, which sort by the time they were made. A run of the host's members keeps its new
+conversation in your `IConversationStore<Guid>`, and a raw-path call keeps it under the `Guid`'s text in your
+`IConversationStore<string>`. For a conversation store of another id type, give the ids with
+`options.NewConversationIds(() => ...)`; the raw path takes them when they are strings. Without a store the new
+conversation fits, a run that starts one throws an `InvalidOperationException` that names `NewConversationIds`. Runs
+that start together call the function at the same time, so make it thread-safe, and have it return an id no
+conversation has on every call.
 
 ::: danger Check the caller before you use a conversation id
 Typeshift resumes whichever conversation it is given, so deciding who may see one is your app's job. Check the caller

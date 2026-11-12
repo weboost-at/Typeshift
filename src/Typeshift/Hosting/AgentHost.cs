@@ -378,6 +378,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     {
         var options = (ResolvedChatOptions)await ResolveOptionsCoreAsync(settingsId, settings, ct);
         options.Conversation = conversation;
+        options.HostRun = true;
 
         if (caller is not null)
         {

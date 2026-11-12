@@ -46,7 +46,9 @@ All notable changes to this project are documented here. The format follows
   takes stores of any id type, and TSH028 reports only a type that is no store.
 - `AddTypeshift().WithOptions(options => options.PersistAllConversations = true)` keeps the runs that pass no
   conversation id too: each run with input starts a conversation under a new id, a `Guid` of version 7, or under an id
-  of `options.NewConversationIds(...)` for a conversation store of another id type.
+  of `options.NewConversationIds(...)` for a conversation store of another id type. A raw-path call's new id is a
+  string, the `Guid`'s text unless `NewConversationIds` makes strings, so the response's `ConversationId` continues it
+  in `ChatOptions.ConversationId`.
 - `WithConversationTracker<TId>()` registers the `ConversationTracker<TId>` of one id type as a singleton of its own,
   which an app published with Native AOT needs for a value type such as `Guid`.
 

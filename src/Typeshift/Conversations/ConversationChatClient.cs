@@ -78,7 +78,8 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     }
 
     // D73: a run of the host's own, with input and no conversation, starts one when every conversation is kept; a
-    // sub-agent's run belongs to its caller's, and a run without input resumes an interrupted run (D50)
+    // sub-agent's run belongs to its caller's, and a run without input resumes an interrupted run (D50). On the raw
+    // path the id is a string, so the response's ConversationId names the same conversation when the app passes it back
     private ChatOptions? WithNewConversation(IEnumerable<ChatMessage> messages, ChatOptions? options)
     {
         if (options is not ResolvedChatOptions { Conversation: null, ConversationId: null, Caller: null } resolved
@@ -87,7 +88,10 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             return options;
 
         var started = (ResolvedChatOptions)resolved.Clone();
-        started.Conversation = typeshift.NewConversationId(Time);
+        started.Conversation = resolved.HostRun
+            ? typeshift.NewConversationId(Time)
+            : typeshift.NewRawConversationId(Time);
+
         return started;
     }
 

@@ -25,6 +25,10 @@ internal sealed class ResolvedChatOptions : ChatOptions
 
     public StoreId? Conversation { get; set; }
 
+    // D73: a run of the host's members, which the app continues with WithConversationId; the raw path names its
+    // conversations in ChatOptions.ConversationId instead
+    public bool HostRun { get; set; }
+
     public AgentRun? AgentRun { get; set; }
 
     public ConversationRun? ConversationRun { get; set; }
@@ -53,6 +57,7 @@ internal sealed class ResolvedChatOptions : ChatOptions
             RunSetsMode = RunSetsMode,
             SettingsId = SettingsId,
             Conversation = Conversation,
+            HostRun = HostRun,
             AgentRun = AgentRun,
             ConversationRun = ConversationRun,
             Caller = Caller,

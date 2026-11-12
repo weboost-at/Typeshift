@@ -846,17 +846,24 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   carry no host's run. New ids come from `NewConversationIds(create)`, typed like any id (D72), which concurrent runs
   call at once, so it must be thread-safe and never repeat an id. Without it, a new id is a `Guid` of version 7 from
   the injected clock, so it needs an `IConversationStore<Guid>`, or no store at all (D69); an app whose stores keep
-  none gets the `InvalidOperationException` of D43, which names `NewConversationIds` too. A sub-agent's run belongs to its caller's conversation
+  none gets the `InvalidOperationException` of D43, which names `NewConversationIds` too. The raw path names its
+  conversation in `ChatOptions.ConversationId`, a string (D72), so a conversation a raw call starts is under a string,
+  the id of `NewConversationIds` when it makes strings and the `Guid`'s text otherwise, and the response's id names it
+  again. The options of a run of the host's members say so (`ResolvedChatOptions.HostRun`), and only those get the
+  typed id, which the app continues with `WithConversationId`. A sub-agent's run belongs to its caller's conversation
   and starts none, and a handoff continues the caller's. Every run with a conversation names it in
   `ChatResponse.ConversationId`, and each streaming update in a copy, since the tool loop still holds the update and
   reads an update that names a conversation as one the service keeps, which would leave the history out of its next
   call.
 - **Where:** `DependencyInjection/TypeshiftOptions.cs`, `DependencyInjection/TypeshiftBuilder.cs`,
-  `Conversations/ConversationChatClient.cs`, `Storage/StoreAccess.cs`.
+  `Conversations/ConversationChatClient.cs`, `Hosting/ResolvedChatOptions.cs`, `Hosting/AgentHost.cs`,
+  `Storage/StoreAccess.cs`.
 - **Alternatives:** `WithStoredConversations` or `TrackAll`, names the owner turned down for one under a general
   prefix; `Guid.NewGuid()`, which does not sort by time; ids of the build's id type, a `Guid` or its text for `string`,
   which went with the build's id type (D72); the id type of the registered conversation store, which an app with
-  stores of several id types cannot pick; reading an id type by reflection, which Native AOT warns about; ids from
+  stores of several id types cannot pick; a `Guid` on the raw path too, whose text in `ChatOptions.ConversationId`
+  then named another conversation, under a string id, and lost the history; a string for every new id, which would
+  move the conversations of typed runs out of an app's `IConversationStore<Guid>`; reading an id type by reflection, which Native AOT warns about; ids from
   the store, which would add a method every store must implement; naming the new conversation only in a header
   or a property bag, which a typed run's response would hide.
 
