@@ -463,11 +463,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   the calling run as a message before a later model call, and the run does not end while sub-agents work. A
   sub-agent cannot ask the host: in the default mode its calls that need approval and that nothing approves are
   rejected (TSH024 warns). Circles are TSH026.
-- **As built:** the sub-agent's tool is a runtime `AIFunction` that resolves the agent's `AgentHost<T>` through a
-  factory `UseAgent<T>()` captured, so no generated code is needed; it finds its caller's run through
+- **As built:** the sub-agent's tool is a runtime `AIFunction` that builds the agent's `AgentHost<T>` over the
+  caller's services through a factory `UseAgent<T>()` captured (D76), so no generated code is needed; it finds its caller's run through
   `FunctionInvokingChatClient.CurrentContext`. Background answers join the run through the steering queue, so
   every run has a `ConversationRun`, which stores only with a conversation; the run's end cancels the sub-agents
-  still working, and the next run tells the model which ones it lost, after a crash, a cancellation or a failure,
+  still working and awaits them, so none outlives its run or the scope of a host disposed after it (D76), and the
+  next run tells the model which ones it lost, after a crash, a cancellation or a failure,
   including the ones a summary left working. TSH023 and TSH024 check the agents a compilation uses, a reference's
   through its module stamp, which carries the agent's name, whether it has a description and the tools it offers that
   require approval; tool stamps carry `RequiresApproval` for that list. TSH026 checks the compilation's own agents,
@@ -717,10 +718,14 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   does nothing. `runtime.Agent<TAgent>()` creates an async scope and a host that owns it: one unit of work, whose runs
   use that scope's services as D25 has every host use its scope's. `AgentHost<TAgent>` is `IAsyncDisposable` and
   `IDisposable`. Disposing a host the runtime created disposes its scope; disposing one the container resolved, such
-  as one injected into a request or a sub-agent's or a handoff's through `use.Host(services)`, does nothing, since the
-  container owns that scope and keeps the host until the scope ends. `runtime.Services` is the root provider, for
-  singletons such as the `ConversationTracker`. A request still injects `AgentHost<TAgent>` from its own scope.
-- **Where:** `Hosting/TypeshiftRuntime.cs`, `Hosting/AgentHost.cs`, `Generated/ModuleRegistration.cs`.
+  as one injected into a request, does nothing, since the container owns that scope. A scope keeps every disposable
+  the container builds until it ends, so the library builds the hosts of sub-agents and handoffs itself
+  (`AgentHost<TAgent>.In`) rather than resolving them, or a long-lived host would collect one for each run.
+  `runtime.Services` is the root provider, for singletons such as the `ConversationTracker`. A request still injects
+  `AgentHost<TAgent>` from its own scope. Your app lets a host's runs and streams finish before it disposes the host,
+  and a run that ends awaits the background sub-agents it stopped (D33), so none works on in a disposed scope.
+- **Where:** `Hosting/TypeshiftRuntime.cs`, `Hosting/AgentHost.cs`, `Agents/Agent.cs`,
+  `Generated/ModuleRegistration.cs`.
 - **Alternatives:** a separate `AgentScope` object that holds a scope and hands out hosts, which the owner turned
   down; one scope for the runtime's lifetime, D75's first design, whose scoped services, such as the chat client
   provider and what tools resolve, every run shared, concurrent ones included.

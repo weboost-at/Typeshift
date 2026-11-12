@@ -264,8 +264,9 @@ for every agent.
 
 `ValueTask DisposeAsync()` and `void Dispose()` dispose the scope of a host that `TypeshiftRuntime.Agent<TAgent>()`
 created, and with it the scoped services its runs resolved. A host your container resolved, such as one injected into
-a request, owns nothing, so disposing it does nothing. `Dispose` throws an `InvalidOperationException` when a scoped
-service implements only `IAsyncDisposable`, so prefer `await using`.
+a request, owns nothing, so disposing it does nothing. Dispose a host once its runs and streams are done, since they
+use its scope. `Dispose` throws an `InvalidOperationException` when a scoped service implements only
+`IAsyncDisposable`, so prefer `await using`.
 
 ### Typed members
 

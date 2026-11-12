@@ -59,7 +59,8 @@ root's services. With
 [scope validation](https://learn.microsoft.com/dotnet/core/extensions/dependency-injection#scope-validation)
 on, as in ASP.NET Core's development environment, the run fails as soon as it resolves a scoped service, such as your
 chat client provider. Without it, every run shares one instance of each scoped service, so one customer's
-`ICurrentCustomer` reaches the tools of another.
+`ICurrentCustomer` reaches the tools of another. The root also keeps every host it creates until your app stops,
+since a host is disposable, so each one you resolve there is never released.
 :::
 
 ## Run from a background job

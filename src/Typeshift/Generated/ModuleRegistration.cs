@@ -134,7 +134,7 @@ public static class ModuleRegistration
         services.AddSingleton(_ => create());
 
         // D25: transient, so the host keeps the provider of the scope it is resolved from
-        services.AddTransient(provider => new AgentHost<TAgent>(provider.GetRequiredService<TAgent>(), provider));
+        services.AddTransient(AgentHost<TAgent>.In);
     }
 
     /// <summary>

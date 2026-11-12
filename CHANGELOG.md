@@ -38,6 +38,8 @@ All notable changes to this project are documented here. The format follows
 
 - `AgentHost<TAgent>` is `IAsyncDisposable` and `IDisposable`. Disposing a host your container resolved, such as one
   injected into a request, does nothing, so code that injects hosts works as before.
+- A run that ends while background sub-agents work, for example cancelled or failed, waits until the sub-agents it
+  stops have stopped, so none works on after the run.
 - An answer to an approval request that is no longer open throws `ApprovalClosedException` before the run stores
   anything or calls the model, where the run dropped the answer and called the model with no new input. Its
   `Requests` say why each request is closed: answered already, passed by, or unknown. Catch it to tell your user that

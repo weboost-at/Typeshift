@@ -93,8 +93,8 @@ var answer = await research.RunAsync("Vienna");
 - `TypeshiftRuntime.Create(client, typeshift => typeshift.WithStore<MyStore>())` takes the rest of the chain, as
   `AddTypeshift()` does. The generator intercepts the call, so write it as `TypeshiftRuntime.Create(...)`: a call
   through `using static` or a method group is not intercepted and throws.
-- Create the runtime once and keep it while your app runs. Disposing it disposes the services it created, but not
-  the client.
+- Create the runtime once and keep it while your app runs. Disposing it disposes its singletons, such as your
+  store, but not the client. A host's scoped services are disposed only with the host, so dispose each host as well.
 - An app whose tools or stores need services of its own calls `services.AddTypeshift()` instead, so it can register
   them.
 
@@ -111,8 +111,9 @@ not among them, since each lives in a scope, such as the one a host has.
 `runtime.Agent<TAgent>()` creates a scope for the host. The services the chain registers as scoped, such as the
 `WithChatClientProvider<T>()` provider, approval rules, middleware and the MCP tool provider, and the scoped services
 your tools resolve, are created in it. Every run of that host shares them, and no other host sees them. Disposing the
-host disposes the scope and its services, so write `await using`. A host injected from a request's scope owns
-nothing, and disposing it leaves the request's services alone.
+host disposes the scope and its services, so write `await using`, and let every run and stream of the host finish
+first: a stream read after its host was disposed throws an `ObjectDisposedException`. A host injected from a
+request's scope owns nothing, and disposing it leaves the request's services alone.
 :::
 
 ## What `AddTypeshift()` registers

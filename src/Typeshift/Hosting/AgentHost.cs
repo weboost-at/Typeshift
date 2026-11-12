@@ -31,6 +31,11 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
 
     internal AgentHost(TAgent agent, AsyncServiceScope scope) : this(agent, scope.ServiceProvider) => _scope = scope;
 
+    // D76: built rather than resolved where the library makes a host, since a scope keeps every disposable the
+    // container builds until it ends
+    internal static AgentHost<TAgent> In(IServiceProvider services) =>
+        new(services.GetRequiredService<TAgent>(), services);
+
     /// <summary>
     /// The agent as its code declares it.
     /// </summary>
