@@ -82,4 +82,5 @@ provider's client ([Observability](./production.md#observability)).
 - [Middleware and context](./middleware.md): wrapping every run and every tool call, and adding context.
 - [Approval and modes](./tool-approval.md): what happens when a call needs approval.
 - [Conversations](./conversations.md): storing, resuming and steering runs.
+- [How Typeshift reads your code](./how-typeshift-reads-your-code.md): what the build writes before any run.
 - [Architecture](../contributing/architecture.md#a-run): the same pipeline from the code's side.

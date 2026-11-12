@@ -70,6 +70,7 @@ const sidebar = {
       text: 'Concepts',
       collapsed: true,
       items: [
+        { text: 'How Typeshift reads your code', link: '/guide/how-typeshift-reads-your-code' },
         { text: 'How a run works', link: '/guide/how-a-run-works' }
       ]
     },

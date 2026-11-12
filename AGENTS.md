@@ -102,6 +102,7 @@ style; the essentials:
 | An app without a container (`TypeshiftApp.Create`) | `guide/registration.md#without-a-container` | |
 | `AddTypeshift()` chain calls and lifetimes | `guide/registration.md#the-chain` | each feature page shows its own `With...` call |
 | Builder calls of toolsets and agents | `guide/builders.md` | `toolsets.md`, `tool-settings.md`, `defining-agents.md` |
+| Why declarations are read at compile time: what the generator reads, the rules and limits that follow | `guide/how-typeshift-reads-your-code.md` | `builders.md#rules-for-every-chain` (the rules), `what-is-typeshift.md#why-agents-in-code` (agents in code) |
 | Parameters the call fills, tool results | `guide/toolsets.md` | `builders.md` (link) |
 | Storable types of configurable members | `guide/tool-settings.md#configurable-members` | `builders.md` (link) |
 | Chat options and run options, their defaults | `guide/builders.md` | `defining-agents.md`, `conversations.md#compaction` |

@@ -11,11 +11,12 @@ the calls in context, read [Toolsets](./toolsets.md), [Tool settings](./tool-set
 
 ## Rules for every chain
 
-The generator reads each chain from your source at compile time, and at runtime the calls only record values. Because
-the generator reads source, put every declaration directly in the constructor ([TSH014](./diagnostics.md#tsh014)) and
-write it as one chain in one statement ([TSH015](./diagnostics.md#tsh015)). Names, descriptions, the storage kind and
-the schema version must be constants ([TSH002](./diagnostics.md#tsh002)). Each toolset derives from `Toolset` and
-each agent from `Agent` directly ([TSH017](./diagnostics.md#tsh017)).
+Every chain follows these rules, and [How Typeshift reads your code](./how-typeshift-reads-your-code.md) explains why:
+
+- Every declaration sits directly in the constructor ([TSH014](./diagnostics.md#tsh014)).
+- Each declaration is one chain in one statement ([TSH015](./diagnostics.md#tsh015)).
+- Names, descriptions, the storage kind and the schema version are constants ([TSH002](./diagnostics.md#tsh002)).
+- Each toolset derives from `Toolset` and each agent from `Agent` directly ([TSH017](./diagnostics.md#tsh017)).
 
 ## Toolset
 
@@ -52,11 +53,10 @@ parameter of that type ([TSH010](./diagnostics.md#tsh010)).
 | `Configurable(s => s.Member)` | `ToolBuilder<TSettings>` | Lets the member change at runtime, through stored settings or a run. |
 | `NotConfigurable(s => s.Member)` | `ConfigurableSettingsBuilder<TSettings>` | Keeps the member in code. |
 
-The generator reads these lambdas and never runs them, so each one must name a member directly, as in `s => s.Member`
-([TSH015](./diagnostics.md#tsh015)). A configurable member needs a public `set` or `init` accessor
-([TSH013](./diagnostics.md#tsh013)) and a type that settings can store ([TSH012](./diagnostics.md#tsh012));
-[Tool settings](./tool-settings.md#configurable-members) lists those types. `WithConfigurableSettings` leaves members
-marked `[Obsolete]` out without a `NotConfigurable` call.
+Each of these lambdas names a member directly, as in `s => s.Member` ([TSH015](./diagnostics.md#tsh015)). A configurable
+member needs a public `set` or `init` accessor ([TSH013](./diagnostics.md#tsh013)) and a type that settings can store
+([TSH012](./diagnostics.md#tsh012)); [Tool settings](./tool-settings.md#configurable-members) lists those types.
+`WithConfigurableSettings` leaves members marked `[Obsolete]` out without a `NotConfigurable` call.
 
 ## Agent
 
@@ -126,4 +126,5 @@ run option may be configurable: `Configurable(r => r.X)` puts it into the agent'
 - [Tool settings](./tool-settings.md): settings records and their configurable members.
 - [Agents](./defining-agents.md): declaring an agent and choosing its tools.
 - [Generated members](./generated-members.md): what the generator writes from these chains.
+- [How Typeshift reads your code](./how-typeshift-reads-your-code.md): why the chains follow these rules.
 - [Diagnostics](./diagnostics.md): what the analyzer reports when a chain breaks a rule.

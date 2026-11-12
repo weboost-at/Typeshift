@@ -66,8 +66,8 @@ name it. Under `WithConfigurableSettings<T>()`, stored settings and runs can cha
 code change.
 
 - `WithSettings<T>()` takes only `Configurable` after it, and `WithConfigurableSettings<T>()` only `NotConfigurable`.
-- The generator reads each lambda from your source and never runs it, so each one must be a plain member access,
-  `s => s.Member` ([TSH015](./diagnostics.md#tsh015)).
+- Each lambda is a plain member access, `s => s.Member` ([TSH015](./diagnostics.md#tsh015)), and
+  [How Typeshift reads your code](./how-typeshift-reads-your-code.md) explains why.
 - Under `WithConfigurableSettings<T>()`, members marked `[Obsolete]` stay in code without a `NotConfigurable(...)`.
 - A configurable member needs a public `set` or `init` accessor ([TSH013](./diagnostics.md#tsh013)).
 
