@@ -185,5 +185,5 @@ them after the agent's own, marked for plan mode or wrapped for approval (D35).
 ## Related
 
 - [Decisions](./decisions.md): why each part is shaped the way it is, by D-number.
-- [How a run works](../guide/running-agents.md#how-a-run-works): the run's steps as a user sees them.
+- [How a run works](../guide/how-a-run-works.md): the run's steps as a user sees them.
 - [Generated members](../guide/generated-members.md): what the emitters write, member by member.

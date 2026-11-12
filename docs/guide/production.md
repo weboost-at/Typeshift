@@ -134,7 +134,7 @@ lists `CompanyCount` because the app calls `RunAsync<CompanyCount>`.
 
 ## Related
 
-- [How a run works](./running-agents.md#how-a-run-works): the steps the spans of a run cover.
+- [How a run works](./how-a-run-works.md): the steps the spans of a run cover.
 - [Conversations](./conversations.md#live-updates): live updates of a run, for a UI.
 - [Toolsets](./toolsets.md#results): how a tool's result reaches the model as JSON.
 - [Running agents](./running-agents.md#structured-output): structured output with `RunAsync<T>` and `RunStreamingAsync<T>`.

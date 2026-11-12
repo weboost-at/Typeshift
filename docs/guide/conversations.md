@@ -259,7 +259,7 @@ conversation](./tool-approval.md#approving-for-the-conversation) and the backgro
 ## Related
 
 - [Running agents](./running-agents.md): passing a conversation id to a run.
-- [How a run works](./running-agents.md#how-a-run-works): where a run resumes and stores its steps.
+- [How a run works](./how-a-run-works.md): where a run resumes and stores its steps.
 - [Implementing a store](./implementing-a-store.md#append-to-a-conversation): the store methods that keep conversations.
 - [Builders](./builders.md#runoptionsbuilder): the run options of compaction and their defaults.
 - [Models and providers](./models.md#the-summary-model): which model summarizes, and its provider.

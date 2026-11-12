@@ -182,7 +182,7 @@ plan mode, declare it in a toolset and mark it `ReadOnly()`.
 
 ## Related
 
-- [How a run works](./running-agents.md#how-a-run-works): where middleware and context sit among a run's steps.
+- [How a run works](./how-a-run-works.md): where middleware and context sit among a run's steps.
 - [Agents](./defining-agents.md): `UseContext<T>()` among the other calls in an agent's constructor.
 - [Approval and modes](./tool-approval.md#approval-rules): rules, which decide tool calls before your app is asked.
 - [Registration](./registration.md): the other calls in the `AddTypeshift()` chain.

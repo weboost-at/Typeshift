@@ -109,7 +109,7 @@ style; the essentials:
 | Approval and modes | `guide/tool-approval.md` | `builders.md` (link) |
 | Settings layers and precedence | `guide/settings-and-stores.md#settings-layering` | `tool-settings.md`, `defining-agents.md`, `running-agents.md` |
 | Getting an agent's host: injecting it, or resolving it from a scope | `guide/using-an-agent.md` | `getting-started.md` (step 4), `registration.md` (the lifetime), `running-agents.md` (lead) |
-| The order of a run's steps | `guide/running-agents.md#how-a-run-works` | `contributing/architecture.md#a-run` (the code's side) |
+| The order of a run's steps | `guide/how-a-run-works.md` | `contributing/architecture.md#a-run` (the code's side) |
 | The store's lifetime and contract, kinds, schema versions, versions, conversation entries and summaries, checking a store | `guide/implementing-a-store.md` | `settings-and-stores.md` (link), `conversations.md#what-is-stored` |
 | The `Settings` JSON, agent settings under a settings id | `guide/settings-and-stores.md` | `generated-members.md#settings` |
 | Conversations: storage, resume, steering, live updates, compaction | `guide/conversations.md` | |
@@ -128,7 +128,7 @@ style; the essentials:
 | New builder or `AddTypeshift()` chain call | `builders.md` or `registration.md#the-chain`, the guide page that teaches it |
 | New or changed diagnostic | `diagnostics.md` row and section (a guard test checks), the guide page that states the rule |
 | Changed default or limit | The reference table, then every page that states it: grep for the old value |
-| Change in the run pipeline | `running-agents.md#how-a-run-works` and its diagram, `contributing/architecture.md#a-run`, D29 |
+| Change in the run pipeline | `how-a-run-works.md` and its diagram, `contributing/architecture.md#a-run`, D29 |
 | New page | First a section of an existing page; otherwise a template from `docs/contributing/templates/`, the sidebar, the neighbours' `## Related` |
 
 Docs passes that went back for another round taught these:
