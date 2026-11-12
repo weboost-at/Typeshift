@@ -59,7 +59,7 @@ The tools and their settings have sections of their own below. The other calls d
 | Call | Declares |
 |---|---|
 | `WithName(...)` | The agent's name. Messages the agent writes carry it as their author, and other agents call this one by it. Without `WithName`, `SupportAgent` is named `support_agent`. |
-| `WithDescription(...)` | What the agent does. The model of an agent that calls this one reads it. |
+| `WithDescription(...)` | What the agent does. The model of an agent that calls this one reads it. Without it, the `<summary>` of the agent's XML docs describes the agent, as a method's describes its tool. |
 | `WithChatOptions()` | The options every run starts from: `WithModel`, `WithTemperature`, `WithMaxOutputTokens` and a `With...` per other option. `WithTools` adds tools that belong to no toolset, such as a hosted web search. |
 | `UseMcpServer(...)` | The tools of an [MCP server](./mcp.md). `ReadOnly()` lets plan mode offer them. |
 | `UseContext<T>()` | A [context provider](./middleware.md#context-providers), whose instructions, messages and tools join every run. |

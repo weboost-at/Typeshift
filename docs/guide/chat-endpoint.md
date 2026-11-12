@@ -51,7 +51,7 @@ chat.MapPost("/messages", async (
 
 The filter on the group checks that the chat belongs to the caller before any endpoint of the group runs, because
 Typeshift resumes whichever conversation it is given
-([Tracking a conversation](./conversations.md#tracking-a-conversation)). Map every endpoint that takes a chat id on
+([Conversation ids](./conversations.md#conversation-ids)). Map every endpoint that takes a chat id on
 this group:
 
 <!-- snippet: chat-owner-filter -->
@@ -168,6 +168,38 @@ private static async IAsyncEnumerable<SseItem<object>> Events(IAsyncEnumerable<C
 - A run that asks for approval stores the requests, sends its `approval` events last, and then ends. Post the answers
   once the stream has ended, when the reader reports that it is done. A reader that stops at an `approval` event
   leaves the run to end on its own, and the answers still work.
+
+## Follow a chat from elsewhere
+
+The browser that posts a message reads the answer from its own stream. Another tab, or a support dashboard that
+watches a customer's chat, follows it through `ConversationTracker.WatchAsync` instead, which needs
+`WithRealtimeTracking()` ([Live updates](./conversations.md#live-updates)). This SignalR hub checks that the chat
+belongs to the caller, as the group's filter does, and then streams the chat's text:
+
+<!-- snippet: conversation-hub -->
+<a id='snippet-conversation-hub'></a>
+```cs
+internal sealed class ConversationHub(ConversationTracker tracker, IChats chats, ICurrentCustomer customer) : Hub
+{
+    public async IAsyncEnumerable<string> Watch(int chatId, [EnumeratorCancellation] CancellationToken ct)
+    {
+        if (!await chats.BelongsToAsync(chatId, customer.Id, ct)) yield break;
+
+        await foreach (var update in tracker.WatchAsync(chatId, ct))
+        {
+            if (update.Text is { Length: > 0 } text) yield return text;
+        }
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ConversationHub.cs#L7-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-conversation-hub' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- Register SignalR with `builder.Services.AddSignalR()`, and map the hub behind your authentication, for example
+  `app.MapHub<ConversationHub>("/hub").RequireAuthorization()`. In a hub, the current customer comes from the
+  connection's user, so `ICurrentCustomer` reads it from there.
+- The browser calls `connection.stream("Watch", chatId)`. SignalR cancels `ct` when the browser disposes its
+  subscription or the connection drops, which ends the loop.
 
 ## Answer the approvals
 

@@ -62,7 +62,8 @@ what does not parse (D2).
    stays cached while what it offers stays the same.
 6. **Registration.** `Emitting/ModuleEmitter.cs` writes one module, stamped with `[GeneratedModule]`, per assembly
    that declares toolsets or agents. `Emitting/InterceptorEmitter.cs` intercepts every `AddTypeshift()` call and
-   registers the core services, the project's module and its references' modules (D1).
+   registers the core services, the project's module and its references' modules (D1). It intercepts every
+   `TypeshiftApp.Create` call too, which builds a container of the same registration (D75).
 
 The analyzer checks what spans declarations in a compilation-end action: unique tool names, the references' stamps
 included, and references without a module. Calls the generator cannot read (TSH014, TSH015) it checks in an
@@ -83,7 +84,10 @@ operation action. `ParameterDocsSuppressor` suppresses CS1573 for the parameters
 `AIJsonUtilities.CreateJsonSchema` per parameter, with its description and default, nullable references widened to
 `[type, "null"]`, the `$ref`s of a recursive type rebased under its parameter, and properties described by the XML
 docs the modules registered (D55). For JSON metadata, `ToolJson` asks the modules' JSON contexts first, then
-Microsoft.Extensions.AI's defaults, which reflect outside Native AOT (D45).
+Microsoft.Extensions.AI's defaults, which reflect outside Native AOT (D45). Every schema it builds names a union's
+type on each case, and its options pick a union's case by the JSON token, then by an object's properties
+(D62). `RunAsync<T>` asks it for the answer's response format, built as a parameter's schema is and held under `data`
+unless it is an object of properties.
 
 ## A run
 

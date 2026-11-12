@@ -90,7 +90,7 @@ A configurable member needs a type settings can store ([TSH012](./diagnostics.md
 - arrays, lists and sets of storable values, and dictionaries keyed by `string` or an enum.
 
 Items and dictionary values cannot be nullable value types, and a type that contains itself is not storable. Other
-structs are not storable, because most keep their state in fields that no public setter writes.
+structs, unions among them, are not storable, because most keep their state in fields that no public setter writes.
 
 ## Receiving settings in the tool
 
