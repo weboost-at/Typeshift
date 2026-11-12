@@ -1,0 +1,73 @@
+---
+title: Native AOT
+description: Publish your app with Native AOT, and give the types your tools take and return the JSON metadata they need there.
+---
+
+# Native AOT
+
+You can publish your app with Native AOT. Typeshift writes the tool bindings and the settings serialization when you
+build, so its generated code never reflects over your types. What you add is JSON metadata for the types your tools
+take and return, and the analyzer reports each type that lacks it.
+
+## The project
+
+To publish your app with Native AOT, set `PublishAot` in its project. XML docs stay on, as the package turns them on,
+so tools keep their descriptions ([TSH011](./diagnostics.md#tsh011)):
+
+<!-- snippet: aot-project -->
+<a id='snippet-aot-project'></a>
+```csproj
+<PropertyGroup>
+  <OutputType>Exe</OutputType>
+  <PublishAot>true</PublishAot>
+  <InvariantGlobalization>true</InvariantGlobalization>
+</PropertyGroup>
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Typeshift.Samples.Console.csproj#L5-L11' title='Snippet source file'>snippet source</a> | <a href='#snippet-aot-project' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+## Tool parameter and result types
+
+Under Native AOT, the types your tools take and return need source-generated metadata: a `JsonSerializerContext` in
+the toolset's assembly that lists them. Outside Native AOT, serialization falls back to reflection, so an app that does
+not publish with Native AOT needs no context. Set `IsAotCompatible` in a toolset library that such apps use, so the
+analyzer checks it.
+
+<!-- snippet: json-context -->
+<a id='snippet-json-context'></a>
+```cs
+[JsonSerializable(typeof(IReadOnlyList<Company>))]
+[JsonSerializable(typeof(CompanyCount))]
+internal partial class AppJsonContext : JsonSerializerContext;
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/AppJsonContext.cs#L6-L10' title='Snippet source file'>snippet source</a> | <a href='#snippet-json-context' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+You don't register the context yourself: `AddTypeshift()` does. Each assembly's generated module adds that assembly's
+contexts, `internal` ones included, so a toolset library ships its own contexts and your app registers nothing for
+them.
+
+Strings, `char`, `bool`, `short`, `int`, `long` and their unsigned forms, `float`, `double`, `decimal`, `DateTime`,
+`DateTimeOffset`, `TimeSpan`, `IEnumerable<string>` and the JSON element, document and node types need no context.
+In a project that publishes with Native AOT or sets `IsAotCompatible`, the analyzer reports
+[TSH027](./diagnostics.md#tsh027) for every other tool type that no context lists.
+
+A [union](./toolsets.md#union-types) of two records gets warning SYSLIB1227 in a context, because the source
+generator finds no classifier that tells the records apart. Typeshift's tools and runs pick the case by its
+properties without one, as [Union types](./toolsets.md#union-types) describes, so you may suppress the warning for
+unions only they read. Code of yours that reads such a union still needs a classifier.
+
+## Everything else
+
+The generated `Settings` and overrides records serialize member by member, and conversations go through
+Microsoft.Extensions.AI's own contracts, so none of them needs a context from you. `RunAsync<T>`,
+`RunStreamingAsync<T>` and a sub-agent's `WithResult<T>()` do need one: list `T` in a context too. In the sample,
+`AppJsonContext` above lists `CompanyCount` because the app calls `RunAsync<CompanyCount>`.
+
+## Related
+
+- [Toolsets](./toolsets.md#results): how a tool's result reaches the model as JSON.
+- [Running an agent](./running-agents.md#structured-output): structured output with `RunAsync<T>` and
+  `RunStreamingAsync<T>`.
+- [Registration](./registration.md#what-addtypeshift-registers): what the generated modules register.
+- [Observability](./observability.md): the spans and metrics every run records.

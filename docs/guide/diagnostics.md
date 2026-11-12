@@ -233,7 +233,7 @@ could never end. Break the circle by removing one of these `UseAgent<T>()` calls
 **Tool type has no JSON metadata under Native AOT.** In a project that publishes with Native AOT or sets
 `IsAotCompatible`, the types of the parameters the model fills and the type the tool returns need source-generated
 metadata. List each type as `[JsonSerializable(typeof(T))]` on a `JsonSerializerContext` of the toolset's assembly
-([Native AOT](./production.md#native-aot)). A context nested as `private` or `protected` does not count. These types
+([Native AOT](./native-aot.md)). A context nested as `private` or `protected` does not count. These types
 need none: `string`, `char`, `bool`, `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `float`, `double`, `decimal`,
 `DateTime`, `DateTimeOffset`, `TimeSpan`, `IEnumerable<string>`, `JsonElement`, `JsonDocument` and the
 `System.Text.Json.Nodes` types.
@@ -263,4 +263,4 @@ type. Pass a provider of that type, or implement `IChatClientProvider`, the alia
 - [Agents](./defining-agents.md): the rules of an agent's declarations.
 - [Builders](./builders.md): every call the analyzer checks.
 - [Registration](./registration.md): the package, the id type and what each project needs.
-- [Native AOT](./production.md#native-aot): the JSON metadata [TSH027](#tsh027) asks for.
+- [Native AOT](./native-aot.md): the JSON metadata [TSH027](#tsh027) asks for.
