@@ -64,7 +64,8 @@ The tools and their settings have sections of their own below. The other calls d
 | `UseMcpServer(...)` | The tools of an [MCP server](./mcp.md). `ReadOnly()` lets plan mode offer them. |
 | `UseContext<T>()` | A [context provider](./middleware.md#context-providers), whose instructions, messages and tools join every run. |
 | `UseAgent<T>()`, `UseHandoff<T>()` | Another agent as a tool, or one the model can hand the conversation to. See [Multiple agents](./multi-agent.md). |
-| `GetInstructions()` | The instructions, as an override. It runs whenever a run's options are resolved, so the text may be computed. |
+| `WithInstructions(...)` | The instructions, the agent's system prompt, when they are the same for every run. |
+| `GetInstructions()` | The instructions, as an override, when your code builds them. It runs whenever a run's options are resolved, so the text may be computed. |
 
 Because the generator reads the constructor rather than running it, `WithName` and `WithDescription` take constants
 ([TSH002](./diagnostics.md#tsh002)), and every declaration sits directly in the constructor as one chain
@@ -108,6 +109,7 @@ internal partial class BillingAgent : Agent
     public BillingAgent()
     {
         WithDescription("Settles charges and invoices.");
+        WithInstructions("Settle the customer's charges and invoices.");
 
         WithChatOptions()
             .WithModel("openai", "gpt-5-mini");
@@ -124,11 +126,9 @@ internal partial class BillingAgent : Agent
         var time = services.GetService(typeof(TimeProvider)) as TimeProvider ?? TimeProvider.System;
         return DateOnly.FromDateTime(time.GetLocalNow().DateTime);
     }
-
-    protected override string GetInstructions() => "Settle the customer's charges and invoices.";
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/BillingAgent.cs#L3-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-own-tool' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/BillingAgent.cs#L3-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-own-tool' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - The tool takes the same chain as a toolset's tool, such as `ReadOnly()` here or `RequiresApproval()`, and follows

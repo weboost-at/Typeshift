@@ -31,6 +31,8 @@ All notable changes to this project are documented here. The format follows
   client)`, or the one registered for every agent with `services.AddChatClient(client)`, when no
   `IChatClientProvider` is registered for it. An agent that names no model runs on that last client, with its own model, so a
   demo needs neither a provider class nor `WithModel`.
+- `WithInstructions("...")` sets an agent's instructions in its constructor; override `GetInstructions()` only for
+  instructions your code builds per run.
 
 ### Changed
 
