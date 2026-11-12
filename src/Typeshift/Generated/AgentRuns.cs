@@ -31,7 +31,7 @@ public static class AgentRuns
         object? settings,
         CancellationToken ct)
         where TAgent : Agent =>
-        host.RunCoreAsync(input, settingsId, conversationId, settings, ct);
+        host.RunCoreAsync(input, host.SettingsIdOf(settingsId), host.ConversationIdOf(conversationId), settings, ct);
 
     /// <summary>
     /// Runs the agent on one message, asking for JSON of <typeparamref name="TResult"/>'s schema.
@@ -53,7 +53,12 @@ public static class AgentRuns
         object? settings,
         CancellationToken ct)
         where TAgent : Agent =>
-        host.RunCoreAsync<TResult>(input, settingsId, conversationId, settings, ct);
+        host.RunCoreAsync<TResult>(
+            input,
+            host.SettingsIdOf(settingsId),
+            host.ConversationIdOf(conversationId),
+            settings,
+            ct);
 
     /// <summary>
     /// Runs the agent on one message, streaming the updates and asking for JSON of <typeparamref name="TResult"/>'s
@@ -76,7 +81,12 @@ public static class AgentRuns
         object? settings,
         CancellationToken ct)
         where TAgent : Agent =>
-        host.RunStreamingCoreAsync<TResult>(input, settingsId, conversationId, settings, ct);
+        host.RunStreamingCoreAsync<TResult>(
+            input,
+            host.SettingsIdOf(settingsId),
+            host.ConversationIdOf(conversationId),
+            settings,
+            ct);
 
     /// <summary>
     /// Runs the agent on one message, streaming the updates.
@@ -97,7 +107,12 @@ public static class AgentRuns
         object? settings,
         CancellationToken ct)
         where TAgent : Agent =>
-        host.RunStreamingCoreAsync(input, settingsId, conversationId, settings, ct);
+        host.RunStreamingCoreAsync(
+            input,
+            host.SettingsIdOf(settingsId),
+            host.ConversationIdOf(conversationId),
+            settings,
+            ct);
 
     /// <summary>
     /// Continues a conversation's interrupted run from its last stored step, without new input.
@@ -116,7 +131,7 @@ public static class AgentRuns
         object? settings,
         CancellationToken ct)
         where TAgent : Agent =>
-        host.RunCoreAsync(null, settingsId, conversationId, settings, ct);
+        host.RunCoreAsync(null, host.SettingsIdOf(settingsId), host.ConversationIdOf(conversationId), settings, ct);
 
     /// <summary>
     /// Continues a conversation's interrupted run from its last stored step, without new input, streaming the
@@ -136,7 +151,12 @@ public static class AgentRuns
         object? settings,
         CancellationToken ct)
         where TAgent : Agent =>
-        host.RunStreamingCoreAsync(null, settingsId, conversationId, settings, ct);
+        host.RunStreamingCoreAsync(
+            null,
+            host.SettingsIdOf(settingsId),
+            host.ConversationIdOf(conversationId),
+            settings,
+            ct);
 
     /// <summary>
     /// Resolves the options of a run: the agent's code, its stored settings, the run's settings, then its tools.
@@ -153,7 +173,7 @@ public static class AgentRuns
         object? settings,
         CancellationToken ct)
         where TAgent : Agent =>
-        host.ResolveOptionsCoreAsync(settingsId, settings, ct);
+        host.ResolveOptionsCoreAsync(host.SettingsIdOf(settingsId), settings, ct);
 
     /// <summary>
     /// Loads the settings stored under an id.
@@ -174,7 +194,7 @@ public static class AgentRuns
     {
         // D66: a null id is a caller's mistake, never the agent's own settings
         ArgumentNullException.ThrowIfNull(settingsId);
-        return await host.Store.LoadAsync<TSettings>(settingsId, ct) ?? new Stored<TSettings>(new TSettings(), 0);
+        return await LoadAsync<TSettings>(host.Store, host.SettingsIdOf(settingsId)!, ct);
     }
 
     /// <summary>
@@ -199,7 +219,7 @@ public static class AgentRuns
         where TSettings : class, IStorable<TSettings>
     {
         ArgumentNullException.ThrowIfNull(settingsId);
-        return host.Store.SaveAsync(settingsId, settings, loadedVersion, ct);
+        return host.Store.SaveAsync(host.SettingsIdOf(settingsId)!, settings, loadedVersion, ct);
     }
 
     /// <summary>
@@ -224,16 +244,17 @@ public static class AgentRuns
         where TSettings : class, IStorable<TSettings>, new()
     {
         ArgumentNullException.ThrowIfNull(settingsId);
+        var id = host.SettingsIdOf(settingsId)!;
 
         return ConfigureAsync(
-            () => LoadSettingsAsync<TAgent, TSettings>(host, settingsId, ct),
-            (configured, version) => host.Store.SaveAsync(settingsId, configured, version, ct),
+            () => LoadAsync<TSettings>(host.Store, id, ct),
+            (configured, version) => host.Store.SaveAsync(id, configured, version, ct),
             configure,
             ct);
     }
 
     /// <summary>
-    /// Loads the agent's own settings, which every run applies.
+    /// Loads the agent's own settings, which every run applies, or those under the id the host was given.
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <typeparam name="TSettings">The agent's settings record.</typeparam>
@@ -245,10 +266,13 @@ public static class AgentRuns
         CancellationToken ct)
         where TAgent : Agent
         where TSettings : class, IStorable<TSettings>, new() =>
-        await host.Store.LoadAgentSettingsAsync<TSettings>(ct) ?? new Stored<TSettings>(new TSettings(), 0);
+        host.SettingsId is { } id
+            ? await LoadAsync<TSettings>(host.Store, id, ct)
+            : await host.Store.LoadAgentSettingsAsync<TSettings>(ct) ?? new Stored<TSettings>(new TSettings(), 0);
 
     /// <summary>
-    /// Saves the agent's own settings if the stored version is still the one loaded.
+    /// Saves the agent's own settings, or those under the id the host was given, if the stored version is still the one
+    /// loaded.
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <typeparam name="TSettings">The agent's settings record.</typeparam>
@@ -264,11 +288,13 @@ public static class AgentRuns
         CancellationToken ct)
         where TAgent : Agent
         where TSettings : class, IStorable<TSettings> =>
-        host.Store.SaveAgentSettingsAsync(settings, loadedVersion, ct);
+        host.SettingsId is { } id
+            ? host.Store.SaveAsync(id, settings, loadedVersion, ct)
+            : host.Store.SaveAgentSettingsAsync(settings, loadedVersion, ct);
 
     /// <summary>
-    /// Changes the agent's own settings, reloading and changing them again whenever another save came first, up to ten
-    /// times.
+    /// Changes the agent's own settings, or those under the id the host was given, reloading and changing them again
+    /// whenever another save came first, up to ten times.
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <typeparam name="TSettings">The agent's settings record.</typeparam>
@@ -285,9 +311,16 @@ public static class AgentRuns
         where TSettings : class, IStorable<TSettings>, new() =>
         ConfigureAsync(
             () => LoadAgentSettingsAsync<TAgent, TSettings>(host, ct),
-            (configured, version) => host.Store.SaveAgentSettingsAsync(configured, version, ct),
+            (configured, version) => SaveAgentSettingsAsync<TAgent, TSettings>(host, configured, version, ct),
             configure,
             ct);
+
+    private static async Task<Stored<TSettings>> LoadAsync<TSettings>(
+        StoreAccess store,
+        StoreId id,
+        CancellationToken ct)
+        where TSettings : class, IStorable<TSettings>, new() =>
+        await store.LoadAsync<TSettings>(id, ct) ?? new Stored<TSettings>(new TSettings(), 0);
 
     // D41: each conflict means another save won, so the loop ends once no other save comes between
     private static async Task<TSettings> ConfigureAsync<TSettings>(

@@ -8,8 +8,8 @@ namespace Typeshift;
 // The conversations running in this process, their steering input and their watchers. Ids are the build's, boxed
 internal sealed class LiveRuns
 {
-    private readonly ConcurrentDictionary<object, RunClaim> _runs = new();
-    private readonly ConcurrentDictionary<object, ImmutableList<Channel<ChatResponseUpdate>>> _watchers = new();
+    private readonly ConcurrentDictionary<StoreId, RunClaim> _runs = new();
+    private readonly ConcurrentDictionary<StoreId, ImmutableList<Channel<ChatResponseUpdate>>> _watchers = new();
     private ImmutableList<Channel<(ConversationRun Run, bool Ended)>> _runWatchers = [];
 
     public IReadOnlyCollection<ConversationRun> Runs =>
@@ -18,7 +18,7 @@ internal sealed class LiveRuns
     // D50: one run per conversation at a time in a process. A run claims its conversation before it loads it, so no
     // run reads a conversation whose last run is still storing its end. A claim still loading is waited for, as a run
     // that began is refused, so the host's fallback for steering a run that ended keeps working (D51)
-    public async Task<RunClaim?> ClaimAsync(object? conversation, CancellationToken ct)
+    public async Task<RunClaim?> ClaimAsync(StoreId? conversation, CancellationToken ct)
     {
         if (conversation is null) return null;
 
@@ -54,7 +54,7 @@ internal sealed class LiveRuns
     {
         if (claim is not { Run: null }) return;
 
-        _runs.TryRemove(new KeyValuePair<object, RunClaim>(claim.Conversation, claim));
+        _runs.TryRemove(new KeyValuePair<StoreId, RunClaim>(claim.Conversation, claim));
         claim.Settle();
     }
 
@@ -76,18 +76,18 @@ internal sealed class LiveRuns
         if (run.Conversation is { } conversation
             && _runs.TryGetValue(conversation, out var claim)
             && claim.Run == run
-            && _runs.TryRemove(new KeyValuePair<object, RunClaim>(conversation, claim)))
+            && _runs.TryRemove(new KeyValuePair<StoreId, RunClaim>(conversation, claim)))
             PublishRun(run, ended: true);
     }
 
     // D51: a claimed conversation whose run has not begun takes no steering
-    public bool TrySteer(object conversation, string input) =>
+    public bool TrySteer(StoreId conversation, string input) =>
         _runs.TryGetValue(conversation, out var claim)
         && claim.Run is { } run
         && run.Steer(new ChatMessage(ChatRole.User, input));
 
     public async IAsyncEnumerable<ChatResponseUpdate> WatchAsync(
-        object conversation,
+        StoreId conversation,
         int capacity,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
     {
@@ -111,7 +111,7 @@ internal sealed class LiveRuns
         }
     }
 
-    public void Publish(object conversation, ChatResponseUpdate update)
+    public void Publish(StoreId conversation, ChatResponseUpdate update)
     {
         if (!_watchers.TryGetValue(conversation, out var feeds)) return;
 
@@ -168,12 +168,12 @@ internal sealed class LiveRuns
 }
 
 // A conversation's place in this process, held from before its run loads it until the run ends
-internal sealed class RunClaim(object conversation)
+internal sealed class RunClaim(StoreId conversation)
 {
     private readonly TaskCompletionSource _settled = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private ConversationRun? _run;
 
-    public object Conversation => conversation;
+    public StoreId Conversation => conversation;
 
     public ConversationRun? Run => Volatile.Read(ref _run);
 

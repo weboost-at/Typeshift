@@ -25,6 +25,9 @@ All notable changes to this project are documented here. The format follows
   `InMemoryTypeshiftStore` implements it, and a settings id's settings apply over the agent's own.
 - `FileAgentSettingsStore` keeps each agent's own settings in a JSON file of a folder, for an app without a database.
   `WithStore(store)` registers a store you created.
+- `host.WithSettingsId(id)` and `host.WithConversationId(id)` give a run its ids in code, and each id's type picks the
+  store of that type, so settings under `int` ids and conversations under `string` ids serve one app. `WithStore<T>()`
+  takes stores of any id type, and TSH028 reports only a type that is no store.
 
 ### Changed
 

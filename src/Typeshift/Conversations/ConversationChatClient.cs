@@ -74,7 +74,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
     private TimeProvider Time => services.GetService<TimeProvider>() ?? TimeProvider.System;
 
-    private IStoreAccess Store => services.GetRequiredService<IStoreAccess>();
+    private StoreAccess Store => services.GetRequiredService<StoreAccess>();
 
     private async Task<ChatResponse> RunAsync(
         IEnumerable<ChatMessage> messages,
@@ -286,7 +286,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             : null;
 
     // The id a typed run passes, or the raw path's ChatOptions.ConversationId in the build's id type
-    private object? GetConversation(ChatOptions options) =>
+    private StoreId? GetConversation(ChatOptions options) =>
         options switch
         {
             ResolvedChatOptions { Conversation: { } conversation } => conversation,
@@ -294,7 +294,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             _ => null
         };
 
-    private static object? SettingsId(ChatOptions? options) => (options as ResolvedChatOptions)?.SettingsId;
+    private static StoreId? SettingsId(ChatOptions? options) => (options as ResolvedChatOptions)?.SettingsId;
 
     private static ChatResponseFormat? ResultFormat(ChatOptions? options) =>
         (options as ResolvedChatOptions)?.ResultFormat;
@@ -313,7 +313,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     // The run's conversation from its last summary, claimed and loaded once: for the agent that answers, which takes
     // the claim on, and for the run's history (D50). A run handed a claim takes it in place of claiming (D34)
     private async Task<(
-        object? Conversation,
+        StoreId? Conversation,
         IReadOnlyList<ConversationEntry> Entries,
         RunClaim? Claim,
         IAgentHost? Answering)> LoadAsync(ChatOptions? options, CancellationToken ct)
@@ -404,7 +404,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     private async Task<(ConversationRun Run, List<ChatMessage> Call, ResolvedChatOptions Options)> BeginAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options,
-        object? conversation,
+        StoreId? conversation,
         IReadOnlyList<ConversationEntry> entries,
         RunClaim? claim,
         Activity? activity)
@@ -423,7 +423,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     private async Task<(ConversationRun Run, List<ChatMessage> Call, ResolvedChatOptions Options)> BeginClaimedAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options,
-        object? conversation,
+        StoreId? conversation,
         IReadOnlyList<ConversationEntry> entries,
         RunClaim? claim,
         Activity? activity)

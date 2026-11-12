@@ -148,11 +148,10 @@ internal static class Descriptors
         "'{0}' of '{1}' has no JSON metadata, which Native AOT needs: list it in a JsonSerializerContext of this "
         + "assembly, [JsonSerializable(typeof({0}))]");
 
-    public static readonly DiagnosticDescriptor OtherStoreIdType = Error(
+    public static readonly DiagnosticDescriptor NoStore = Error(
         "TSH028",
-        "Store has another id type",
-        "'{0}' is no store of the build's id type, {1}: implement ISettingsStore<{1}>, IConversationStore<{1}> or "
-        + "IAgentSettingsStore, and no store interface of another id type");
+        "Type is no store",
+        "'{0}' is no store: implement ISettingsStore<TId>, IConversationStore<TId> or IAgentSettingsStore");
 
     // {2} is NotFound or NotOneValue
     public static readonly DiagnosticDescriptor UnknownIdType = Error(

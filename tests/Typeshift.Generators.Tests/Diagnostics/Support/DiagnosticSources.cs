@@ -1173,6 +1173,20 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string NoStore =
+        """
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal sealed class Clock;
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithStore<Clock>();
+        }
+        """;
+
     public const string OtherStoreIdType =
         """
         using Typeshift;

@@ -32,7 +32,7 @@ public static class ModuleRegistration
             provider.GetServices<JsonContextRegistration>().Select(registration => registration.Resolver),
             provider.GetServices<SchemaAnnotationsRegistration>().Select(registration => registration.Source)));
 
-        services.TryAddSingleton<IStoreAccess>(provider => new StoreAccess<TId>(provider, parse));
+        services.TryAddSingleton(provider => new StoreAccess(provider, new BuildIds<TId>(parse)));
         services.TryAddSingleton<LiveRuns>();
         services.TryAddSingleton<InstrumentedClients>();
         services.TryAddSingleton<ChatClients, ChatClients<TProviderId>>();
@@ -50,40 +50,43 @@ public static class ModuleRegistration
                     + "provider id type (TSH030).")));
     }
 
-    // D38: a store is registered as each store interface it implements; the type check reads no members. A store your
-    // app created is checked as the instance it is, and registered as that instance, which the container never disposes
+    // D38, D72: a store is registered as each store interface it implements, of any id type; the type check reads no
+    // members. A store your app created is checked as the instance it is as well, and registered as that instance,
+    // which the container never disposes
     private static void AddStore<TId>(
         IServiceCollection services,
         Type type,
-        IReadOnlyList<Type> idTypes,
+        IReadOnlyList<Type> contracts,
         object? instance,
         Func<IServiceProvider, object> store)
         where TId : notnull
     {
-        bool Keeps<TStore>() => instance is null ? typeof(TStore).IsAssignableFrom(type) : instance is TStore;
+        List<Type> kept = [.. contracts];
 
-        var keepsSettings = Keeps<ISettingsStore<TId>>();
-        var keepsConversations = Keeps<IConversationStore<TId>>();
-        var isTypeshiftStore = Keeps<ITypeshiftStore<TId>>();
-        var keepsAgentSettings = Keeps<IAgentSettingsStore>();
-
-        if ((!keepsSettings && !keepsConversations && !keepsAgentSettings) || idTypes.Any(id => id != typeof(TId)))
-            throw new InvalidOperationException(
-                $"{type.Name} is no store of the build's id type, {typeof(TId).Name}: implement "
-                + $"ISettingsStore<{typeof(TId).Name}>, IConversationStore<{typeof(TId).Name}> or IAgentSettingsStore, "
-                + "and no store interface of another id type (TSH028).");
-
-        Add<ISettingsStore<TId>>(keepsSettings);
-        Add<IConversationStore<TId>>(keepsConversations);
-        Add<ITypeshiftStore<TId>>(isTypeshiftStore);
-        Add<IAgentSettingsStore>(keepsAgentSettings);
-
-        void Add<TStore>(bool keeps) where TStore : class
+        if (instance is not null)
         {
-            if (!keeps) return;
+            Keep<ISettingsStore<TId>>();
+            Keep<IConversationStore<TId>>();
+            Keep<ITypeshiftStore<TId>>();
+            Keep<IAgentSettingsStore>();
+        }
 
-            if (instance is null) services.AddSingleton(provider => (TStore)store(provider));
-            else services.AddSingleton((TStore)instance);
+        if (kept.Count == 0)
+            throw new InvalidOperationException(
+                $"{type.Name} is no store: implement ISettingsStore<TId>, IConversationStore<TId> or "
+                + "IAgentSettingsStore (TSH028).");
+
+        services.TryAddSingleton<RegisteredStores>();
+
+        foreach (var contract in kept)
+        {
+            if (instance is null) services.AddSingleton(contract, provider => store(provider));
+            else services.AddSingleton(contract, instance);
+        }
+
+        void Keep<TStore>()
+        {
+            if (instance is TStore && !kept.Contains(typeof(TStore))) kept.Add(typeof(TStore));
         }
     }
 

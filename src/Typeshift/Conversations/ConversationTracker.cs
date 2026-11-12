@@ -21,7 +21,7 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// <summary>
     /// The runs of conversations going on now.
     /// </summary>
-    public IReadOnlyList<LiveRun<TId>> Runs => [.. _runs.Runs.Select(Live)];
+    public IReadOnlyList<LiveRun<TId>> Runs => [.. _runs.Runs.Where(IsOfIdType).Select(Live)];
 
     /// <summary>
     /// The runs of conversations going on now, then each run as it starts and as it ends, until cancelled. Needs no
@@ -31,6 +31,7 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// <returns>The runs; one that ended has <see cref="LiveRun{TId}.Ended"/> set.</returns>
     public IAsyncEnumerable<LiveRun<TId>> WatchRunsAsync(CancellationToken ct) =>
         _runs.WatchRunsAsync((_realtime ?? new RealtimeTrackingOptions()).MaxPendingUpdates, ct)
+            .Where(change => IsOfIdType(change.Run))
             .Select(change => Live(change.Run) with { Ended = change.Ended });
 
     /// <summary>
@@ -47,7 +48,7 @@ public sealed class ConversationTracker<TId> where TId : notnull
             ?? throw new InvalidOperationException(
                 "Live updates are off: call WithRealtimeTracking() after AddTypeshift() to watch conversations.");
 
-        return _runs.WatchAsync(conversation, realtime.MaxPendingUpdates, ct);
+        return _runs.WatchAsync(new StoreId<TId>(conversation), realtime.MaxPendingUpdates, ct);
     }
 
     /// <summary>
@@ -59,10 +60,13 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// <returns>
     /// False when no run of the conversation is going on here, or it is ending; start a run with the input instead.
     /// </returns>
-    public bool TrySteer(TId conversation, string input) => _runs.TrySteer(conversation, input);
+    public bool TrySteer(TId conversation, string input) => _runs.TrySteer(new StoreId<TId>(conversation), input);
+
+    // D72: a conversation of another id type is another tracker's
+    private static bool IsOfIdType(ConversationRun run) => run.Conversation is StoreId<TId>;
 
     private static LiveRun<TId> Live(ConversationRun run) =>
-        new((TId)run.Conversation!, run.Agent, run.Model, run.StartedAt);
+        new(((StoreId<TId>)run.Conversation!).Id, run.Agent, run.Model, run.StartedAt);
 }
 
 /// <summary>

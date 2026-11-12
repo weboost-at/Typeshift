@@ -136,10 +136,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** `<TypeshiftIdType>int</TypeshiftIdType>`, set once in `Directory.Build.props`, `Guid` by default. The
   library's id-carrying types are generic (`ITypeshiftStore<TId>`); the generator writes per project `global using`
   aliases (`ITypeshiftStore`, `ISettingsStore`, `IConversationStore`, `InMemoryTypeshiftStore`, `ConversationTracker`,
-  `LiveRun`) and generates typed members with the concrete type. A reference built with another id type is TSH021; a
-  store of another is TSH028. The interceptor closes the core services over the id type (`AddCoreServices<TId>`), so
-  `WithStore<T>()` needs none; behind the typed members, the library passes ids boxed to the store of that type. Module
-  stamps carry the id type.
+  `LiveRun`) and generates typed members with the concrete type. A reference built with another id type is TSH021.
+  The interceptor closes the core services over the id type (`AddCoreServices<TId>`), so `WithStore<T>()` needs none;
+  behind the typed members, the library passes ids boxed to the store of that type. Module stamps carry the id type.
+  D72 adds ids in code, each picking the store of its own type, and stores of any id type.
 - **Alternatives:** `AddTypeshift().WithIdType<int>()`, known only in the registering project, with generic run
   members checked at runtime; a generated interface per project, ambiguous under `InternalsVisibleTo`.
 - **Where:** `buildTransitive/Typeshift.props`, `Emitting/AliasEmitter.cs`.
@@ -713,15 +713,38 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Context:** the owner asked for sane defaults, "for stock users to have a working library at their hands from the
   get-go". Without `WithStore<T>()`, every settings save, every run with an id and every approval threw.
 - **Decision:** when no `ISettingsStore`, `IConversationStore` or `IAgentSettingsStore` of the build's id type is
-  registered, the store access keeps everything in an `InMemoryTypeshiftStore` of its own, a singleton like the
-  host's other services. The first save or append logs a warning, once, that names `WithStore<T>()` and says the data
-  is gone when the app stops; loads stay quiet, since a load of nothing loses nothing. Once any store is registered,
-  only registered stores serve, so an app that kept settings in a database and forgot a store of conversations still
-  gets the exception of D43 instead of conversations that vanish.
+  registered, nor any store through `WithStore<T>()`, the store access keeps everything in an `InMemoryTypeshiftStore`
+  of its own per id type (D72), a singleton like the host's other services. The first save or append logs a warning,
+  once, that names `WithStore<T>()` and says the data is gone when the app stops; loads stay quiet, since a load of
+  nothing loses nothing. Once any store is registered, only registered stores serve, so an app that kept settings in a
+  database and forgot a store of conversations still gets the exception of D43 instead of conversations that vanish.
 - **Where:** `Storage/StoreAccess.cs`.
 - **Alternatives:** throwing as before, ceremony every first run hits; memory for each interface no registered store
   implements, which hides a forgotten store in an app that chose one; a warning at startup, which an app that never
   stores anything would see too.
+
+### D72. Ids are given in code, and their types pick the stores
+
+- **Status:** owner.
+- **Context:** the owner asked that the id type move from the build into code and become "more granular": settings
+  and conversations of one app may have ids of different types. One MSBuild property typed every id of the build.
+- **Decision:** `host.WithSettingsId(id)` and `host.WithConversationId(id)` return a copy of the host that carries the
+  id, typed by the call, so `WithSettingsId(42)` names an `ISettingsStore<int>` and `WithConversationId(chat)` an
+  `IConversationStore<Guid>`. The id goes down the run as a `StoreId<TId>`, which reaches the store of its type
+  through a generic call, so no type is made at run time and Native AOT keeps working; it is equal only to an id of
+  the same type and value, so conversation 5 as an `int` and as a `long` are two conversations. `WithStore<T>()`
+  registers a store as each store interface it implements, of any id type, and TSH028 reports only a type that is no
+  store. The settings members of a host with a settings id load, save and configure the id's settings in place of the
+  agent's own (D66). Without any store, D69 keeps one store in memory per id type. The id parameters of the generated
+  members stay, of the build's id type (D11), until the docs and samples move to the scopes; a call that passes an id
+  the host has already throws, naming both.
+- **Where:** `Hosting/AgentHost.cs`, `Storage/StoreId.cs`, `Storage/StoreAccess.cs`, `Generated/AgentRuns.cs`,
+  `Generated/ModuleRegistration.cs`, `DependencyInjection/TypeshiftBuilder.cs`, `Conversations/ConversationTracker.cs`,
+  `Analysis/TypeshiftAnalyzer.cs`.
+- **Alternatives:** an assembly attribute or two MSBuild properties, still one id type per build and outside code;
+  `ForSettings(id)` and `InConversation(id)`, names the owner turned down; ids as parameters of every generic run
+  member, which repeats them on every call and every overload; looking the store up by the id's runtime type, which
+  needs `MakeGenericType` and misses an id whose runtime type differs from its declared one.
 
 ### D44. Settings records serialize themselves
 

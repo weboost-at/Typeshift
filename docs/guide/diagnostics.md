@@ -37,7 +37,7 @@ so you fix it there instead of debugging a compiler error inside generated code.
 | [TSH025](#tsh025) | Error | Tool is offered twice |
 | [TSH026](#tsh026) | Error | Agents call each other in a circle |
 | [TSH027](#tsh027) | Error | Tool type has no JSON metadata under Native AOT |
-| [TSH028](#tsh028) | Error | Store has another id type |
+| [TSH028](#tsh028) | Error | Type is no store |
 | [TSH029](#tsh029) | Error | Id type cannot be used |
 | [TSH030](#tsh030) | Error | Provider has another id type |
 
@@ -239,10 +239,10 @@ need none: `string`, `char`, `bool`, `short`, `ushort`, `int`, `uint`, `long`, `
 
 ## TSH028
 
-**Store has another id type.** `WithStore<T>()` and `WithStore(store)` take a store of the build's id type. Implement `ISettingsStore`,
-`IConversationStore` or `ITypeshiftStore`, which is both. The generator writes these aliases for the build's id type,
-so they always have the right one. A store of `IAgentSettingsStore` alone takes no id, and one that is also a store of
-another id type is reported too.
+**Type is no store.** `WithStore<T>()` and `WithStore(store)` take a store: a type that implements
+`ISettingsStore<TId>`, `IConversationStore<TId>` or `IAgentSettingsStore`, of any id type. Implement one of them, or
+pass the store you meant. A store's id type picks the ids it serves, as
+[Ids of your own types](./settings-and-stores.md#ids-of-your-own-types) shows.
 
 ## TSH029
 

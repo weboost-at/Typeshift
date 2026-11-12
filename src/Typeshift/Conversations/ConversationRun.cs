@@ -8,10 +8,10 @@ namespace Typeshift;
 // even in the copies of messages it makes; the steering input and background answers waiting for the next model
 // call, and where in the tool loop's messages that input went. Without a conversation it stores nothing
 internal sealed class ConversationRun(
-    object? conversation,
+    StoreId? conversation,
     AgentRun run,
     string model,
-    IStoreAccess store,
+    StoreAccess store,
     TimeProvider time,
     ILogger logger)
 {
@@ -44,7 +44,7 @@ internal sealed class ConversationRun(
 
     public const string BackgroundCall = "typeshift.background_call";
 
-    public object? Conversation { get; } = conversation;
+    public StoreId? Conversation { get; } = conversation;
 
     public string Agent { get; } = run.Agent.Name;
 
