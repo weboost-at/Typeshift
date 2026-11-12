@@ -12,7 +12,8 @@ const description = 'Code-defined agents and toolsets for .NET on Microsoft.Exte
 const base = process.env.DOCS_BASE ?? '/Typeshift/'
 
 // The sidebar order is the reading order: the Introduction first, which takes a reader from nothing to an app that
-// uses the library, then building agents, running them, their settings and storage, production, and the reference.
+// uses the library, then building agents, running them, their settings and storage, production, the concepts that
+// explain the pages before them, and the reference.
 // The Introduction has no `collapsed` key, so it is always open; the others start collapsed, and VitePress opens one
 // when it holds the current page.
 // docs/.vitepress/lint.mjs fails on a page the sidebar leaves out.
@@ -64,6 +65,14 @@ const sidebar = {
       items: [
         { text: 'Observability', link: '/guide/observability' },
         { text: 'Native AOT', link: '/guide/native-aot' }
+      ]
+    },
+    {
+      text: 'Concepts',
+      collapsed: true,
+      items: [
+        { text: 'How Typeshift reads your code', link: '/guide/how-typeshift-reads-your-code' },
+        { text: 'How a run works', link: '/guide/how-a-run-works' }
       ]
     },
     {

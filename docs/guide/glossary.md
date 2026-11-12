@@ -20,7 +20,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | **Configurable** | A settings member or an option that stored settings or a run may change, marked in code with `Configurable(...)` or `WithConfigurableSettings<T>()`. Everything else keeps the value the code sets. |
 | **Context provider** | An `IContextProvider` that adds instructions, messages or tools to every run of the agents that use it. |
 | **Conversation** | The entries runs store under a conversation id, which `WithConversationId` gives a host: inputs, model responses, tool results and run endings. See [Conversations](./conversations.md). |
-| **Declaration** | The chain of calls in a toolset's or agent's constructor, such as `AddTool(...).ReadOnly()`. The generator reads it at compile time, and at runtime it only records values. |
+| **Declaration** | The chain of calls in a toolset's or agent's constructor, such as `AddTool(...).ReadOnly()`. The generator reads it at compile time, and at runtime it only records values. See [How Typeshift reads your code](./how-typeshift-reads-your-code.md). |
 | **Diagnostic** | A `TSHnnn` error or warning the analyzer reports for a mistake in a toolset, an agent or the setup. See [Diagnostics](./diagnostics.md). |
 | **Generated member** | A member the source generator writes into or next to your toolsets and agents. See [Generated members](./generated-members.md). |
 | **Handoff** | A tool, `handoff_to_{name}`, declared with `UseHandoff<T>()`, that hands the conversation to another agent. See [Multiple agents](./multi-agent.md#handoff). |

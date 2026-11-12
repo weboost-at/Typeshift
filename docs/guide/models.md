@@ -404,7 +404,8 @@ What your code sees depends on whether the run fails before or after it touches 
 
 ## Related
 
-- [Running agents](./running-agents.md): the run's services and the steps of a run.
+- [Running an agent](./running-agents.md): the run's services.
+- [How a run works](./how-a-run-works.md): the steps of a run.
 - [Settings and stores](./settings-and-stores.md#settings-layering): where each of a run's values comes from.
 - [Registration](./registration.md#the-chain): the chain calls and their lifetimes.
 - [Builders](./builders.md#chatoptionsbuilder): every chat and run option.

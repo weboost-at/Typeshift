@@ -67,14 +67,12 @@ The tools and their settings have sections of their own below. The other calls d
 | `WithInstructions(...)` | The instructions, the agent's system prompt, when they are the same for every run. |
 | `GetInstructions()` | The instructions, as an override, when your code builds them. It runs whenever a run's options are resolved, so the text may be computed. |
 
-Because the generator reads the constructor rather than running it, `WithName` and `WithDescription` take constants
-([TSH002](./diagnostics.md#tsh002)), and every declaration sits directly in the constructor as one chain
-([TSH014](./diagnostics.md#tsh014), [TSH015](./diagnostics.md#tsh015)). An agent derives from `Agent` directly, never
-from a base agent of yours ([TSH017](./diagnostics.md#tsh017)). To share between agents, put values in constants and
-code in static methods, and keep every declaration in each agent's constructor.
-
-Because an agent is declared in code, you cannot define one at runtime, and stored settings change only what its code
-marks configurable.
+`WithName` and `WithDescription` take constants ([TSH002](./diagnostics.md#tsh002)), and every declaration sits directly
+in the constructor as one chain ([TSH014](./diagnostics.md#tsh014), [TSH015](./diagnostics.md#tsh015)). An agent derives
+from `Agent` directly, never from a base agent of yours ([TSH017](./diagnostics.md#tsh017)). To share between agents,
+put values in constants and code in static methods, and keep every declaration in each agent's constructor.
+[How Typeshift reads your code](./how-typeshift-reads-your-code.md) explains these rules, and why you cannot define an
+agent at runtime.
 
 ## Selecting tools
 

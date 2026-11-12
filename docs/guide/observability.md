@@ -69,7 +69,7 @@ customers wrote. Turn it on only where your tracing backend may keep that data.
 
 ## Related
 
-- [How a run works](./running-agents.md#how-a-run-works): the steps the spans of a run cover.
+- [How a run works](./how-a-run-works.md): the steps the spans of a run cover.
 - [Wrapping a client](./models.md#wrapping-a-client): why `UseOpenTelemetry()` on your client records each call twice.
 - [Conversations](./conversations.md#live-updates): live updates of a run, for a UI.
 - [Native AOT](./native-aot.md): publishing your app ahead of time.

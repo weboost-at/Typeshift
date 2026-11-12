@@ -61,7 +61,8 @@ flowchart LR
 ```
 
 `AddTypeshift()` registers an `AgentHost<TAgent>` per agent. The host resolves the settings, calls the model, runs the
-tools and stores the conversation.
+tools and stores the conversation. [How Typeshift reads your code](./how-typeshift-reads-your-code.md) explains the
+compile-time half, and [How a run works](./how-a-run-works.md) the steps of a run.
 
 | Piece | What it is | Read |
 |---|---|---|
@@ -87,4 +88,5 @@ The [glossary](./glossary.md) defines every other term.
 
 - [Getting started](./getting-started.md): a first toolset, agent and run, in four steps.
 - [Agents](./defining-agents.md): everything an agent's constructor can declare.
+- [How Typeshift reads your code](./how-typeshift-reads-your-code.md): what is read when you build, and what that gives you.
 - [Glossary](./glossary.md): the words these docs use.
