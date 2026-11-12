@@ -72,7 +72,7 @@ public sealed class TypeshiftBuilder
         return this;
     }
 
-    // A store the container builds, as WithStore<TStore>() does, from a factory: WithFileSettings' over its folder
+    // A store the container builds, as WithStore<TStore>() does, from a factory: WithFileStore's over its folder
     internal TypeshiftBuilder WithStore<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] TStore>(
         Func<IServiceProvider, TStore> create)

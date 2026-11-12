@@ -617,8 +617,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Context:** the owner asked for first-party support of simple setups; an app with one agent and no database
   still has to keep its settings across restarts. The owner then asked for a chain call that takes options, so that
-  "the user does not have to instantiate a class owned component by hand".
-- **Decision:** `FileAgentSettingsStore` keeps each agent's own settings (D66) in `<folder>/<kind>.json`, as
+  "the user does not have to instantiate a class owned component by hand", and that "file settings must only be
+  exposed under the file-store configuration".
+- **Decision:** the file store keeps each agent's own settings (D66) in `<settings folder>/<kind>.json`, as
   `{"kind": ..., "version": n, "settings": {...}}`, so the file reads and edits by hand. A save holds the kind's lock
   file, opened with `FileShare.None`, so other stores and processes wait; it checks the version, writes a file of its
   own beside the old one, flushes it to the disk and moves it over, so a load reads the old file or the new one whole.
@@ -626,23 +627,26 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `-` and escapes every other byte as `%XX`, so any kind maps to a file of the folder, one to one; a name Windows
   reserves is escaped too. The file names its kind, so a file system that ignores case and gives two kinds one file
   fails the load instead of handing one agent the other's settings. A file of another shape throws an
-  `InvalidDataException` that names it and the shape. `WithFileSettings(configure)` registers the store from
-  `FileSettingsOptions`: the container builds it over `Folder` with the app's `TimeProvider`, through the registration
-  `WithStore<T>()` uses, so the last call wins for each interface. `Folder` defaults to `settings` under
-  `AppContext.BaseDirectory`, which a service finds whatever its current directory, and a blank one throws at
-  registration. `WithStore(store)` still registers a store your code created, as each interface the instance
-  implements, and the container leaves it undisposed.
-- **Where:** `Storage/FileAgentSettingsStore.cs`, `Storage/FileSettingsExtensions.cs`, `Storage/FileSettingsOptions.cs`,
+  `InvalidDataException` that names it and the shape. `WithFileStore(configure)` and `FileStoreOptions` are the only
+  public parts. `Folder`, the store's root, defaults to `typeshift` under `AppContext.BaseDirectory`, which a service
+  finds whatever its current directory; `Settings.Folder`, `settings` by default, lies under it unless it is
+  absolute. Both resolve at registration, and a blank one throws there, naming the option. `SettingsOptions` is
+  nested in `FileStoreOptions` and created only by it, so the settings are configured only as part of the store. The
+  container builds the internal `FileAgentSettingsStore` over the settings folder with the app's `TimeProvider`,
+  through the registration `WithStore<T>()` uses, so the last call wins for each interface. `WithStore(store)`
+  registers a store your code created, as each interface the instance implements, and the container leaves it
+  undisposed.
+- **Where:** `Storage/FileAgentSettingsStore.cs`, `Storage/FileStoreExtensions.cs`, `Storage/FileStoreOptions.cs`,
   `DependencyInjection/TypeshiftBuilder.cs`.
 - **Alternatives:** one lock per store instance, which two instances or processes on one folder pass through, tearing
   the file; refusing kinds that are no plain file name, which fails every run of an agent named in another script;
   TSH022 ignoring case, which would reject kinds a case-sensitive store keeps apart;
   a file store of settings ids and conversations too, a database in files that SQLite already is;
   the folder from configuration, which ties the store to a configuration section the app may not have; one file for
-  every agent, where a save of one agent's settings rewrites the others'; `WithFileStore`, the owner's working name,
-  which names the medium rather than what it keeps; a relative default folder, which a service resolves against the
-  system's folder; only `WithStore(new FileAgentSettingsStore(folder))`, which makes every app create a class of
-  Typeshift's and hand it the clock itself.
+  every agent, where a save of one agent's settings rewrites the others'; `WithFileSettings` and a public
+  `FileSettingsOptions`, which exposed the settings outside the file store's configuration; a relative default
+  folder, which a service resolves against the system's folder; a public `FileAgentSettingsStore` registered with
+  `WithStore(store)`, which made every app create a class of Typeshift's and hand it the clock itself.
 
 ### D68. The package turns XML docs on
 

@@ -146,7 +146,7 @@ var everyRun = await research.RunAsync("Graz");
 a settings id, and `ConfigureAsync(configure)` retries the same way.
 
 `InMemoryTypeshiftStore` forgets them when the app stops. To keep them without a database, for example in a local
-tool or a single-agent service, keep them in files with `WithFileSettings`:
+tool or a single-agent service, register the file store with `WithFileStore`:
 
 <!-- snippet: file-agent-settings -->
 <a id='snippet-file-agent-settings'></a>
@@ -154,21 +154,23 @@ tool or a single-agent service, keep them in files with `WithFileSettings`:
 var services = new ServiceCollection();
 
 services.AddTypeshift()
-    .WithFileSettings(options => options.Folder = folder)
+    .WithFileStore(store => store.Folder = folder)
     .WithChatClientProvider<KeyedChatClientProvider>();
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/FileSettings.cs#L30-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-file-agent-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-It registers a `FileAgentSettingsStore`, which keeps each agent's settings in a file named after its kind,
-`ResearchAgent.json` here. You can read, back up and edit the file by hand. Several stores and processes may share the
-folder, since a save takes a lock file of its kind first.
+The file store keeps each agent's settings in a file named after its kind, `settings/ResearchAgent.json` under its
+folder here. You can read, back up and edit the file by hand. Several processes may share the folder, since a save
+takes a lock file of its kind first.
 
-- Without a `Folder`, the files go to a `settings` folder under `AppContext.BaseDirectory`, beside your app's
-  assemblies, so a service finds them whatever its current directory is. Set one when your app may not write there,
-  as is usual for an install folder under Program Files.
+- Without a `Folder`, the store lies in a `typeshift` folder under `AppContext.BaseDirectory`, beside your app's
+  assemblies, so a service finds it whatever its current directory is. Set one when your app may not write there, as
+  is usual for an install folder under Program Files.
 - A relative `Folder` resolves against the current directory when you register the store, which for a service may be
   the system's folder.
+- `store.Settings.Folder` names the folder of the settings files, `settings` by default. A relative one lies under
+  `Folder`, and an absolute one is used as it is.
 - Characters other than ASCII letters, digits, `_` and `-` are escaped in the file name, so any kind has a file of its
   own.
 - On a file system that ignores case, as on Windows and macOS, two kinds that differ only in case share a file. The
