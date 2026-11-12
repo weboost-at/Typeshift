@@ -58,8 +58,10 @@ In a table that holds both, an agent's own document has no id. A load that forge
 customer's document as every customer's defaults. `VerifyAsync` checks for this.
 :::
 
-You implement all five. Every id has your build's [id type](./registration.md#the-id-type), which is `Guid` unless
-`TypeshiftIdType` names another; the samples on this page set it to `int`. Each method takes a `CancellationToken` last.
+You implement all five. Every id has your store's id type, the type argument of its interfaces, and the samples on
+this page use `int`: runs with ids of that type reach your store, as
+[Ids of your own types](./settings-and-stores.md#ids-of-your-own-types) shows. Each method takes a `CancellationToken`
+last.
 
 | Method | Does |
 |---|---|

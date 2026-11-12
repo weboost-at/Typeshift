@@ -182,14 +182,14 @@ public class AgentSettingsTests : AgentTestBase
     }
 
     [Fact]
-    public void Given_A_Store_With_A_Store_Interface_Of_Another_Id_Type_Registering_It_Fails_Naming_TSH028()
+    public void Given_A_Type_That_Is_No_Store_Registering_It_Fails_Naming_TSH028()
     {
         // Arrange
         var services = new ServiceCollection();
 
         // Act
 #pragma warning disable TSH028 // the analyzer reports it at build time; this checks the registration's own guard
-        var register = () => services.AddTypeshift().WithStore<InMemoryTypeshiftStore<int>>();
+        var register = () => services.AddTypeshift().WithStore<ProvidedModels>();
 #pragma warning restore TSH028
 
         // Assert

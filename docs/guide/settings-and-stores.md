@@ -114,6 +114,32 @@ summaries it reads.
 `WithStore<T>()` registers each store interface your class implements, so an `ITypeshiftStore` takes one call. A
 store of settings and a store of conversations take one call each.
 
+### Ids of your own types
+
+Each store has the id type of its interface, and one app may have several: an `ISettingsStore<int>` keeps settings
+under `int` ids while an `IConversationStore<string>` keeps conversations under `string` ids. Give a run its ids in
+code, and each id's type picks the store of that type:
+
+- `support.WithSettingsId(42)` applies the settings stored under 42 in the `ISettingsStore<int>`, over the agent's
+  own. Its settings members, such as `ConfigureAsync(...)`, load and save those settings.
+- `support.WithConversationId(chat)` resumes the conversation in the `IConversationStore` of `chat`'s type, and stores
+  what the run adds to it.
+
+Each call returns a copy of the host with the id, in the host's scope, so
+`support.WithSettingsId(42).WithConversationId(chat).RunAsync(input)` runs with both, and `support` itself keeps none.
+A copy never disposes that scope, so it works as long as `support` does. Ids of the same value and different types are
+different ids: a conversation under 5 as an `int` is not the one under 5 as a `long`. An id whose type no registered
+store keeps throws an `InvalidOperationException` that names the interface it needs, such as `ISettingsStore<long>`.
+Passing an id to a call of a host that has one already throws an `ArgumentException`.
+
+A few things follow the id's type:
+
+- `ResumeAsync()` without an id resumes the host's conversation, and `ResolveOptionsAsync()` hands it on to the raw
+  path.
+- `ConversationTracker.TrySteer(chat, input)` and `WatchAsync(chat, ct)` take a conversation id of any type, while
+  `Runs` lists the conversations under ids of the build's [id type](./registration.md#the-id-type).
+- Each `InMemoryTypeshiftStore` keeps agents' own settings too, so of several, the last one registered keeps them.
+
 ::: warning The store is a singleton
 `WithStore<T>()` registers the store as a singleton, so one instance serves every run at the same time. It cannot
 take scoped services, such as a `DbContext`: [Register your store](./implementing-a-store.md#register-your-store)

@@ -41,6 +41,9 @@ All notable changes to this project are documented here. The format follows
 - `WithFileStore()` keeps each agent's own settings in a JSON file, for an app without a database: in the `settings`
   folder of a `typeshift` folder beside your app's assemblies, unless `store => store.Folder = folder` names another.
   `WithStore(store)` registers a store you created.
+- `host.WithSettingsId(id)` and `host.WithConversationId(id)` give a run its ids in code, and each id's type picks the
+  store of that type, so settings under `int` ids and conversations under `string` ids serve one app. `WithStore<T>()`
+  takes stores of any id type, and TSH028 reports only a type that is no store.
 
 ### Changed
 

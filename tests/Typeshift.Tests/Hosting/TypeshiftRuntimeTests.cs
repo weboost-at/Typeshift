@@ -298,6 +298,66 @@ public class TypeshiftRuntimeTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Copy_Of_A_Host_Of_The_Runtime_Disposed_The_Host_Still_Runs_In_Its_Scope()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Call(Data.Tool.SecondCallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        await using var probe = Runtime.Agent<ProbeAgent>();
+        var copy = probe.WithConversationId(Data.Agent.ConversationId);
+        var copyRun = await copy.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await copy.DisposeAsync();
+        var hostRun = await probe.RunAsync(Data.Tool.Question, ct: Ct);
+        var copyScope = copyRun.Assert.ToolResult<ProbeResult>(Data.Tool.CallId, Json).Scope;
+        var hostScope = hostRun.Assert.ToolResult<ProbeResult>(Data.Tool.SecondCallId, Json).Scope;
+
+        // Assert
+        copyScope.Should().NotBeNull();
+        hostScope.Should().Be(copyScope);
+    }
+
+    [Fact]
+    public async Task Given_A_Copy_Of_A_Host_Of_The_Runtime_Disposed_The_Scoped_Services_Of_Its_Runs_Stay_Undisposed()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        await using var probe = Runtime.Agent<ProbeAgent>();
+        var copy = probe.WithConversationId(Data.Agent.ConversationId);
+        await copy.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await copy.DisposeAsync();
+
+        // Assert
+        _created.Should().ContainSingle();
+        _created[0].Disposed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Given_A_Host_Of_The_Runtime_Disposed_After_Its_Copy_The_Scoped_Services_Are_Disposed_Once()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        var probe = Runtime.Agent<ProbeAgent>();
+        var copy = probe.WithConversationId(Data.Agent.ConversationId);
+        await copy.RunAsync(Data.Tool.Question, ct: Ct);
+        await copy.DisposeAsync();
+
+        // Act
+        await probe.DisposeAsync();
+
+        // Assert
+        _created.Should().ContainSingle();
+        _created[0].Disposals.Should().Be(1);
+    }
+
+    [Fact]
     public async Task Given_A_Runtime_From_The_Container_Disposed_The_Container_Keeps_Working()
     {
         // Arrange

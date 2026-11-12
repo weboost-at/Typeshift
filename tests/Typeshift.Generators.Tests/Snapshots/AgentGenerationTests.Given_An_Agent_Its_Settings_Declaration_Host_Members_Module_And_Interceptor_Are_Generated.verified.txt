@@ -213,6 +213,19 @@ public static class TypeshiftHost_4Demo12SupportAgent
             global::Typeshift.Generated.AgentRuns.ResumeAsync(host, conversationId, settingsId, settings, ct);
 
         /// <summary>
+        /// Continues the run of the host's conversation, from <c>WithConversationId</c>, that was interrupted, from its
+        /// last stored step, without new input.
+        /// </summary>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
+        /// <param name="ct">Cancels the run.</param>
+        /// <returns>The response.</returns>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host has no conversation, or the conversation has no interrupted run.
+        /// </exception>
+        public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse> ResumeAsync(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.ResumeAsync(host, null, null, settings, ct);
+
+        /// <summary>
         /// Continues the conversation's run that was interrupted, from its last stored step, without new input.
         /// </summary>
         /// <param name="conversationId">The conversation's id.</param>
@@ -231,6 +244,19 @@ public static class TypeshiftHost_4Demo12SupportAgent
             global::Demo.SupportAgent.Settings? settings = null,
             global::System.Threading.CancellationToken ct = default) =>
             global::Typeshift.Generated.AgentRuns.ResumeStreamingAsync(host, conversationId, settingsId, settings, ct);
+
+        /// <summary>
+        /// Continues the run of the host's conversation, from <c>WithConversationId</c>, that was interrupted, from its
+        /// last stored step, without new input.
+        /// </summary>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
+        /// <param name="ct">Cancels the run.</param>
+        /// <returns>The updates.</returns>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host has no conversation, or the conversation has no interrupted run.
+        /// </exception>
+        public global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate> ResumeStreamingAsync(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.ResumeStreamingAsync(host, null, null, settings, ct);
 
         /// <summary>
         /// Resolves the options of a run, for the raw path: <c>CreateChatClientAsync</c>, then the client.

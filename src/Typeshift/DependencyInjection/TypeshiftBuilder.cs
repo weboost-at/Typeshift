@@ -7,7 +7,7 @@ namespace Typeshift;
 internal delegate void StoreRegistration(
     IServiceCollection services,
     Type type,
-    IReadOnlyList<Type> idTypes,
+    IReadOnlyList<Type> contracts,
     object? instance,
     Func<IServiceProvider, object> store);
 
@@ -37,8 +37,8 @@ public sealed class TypeshiftBuilder
     /// saves throws, naming this method.
     /// </summary>
     /// <typeparam name="TStore">
-    /// An <c>IAgentSettingsStore</c>, or an <c>ISettingsStore</c>, an <c>IConversationStore</c> or both, an
-    /// <c>ITypeshiftStore</c>, of the build's id type (TSH028).
+    /// An <c>IAgentSettingsStore</c>, an <c>ISettingsStore&lt;TId&gt;</c>, an <c>IConversationStore&lt;TId&gt;</c>, or
+    /// several of them, of any id types (TSH028). A run's ids pick the store of their type.
     /// </typeparam>
     /// <returns>The same chain.</returns>
     public TypeshiftBuilder WithStore<
@@ -48,18 +48,19 @@ public sealed class TypeshiftBuilder
     {
         _services.AddSingleton<TStore>();
         var store = typeof(TStore);
-        _addStore(_services, store, IdTypes(store), null, provider => provider.GetRequiredService<TStore>());
+        _addStore(_services, store, Contracts(store), null, provider => provider.GetRequiredService<TStore>());
         return this;
     }
 
     /// <summary>
-    /// Registers a store you created yourself, as each store interface the instance implements. Your app owns the
-    /// instance, so the container never disposes it.
+    /// Registers a store you created yourself, as each store interface <typeparamref name="TStore"/> implements, and as
+    /// those of the build's id type the instance implements. Your app owns the instance, so the container never
+    /// disposes it.
     /// </summary>
     /// <param name="store">The store, a singleton.</param>
     /// <typeparam name="TStore">
-    /// The store's type as your code declares it: an <c>IAgentSettingsStore</c>, or an <c>ISettingsStore</c>, an
-    /// <c>IConversationStore</c> or both, an <c>ITypeshiftStore</c>, of the build's id type (TSH028).
+    /// The store's type as your code declares it: an <c>IAgentSettingsStore</c>, an <c>ISettingsStore&lt;TId&gt;</c>,
+    /// an <c>IConversationStore&lt;TId&gt;</c>, or several of them, of any id types (TSH028).
     /// </typeparam>
     /// <returns>The same chain.</returns>
     public TypeshiftBuilder WithStore<
@@ -68,7 +69,7 @@ public sealed class TypeshiftBuilder
     {
         ArgumentNullException.ThrowIfNull(store);
         if (!typeof(TStore).IsInterface) _services.AddSingleton(store);
-        _addStore(_services, typeof(TStore), IdTypes(typeof(TStore)), store, _ => store);
+        _addStore(_services, typeof(TStore), Contracts(typeof(TStore)), store, _ => store);
         return this;
     }
 
@@ -80,21 +81,22 @@ public sealed class TypeshiftBuilder
     {
         _services.AddSingleton(create);
         var store = typeof(TStore);
-        _addStore(_services, store, IdTypes(store), null, provider => provider.GetRequiredService<TStore>());
+        _addStore(_services, store, Contracts(store), null, provider => provider.GetRequiredService<TStore>());
         return this;
     }
 
-    // D66: a store may be of agents' own settings alone, so an interface of another id type is found by its own
-    // type arguments, not only by the absence of the build's
-    private static Type[] IdTypes(
+    // D72: the store interfaces a type implements, of whatever id types, the type itself when it is one
+    private static Type[] Contracts(
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type store) =>
-    [
-        .. store.GetInterfaces()
-            .Where(contract => contract.IsGenericType
-                && (contract.GetGenericTypeDefinition() == typeof(ISettingsStore<>)
-                    || contract.GetGenericTypeDefinition() == typeof(IConversationStore<>)))
-            .Select(contract => contract.GetGenericArguments()[0])
-    ];
+        [.. (store.IsInterface ? store.GetInterfaces().Append(store) : store.GetInterfaces()).Where(IsContract)];
+
+    private static bool IsContract(Type contract) =>
+        contract == typeof(IAgentSettingsStore)
+        || (contract.IsGenericType
+            && contract.GetGenericTypeDefinition() is var definition
+            && (definition == typeof(ISettingsStore<>)
+                || definition == typeof(IConversationStore<>)
+                || definition == typeof(ITypeshiftStore<>)));
 
     /// <summary>
     /// Registers the provider that returns the client of a provider's model, scoped. It serves a run before any

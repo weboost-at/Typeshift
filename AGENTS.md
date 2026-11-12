@@ -112,6 +112,7 @@ style; the essentials:
 | The order of a run's steps | `guide/running-agents.md#how-a-run-works` | `contributing/architecture.md#a-run` (the code's side) |
 | The store's lifetime and contract, kinds, schema versions, versions, conversation entries and summaries, checking a store | `guide/implementing-a-store.md` | `settings-and-stores.md` (link), `conversations.md#what-is-stored` |
 | The `Settings` JSON, an agent's own settings and those under a settings id | `guide/settings-and-stores.md` | `generated-members.md#settings` |
+| Ids in code (`WithSettingsId`, `WithConversationId`), stores of several id types | `guide/settings-and-stores.md#ids-of-your-own-types` | `registration.md#the-id-type`, `diagnostics.md#tsh028` |
 | Conversations: storage, resume, steering, live updates, compaction | `guide/conversations.md` | |
 | A chat UI's endpoints: posting, streaming as server-sent events, approvals by their ids | `guide/chat-endpoint.md` | |
 | Generated members, `AgentHost` members and signatures | `guide/generated-members.md` | `running-agents.md` |

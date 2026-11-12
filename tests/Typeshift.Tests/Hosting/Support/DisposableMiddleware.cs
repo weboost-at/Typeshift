@@ -6,11 +6,13 @@ public sealed class DisposableMiddleware : IRunMiddleware, IDisposable
 {
     public DisposableMiddleware(CreatedMiddleware created) => created.Add(this);
 
-    public bool Disposed { get; private set; }
+    public int Disposals { get; private set; }
+
+    public bool Disposed => Disposals > 0;
 
     public Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken ct) => next();
 
-    public void Dispose() => Disposed = true;
+    public void Dispose() => Disposals++;
 }
 
 public sealed class CreatedMiddleware : List<DisposableMiddleware>;
