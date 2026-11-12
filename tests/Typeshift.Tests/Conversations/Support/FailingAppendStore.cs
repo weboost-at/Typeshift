@@ -8,6 +8,11 @@ public sealed class FailingAppendStore : IConversationStore
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(Guid conversation, CancellationToken ct) =>
         _store.LoadConversationAsync(conversation, ct);
 
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
+        Guid conversation,
+        CancellationToken ct) =>
+        _store.LoadConversationSinceCompactionAsync(conversation, ct);
+
     public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct) =>
         throw new IOException("The store is down.");
 }
