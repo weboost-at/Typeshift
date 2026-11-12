@@ -207,6 +207,7 @@ public class ConversationStoreTests : AgentTestBase
         // Assert
         logs.Warnings.Should().ContainSingle();
         logs.Warnings[0].Should().Contain("WithStore");
+        logs.Warnings[0].Should().Contain("WithFileStore");
     }
 
     [Fact]

@@ -11,7 +11,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | Term | Meaning |
 |---|---|
 | **Agent** | A `partial` class deriving from `Agent` that bundles chat options, instructions, tools and their settings for one job. See [Agents](./defining-agents.md). |
-| **Agent host** | `AgentHost<TAgent>`, which runs one agent with the services of the scope it was resolved from. See [Using an agent](./using-an-agent.md). |
+| **Agent host** | `AgentHost<TAgent>`, which runs one agent with the services of its scope: the one it was resolved from, or the one the runtime created for it. See [Using an agent](./using-an-agent.md). |
 | **Approval request** | The `ToolApprovalRequestContent` a run ends with when it needs approval. You answer it in the conversation's next run. See [Approval and modes](./tool-approval.md). |
 | **Approval rule** | An `IToolApprovalRule` that approves, rejects or abstains on a tool call before your app is asked. |
 | **Chat client provider** | The `IChatClientProvider` your app may register with `WithChatClientProvider<T>()`, which returns the `IChatClient` for a provider and a model. Without one, a run takes an `IChatClient` registered under its provider or for every agent. |
@@ -36,6 +36,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | **Raw path** | Resolving a run's options and creating its `IChatClient` yourself, for when your app needs the client. See [Running agents](./running-agents.md#the-raw-path). |
 | **Run** | One call of `RunAsync`, `RunAsync<T>`, `RunStreamingAsync`, `RunStreamingAsync<T>`, `ResumeAsync`, `ResumeStreamingAsync` or the raw path's client: the model calls and tool calls until the model answers. |
 | **Run options** | How a run's tool loop goes, with its mode, its limits and compaction. Set with `WithRunOptions()`. |
+| **Runtime** | `TypeshiftRuntime`, the root of Typeshift in your app, which gives you a host with a scope of its own. `TypeshiftRuntime.Create` builds one without a container, and `AddTypeshift()` registers one. See [The runtime](./registration.md#the-runtime). |
 | **Schema version** | The number in a stored document's JSON, `"$schemaVersion"`, that names the shape of the record that wrote it: 1 unless the agent's `WithSchemaVersion(n)` raises it. Reading a newer one fails. See [The stored JSON](./settings-and-stores.md#the-stored-json). |
 | **Settings** | An agent's generated `Settings` record, with exactly the values that may change at runtime. Stored as the agent's own, stored under a settings id, or passed for one run. |
 | **Settings id** | The id your app stores an agent's `Settings` under, such as one per customer, team or user. |

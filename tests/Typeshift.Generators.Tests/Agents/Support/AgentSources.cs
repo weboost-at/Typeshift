@@ -323,7 +323,7 @@ public static class AgentSources
         """;
 
     // D75: an app without a container of its own
-    public const string App =
+    public const string Runtime =
         """
         using Typeshift;
         using Microsoft.Extensions.AI;
@@ -332,13 +332,13 @@ public static class AgentSources
 
         internal static class Program
         {
-            public static TypeshiftApp Start(IChatClient client) =>
-                TypeshiftApp.Create(client, typeshift => typeshift.WithStore<InMemoryTypeshiftStore>());
+            public static TypeshiftRuntime Start(IChatClient client) =>
+                TypeshiftRuntime.Create(client, typeshift => typeshift.WithStore<InMemoryTypeshiftStore>());
         }
         """;
 
-    // D75: an app whose only call is TypeshiftApp.Create, through the given receiver, with no AddTypeshift()
-    public static string AppOnly(string receiver) =>
+    // D75: an app whose only call is TypeshiftRuntime.Create, through the given receiver, with no AddTypeshift()
+    public static string RuntimeOnly(string receiver) =>
         $$"""
         #pragma warning disable CS1591
 
@@ -354,7 +354,7 @@ public static class AgentSources
 
         internal static class Program
         {
-            public static TypeshiftApp Start(IChatClient client) => {{receiver}}.Create(client);
+            public static TypeshiftRuntime Start(IChatClient client) => {{receiver}}.Create(client);
         }
         """;
 
@@ -377,7 +377,7 @@ public static class AgentSources
         """;
 
     // D75: a call bound at run time, which the library's body answers
-    public const string DynamicApp =
+    public const string DynamicRuntime =
         """
         using Typeshift;
 
@@ -385,7 +385,7 @@ public static class AgentSources
 
         internal static class Program
         {
-            public static TypeshiftApp Start(dynamic client) => TypeshiftApp.Create(client);
+            public static TypeshiftRuntime Start(dynamic client) => TypeshiftRuntime.Create(client);
         }
         """;
 }

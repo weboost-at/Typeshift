@@ -43,6 +43,9 @@ public static class ModuleRegistration
             provider.GetRequiredService<LiveRuns>(),
             provider.GetRequiredService<RealtimeTrackingOptions>()));
 
+        // D76: the root's services, whatever scope resolves it
+        services.TryAddSingleton(provider => new TypeshiftRuntime(provider));
+
         return new TypeshiftBuilder(
             services,
             AddStore<TId>,
@@ -94,14 +97,14 @@ public static class ModuleRegistration
     }
 
     /// <summary>
-    /// Builds the app <c>TypeshiftApp.Create</c> returns, over the services its interceptor registered.
+    /// Builds the container <c>TypeshiftRuntime.Create</c> registered and returns its runtime, which owns it.
     /// </summary>
     /// <param name="services">The services, with the core services and the modules registered.</param>
     /// <param name="builder">The registration chain the core services returned.</param>
     /// <param name="client">The chat client of every run.</param>
     /// <param name="configure">What else the app registers; null for nothing.</param>
-    /// <returns>The app.</returns>
-    public static TypeshiftApp CreateApp(
+    /// <returns>The runtime.</returns>
+    public static TypeshiftRuntime CreateRuntime(
         IServiceCollection services,
         TypeshiftBuilder builder,
         IChatClient client,
@@ -114,7 +117,8 @@ public static class ModuleRegistration
         services.AddSingleton(client);
         configure?.Invoke(builder);
 
-        return new TypeshiftApp(services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true }));
+        return TypeshiftRuntime.Owning(
+            services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true }));
     }
 
     /// <summary>
@@ -154,7 +158,7 @@ public static class ModuleRegistration
         services.AddSingleton(_ => create());
 
         // D25: transient, so the host keeps the provider of the scope it is resolved from
-        services.AddTransient(provider => new AgentHost<TAgent>(provider.GetRequiredService<TAgent>(), provider));
+        services.AddTransient(AgentHost<TAgent>.In);
     }
 
     /// <summary>

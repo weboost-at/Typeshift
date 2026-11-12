@@ -12,9 +12,8 @@ services.AddTypeshift()
     .WithChatClientProvider<ScriptedChatClientProvider>();
 
 await using var provider = services.BuildServiceProvider();
-await using var scope = provider.CreateAsyncScope();
+await using var research = provider.GetRequiredService<TypeshiftRuntime>().Agent<ResearchAgent>();
 
-var research = scope.ServiceProvider.GetRequiredService<AgentHost<ResearchAgent>>();
 var settingsId = Guid.CreateVersion7();
 var conversationId = Guid.CreateVersion7();
 

@@ -1,11 +1,10 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Typeshift.Samples.Agents;
 
 namespace Typeshift.Samples.Hosting;
 
 // begin-snippet: background-host
-internal sealed class TicketDigest(IServiceScopeFactory scopes, TimeProvider time) : BackgroundService
+internal sealed class TicketDigest(TypeshiftRuntime runtime, TimeProvider time) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -19,9 +18,8 @@ internal sealed class TicketDigest(IServiceScopeFactory scopes, TimeProvider tim
 
     public async Task<string> DigestAsync(CancellationToken ct)
     {
-        // A scope for each job, so the run gets scoped services of its own, as a request would
-        await using var scope = scopes.CreateAsyncScope();
-        var support = scope.ServiceProvider.GetRequiredService<AgentHost<SupportAgent>>();
+        // A host for each job, so the run gets scoped services of its own, as a request would
+        await using var support = runtime.Agent<SupportAgent>();
 
         var answer = await support.RunAsync("Summarize the tickets opened today.", ct: ct);
         return answer.Text;

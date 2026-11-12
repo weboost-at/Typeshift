@@ -72,7 +72,8 @@ internal sealed class StoreAccess(IServiceProvider services, BuildIds build)
         {
             services.GetService<ILoggerFactory>()?.CreateLogger("Typeshift").LogWarning(
                 "No store is registered, so Typeshift keeps settings and conversations in memory and loses them when "
-                + "the app stops: call WithStore<T>() after AddTypeshift() to keep them.");
+                + "the app stops: call WithStore<T>() after AddTypeshift() to keep them, or WithFileStore() to keep "
+                + "agents' own settings in files.");
         }
 
         return store;

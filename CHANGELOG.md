@@ -7,9 +7,11 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- `TypeshiftApp.Create(client)` runs the agents of an app without a container of its own:
-  `app.Agent<ResearchAgent>().RunAsync("Vienna")`, with one chat client for every run. The package now depends on
-  `Microsoft.Extensions.DependencyInjection`.
+- `TypeshiftRuntime.Create(client)` runs the agents of an app without a container of its own, with one chat client
+  for every run: `await using var research = runtime.Agent<ResearchAgent>()`, then `research.RunAsync("Vienna")`.
+  `AddTypeshift()` registers the runtime as a singleton too, so a background service injects it and takes a host for
+  each job. Each host the runtime gives you has scoped services of its own, which disposing the host disposes. The
+  package now depends on `Microsoft.Extensions.DependencyInjection`.
 - The docs site publishes the guide as Markdown for coding assistants: `llms.txt` lists its pages, `llms-full.txt`
   holds them all in one file, and each guide page is also served at its address with `.md`.
 - Tools take and return C# 15 unions, and `RunAsync<T>` returns one. A JSON string binds a union's `string` case and
@@ -36,7 +38,8 @@ All notable changes to this project are documented here. The format follows
 - Each agent has settings of its own, which every run applies under no settings id: `ConfigureAsync(configure)`,
   `LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)`, kept by an `IAgentSettingsStore`.
   `InMemoryTypeshiftStore` implements it, and a settings id's settings apply over the agent's own.
-- `FileAgentSettingsStore` keeps each agent's own settings in a JSON file of a folder, for an app without a database.
+- `WithFileStore()` keeps each agent's own settings in a JSON file, for an app without a database: in the `settings`
+  folder of a `typeshift` folder beside your app's assemblies, unless `store => store.Folder = folder` names another.
   `WithStore(store)` registers a store you created.
 - `host.WithSettingsId(id)` and `host.WithConversationId(id)` give a run its ids in code, and each id's type picks the
   store of that type, so settings under `int` ids and conversations under `string` ids serve one app. `WithStore<T>()`
@@ -48,6 +51,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- `AgentHost<TAgent>` is `IAsyncDisposable` and `IDisposable`. Disposing a host your container resolved, such as one
+  injected into a request, does nothing, so code that injects hosts works as before.
+- A run that ends while background sub-agents work, for example cancelled or failed, waits until the sub-agents it
+  stops have stopped, so none works on after the run.
 - Live updates are on without `WithRealtimeTracking()`, so `ConversationTracker.WatchAsync` reads a conversation's
   updates from the start, where it threw. `WithRealtimeTracking(options)` only tunes them now.
 - The response of a run with a conversation names it in `ChatResponse.ConversationId`, and so does each update of a

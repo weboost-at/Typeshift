@@ -101,46 +101,46 @@ public class AgentGenerationTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_A_TypeshiftApp_Create_Call_The_Interceptor_Builds_The_App_With_The_Projects_Module()
+    public void Given_A_TypeshiftRuntime_Create_Call_The_Interceptor_Builds_The_Runtime_With_The_Projects_Module()
     {
         // Act
-        var run = Run(AgentSources.Tickets, AgentSources.Support, AgentSources.App);
+        var run = Run(AgentSources.Tickets, AgentSources.Support, AgentSources.Runtime);
 
         // Assert
         var interceptor = run.Source("Typeshift.Generated.AddTypeshiftInterceptor.g.cs");
-        interceptor.Should().Contain("public static global::Typeshift.TypeshiftApp Create(");
-        interceptor.Should().Contain("CreateApp(services, AddTypeshift(services), client, configure)");
+        interceptor.Should().Contain("public static global::Typeshift.TypeshiftRuntime Create(");
+        interceptor.Should().Contain("CreateRuntime(services, AddTypeshift(services), client, configure)");
         interceptor.Should().Contain("Module.Register(services);");
     }
 
     [Fact]
-    public void Given_A_TypeshiftApp_Create_Call_The_Generated_Code_Compiles_Without_Warnings()
+    public void Given_A_TypeshiftRuntime_Create_Call_The_Generated_Code_Compiles_Without_Warnings()
     {
         // Act
-        var run = Run(AgentSources.Tickets, AgentSources.Support, AgentSources.App);
+        var run = Run(AgentSources.Tickets, AgentSources.Support, AgentSources.Runtime);
 
         // Assert
         run.Assert.CompilesCleanly();
     }
 
     [Theory]
-    [InlineData("TypeshiftApp")]
-    [InlineData("Typeshift.TypeshiftApp")]
-    [InlineData("global::Typeshift.TypeshiftApp")]
-    public void Given_Only_A_TypeshiftApp_Create_Call_It_Is_Intercepted(string receiver)
+    [InlineData("TypeshiftRuntime")]
+    [InlineData("Typeshift.TypeshiftRuntime")]
+    [InlineData("global::Typeshift.TypeshiftRuntime")]
+    public void Given_Only_A_TypeshiftRuntime_Create_Call_It_Is_Intercepted(string receiver)
     {
         // Act
-        var run = Run(AgentSources.AppOnly(receiver));
+        var run = Run(AgentSources.RuntimeOnly(receiver));
 
         // Assert
         run.Assert.Intercepts($"{receiver}.Create(client)");
     }
 
     [Fact]
-    public void Given_Only_A_TypeshiftApp_Create_Call_The_Generated_Code_Compiles_Without_Warnings()
+    public void Given_Only_A_TypeshiftRuntime_Create_Call_The_Generated_Code_Compiles_Without_Warnings()
     {
         // Act
-        var run = Run(AgentSources.AppOnly("TypeshiftApp"));
+        var run = Run(AgentSources.RuntimeOnly("TypeshiftRuntime"));
 
         // Assert
         run.Assert.CompilesCleanly();
@@ -157,13 +157,13 @@ public class AgentGenerationTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_A_TypeshiftApp_Create_Call_Bound_At_Run_Time_The_Generator_Does_Not_Intercept_It()
+    public void Given_A_TypeshiftRuntime_Create_Call_Bound_At_Run_Time_The_Generator_Does_Not_Intercept_It()
     {
         // Act
-        var run = Run(AgentSources.DynamicApp);
+        var run = Run(AgentSources.DynamicRuntime);
 
         // Assert
-        run.Assert.DoesNotIntercept("TypeshiftApp.Create(client)");
+        run.Assert.DoesNotIntercept("TypeshiftRuntime.Create(client)");
     }
 
     [Fact]
