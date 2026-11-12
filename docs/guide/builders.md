@@ -88,7 +88,7 @@ run change an option, even one the code never sets, and makes it a member of the
 
 | Call | Sets | May be configurable |
 |---|---|---|
-| `WithModel(TProviderId provider, string model)` | `ModelId`, and the [provider](./models.md) that serves it | Yes, as `Provider` and `Model` |
+| `WithModel(TProviderId provider, string model)` | `ModelId`, and the [provider](./models.md) that serves it, whose type is the agent's [provider id type](./models.md#the-provider-id-type) | Yes, as `Provider` and `Model` |
 | `WithInstructions(...)` in the agent, or `GetInstructions()` overridden | `Instructions` | Yes |
 | `WithTemperature(float temperature)` | `Temperature` | Yes |
 | `WithMaxOutputTokens(int tokens)` | `MaxOutputTokens` | Yes |

@@ -27,7 +27,7 @@ services.AddTypeshift() --> InterceptParser --> InterceptorEmitter -------> AddT
 
 | Namespace | Holds |
 |---|---|
-| `Typeshift` | `Toolset` and the tool chain (`ToolBuilder`, the settings builders), `ToolName`, `ToolList<T>`; `Agent` and its chains (`ChatOptionsBuilder`, `ToolsetUse<T>`, `RunOptionsBuilder`), `RunOptions`; `TypeshiftRuntime`, `AgentHost<T>`, `IChatClientProvider`, `TypeshiftBuilder`. |
+| `Typeshift` | `Toolset` and the tool chain (`ToolBuilder`, the settings builders), `ToolName`, `ToolList<T>`; `Agent` and its chains (`ChatOptionsBuilder`, `ToolsetUse<T>`, `RunOptionsBuilder`), `RunOptions`; `TypeshiftRuntime`, `AgentHost<T>`, `IChatClientProvider<TProviderId>`, `TypeshiftBuilder`. |
 | `Typeshift.Generated` | What only generated code calls, hidden from editors (D10): `GeneratedToolFunction`, `ToolParameter`, `ToolJson`, `AgentDeclaration`, `AgentRuns`, `ModuleRegistration` and the stamps. |
 | `Microsoft.Extensions.DependencyInjection` | `AddTypeshift()`, which throws unless the generator intercepts it (D1). |
 
@@ -58,7 +58,8 @@ what does not parse (D2).
    settings, a hidden `Create{Tool}` factory and a private `GeneratedToolFunction` subclass. For each toolset it
    writes a `{Toolset}ToolList` extension block with a property per tool, plus a `[GeneratedTool]` stamp per tool
    for agents in other assemblies (D7).
-5. **Agents** (`Parsing/AgentParser.cs`) read the chat and run option picks, the toolset uses and their picks, and
+5. **Agents** (`Parsing/AgentParser.cs`) read the chat and run option picks, the type of the provider `WithModel`
+   names, which types the provider members of the agent's `Settings` (D77), the toolset uses and their picks, and
    the agent's own tools, which `ToolsetParser.ParseTools` reads as it reads a toolset's (D57). The tool list's
    properties are the generator's own output, so a pick from it does not bind there. The parser walks those calls as
    invalid operations and reads the picks from syntax instead. `Parsing/Catalog.cs` resolves the uses against the
@@ -103,8 +104,9 @@ unless it is an object of properties.
    settings id, then the run's. Each layer
    reaches the configurable options and the run options. Then come the offered tools, created with their layered
    settings (D27), the sub-agents (D33) and the MCP servers' tools (D35).
-3. It takes the client of the run's provider and model from the scope's `IChatClientProvider`, an `IChatClient` keyed
-   by the provider, or the one registered for every agent (D63), and builds the pipeline, outermost first:
+3. It takes the client of the run's provider and model from the scope's `IChatClientProvider<T>` of the provider's
+   type (D77), an `IChatClient` keyed by the provider, or the one registered for every agent (D63), and builds the
+   pipeline, outermost first:
    - the conversation (D46, D50), run middleware (D30), context providers (D31), approval and modes (D24, D52),
      and author names on every message (D26);
    - `FunctionInvokingChatClient`, with the run options, the scope's services, `exit_plan_mode` and the tool

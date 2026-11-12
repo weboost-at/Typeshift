@@ -52,7 +52,8 @@ ids ([Ids of your own types](./settings-and-stores.md#ids-of-your-own-types)).
 Typeshift creates an id only when you keep every conversation, for a conversation a run starts without one
 ([Keeping every conversation](./conversations.md#keeping-every-conversation)).
 
-Providers have an id type of their own, `TypeshiftProviderIdType`, which is `string` unless set. See
+Providers have an id type of their own, which each agent takes from the provider its `WithModel` names: `string`
+for `WithModel("openai", "gpt-5-mini")`, or an enum of yours. See
 [the provider id type](./models.md#the-provider-id-type).
 
 ## The runtime
@@ -154,7 +155,7 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 | `WithStore<TStore>()` | `TStore`, and each of `IAgentSettingsStore`, `ISettingsStore<TId>`, `IConversationStore<TId>` and `ITypeshiftStore<TId>` it implements, of any id type, resolving to it. Call it once for each class. | Singleton, so it takes no scoped services ([Implementing a store](./implementing-a-store.md#register-your-store)) | Keeping agents' own settings, settings ids and conversations across restarts. Without any store, they are kept in memory, and the first save logs a warning. |
 | `WithStore(store)` | The store you created yourself, as each store interface its declared type implements. The container never disposes it. | Singleton, your app's | The same. |
 | `WithFileStore(Action<FileStoreOptions>? configure = null)` | The file store as `IAgentSettingsStore`, built by the container with your app's `TimeProvider`. By default, `Folder` is `typeshift` under `AppContext.BaseDirectory`; the settings files lie in its `settings` folder. | Singleton | Agents' own settings, kept in files ([Agent settings](./settings-and-stores.md#agent-settings)). |
-| `WithChatClientProvider<TProvider>()` | `TProvider`, and `IChatClientProvider` resolving to it | Scoped | Every run with a provider and a model, before any `IChatClient` you registered ([Registering clients](./models.md#registering-clients)). |
+| `WithChatClientProvider<TProvider>()` | `TProvider`, and each `IChatClientProvider<T>` it implements, of any provider type, resolving to it. For each provider type, the last call wins. | Scoped | Every run with a provider and a model of that type, before any `IChatClient` you registered ([Registering clients](./models.md#registering-clients)). |
 | `WithOptions(options => ...)` | `TypeshiftOptions`, which each call changes further, such as `PersistAllConversations` | Singleton | Keeping the runs without a conversation id ([Keeping every conversation](./conversations.md#keeping-every-conversation)). |
 | `WithRealtimeTracking(RealtimeTrackingOptions? options = null)` | The options of live updates, in place of the defaults: `PublishInterval` of 100 ms and `MaxPendingUpdates` of 256. Live updates are on without it. | Singleton | Tuning `ConversationTracker<TId>.WatchAsync`. |
 | `WithConversationTracker<TId>()` | The `ConversationTracker<TId>` of one id type, closed, as a singleton of its own | Singleton | An app published with Native AOT that injects the tracker of a value type, such as `Guid` or `int` ([Native AOT](./native-aot.md#trackers-of-value-type-ids)). |

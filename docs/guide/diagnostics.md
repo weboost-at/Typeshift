@@ -30,7 +30,6 @@ so you fix it there instead of debugging a compiler error inside generated code.
 | [TSH018](#tsh018) | Error | Member clashes with a generated member |
 | [TSH019](#tsh019) | Error | Toolset was not compiled with the generator |
 | [TSH020](#tsh020) | Warning | Referenced assembly was not compiled with the generator |
-| [TSH021](#tsh021) | Error | Referenced assembly has another provider id type |
 | [TSH022](#tsh022) | Error | Two agents share a settings kind |
 | [TSH023](#tsh023) | Error | Agent cannot be a tool or a handoff target |
 | [TSH024](#tsh024) | Warning | Sub-agent offers tools that need approval |
@@ -39,7 +38,7 @@ so you fix it there instead of debugging a compiler error inside generated code.
 | [TSH027](#tsh027) | Error | Tool type has no JSON metadata under Native AOT |
 | [TSH028](#tsh028) | Error | Type is no store |
 | [TSH029](#tsh029) | Error | Provider id type cannot be used |
-| [TSH030](#tsh030) | Error | Provider has another id type |
+| [TSH030](#tsh030) | Error | Type is no chat client provider |
 
 ## Severities and suppression
 
@@ -49,10 +48,9 @@ settings that reach no parameter ([TSH010](#tsh010)). Each diagnostic's help lin
 Most diagnostics are reported on the declaration they are about, so the usual
 [suppression](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/suppress-warnings) reaches them:
 `#pragma warning disable TSH009` around one declaration, or a `dotnet_diagnostic.TSH009.severity` entry in
-`.editorconfig`. [TSH020](#tsh020), [TSH021](#tsh021) and [TSH029](#tsh029) concern the whole build and have no
-source location, so no `#pragma` reaches them. To silence TSH020, the only warning of the three, add it to
-`<NoWarn>` in the project file. [TSH007](#tsh007) and [TSH022](#tsh022) have no location either when the clash lies
-between two referenced projects.
+`.editorconfig`. [TSH020](#tsh020) concerns the whole build and has no source location, so no `#pragma` reaches it:
+to silence it, add it to `<NoWarn>` in the project file. [TSH007](#tsh007) and [TSH022](#tsh022) have no location
+either when the clash lies between two referenced projects.
 
 ## TSH001
 
@@ -89,9 +87,9 @@ accessible as what exposes it. There are three cases:
   the toolset can be named.
 - A toolset with configurable settings is less accessible than a public agent that offers it. The agent's `Settings`
   record names the toolset's overrides.
-- A public agent makes its model or its summary model configurable, and the
-  [provider id type](./models.md#the-provider-id-type) is less accessible. The agent's `Settings` record names the
-  type for the model's provider.
+- A public agent makes its model or its summary model configurable, and its
+  [provider id type](./models.md#the-provider-id-type), the type of the provider its `WithModel` names, is less
+  accessible. The agent's `Settings` record names the type for the model's provider.
 
 ## TSH007
 
@@ -184,13 +182,6 @@ toolset's project.
 this Typeshift version, so `AddTypeshift()` cannot register them. Reference the package in its project, at the
 version the rest of the build uses.
 
-## TSH021
-
-**Referenced assembly has another provider id type.** A referenced project with agents was built with another
-[provider id type](./models.md#the-provider-id-type), and every project of a build shares one, since its agents'
-`Settings` store providers of that type. Set `TypeshiftProviderIdType` once, in `Directory.Build.props`. A project
-of toolsets alone has no provider ids, so it never clashes.
-
 ## TSH022
 
 **Two agents share a settings kind.** Their settings would overwrite each other in the store. It happens when two
@@ -247,15 +238,17 @@ pass the store you meant. A store's id type picks the ids it serves, as
 
 ## TSH029
 
-**Provider id type cannot be used.** `TypeshiftProviderIdType` names a type the build does not know, or one the
-agent's `Settings` cannot store as one value. Name a string, a number, a `Guid` or an enum: as a C# keyword (`int`,
-`long`, `string`), as a type of `System` (`Guid`), or by its full name with its namespace.
+**Provider id type cannot be used.** The provider `WithModel` names is of a type the agent's `Settings` cannot
+store as one value, such as a record, and they store it because the agent's model or summary model is configurable.
+Name providers by a string, a number, a `Guid` or an enum, or keep the model out of the settings: an agent whose
+`Settings` store no provider may name one of any type ([The provider id type](./models.md#the-provider-id-type)).
 
 ## TSH030
 
-**Provider has another id type.** `WithModel(provider, model)` takes a provider of the build's
-[provider id type](./models.md#the-provider-id-type), and `WithChatClientProvider<T>()` a class that serves that
-type. Pass a provider of that type, or implement `IChatClientProvider`, the alias the generator writes for it.
+**Type is no chat client provider.** `WithChatClientProvider<TProvider>()` registers the class as each
+`IChatClientProvider<T>` it implements, and this class implements none, so it would serve no run. Implement
+`IChatClientProvider<T>` for the [provider id type](./models.md#the-provider-id-type) of your agents, such as
+`IChatClientProvider<string>`, or pass the class you meant.
 
 ## Related
 
