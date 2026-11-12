@@ -126,7 +126,7 @@ internal enum RefundState
     Paid
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L89-L98' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output-type' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L100-L109' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output-type' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `T`'s XML docs describe its properties, as they describe the types tools take
@@ -140,6 +140,30 @@ A member that System.Text.Json cannot read or write, such as an `Exception`, who
 fails the run before it calls the model, naming the member. Leave such a member out of `T`, or mark it
 `[JsonIgnore]`, since the model could not send one anyway. A tool's parameters fail the same way.
 
+`RunStreamingAsync<T>` streams that answer as the model writes it. Read its updates to the end, and its `Response`
+holds the result:
+
+<!-- snippet: structured-streaming -->
+<a id='snippet-structured-streaming'></a>
+```cs
+var summary = support.RunStreamingAsync<RefundStatus>("Summarize the refund.", settingsId);
+
+await foreach (var update in summary)
+    Console.Write(update.Text);
+
+Console.WriteLine($" ({summary.Response.Result.State})");
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L65-L72' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-streaming' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+The updates carry the model's JSON as it writes it, under `data` for a `T` that is not an object, so show the user
+`Result` rather than the streamed text. The model is called when you read the updates, and they can be read once: a
+second `await foreach` throws an `InvalidOperationException`. `Response` throws one until the updates are read to the
+end, and keeps throwing when the run failed, was cancelled or was left early.
+
+Both typed runs also take a `ChatMessage`, so the run that answers an [approval](./tool-approval.md) asks for `T`
+again. An agent the run is [handed off](./multi-agent.md) to answers in `T` too.
+
 ## Streaming
 
 `RunStreamingAsync` returns the model's updates as they arrive. When the model calls tools, the tools run between its
@@ -151,7 +175,7 @@ updates, and the stream goes on with the model's next response:
 await foreach (var update in support.RunStreamingAsync("Where is my refund?", settingsId))
     Console.Write(update.Text);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L65-L68' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L76-L79' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 With `WithRealtimeTracking()`, anyone [watching the conversation](./conversations.md#live-updates) sees the updates
@@ -171,7 +195,7 @@ var options = await support.ResolveOptionsAsync(settingsId, run);
 using var client = await support.CreateChatClientAsync(options);
 var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "Where is my refund?")], options);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L72-L77' title='Snippet source file'>snippet source</a> | <a href='#snippet-raw-path' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L83-L88' title='Snippet source file'>snippet source</a> | <a href='#snippet-raw-path' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The client is the run's whole pipeline, the tool loop and the agent's run options included. It serves concurrent

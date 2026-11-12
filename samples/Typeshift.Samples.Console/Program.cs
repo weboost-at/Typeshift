@@ -42,7 +42,13 @@ Expect(streamed.ToString() == "Found Alpine Grippers.", streamed.ToString());
 var count = await research.RunAsync<CompanyCount>("Vienna", settingsId);
 Expect(count.Result == new CompanyCount("Vienna", 2), count.Text);
 
-Console.WriteLine($"{research.Agent.Name}: {answer.Text} {streamed} {count.Result}; {entries.Count} entries stored");
+var counting = research.RunStreamingAsync<CompanyCount>("Graz", settingsId);
+await foreach (var _ in counting) { }
+Expect(counting.Response.Result == new CompanyCount("Graz", 1), counting.Response.Text);
+
+Console.WriteLine(
+    $"{research.Agent.Name}: {answer.Text} {streamed} {count.Result} {counting.Response.Result}; "
+    + $"{entries.Count} entries stored");
 return 0;
 
 static void Expect(bool holds, string what)
