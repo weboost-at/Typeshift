@@ -203,21 +203,25 @@ public class StoredSettingsTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_No_Store_A_Run_With_A_Settings_Id_Fails_Naming_WithStore()
+    public async Task Given_No_Store_Settings_Under_An_Id_Are_Kept_In_Memory_And_A_Run_Applies_Them()
     {
         // Arrange
         var services = new ServiceCollection();
         services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
         var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
 
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        await host.SaveSettingsAsync(Data.Persistence.SettingsId, new() { Model = Data.Agent.Model }, 0, Ct);
+
         // Act
-        var run = () => host.RunAsync(Data.Tool.Question, Data.Persistence.SettingsId, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, Data.Persistence.SettingsId, ct: Ct);
 
         // Assert
-        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*WithStore*");
+        Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, Data.Agent.Model));
     }
 
     [Fact]

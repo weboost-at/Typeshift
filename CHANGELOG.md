@@ -67,6 +67,8 @@ All notable changes to this project are documented here. The format follows
   descriptions with no `Directory.Build.props`.
 - `LoadSettingsAsync(default)` loads the agent's own settings now, since the overload without an id wins. Pass the id
   itself, such as `Guid.Empty`, to load the settings under it.
+- Without any store, settings and conversations are kept in memory, and the first save logs a warning, where every
+  load and save threw. Once you register a store, an interface none of your stores implements still throws.
 
 ### Fixed
 
