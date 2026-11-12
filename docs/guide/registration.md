@@ -151,7 +151,7 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 
 | Call | Registers | Lifetime | Needed by |
 |---|---|---|---|
-| `WithStore<TStore>()` | `TStore`, and each of `ISettingsStore`, `IConversationStore` and `ITypeshiftStore` it implements, resolving to it. Call it once for each class. | Singleton, so it takes no scoped services ([Implementing a store](./implementing-a-store.md#register-your-store)) | Settings ids, conversation ids, approval and handoffs. Without a store, every call that loads or saves throws, naming this method. |
+| `WithStore<TStore>()` | `TStore`, and each of `IAgentSettingsStore`, `ISettingsStore`, `IConversationStore` and `ITypeshiftStore` it implements, resolving to it. Call it once for each class. | Singleton, so it takes no scoped services ([Implementing a store](./implementing-a-store.md#register-your-store)) | Agents' own settings, settings ids, conversation ids, approval and handoffs. Without a store, every call that loads or saves throws, naming this method. |
 | `WithChatClientProvider<TProvider>()` | `TProvider`, and `IChatClientProvider` resolving to it | Scoped | Every run with a provider and a model, before any `IChatClient` you registered ([Registering clients](./models.md#registering-clients)). |
 | `WithRealtimeTracking(RealtimeTrackingOptions? options = null)` | The options. By default, `PublishInterval` is 100 ms and `MaxPendingUpdates` 256. | Singleton | `ConversationTracker.WatchAsync`. |
 | `WithApprovalRule<TRule>()` | One more `IToolApprovalRule` | Scoped | Deciding calls before your app is asked. |

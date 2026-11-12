@@ -45,6 +45,53 @@ public class StoreExtensionsTests : UnitTestBase
     }
 
     [Fact]
+    public async Task Given_The_Store_In_Memory_Typed_As_A_Store_Of_Agent_Settings_It_Passes()
+    {
+        // Arrange
+        IAgentSettingsStore store = new InMemoryTypeshiftStore();
+
+        // Act
+        var verify = () => store.VerifyAgentSettingsAsync(Data.Persistence.Kind, Ct);
+
+        // Assert
+        await verify.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task Given_A_Store_With_A_Document_Of_The_Kind_The_Agent_Settings_Check_Asks_For_A_New_Kind()
+    {
+        // Arrange
+        IAgentSettingsStore store = new InMemoryTypeshiftStore();
+        await store.SaveAsync(Data.Persistence.Kind, "{}", 0, Ct);
+
+        // Act
+        var verify = () => store.VerifyAgentSettingsAsync(Data.Persistence.Kind, Ct);
+
+        // Assert
+        await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*a kind nothing is stored under*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_That_Keeps_One_Agent_Document_For_Every_Kind_Its_Check_Fails_Naming_The_Kind()
+    {
+        // Act
+        var verify = () => new OneAgentDocumentStore().VerifyAgentSettingsAsync(Data.Persistence.Kind, Ct);
+
+        // Assert
+        await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*key documents by kind*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_Of_All_Three_That_Breaks_Agent_Settings_VerifyAsync_Fails_On_Them()
+    {
+        // Act
+        var verify = () => new OneAgentDocumentStore().VerifyAsync(Data.Persistence.SettingsId, Ct);
+
+        // Assert
+        await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*key documents by kind*");
+    }
+
+    [Fact]
     public async Task Given_A_Store_With_A_Document_Under_The_Id_It_Fails_Asking_For_A_New_Id()
     {
         // Arrange

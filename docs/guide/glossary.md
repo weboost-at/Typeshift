@@ -37,7 +37,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | **Run** | One call of `RunAsync`, `RunAsync<T>`, `RunStreamingAsync`, `RunStreamingAsync<T>`, `ResumeAsync`, `ResumeStreamingAsync` or the raw path's client: the model calls and tool calls until the model answers. |
 | **Run options** | How a run's tool loop goes, with its mode, its limits and compaction. Set with `WithRunOptions()`. |
 | **Schema version** | The number in a stored document's JSON, `"$schemaVersion"`, that names the shape of the record that wrote it: 1 unless the agent's `WithSchemaVersion(n)` raises it. Reading a newer one fails. See [The stored JSON](./settings-and-stores.md#the-stored-json). |
-| **Settings** | An agent's generated `Settings` record, with exactly the values that may change at runtime. Stored under a settings id, or passed for one run. |
+| **Settings** | An agent's generated `Settings` record, with exactly the values that may change at runtime. Stored as the agent's own, stored under a settings id, or passed for one run. |
 | **Settings id** | The id your app stores an agent's `Settings` under, such as one per customer, team or user. |
 | **Settings record** | The record a tool receives its settings in, declared with `WithSettings<T>()` or `WithConfigurableSettings<T>()`. The model never sees it. |
 | **Stamp** | A hidden attribute the generator writes so that other assemblies can read a toolset's tools or a project's module. |

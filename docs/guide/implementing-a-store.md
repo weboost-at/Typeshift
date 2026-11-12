@@ -43,10 +43,20 @@ services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite("Data Sou
 
 ## Implement the interfaces
 
-A store has five methods in two interfaces. `ISettingsStore` keeps settings with the first two, and `IConversationStore`
-keeps conversations with the other three. The store on this page implements `ITypeshiftStore`, which is both. When
-settings and conversations live in different databases, implement each interface in a class of its own and
-[register each](./settings-and-stores.md#registering-a-store).
+A store has five methods in two interfaces. `ISettingsStore` keeps settings under a settings id with the first two, and
+`IConversationStore` keeps conversations with the other three. The store on this page implements `ITypeshiftStore`,
+which is both. When settings and conversations live in different databases, implement each interface in a class of its
+own and [register each](./settings-and-stores.md#registering-a-store).
+
+An app that keeps [each agent's own settings](./settings-and-stores.md#agent-settings) implements `IAgentSettingsStore`
+too, or alone when it has no settings ids. Its `LoadAsync(kind)` and `SaveAsync(kind, json, loadedVersion)` work as
+the settings methods below, keyed by the kind alone. Every run of every agent calls `LoadAsync(kind)`, so keep it
+cheap, for example with a cache.
+
+::: warning Keep an agent's own documents apart from an id's
+In a table that holds both, an agent's own document has no id. A load that forgets to ask for that returns a
+customer's document as every customer's defaults. `VerifyAsync` checks for this.
+:::
 
 You implement all five. Every id has your build's [id type](./registration.md#the-id-type), which is `Guid` unless
 `TypeshiftIdType` names another; the samples on this page set it to `int`. Each method takes a `CancellationToken` last.
@@ -378,7 +388,9 @@ await store.VerifyAsync(9001);
 
 - It runs the rules of every interface your store implements: the settings rules for an `ISettingsStore`, the
   conversation rules for an `IConversationStore`, and both for a store that is both, even when you call it through
-  one of the interfaces.
+  one of the interfaces. A store that is also an `IAgentSettingsStore` gets the settings rules for agents' own
+  settings, under kinds named after the id. For a store of agents' own settings alone, call
+  `VerifyAgentSettingsAsync(kind)` with a kind nothing is stored under.
 - A broken rule throws an `InvalidOperationException` whose message names the rule and what to change, such as
   keying documents by id and kind together. An exception your store throws itself passes through as it is, except
   where a `StoreConflictException` belongs: there the message names the type your store threw instead.
