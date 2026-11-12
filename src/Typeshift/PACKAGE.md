@@ -1,39 +1,44 @@
 # Typeshift
 
-Code-defined agents and toolsets for .NET 11 on Microsoft.Extensions.AI. A source generator turns them into
-reflection-free `AIFunction`s, a typed settings record per agent, and one `services.AddTypeshift()` call.
+Code-defined agents and toolsets for .NET 11, built on Microsoft.Extensions.AI. Build AI agents with just a few lines
+of code, and let the compiler catch your mistakes.
 
-**Alpha:** the API will change between releases.
+**Alpha:** the API may change between releases.
 
-## Install
+## Quick start
 
-Add the package to every project that declares toolsets or agents, or calls `AddTypeshift()`: it carries the source
-generator, and NuGet does not pass generators on to referencing projects. Requires the .NET 11 SDK.
+```bash
+dotnet add package Typeshift --prerelease
+```
 
-Projects that declare toolsets also need `<GenerateDocumentationFile>true</GenerateDocumentationFile>`: tools take
-their descriptions from XML docs, which the compiler reads only then, and without it the build warns with
-[TSH011](https://weboost-at.github.io/Typeshift/guide/diagnostics#tsh011).
+1. **Write a toolset.** A `partial` class deriving from `Toolset` adds each tool, a static method, with `AddTool(...)`
+   in its constructor. The tool's XML docs tell the model what it does, and the package turns XML docs on for you.
+2. **Write an agent.** A `partial` class deriving from `Agent` picks its model with `WithChatOptions().WithModel(...)`,
+   its instructions and its toolsets in its constructor.
+3. **Run it.** Without a container, `TypeshiftRuntime.Create(client)` takes any `IChatClient`, and
+   `runtime.Agent<TAgent>()` gives you the agent's host. With one, `services.AddTypeshift()` registers every toolset
+   and agent, and you inject `AgentHost<TAgent>`.
 
-## What you get
+Typeshift keeps settings and conversations in memory until you register a store, so a first app needs nothing else.
+The [README](https://github.com/weboost-at/Typeshift#quick-start) shows the code, and
+[Getting started](https://weboost-at.github.io/Typeshift/guide/getting-started) explains every line.
 
-- Tools from static methods, with JSON schemas from their parameters and XML docs.
-- Tool settings that layer code defaults, the agent's code, its stored settings and the run.
-- A generated `Settings` record per agent, holding exactly what may change at runtime.
-- Store interfaces for settings and conversations, `ISettingsStore<TId>` and `IConversationStore<TId>`, in one class
-  or two, with the id type you already use; without a store, agents run from code.
-- Runs that return Microsoft.Extensions.AI's `ChatResponse`, streaming and structured output included.
-- Conversations stored step by step: resume after a crash, steer a run going on, watch it live.
-- Tool approval with standing approvals and rules, and built-in plan and auto modes.
-- Middleware around runs and tool calls, and context providers that add to every run.
-- Long runs that stay within their context: compaction before every model call, with summaries stored.
-- OpenTelemetry traces and metrics after the GenAI conventions, always on.
-- Sub-agents, in the foreground or the background, and handoffs between agents.
-- MCP servers' tools through the MCP client of your choice.
-- Native AOT: generated paths never reflect, and the analyzer names a tool type that needs JSON metadata.
-- Compile-time diagnostics instead of runtime surprises.
+Add the package to every project that declares toolsets or agents, or calls `AddTypeshift()`, because NuGet does not
+pass a source generator on to the projects that reference yours.
+
+## What makes Typeshift different
+
+- **Catch mistakes at compile time.** Configure a tool the agent doesn't offer, and the build fails. The analyzer
+  reports the rest, each [diagnostic](https://weboost-at.github.io/Typeshift/guide/diagnostics) with how to fix it.
+- **Store settings per customer.** Each agent gets a typed `Settings` record that holds only what you mark
+  `Configurable`, kept under the ids you already use.
+- **Stay on Microsoft.Extensions.AI.** Any `IChatClient` serves a model, tools are `AIFunction`s, and a run returns a
+  `ChatResponse`.
+- **Publish with Native AOT.** The generated code never reflects over your types, and the analyzer names each tool
+  type that still needs JSON metadata.
 
 ## Learn more
 
 - [Documentation](https://weboost-at.github.io/Typeshift/)
-- [Toolsets](https://weboost-at.github.io/Typeshift/guide/toolsets)
-- [Agents](https://weboost-at.github.io/Typeshift/guide/defining-agents)
+- [Source and issues](https://github.com/weboost-at/Typeshift)
+- [Changelog](https://github.com/weboost-at/Typeshift/blob/main/CHANGELOG.md)
