@@ -69,6 +69,39 @@ public partial class LeadAgent : Agent
     }
 }
 
+// Asks the helper for a finding in a type of its own
+public partial class TypedLeadAgent : Agent
+{
+    public TypedLeadAgent()
+    {
+        WithChatOptions().WithModel("scripted", "lead-model");
+
+        UseAgent<HelperAgent>().WithResult<HelperFinding>();
+    }
+}
+
+public sealed record HelperFinding(int Ticket, string Reason);
+
+public partial class CountingLeadAgent : Agent
+{
+    public CountingLeadAgent()
+    {
+        WithChatOptions().WithModel("scripted", "lead-model");
+
+        UseAgent<HelperAgent>().WithResult<int>();
+    }
+}
+
+public partial class BackgroundTypedLeadAgent : Agent
+{
+    public BackgroundTypedLeadAgent()
+    {
+        WithChatOptions().WithModel("scripted", "lead-model");
+
+        UseAgent<HelperAgent>().InBackground().WithResult<HelperFinding>();
+    }
+}
+
 // Closes tickets itself too, so the host can approve close_ticket for the conversation
 public partial class TrustingLeadAgent : Agent
 {

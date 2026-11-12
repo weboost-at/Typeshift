@@ -9,6 +9,17 @@ All notable changes to this project are documented here. The format follows
 
 - The docs site publishes the guide as Markdown for coding assistants: `llms.txt` lists its pages, `llms-full.txt`
   holds them all in one file, and each guide page is also served at its address with `.md`.
+- Tools take and return C# 15 unions, and `RunAsync<T>` returns one. A JSON string binds a union's `string` case and
+  a number its number case, and an object binds the case whose properties it carries, so a union of records needs no
+  `[JsonUnion]` classifier.
+- `T`'s XML docs describe the schema `RunAsync<T>` asks the model to answer in, as they describe the types tools take.
+- `RunStreamingAsync<T>` streams a typed run: read its updates to the end, and its `Response` holds the answer typed,
+  as `RunAsync<T>` returns it.
+- `RunAsync<T>` and `RunStreamingAsync<T>` take a `ChatMessage`, so the run that answers an approval asks for `T`
+  again.
+- `UseAgent<T>().WithResult<TResult>()` holds a sub-agent's answer to the JSON of `TResult`, which the calling model
+  reads as the call's result, or as its answer in the background. An answer without it fails the call, and the
+  calling model reads why.
 - Each agent has settings of its own, which every run applies under no settings id: `ConfigureAsync(configure)`,
   `LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)`, kept by an `IAgentSettingsStore`.
   `InMemoryTypeshiftStore` implements it, and a settings id's settings apply over the agent's own.
@@ -25,6 +36,10 @@ All notable changes to this project are documented here. The format follows
   new message does, and leaves them out of its `ApprovalRequests`. An answer to one ran the call, although the model
   had gone on without it. A background agent's answer closes none.
 - The package targets .NET 11 instead of .NET 10, so your app needs .NET 11 and its SDK.
+- `Result` of a typed run whose answer lacks the `data` property throws a `JsonException`, where it threw an
+  `InvalidOperationException`. `TryGetResult` returns false, as before.
+- `IConversationStore.LoadConversationSinceCompactionAsync` has no default any more, so your store implements it. A store
+  that cannot start at the last summary returns `(await LoadConversationAsync(id, ct)).SinceLastSummary()`.
 - `LoadSettingsAsync(default)` loads the agent's own settings now, since the overload without an id wins. Pass the id
   itself, such as `Guid.Empty`, to load the settings under it.
 - Without any store, settings and conversations are kept in memory, and the first save logs a warning, where every
@@ -32,6 +47,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- `RunAsync<T>` on a conversation that a handoff passed on, or one that hands off itself, asked the agent that
+  answers for no schema. That agent answers in `T` now.
 - An answer to an approval request that a later run of the conversation passed by ran the call, and approving it for
   the conversation gave the tool a standing approval. Only the requests the last run left without an answer can be
   answered now; an answer to any other runs nothing and stores nothing.
@@ -52,8 +69,15 @@ All notable changes to this project are documented here. The format follows
 - Live updates of a run that does not stream carried every approval request the run stored, those a rule, a standing
   approval or auto mode answered included, and an answer to one of those now throws. They carry only the requests
   left to your app.
+- Each case in the schema of a union or of a polymorphic type names its type, which Anthropic's client needs. It
+  rejected a tool or a typed run with such a type, and a typed run of an object union reached it with no schema at all.
+  `RunAsync<T>` asks for a union, a polymorphic type or a dictionary under a `data` property now, as
+  Microsoft.Extensions.AI does for a number, since Anthropic's client sent no schema for them.
 
 ## [0.1.0-alpha.5] - 2026-10-30
+- A tool parameter or a `RunAsync<T>` type with a member System.Text.Json cannot handle, such as an `Exception`, sent
+  the provider a schema it rejected, with a message about a missing type. It now fails before the model is called,
+  naming the member.
 
 ### Added
 
