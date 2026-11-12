@@ -10,15 +10,8 @@ namespace Typeshift;
 public sealed class TypeshiftBuilder
 {
     private readonly IServiceCollection _services;
-    private readonly Action<IServiceCollection, Func<IServiceProvider, object>> _addChatClientProvider;
 
-    internal TypeshiftBuilder(
-        IServiceCollection services,
-        Action<IServiceCollection, Func<IServiceProvider, object>> addChatClientProvider)
-    {
-        _services = services;
-        _addChatClientProvider = addChatClientProvider;
-    }
+    internal TypeshiftBuilder(IServiceCollection services) => _services = services;
 
     /// <summary>
     /// Registers a store, a singleton, and turns persistence on for what it keeps: agents' own settings, stored
@@ -103,19 +96,40 @@ public sealed class TypeshiftBuilder
         ];
 
     /// <summary>
-    /// Registers the provider that returns the client of a provider's model, scoped. It serves a run before any
-    /// <see cref="Microsoft.Extensions.AI.IChatClient"/> registered under the provider or for every agent.
+    /// Registers the provider that returns the client of a provider's model, scoped, as each
+    /// <see cref="IChatClientProvider{TProviderId}"/> it implements. It serves the runs of the agents whose provider
+    /// is of its type, before any <see cref="Microsoft.Extensions.AI.IChatClient"/> registered under the provider or
+    /// for every agent. For each provider type, the last call wins.
     /// </summary>
-    /// <typeparam name="TProvider">An <c>IChatClientProvider</c> of the build's provider id type (TSH030).</typeparam>
+    /// <typeparam name="TProvider">
+    /// An <c>IChatClientProvider&lt;TProviderId&gt;</c>, or several of them, of any provider types (TSH030).
+    /// </typeparam>
     /// <returns>The same chain.</returns>
     public TypeshiftBuilder WithChatClientProvider<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProvider>()
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.Interfaces)] TProvider>()
         where TProvider : class
     {
+        // D77: as a store is (D72), of whatever provider types; the type check reads no members
+        Type[] contracts = [.. typeof(TProvider).GetInterfaces().Where(IsChatClientProvider)];
+
+        if (contracts.Length == 0)
+            throw new InvalidOperationException(
+                $"{typeof(TProvider).Name} is no chat client provider: implement IChatClientProvider<TProviderId> "
+                + "(TSH030).");
+
         _services.AddScoped<TProvider>();
-        _addChatClientProvider(_services, provider => provider.GetRequiredService<TProvider>());
+
+        foreach (var contract in contracts)
+        {
+            _services.AddScoped(contract, provider => provider.GetRequiredService<TProvider>());
+        }
+
         return this;
     }
+
+    private static bool IsChatClientProvider(Type contract) =>
+        contract.IsGenericType && contract.GetGenericTypeDefinition() == typeof(IChatClientProvider<>);
 
     /// <summary>
     /// Sets what every run of the app does, such as <c>options => options.PersistAllConversations = true</c>. Calls

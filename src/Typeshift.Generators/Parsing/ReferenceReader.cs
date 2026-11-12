@@ -10,7 +10,7 @@ namespace Typeshift.Generators.Parsing;
 internal static class ReferenceReader
 {
     // Raised whenever the stamps change shape; a reference with another version is TSH020
-    public const int StampVersion = 5;
+    public const int StampVersion = 6;
 
     public static ReferenceModel Read(Compilation compilation, CancellationToken ct)
     {
@@ -34,16 +34,6 @@ internal static class ReferenceReader
     public static IEnumerable<IAssemblySymbol> GetUnstamped(Compilation compilation, CancellationToken ct) =>
         GetLibraryUsers(compilation)
             .Where(assembly => GetModule(assembly) is null && DeclaresToolsetsOrAgents(assembly.GlobalNamespace, ct));
-
-    // TSH021: the provider id type a reference was built with, when it differs from the build's (D56). An assembly
-    // without agents stamps null, so it never has another type
-    public static IEnumerable<(IAssemblySymbol Assembly, ITypeSymbol ProviderIdType)> GetOtherProviderIdTypes(
-        Compilation compilation, ITypeSymbol? providerIdType) =>
-        GetLibraryUsers(compilation)
-            .Select(assembly => (Assembly: assembly, Type: GetModuleStamp(assembly)?.ConstructorArguments[2].Value))
-            .Where(stamped => stamped.Type is ITypeSymbol other
-                && !SymbolEqualityComparer.Default.Equals(other, providerIdType))
-            .Select(stamped => (stamped.Assembly, (ITypeSymbol)stamped.Type!));
 
     // D39: the kinds of the referenced agents' stored settings
     public static IEnumerable<(string Kind, string Agent)> GetAgentKinds(Compilation compilation) =>
@@ -90,13 +80,11 @@ internal static class ReferenceReader
             .ToEquatableArray();
 
     public static INamedTypeSymbol? GetModule(IAssemblySymbol assembly) =>
-        GetModuleStamp(assembly)?.ConstructorArguments[0].Value as INamedTypeSymbol;
-
-    private static AttributeData? GetModuleStamp(IAssemblySymbol assembly) =>
         assembly.GetAttributes()
             .Where(attribute => attribute.AttributeClass.Is(KnownTypes.GeneratedModuleAttribute))
-            .FirstOrDefault(attribute => attribute.ConstructorArguments.Length == 3
-                && attribute.ConstructorArguments[1].Value is StampVersion);
+            .FirstOrDefault(attribute => attribute.ConstructorArguments.Length == 2
+                && attribute.ConstructorArguments[1].Value is StampVersion)
+            ?.ConstructorArguments[0].Value as INamedTypeSymbol;
 
     // Every module stamps its toolsets, so the toolset's own assembly is never searched
     private static IEnumerable<INamedTypeSymbol> GetToolsets(INamedTypeSymbol module) =>

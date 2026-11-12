@@ -12,17 +12,23 @@ public sealed class ChatOptionsBuilder
     internal ChatOptionsBuilder(Agent agent) => _agent = agent;
 
     /// <summary>
-    /// Sets the model and the provider that serves it, both of which the host's
-    /// <see cref="IChatClientProvider{TProviderId}"/> receives. <c>Configurable(o => o.ModelId)</c> lets stored
-    /// settings or a run choose another of each.
+    /// Sets the model and the provider that serves it, both of which the
+    /// <see cref="IChatClientProvider{TProviderId}"/> of the provider's type receives.
+    /// <c>Configurable(o => o.ModelId)</c> lets stored settings or a run choose another of each.
     /// </summary>
-    /// <typeparam name="TProviderId">The build's provider id type (TSH030).</typeparam>
+    /// <typeparam name="TProviderId">
+    /// The agent's provider id type. When its <c>Settings</c> store the provider, a string, a number, a
+    /// <see cref="Guid"/> or an enum (TSH029).
+    /// </typeparam>
     /// <param name="provider">The provider.</param>
     /// <param name="model">The model, as the provider's API names it.</param>
     /// <returns>The same chain.</returns>
     public ChatOptionsBuilder WithModel<TProviderId>(TProviderId provider, string model) where TProviderId : notnull
     {
-        _agent.Provider = provider;
+        ArgumentNullException.ThrowIfNull(provider);
+
+        // D77: typed here, where the provider's type is known, so the run asks the IChatClientProvider of that type
+        _agent.Provider = new ProviderId<TProviderId>(provider);
         return Set(options => options.ModelId = model);
     }
 

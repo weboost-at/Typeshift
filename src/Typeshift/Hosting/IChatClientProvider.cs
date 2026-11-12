@@ -4,11 +4,13 @@ namespace Typeshift;
 
 /// <summary>
 /// Returns the client of a provider's model. Resolved scoped from the run's services, so it may serve each customer
-/// with their own credentials. Without one, a run takes the <see cref="IChatClient"/> registered under its provider,
-/// or the one registered for every agent. Implement <c>IChatClientProvider</c>, the alias the generator writes for
-/// the build's provider id type.
+/// with their own credentials. A run asks the provider of its agent's provider type; without one, it takes the
+/// <see cref="IChatClient"/> registered under its provider, or the one registered for every agent.
 /// </summary>
-/// <typeparam name="TProviderId">The build's provider id type, <c>TypeshiftProviderIdType</c>.</typeparam>
+/// <typeparam name="TProviderId">
+/// The type of the providers it serves, as the agents name them in <c>WithModel(provider, model)</c>: a string, a
+/// number, a <see cref="Guid"/> or an enum.
+/// </typeparam>
 public interface IChatClientProvider<TProviderId> where TProviderId : notnull
 {
     /// <summary>

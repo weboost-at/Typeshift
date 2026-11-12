@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Typeshift.Tests.Agents.Support;
+using Typeshift.Tests.Hosting.Support;
 using Typeshift.Tests.Persistence.Support;
 using FluentAssertions;
 
@@ -68,6 +69,32 @@ public class SettingsJsonTests : UnitTestBase
 
         // Assert
         json.Should().Be("""{"$schemaVersion":2,"tools":{"inspect":{"count":3,"shade":"Dark"}}}""");
+    }
+
+    [Fact]
+    public void Given_A_Provider_Of_An_Enum_It_Reads_Back()
+    {
+        // Arrange
+        var settings = new VendorAgent.Settings { Provider = Vendor.Other, Model = Data.Agent.Model };
+
+        // Act
+        var read = VendorAgent.Settings.Deserialize(settings.Serialize());
+
+        // Assert
+        read.Should().Be(settings);
+    }
+
+    [Fact]
+    public void Given_A_Provider_Of_An_Enum_It_Is_Stored_By_Its_Name()
+    {
+        // Arrange
+        var settings = new VendorAgent.Settings { Provider = Vendor.Other };
+
+        // Act
+        var json = settings.Serialize();
+
+        // Assert
+        json.Should().Be("""{"provider":"Other"}""");
     }
 
     [Fact]

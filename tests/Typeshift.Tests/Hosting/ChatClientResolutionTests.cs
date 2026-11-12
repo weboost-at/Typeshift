@@ -1,4 +1,6 @@
 using Typeshift.Tests.Agents.Support;
+using Typeshift.Tests.Hosting.Support;
+using Typeshift.Tests.Persistence.Support;
 using Typeshift.Tests.Testing.Fakes;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
@@ -92,7 +94,7 @@ public class ChatClientResolutionTests : HostTestBase
         _register = services =>
         {
             services.AddChatClient(Other);
-            services.AddScoped<IChatClientProvider, ScriptedChatClientProvider>();
+            services.AddScoped<IChatClientProvider<string>, ScriptedChatClientProvider>();
         };
 
         ChatClient.Reply(Text(Data.Tool.Answer));
@@ -111,7 +113,7 @@ public class ChatClientResolutionTests : HostTestBase
         _register = services =>
         {
             services.AddKeyedChatClient(ProbeAgent.ModelProvider, Other);
-            services.AddScoped<IChatClientProvider, ScriptedChatClientProvider>();
+            services.AddScoped<IChatClientProvider<string>, ScriptedChatClientProvider>();
         };
 
         ChatClient.Reply(Text(Data.Tool.Answer));
@@ -121,6 +123,120 @@ public class ChatClientResolutionTests : HostTestBase
 
         // Assert
         Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, ProbeAgent.Model));
+    }
+
+    [Fact]
+    public async Task Given_Agents_Of_Two_Provider_Types_Each_Run_Asks_The_Chat_Client_Provider_Of_Its_Type()
+    {
+        // Arrange
+        _register = services => services.AddTypeshift()
+            .WithChatClientProvider<ScriptedChatClientProvider>()
+            .WithChatClientProvider<VendorChatClientProvider>();
+
+        ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<VendorAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        Models.Should().Equal(
+            new ProvidedModel(ProbeAgent.ModelProvider, ProbeAgent.Model),
+            new ProvidedModel(Vendor.Probe, VendorAgent.Model));
+    }
+
+    [Fact]
+    public async Task Given_A_Chat_Client_Provider_Of_Two_Provider_Types_It_Serves_The_Agents_Of_Both()
+    {
+        // Arrange
+        _register = services => services.AddTypeshift().WithChatClientProvider<EveryVendorChatClientProvider>();
+        ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<VendorAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        Models.Should().Equal(
+            new ProvidedModel(ProbeAgent.ModelProvider, ProbeAgent.Model),
+            new ProvidedModel(Vendor.Probe, VendorAgent.Model));
+    }
+
+    [Fact]
+    public async Task Given_Settings_Naming_Another_Provider_Of_An_Enum_Its_Chat_Client_Provider_Receives_It()
+    {
+        // Arrange
+        _register = services => services.AddTypeshift().WithChatClientProvider<VendorChatClientProvider>();
+        var settings = new VendorAgent.Settings { Provider = Vendor.Other };
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<VendorAgent>().RunAsync(Data.Tool.Question, settings, Ct);
+
+        // Assert
+        Models.Should().Equal(new ProvidedModel(Vendor.Other, VendorAgent.Model));
+    }
+
+    [Fact]
+    public async Task Given_A_Configurable_Model_Without_WithModel_Its_String_Provider_Reaches_The_Provider()
+    {
+        // Arrange
+        _register = services => services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        var settings = new EveryKindAgent.Settings { Provider = Data.Agent.Provider, Model = Data.Agent.Model };
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<EveryKindAgent>().RunAsync(Data.Tool.Question, settings, Ct);
+
+        // Assert
+        Models.Should().Equal(new ProvidedModel(Data.Agent.Provider, Data.Agent.Model));
+    }
+
+    [Fact]
+    public async Task Given_A_Chat_Client_Keyed_By_An_Enum_Provider_The_Run_Answers_On_It()
+    {
+        // Arrange
+        _register = services =>
+        {
+            services.AddChatClient(Other);
+            services.AddKeyedChatClient(Vendor.Probe, ChatClient);
+        };
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await Host<VendorAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_Only_A_Chat_Client_Provider_Of_Another_Type_The_Run_Fails_Naming_The_Type_It_Needs()
+    {
+        // Arrange
+        _register = services => services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+
+        // Act
+        var run = () => Host<VendorAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*IChatClientProvider<Vendor>*");
+    }
+
+    [Fact]
+    public void Given_A_Type_That_Is_No_Chat_Client_Provider_Registering_It_Fails_Naming_TSH030()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+#pragma warning disable TSH030 // the analyzer reports it at build time; this checks the registration's own guard
+        var register = () => services.AddTypeshift().WithChatClientProvider<ProvidedModels>();
+#pragma warning restore TSH030
+
+        // Assert
+        register.Should().Throw<InvalidOperationException>().WithMessage("*TSH030*");
     }
 
     [Fact]

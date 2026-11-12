@@ -602,7 +602,7 @@ public static class DiagnosticSources
         }
         """;
 
-    // Built with the provider id type Demo.Vendor
+    // D77: WithModel makes the agent's providers of Demo.Vendor
     public const string PublicAgentOfInternalProviderIdType =
         """
         #pragma warning disable CS1591
@@ -1327,24 +1327,63 @@ public static class DiagnosticSources
         }
         """;
 
-    // The build's provider id type is string
-    public const string OtherProviderIdTypeModel =
+    // D77: settings store the agent's providers, which are records
+    public const string UnstorableProvider =
         """
         using Typeshift;
 
+        public sealed record ProviderKey(string Name);
+
         public partial class HelpAgent : Agent
         {
-            public HelpAgent() => WithChatOptions().WithModel(42, "fast-model");
+            public HelpAgent() =>
+                WithChatOptions().WithModel(new ProviderKey("openai"), "fast-model").Configurable(o => o.ModelId);
         }
         """;
 
-    public const string OtherProviderIdTypeProvider =
+    // Settings store no provider, so a record serves
+    public const string UnstoredProvider =
         """
+        using Typeshift;
+
+        public sealed record ProviderKey(string Name);
+
+        public partial class HelpAgent : Agent
+        {
+            public HelpAgent() =>
+                WithChatOptions().WithModel(new ProviderKey("openai"), "fast-model").Configurable(o => o.Temperature);
+        }
+        """;
+
+    public const string NoChatClientProvider =
+        """
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        public sealed class Clients;
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithChatClientProvider<Clients>();
+        }
+        """;
+
+    // D77: an agent's providers may be ints, and a provider of them serves those agents
+    public const string ChatClientProviderOfInts =
+        """
+        #pragma warning disable CS1591
+
         using System.Threading;
         using System.Threading.Tasks;
         using Typeshift;
         using Microsoft.Extensions.AI;
         using Microsoft.Extensions.DependencyInjection;
+
+        public partial class HelpAgent : Agent
+        {
+            public HelpAgent() => WithChatOptions().WithModel(42, "fast-model").Configurable(o => o.ModelId);
+        }
 
         public sealed class NumberedClients : IChatClientProvider<int>
         {

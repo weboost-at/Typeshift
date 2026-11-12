@@ -34,7 +34,7 @@ internal static class AgentEmitter
         "SchemaVersion", "Serialize", "Settings", "ToString", "TryReadJson", "WriteJson"
     ];
 
-    public static string Emit(AgentOutput output, ProviderIdModel providerId)
+    public static string Emit(AgentOutput output)
     {
         var agent = output.Agent;
         var configured = output.Tools.Where(tool => HasConfigure(agent, tool.Tool)).ToList();
@@ -44,7 +44,7 @@ internal static class AgentEmitter
             [],
             writer =>
             {
-                WriteSettings(writer, output, providerId);
+                WriteSettings(writer, output);
                 writer.Line();
                 writer.Line("/// <inheritdoc />");
                 writer.Line(Names.Hidden);
@@ -125,7 +125,7 @@ internal static class AgentEmitter
     private static IEnumerable<OptionMember> Picked(EquatableArray<string> picks, OptionMember[] options) =>
         options.Where(option => picks.Contains(option.Option));
 
-    // D56: a configurable model brings the member of its provider, first
+    // D77: a configurable model brings the member of its provider, first
     private static IEnumerable<string> Members(OptionMember option) =>
         option.Provider is { } provider ? [provider, option.Setting] : [option.Setting];
 
@@ -145,14 +145,15 @@ internal static class AgentEmitter
         return Names.Identifier(Names.Unreserved(Names.ToPascalCase(tool.Name), "Tool", reserved));
     }
 
-    private static void WriteSettings(SourceWriter writer, AgentOutput output, ProviderIdModel providerId)
+    private static void WriteSettings(SourceWriter writer, AgentOutput output)
     {
         var agent = output.Agent;
+        var providerId = agent.ProviderId;
         var chat = Picked(agent.ChatOptions, OptionMembers.Chat).ToList();
         var run = Picked(agent.RunOptions, OptionMembers.Run).ToList();
         var tools = output.Tools.Select(offered => offered.Tool).Where(tool => tool.Overrides is not null).ToList();
 
-        // D6: a public agent's Settings cannot name a less accessible provider id type (TSH006)
+        // D6: a public agent's Settings cannot name a less accessible provider id type, the agent's own (TSH006, D77)
         var providerAccess = agent.Type.Accessibility == "public" && !providerId.IsPublic
             ? "internal"
             : "public";
@@ -386,7 +387,7 @@ internal static class AgentEmitter
         }
     }
 
-    // D56: the providers ride on the resolved options, where the library reads them boxed
+    // D77: the providers ride on the resolved options, each with the type the generated code knows
     private static void WriteSetProvider(SourceWriter writer, string provider) =>
         writer.Line($"if (settings.{provider} is {{ }} {Local(provider)}) Set{provider}(options, {Local(provider)});");
 

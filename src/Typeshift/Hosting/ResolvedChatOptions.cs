@@ -3,7 +3,7 @@ using Microsoft.Extensions.AI;
 namespace Typeshift;
 
 // The options ResolveOptionsAsync returns remember what else the run resolved, so the raw path's client gets it too:
-// the providers (D56), the run options, the settings id (D26), and once a run begins, the run and its conversation
+// the providers (D77), the run options, the settings id (D26), and once a run begins, the run and its conversation
 internal sealed class ResolvedChatOptions : ChatOptions
 {
     public ResolvedChatOptions(ChatOptions options)
@@ -11,10 +11,10 @@ internal sealed class ResolvedChatOptions : ChatOptions
     {
     }
 
-    public object? Provider { get; set; }
+    public ProviderId? Provider { get; set; }
 
-    // D56: null for the run's provider
-    public object? SummaryProvider { get; set; }
+    // D77: null for the run's provider
+    public ProviderId? SummaryProvider { get; set; }
 
     public RunOptions RunOptions { get; set; } = new();
 

@@ -7,12 +7,9 @@ namespace Typeshift.Generated;
 /// </summary>
 /// <param name="module">The module.</param>
 /// <param name="version">D7: the stamps' version, which generators of other versions check.</param>
-/// <param name="providerIdType">
-/// D56: the provider id type the assembly was built with; null for an assembly without agents.
-/// </param>
 [EditorBrowsable(EditorBrowsableState.Never)]
 [AttributeUsage(AttributeTargets.Assembly)]
-public sealed class GeneratedModuleAttribute(Type module, int version, Type? providerIdType) : Attribute
+public sealed class GeneratedModuleAttribute(Type module, int version) : Attribute
 {
     /// <summary>
     /// The module.
@@ -23,11 +20,6 @@ public sealed class GeneratedModuleAttribute(Type module, int version, Type? pro
     /// The stamps' version.
     /// </summary>
     public int Version { get; } = version;
-
-    /// <summary>
-    /// The provider id type the assembly was built with; null for an assembly without agents.
-    /// </summary>
-    public Type? ProviderIdType { get; } = providerIdType;
 }
 
 /// <summary>

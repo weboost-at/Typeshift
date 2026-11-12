@@ -28,7 +28,8 @@ internal static class InterceptParser
         // D75: a call bound at run time, such as one with a dynamic argument, reaches the body that says how to call it
         if (info.CandidateReason is CandidateReason.LateBound) return null;
 
-        // The generator's own pass has no aliases yet, so a configure lambda that names one leaves a sole candidate
+        // The generator's own pass has none of its output yet, so a configure lambda that names some, an agent's
+        // Settings for example, leaves a sole candidate
         var symbol = info.Symbol ?? (info.CandidateSymbols.Length == 1 ? info.CandidateSymbols[0] : null);
         if (symbol is not IMethodSymbol method) return null;
 

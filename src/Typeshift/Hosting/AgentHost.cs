@@ -98,16 +98,17 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
 
     /// <summary>
     /// The raw path: creates the client of a run whose options <c>ResolveOptionsAsync</c> resolved. It takes the
-    /// client from the <see cref="IChatClientProvider{TProviderId}"/>, an <see cref="IChatClient"/> registered under
-    /// the options' provider, or the one registered for every agent, and wraps it in the tool loop.
+    /// client from the <see cref="IChatClientProvider{TProviderId}"/> of the provider's type, an
+    /// <see cref="IChatClient"/> registered under the options' provider, or the one registered for every agent, and
+    /// wraps it in the tool loop.
     /// </summary>
     /// <param name="options">The resolved options; call the client with them.</param>
     /// <param name="ct">Cancels the creation.</param>
     /// <returns>The client; disposing it leaves the provider's client alone.</returns>
     /// <exception cref="InvalidOperationException">
     /// No chat client serves the options' provider and model, or the agent, which names no model: no
-    /// <c>IChatClientProvider</c> is registered for a provider and a model, and no <see cref="IChatClient"/> under the
-    /// provider's key or for every agent.
+    /// <c>IChatClientProvider</c> of the provider's type is registered for a provider and a model, and no
+    /// <see cref="IChatClient"/> under the provider's key or for every agent.
     /// </exception>
     public async Task<IChatClient> CreateChatClientAsync(ChatOptions options, CancellationToken ct = default)
     {
@@ -115,7 +116,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         var provider = resolved is null ? Agent.Provider : resolved.Provider;
         var model = options.ModelId;
 
-        var client = await _services.GetRequiredService<ChatClients>().GetAsync(_services, provider, model, ct)
+        var client = await ChatClients.GetAsync(_services, provider, model, ct)
             ?? throw new InvalidOperationException(ChatClients.NoClient($"the agent '{Agent.Name}'", provider, model));
         var run = resolved?.RunOptions ?? Agent.RunOptions;
 

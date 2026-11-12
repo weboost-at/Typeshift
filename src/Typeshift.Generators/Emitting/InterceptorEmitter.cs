@@ -13,10 +13,7 @@ internal static class InterceptorEmitter
 
     // D1: every call in the project registers this assembly's module and those of its references; D75: a runtime's
     // call builds its services the same way
-    public static string Emit(
-        IReadOnlyList<InterceptModel> calls,
-        IReadOnlyList<string> modules,
-        string providerIdType)
+    public static string Emit(IReadOnlyList<InterceptModel> calls, IReadOnlyList<string> modules)
     {
         var writer = new SourceWriter();
 
@@ -34,9 +31,7 @@ internal static class InterceptorEmitter
 
             using (writer.Block())
             {
-                writer.Line(
-                    "var builder = global::Typeshift.Generated.ModuleRegistration"
-                    + $".AddCoreServices<{providerIdType}>(services);");
+                writer.Line("var builder = global::Typeshift.Generated.ModuleRegistration.AddCoreServices(services);");
                 writer.Line();
 
                 foreach (var module in modules)

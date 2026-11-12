@@ -34,7 +34,7 @@ public sealed class ClientCache : IDisposable
 /// <summary>
 /// Maps a provider the user defined and one of its models to a client.
 /// </summary>
-// This library runs no generator, so it names the provider id type itself instead of the IChatClientProvider alias
+// The demos' agents make their models configurable without WithModel, so their providers are strings
 public sealed class RoutingChatClientProvider(ProviderCatalog catalog, ClientCache cache, CannedModels canned)
     : IChatClientProvider<string>
 {

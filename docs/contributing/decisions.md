@@ -79,16 +79,15 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** carried (v0 D2), extended.
 - **Decision:** per toolset a `{Tool}Overrides` record per tool with configurable settings and a `{Toolset}ToolList`
   extension block; per agent the nested `Settings` record, a private `Configure{Tool}()` per offered tool with settings
-  and a `TypeshiftHost_{full name}` extension block in the global namespace (D12); per assembly a module; per project
-  the `IChatClientProvider` alias (D56). Nested classes join their containers' names with `_`; keywords get `@`. A clash
-  with a user member is TSH018.
+  and a `TypeshiftHost_{full name}` extension block in the global namespace (D12); per assembly a module. Nested
+  classes join their containers' names with `_`; keywords get `@`. A clash with a user member is TSH018.
 - **Agents:** besides those, the hidden `Declaration` override, one private nested class `TypeshiftGenerated` (the
   declaration, the builders and the per-agent store of `Configure{Tool}()` values) and one private field
   `_typeshift`, so an agent gains as few names as possible. A tool's member in `Settings` named like an option or a
   record member gets a `Tool` suffix. A public agent's `Settings` cannot name the overrides of an internal toolset:
-  TSH006, and the generator leaves the member out. Nor can it name a less accessible provider id type, which a
-  configurable model or summary model brings in: TSH006 on the pick, and the generator writes the provider members
-  internal.
+  TSH006, and the generator leaves the member out. Nor can it name a less accessible provider id type, the agent's
+  own (D77), which a configurable model or summary model brings in: TSH006 on the pick, and the generator writes the
+  provider members internal.
 - **Where:** `Emitting/Names.cs`, `Emitting/AgentEmitter.cs`.
 
 ### D7. Stamps carry the generated names and a version
@@ -139,7 +138,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   it (`AddCoreServices<TId, TProviderId>`) and stamped it on each module. A reference built with another id type was
   TSH021, one the build could not find TSH029, and one less accessible than a public agent TSH006.
 - **Now:** a host's ids come from `WithSettingsId` and `WithConversationId`, each typed by its call (D72). The
-  provider id type stays an MSBuild property, with its alias (D56).
+  provider id type stayed an MSBuild property, with its alias (D56), until D77 took it from each agent's `WithModel`.
 - **Alternatives:** `AddTypeshift().WithIdType<int>()`, known only in the registering project, with generic run
   members checked at runtime; a generated interface per project, ambiguous under `InternalsVisibleTo`.
 
@@ -337,7 +336,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D28. The model is a configurable option like any other
 
 - **Status:** owner; changes v0 D34.
-- **Decision:** `Configurable(o => o.ModelId)` puts `Model`, and its `Provider` (D56), into the agent's `Settings`,
+- **Decision:** `Configurable(o => o.ModelId)` puts `Model`, and its `Provider` (D77), into the agent's `Settings`,
   overriding `WithModel`; without it the model stays in code. The allow list holds for the model too. The options
   that may be configurable are the model, the instructions, the sampling options, the stop sequences, multiple tool
   calls and reasoning; the rest belong to the run or have no stored form (TSH012).
@@ -346,28 +345,53 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 ### D56. A model is a provider and a model, one interface serves both
 
-- **Status:** owner.
+- **Status:** owner; superseded by D77, which types providers per agent.
+- **Was:** `WithModel(provider, model)` and `IChatClientProvider<TProviderId>`, as D77 keeps them, with one provider
+  id type for the build: the MSBuild property `TypeshiftProviderIdType`, `string` by default, with a generated
+  `IChatClientProvider` alias. The interceptor closed the core services over it (`AddCoreServices<TProviderId>`, which
+  registered `ChatClients<TProviderId>`), and module stamps carried it. A provider of another type at `WithModel` or
+  `WithChatClientProvider<T>()` was TSH030, a type the build could not find or settings could not store TSH029, and a
+  reference with agents built with another type TSH021.
+- **Now:** each agent's providers are of the type its `WithModel` names (D77).
+
+### D77. Each agent's providers are of the type its WithModel names
+
+- **Status:** owner; supersedes D56.
 - **Context:** a model was one string the host's provider read, so a host with several providers invented composite
   names such as `lmstudio/qwen/qwen3-8b`, split them again, and wrapped each client to put the provider's own id back
-  into the request.
+  into the request. D56 split it into a provider and a model, of one provider id type per build, so an app could not
+  run an agent of an enum's providers beside one of strings. As for ids (D72), the owner asked that the type move
+  into code, and chose "Per agent, inferred".
 - **Decision:** `WithModel(provider, model)`. `IChatClientProvider<TProviderId>` has one method,
   `GetChatClientAsync(provider, model, ct)`, resolved scoped from the run's services, and `ChatOptions.ModelId` carries
-  the model alone. The provider id type is the MSBuild property `TypeshiftProviderIdType`, `string` by default, a type
-  settings store as one value (a string, a number, a `Guid` or an enum), with a generated `IChatClientProvider` alias.
-  The summary model is the run's model unless named, and its provider the run's provider: the agent's code names a
-  summary model only, and only settings (`SummaryProvider`) name another provider for it.
-- **As built:** the library keeps providers boxed (`Agent.Provider`, `ResolvedChatOptions.Provider` and
-  `SummaryProvider`), and `ChatClients<TProviderId>`, which the interceptor's `AddCoreServices<TProviderId>`
-  registers, unboxes them for the host's provider. Generated `ApplySettings` sets the providers through
-  `SetProvider` and `SetSummaryProvider`. A provider of another type at `WithModel` or `WithChatClientProvider<T>()`
-  is TSH030; a provider id type that cannot be used is TSH029. Module stamps carry the provider id type, and a
-  reference with agents built with another is TSH021.
-- **Where:** `Hosting/IChatClientProvider.cs`, `Hosting/ChatClients.cs`, `Agents/ChatOptionsBuilder.cs`,
-  `Compaction/Compaction.cs`, `Parsing/IdTypes.cs`, `Emitting/OptionMembers.cs`, `Generated/Stamps.cs`,
-  `Emitting/ModuleEmitter.cs`, `Parsing/ReferenceReader.cs`.
+  the model alone. An agent's provider id type is the static type of the provider its `WithModel` takes, and
+  `string` for an agent without one. The generator reads it, so that agent's `Settings.Provider` and
+  `SummaryProvider` are of it, and the agent's runs ask the `IChatClientProvider<T>` of that type. The summary model
+  is the run's model unless named, and its provider the run's provider: the agent's code names a summary model only,
+  and only settings (`SummaryProvider`) name another provider for it.
+- **As built:** a provider goes down the run as a `ProviderId<TProviderId>`, made where its type is known: in
+  `WithModel`, and in the generated `ApplySettings`, through `SetProvider<TProviderId>` and `SetSummaryProvider`. It
+  reaches the provider of its type through a generic call, as a `StoreId<TId>` reaches its store (D72), so no type is
+  made at run time and Native AOT keeps working; it is equal only to a provider of the same type and value. D63's
+  fallbacks hold for any type, since keyed services take keys of any type. `WithChatClientProvider<T>()` registers `T`
+  as each `IChatClientProvider<X>` it implements, of any `X`, as `WithStore<T>()` registers a store, and a `T` that
+  implements none is TSH030. Settings that store a provider need a type they store as one value, a string, a number,
+  a `Guid` or an enum: TSH029, on the provider. An agent whose settings store none may name a provider of any type. A
+  public agent's settings need a provider type as accessible (TSH006). The last `WithModel` of an agent types its
+  providers, since it is the one that runs. Gone with the build's type: `TypeshiftProviderIdType`, the
+  `IChatClientProvider` alias, the type parameter of `AddCoreServices`, `ChatClients<TProviderId>`, the module
+  stamps' provider id type (stamp version 6), TSH021, and the build-wide parts of TSH029 and TSH030.
+- **Where:** `Hosting/ProviderId.cs`, `Hosting/ChatClients.cs`, `Hosting/IChatClientProvider.cs`,
+  `Agents/ChatOptionsBuilder.cs`, `Generated/AgentDeclaration.cs`, `DependencyInjection/TypeshiftBuilder.cs`,
+  `Compaction/Compaction.cs`, `Parsing/AgentParser.cs`, `Emitting/AgentEmitter.cs`, `Emitting/OptionMembers.cs`,
+  `Analysis/TypeshiftAnalyzer.cs`.
 - **Alternatives:** a model record with a request type, a client cache and a catalog, more surface than the problem
   needs; methods that list providers and their models, which Typeshift never calls; a summary provider in code, tied
-  to a provider the user may switch away from; compaction that drops turns without a summary model.
+  to a provider the user may switch away from; compaction that drops turns without a summary model. For the type:
+  the MSBuild property, one type per build (D56); one type per app on the `AddTypeshift()` chain, known only in the
+  project that registers; a type each agent declares beside `WithModel`, which says it twice; looking the provider
+  up by its value's runtime type, which needs `MakeGenericType` and misses a provider whose runtime type differs from
+  its declared one.
 
 ### D63. A registered chat client serves a run no IChatClientProvider serves
 
@@ -375,7 +399,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Context:** the owner asked that an agent without a model still run, and for a simpler setup than writing an
   `IChatClientProvider`: one provider, or a client per provider, for a demo or a local test.
 - **Decision:** a run takes its client from the first of these that serves it:
-  - the host's `IChatClientProvider`, for a provider and a model;
+  - the `IChatClientProvider` of the agent's provider type (D77), for a provider and a model;
   - an `IChatClient` registered under the agent's provider as its key, as Microsoft.Extensions.AI's
     `AddKeyedChatClient` registers one;
   - the `IChatClient` registered for every agent, as `AddChatClient` registers it.
@@ -434,7 +458,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `WithConcurrentToolCalls`, `WithMaxInputTokens`, `WithTargetInputTokens`, `WithSummaryModel`, and `Configurable`
   over the `RunOptions` record, so a run option joins `Settings` like a chat option. Before each model call, when the
   last call's reported input tokens reached the maximum, the history shrinks to the target: oldest tool results
-  cleared first (calls kept), then the oldest turns summarized, by the run's model unless one is named (D56).
+  cleared first (calls kept), then the oldest turns summarized, by the run's model unless one is named (D77).
   Instructions, the latest `write_todos` call and call/result pairs stay; the summary is stored as an entry later
   runs start from. Without reported usage, tokens are estimated from the text.
 - **As built:** the estimate counts characters (four to a token) over the messages, the instructions and the tool
@@ -547,7 +571,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   the analyzer exempted their namespace from TSH007. Compaction still keeps the latest call of a tool named
   `write_todos` (D32), so an app's own to-do tool keeps its list.
 - **Alternatives:** keeping them in the library; a `Typeshift.Toolsets` package in this repository, built like any
-  plugin, which first needs TSH021 to accept a toolset-only package built with another provider id type.
+  plugin, which then needed TSH021 to accept a toolset-only package built with another provider id type.
 
 ### D53. A failed tool call reports its exception's message
 
@@ -897,7 +921,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   disposes an instance, so the client outlives the runtime. The generator reads only a `Create` whose receiver names
   `TypeshiftRuntime` and skips a call bound at run time, such as one with a `dynamic` argument; a call it did not
   intercept throws, saying how to call it. The generator's pass binds the call to its sole candidate when the
-  `configure` lambda names an alias it has not written yet. The library references
+  `configure` lambda names code it has not written yet. The library references
   `Microsoft.Extensions.DependencyInjection`, the container, which it did not before.
 - **Where:** `Hosting/TypeshiftRuntime.cs`, `Generated/ModuleRegistration.cs`, `Parsing/InterceptParser.cs`,
   `Emitting/InterceptorEmitter.cs`.
@@ -1161,6 +1185,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 | ID | Was | Replaced by |
 |---|---|---|
 | D11 | The id type is an MSBuild property | D72 |
+| D56 | A model is a provider and a model, one interface serves both | D77 |
 
 ## Related
 

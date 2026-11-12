@@ -24,7 +24,7 @@ internal static class OptionMembers
 
     private static readonly StorageModel Mode = new(StorageKind.Enum, "global::Typeshift.AgentMode");
 
-    // D28: the model is Model in Settings, with its Provider (D56). Options of the run itself (ConversationId, Tools,
+    // D28: the model is Model in Settings, with its Provider (D77). Options of the run itself (ConversationId, Tools,
     // AdditionalProperties) and types settings cannot store (ResponseFormat, ToolMode) are left out
     public static readonly OptionMember[] Chat =
     [

@@ -39,7 +39,6 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.GeneratedNameClash,
         Descriptors.NotGenerated,
         Descriptors.UnstampedReference,
-        Descriptors.ReferenceOfOtherProviderIdType,
         Descriptors.SharedKind,
         Descriptors.NotUsableAgent,
         Descriptors.SubAgentNeedsApproval,
@@ -48,7 +47,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.NoJsonMetadata,
         Descriptors.NoStore,
         Descriptors.UnusableProviderIdType,
-        Descriptors.OtherProviderIdType
+        Descriptors.NoChatClientProvider
     ];
 
     public override void Initialize(AnalysisContext context)
@@ -66,40 +65,19 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         var kinds = new ConcurrentBag<(string Kind, INamedTypeSymbol Agent)>();
         var found = new Found();
 
-        // D56: a provider id type the build cannot find, or settings cannot store as one value, is TSH029
-        var providerProperty = IdTypes.Read(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
-        var providerIdType = IdTypes.ResolveProvider(providerProperty, context.Compilation);
-
-        var unusable = providerIdType is null
-            ? Diagnostic.Create(
-                Descriptors.UnusableProviderIdType,
-                Location.None,
-                providerProperty,
-                IdTypes.Resolve(providerProperty, context.Compilation) is null
-                    ? Descriptors.NotFound
-                    : Descriptors.NotOneValue)
-            : null;
-
-        context.RegisterSymbolStartAction(
-            start => StartClass(start, providerIdType, tools, kinds, found),
-            SymbolKind.NamedType);
+        context.RegisterSymbolStartAction(start => StartClass(start, tools, kinds, found), SymbolKind.NamedType);
 
         context.RegisterSymbolAction(symbol => CollectJsonTypes(symbol, found), SymbolKind.NamedType);
 
         var aot = IsAot(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
         // The library's own builders make the calls a user may not
         if (context.Compilation.AssemblyName != KnownTypes.LibraryAssembly)
-            context.RegisterOperationAction(
-                call => AnalyzeCall(call, providerIdType),
-                OperationKind.Invocation);
+            context.RegisterOperationAction(AnalyzeCall, OperationKind.Invocation);
 
         context.RegisterCompilationEndAction(end =>
         {
-            if (unusable is not null) end.ReportDiagnostic(unusable);
-
             ReportClashesAcrossToolsets(end, tools);
             ReportUnstampedReferences(end);
-            ReportOtherProviderIdTypes(end, providerIdType);
             ReportSharedKinds(end, kinds);
             ReportAgentUses(end, found);
             if (aot) ReportMissingJsonMetadata(end, found);
@@ -108,7 +86,6 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
     private static void StartClass(
         SymbolStartAnalysisContext context,
-        ITypeSymbol? providerIdType,
         ConcurrentBag<(string Name, INamedTypeSymbol Owner, Location Location)> tools,
         ConcurrentBag<(string Kind, INamedTypeSymbol Agent)> kinds,
         Found found)
@@ -161,7 +138,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
                 .Any(reference => reference.SyntaxTree.Options.DocumentationMode != DocumentationMode.None);
 
             var declarations = baseType == "Agent"
-                ? ParseAgent(type, ordered, documented, providerIdType, reporter, kinds, found, ct)
+                ? ParseAgent(type, ordered, documented, reporter, kinds, found, ct)
                 : ParseToolset(type, ordered, documented, reporter, found, ct);
 
             foreach (var (tool, addTool) in declarations)
@@ -180,21 +157,12 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         INamedTypeSymbol type,
         IReadOnlyList<IOperation> constructors,
         bool documented,
-        ITypeSymbol? providerIdType,
         Reporter reporter,
         ConcurrentBag<(string Kind, INamedTypeSymbol Agent)> kinds,
         Found found,
         CancellationToken ct)
     {
-        var agent = AgentParser.Parse(
-            type,
-            constructors,
-            documented,
-            providerIdType,
-            reporter,
-            ct,
-            out var uses,
-            out var tools);
+        var agent = AgentParser.Parse(type, constructors, documented, reporter, ct, out var uses, out var tools);
 
         if (agent is null) return tools;
 
@@ -225,19 +193,21 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             _ => null
         };
 
-    private static void AnalyzeCall(OperationAnalysisContext context, ITypeSymbol? providerIdType)
+    private static void AnalyzeCall(OperationAnalysisContext context)
     {
         var invocation = (IInvocationOperation)context.Operation;
         var target = invocation.TargetMethod;
 
-        // D56: providers are of the build's provider id type; one that cannot be used is TSH029 already
-        if (providerIdType is not null && OtherProviderIdType(invocation, providerIdType) is { } other)
+        // D77: a chat client provider may serve providers of any type, but it must serve some
+        if (target is { Name: "WithChatClientProvider", TypeArguments.Length: 1 }
+            && target.ContainingType.Is(KnownTypes.TypeshiftBuilder)
+            && target.TypeArguments[0] is var clients
+            && !clients.AllInterfaces.Any(contract => contract.Is(KnownTypes.ChatClientProvider)))
         {
             context.ReportDiagnostic(Diagnostic.Create(
-                Descriptors.OtherProviderIdType,
-                other.Location,
-                other.Subject,
-                providerIdType.ToDisplayString()));
+                Descriptors.NoChatClientProvider,
+                ConstructorChains.GetCalledName(invocation).GetLocation(),
+                clients.Name));
 
             return;
         }
@@ -364,53 +334,6 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         foreach (var assembly in ReferenceReader.GetUnstamped(context.Compilation, context.CancellationToken))
         {
             context.ReportDiagnostic(Diagnostic.Create(Descriptors.UnstampedReference, Location.None, assembly.Name));
-        }
-    }
-
-    // WithModel(provider, model) with a provider of another type, or WithChatClientProvider<T>() with a T that serves
-    // no IChatClientProvider of the build's provider id type
-    private static (string Subject, Location Location)? OtherProviderIdType(
-        IInvocationOperation invocation,
-        ITypeSymbol providerIdType)
-    {
-        var target = invocation.TargetMethod;
-        if (target.TypeArguments.Length != 1) return null;
-
-        var argument = target.TypeArguments[0];
-
-        if (target.Name == "WithModel"
-            && target.ContainingType.Is(KnownTypes.ChatOptionsBuilder)
-            && !SymbolEqualityComparer.Default.Equals(argument, providerIdType))
-        {
-            return (
-                $"The provider's type '{argument.ToDisplayString()}'",
-                invocation.Arguments[0].Syntax.GetLocation());
-        }
-
-        if (target.Name == "WithChatClientProvider"
-            && target.ContainingType.Is(KnownTypes.TypeshiftBuilder)
-            && !argument.AllInterfaces.Any(contract => contract.Is(KnownTypes.ChatClientProvider)
-                && SymbolEqualityComparer.Default.Equals(contract.TypeArguments[0], providerIdType)))
-        {
-            return (
-                $"The provider id type of '{argument.Name}'",
-                ConstructorChains.GetCalledName(invocation).GetLocation());
-        }
-
-        return null;
-    }
-
-    // D56: TSH021, a reference with agents built with another provider id type
-    private static void ReportOtherProviderIdTypes(CompilationAnalysisContext context, ITypeSymbol? providerIdType)
-    {
-        foreach (var (assembly, other) in ReferenceReader.GetOtherProviderIdTypes(context.Compilation, providerIdType))
-        {
-            context.ReportDiagnostic(Diagnostic.Create(
-                Descriptors.ReferenceOfOtherProviderIdType,
-                Location.None,
-                assembly.Name,
-                other.ToDisplayString(),
-                providerIdType?.ToDisplayString()));
         }
     }
 

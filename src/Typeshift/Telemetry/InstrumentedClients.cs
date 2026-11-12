@@ -9,14 +9,14 @@ namespace Typeshift;
 // per run or per tenant, since the OpenTelemetry SDK ends the instruments of a disposed meter
 internal sealed class InstrumentedClients : IDisposable
 {
-    private readonly ConcurrentDictionary<(object? Provider, string? Model), OpenTelemetryChatClient> _instrumented =
-        [];
+    private readonly ConcurrentDictionary<(ProviderId? Provider, string? Model), OpenTelemetryChatClient>
+        _instrumented = [];
 
     // The client of the call going on; an async method's change to an AsyncLocal stays within its call
     private readonly AsyncLocal<IChatClient?> _call = new();
 
     // A run's pipeline disposes what it wraps, and neither the instrumented client nor the provider's is its to dispose
-    public IChatClient Instrument(IChatClient client, object? provider, string? model)
+    public IChatClient Instrument(IChatClient client, ProviderId? provider, string? model)
     {
         var metadata = client.GetService<ChatClientMetadata>();
         var instrumented = _instrumented.GetOrAdd((provider, model), _ => CreateInstrumented(metadata));
