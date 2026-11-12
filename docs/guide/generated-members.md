@@ -371,3 +371,4 @@ and [compaction](./conversations.md#compaction) what a compacted run stores.
 - [Settings and stores](./settings-and-stores.md#agent-settings): loading, saving and configuring an agent's
   settings.
 - [Builders](./builders.md): every call the generator reads.
+- [How Typeshift reads your code](./how-typeshift-reads-your-code.md): when the generator reads your code, and why.

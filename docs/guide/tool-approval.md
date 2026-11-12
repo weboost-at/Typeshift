@@ -310,5 +310,5 @@ classifier that asks a model.
 - [Conversations](./conversations.md): where requests, standing approvals and the mode are stored.
 - [Agents](./defining-agents.md#run-options): the run options that set the mode runs start in.
 - [MCP servers](./mcp.md): marking a server's tools read-only, so plan mode offers them.
-- [How a run works](./running-agents.md#how-a-run-works): where approval sits among a run's steps.
+- [How a run works](./how-a-run-works.md): where approval sits among a run's steps.
 - [Serving a chat endpoint](./chat-endpoint.md#answer-the-approvals): answering approvals over HTTP.

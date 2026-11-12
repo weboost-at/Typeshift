@@ -79,11 +79,11 @@ The calls chained onto `AddTool` describe the tool:
 | `RequiresApproval()` | The tool's calls need approval. Unless a rule, a standing approval or auto mode decides a call, the run ends and your app approves or rejects it in the conversation's next run. See [Approval and modes](./tool-approval.md). |
 | `WithSettings<T>()` | The tool gets [settings](./tool-settings.md) the model never sees, such as a search's limit. Put it last in the chain. `WithConfigurableSettings<T>()` does the same, but opens every settable member to stored settings and runs, except the ones `NotConfigurable` keeps in code. |
 
-`WithDisplayName("Tickets")` names the toolset for people, for example in a tool picker. `AddTool` takes a static
-method group, so the generated function can call it directly ([TSH003](./diagnostics.md#tsh003)). The generator reads
-these chains from your source at compile time instead of running the constructor. That is why each `AddTool` sits
-directly in the constructor ([TSH014](./diagnostics.md#tsh014)), as one chain ([TSH015](./diagnostics.md#tsh015)).
-[Builders](./builders.md#toolbuilder) lists every call.
+`WithDisplayName("Tickets")` names the toolset for people, for example in a tool picker. `AddTool` takes a static method
+group, so the generated function can call it directly ([TSH003](./diagnostics.md#tsh003)). Each `AddTool` sits directly
+in the constructor ([TSH014](./diagnostics.md#tsh014)), as one chain ([TSH015](./diagnostics.md#tsh015)), and
+[How Typeshift reads your code](./how-typeshift-reads-your-code.md) explains why. [Builders](./builders.md#toolbuilder)
+lists every call.
 
 ## Names and descriptions
 
