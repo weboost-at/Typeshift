@@ -769,6 +769,19 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   prefix; `Guid.NewGuid()`, which does not sort by time; ids from the store, which would add a method every store must
   implement; naming the new conversation only in a header or a property bag, which a typed run's response would hide.
 
+### D74. Live updates are on by default
+
+- **Status:** owner.
+- **Context:** the owner asked to "ship with sane defaults, for stock users to have a working library at their hands
+  from the get-go", and chose live updates on by default. `WatchAsync` threw until `WithRealtimeTracking()` was called.
+- **Decision:** `AddTypeshift()` registers the default `RealtimeTrackingOptions`, so runs with a conversation publish
+  their updates and `WatchAsync` reads them without a call. `WithRealtimeTracking(options)` replaces the options and
+  only tunes the intervals and limits. A publish with no watcher is one dictionary lookup, and merged text waits for
+  the next update, so no timer runs (D47).
+- **Where:** `Generated/ModuleRegistration.cs`, `DependencyInjection/TypeshiftBuilder.cs`,
+  `Conversations/ConversationTracker.cs`.
+- **Alternatives:** keeping it opt-in, which the owner turned down; a switch to turn it off, which nothing needs yet.
+
 ### D44. Settings records serialize themselves
 
 - **Status:** carried (v0 D27), extended.
@@ -857,8 +870,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D47. Live updates are a feed per conversation
 
 - **Status:** approved.
-- **Decision:** `WithRealtimeTracking(options)` turns publishing on; `ConversationTracker.WatchAsync(conversation)`
-  reads a bounded feed that drops its oldest updates when the watcher falls behind. A run never waits
+- **Decision:** runs publish their updates from the start (D74), and `WithRealtimeTracking(options)` tunes them;
+  `ConversationTracker.WatchAsync(conversation)` reads a bounded feed that drops its oldest updates when the watcher falls behind. A run never waits
   for a watcher. `PublishInterval` (100 ms) and `MaxPendingUpdates` (256) are options. `Runs` lists the runs of
   conversations going on in this process.
 - **Alternatives:** v0's process-wide events, awaited up to 5 s per model call.

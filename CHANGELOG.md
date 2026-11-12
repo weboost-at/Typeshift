@@ -34,6 +34,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- Live updates are on without `WithRealtimeTracking()`, so `ConversationTracker.WatchAsync` reads a conversation's
+  updates from the start, where it threw. `WithRealtimeTracking(options)` only tunes them now.
 - The response of a run with a conversation names it in `ChatResponse.ConversationId`, and so does each update of a
   streaming run, where it was null.
 - An answer to an approval request that is no longer open throws `ApprovalClosedException` before the run stores

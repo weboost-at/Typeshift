@@ -10,9 +10,9 @@ namespace Typeshift;
 public sealed class ConversationTracker<TId> where TId : notnull
 {
     private readonly LiveRuns _runs;
-    private readonly RealtimeTrackingOptions? _realtime;
+    private readonly RealtimeTrackingOptions _realtime;
 
-    internal ConversationTracker(LiveRuns runs, RealtimeTrackingOptions? realtime)
+    internal ConversationTracker(LiveRuns runs, RealtimeTrackingOptions realtime)
     {
         _runs = runs;
         _realtime = realtime;
@@ -24,13 +24,13 @@ public sealed class ConversationTracker<TId> where TId : notnull
     public IReadOnlyList<LiveRun<TId>> Runs => [.. _runs.Runs.Where(IsOfIdType).Select(Live)];
 
     /// <summary>
-    /// The runs of conversations going on now, then each run as it starts and as it ends, until cancelled. Needs no
-    /// live updates. A watcher that falls behind loses its oldest changes.
+    /// The runs of conversations going on now, then each run as it starts and as it ends, until cancelled. A watcher
+    /// that falls behind loses its oldest changes.
     /// </summary>
     /// <param name="ct">Ends the watch.</param>
     /// <returns>The runs; one that ended has <see cref="LiveRun{TId}.Ended"/> set.</returns>
     public IAsyncEnumerable<LiveRun<TId>> WatchRunsAsync(CancellationToken ct) =>
-        _runs.WatchRunsAsync((_realtime ?? new RealtimeTrackingOptions()).MaxPendingUpdates, ct)
+        _runs.WatchRunsAsync(_realtime.MaxPendingUpdates, ct)
             .Where(change => IsOfIdType(change.Run))
             .Select(change => Live(change.Run) with { Ended = change.Ended });
 
@@ -41,7 +41,6 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// <param name="conversation">The conversation's id.</param>
     /// <param name="ct">Ends the watch.</param>
     /// <returns>The updates.</returns>
-    /// <exception cref="InvalidOperationException">Live updates are off.</exception>
     public IAsyncEnumerable<ChatResponseUpdate> WatchAsync(TId conversation, CancellationToken ct) =>
         WatchAsync<TId>(conversation, ct);
 
@@ -54,18 +53,11 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// <param name="ct">Ends the watch.</param>
     /// <typeparam name="TConversation">The id's type.</typeparam>
     /// <returns>The updates.</returns>
-    /// <exception cref="InvalidOperationException">Live updates are off.</exception>
     public IAsyncEnumerable<ChatResponseUpdate> WatchAsync<TConversation>(
         TConversation conversation,
         CancellationToken ct)
-        where TConversation : notnull
-    {
-        var realtime = _realtime
-            ?? throw new InvalidOperationException(
-                "Live updates are off: call WithRealtimeTracking() after AddTypeshift() to watch conversations.");
-
-        return _runs.WatchAsync(new StoreId<TConversation>(conversation), realtime.MaxPendingUpdates, ct);
-    }
+        where TConversation : notnull =>
+        _runs.WatchAsync(new StoreId<TConversation>(conversation), _realtime.MaxPendingUpdates, ct);
 
     /// <summary>
     /// Steers a run going on in this process: the input reaches the model before its next call, and the run does not

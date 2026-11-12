@@ -19,7 +19,6 @@ internal static class Registration
         services.AddTypeshift()
             .WithStore<EfTypeshiftStore>()
             .WithChatClientProvider<KeyedChatClientProvider>()
-            .WithRealtimeTracking()
             .WithRunMiddleware<BlockedTopics>()
             .WithToolMiddleware<AuditToolCalls>();
 

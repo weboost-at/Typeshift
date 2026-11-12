@@ -271,18 +271,47 @@ public class ConversationStoreTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_No_Live_Updates_Watching_Fails_Naming_WithRealtimeTracking()
+    public void Given_Realtime_Options_They_Replace_The_Defaults()
     {
         // Arrange
+        var options = new RealtimeTrackingOptions { MaxPendingUpdates = 1024 };
         var services = new ServiceCollection();
-        services.AddTypeshift();
-
-        await using var provider = services.BuildServiceProvider();
 
         // Act
-        var watch = () => provider.GetRequiredService<ConversationTracker>().WatchAsync(Data.Agent.ConversationId, Ct);
+        services.AddTypeshift().WithRealtimeTracking(options);
 
         // Assert
-        watch.Should().Throw<InvalidOperationException>().WithMessage("*WithRealtimeTracking*");
+        using var provider = services.BuildServiceProvider();
+        provider.GetServices<RealtimeTrackingOptions>().Should().Equal(options);
+    }
+
+    [Fact]
+    public async Task Given_No_WithRealtimeTracking_A_Watcher_Receives_The_Updates_Of_A_Streaming_Run()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider(validateScopes: true);
+        await using var scope = provider.CreateAsyncScope();
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        await using var watch = provider.GetRequiredService<ConversationTracker>()
+            .WatchAsync(Data.Agent.ConversationId, watching.Token)
+            .GetAsyncEnumerator(Ct);
+
+        var next = watch.MoveNextAsync();
+
+        // Act
+        await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .RunStreamingAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct)
+            .ToListAsync(Ct);
+
+        // Assert
+        (await next).Should().BeTrue();
+        watch.Current.Text.Should().Be(Data.Tool.Answer);
     }
 }

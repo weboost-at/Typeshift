@@ -16,14 +16,13 @@ runs the agent ([Using an agent](./using-an-agent.md)).
 services.AddTypeshift()
     .WithStore<EfTypeshiftStore>()
     .WithChatClientProvider<KeyedChatClientProvider>()
-    .WithRealtimeTracking()
     .WithRunMiddleware<BlockedTopics>()
     .WithToolMiddleware<AuditToolCalls>();
 
 services.AddKeyedSingleton("openai", fast);
 services.AddKeyedSingleton("anthropic", reasoning);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L18-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L18-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `AddTypeshift()` registers the toolsets and agents of this project and the projects it references, plus a host per
@@ -179,8 +178,7 @@ await foreach (var update in support.RunStreamingAsync("Where is my refund?", se
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L76-L79' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-With `WithRealtimeTracking()`, anyone [watching the conversation](./conversations.md#live-updates) sees the updates
-too.
+Anyone [watching the conversation](./conversations.md#live-updates) sees the updates too.
 
 ## The raw path
 

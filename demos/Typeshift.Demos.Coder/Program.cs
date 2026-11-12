@@ -38,7 +38,6 @@ services.AddDemoServices(catalog, canned);
 
 services.AddTypeshift()
     .WithChatClientProvider<RoutingChatClientProvider>()
-    .WithRealtimeTracking()
     .WithApprovalRule<ShellGuard>()
     .WithToolMiddleware<AuditToolCalls>();
 

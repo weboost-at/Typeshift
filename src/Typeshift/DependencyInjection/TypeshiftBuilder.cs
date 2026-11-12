@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Typeshift;
 
@@ -120,13 +121,13 @@ public sealed class TypeshiftBuilder
     }
 
     /// <summary>
-    /// Publishes the updates of streaming runs live, to <c>ConversationTracker.WatchAsync</c>.
+    /// Tunes the live updates of runs, which <c>ConversationTracker.WatchAsync</c> reads; they are on without it.
     /// </summary>
     /// <param name="options">Intervals and limits; the defaults when null.</param>
     /// <returns>The same chain.</returns>
     public TypeshiftBuilder WithRealtimeTracking(RealtimeTrackingOptions? options = null)
     {
-        _services.AddSingleton(options ?? new RealtimeTrackingOptions());
+        _services.Replace(ServiceDescriptor.Singleton(options ?? new RealtimeTrackingOptions()));
         return this;
     }
 

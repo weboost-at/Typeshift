@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift.Tests.Agents.Support;
 
-// The host's registration, with a store in memory, live updates, and every model served by the scripted client
+// The host's registration, with a store in memory and every model served by the scripted client
 public abstract class AgentTestBase : HostTestBase
 {
     // About a thousand tokens of text, at four characters to a token
@@ -29,8 +29,7 @@ public abstract class AgentTestBase : HostTestBase
     {
         services.AddTypeshift()
             .WithStore<InMemoryTypeshiftStore>()
-            .WithChatClientProvider<ScriptedChatClientProvider>()
-            .WithRealtimeTracking();
+            .WithChatClientProvider<ScriptedChatClientProvider>();
 
         services.AddSingleton(ChatClient);
         services.AddSingleton(Models);

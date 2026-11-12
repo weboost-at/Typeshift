@@ -104,14 +104,13 @@ or the call first and finishes last:
 services.AddTypeshift()
     .WithStore<EfTypeshiftStore>()
     .WithChatClientProvider<KeyedChatClientProvider>()
-    .WithRealtimeTracking()
     .WithRunMiddleware<BlockedTopics>()
     .WithToolMiddleware<AuditToolCalls>();
 
 services.AddKeyedSingleton("openai", fast);
 services.AddKeyedSingleton("anthropic", reasoning);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L18-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L18-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The other lines register the store, the chat clients and live updates, which
