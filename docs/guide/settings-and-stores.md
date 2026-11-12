@@ -124,8 +124,8 @@ Without any store, Typeshift keeps settings and conversations in memory, so ever
 and the first save or stored run logs a warning that names `WithStore<T>()`. The memory is gone when the app stops, so
 register a store before your app keeps anything it must not lose.
 
-Once you register a store, Typeshift uses only the stores you registered. For each store interface, the last
-`WithStore<T>()` call wins, so a second store that also implements it takes its place. A run applies the agents' own
+Once you register a store, Typeshift uses only the stores you registered. For each store interface, the last call
+that registers a store wins, so a second store that also implements it takes its place. A run applies the agents' own
 settings only when a registered store implements `IAgentSettingsStore`, as `InMemoryTypeshiftStore` does. A call that
 needs an interface none of your stores implements, such as a run with a conversation id and a store of settings
 alone, throws an `InvalidOperationException` that names `WithStore<T>()` and the interface.
@@ -149,7 +149,7 @@ var everyRun = await research.RunAsync("Graz");
 a settings id, and `ConfigureAsync(configure)` retries the same way.
 
 `InMemoryTypeshiftStore` forgets them when the app stops. To keep them without a database, for example in a local
-tool or a single-agent service, register a `FileAgentSettingsStore` over a folder of your app:
+tool or a single-agent service, keep them in files with `WithFileSettings`:
 
 <!-- snippet: file-agent-settings -->
 <a id='snippet-file-agent-settings'></a>
@@ -157,17 +157,21 @@ tool or a single-agent service, register a `FileAgentSettingsStore` over a folde
 var services = new ServiceCollection();
 
 services.AddTypeshift()
-    .WithStore(new FileAgentSettingsStore(folder))
+    .WithFileSettings(options => options.Folder = folder)
     .WithChatClientProvider<KeyedChatClientProvider>();
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/FileSettings.cs#L30-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-file-agent-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-It keeps each agent's settings in a file named after its kind, `ResearchAgent.json` here, which you can read, back up
-and edit by hand. Several stores and processes may share the folder, since a save takes a lock file of its kind first.
+It registers a `FileAgentSettingsStore`, which keeps each agent's settings in a file named after its kind,
+`ResearchAgent.json` here. You can read, back up and edit the file by hand. Several stores and processes may share the
+folder, since a save takes a lock file of its kind first.
 
-- A relative folder resolves against the current directory when you create the store, which for a service may be the
-  system's folder. Pass an absolute one there, such as one under `AppContext.BaseDirectory`.
+- Without a `Folder`, the files go to a `settings` folder under `AppContext.BaseDirectory`, beside your app's
+  assemblies, so a service finds them whatever its current directory is. Set one when your app may not write there,
+  as is usual for an install folder under Program Files.
+- A relative `Folder` resolves against the current directory when you register the store, which for a service may be
+  the system's folder.
 - Characters other than ASCII letters, digits, `_` and `-` are escaped in the file name, so any kind has a file of its
   own.
 - On a file system that ignores case, as on Windows and macOS, two kinds that differ only in case share a file. The

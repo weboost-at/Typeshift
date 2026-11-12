@@ -233,13 +233,13 @@ services.AddKeyedChatClient("openai", openAi)
 
 Wrap what concerns a single request, such as logging or a policy of your own written as a `DelegatingChatClient`. At
 the `Trace` level, `UseLogging()` logs every message and answer in full, and those are your customers' data
-([Message content](./production.md#message-content)). Two wrappers repeat what Typeshift already does:
+([Message content](./observability.md#message-content)). Two wrappers repeat what Typeshift already does:
 
 - `UseFunctionInvocation()` runs a second tool loop inside the one Typeshift runs. Its tool calls bypass your
   [tool middleware](./middleware.md) and the run's limits, such as `WithMaxToolIterations`, and a run that answers an
   [approval request](./tool-approval.md) fails.
 - `UseOpenTelemetry()` records every model call again, on Microsoft.Extensions.AI's own source and meter. Typeshift
-  already writes a `chat {model}` span and the metrics for each call ([Spans](./production.md#spans)), so an app that
+  already writes a `chat {model}` span and the metrics for each call ([Spans](./observability.md#spans)), so an app that
   listens to both sees every call twice.
 
 Leave retries to the client library, which knows which of its errors are worth another try. The OpenAI client retries
@@ -408,4 +408,4 @@ What your code sees depends on whether the run fails before or after it touches 
 - [Settings and stores](./settings-and-stores.md#settings-layering): where each of a run's values comes from.
 - [Registration](./registration.md#the-chain): the chain calls and their lifetimes.
 - [Builders](./builders.md#chatoptionsbuilder): every chat and run option.
-- [In production](./production.md#observability): the spans and metrics of each model call.
+- [Observability](./observability.md): the spans and metrics of each model call.

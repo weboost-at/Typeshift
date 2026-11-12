@@ -62,7 +62,8 @@ const sidebar = {
       text: 'Production',
       collapsed: true,
       items: [
-        { text: 'In production', link: '/guide/production' }
+        { text: 'Observability', link: '/guide/observability' },
+        { text: 'Native AOT', link: '/guide/native-aot' }
       ]
     },
     {
