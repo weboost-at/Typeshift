@@ -1,9 +1,9 @@
 ---
-title: Generated members and the host
+title: AgentHost and generated members
 description: Every member the generator writes for your toolsets and agents, what triggers it, and every member of AgentHost<TAgent> with its signature.
 ---
 
-# Generated members and the host
+# AgentHost and generated members
 
 The generator adds members to your toolsets and agents, and to `AgentHost<TAgent>`, the class that runs an agent. Each
 section names the declaration that adds a member.
