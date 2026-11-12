@@ -45,8 +45,7 @@ Build AI agents for .NET with just a few lines of code, and let the compiler cat
 dotnet add package Typeshift --prerelease
 ```
 
-The types are in the `Typeshift` namespace, so add `using Typeshift;` to your files. The package turns on XML docs,
-which describe your tools to the model.
+The types are in the `Typeshift` namespace, so add `using Typeshift;` to your files.
 
 ### 1. Write a toolset
 

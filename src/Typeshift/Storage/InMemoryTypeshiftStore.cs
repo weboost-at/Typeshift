@@ -3,8 +3,8 @@ using System.Collections.Concurrent;
 namespace Typeshift;
 
 /// <summary>
-/// A store in memory, for tests and samples. Each project sees it as <c>InMemoryTypeshiftStore</c>. It keeps each
-/// document as its JSON, so a load returns a copy and a round trip is tested on every save.
+/// A store in memory, for tests and samples, under ids of <typeparamref name="TId"/>. It keeps each document as its
+/// JSON, so a load returns a copy and a round trip is tested on every save.
 /// </summary>
 /// <typeparam name="TId">The id type.</typeparam>
 public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId>, IAgentSettingsStore where TId : notnull

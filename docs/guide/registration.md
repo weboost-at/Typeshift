@@ -46,17 +46,20 @@ compiling. Delete your own class, and the one the package adds brings `Annotated
 ## Ids
 
 Your app keeps settings and conversations under ids it already has, such as a customer's id or the key of a chat.
-You give them to a host in code: `support.WithSettingsId(42)` and `support.WithConversationId(chat)` each return a
-copy of the host with the id. The id's type picks the store of that type, so one app can keep settings under `int`
-ids and conversations under `Guid` ids ([Ids of your own types](./settings-and-stores.md#ids-of-your-own-types)).
+You give them to a host in code, with `support.WithSettingsId(42)` and `support.WithConversationId(chat)`, and the
+id's type picks the store of that type, so one app can keep settings under `int` ids and conversations under `Guid`
+ids ([Ids of your own types](./settings-and-stores.md#ids-of-your-own-types)).
 Typeshift creates an id only when you keep every conversation, for a conversation a run starts without one
 ([Keeping every conversation](./conversations.md#keeping-every-conversation)).
 
 ::: info `TypeshiftIdType` still sets the build's id type
 The MSBuild property `TypeshiftIdType` is still accepted, and a coming release removes it. It is `Guid` unless set.
-The container has the `ConversationTracker<TId>` of that type only, so an app that watches conversations under `int`
-ids sets it to `int`. The generated members also still take `settingsId` and `conversationId` parameters of that
-type, which the same release removes, so give ids with `WithSettingsId` and `WithConversationId` instead.
+The container has the `ConversationTracker<TId>` of that type only, so a default app's tracker is
+`ConversationTracker<Guid>`. Its `TrySteer` and `WatchAsync` take ids of any type, but `Runs` and `WatchRunsAsync`
+list only the conversations under ids of the build's type. An app that lists its running conversations under `int`
+ids sets the property to `int`, as the docs samples do. The generated members also still take `settingsId` and
+`conversationId` parameters of that type, which the same release removes, so give ids with `WithSettingsId` and
+`WithConversationId` instead.
 :::
 
 Providers have an id type of their own, `TypeshiftProviderIdType`, which is `string` unless set. See

@@ -58,7 +58,8 @@ them. Each message names the agent that wrote it in `AuthorName`.
 ## Stored settings
 
 Give the host a settings id with `WithSettingsId`, and its runs layer the [settings stored](./settings-and-stores.md)
-under it over the agent's code and its own stored settings:
+under it over the agent's code and its own stored settings. The call returns a copy of the host, as
+[Ids of your own types](./settings-and-stores.md#ids-of-your-own-types) explains:
 
 <!-- snippet: run-with-settings-id -->
 <a id='snippet-run-with-settings-id'></a>
@@ -69,9 +70,6 @@ var stored = await support.WithSettingsId(settingsId).RunAsync("Where is my refu
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L34-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-with-settings-id' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
-
-`WithSettingsId` returns a copy of the host that carries the id, so `support` itself still runs without one. The id's
-type picks the store that keeps the settings ([Ids of your own types](./settings-and-stores.md#ids-of-your-own-types)).
 
 ## Run settings
 

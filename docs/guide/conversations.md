@@ -22,10 +22,10 @@ await chat.RunAsync("When will it arrive?");
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L15-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`WithConversationId` returns a copy of the host whose runs belong to conversation 7, while `support` itself has no
-conversation. The first run starts the conversation and the second resumes it. Typeshift puts the stored messages ahead
-of the new input, so the model sees the whole conversation. Because Typeshift sends the history itself, it never passes
-the conversation id on to the provider.
+`chat` is the host with conversation 7 ([Ids of your own types](./settings-and-stores.md#ids-of-your-own-types)). The
+first run starts the conversation and the second resumes it. Typeshift puts the stored messages ahead of the new input,
+so the model sees the whole conversation. Because Typeshift sends the history itself, it never passes the conversation
+id on to the provider.
 
 Settings ids and conversation ids are independent, and a host may have either or both. A conversation does not
 remember a settings id, so every run of it that should use the stored settings needs a host with both, the run that
@@ -125,9 +125,9 @@ var resumed = await support.WithSettingsId(settingsId).WithConversationId(interr
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L64-L66' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-On a conversation whose last run ended, `ResumeAsync` throws an `InvalidOperationException`, and so it does on a host
-without a conversation id. After a restart, the entries tell you which conversations to resume: when the last entry
-that `LoadConversationAsync` returns has `EndsRun` false, a crash cut that run off. A new run with input works on an
+`ResumeAsync` throws an `InvalidOperationException` on a host without a conversation id, or when the conversation's last
+run ended. After a restart, the entries tell you which conversations to resume: when the last entry that
+`LoadConversationAsync` returns has `EndsRun` false, a crash cut that run off. A new run with input works on an
 interrupted conversation too: it starts from the interrupted run's steps and adds its own input.
 
 ::: warning A tool can be called twice
@@ -148,9 +148,10 @@ conversation is up to your app.
 run's updates, so a second tab or a support dashboard can follow a chat that another request is answering
 ([Live updates](#live-updates)).
 
-The container has the tracker of the build's [id type](./registration.md#ids), here `ConversationTracker<int>`. Its
-`Runs` lists the runs going on in this process under conversation ids of that type, each with its conversation, the
-agent that answers, its model and when it started:
+The container has the tracker of the build's [id type](./registration.md#ids): `ConversationTracker<Guid>` in a
+default app, and `ConversationTracker<int>` in the docs samples, which set `TypeshiftIdType` to `int`. Its `Runs`
+lists the runs going on in this process under conversation ids of that type, each with its conversation, the agent
+that answers, its model and when it started:
 
 <!-- snippet: live-sessions -->
 <a id='snippet-live-sessions'></a>
@@ -192,7 +193,7 @@ ending. Start a run with the input instead:
 var input = "Send me the invoice too.";
 
 if (!tracker.TrySteer(conversationId, input))
-    await chat.RunAsync(input);
+    await chat.WithSettingsId(settingsId).RunAsync(input);
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L51-L56' title='Snippet source file'>snippet source</a> | <a href='#snippet-steering' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->

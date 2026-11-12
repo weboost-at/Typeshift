@@ -252,12 +252,9 @@ declared, and `Agent.Description` what `WithDescription` or the agent's `<summar
 `AgentHost<TAgent> WithSettingsId<TId>(TId id)` and `AgentHost<TAgent> WithConversationId<TId>(TId id)`, where `TId`
 is any type but a nullable one.
 
-Both return a copy of the host that carries the id, along with any id the host had already, and leave the host itself
-as it was. The copy runs in the host's scope and works as long as the host does; disposing it does nothing. The id's
-type picks the store ([Ids of your own types](./settings-and-stores.md#ids-of-your-own-types)). A settings id names
-settings in an `ISettingsStore<TId>`, which the copy's runs apply and its settings members load and save. A
-conversation id names a conversation in an `IConversationStore<TId>`, which the copy's runs resume and store. Both
-throw an `ArgumentNullException` for a null id.
+Both return a copy of the host with the id, in the host's scope, and throw an `ArgumentNullException` for a null id.
+[Ids of your own types](./settings-and-stores.md#ids-of-your-own-types) explains the copy and the store its id picks:
+an `ISettingsStore<TId>` for a settings id, an `IConversationStore<TId>` for a conversation id.
 
 ### `CreateChatClientAsync`
 
@@ -270,8 +267,8 @@ options and the tool loop.
 
 Calling the client with those options runs and stores like `RunAsync`, in the conversation of the host that resolved
 them. On options of a host without a conversation id, `ChatOptions.ConversationId` can name one, as the text of an id
-of the build's [id type](./registration.md#ids). Disposing the client does not dispose the one your provider
-returned.
+of the build's [id type](./registration.md#ids), which a coming release removes. Disposing the client does not
+dispose the one your provider returned.
 
 It throws an `InvalidOperationException` when no client is registered for the options' provider and model, and none
 for every agent.
@@ -286,32 +283,37 @@ use its scope. `Dispose` throws an `InvalidOperationException` when a scoped ser
 
 ### Typed members
 
-In these signatures, `Settings` is the agent's [generated `Settings` record](#settings). Every member takes a
-`CancellationToken ct = default` last. The ids come from the host, by
-[`WithSettingsId` and `WithConversationId`](#withsettingsid-and-withconversationid).
+In these signatures, `TId` is the build's [id type](./registration.md#ids) and `Settings` the agent's
+[generated `Settings` record](#settings). Every member takes a `CancellationToken ct = default` last. Give the ids
+with [`WithSettingsId` and `WithConversationId`](#withsettingsid-and-withconversationid) and leave the `settingsId`
+and `conversationId` parameters out: they are still accepted, and a coming release removes them, along with the
+overloads marked below.
 
 | Member | Returns |
 |---|---|
-| `RunAsync(string input, Settings? settings = null)` | `Task<ChatResponse>` |
-| `RunAsync(ChatMessage input, Settings? settings = null)` | `Task<ChatResponse>` |
-| `RunAsync<TResult>(string input, Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
-| `RunAsync<TResult>(ChatMessage input, Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
-| `RunStreamingAsync(string input, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
-| `RunStreamingAsync(ChatMessage input, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
-| `RunStreamingAsync<TResult>(string input, Settings? settings = null)` | `StreamingRun<TResult>` |
-| `RunStreamingAsync<TResult>(ChatMessage input, Settings? settings = null)` | `StreamingRun<TResult>` |
+| `RunAsync(string input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `Task<ChatResponse>` |
+| `RunAsync(ChatMessage input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `Task<ChatResponse>` |
+| `RunAsync<TResult>(string input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
+| `RunAsync<TResult>(ChatMessage input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
+| `RunStreamingAsync(string input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
+| `RunStreamingAsync(ChatMessage input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
+| `RunStreamingAsync<TResult>(string input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `StreamingRun<TResult>` |
+| `RunStreamingAsync<TResult>(ChatMessage input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `StreamingRun<TResult>` |
 | `ResumeAsync(Settings? settings = null)` | `Task<ChatResponse>` |
 | `ResumeStreamingAsync(Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
-| `ResolveOptionsAsync(Settings? settings = null)` | `Task<ChatOptions>` |
+| `ResolveOptionsAsync(TId? settingsId = null, Settings? settings = null)` | `Task<ChatOptions>` |
 | `LoadSettingsAsync()` | `Task<Stored<Settings>>` |
 | `SaveSettingsAsync(Settings settings, long loadedVersion)` | `Task<long>` |
 | `ConfigureAsync(Func<Settings, Settings> configure)` | `Task<Settings>` |
+| `ResumeAsync(TId conversationId, TId? settingsId = null, Settings? settings = null)`, removed in a coming release | `Task<ChatResponse>` |
+| `ResumeStreamingAsync(TId conversationId, TId? settingsId = null, Settings? settings = null)`, removed in a coming release | `IAsyncEnumerable<ChatResponseUpdate>` |
+| `LoadSettingsAsync(TId settingsId)`, removed in a coming release | `Task<Stored<Settings>>` |
+| `SaveSettingsAsync(TId settingsId, Settings settings, long loadedVersion)`, removed in a coming release | `Task<long>` |
+| `ConfigureAsync(TId settingsId, Func<Settings, Settings> configure)`, removed in a coming release | `Task<Settings>` |
 
-::: info The id parameters are still there
-The runs and `ResolveOptionsAsync` also still take `settingsId` and `conversationId` parameters of the build's
-[id type](./registration.md#ids) before `settings`, and `ResumeAsync`, `ResumeStreamingAsync` and the settings
-members have overloads that take an id first. A coming release removes them. Until then, pass `settings` by name, as
-in `RunAsync(input, settings: run)`. An id passed to a call on a host that has that id already throws an
+::: warning Pass `settings` by name
+The id parameters come before `settings`, so a positional `RunAsync(input, run)` does not compile: write
+`RunAsync(input, settings: run)`. An id passed to a call on a host that has that id already throws an
 `ArgumentException`.
 :::
 

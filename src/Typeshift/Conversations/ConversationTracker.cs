@@ -3,8 +3,9 @@ using Microsoft.Extensions.AI;
 namespace Typeshift;
 
 /// <summary>
-/// The conversations running in this process. Each project sees it as <c>ConversationTracker</c>, an alias for the
-/// build's id type.
+/// The conversations running in this process. The container has the tracker of the build's id type,
+/// <see cref="Guid"/> unless <c>TypeshiftIdType</c> names another, which a coming release removes. It steers and
+/// watches conversations under ids of any type, and lists those under ids of <typeparamref name="TId"/>.
 /// </summary>
 /// <typeparam name="TId">The id type.</typeparam>
 public sealed class ConversationTracker<TId> where TId : notnull

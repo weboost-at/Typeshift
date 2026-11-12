@@ -193,6 +193,9 @@ internal sealed class ConversationHub(ConversationTracker<int> tracker, IChats c
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ConversationHub.cs#L7-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-conversation-hub' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+- The hub takes `ConversationTracker<int>` because the docs samples set `TypeshiftIdType` to `int`. In a default app
+  it is `ConversationTracker<Guid>`, whose `WatchAsync` takes a chat id of any type
+  ([Ids](./registration.md#ids)).
 - Register SignalR with `builder.Services.AddSignalR()`, and map the hub behind your authentication, for example
   `app.MapHub<ConversationHub>("/hub").RequireAuthorization()`. In a hub, the current customer comes from the
   connection's user, so `ICurrentCustomer` reads it from there.

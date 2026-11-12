@@ -52,7 +52,7 @@ internal static class Conversations
         var input = "Send me the invoice too.";
 
         if (!tracker.TrySteer(conversationId, input))
-            await chat.RunAsync(input);
+            await chat.WithSettingsId(settingsId).RunAsync(input);
         // end-snippet
 
         // A run cut off by a crash: its input is stored, nothing else

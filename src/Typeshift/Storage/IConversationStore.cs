@@ -1,9 +1,9 @@
 namespace Typeshift;
 
 /// <summary>
-/// Keeps conversations: the entries runs append, keyed by the conversation's id. Each project sees it as
-/// <c>IConversationStore</c>, an alias the generator writes for the build's id type. Implement it alone when settings
-/// live elsewhere, or <see cref="ITypeshiftStore{TId}"/> for both.
+/// Keeps conversations: the entries runs append, keyed by the conversation's id. It receives the conversation ids of
+/// <typeparamref name="TId"/> that <c>WithConversationId</c> gives a host. Implement it alone when settings live
+/// elsewhere, or <see cref="ITypeshiftStore{TId}"/> for both.
 /// </summary>
 /// <typeparam name="TId">
 /// The id type of conversations. The library passes on the host's ids, and creates one only for a conversation a run

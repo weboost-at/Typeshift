@@ -94,7 +94,8 @@ id type as accessible as what exposes it. There are four cases:
   type for the model's provider.
 - The build's [id type](./registration.md#ids) is less accessible than a public agent. The agent's host
   members still take `settingsId` and `conversationId` parameters of that type, so the generator keeps those members
-  internal.
+  internal. Leave `TypeshiftIdType` unset, since ids are given in code, or name a public type; a coming release
+  removes the property.
 
 ## TSH007
 
@@ -190,7 +191,9 @@ version the rest of the build uses.
 ## TSH021
 
 **Referenced assembly has another id type.** Every project of a build shares one id type and one provider id type.
-Set `TypeshiftIdType` and `TypeshiftProviderIdType` once, in `Directory.Build.props`.
+Set `TypeshiftIdType` and `TypeshiftProviderIdType` once, in `Directory.Build.props`. `TypeshiftIdType` can also be
+left unset in every project, since ids are given in code ([Ids](./registration.md#ids)), and a coming release removes
+it.
 
 ## TSH022
 
