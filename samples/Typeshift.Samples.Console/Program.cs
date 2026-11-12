@@ -7,10 +7,12 @@ using Microsoft.Extensions.DependencyInjection;
 // any reflection a generated path needed would fail here, which fails CI
 var services = new ServiceCollection();
 
+// begin-snippet: aot-tracker
 services.AddTypeshift()
     .WithStore<InMemoryTypeshiftStore<Guid>>()
     .WithConversationTracker<Guid>()
     .WithChatClientProvider<ScriptedChatClientProvider>();
+// end-snippet
 
 await using var provider = services.BuildServiceProvider();
 await using var research = provider.GetRequiredService<TypeshiftRuntime>().Agent<ResearchAgent>();

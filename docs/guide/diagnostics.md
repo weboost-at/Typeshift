@@ -30,7 +30,7 @@ so you fix it there instead of debugging a compiler error inside generated code.
 | [TSH018](#tsh018) | Error | Member clashes with a generated member |
 | [TSH019](#tsh019) | Error | Toolset was not compiled with the generator |
 | [TSH020](#tsh020) | Warning | Referenced assembly was not compiled with the generator |
-| [TSH021](#tsh021) | Error | Referenced assembly has another id type |
+| [TSH021](#tsh021) | Error | Referenced assembly has another provider id type |
 | [TSH022](#tsh022) | Error | Two agents share a settings kind |
 | [TSH023](#tsh023) | Error | Agent cannot be a tool or a handoff target |
 | [TSH024](#tsh024) | Warning | Sub-agent offers tools that need approval |
@@ -38,7 +38,7 @@ so you fix it there instead of debugging a compiler error inside generated code.
 | [TSH026](#tsh026) | Error | Agents call each other in a circle |
 | [TSH027](#tsh027) | Error | Tool type has no JSON metadata under Native AOT |
 | [TSH028](#tsh028) | Error | Type is no store |
-| [TSH029](#tsh029) | Error | Id type cannot be used |
+| [TSH029](#tsh029) | Error | Provider id type cannot be used |
 | [TSH030](#tsh030) | Error | Provider has another id type |
 
 ## Severities and suppression
@@ -82,8 +82,8 @@ layer of settings then changes a copy of them, made with `with`.
 
 ## TSH006
 
-**Settings are less accessible than what exposes them.** Make the record, the toolset, the provider id type or the
-id type as accessible as what exposes it. There are four cases:
+**Settings are less accessible than what exposes them.** Make the record, the toolset or the provider id type as
+accessible as what exposes it. There are three cases:
 
 - A settings record is less accessible than its toolset. The toolset's generated members name the record wherever
   the toolset can be named.
@@ -92,10 +92,6 @@ id type as accessible as what exposes it. There are four cases:
 - A public agent makes its model or its summary model configurable, and the
   [provider id type](./models.md#the-provider-id-type) is less accessible. The agent's `Settings` record names the
   type for the model's provider.
-- The build's [id type](./registration.md#ids) is less accessible than a public agent. The agent's host
-  members still take `settingsId` and `conversationId` parameters of that type, so the generator keeps those members
-  internal. Leave `TypeshiftIdType` unset, since ids are given in code, or name a public type; a coming release
-  removes the property.
 
 ## TSH007
 
@@ -190,10 +186,10 @@ version the rest of the build uses.
 
 ## TSH021
 
-**Referenced assembly has another id type.** Every project of a build shares one id type and one provider id type.
-Set `TypeshiftIdType` and `TypeshiftProviderIdType` once, in `Directory.Build.props`. `TypeshiftIdType` can also be
-left unset in every project, since ids are given in code ([Ids](./registration.md#ids)), and a coming release removes
-it.
+**Referenced assembly has another provider id type.** A referenced project with agents was built with another
+[provider id type](./models.md#the-provider-id-type), and every project of a build shares one, since its agents'
+`Settings` store providers of that type. Set `TypeshiftProviderIdType` once, in `Directory.Build.props`. A project
+of toolsets alone has no provider ids, so it never clashes.
 
 ## TSH022
 
@@ -251,10 +247,9 @@ pass the store you meant. A store's id type picks the ids it serves, as
 
 ## TSH029
 
-**Id type cannot be used.** `TypeshiftIdType` or `TypeshiftProviderIdType` names a type the build does not know.
-Give a C# keyword (`int`, `long`, `string`), a type of `System` (`Guid`), or the type's full name with its namespace.
-A provider id is stored in the agent's `Settings` as one value, so `TypeshiftProviderIdType` also has to be a string,
-a number, a `Guid` or an enum.
+**Provider id type cannot be used.** `TypeshiftProviderIdType` names a type the build does not know, or one the
+agent's `Settings` cannot store as one value. Name a string, a number, a `Guid` or an enum: as a C# keyword (`int`,
+`long`, `string`), as a type of `System` (`Guid`), or by its full name with its namespace.
 
 ## TSH030
 

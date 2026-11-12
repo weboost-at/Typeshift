@@ -118,15 +118,17 @@ unless it is an object of properties.
 
 `ISettingsStore<TId>` keeps documents by id and kind, as JSON with a version (D38, D41), `IAgentSettingsStore` keeps
 the agents' own by kind alone (D66), and `IConversationStore<TId>` keeps conversation entries. `ITypeshiftStore<TId>`
-is the first and the last in one. A null settings id reaches `IAgentSettingsStore`, and a run loads from it only when
-one is registered. `WithStore<T>()` registers
-each of them the store implements, of any id type, so a host may keep settings and conversations in two stores, under
-ids of two types. A run carries each id as a `StoreId<TId>`, from `WithSettingsId` and `WithConversationId` or from a
-generated member's parameter of the build's id type (D11), and the id reaches the store of its type through a generic
-call (D72). `StoreAccess` serializes and reads the documents, so a store handles strings and numbers only. `VerifyAsync` runs the rules a store must keep against it, from the store's own tests (D58).
+is the first and the last in one. A host without a settings id reaches `IAgentSettingsStore`, and a run loads from it
+only when one is registered. `WithStore<T>()` registers each of them the store implements, of any id type, so a host
+may keep settings and conversations in two stores, under ids of two types. A run carries each id as a `StoreId<TId>`,
+from `WithSettingsId` and `WithConversationId`, and the id reaches the store of its type through a generic call
+(D72). The raw path's `ChatOptions.ConversationId` becomes a `StoreId<string>`, and a conversation that
+`PersistAllConversations` starts a `StoreId<Guid>` unless `NewConversationIds` gives another (D73).
+`StoreAccess` serializes and reads the documents, so a store handles strings and numbers only. `VerifyAsync` runs the rules a store must keep against it, from the store's own tests (D58).
 `WithFileStore` registers the internal `FileAgentSettingsStore`, which keeps agents' own settings in the `settings`
-folder of the file store's folder, a file per kind (D67). With no store registered at all, `StoreAccess` keeps
-everything in an `InMemoryTypeshiftStore` of its own per id type and warns on the first write (D69).
+folder of the file store's folder, a file per kind (D67). Until `WithStore<T>()` registers a store, `StoreAccess` keeps
+what no service of the container keeps in an `InMemoryTypeshiftStore` of its own per id type and warns on the first
+write (D69).
 
 The generator writes each agent's `Settings` as an `IStorable<Settings>`, with a kind, a schema version, `Serialize` and
 `Deserialize`. It is an `IJsonStorable<Settings>` too, whose `WriteJson` and `TryReadJson` serve `Serialize` and the
@@ -144,7 +146,8 @@ input, begins the run in `LiveRuns`, and ends the run with an entry of its own.
 Inside the tool loop, `CheckpointChatClient` stores the steps before each model call, tool results first and then
 any steering input it takes in, and stores each response as it arrives. `ConversationRun` holds what one run stored
 and where its steering input went. Streaming runs publish their updates through `LivePublisher` to the watchers
-that `ConversationTracker.WatchAsync` registered (D47).
+that `ConversationTracker<TId>.WatchAsync` registered (D47). The container makes the tracker of each id type from one
+open-generic registration, and `WithConversationTracker<TId>()` closes one for Native AOT (D72).
 
 ## Approval and modes
 

@@ -98,7 +98,7 @@ style; the essentials:
 | Fact | Canonical page | Also mentioned in |
 |---|---|---|
 | What Typeshift is for, what it builds on and leaves to you, how its pieces fit | `guide/what-is-typeshift.md` | `index.md` (the pitch) |
-| Package setup, requirements, ids and the build's id type | `guide/registration.md` | `getting-started.md` (the steps) |
+| Package setup, requirements, ids | `guide/registration.md` | `getting-started.md` (the steps) |
 | The runtime: `TypeshiftRuntime.Create` without a container, injecting it, its hosts as units of work | `guide/registration.md#the-runtime` | `using-an-agent.md#run-from-a-background-job` (the job's host), `generated-members.md` (`DisposeAsync`) |
 | `AddTypeshift()` chain calls and lifetimes | `guide/registration.md#the-chain` | each feature page shows its own `With...` call |
 | Builder calls of toolsets and agents | `guide/builders.md` | `toolsets.md`, `tool-settings.md`, `defining-agents.md` |
@@ -114,12 +114,12 @@ style; the essentials:
 | The store's lifetime and contract, kinds, schema versions, versions, conversation entries and summaries, checking a store | `guide/implementing-a-store.md` | `settings-and-stores.md` (link), `conversations.md#what-is-stored` |
 | The `Settings` JSON, an agent's own settings and those under a settings id | `guide/settings-and-stores.md` | `generated-members.md#settings` |
 | Keeping every conversation (`WithOptions`, `PersistAllConversations`, `NewConversationIds`) | `guide/conversations.md#keeping-every-conversation` | `registration.md#the-chain` |
-| Ids in code (`WithSettingsId`, `WithConversationId`), stores of several id types | `guide/settings-and-stores.md#ids-of-your-own-types` | `registration.md#ids`, `generated-members.md` (signatures), `diagnostics.md#tsh028` |
-| Conversations: storage, resume, steering, live updates, compaction | `guide/conversations.md` | |
+| Ids in code (`WithSettingsId`, `WithConversationId`), stores of several id types | `guide/settings-and-stores.md#ids-of-your-own-types` | `registration.md#ids`, `generated-members.md` (signatures), `diagnostics.md#tsh028`, `running-agents.md#the-raw-path` (a `string` id in `ChatOptions.ConversationId`) |
+| Conversations: storage, resume, steering, live updates and the tracker of each id type, compaction | `guide/conversations.md` | `native-aot.md#trackers-of-value-type-ids` |
 | A chat UI's endpoints: posting, streaming as server-sent events, approvals by their ids | `guide/chat-endpoint.md` | |
 | Generated members, `AgentHost` members and signatures | `guide/generated-members.md` | `running-agents.md` |
 | Spans, metrics and message content | `guide/observability.md` | `models.md#wrapping-a-client` (a second `UseOpenTelemetry()`) |
-| Native AOT: the project, JSON metadata for tool and run types | `guide/native-aot.md` | `diagnostics.md#tsh027` |
+| Native AOT: the project, JSON metadata for tool and run types, trackers of value-type ids | `guide/native-aot.md` | `diagnostics.md#tsh027`, `conversations.md#live-runs` (the tracker tip) |
 | Docs for coding assistants: `llms.txt`, `llms-full.txt`, a page as Markdown | `guide/getting-started.md#docs-for-coding-assistants` | |
 | Diagnostics | `guide/diagnostics.md` | every page, linked by ID |
 | Terms | `guide/glossary.md` | |

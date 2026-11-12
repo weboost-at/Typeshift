@@ -134,10 +134,11 @@ store keeps throws an `InvalidOperationException` that names the interface it ne
 
 A few things follow the host's ids:
 
-- `ResumeAsync()` resumes the host's conversation, and `ResolveOptionsAsync()` hands it on to the raw path.
-- `ConversationTracker<TId>` steers and watches a conversation under an id of any type with `TrySteer(chat, input)`
-  and `WatchAsync(chat, ct)`, while `Runs` and `WatchRunsAsync` list only those under ids of `TId`. The container has
-  the tracker of the build's id type ([Ids](./registration.md#ids)).
+- `ResumeAsync()` resumes the host's conversation, and `ResolveOptionsAsync()` hands it on to the
+  [raw path](./running-agents.md#the-raw-path).
+- `ConversationTracker<TId>` lists, watches and steers the conversations under ids of `TId`, so a chat under `Guid`
+  ids takes `ConversationTracker<Guid>`. The container has the tracker of every id type
+  ([Live runs](./conversations.md#live-runs)).
 - Each `InMemoryTypeshiftStore<TId>` keeps agents' own settings too, so of several, the last one registered keeps
   them.
 
@@ -147,11 +148,13 @@ take scoped services, such as a `DbContext`: [Register your store](./implementin
 shows how to build one around that.
 :::
 
-Without any store, Typeshift keeps settings and conversations in memory, so everything works from the first run on,
-and the first save or stored run logs a warning that names `WithStore<T>()`, and `WithFileStore()` for agents' own
-settings. The memory is gone when the app stops, so register a store before your app keeps anything it must not lose.
+Until you register a store with `WithStore<T>()` or `WithFileStore()`, Typeshift keeps settings and conversations in
+memory, so everything works from the first run on, and the first save or stored run logs a warning that names
+`WithStore<T>()`, and `WithFileStore()` for agents' own settings. The memory is gone when the app stops, so register
+a store before your app keeps anything it must not lose. A store you add to the container yourself, without the
+chain, serves its own interface and leaves the memory on for the rest.
 
-Once you register a store, Typeshift uses only the stores you registered. For each store interface, the last call
+Once you register a store with the chain, Typeshift uses only the stores you registered. For each store interface, the last call
 that registers a store wins, so a second store that also implements it takes its place. A run applies the agents' own
 settings only when a registered store implements `IAgentSettingsStore`, as `InMemoryTypeshiftStore<TId>` does. A call
 that needs an interface none of your stores implements, such as a run with a conversation id and a store of settings

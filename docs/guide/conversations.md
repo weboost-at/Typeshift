@@ -39,17 +39,19 @@ store of that type ([Ids of your own types](./settings-and-stores.md#ids-of-your
 own, `Guid.CreateVersion7()` gives a new chat its id. The response's `ConversationId` names the conversation a run
 was stored in, as text.
 
-The store keeps a conversation's entries under its id, and `ConversationTracker` finds a running run by it to steer or
-watch it. Without a conversation id, and without [`PersistAllConversations`](#keeping-every-conversation), a run
-stores nothing, so the next one starts from scratch. A tool call that needs your approval makes it throw, it offers no
-handoffs, and `ConversationTracker` never sees it.
+The store keeps a conversation's entries under its id, and the [tracker](#live-runs) of the id's type finds a running
+run by it to steer or watch it. Without a conversation id, and without
+[`PersistAllConversations`](#keeping-every-conversation), a run stores nothing, so the next one starts from scratch. A
+tool call that needs your approval makes it throw, it offers no handoffs, and no tracker sees it.
 
 ### Keeping every conversation
 
 To keep the runs of a host without a conversation id as well, turn on `PersistAllConversations`:
 `AddTypeshift().WithOptions(options => options.PersistAllConversations = true)`. Such a run then starts a
 conversation under a new id, and its response's `ConversationId` names it, so the next run continues it with
-`support.WithConversationId(Guid.Parse(response.ConversationId!))`. A handoff continues that conversation.
+`support.WithConversationId(Guid.Parse(response.ConversationId!))`. A handoff continues that conversation. On the
+[raw path](./running-agents.md#the-raw-path), continue it the same way, with options resolved on that host: the text
+in `ChatOptions.ConversationId` names a conversation under a `string` id, which is a different conversation.
 
 Some runs start no conversation, even with the option on:
 
@@ -58,11 +60,12 @@ Some runs start no conversation, even with the option on:
 - A raw-path call whose options did not come from `ResolveOptionsAsync`, such as `ChatOptions` your code created, or
   a call with no options at all ([the raw path](./running-agents.md#the-raw-path)).
 
-New ids are `Guid`s of version 7, which sort by the time they were made. For a conversation store of another id
-type, give them with `options.NewConversationIds(() => ...)`. Without it, a build whose
-[id type](./registration.md#ids) is `string` gets the text of such a `Guid`, and one of any other type but `Guid`
-throws an `InvalidOperationException` on the first run that starts a conversation. Runs that start together call the
-function at the same time, so make it thread-safe, and have it return an id no conversation has on every call.
+New ids are `Guid`s of version 7, which sort by the time they were made, so they go to your
+`IConversationStore<Guid>`. For a conversation store of another id type, give them with
+`options.NewConversationIds(() => ...)`. Without it, an app whose stores keep no conversations under `Guid` ids throws
+an `InvalidOperationException` on the first run that starts a conversation, naming `NewConversationIds`. Runs that
+start together call the function at the same time, so make it thread-safe, and have it return an id no conversation
+has on every call.
 
 ::: danger Check the caller before you use a conversation id
 Typeshift resumes whichever conversation it is given, so deciding who may see one is your app's job. Check the caller
@@ -144,14 +147,14 @@ conversation is up to your app.
 
 ## Live runs
 
-`ConversationTracker` tells your app which conversations have a run going on in this process. It also hands out each
-run's updates, so a second tab or a support dashboard can follow a chat that another request is answering
-([Live updates](#live-updates)).
+`ConversationTracker<TId>` tells your app which conversations under ids of `TId` have a run going on in this process.
+It also hands out each run's updates, so a second tab or a support dashboard can follow a chat that another request
+is answering ([Live updates](#live-updates)).
 
-The container has the tracker of the build's [id type](./registration.md#ids): `ConversationTracker<Guid>` in a
-default app, and `ConversationTracker<int>` in the docs samples, which set `TypeshiftIdType` to `int`. Its `Runs`
-lists the runs going on in this process under conversation ids of that type, each with its conversation, the agent
-that answers, its model and when it started:
+Inject the tracker of your conversation ids' type, or resolve it: the container has one for every id type, a
+singleton, so the docs samples, whose conversations are `int`s, take `ConversationTracker<int>`. Its `Runs` lists the
+runs going on in this process under ids of that type, each with its conversation, the agent that answers, its model
+and when it started:
 
 <!-- snippet: live-sessions -->
 <a id='snippet-live-sessions'></a>
@@ -237,6 +240,11 @@ services.AddTypeshift()
 ::: warning Live updates stay in their process
 A watcher sees only the runs of its own process. When your app runs in several processes, watch in the process that
 runs the conversation.
+:::
+
+::: tip Native AOT needs the tracker of a value type registered
+An app published with Native AOT that injects `ConversationTracker<Guid>`, or the tracker of another value type,
+registers it with `WithConversationTracker<Guid>()` ([Trackers of value-type ids](./native-aot.md#trackers-of-value-type-ids)).
 :::
 
 ## Compaction

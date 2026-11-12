@@ -207,7 +207,9 @@ calls, each with the limits of its own options. Disposing it does not dispose th
 
 To run in a conversation, resolve the options on a host with a conversation id, such as
 `support.WithConversationId(chat).ResolveOptionsAsync()`, and every call with those options continues and stores that
-conversation. Typeshift never sends the conversation's id to the provider.
+conversation. On a host without one, `ChatOptions.ConversationId` names the conversation instead. It is a string, so
+it names a conversation in your `IConversationStore<string>`, which suits a library that sets it itself. Typeshift
+never sends the conversation's id to the provider.
 
 ## Related
 
