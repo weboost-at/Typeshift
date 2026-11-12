@@ -92,8 +92,9 @@ across the toolsets of your project and of the projects it references ([TSH007](
 
 The description matters more than the name. The model reads it to decide when to call the tool, and reads each
 `<param>` to fill in the arguments. It comes from the method's `<summary>` or from `WithDescription(...)`, and the
-analyzer warns about a tool with neither ([TSH009](./diagnostics.md#tsh009)). Your XML docs reach the generator only
-when the project sets `GenerateDocumentationFile` ([TSH011](./diagnostics.md#tsh011)).
+analyzer warns about a tool with neither ([TSH009](./diagnostics.md#tsh009)). The package turns on
+`GenerateDocumentationFile`, which your XML docs need to reach the generator, unless your project turns it off
+([TSH011](./diagnostics.md#tsh011)).
 
 ::: warning Renaming a method renames its tool
 Stored settings are keyed by the tool's name. Rename `SearchTickets`, and what your customers stored for

@@ -19,17 +19,18 @@ dotnet add package Typeshift --prerelease
 |---|---|
 | .NET 11 | The package targets `net11.0`. Generated members are extension blocks, which need C# 14 or later. |
 | The package in every project that declares toolsets or agents, or calls `AddTypeshift()` | The package carries the generator, and NuGet does not pass a generator on to the projects that reference yours ([TSH019](./diagnostics.md#tsh019), [TSH020](./diagnostics.md#tsh020)). |
-| `GenerateDocumentationFile` | Tools, agents and the types tools take get their descriptions from XML docs ([TSH011](./diagnostics.md#tsh011)). |
+| `GenerateDocumentationFile` | Tools, agents and the types tools take get their descriptions from XML docs. The package turns it on unless your project sets it, and hides CS1591, the warning for undocumented public members, when it does ([TSH011](./diagnostics.md#tsh011)). |
 | `Typeshift.Generated` in `InterceptorsNamespaces` | The generator intercepts `AddTypeshift()` from that namespace. The package adds it for you. |
 
 ## XML docs of parameter types
 
 The package brings [Weboost.SchemaAnnotations](https://github.com/weboost-at/SchemaAnnotations), which turns the XML
 docs of your types into descriptions of their properties, in the schemas of a tool's parameters and of the answer
-`RunAsync<T>` and `RunStreamingAsync<T>` ask for. Typeshift adds a hidden class to every project that sets `GenerateDocumentationFile`. Weboost.SchemaAnnotations collects the project's XML docs in that
-class, and the project's [registration module](#what-addtypeshift-registers) registers them when `AddTypeshift()`
-runs. A project of contracts with no toolsets or agents gets a module too, so the tools of the projects that
-reference it describe its types; it needs the package and `GenerateDocumentationFile` like any other. To leave these
+`RunAsync<T>` and `RunStreamingAsync<T>` ask for. Typeshift adds a hidden class to every project with
+`GenerateDocumentationFile` on, as it is unless the project turns it off. Weboost.SchemaAnnotations collects the
+project's XML docs in that class, and the project's [registration module](#what-addtypeshift-registers) registers them
+when `AddTypeshift()` runs. A project of contracts with no toolsets or agents gets a module too, so the tools of the
+projects that reference it describe its types; it needs the package like any other. To leave these
 descriptions out, set:
 
 ```xml

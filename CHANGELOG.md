@@ -49,6 +49,8 @@ All notable changes to this project are documented here. The format follows
 - The class of an agent's host members is `TypeshiftHost_4Demo12SupportAgent` for `Demo.SupportAgent`, in the global
   namespace and hidden from type completion, where it was `SupportAgentHostExtensions` in the agent's namespace. Code
   that called the members through the class's name, or with `using static`, calls them on the host instead.
+- The package turns on `GenerateDocumentationFile` unless your project sets it, and hides CS1591 then, so tools get their
+  descriptions with no `Directory.Build.props`.
 
 ### Fixed
 

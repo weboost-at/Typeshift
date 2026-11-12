@@ -585,6 +585,20 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   store keeps; renaming the conversation methods (`LoadAsync`, `AppendAsync`), which would clash with the settings
   methods in a class that implements both.
 
+### D68. The package turns XML docs on
+
+- **Status:** owner.
+- **Context:** the owner asked for less ceremony and sane defaults, and a project without
+  `GenerateDocumentationFile` got tools without descriptions (TSH011), a step every tutorial reader had to take.
+- **Decision:** the package's props set `GenerateDocumentationFile` to `true` when the project leaves it empty, and
+  add CS1591 to `NoWarn` only then, so a project that never documented its public members gets no warning for each.
+  The props run before the project's own properties, so a project that sets the property, either way, keeps its
+  choice. The package consumer sample sets no `GenerateDocumentationFile`, checks a tool's description and the docs of
+  a type it takes, and carries an undocumented public type.
+- **Where:** `buildTransitive/Typeshift.props`, `samples/Typeshift.Samples.PackageConsumer`.
+- **Alternatives:** the tutorial's `Directory.Build.props`, a step of ceremony; docs on without hiding CS1591, which
+  fails every build that treats warnings as errors.
+
 ### D71. Every conversation store implements the load from the last summary
 
 - **Status:** owner.

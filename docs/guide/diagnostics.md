@@ -126,8 +126,9 @@ reach nothing. Add the parameter to the method.
 ## TSH011
 
 **XML docs are not generated.** A tool or an agent takes its description from its `<summary>`, but the compiler reads
-XML docs only with `GenerateDocumentationFile`, so set it in the project. `WithDescription` is a way around it only
-when a tool's parameters have no `<param>` docs, since it replaces only the `<summary>`.
+XML docs only with `GenerateDocumentationFile`, which the package turns on, so your project turned it off. Remove that
+setting. `WithDescription` is a way around it only when a tool's parameters have no `<param>` docs, since it replaces
+only the `<summary>`.
 
 ## TSH012
 
