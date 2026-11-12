@@ -17,6 +17,11 @@ public sealed class NewestFirstStore : ITypeshiftStore
         return [.. entries.Reverse()];
     }
 
+    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
+        Guid conversation,
+        CancellationToken ct) =>
+        (await LoadConversationAsync(conversation, ct)).SinceLastSummary();
+
     public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct) =>
         _store.AppendConversationAsync(conversation, entry, ct);
 }

@@ -63,14 +63,14 @@ marked `[Obsolete]` out without a `NotConfigurable` call.
 | Call | Does |
 |---|---|
 | `WithName(string name)` | Names the agent, which is otherwise its class name in snake_case. Messages the agent writes carry the name as their author. |
-| `WithDescription(string description)` | Says what the agent does. A sub-agent or a handoff target needs one ([TSH023](./diagnostics.md#tsh023)). |
+| `WithDescription(string description)` | Says what the agent does, in place of its `<summary>`. A sub-agent or a handoff target needs one of the two ([TSH023](./diagnostics.md#tsh023)). |
 | `WithStorageKind(string kind)` | Sets the kind a store keys the agent's `Settings` by, in place of its class name, so renaming the class keeps its stored settings. |
 | `WithSchemaVersion(int version)` | Sets the schema version of the stored `Settings`, 1 unless raised. Raise it after you rename or remove a configurable member, so you can [migrate older documents](./implementing-a-store.md#migrate-older-settings). |
 | `WithChatOptions()` | Returns the [`ChatOptionsBuilder`](#chatoptionsbuilder). |
 | `WithRunOptions()` | Returns the [`RunOptionsBuilder`](#runoptionsbuilder). |
 | `UseToolset<TToolset>()` | Offers every tool of the toolset. `.Include(t => t.X)` offers only the tools picked, in that order, and `.Exclude(t => t.X)` all but those. One use includes or excludes, never both. Use each toolset once and pick each tool once ([TSH025](./diagnostics.md#tsh025)). |
 | `AddTool(Delegate method)` | Declares a tool of the agent's own, backed by a static method of the agent, and returns its [`ToolBuilder`](#toolbuilder). The agent offers it after the tools of its toolsets. See [Agents](./defining-agents.md#add-a-tool-of-the-agent-s-own). |
-| `UseAgent<TAgent>()` | Offers another agent as a tool named like it, with one `input` parameter. `.InBackground()` returns at once and delivers the answer later. See [Sub-agents](./multi-agent.md#sub-agents). |
+| `UseAgent<TAgent>()` | Offers another agent as a tool named like it, with one `input` parameter. `.InBackground()` returns at once and delivers the answer later; `.WithResult<T>()` holds the answer to `T`'s JSON. See [Sub-agents](./multi-agent.md#sub-agents). |
 | `UseHandoff<TAgent>()` | Offers a tool `handoff_to_{name}` that hands the conversation to the other agent. See [Handoff](./multi-agent.md#handoff). |
 | `UseMcpServer(string server)` | Offers the tools of an MCP server that your app's `IMcpToolProvider` connects. `.RequiresApproval()` makes every call to its tools wait for approval, and `.ReadOnly()` lets plan mode offer them. |
 | `UseContext<TProvider>()` | Adds what an `IContextProvider` returns to every run. The run's services resolve the provider, or create it when none is registered. |

@@ -62,6 +62,12 @@ public sealed class JsonFileStore(string directory) : ITypeshiftStore<Guid>
         ];
     }
 
+    // A file of lines reads whole, so the entries from the last summary on are kept after the read
+    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
+        Guid conversation,
+        CancellationToken ct) =>
+        (await LoadConversationAsync(conversation, ct)).SinceLastSummary();
+
     public async Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct)
     {
         var path = ConversationPath(conversation);

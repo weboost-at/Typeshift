@@ -5,6 +5,9 @@ using Microsoft.Extensions.AI;
 namespace Typeshift.Tests.Agents.Support;
 
 // Offers the probe, which returns the settings it ran with, so a test reads back what a run resolved
+/// <summary>
+/// The agent the tests probe runs with.
+/// </summary>
 public partial class ProbeAgent : Agent
 {
     public const string ModelProvider = "probe-provider";
