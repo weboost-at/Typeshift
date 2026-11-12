@@ -168,47 +168,16 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
     }
 
     [Fact]
-    public void Given_No_Settings_Folder_The_Settings_Lie_In_The_Settings_Folder_Of_The_Store()
-    {
-        // Act
-        var options = new FileStoreOptions();
-
-        // Assert
-        options.Settings.Folder.Should().Be("settings");
-    }
-
-    [Fact]
-    public async Task Given_A_Relative_Settings_Folder_A_Save_Writes_Under_The_Stores_Folder()
+    public async Task Given_A_Save_The_File_Lies_In_The_Settings_Folder_Of_The_Store()
     {
         // Arrange
-        await using var provider = Provider(typeshift => typeshift.WithFileStore(store =>
-        {
-            store.Folder = _folder;
-            store.Settings.Folder = "agents";
-        }));
+        await using var provider = Provider(typeshift => typeshift.WithFileStore(store => store.Folder = _folder));
 
         // Act
         await provider.GetRequiredService<IAgentSettingsStore>().SaveAsync(Data.Persistence.Kind, "{}", 0, Ct);
 
         // Assert
-        Path.GetDirectoryName(OnlyFile()).Should().Be(Path.Combine(_folder, "agents"));
-    }
-
-    [Fact]
-    public async Task Given_An_Absolute_Settings_Folder_A_Save_Writes_To_It_As_It_Is()
-    {
-        // Arrange
-        await using var provider = Provider(typeshift => typeshift.WithFileStore(store =>
-        {
-            store.Folder = Path.Combine(_folder, "store");
-            store.Settings.Folder = Path.Combine(_folder, "elsewhere");
-        }));
-
-        // Act
-        await provider.GetRequiredService<IAgentSettingsStore>().SaveAsync(Data.Persistence.Kind, "{}", 0, Ct);
-
-        // Assert
-        Path.GetDirectoryName(OnlyFile()).Should().Be(Path.Combine(_folder, "elsewhere"));
+        Path.GetDirectoryName(OnlyFile()).Should().Be(Path.Combine(_folder, "settings"));
     }
 
     [Fact]
@@ -222,19 +191,6 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
 
         // Assert
         register.Should().Throw<ArgumentException>().WithParameterName("FileStoreOptions.Folder");
-    }
-
-    [Fact]
-    public void Given_A_Blank_Settings_Folder_WithFileStore_Fails_Naming_The_Option()
-    {
-        // Arrange
-        var services = new ServiceCollection();
-
-        // Act
-        var register = () => services.AddTypeshift().WithFileStore(store => store.Settings.Folder = " ");
-
-        // Assert
-        register.Should().Throw<ArgumentException>().WithParameterName("FileStoreOptions.Settings.Folder");
     }
 
     [Fact]
