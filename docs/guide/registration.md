@@ -64,8 +64,10 @@ public id type, since its host members take ids of it ([TSH006](./diagnostics.md
 
 Generated members take the id type, as in `RunAsync(input, settingsId: 42)`. The generator also writes aliases that
 close `ITypeshiftStore`, `ISettingsStore`, `IConversationStore`, `InMemoryTypeshiftStore`, `ConversationTracker` and
-`LiveRun` over it, so you use these names without a type argument. The library never creates ids; your code chooses
-them. If a referenced project was built with another id type, the analyzer reports [TSH021](./diagnostics.md#tsh021).
+`LiveRun` over it, so you use these names without a type argument. Your code chooses the ids. The library creates
+one only when you keep every conversation, for a conversation a run starts without an id
+([Keeping every conversation](./conversations.md#keeping-every-conversation)). If a referenced project was built with
+another id type, the analyzer reports [TSH021](./diagnostics.md#tsh021).
 In code, `WithSettingsId(id)` and `WithConversationId(id)` take ids of any type, each picking the store of its type:
 see [Ids of your own types](./settings-and-stores.md#ids-of-your-own-types).
 
@@ -173,6 +175,7 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 | `WithStore(store)` | The store you created yourself, as each store interface the instance implements. The container never disposes it. | Singleton, your app's | The same. |
 | `WithFileStore(Action<FileStoreOptions>? configure = null)` | The file store as `IAgentSettingsStore`, built by the container with your app's `TimeProvider`. By default, `Folder` is `typeshift` under `AppContext.BaseDirectory`; the settings files lie in its `settings` folder. | Singleton | Agents' own settings, kept in files ([Agent settings](./settings-and-stores.md#agent-settings)). |
 | `WithChatClientProvider<TProvider>()` | `TProvider`, and `IChatClientProvider` resolving to it | Scoped | Every run with a provider and a model, before any `IChatClient` you registered ([Registering clients](./models.md#registering-clients)). |
+| `WithOptions(options => ...)` | `TypeshiftOptions`, which each call changes further, such as `PersistAllConversations` | Singleton | Keeping the runs without a conversation id ([Keeping every conversation](./conversations.md#keeping-every-conversation)). |
 | `WithRealtimeTracking(RealtimeTrackingOptions? options = null)` | The options. By default, `PublishInterval` is 100 ms and `MaxPendingUpdates` 256. | Singleton | `ConversationTracker.WatchAsync`. |
 | `WithApprovalRule<TRule>()` | One more `IToolApprovalRule` | Scoped | Deciding calls before your app is asked. |
 | `WithRunMiddleware<TMiddleware>()` | One more `IRunMiddleware`. The first registered is the outermost. | Scoped | Wrapping every run. |

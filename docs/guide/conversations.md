@@ -32,11 +32,34 @@ stored settings, the run that answers an approval included.
 You pick a conversation id when a chat starts, usually the key of your own record of the chat, such as a row in a
 `Chats` table, and pass it to every run of that chat. Its type is the build's [id type](./registration.md#the-id-type),
 so with `Guid` ids and no record of your own, `Guid.CreateVersion7()` gives a new chat its id. On the
-[raw path](./running-agents.md#the-raw-path), `ChatOptions.ConversationId` carries it as a string.
+[raw path](./running-agents.md#the-raw-path), `ChatOptions.ConversationId` carries it as a string. The response's
+`ConversationId` names the conversation a run was stored in.
 
 The store keeps a conversation's entries under its id, and `ConversationTracker` finds a running run by it to steer or
-watch it. Without a conversation id, a run stores nothing, so the next one starts from scratch. A tool call that needs
-your approval makes it throw, it offers no handoffs, and `ConversationTracker` never sees it.
+watch it. Without a conversation id, and without [`PersistAllConversations`](#keeping-every-conversation), a run
+stores nothing, so the next one starts from scratch. A tool call that needs your approval makes it throw, it offers no
+handoffs, and `ConversationTracker` never sees it.
+
+### Keeping every conversation
+
+To keep the runs that pass no conversation id as well, turn on `PersistAllConversations`:
+`AddTypeshift().WithOptions(options => options.PersistAllConversations = true)`. Such a run then starts a
+conversation under a new id, and its response's `ConversationId` names it, so the next run continues it with
+`support.WithConversationId(Guid.Parse(response.ConversationId!))`. A handoff continues that conversation.
+
+Some runs start no conversation, even with the option on:
+
+- A sub-agent's run, which belongs to its caller's conversation.
+- A run without input: it continues an interrupted run ([Resuming](#resuming)), and a new conversation has none.
+- A raw-path call whose options did not come from `ResolveOptionsAsync`, such as `ChatOptions` your code created, or
+  a call with no options at all ([the raw path](./running-agents.md#the-raw-path)).
+
+New ids follow [the build's id type](./registration.md#the-id-type). For `Guid`, they are `Guid`s of version 7, which
+sort by the time they were made, and for `string` the text of one. For any other id type, or a conversation store of
+another type than the build's, give them with `options.NewConversationIds(() => ...)`; without it, a build of another
+id type throws an `InvalidOperationException` on the first run that starts a conversation. Runs that start together
+call the function at the same time, so make it thread-safe, and have it return an id no conversation has on every
+call.
 
 ::: danger Check the caller before you pass a conversation id
 Typeshift resumes whichever conversation it is given, so deciding who may see one is your app's job. Check the caller

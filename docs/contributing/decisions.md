@@ -818,6 +818,33 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   scope's ownership with their host, by a count, which keep it open while any copy lives and make each copy one more
   thing to dispose.
 
+### D73. Every conversation can be kept
+
+- **Status:** owner.
+- **Context:** the owner asked for an option, "if enabled by the user in the global settings", that "automatically
+  generates conversation IDs when none was provided and stores them automatically", under a general configuration
+  prefix, and accepted `WithOptions(options => options.PersistAllConversations = true)`.
+- **Decision:** `TypeshiftOptions` holds what every run does, set by `WithOptions(configure)`, whose calls change one
+  instance. With `PersistAllConversations`, a run of the host's own that has input, no conversation, no
+  `ChatOptions.ConversationId` and no caller starts one: the conversation client gives a copy of the options a new id,
+  so options the app reuses never share it. A run without input continues an interrupted run (D50), which a new
+  conversation lacks, so it starts none, and neither does a raw-path call with options the app made, or none, since they
+  carry no host's run. New ids come from `NewConversationIds(create)`, typed like any id (D72), which concurrent runs
+  call at once, so it must be thread-safe and never repeat an id. Without it, they follow the build's id type, which
+  `BuildIds<TId>` knows: a `Guid` of version 7 from the injected clock, its text for `string`, and for any other type an
+  `InvalidOperationException` that names `NewConversationIds`. A sub-agent's run belongs to its caller's conversation
+  and starts none, and a handoff continues the caller's. Every run with a conversation names it in
+  `ChatResponse.ConversationId`, and each streaming update in a copy, since the tool loop still holds the update and
+  reads an update that names a conversation as one the service keeps, which would leave the history out of its next
+  call.
+- **Where:** `DependencyInjection/TypeshiftOptions.cs`, `DependencyInjection/TypeshiftBuilder.cs`,
+  `Conversations/ConversationChatClient.cs`, `Storage/StoreAccess.cs`.
+- **Alternatives:** `WithStoredConversations` or `TrackAll`, names the owner turned down for one under a general
+  prefix; `Guid.NewGuid()`, which does not sort by time; a `Guid` whatever the build's id type, which the store of an
+  `int` or `string` build cannot keep; reading the build's id type by reflection, which Native AOT warns about; ids
+  from the store, which would add a method every store must implement; naming the new conversation only in a header
+  or a property bag, which a typed run's response would hide.
+
 ### D75. An app without a container creates a TypeshiftRuntime
 
 - **Status:** owner.

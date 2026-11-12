@@ -44,6 +44,10 @@ All notable changes to this project are documented here. The format follows
 - `host.WithSettingsId(id)` and `host.WithConversationId(id)` give a run its ids in code, and each id's type picks the
   store of that type, so settings under `int` ids and conversations under `string` ids serve one app. `WithStore<T>()`
   takes stores of any id type, and TSH028 reports only a type that is no store.
+- `AddTypeshift().WithOptions(options => options.PersistAllConversations = true)` keeps the runs that pass no
+  conversation id too: each run with input starts a conversation under a new id of the build's id type, a `Guid` of
+  version 7 or its text for `string`, or under an id of `options.NewConversationIds(...)`, which a build of any other
+  id type needs.
 
 ### Changed
 
@@ -51,6 +55,8 @@ All notable changes to this project are documented here. The format follows
   injected into a request, does nothing, so code that injects hosts works as before.
 - A run that ends while background sub-agents work, for example cancelled or failed, waits until the sub-agents it
   stops have stopped, so none works on after the run.
+- The response of a run with a conversation names it in `ChatResponse.ConversationId`, and so does each update of a
+  streaming run, where it was null.
 - An answer to an approval request that is no longer open throws `ApprovalClosedException` before the run stores
   anything or calls the model, where the run dropped the answer and called the model with no new input. Its
   `Requests` say why each request is closed: answered already, passed by, or unknown. Catch it to tell your user that

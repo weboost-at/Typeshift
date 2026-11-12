@@ -114,6 +114,25 @@ public sealed class TypeshiftBuilder
     }
 
     /// <summary>
+    /// Sets what every run of the app does, such as <c>options => options.PersistAllConversations = true</c>. Calls
+    /// add up, each changing the options the last left.
+    /// </summary>
+    /// <param name="configure">Changes the options.</param>
+    /// <returns>The same chain.</returns>
+    public TypeshiftBuilder WithOptions(Action<TypeshiftOptions> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        var options = _services.Select(service => service.ImplementationInstance).OfType<TypeshiftOptions>()
+            .FirstOrDefault();
+
+        if (options is null) _services.AddSingleton(options = new TypeshiftOptions());
+
+        configure(options);
+        return this;
+    }
+
+    /// <summary>
     /// Publishes the updates of streaming runs live, to <c>ConversationTracker.WatchAsync</c>.
     /// </summary>
     /// <param name="options">Intervals and limits; the defaults when null.</param>
