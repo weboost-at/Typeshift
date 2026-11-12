@@ -37,7 +37,8 @@ All notable changes to this project are documented here. The format follows
   `LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)`, kept by an `IAgentSettingsStore`.
   `InMemoryTypeshiftStore` implements it, and a settings id's settings apply over the agent's own.
 - `FileAgentSettingsStore` keeps each agent's own settings in a JSON file of a folder, for an app without a database.
-  `WithStore(store)` registers a store you created.
+  `WithFileSettings()` registers it, over `settings` under `AppContext.BaseDirectory` unless
+  `options => options.Folder = folder` names another, and `WithStore(store)` registers a store you created.
 
 ### Changed
 

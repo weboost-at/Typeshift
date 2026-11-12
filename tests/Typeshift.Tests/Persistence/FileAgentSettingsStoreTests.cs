@@ -157,6 +157,77 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
         store.Disposed.Should().Be(0);
     }
 
+    [Fact]
+    public async Task Given_Settings_Saved_Through_WithFileSettings_A_Provider_Over_The_Same_Folder_Applies_Them()
+    {
+        // Arrange
+        await using (var first = Provider(typeshift => typeshift.WithFileSettings(options => options.Folder = _folder)))
+        {
+            await using var scope = first.CreateAsyncScope();
+            await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>().ConfigureAsync(
+                settings => settings with { Temperature = Data.Agent.Temperature },
+                Ct);
+        }
+
+        await using var second = Provider(typeshift => typeshift.WithFileSettings(options => options.Folder = _folder));
+        await using var run = second.CreateAsyncScope();
+
+        // Act
+        var applied = await run.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>().ResolveOptionsAsync(ct: Ct);
+
+        // Assert
+        applied.Temperature.Should().Be(Data.Agent.Temperature);
+    }
+
+    [Fact]
+    public void Given_No_Folder_The_Options_Keep_The_Settings_Under_The_Apps_Base_Directory()
+    {
+        // Act
+        var options = new FileSettingsOptions();
+
+        // Assert
+        options.Folder.Should().Be(Path.Combine(AppContext.BaseDirectory, "settings"));
+    }
+
+    [Fact]
+    public void Given_A_Blank_Folder_WithFileSettings_Fails_Naming_The_Option()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        var register = () => services.AddTypeshift().WithFileSettings(options => options.Folder = " ");
+
+        // Assert
+        register.Should().Throw<ArgumentException>().WithMessage("FileSettingsOptions.Folder*");
+    }
+
+    [Fact]
+    public async Task Given_A_Kind_Locked_By_Another_Save_The_Store_Of_WithFileSettings_Waits_On_The_Apps_Clock()
+    {
+        // Arrange
+        await using var provider = Provider(
+            typeshift => typeshift.WithFileSettings(options => options.Folder = _folder),
+            new RefusingClock());
+
+        var store = provider.GetRequiredService<IAgentSettingsStore>();
+        await store.SaveAsync(Data.Persistence.Kind, "{}", 0, Ct);
+
+        var otherSave = new FileStream(
+            path: $"{OnlyFile()}.lock",
+            mode: FileMode.Open,
+            access: FileAccess.ReadWrite,
+            share: FileShare.None);
+
+        // Act
+        var save = store.SaveAsync(Data.Persistence.Kind, "{}", 1, Ct);
+        await otherSave.DisposeAsync();
+
+        // Assert
+        await FluentActions.Awaiting(() => save).Should().ThrowAsync<NotSupportedException>()
+            .WithMessage(RefusingClock.Refusal);
+    }
+
     protected override ValueTask DisposeCoreAsync()
     {
         if (Directory.Exists(_folder)) Directory.Delete(_folder, recursive: true);
@@ -183,11 +254,13 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
 
     private string OnlyFile() => Directory.GetFiles(_folder, "*.json").Single();
 
-    private ServiceProvider Provider(IAgentSettingsStore store)
+    private ServiceProvider Provider(IAgentSettingsStore store) => Provider(typeshift => typeshift.WithStore(store));
+
+    private ServiceProvider Provider(Action<TypeshiftBuilder> withStore, TimeProvider? time = null)
     {
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore(store).WithChatClientProvider<ScriptedChatClientProvider>();
-        services.AddSingleton(ChatClient).AddSingleton(Models);
+        withStore(services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>());
+        services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton(time ?? Time);
 
         return services.BuildServiceProvider(validateScopes: true);
     }

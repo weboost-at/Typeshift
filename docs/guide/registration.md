@@ -152,7 +152,8 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 | Call | Registers | Lifetime | Needed by |
 |---|---|---|---|
 | `WithStore<TStore>()` | `TStore`, and each of `IAgentSettingsStore`, `ISettingsStore`, `IConversationStore` and `ITypeshiftStore` it implements, resolving to it. Call it once for each class. | Singleton, so it takes no scoped services ([Implementing a store](./implementing-a-store.md#register-your-store)) | Agents' own settings, settings ids, conversation ids, approval and handoffs. Without a store, every call that loads or saves throws, naming this method. |
-| `WithStore(store)` | The store you created, such as a `FileAgentSettingsStore` over its folder, as each store interface the instance implements. The container never disposes it. | Singleton, your app's | The same. |
+| `WithStore(store)` | The store you created yourself, as each store interface the instance implements. The container never disposes it. | Singleton, your app's | The same. |
+| `WithFileSettings(Action<FileSettingsOptions>? configure = null)` | A `FileAgentSettingsStore` over `Folder`, as `IAgentSettingsStore`, built by the container with your app's `TimeProvider`. By default, `Folder` is `settings` under `AppContext.BaseDirectory`. | Singleton | Agents' own settings, kept in files ([Agent settings](./settings-and-stores.md#agent-settings)). |
 | `WithChatClientProvider<TProvider>()` | `TProvider`, and `IChatClientProvider` resolving to it | Scoped | Every run with a provider and a model, before any `IChatClient` you registered ([Registering clients](./models.md#registering-clients)). |
 | `WithRealtimeTracking(RealtimeTrackingOptions? options = null)` | The options. By default, `PublishInterval` is 100 ms and `MaxPendingUpdates` 256. | Singleton | `ConversationTracker.WatchAsync`. |
 | `WithApprovalRule<TRule>()` | One more `IToolApprovalRule` | Scoped | Deciding calls before your app is asked. |
