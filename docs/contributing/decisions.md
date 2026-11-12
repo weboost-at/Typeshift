@@ -173,7 +173,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D14. Descriptions come from XML docs
 
 - **Status:** carried (v0), `WithDescription` overrides; parameters the model never sees need no `<param>` (D2's
-  suppressor).
+  suppressor). An agent's summary describes it as a method's describes its tool, at the owner's request.
 
 ### D55. The types tools take describe themselves with their XML docs
 
