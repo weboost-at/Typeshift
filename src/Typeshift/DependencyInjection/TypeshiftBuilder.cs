@@ -53,9 +53,9 @@ public sealed class TypeshiftBuilder
     }
 
     /// <summary>
-    /// Registers a store you created, such as a <c>FileAgentSettingsStore</c> over its folder, as each store interface
-    /// <typeparamref name="TStore"/> implements, and as those of the build's id type the instance implements. Your app
-    /// owns the instance, so the container never disposes it.
+    /// Registers a store you created yourself, as each store interface <typeparamref name="TStore"/> implements, and as
+    /// those of the build's id type the instance implements. Your app owns the instance, so the container never
+    /// disposes it.
     /// </summary>
     /// <param name="store">The store, a singleton.</param>
     /// <typeparam name="TStore">
@@ -70,6 +70,18 @@ public sealed class TypeshiftBuilder
         ArgumentNullException.ThrowIfNull(store);
         if (!typeof(TStore).IsInterface) _services.AddSingleton(store);
         _addStore(_services, typeof(TStore), Contracts(typeof(TStore)), store, _ => store);
+        return this;
+    }
+
+    // A store the container builds, as WithStore<TStore>() does, from a factory: WithFileStore's over its folder
+    internal TypeshiftBuilder WithStore<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] TStore>(
+        Func<IServiceProvider, TStore> create)
+        where TStore : class
+    {
+        _services.AddSingleton(create);
+        var store = typeof(TStore);
+        _addStore(_services, store, Contracts(store), null, provider => provider.GetRequiredService<TStore>());
         return this;
     }
 

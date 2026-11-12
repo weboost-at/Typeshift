@@ -314,9 +314,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Context:** v0 gave each tool call a fresh scope of the root container, so request-scoped services (the current
   customer) never reached tools, context or the chat client provider (audit finding 2).
-- **Decision:** `AgentHost<TAgent>` is transient and keeps the provider it was resolved from. Tools, context
-  providers, middleware, the MCP tool provider and the chat client provider resolve from it. Agents and toolsets stay
-  singletons, the store too.
+- **Decision:** `AgentHost<TAgent>` is transient and keeps the provider it was resolved from, or the scope
+  `TypeshiftRuntime.Agent<TAgent>()` created for it (D76). Tools, context providers, middleware, the MCP tool provider
+  and the chat client provider resolve from it. Agents and toolsets stay singletons, the store too.
 - **Alternatives:** a run-context tool parameter carrying the typed id, which built-in toolsets compiled before the
   host cannot type; per-call scopes, which lose the request.
 - **Where:** `AgentHost.cs`.
@@ -464,11 +464,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   the calling run as a message before a later model call, and the run does not end while sub-agents work. A
   sub-agent cannot ask the host: in the default mode its calls that need approval and that nothing approves are
   rejected (TSH024 warns). Circles are TSH026.
-- **As built:** the sub-agent's tool is a runtime `AIFunction` that resolves the agent's `AgentHost<T>` through a
-  factory `UseAgent<T>()` captured, so no generated code is needed; it finds its caller's run through
+- **As built:** the sub-agent's tool is a runtime `AIFunction` that builds the agent's `AgentHost<T>` over the
+  caller's services through a factory `UseAgent<T>()` captured (D76), so no generated code is needed; it finds its caller's run through
   `FunctionInvokingChatClient.CurrentContext`. Background answers join the run through the steering queue, so
   every run has a `ConversationRun`, which stores only with a conversation; the run's end cancels the sub-agents
-  still working, and the next run tells the model which ones it lost, after a crash, a cancellation or a failure,
+  still working and awaits them, so none outlives its run or the scope of a host disposed after it (D76), and the
+  next run tells the model which ones it lost, after a crash, a cancellation or a failure,
   including the ones a summary left working. TSH023 and TSH024 check the agents a compilation uses, a reference's
   through its module stamp, which carries the agent's name, whether it has a description and the tools it offers that
   require approval; tool stamps carry `RequiresApproval` for that list. TSH026 checks the compilation's own agents,
@@ -615,8 +616,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - **Status:** owner.
 - **Context:** the owner asked for first-party support of simple setups; an app with one agent and no database
-  still has to keep its settings across restarts.
-- **Decision:** `FileAgentSettingsStore` keeps each agent's own settings (D66) in `<folder>/<kind>.json`, as
+  still has to keep its settings across restarts. The owner then asked for a chain call that takes options, so that
+  "the user does not have to instantiate a class owned component by hand", that "file settings must only be exposed
+  under the file-store configuration", and that "a single store setting for the folder is enough".
+- **Decision:** the file store keeps each agent's own settings (D66) in `<folder>/settings/<kind>.json`, as
   `{"kind": ..., "version": n, "settings": {...}}`, so the file reads and edits by hand. A save holds the kind's lock
   file, opened with `FileShare.None`, so other stores and processes wait; it checks the version, writes a file of its
   own beside the old one, flushes it to the disk and moves it over, so a load reads the old file or the new one whole.
@@ -624,15 +627,26 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `-` and escapes every other byte as `%XX`, so any kind maps to a file of the folder, one to one; a name Windows
   reserves is escaped too. The file names its kind, so a file system that ignores case and gives two kinds one file
   fails the load instead of handing one agent the other's settings. A file of another shape throws an
-  `InvalidDataException` that names it and the shape. `WithStore(store)` registers a store your code created, since
-  this one takes its folder, as each interface the instance implements, and the container leaves it undisposed.
-- **Where:** `Storage/FileAgentSettingsStore.cs`, `DependencyInjection/TypeshiftBuilder.cs`.
+  `InvalidDataException` that names it and the shape. `WithFileStore(configure)` and `FileStoreOptions` are the only
+  public parts, and `Folder` the only option. It defaults to `typeshift` under `AppContext.BaseDirectory`, which a
+  service finds whatever its current directory, resolves at registration, and a blank one throws there, naming the
+  option. The settings get the fixed `settings` folder in it, so a store of other data can take a folder beside it. The
+  container builds the internal `FileAgentSettingsStore` over that folder with the app's `TimeProvider`,
+  through the registration `WithStore<T>()` uses, so the last call wins for each interface. `WithStore(store)`
+  registers a store your code created, as each interface the instance implements, and the container leaves it
+  undisposed.
+- **Where:** `Storage/FileAgentSettingsStore.cs`, `Storage/FileStoreExtensions.cs`, `Storage/FileStoreOptions.cs`,
+  `DependencyInjection/TypeshiftBuilder.cs`.
 - **Alternatives:** one lock per store instance, which two instances or processes on one folder pass through, tearing
   the file; refusing kinds that are no plain file name, which fails every run of an agent named in another script;
   TSH022 ignoring case, which would reject kinds a case-sensitive store keeps apart;
   a file store of settings ids and conversations too, a database in files that SQLite already is;
   the folder from configuration, which ties the store to a configuration section the app may not have; one file for
-  every agent, where a save of one agent's settings rewrites the others'.
+  every agent, where a save of one agent's settings rewrites the others'; `WithFileSettings` and a public
+  `FileSettingsOptions`, which exposed the settings outside the file store's configuration; a settings folder of its
+  own option, relative to `Folder` or absolute, a second setting where one folder is enough; a relative default
+  folder, which a service resolves against the system's folder; a public `FileAgentSettingsStore` registered with
+  `WithStore(store)`, which made every app create a class of Typeshift's and hand it the clock itself.
 
 ### D68. The package turns XML docs on
 
@@ -766,9 +780,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** when no `ISettingsStore`, `IConversationStore` or `IAgentSettingsStore` of the build's id type is
   registered, nor any store through `WithStore<T>()`, the store access keeps everything in an `InMemoryTypeshiftStore`
   of its own per id type (D72), a singleton like the host's other services. The first save or append logs a warning,
-  once, that names `WithStore<T>()` and says the data is gone when the app stops; loads stay quiet, since a load of
-  nothing loses nothing. Once any store is registered, only registered stores serve, so an app that kept settings in a
-  database and forgot a store of conversations still gets the exception of D43 instead of conversations that vanish.
+  once, that names `WithStore<T>()`, and `WithFileStore()` for agents' own settings, and says the data is gone when
+  the app stops; loads stay quiet, since a load of nothing loses nothing. Once any store is registered, only
+  registered stores serve, so an app that kept settings in a database and forgot a store of conversations still gets
+  the exception of D43 instead of conversations that vanish.
 - **Where:** `Storage/StoreAccess.cs`.
 - **Alternatives:** throwing as before, ceremony every first run hits; memory for each interface no registered store
   implements, which hides a forgotten store in an app that chose one; a warning at startup, which an app that never
@@ -791,14 +806,17 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   the id's settings in place of the agent's own (D66). Without any store, D69 keeps one store in memory per id type,
   and warns on the first write that one of them takes. The id parameters of the generated members stay, of the build's
   id type (D11), until the docs and samples move to the scopes; a call that passes an id the host has already throws,
-  naming both.
+  naming both. A copy runs in its host's scope and owns none of it (D76): disposing a copy leaves the scope alone,
+  so the copy works as long as the host it came from, and only a host the runtime created disposes the scope, once.
 - **Where:** `Hosting/AgentHost.cs`, `Storage/StoreId.cs`, `Storage/StoreAccess.cs`, `Generated/AgentRuns.cs`,
   `Generated/ModuleRegistration.cs`, `DependencyInjection/TypeshiftBuilder.cs`, `Conversations/ConversationTracker.cs`,
   `Analysis/TypeshiftAnalyzer.cs`.
 - **Alternatives:** an assembly attribute or two MSBuild properties, still one id type per build and outside code;
   `ForSettings(id)` and `InConversation(id)`, names the owner turned down; ids as parameters of every generic run
   member, which repeats them on every call and every overload; looking the store up by the id's runtime type, which
-  needs `MakeGenericType` and misses an id whose runtime type differs from its declared one.
+  needs `MakeGenericType` and misses an id whose runtime type differs from its declared one; copies that share the
+  scope's ownership with their host, by a count, which keep it open while any copy lives and make each copy one more
+  thing to dispose.
 
 ### D73. Every conversation can be kept
 
@@ -827,30 +845,55 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   from the store, which would add a method every store must implement; naming the new conversation only in a header
   or a property bag, which a typed run's response would hide.
 
-### D75. An app without a container creates a TypeshiftApp
+### D75. An app without a container creates a TypeshiftRuntime
 
 - **Status:** owner.
-- **Context:** the owner asked for less ceremony, "Wolverine-style", and chose `TypeshiftApp.Create` over a factory on
-  each agent. A first run took a `ServiceCollection`, `AddTypeshift()`, a provider, a scope and a host from it.
-- **Decision:** `TypeshiftApp.Create(client, configure)` returns an app that owns a container and one scope, and
-  `app.Agent<TAgent>()` returns a host from that scope. With one scope for the app's lifetime, its scoped services
-  (the chat client provider, approval rules, middleware, the MCP tool provider and what tools resolve) act as
-  singletons of the app, shared by concurrent runs; an app that needs a scope per request uses `AddTypeshift()`. The
-  generator intercepts `Create` as it does `AddTypeshift()` (D1): the interceptor builds a `ServiceCollection`,
-  registers the core services and the modules with its own `AddTypeshift`, and `ModuleRegistration.CreateApp`
-  registers the client as an instance for every agent (D63), runs `configure` on the chain and builds the provider
-  with scope validation. The container never disposes an instance, so the client outlives the app. Disposing the app
-  disposes the provider even when disposing the scope throws. The generator reads only a `Create` whose receiver
-  names `TypeshiftApp` and skips a call bound at run time, such as one with a `dynamic` argument; a call it did not
+- **Context:** the owner asked for less ceremony, "Wolverine-style", and chose `TypeshiftRuntime.Create`, first named
+  `TypeshiftApp`, over a factory on each agent. A first run took a `ServiceCollection`, `AddTypeshift()`, a provider,
+  a scope and a host from it.
+- **Decision:** `TypeshiftRuntime.Create(client, configure)` builds a container and returns its runtime, which owns
+  it, and `runtime.Agent<TAgent>()` returns a host in a scope of its own (D76). The generator intercepts `Create` as
+  it does `AddTypeshift()` (D1): the interceptor builds a `ServiceCollection`, registers the core services and the
+  modules with its own `AddTypeshift`, and `ModuleRegistration.CreateRuntime` registers the client as an instance for
+  every agent (D63), runs `configure` on the chain and builds the provider with scope validation. The container never
+  disposes an instance, so the client outlives the runtime. The generator reads only a `Create` whose receiver names
+  `TypeshiftRuntime` and skips a call bound at run time, such as one with a `dynamic` argument; a call it did not
   intercept throws, saying how to call it. The generator's pass binds the call to its sole candidate when the
   `configure` lambda names an alias it has not written yet. The library references
   `Microsoft.Extensions.DependencyInjection`, the container, which it did not before.
-- **Where:** `Hosting/TypeshiftApp.cs`, `Generated/ModuleRegistration.cs`, `Parsing/InterceptParser.cs`,
+- **Where:** `Hosting/TypeshiftRuntime.cs`, `Generated/ModuleRegistration.cs`, `Parsing/InterceptParser.cs`,
   `Emitting/InterceptorEmitter.cs`.
 - **Alternatives:** a generated `Create` on each agent, which the owner turned down, and whose agents would not share
   a store or a tracker; a library `Create` that registers nothing, since only the generator knows the project's
   modules; a container of the library's own, which would serve neither scoped services nor the app's;
-  `AddChatClient(client)`, whose factory makes the container own the client and dispose it with the app.
+  `AddChatClient(client)`, whose factory makes the container own the client and dispose it with the runtime.
+
+### D76. The runtime is the root, and its hosts are units of work
+
+- **Status:** owner.
+- **Context:** D75's first design gave the app one scope for its lifetime, so every run shared its scoped services,
+  and an app with a container still built a scope by hand for each background job. The owner asked for one root in
+  both kinds of app, after Wolverine's `WolverineRuntime`, which creates short-lived `IMessageBus` instances, and
+  renamed `TypeshiftApp` to `TypeshiftRuntime`.
+- **Decision:** `AddCoreServices` registers `TypeshiftRuntime` as a singleton over the root provider, so a singleton
+  of the app, such as a background service, injects it. `Create` resolves that singleton from the container it builds
+  and hands it the container. Disposing that runtime disposes the container, which disposes the runtime again, and the
+  second call finds nothing left to dispose. A runtime your app's container created owns nothing, and disposing it
+  does nothing. `runtime.Agent<TAgent>()` creates an async scope and a host that owns it: one unit of work, whose runs
+  use that scope's services as D25 has every host use its scope's. `AgentHost<TAgent>` is `IAsyncDisposable` and
+  `IDisposable`. Disposing a host the runtime created disposes its scope; disposing one the container resolved, such
+  as one injected into a request, does nothing, since the container owns that scope, and so does disposing a copy from
+  `WithSettingsId` or `WithConversationId` (D72), which shares its host's scope. A scope keeps every disposable
+  the container builds until it ends, so the library builds the hosts of sub-agents and handoffs itself
+  (`AgentHost<TAgent>.In`) rather than resolving them, or a long-lived host would collect one for each run.
+  `runtime.Services` is the root provider, for singletons such as the `ConversationTracker`. A request still injects
+  `AgentHost<TAgent>` from its own scope. Your app lets a host's runs and streams finish before it disposes the host,
+  and a run that ends awaits the background sub-agents it stopped (D33), so none works on in a disposed scope.
+- **Where:** `Hosting/TypeshiftRuntime.cs`, `Hosting/AgentHost.cs`, `Agents/Agent.cs`,
+  `Generated/ModuleRegistration.cs`.
+- **Alternatives:** a separate `AgentScope` object that holds a scope and hands out hosts, which the owner turned
+  down; one scope for the runtime's lifetime, D75's first design, whose scoped services, such as the chat client
+  provider and what tools resolve, every run shared, concurrent ones included.
 
 ### D44. Settings records serialize themselves
 

@@ -1,0 +1,420 @@
+using Typeshift.Tests.Agents.Support;
+using Typeshift.Tests.Hosting.Support;
+using Typeshift.Tests.MultiAgent.Support;
+using Typeshift.Tests.Tools.Support;
+using FluentAssertions;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Typeshift.Tests.Hosting;
+
+// D75, D76: the runtime TypeshiftRuntime.Create builds, and the one AddTypeshift() registers
+public class TypeshiftRuntimeTests : AgentTestBase
+{
+    private readonly CreatedMiddleware _created = [];
+
+    private readonly Builds _hostBuilds = new();
+
+    protected override void ConfigureServices(IServiceCollection services)
+    {
+        base.ConfigureServices(services);
+
+        services.AddTypeshift()
+            .WithRunMiddleware<DisposableMiddleware>();
+
+        services.AddSingleton(_created);
+        services.CountBuilds<AgentHost<HelperAgent>>(_hostBuilds);
+        services.CountBuilds<AgentHost<FrontAgent>>(_hostBuilds);
+        services.CountBuilds<AgentHost<BackAgent>>(_hostBuilds);
+    }
+
+    [Fact]
+    public async Task Given_A_Runtime_Over_A_Client_An_Agent_Runs_On_It()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        await using var runtime = TypeshiftRuntime.Create(ChatClient);
+        await using var probe = runtime.Agent<ProbeAgent>();
+
+        // Act
+        var response = await probe.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_A_Runtime_With_A_Store_An_Agents_Configured_Settings_Apply_To_Its_Runs()
+    {
+        // Arrange
+        await using var runtime = TypeshiftRuntime.Create(
+            ChatClient,
+            typeshift => typeshift.WithStore<InMemoryTypeshiftStore>());
+
+        await using var probe = runtime.Agent<ProbeAgent>();
+        await using var configuring = runtime.Agent<ProbeAgent>();
+
+        await configuring.ConfigureAsync(
+            Data.Persistence.SettingsId,
+            settings => settings with { Temperature = Data.Agent.Temperature },
+            Ct);
+
+        // Act
+        var options = await probe.ResolveOptionsAsync(Data.Persistence.SettingsId, ct: Ct);
+
+        // Assert
+        options.Temperature.Should().Be(Data.Agent.Temperature);
+    }
+
+    [Fact]
+    public async Task Given_A_Runtime_Disposed_After_A_Run_The_Client_It_Was_Given_Stays_Undisposed()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        var runtime = TypeshiftRuntime.Create(ChatClient);
+        await using var probe = runtime.Agent<ProbeAgent>();
+        await probe.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await runtime.DisposeAsync();
+
+        // Assert
+        ChatClient.Disposed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Given_A_Runtime_Disposed_After_A_Run_Its_Containers_Singletons_Are_Disposed()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var runtime = TypeshiftRuntime.Create(
+            ChatClient,
+            typeshift => typeshift.WithStore<DisposableStore>());
+
+        await using var probe = runtime.Agent<ProbeAgent>();
+        var store = runtime.Services.GetRequiredService<DisposableStore>();
+        await probe.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await runtime.DisposeAsync();
+
+        // Assert
+        store.Disposed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Given_A_Runtime_Disposed_Synchronously_After_A_Run_Its_Containers_Singletons_Are_Disposed()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var runtime = TypeshiftRuntime.Create(
+            ChatClient,
+            typeshift => typeshift.WithStore<DisposableStore>());
+
+        await using var probe = runtime.Agent<ProbeAgent>();
+        var store = runtime.Services.GetRequiredService<DisposableStore>();
+        await probe.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        runtime.Dispose();
+
+        // Assert
+        store.Disposed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Given_A_Disposed_Runtime_Creating_A_Host_Throws()
+    {
+        // Arrange
+        var runtime = TypeshiftRuntime.Create(ChatClient);
+        await runtime.DisposeAsync();
+
+        // Act
+        var host = () => runtime.Agent<ProbeAgent>();
+
+        // Assert
+        host.Should().Throw<ObjectDisposedException>();
+    }
+
+    [Fact]
+    public async Task Given_A_Disposed_Runtime_Disposing_It_Again_Throws_Nothing()
+    {
+        // Arrange
+        var runtime = TypeshiftRuntime.Create(ChatClient);
+        await runtime.DisposeAsync();
+
+        // Act
+        var dispose = async () => await runtime.DisposeAsync();
+
+        // Assert
+        await dispose.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public void Given_No_Client_Creating_A_Runtime_Throws()
+    {
+        // Act
+        var create = () => TypeshiftRuntime.Create(null!);
+
+        // Assert
+        create.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void Given_A_Container_The_Root_And_A_Scope_Resolve_One_Runtime()
+    {
+        // Act
+        var root = Services.GetRequiredService<TypeshiftRuntime>();
+        var scoped = Scope.GetRequiredService<TypeshiftRuntime>();
+
+        // Assert
+        scoped.Should().BeSameAs(root);
+    }
+
+    [Fact]
+    public async Task Given_A_Runtime_From_The_Container_An_Agent_Runs_On_Its_Host()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        await using var probe = Runtime.Agent<ProbeAgent>();
+
+        // Act
+        var response = await probe.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_Two_Hosts_Of_The_Runtime_Their_Runs_Resolve_From_Scopes_Of_Their_Own()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Call(Data.Tool.SecondCallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        await using var first = Runtime.Agent<ProbeAgent>();
+        await using var second = Runtime.Agent<ProbeAgent>();
+
+        // Act
+        var firstRun = await first.RunAsync(Data.Tool.Question, ct: Ct);
+        var secondRun = await second.RunAsync(Data.Tool.Question, ct: Ct);
+        var firstScope = firstRun.Assert.ToolResult<ProbeResult>(Data.Tool.CallId, Json).Scope;
+        var secondScope = secondRun.Assert.ToolResult<ProbeResult>(Data.Tool.SecondCallId, Json).Scope;
+
+        // Assert
+        firstScope.Should().NotBeNull();
+        secondScope.Should().NotBe(firstScope!.Value);
+    }
+
+    [Fact]
+    public async Task Given_Two_Runs_Of_One_Host_Of_The_Runtime_Both_Resolve_From_Its_Scope()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Call(Data.Tool.SecondCallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        await using var probe = Runtime.Agent<ProbeAgent>();
+
+        // Act
+        var firstRun = await probe.RunAsync(Data.Tool.Question, ct: Ct);
+        var secondRun = await probe.RunAsync(Data.Tool.Question, ct: Ct);
+        var firstScope = firstRun.Assert.ToolResult<ProbeResult>(Data.Tool.CallId, Json).Scope;
+        var secondScope = secondRun.Assert.ToolResult<ProbeResult>(Data.Tool.SecondCallId, Json).Scope;
+
+        // Assert
+        firstScope.Should().NotBeNull();
+        secondScope.Should().Be(firstScope);
+    }
+
+    [Fact]
+    public async Task Given_A_Host_Of_The_Runtime_Disposed_The_Scoped_Services_Of_Its_Runs_Are_Disposed()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        var probe = Runtime.Agent<ProbeAgent>();
+        await probe.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await probe.DisposeAsync();
+
+        // Assert
+        _created.Should().ContainSingle();
+        _created[0].Disposed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Given_A_Host_Of_The_Runtime_Disposed_Synchronously_The_Scoped_Services_Of_Its_Runs_Are_Disposed()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        var probe = Runtime.Agent<ProbeAgent>();
+        await probe.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        probe.Dispose();
+
+        // Assert
+        _created.Should().ContainSingle();
+        _created[0].Disposed.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Given_A_Disposed_Host_Of_The_Runtime_Disposing_It_Again_Throws_Nothing()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        var probe = Runtime.Agent<ProbeAgent>();
+        await probe.RunAsync(Data.Tool.Question, ct: Ct);
+        await probe.DisposeAsync();
+
+        // Act
+        var dispose = () => probe.Dispose();
+
+        // Assert
+        dispose.Should().NotThrow();
+    }
+
+    [Fact]
+    public async Task Given_An_Injected_Host_Disposed_The_Request_Scopes_Services_Stay_Undisposed()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        var probe = Host<ProbeAgent>();
+        await probe.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await probe.DisposeAsync();
+
+        // Assert
+        _created.Should().ContainSingle();
+        _created[0].Disposed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Given_A_Copy_Of_A_Host_Of_The_Runtime_Disposed_The_Host_Still_Runs_In_Its_Scope()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Call(Data.Tool.SecondCallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        await using var probe = Runtime.Agent<ProbeAgent>();
+        var copy = probe.WithConversationId(Data.Agent.ConversationId);
+        var copyRun = await copy.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await copy.DisposeAsync();
+        var hostRun = await probe.RunAsync(Data.Tool.Question, ct: Ct);
+        var copyScope = copyRun.Assert.ToolResult<ProbeResult>(Data.Tool.CallId, Json).Scope;
+        var hostScope = hostRun.Assert.ToolResult<ProbeResult>(Data.Tool.SecondCallId, Json).Scope;
+
+        // Assert
+        copyScope.Should().NotBeNull();
+        hostScope.Should().Be(copyScope);
+    }
+
+    [Fact]
+    public async Task Given_A_Copy_Of_A_Host_Of_The_Runtime_Disposed_The_Scoped_Services_Of_Its_Runs_Stay_Undisposed()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        await using var probe = Runtime.Agent<ProbeAgent>();
+        var copy = probe.WithConversationId(Data.Agent.ConversationId);
+        await copy.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await copy.DisposeAsync();
+
+        // Assert
+        _created.Should().ContainSingle();
+        _created[0].Disposed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Given_A_Host_Of_The_Runtime_Disposed_After_Its_Copy_The_Scoped_Services_Are_Disposed_Once()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        var probe = Runtime.Agent<ProbeAgent>();
+        var copy = probe.WithConversationId(Data.Agent.ConversationId);
+        await copy.RunAsync(Data.Tool.Question, ct: Ct);
+        await copy.DisposeAsync();
+
+        // Act
+        await probe.DisposeAsync();
+
+        // Assert
+        _created.Should().ContainSingle();
+        _created[0].Disposals.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Given_A_Runtime_From_The_Container_Disposed_The_Container_Keeps_Working()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Runtime.DisposeAsync();
+
+        await using var probe = Runtime.Agent<ProbeAgent>();
+        var response = await probe.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_Runs_Of_One_Host_That_Call_A_Sub_Agent_The_Container_Builds_No_Host_Its_Scope_Keeps()
+    {
+        // Arrange
+        for (var run = 0; run < 3; run++)
+        {
+            ChatClient
+                .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+                .Reply(Text(Data.Agent.Reason))
+                .Reply(Text(Data.Tool.Answer));
+        }
+
+        await using var lead = Runtime.Agent<LeadAgent>();
+
+        // Act
+        for (var run = 0; run < 3; run++)
+        {
+            await lead.RunAsync(Data.Tool.Question, ct: Ct);
+        }
+
+        // Assert
+        _hostBuilds.Count.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Given_Runs_Of_One_Host_That_Offer_A_Handoff_The_Container_Builds_No_Host_Its_Scope_Keeps()
+    {
+        // Arrange
+        for (var run = 0; run < 3; run++)
+        {
+            ChatClient.Reply(Text(Data.Tool.Answer));
+        }
+
+        await using var front = Runtime.Agent<FrontAgent>();
+
+        // Act
+        for (var run = 0; run < 3; run++)
+        {
+            await front.RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+        }
+
+        // Assert
+        _hostBuilds.Count.Should().Be(0);
+    }
+}
