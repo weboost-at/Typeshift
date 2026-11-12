@@ -20,7 +20,7 @@ public abstract class Agent
     public string Name => GeneratedDeclaration.Name;
 
     /// <summary>
-    /// What the agent does, if <see cref="WithDescription"/> says so.
+    /// What the agent does: the text of <see cref="WithDescription"/>, or else the summary of the agent's XML docs.
     /// </summary>
     public string? Description => GeneratedDeclaration.Description;
 
@@ -66,7 +66,7 @@ public abstract class Agent
     }
 
     /// <summary>
-    /// Describes what the agent does.
+    /// Describes what the agent does, in place of the summary of its XML docs.
     /// </summary>
     /// <param name="description">A constant.</param>
     protected void WithDescription(string description)
@@ -116,7 +116,7 @@ public abstract class Agent
         ToolsetUse<TToolset>.Instance;
 
     /// <summary>
-    /// Offers another agent as a tool named like it, described by its <c>WithDescription</c>, with one <c>input</c>
+    /// Offers another agent as a tool named like it and described like it, with one <c>input</c>
     /// parameter. A call runs it in a fresh context, with the caller's settings id, mode, standing approvals and
     /// rules, and returns its answer's text, or its JSON with <c>WithResult</c>.
     /// </summary>
