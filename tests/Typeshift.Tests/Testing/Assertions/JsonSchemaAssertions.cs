@@ -35,6 +35,28 @@ public sealed class JsonSchemaAssertions(JsonElement schema)
         return schema;
     }
 
+    // The type each anyOf branch of a union parameter names, null for a branch that names none
+    public JsonElement ParameterCaseTypes(string parameter, params string?[] types)
+    {
+        Parameter(parameter)
+            .GetProperty("anyOf")
+            .EnumerateArray()
+            .Select(branch => branch.TryGetProperty("type", out var type) ? type.GetString() : null)
+            .Should()
+            .Equal(types);
+        return schema;
+    }
+
+    public JsonElement ParameterCasesAcceptNull(string parameter)
+    {
+        Parameter(parameter)
+            .GetProperty("anyOf")
+            .EnumerateArray()
+            .Should()
+            .OnlyContain(branch => branch.GetProperty("type").EnumerateArray().Any(type => type.GetString() == "null"));
+        return schema;
+    }
+
     public JsonElement ParameterSchema(string parameter, string json) => Equivalent(Parameter(parameter), json);
 
     public JsonElement ParameterDefault(string parameter, string json) =>

@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Typeshift.Generators.Emitting;
 
@@ -26,8 +28,9 @@ internal static class Docs
     // A summary always on lines of its own, any other tag on one line while it fits the width the writer has left
     private static void WriteTag(SourceWriter writer, string open, string close, string text)
     {
-        // A description may span lines, a doc comment line may not
-        var words = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        // A description may span lines, a doc comment line may not; an element such as <typeparamref name="T"/> stays
+        // on one line
+        var words = Regex.Matches(text, @"(?:<[^>]*>|\S)+").Cast<Match>().Select(word => word.Value).ToArray();
         var single = $"/// <{open}>{string.Join(" ", words)}</{close}>";
 
         if (close != "summary" && single.Length <= writer.Width)
