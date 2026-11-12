@@ -238,7 +238,7 @@ approval rules and the MCP tool provider all resolve from the host's scope.
 
 Every member that loads or saves settings under a settings id needs an `ISettingsStore<TId>` of the id's type, and
 every member that loads or appends to a conversation needs an `IConversationStore<TId>` of the conversation id's type.
-[Registering a store](./settings-and-stores.md#registering-a-store) says what happens without one.
+[Which store serves a call](./implementing-a-store.md#which-store-serves-a-call) says what happens without one.
 
 ### `Agent`
 
