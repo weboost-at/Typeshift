@@ -8,7 +8,8 @@ description: How a run's settings layer from the code through stored settings to
 Typeshift stores each agent's `Settings`, as the agent's own or under a settings id, and conversations under a
 conversation id. An agent's own settings go through an `IAgentSettingsStore`, settings under an id through an
 `ISettingsStore<TId>`, and conversations through an `IConversationStore<TId>`, where `TId` is the type of your ids.
-You [implement](./implementing-a-store.md) the ones your app needs, in one class or in several.
+Typeshift keeps them in memory until you register stores of your own, which you
+[implement](./implementing-a-store.md) over your database, in one class or in several.
 
 ## Settings layering
 
@@ -88,33 +89,7 @@ of its own kind, those of the agent and those under the caller's settings id, in
 off to answers with the stored settings of its kind under the same id. Run settings apply only to the agent the run
 started on ([Multiple agents](./multi-agent.md)).
 
-## Registering a store
-
-Register the store in the `AddTypeshift()` chain:
-
-<!-- snippet: quickstart-clients -->
-<a id='snippet-quickstart-clients'></a>
-```cs
-var services = new ServiceCollection();
-
-services.AddTypeshift()
-    .WithStore<InMemoryTypeshiftStore<int>>();
-
-services.AddKeyedChatClient("openai", new CannedChatClient());
-
-await using var provider = services.BuildServiceProvider(validateScopes: true);
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L11-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-clients' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
-
-`InMemoryTypeshiftStore<int>` keeps everything under `int` ids in memory, and serves tests and samples. For your
-database, write a store of your own: [Implementing a store](./implementing-a-store.md) covers its methods, its
-versions and the conversation summaries it reads.
-
-`WithStore<T>()` registers each store interface your class implements, so an `ITypeshiftStore<TId>` takes one call. A
-store of settings and a store of conversations take one call each.
-
-### Ids of your own types
+## Ids of your own types
 
 Each store has the id type of its interface, and one app may have several: an `ISettingsStore<int>` keeps settings
 under `int` ids while an `IConversationStore<string>` keeps conversations under `string` ids. You give a host its ids
@@ -128,9 +103,10 @@ in code, and each id's type picks the store of that type:
 Each call returns a copy of the host with the id, in the host's scope, so
 `support.WithSettingsId(42).WithConversationId(chat).RunAsync(input)` runs with both, and `support` itself keeps none.
 A copy is a small object, so make one wherever your code has the ids, such as in each request. It never disposes
-the scope, so it works as long as `support` does. Ids of the same value and different types are
-different ids: a conversation under 5 as an `int` is not the one under 5 as a `long`. An id whose type no registered
-store keeps throws an `InvalidOperationException` that names the interface it needs, such as `ISettingsStore<long>`.
+the scope, so it works as long as `support` does. Ids of the same value and different types are different ids: a
+conversation under 5 as an `int` is not the one under 5 as a `long`.
+[Which store serves a call](./implementing-a-store.md#which-store-serves-a-call) says what happens to an id whose type
+none of your stores keeps.
 
 A few things follow the host's ids:
 
@@ -139,25 +115,6 @@ A few things follow the host's ids:
 - `ConversationTracker<TId>` lists, watches and steers the conversations under ids of `TId`, so a chat under `Guid`
   ids takes `ConversationTracker<Guid>`. The container has the tracker of every id type
   ([Live runs](./conversations.md#live-runs)).
-- Each `InMemoryTypeshiftStore<TId>` keeps agents' own settings too, so of several, the last one registered keeps
-  them.
-
-::: warning The store is a singleton
-`WithStore<T>()` registers the store as a singleton, so one instance serves every run at the same time. It cannot
-take scoped services, such as a `DbContext`: [Register your store](./implementing-a-store.md#register-your-store)
-shows how to build one around that.
-:::
-
-Without any store, Typeshift keeps settings and conversations in memory, so everything works from the first run on,
-and the first save or stored run logs a warning that names `WithStore<T>()`, and `WithFileStore()` for agents' own
-settings. The memory is gone when the app stops, so register a store before your app keeps anything it must not lose.
-
-Once you register a store, with the chain or in the container yourself, Typeshift uses only the stores you
-registered. For each store interface, the last call
-that registers a store wins, so a second store that also implements it takes its place. A run applies the agents' own
-settings only when a registered store implements `IAgentSettingsStore`, as `InMemoryTypeshiftStore<TId>` does. A call
-that needs an interface none of your stores implements, such as a run with a conversation id and a store of settings
-alone, throws an `InvalidOperationException` that names `WithStore<T>()` and the interface.
 
 ## Agent settings
 
@@ -178,8 +135,8 @@ var everyRun = await research.RunAsync("Graz");
 `ConfigureAsync(configure)` retries on a conflict, as the rest of this section shows. On a host from
 `WithSettingsId(id)`, the same three members load and save the settings under the id instead.
 
-`InMemoryTypeshiftStore<TId>` forgets them when the app stops. To keep them without a database, for example in a local
-tool or a single-agent service, register the file store with `WithFileStore`:
+Kept in memory, they are gone when the app stops. To keep them without a database, for example in a local tool or a
+single-agent service, register the file store with `WithFileStore`:
 
 <!-- snippet: file-agent-settings -->
 <a id='snippet-file-agent-settings'></a>
@@ -206,6 +163,8 @@ folder, since a save takes a lock file of its kind first.
   own.
 - On a file system that ignores case, as on Windows and macOS, two kinds that differ only in case share a file. The
   file names its kind, so a load of the other kind throws; give one of the agents a `WithStorageKind` of its own.
+- Registering the file store, as registering any store does, ends the memory: settings under ids and conversations
+  then need a store of their own ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call)).
 
 A settings id stands for whatever you decide: a customer, a team, a user, or a settings profile of your own. Under one
 settings id, each agent has its own document, because each agent's `Settings` is its own kind, so a store keys
@@ -288,7 +247,8 @@ schema version ([Migrate older settings](./implementing-a-store.md#migrate-older
 ## Related
 
 - [Tool settings](./tool-settings.md): declaring a tool's settings and opening members to the layers.
-- [Implementing a store](./implementing-a-store.md): the store's methods, its versions and conversation summaries.
+- [Implementing a store](./implementing-a-store.md): registering a store, its methods, its versions and conversation
+  summaries.
 - [Generated members](./generated-members.md#settings): the `Settings` record a store keeps.
 - [Running agents](./running-agents.md#run-settings): running with a settings id and run settings.
 - [Conversations](./conversations.md): what a run stores in a conversation, and resuming it.

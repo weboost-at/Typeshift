@@ -8,10 +8,47 @@ description: Write the store that keeps your agents' settings and conversations 
 Typeshift keeps your agents' settings through an `ISettingsStore<TId>` and your conversations through an
 `IConversationStore<TId>`, which you implement over your own database for the type `TId` of your ids. This page walks
 through a store in the order you build it: you register it, implement its interfaces, load and save settings, append
-conversations, migrate older settings and check it. `InMemoryTypeshiftStore<TId>` is for tests and samples, so a
-production app writes its own.
+conversations, migrate older settings and check it. Until you register a store, Typeshift keeps everything in memory
+and loses it when the app stops, so a production app writes its own.
 
 ## Register your store
+
+Register your store in the `AddTypeshift()` chain with `WithStore<T>()`. This page builds a store on Entity Framework
+Core, `EfTypeshiftStore`, so its context factory is registered next to it:
+
+<!-- snippet: ef-core-registration -->
+<a id='snippet-ef-core-registration'></a>
+```cs
+services.AddTypeshift()
+    .WithStore<EfTypeshiftStore>();
+
+services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite("Data Source=typeshift.db"));
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L42-L47' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-registration' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+`WithStore<T>()` registers your class as each store interface it implements, of any id type. An
+`ITypeshiftStore<TId>` takes one call, and a store of settings and one of conversations take a call each.
+
+### Which store serves a call
+
+Without any store, Typeshift keeps settings and conversations in memory, under ids of every type, so everything works
+from the first run on. The first save, or the first run that stores a conversation, logs a warning that names
+`WithStore<T>()`, and `WithFileStore()` for agents' own settings. The memory is gone when the app stops, so register a
+store before your app keeps anything it must not lose.
+
+Once you register a store, with the chain or in the container yourself, Typeshift uses only the stores you
+registered:
+
+- For each store interface, the store registered last wins. Each `InMemoryTypeshiftStore<TId>` keeps agents' own
+  settings too, so of several, the last one registered keeps them.
+- A run applies agents' own settings only when a registered store implements `IAgentSettingsStore`, as
+  `InMemoryTypeshiftStore<TId>` and the file store of `WithFileStore()` do.
+- A call that needs an interface none of your stores implements throws an `InvalidOperationException` that names
+  `WithStore<T>()` and the interface. A run with a conversation id and a store of settings alone throws, and so does
+  an id of a type none of your stores keeps, such as a settings id of `long` beside an `ISettingsStore<int>`.
+
+### Plan for one instance
 
 `WithStore<T>()` registers your store as a singleton. One instance handles every run of every request, and several
 runs often call it at the same time, so plan for that before you write its first method:
@@ -27,27 +64,16 @@ runs often call it at the same time, so plan for that before you write its first
 
 ::: warning A scoped DbContext breaks the store
 A singleton that takes a `DbContext` keeps the first one it got for the life of the app and shares it between
-requests, which `DbContext` does not allow. Register `IDbContextFactory<T>` with `AddDbContextFactory` and create a
-context in each method.
+requests, which `DbContext` does not allow. Register `IDbContextFactory<T>` with `AddDbContextFactory`, as the
+registration above does, and create a context in each method.
 :::
-
-This page builds a store on Entity Framework Core. Register its context factory next to your
-`services.AddTypeshift().WithStore<EfTypeshiftStore>()` call:
-
-<!-- snippet: ef-core-registration -->
-<a id='snippet-ef-core-registration'></a>
-```cs
-services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite("Data Source=typeshift.db"));
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L42-L44' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-registration' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
 
 ## Implement the interfaces
 
 A store has five methods in two interfaces. `ISettingsStore<TId>` keeps settings under a settings id with the first
 two, and `IConversationStore<TId>` keeps conversations with the other three. The store on this page implements
 `ITypeshiftStore<int>`, which is both, for `int` ids. When settings and conversations live in different databases,
-implement each interface in a class of its own and [register each](./settings-and-stores.md#registering-a-store).
+implement each interface in a class of its own and [register each](#register-your-store).
 
 An app that keeps [each agent's own settings](./settings-and-stores.md#agent-settings) implements `IAgentSettingsStore`
 too, or alone when it has no settings ids. Its `LoadAsync(kind)` and `SaveAsync(kind, json, loadedVersion)` work as

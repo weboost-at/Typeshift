@@ -40,6 +40,9 @@ internal static class Registration
     public static void ShowEfCoreRegistration(IServiceCollection services)
     {
         // begin-snippet: ef-core-registration
+        services.AddTypeshift()
+            .WithStore<EfTypeshiftStore>();
+
         services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite("Data Source=typeshift.db"));
         // end-snippet
     }
