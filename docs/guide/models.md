@@ -42,8 +42,9 @@ all: the run sends no `ModelId`, so the client's own model answers, and a demo o
 
 For each run, Typeshift takes its client from the first of these that your app registered for it:
 
-1. your `IChatClientProvider`, when the run names a provider and a model ([Your own provider](#your-own-provider)).
-   It decides alone: when it throws, the run fails, and Typeshift tries no client after it.
+1. your `IChatClientProvider<T>` of the agent's [provider id type](#the-provider-id-type), when the run names a
+   provider and a model ([Your own provider](#your-own-provider)). It decides alone: when it throws, the run fails,
+   and Typeshift tries no client after it.
 2. the client registered under the run's provider;
 3. the client registered for every agent, which also serves a run that names no provider.
 
@@ -51,10 +52,11 @@ When none is registered, the run throws an `InvalidOperationException` that name
 
 ## Your own provider
 
-Write an `IChatClientProvider` when a client depends on more than its provider, such as a key per customer. Its one
-method gets the provider and the model of every run that names both, and again when
-[compaction](./conversations.md#compaction) needs the summary model. Register it with `WithChatClientProvider<T>()`,
-and [A key per customer](#a-key-per-customer) shows one.
+Write an `IChatClientProvider<TProviderId>` when a client depends on more than its provider, such as a key per
+customer. `TProviderId` is the type your agents name providers by, `string` for `WithModel("openai", ...)`
+([The provider id type](#the-provider-id-type)). Its one method gets the provider and the model of every run that
+names both, and again when [compaction](./conversations.md#compaction) needs the summary model. Register your class
+with `WithChatClientProvider<TProvider>()`, and [A key per customer](#a-key-per-customer) shows one.
 
 ::: info The provider is scoped
 Typeshift resolves your provider from each run's scope, so it can use that request's services, such as the current
@@ -174,7 +176,8 @@ can read the current customer and fetch that customer's key for each run:
 <!-- snippet: tenant-chat-client-provider -->
 <a id='snippet-tenant-chat-client-provider'></a>
 ```cs
-internal sealed class TenantChatClientProvider(ICurrentCustomer customer, ITenantKeys keys) : IChatClientProvider
+internal sealed class TenantChatClientProvider(ICurrentCustomer customer, ITenantKeys keys)
+    : IChatClientProvider<string>
 {
     // A client per run, with the customer's current key
     public async ValueTask<IChatClient> GetChatClientAsync(string provider, string model, CancellationToken ct)
@@ -189,7 +192,7 @@ internal sealed class TenantChatClientProvider(ICurrentCustomer customer, ITenan
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/TenantChatClientProvider.cs#L6-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-tenant-chat-client-provider' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/TenantChatClientProvider.cs#L6-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-tenant-chat-client-provider' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Register it on the chain, in place of a provider for your app's own keys:
@@ -265,30 +268,69 @@ services.AddKeyedChatClient("openai", openAi);
 
 ## The provider id type
 
-A provider is a string unless you choose another type. Set `TypeshiftProviderIdType` once for the build, in
-`Directory.Build.props`:
+A provider is the value an agent passes to `WithModel`, and that value's type is the agent's provider id type.
+`WithModel("openai", "gpt-5-mini")` names a `string`, which suits most apps. You may name providers by a type of
+your own instead: an enum suits providers known in code, so the compiler checks each one you name, and a `Guid` suits
+providers that are rows in your database. Each agent takes the type from its own `WithModel`, so one app can run an
+agent of enum providers beside agents of strings.
 
-<!-- snippet: provider-id-type -->
-<a id='snippet-provider-id-type'></a>
-```csproj
-<PropertyGroup>
-  <TypeshiftProviderIdType>Typeshift.Samples.Chat.Provider</TypeshiftProviderIdType>
-</PropertyGroup>
+Pass a value of your type to `WithModel`, here an enum `Provider` of the Native AOT sample:
+
+<!-- snippet: provider-enum-model -->
+<a id='snippet-provider-enum-model'></a>
+```cs
+WithChatOptions()
+    .WithModel(Provider.Scripted, "scripted-model")
+    .WithTemperature(0.2f)
+    .Configurable(o => o.ModelId)
+    .Configurable(o => o.Temperature);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Typeshift.Samples.Console.csproj#L19-L23' title='Snippet source file'>snippet source</a> | <a href='#snippet-provider-id-type' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Companies/ResearchAgent.cs#L11-L17' title='Snippet source file'>snippet source</a> | <a href='#snippet-provider-enum-model' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Because the agent's `Settings` store a provider as a single value, the type must be a string, a number, a `Guid` or
-an enum. A `Guid` suits providers that are rows in your database, and an enum suits providers known in code: the
-snippet names the enum `Typeshift.Samples.Chat.Provider`, so the compiler checks every provider you name, as in
-`WithModel(Provider.Scripted, "scripted-model")`.
+Your provider class implements `IChatClientProvider<T>` for that type, so `GetChatClientAsync` takes a `Provider`
+instead of a string:
 
-Your provider class still implements `IChatClientProvider`. The generator writes that name as an alias for your
-provider id type, so `GetChatClientAsync` takes a provider of your type instead of a string. A public agent with a
-configurable model names the type in its `Settings`, so the type must be public too
-([TSH006](./diagnostics.md#tsh006)). The analyzer reports a provider of another type
-([TSH030](./diagnostics.md#tsh030)), a type it cannot use ([TSH029](./diagnostics.md#tsh029)), and a referenced
-project built with another provider id type ([TSH021](./diagnostics.md#tsh021)).
+<!-- snippet: provider-enum -->
+<a id='snippet-provider-enum'></a>
+```cs
+internal enum Provider
+{
+    Scripted
+}
+
+// A real host maps each provider to its client here
+internal sealed class ScriptedChatClientProvider : IChatClientProvider<Provider>
+{
+    private static readonly ScriptedChatClient Client = new();
+
+    public ValueTask<IChatClient> GetChatClientAsync(Provider provider, string model, CancellationToken ct) =>
+        ValueTask.FromResult<IChatClient>(Client);
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Chat/ScriptedChatClientProvider.cs#L6-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-provider-enum' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- A run asks the `IChatClientProvider<T>` of its agent's provider type. The runs of this agent reach the class
+  above, and those of an agent with string providers reach the class your app registered for strings. One class may
+  serve both: `WithChatClientProvider<TProvider>()` registers it as each `IChatClientProvider<T>` it implements.
+- Without a provider class for the type, a run falls back as [Registering clients](#registering-clients) lists: to
+  a client registered under the provider's value, such as `services.AddKeyedChatClient(Provider.Scripted, client)`,
+  then to the client registered for every agent.
+- With `Configurable(o => o.ModelId)`, the agent's `Settings` store its provider, so a user's pick is a `Provider`
+  too. An agent that makes its model configurable without calling `WithModel` stores providers as strings.
+- `Settings` store a provider as a single value, so an agent whose `Settings` store one needs a string, a number, a
+  `Guid` or an enum ([TSH029](./diagnostics.md#tsh029)). The generated `Settings` name the type in a file of their
+  own, so it may not be nested as `private` or `protected` or be a `file` type, and a public agent's must be public
+  ([TSH006](./diagnostics.md#tsh006)).
+
+::: warning A provider class of another type serves nothing
+A run asks only the `IChatClientProvider<T>` of its agent's provider type. If your app registers a provider class
+for strings and an agent names an enum provider, that agent's runs skip your class without a word and take a client
+registered under the provider's value, or the one for every agent, which may be a different model or account. Only
+when neither is registered does the run fail, naming the `IChatClientProvider<T>` it needs. Implement the interface
+for each provider type your agents use.
+:::
 
 ## Naming a model
 

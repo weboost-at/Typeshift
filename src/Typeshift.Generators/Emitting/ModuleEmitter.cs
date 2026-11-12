@@ -26,10 +26,7 @@ internal static class ModuleEmitter
         writer.Line(SourceWriter.Header);
         writer.Lines(
             $"""
-            [assembly: global::Typeshift.Generated.GeneratedModule(
-                typeof({module}),
-                {ReferenceReader.StampVersion},
-                {FormatProviderIdType(model)})]
+            [assembly: global::Typeshift.Generated.GeneratedModule(typeof({module}), {ReferenceReader.StampVersion})]
 
             namespace {Names.GeneratedNamespace};
 
@@ -89,12 +86,6 @@ internal static class ModuleEmitter
 
         return writer.ToString();
     }
-
-    // D56: an assembly without agents was built with no provider id type that could clash
-    private static string FormatProviderIdType(ModuleModel model) =>
-        model.Agents.Count == 0
-            ? "null"
-            : $"typeof({model.ProviderIdType})";
 
     // D33, D34: what the agents of other assemblies check when they use this one
     private static string GetStamp(ModuleAgent agent)

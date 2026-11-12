@@ -27,7 +27,7 @@ public abstract class MultiAgentTestBase : AgentTestBase
 public sealed record HelperChatClient(ScriptedChatClient Client);
 
 public sealed class TwoClientProvider(ScriptedChatClient client, HelperChatClient helper, ProvidedModels models)
-    : IChatClientProvider
+    : IChatClientProvider<string>
 {
     public ValueTask<IChatClient> GetChatClientAsync(string provider, string model, CancellationToken ct)
     {

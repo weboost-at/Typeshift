@@ -169,7 +169,7 @@ place, such as [OpenAI's](https://weboost-at.github.io/Typeshift/guide/models#a-
 <!-- snippet: chat-client-provider -->
 <a id='snippet-chat-client-provider'></a>
 ```cs
-internal sealed class KeyedChatClientProvider(IServiceProvider services) : IChatClientProvider
+internal sealed class KeyedChatClientProvider(IServiceProvider services) : IChatClientProvider<string>
 {
     // One client per provider serves all its models: Typeshift puts the model into every request
     public ValueTask<IChatClient> GetChatClientAsync(string provider, string model, CancellationToken ct) =>

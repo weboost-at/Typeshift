@@ -14,7 +14,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | **Agent host** | `AgentHost<TAgent>`, which runs one agent with the services of its scope: the one it was resolved from, or the one the runtime created for it. See [Using an agent](./using-an-agent.md). |
 | **Approval request** | The `ToolApprovalRequestContent` a run ends with when it needs approval. You answer it in the conversation's next run. See [Approval and modes](./tool-approval.md). |
 | **Approval rule** | An `IToolApprovalRule` that approves, rejects or abstains on a tool call before your app is asked. |
-| **Chat client provider** | The `IChatClientProvider` your app may register with `WithChatClientProvider<T>()`, which returns the `IChatClient` for a provider and a model. Without one, a run takes an `IChatClient` registered under its provider or for every agent. |
+| **Chat client provider** | An `IChatClientProvider<T>` your app may register with `WithChatClientProvider<TProvider>()`, which returns the `IChatClient` for a provider of type `T` and a model. Without one for its agent's provider id type, a run takes an `IChatClient` registered under its provider or for every agent. |
 | **Code defaults** | The values a settings record's parameterless constructor sets, the lowest [layer](./settings-and-stores.md#settings-layering). |
 | **Compaction** | Shrinking the history a model call sees once it nears a token limit. See [Compaction](./conversations.md#compaction). |
 | **Configurable** | A settings member or an option that stored settings or a run may change, marked in code with `Configurable(...)` or `WithConfigurableSettings<T>()`. Everything else keeps the value the code sets. |
@@ -32,7 +32,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | **Mode** | `Default`, `Plan` or `Auto`, which decides what a run offers the model and what happens to tools that require approval. See [The three modes](./tool-approval.md#the-three-modes). |
 | **Module** | The registration the generator writes for each assembly that declares toolsets or agents. `AddTypeshift()` registers the modules of the project and its references. |
 | **Overrides** | The generated `{Tool}Overrides` record, a tool's configurable settings with each one nullable. Null keeps the layer below. |
-| **Provider id type** | The type of every provider id in a build, such as the provider in `WithModel(provider, model)`: `string` unless `TypeshiftProviderIdType` names another. See [Models and providers](./models.md#the-provider-id-type). |
+| **Provider id type** | The type of an agent's providers: that of the provider its `WithModel(provider, model)` names, such as `string` or an enum, and `string` without `WithModel`. One app may use several. See [Models and providers](./models.md#the-provider-id-type). |
 | **Raw path** | Resolving a run's options and creating its `IChatClient` yourself, for when your app needs the client. See [Running agents](./running-agents.md#the-raw-path). |
 | **Run** | One call of `RunAsync`, `RunAsync<T>`, `RunStreamingAsync`, `RunStreamingAsync<T>`, `ResumeAsync`, `ResumeStreamingAsync` or the raw path's client: the model calls and tool calls until the model answers. |
 | **Run options** | How a run's tool loop goes, with its mode, its limits and compaction. Set with `WithRunOptions()`. |

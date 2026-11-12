@@ -4,7 +4,8 @@ using OpenAI;
 namespace Typeshift.Samples.Hosting;
 
 // begin-snippet: tenant-chat-client-provider
-internal sealed class TenantChatClientProvider(ICurrentCustomer customer, ITenantKeys keys) : IChatClientProvider
+internal sealed class TenantChatClientProvider(ICurrentCustomer customer, ITenantKeys keys)
+    : IChatClientProvider<string>
 {
     // A client per run, with the customer's current key
     public async ValueTask<IChatClient> GetChatClientAsync(string provider, string model, CancellationToken ct)

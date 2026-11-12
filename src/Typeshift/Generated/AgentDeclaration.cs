@@ -70,24 +70,29 @@ public abstract class AgentDeclaration<TAgent, TSettings> : AgentDeclaration
     /// <returns>The run options with what the layer sets.</returns>
     protected abstract RunOptions ApplySettings(ChatOptions options, RunOptions run, TSettings settings);
 
+    // D77: the generated code knows the provider's type, so the run asks the IChatClientProvider of that type
     /// <summary>
     /// Sets the provider of the run's model, as a settings layer names it.
     /// </summary>
+    /// <typeparam name="TProviderId">The agent's provider type.</typeparam>
     /// <param name="options">The chat options being resolved.</param>
-    /// <param name="provider">The provider, of the build's provider id type.</param>
-    protected static void SetProvider(ChatOptions options, object provider)
+    /// <param name="provider">The provider.</param>
+    protected static void SetProvider<TProviderId>(ChatOptions options, TProviderId provider)
+        where TProviderId : notnull
     {
-        if (options is ResolvedChatOptions resolved) resolved.Provider = provider;
+        if (options is ResolvedChatOptions resolved) resolved.Provider = new ProviderId<TProviderId>(provider);
     }
 
     /// <summary>
     /// Sets the provider of the summary model, as a settings layer names it.
     /// </summary>
+    /// <typeparam name="TProviderId">The agent's provider type.</typeparam>
     /// <param name="options">The chat options being resolved.</param>
-    /// <param name="provider">The provider, of the build's provider id type.</param>
-    protected static void SetSummaryProvider(ChatOptions options, object provider)
+    /// <param name="provider">The provider.</param>
+    protected static void SetSummaryProvider<TProviderId>(ChatOptions options, TProviderId provider)
+        where TProviderId : notnull
     {
-        if (options is ResolvedChatOptions resolved) resolved.SummaryProvider = provider;
+        if (options is ResolvedChatOptions resolved) resolved.SummaryProvider = new ProviderId<TProviderId>(provider);
     }
 
     /// <summary>

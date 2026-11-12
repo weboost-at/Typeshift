@@ -22,7 +22,7 @@ internal static class AgentParser
         bool documented,
         Reporter reporter,
         CancellationToken ct) =>
-        Parse(agent, constructors, documented, providerIdType: null, reporter, ct, out _, out _);
+        Parse(agent, constructors, documented, reporter, ct, out _, out _);
 
     // The analyzer also needs the agents an agent uses, to check them against each other (D33, D34), and each of its
     // own tools' declaration, to report names that clash across the host
@@ -30,7 +30,6 @@ internal static class AgentParser
         INamedTypeSymbol agent,
         IEnumerable<IOperation> constructors,
         bool documented,
-        ITypeSymbol? providerIdType,
         Reporter reporter,
         CancellationToken ct,
         out IReadOnlyList<AgentUseDeclaration> agents,
@@ -87,7 +86,7 @@ internal static class AgentParser
                 $"The agent '{agent.Name}'");
         }
 
-        ReportHiddenProviderIdType(agent, providerIdType, declarations.ProviderPicks, reporter);
+        var providerId = ReadProviderId(agent, constructors, declarations, reporter);
 
         if (notPartial is not null || clash is not null) return null;
 
@@ -104,6 +103,7 @@ internal static class AgentParser
             description,
             declarations.Kind ?? agent.Name,
             declarations.SchemaVersion ?? 1,
+            providerId,
             declarations.ChatOptions.ToEquatableArray(),
             declarations.RunOptions.ToEquatableArray(),
             declarations.Toolsets.ToEquatableArray(),
@@ -151,6 +151,7 @@ internal static class AgentParser
                 break;
 
             case "WithChatOptions":
+                ReadModel(call, declarations);
                 ReadPicks(call, OptionMembers.Chat, declarations.ChatOptions, declarations.ProviderPicks, reporter);
                 break;
 
@@ -185,6 +186,20 @@ internal static class AgentParser
         return null;
     }
 
+    // D77: the static type of WithModel's provider is the agent's provider id type
+    private static void ReadModel(IInvocationOperation call, Declarations declarations)
+    {
+        var models = ConstructorChains.GetChainedCalls(call).Where(next => next.TargetMethod.Name == "WithModel");
+
+        foreach (var model in models)
+        {
+            if (model.TargetMethod.TypeArguments[0] is not { TypeKind: not TypeKind.Error } type) continue;
+
+            var argument = model.Arguments.First(passed => passed.Parameter?.Ordinal == 0).Syntax;
+            declarations.Models.Add((type, argument));
+        }
+    }
+
     // D5: WithChatOptions().WithTemperature(0.3f).Configurable(o => o.Temperature)
     private static void ReadPicks(
         IInvocationOperation call,
@@ -213,7 +228,7 @@ internal static class AgentParser
 
             if (!picked.Contains(property.Name)) picked.Add(property.Name);
 
-            // D56: a configurable model brings the member of its provider
+            // D77: a configurable model brings the member of its provider
             if (option.Provider is not null) providerPicks.Add(pick.Arguments[0].Syntax);
         }
     }
@@ -276,17 +291,90 @@ internal static class AgentParser
         return new ToolsetUseModel(type, excludes, picks.ToEquatableArray());
     }
 
-    // D6: a public agent's Settings name the provider id type of each configurable model
-    private static void ReportHiddenProviderIdType(
-        INamedTypeSymbol agent, ITypeSymbol? providerIdType, List<SyntaxNode> picks, Reporter reporter)
+    // D77: the agent's provider id type, from the WithModel that runs last, string without one. Settings that store
+    // a provider need a type they store as one value (TSH029) and can name (TSH006, D6), with string in its place
+    // so the generated code stays valid; a public agent's Settings need a public one, or name it internal (TSH006)
+    private static ProviderIdModel ReadProviderId(
+        INamedTypeSymbol agent,
+        IEnumerable<IOperation> constructors,
+        Declarations declarations,
+        Reporter reporter)
     {
-        if (providerIdType is null || providerIdType.IsEffectivelyPublic() || !agent.IsEffectivelyPublic()) return;
+        if (GetRunModel(agent, constructors, declarations.Models) is not var (type, argument))
+            return ProviderIdModel.String;
 
-        foreach (var pick in picks)
+        var stored = declarations.ProviderPicks.Count > 0;
+
+        if (GetOneValue(type) is not { } storage)
         {
-            reporter.Report(Descriptors.SettingsLessAccessible, pick, providerIdType.Name, agent.Name);
+            if (stored) reporter.Report(Descriptors.UnusableProviderIdType, argument, type.ToDisplayString());
+            return ProviderIdModel.String;
         }
+
+        var nameable = IsNameable(type);
+        var providerId = new ProviderIdModel(type.ToTypeOf(), storage, type.IsEffectivelyPublic());
+        if (nameable && (providerId.IsPublic || !agent.IsEffectivelyPublic())) return providerId;
+
+        foreach (var pick in declarations.ProviderPicks)
+        {
+            reporter.Report(Descriptors.SettingsLessAccessible, pick, type.Name, agent.Name);
+        }
+
+        return nameable ? providerId : ProviderIdModel.String;
     }
+
+    // D77: the WithModel that new TAgent() runs last: the parameterless constructor runs those it chains to with
+    // this(...) first, so the last WithModel of the outermost constructor that has one
+    private static (ITypeSymbol Type, SyntaxNode Argument)? GetRunModel(
+        INamedTypeSymbol agent,
+        IEnumerable<IOperation> constructors,
+        IReadOnlyList<(ITypeSymbol Type, SyntaxNode Argument)> models)
+    {
+        var chained = new Dictionary<IMethodSymbol, IMethodSymbol>(SymbolEqualityComparer.Default);
+
+        foreach (var call in ConstructorChains.GetInvocations(constructors))
+        {
+            if (call.Syntax is ConstructorInitializerSyntax
+                && Same(call.TargetMethod.ContainingType, agent)
+                && GetConstructor(agent, call.Syntax) is { } caller)
+                chained[caller] = call.TargetMethod;
+        }
+
+        var constructor = agent.InstanceConstructors.FirstOrDefault(each => each.Parameters.IsEmpty);
+        var visited = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+
+        while (constructor is not null && visited.Add(constructor))
+        {
+            var own = models.Where(model => Declares(GetConstructor(agent, model.Argument), constructor)).ToList();
+
+            if (own.Count > 0) return own[own.Count - 1];
+
+            constructor = chained.TryGetValue(constructor, out var next) ? next : null;
+        }
+
+        return null;
+    }
+
+    private static bool Declares(IMethodSymbol? declaring, IMethodSymbol constructor) =>
+        SymbolEqualityComparer.Default.Equals(declaring, constructor);
+
+    private static IMethodSymbol? GetConstructor(INamedTypeSymbol agent, SyntaxNode syntax) =>
+        agent.InstanceConstructors.FirstOrDefault(constructor => constructor.DeclaringSyntaxReferences.Any(reference =>
+            reference.SyntaxTree == syntax.SyntaxTree && reference.Span.Contains(syntax.Span)));
+
+    // The generated Settings, in a file of their own, can name it: visible in the assembly and not file-local
+    private static bool IsNameable(ITypeSymbol type) =>
+        type is not INamedTypeSymbol named
+        || (!named.IsFileLocal && named.IsVisibleInAssembly() && (named.ContainingType is null
+            || IsNameable(named.ContainingType)));
+
+    // A string, a number, a Guid or an enum; a nullable value type would type the code's provider and the stored
+    // one apart
+    private static StorageModel? GetOneValue(ITypeSymbol type) =>
+        type is not INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T }
+        && Storage.Of(type) is { Kind: StorageKind.Scalar or StorageKind.Number or StorageKind.Enum } storage
+            ? storage
+            : null;
 
     public static bool Offers(bool excludes, IReadOnlyCollection<string> picks, string property) =>
         picks.Count == 0 || picks.Contains(property) != excludes;
@@ -327,6 +415,9 @@ internal static class AgentParser
         public List<string> RunOptions { get; } = [];
 
         public List<SyntaxNode> ProviderPicks { get; } = [];
+
+        // Each WithModel's provider: its static type and the argument, in source order
+        public List<(ITypeSymbol Type, SyntaxNode Argument)> Models { get; } = [];
 
         public List<ToolsetUseModel> Toolsets { get; } = [];
 

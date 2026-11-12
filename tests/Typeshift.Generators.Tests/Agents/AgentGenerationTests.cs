@@ -2,6 +2,7 @@ using Typeshift.Generators.Tests.Agents.Support;
 using Typeshift.Generators.Tests.Diagnostics.Support;
 using Typeshift.Generators.Tests.Toolsets.Support;
 using FluentAssertions;
+using Microsoft.CodeAnalysis;
 
 namespace Typeshift.Generators.Tests.Agents;
 
@@ -220,27 +221,64 @@ public class AgentGenerationTests : GeneratorTestBase
     }
 
     [Theory]
-    [InlineData("Demo.Provider", "global::Demo.Provider", "Provider.LmStudio")]
-    [InlineData("Guid", "global::System.Guid", "System.Guid.Empty")]
-    [InlineData("int", "int", "7")]
-    public void Given_A_Provider_Id_Type_The_Alias_The_Settings_And_The_Core_Services_Use_It(
-        string property,
+    [InlineData("global::Demo.Provider", "Provider.LmStudio")]
+    [InlineData("global::System.Guid", "System.Guid.Empty")]
+    [InlineData("int", "7")]
+    public void Given_A_Model_Of_A_Provider_Of_A_Type_The_Settings_Store_Providers_Of_That_Type(
         string type,
         string provider)
     {
-        // Arrange
-        var compilation = Compile(AgentSources.Routed(type, provider));
-
         // Act
-        var run = Run(compilation, properties: BuildProperties.WithProviderIdType(property));
+        var run = Run(AgentSources.Routed(type, provider));
 
         var sources = run.Result.GeneratedTrees.Select(tree => tree.ToString()).ToList();
 
         // Assert
         run.Assert.CompilesCleanly();
-        sources.Should().Contain(source => source.Contains($"global::Typeshift.IChatClientProvider<{type}>;"));
         sources.Should().Contain(source => source.Contains($"public {type}? Provider {{ get; init; }}"));
         sources.Should().Contain(source => source.Contains($"public {type}? SummaryProvider {{ get; init; }}"));
-        sources.Should().Contain(source => source.Contains($"AddCoreServices<{type}>(services)"));
+    }
+
+    [Theory]
+    [InlineData("Demo.VendorAgent+Settings", "Demo.Vendor?")]
+    [InlineData("Demo.NamedAgent+Settings", "string?")]
+    [InlineData("Demo.PickedAgent+Settings", "string?")]
+    public void Given_Agents_Of_Two_Provider_Types_Each_Settings_Store_Providers_Of_Its_Own(
+        string settings,
+        string provider)
+    {
+        // Act
+        var run = Run(AgentSources.TwoProviderIdTypes);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+        run.Output.GetTypeByMetadataName(settings)!
+            .GetMembers("Provider")
+            .OfType<IPropertySymbol>()
+            .Single()
+            .Type.ToDisplayString()
+            .Should()
+            .Be(provider);
+    }
+
+    [Theory]
+    [InlineData("Demo.SplitAgent+Settings", "Demo.Vendor?")]
+    [InlineData("Demo.OverridingAgent+Settings", "string?")]
+    public void Given_Several_Constructors_The_Settings_Store_Providers_Of_What_The_Parameterless_One_Runs(
+        string settings,
+        string provider)
+    {
+        // Act
+        var run = Run(AgentSources.ProvidersOfSeveralConstructors);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+        run.Output.GetTypeByMetadataName(settings)!
+            .GetMembers("Provider")
+            .OfType<IPropertySymbol>()
+            .Single()
+            .Type.ToDisplayString()
+            .Should()
+            .Be(provider);
     }
 }

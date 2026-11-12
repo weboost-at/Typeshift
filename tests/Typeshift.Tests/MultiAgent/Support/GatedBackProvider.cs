@@ -5,7 +5,7 @@ namespace Typeshift.Tests.MultiAgent.Support;
 
 // Holds the first client the back agent asks for until the gate opens, as a slow provider would while a handoff passes
 // the conversation on
-public sealed class GatedBackProvider(ScriptedChatClient client, ProviderGate gate) : IChatClientProvider
+public sealed class GatedBackProvider(ScriptedChatClient client, ProviderGate gate) : IChatClientProvider<string>
 {
     public async ValueTask<IChatClient> GetChatClientAsync(string provider, string model, CancellationToken ct)
     {

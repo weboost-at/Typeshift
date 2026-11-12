@@ -31,8 +31,8 @@ All notable changes to this project are documented here. The format follows
   lost.
 - A run takes an `IChatClient` registered under its provider, such as with `services.AddKeyedChatClient("openai",
   client)`, or the one registered for every agent with `services.AddChatClient(client)`, when no
-  `IChatClientProvider` is registered for it. An agent that names no model runs on that last client, with its own model, so a
-  demo needs neither a provider class nor `WithModel`.
+  `IChatClientProvider<T>` of its agent's provider type is registered. An agent that names no model runs on that last
+  client, with its own model, so a demo needs neither a provider class nor `WithModel`.
 - `WithInstructions("...")` sets an agent's instructions in its constructor; override `GetInstructions()` only for
   instructions your code builds per run.
 - Each agent has settings of its own, which every run applies under no settings id: `ConfigureAsync(configure)`,
@@ -87,9 +87,28 @@ All notable changes to this project are documented here. The format follows
 - The raw path's `ChatOptions.ConversationId` names a conversation under a `string` id, in your
   `IConversationStore<string>`, where its text was parsed into the build's id type. For a conversation under an id of
   another type, resolve the options on `host.WithConversationId(id)`.
-- TSH021 and TSH029 cover the provider id type alone, titled "Referenced assembly has another provider id type" and
-  "Provider id type cannot be used", and TSH006 no longer reports a public agent of a less accessible id type. Module
-  stamps are at version 5, so a referenced project built with an earlier Typeshift is TSH020 until it is rebuilt.
+- Each agent's providers are of the type of the provider its `WithModel(provider, model)` names, where
+  `TypeshiftProviderIdType` typed every provider of the build: `WithModel(Provider.OpenAi, "gpt-5-mini")` makes the
+  agent's `Settings.Provider` and `SummaryProvider` a `Provider?`, and an agent without `WithModel` stores strings.
+  One app may run an agent of enum providers beside agents of strings, since each run asks the
+  `IChatClientProvider<T>` of its agent's type. `WithChatClientProvider<T>()` registers the class as each
+  `IChatClientProvider<T>` it implements, and a client keyed by a provider of any type serves a run without one.
+- TSH029, still "Provider id type cannot be used", reports a provider whose type the agent's settings cannot store as
+  one value, on the provider in `WithModel`, and only when the agent's settings store it. An agent whose model stays
+  in code may name a provider of any type.
+- TSH030 is "Type is no chat client provider" and reports a `WithChatClientProvider<T>()` whose class implements no
+  `IChatClientProvider<T>`, where it reported a provider of another type than the build's.
+- TSH006 no longer reports a public agent of a less accessible settings or conversation id type. It still reports one
+  whose configurable model names a less accessible provider type, and any agent whose configurable model names a
+  provider type nested as `private` or `protected` or declared `file`, which the generated `Settings` cannot name.
+- An agent whose model is configurable but that calls no `WithModel` stores its providers as strings, where they were
+  of `TypeshiftProviderIdType`. A stored enum provider reads back as its name and reaches your
+  `IChatClientProvider<string>`, and a stored number reads back as null, so the layer below decides. To keep the old
+  type, name a default provider of it with `WithModel(provider, model)`, or serve strings.
+- `WithModel(provider, model)` throws an `ArgumentNullException` on a null provider, where the agent ran as if it
+  named no provider.
+- Module stamps are at version 6, so a referenced project built with an earlier Typeshift is TSH020 until it is
+  rebuilt.
 
 ### Removed
 
@@ -97,7 +116,14 @@ All notable changes to this project are documented here. The format follows
   your `Directory.Build.props`: a host's ids take their types from `WithSettingsId` and `WithConversationId`.
 - The `global using` aliases `ITypeshiftStore`, `ISettingsStore`, `IConversationStore`, `InMemoryTypeshiftStore`,
   `ConversationTracker` and `LiveRun`. Name the id type instead, as in `ITypeshiftStore<Guid>`,
-  `InMemoryTypeshiftStore<int>` or `ConversationTracker<string>`. The `IChatClientProvider` alias stays.
+  `InMemoryTypeshiftStore<int>` or `ConversationTracker<string>`.
+- `TypeshiftProviderIdType`, the MSBuild property that typed every provider of a build. Delete it from your
+  `Directory.Build.props`: each agent's providers take their type from its `WithModel`, so an agent that names
+  `WithModel(Provider.OpenAi, "gpt-5-mini")` has providers of your `Provider` enum.
+- The `IChatClientProvider` alias, the last alias the generator wrote. Name the provider type your agents'
+  `WithModel` names: `class Clients : IChatClientProvider<string>`, or `IChatClientProvider<Provider>` for an enum.
+- TSH021, which reported a referenced project with agents built with another provider id type. Agents of other
+  provider types work beside yours.
 - The `settingsId` and `conversationId` parameters of the generated `RunAsync`, `RunAsync<T>`, `RunStreamingAsync` and
   `RunStreamingAsync<T>`, and the `settingsId` parameter of `ResolveOptionsAsync`. Give the ids to the host:
   `support.RunAsync(input, settingsId: 42, conversationId: chat)` is
@@ -109,10 +135,13 @@ All notable changes to this project are documented here. The format follows
   without the id on a host that has it, such as `support.WithConversationId(chat).ResumeAsync()` or
   `support.WithSettingsId(42).ConfigureAsync(configure)`. A `LoadSettingsAsync(default)` left over loads the agent's
   own settings.
-- `AddCoreServices<TId, TProviderId>`, which only generated code calls, is `AddCoreServices<TProviderId>`.
+- `AddCoreServices<TId, TProviderId>`, which only generated code calls, is `AddCoreServices`, without type
+  parameters.
 
 ### Fixed
 
+- TSH028 and TSH030 no longer report a type parameter, such as that of a helper generic over a store or a chat client
+  provider whose constraints make it one.
 - `RunAsync<T>` on a conversation that a handoff passed on, or one that hands off itself, asked the agent that
   answers for no schema. That agent answers in `T` now.
 - An answer to an approval request that a later run of the conversation passed by ran the call, and approving it for

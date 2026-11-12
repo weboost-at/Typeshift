@@ -110,12 +110,6 @@ internal static class Descriptors
         "'{0}' declares toolsets or agents but carries no module of this Typeshift version, so AddTypeshift() "
         + "cannot register them: reference the Typeshift package in its project, at this version");
 
-    public static readonly DiagnosticDescriptor ReferenceOfOtherProviderIdType = Error(
-        "TSH021",
-        "Referenced assembly has another provider id type",
-        "'{0}' was built with TypeshiftProviderIdType '{1}', this project with '{2}': set TypeshiftProviderIdType "
-        + "once, in Directory.Build.props");
-
     public static readonly DiagnosticDescriptor SharedKind = Error(
         "TSH022",
         "Two agents share a settings kind",
@@ -153,23 +147,16 @@ internal static class Descriptors
         "Type is no store",
         "'{0}' is no store: implement ISettingsStore<TId>, IConversationStore<TId> or IAgentSettingsStore");
 
-    // {1} is NotFound or NotOneValue
     public static readonly DiagnosticDescriptor UnusableProviderIdType = Error(
         "TSH029",
         "Provider id type cannot be used",
-        "TypeshiftProviderIdType names '{0}', {1}");
+        "The provider's type '{0}' is one the agent's settings cannot store as one value: name the provider by a "
+        + "string, a number, a Guid or an enum");
 
-    public const string NotFound =
-        "which the build cannot find: give a C# keyword such as int, or the type's full name with its namespace";
-
-    public const string NotOneValue =
-        "which settings cannot store as one value: give a string, a number, a Guid or an enum";
-
-    // {0} is the type of a WithModel provider, or the provider id type of a WithChatClientProvider<T>() class
-    public static readonly DiagnosticDescriptor OtherProviderIdType = Error(
+    public static readonly DiagnosticDescriptor NoChatClientProvider = Error(
         "TSH030",
-        "Provider has another id type",
-        "{0} is not '{1}', the build's provider id type");
+        "Type is no chat client provider",
+        "'{0}' is no chat client provider: implement IChatClientProvider<TProviderId>");
 
     private static DiagnosticDescriptor Error(string id, string title, string message) =>
         Create(id, title, message, DiagnosticSeverity.Error);

@@ -22,9 +22,14 @@ var customer = research.WithSettingsId(Guid.CreateVersion7());
 
 await customer.ConfigureAsync(settings => settings with
 {
+    Provider = Provider.Scripted,
     Temperature = 0.4f,
     FindCompanies = new CompanyToolset.FindCompaniesOverrides { Limit = 2 }
 });
+
+// The research agent's providers are the enum its WithModel names, stored and read back without reflection
+var stored = await customer.LoadSettingsAsync();
+Expect(stored.Data.Provider == Provider.Scripted, $"the provider {stored.Data.Provider}");
 
 // Native AOT: the Guid tracker is the one WithConversationTracker<Guid>() closed; the container makes that of string
 var tracker = provider.GetRequiredService<ConversationTracker<Guid>>();

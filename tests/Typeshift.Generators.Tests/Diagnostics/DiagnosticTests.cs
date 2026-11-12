@@ -87,11 +87,30 @@ public class DiagnosticTests : GeneratorTestBase
     [Fact]
     public void Given_A_Public_Agent_Of_An_Internal_Provider_Id_Type_TSH006_Is_Reported_On_The_Model_Pick()
     {
-        // Arrange
-        var compilation = Compile(DiagnosticSources.PublicAgentOfInternalProviderIdType);
-
         // Act
-        var run = Run(compilation, properties: BuildProperties.WithProviderIdType("Demo.Vendor"));
+        var run = Run(DiagnosticSources.PublicAgentOfInternalProviderIdType);
+
+        // Assert
+        run.Assert.Reports("TSH006", DiagnosticSeverity.Error, "o => o.ModelId");
+        run.Assert.GeneratesValidCode();
+    }
+
+    [Fact]
+    public void Given_A_Provider_Id_Type_Nested_As_Private_In_The_Agent_TSH006_Is_Reported_On_The_Model_Pick()
+    {
+        // Act
+        var run = Run(DiagnosticSources.PrivateProviderIdType);
+
+        // Assert
+        run.Assert.Reports("TSH006", DiagnosticSeverity.Error, "o => o.ModelId");
+        run.Assert.GeneratesValidCode();
+    }
+
+    [Fact]
+    public void Given_A_Provider_Id_Type_Of_One_File_TSH006_Is_Reported_On_The_Model_Pick()
+    {
+        // Act
+        var run = Run(DiagnosticSources.FileProviderIdType);
 
         // Assert
         run.Assert.Reports("TSH006", DiagnosticSeverity.Error, "o => o.ModelId");
@@ -564,41 +583,6 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_A_Reference_Of_Toolsets_Only_Built_With_Another_Provider_Id_Type_TSH021_Is_Not_Reported()
-    {
-        // Arrange
-        var properties = BuildProperties.WithProviderIdType("int");
-        var reference = CompileReference("Companies", properties, ReferenceSources.CompanyToolset);
-
-        // Act
-        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.SameNamedToolset));
-
-        // Assert
-        run.Assert.DoesNotReport("TSH021");
-    }
-
-    [Fact]
-    public void Given_A_Reference_With_Agents_Built_With_Another_Provider_Id_Type_TSH021_Is_Reported()
-    {
-        // Arrange
-        var properties = BuildProperties.WithProviderIdType("int");
-        var reference = CompileReference(
-            "Companies",
-            properties,
-            ReferenceSources.CompanyToolset,
-            ReferenceSources.CompanyAgent);
-
-        // Act
-        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.SameNamedToolset));
-
-        // Assert
-        run.Assert.ReportsOnTheCompilation("TSH021", DiagnosticSeverity.Error)
-            .GetMessage()
-            .Should()
-            .Contain("TypeshiftProviderIdType");
-    }
-
-    [Fact]
     public void Given_Two_Agents_Of_One_Class_Name_TSH022_Is_Reported_On_The_Second()
     {
         // Act
@@ -630,6 +614,16 @@ public class DiagnosticTests : GeneratorTestBase
 
         // Assert
         run.Assert.Reports("TSH028", DiagnosticSeverity.Error, "WithStore<Clock>");
+    }
+
+    [Fact]
+    public void Given_A_Helper_Generic_Over_The_Store_TSH028_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(DiagnosticSources.GenericRegistrationHelpers);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH028");
     }
 
     [Fact]
@@ -693,23 +687,33 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_A_Model_Of_A_Provider_Of_Another_Type_TSH030_Is_Reported_On_The_Provider()
+    public void Given_A_Type_That_Is_No_Chat_Client_Provider_TSH030_Is_Reported_On_WithChatClientProvider()
     {
         // Act
-        var run = Run(DiagnosticSources.OtherProviderIdTypeModel);
+        var run = Run(DiagnosticSources.NoChatClientProvider);
 
         // Assert
-        run.Assert.Reports("TSH030", DiagnosticSeverity.Error, "42");
+        run.Assert.Reports("TSH030", DiagnosticSeverity.Error, "WithChatClientProvider<Clients>");
     }
 
     [Fact]
-    public void Given_A_Chat_Client_Provider_Of_Another_Type_TSH030_Is_Reported_On_WithChatClientProvider()
+    public void Given_A_Helper_Generic_Over_The_Chat_Client_Provider_TSH030_Is_Not_Reported()
     {
         // Act
-        var run = Run(DiagnosticSources.OtherProviderIdTypeProvider);
+        var run = Run(DiagnosticSources.GenericRegistrationHelpers);
 
         // Assert
-        run.Assert.Reports("TSH030", DiagnosticSeverity.Error, "WithChatClientProvider<NumberedClients>");
+        run.Assert.DoesNotReport("TSH030");
+    }
+
+    [Fact]
+    public void Given_An_Agent_Of_Int_Providers_And_A_Chat_Client_Provider_Of_Ints_It_Compiles_Cleanly()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ChatClientProviderOfInts);
+
+        // Assert
+        run.Assert.CompilesCleanly();
     }
 
     [Fact]
@@ -900,14 +904,18 @@ public class DiagnosticTests : GeneratorTestBase
         run.Result.Diagnostics.Should().BeEmpty();
     }
 
-    [Fact]
-    public void Given_A_Leftover_TypeshiftIdType_Naming_An_Unknown_Type_TSH029_Is_Not_Reported()
+    [Theory]
+    [InlineData("TypeshiftIdType", "TenantId")]
+    [InlineData("TypeshiftProviderIdType", "ProviderKey")]
+    public void Given_A_Leftover_Id_Type_Property_Naming_An_Unknown_Type_TSH029_Is_Not_Reported(
+        string property,
+        string type)
     {
         // Arrange
-        var compilation = Compile(DiagnosticSources.ToolTypeWithoutJsonMetadata);
+        var compilation = Compile(DiagnosticSources.ChatClientProviderOfInts);
 
         // Act
-        var run = Run(compilation, properties: BuildProperties.With("TypeshiftIdType", "TenantId"));
+        var run = Run(compilation, properties: BuildProperties.With(property, type));
 
         // Assert
         run.Assert.DoesNotReport("TSH029");
@@ -915,37 +923,43 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_A_Provider_Id_Type_The_Build_Cannot_Find_TSH029_Is_Reported_On_The_Compilation()
+    public void Given_A_Configurable_Model_Of_A_Provider_Of_More_Than_One_Value_TSH029_Is_Reported_On_It()
     {
-        // Arrange
-        var compilation = Compile(DiagnosticSources.ToolTypeWithoutJsonMetadata);
-
         // Act
-        var run = Run(compilation, properties: BuildProperties.WithProviderIdType("ProviderKey"));
+        var run = Run(DiagnosticSources.UnstorableProvider);
 
         // Assert
-        run.Assert.ReportsOnTheCompilation("TSH029", DiagnosticSeverity.Error)
-            .GetMessage()
-            .Should()
-            .Contain("TypeshiftProviderIdType names 'ProviderKey', which the build cannot find");
-        run.Assert.GeneratesValidCode();
+        run.Assert.Reports("TSH029", DiagnosticSeverity.Error, "new ProviderKey(\"openai\")");
     }
 
     [Fact]
-    public void Given_A_Provider_Id_Type_Of_More_Than_One_Value_TSH029_Is_Reported_On_The_Compilation()
+    public void Given_A_Chained_Constructor_Of_A_Provider_Of_More_Than_One_Value_TSH029_Is_Reported_On_It()
     {
-        // Arrange
-        var compilation = Compile(DiagnosticSources.ToolTypeWithoutJsonMetadata);
-
         // Act
-        var run = Run(compilation, properties: BuildProperties.WithProviderIdType("System.Version"));
+        var run = Run(DiagnosticSources.ChainedUnstorableProvider);
 
         // Assert
-        run.Assert.ReportsOnTheCompilation("TSH029", DiagnosticSeverity.Error)
-            .GetMessage()
-            .Should()
-            .Contain("which settings cannot store as one value");
-        run.Assert.GeneratesValidCode();
+        run.Assert.Reports("TSH029", DiagnosticSeverity.Error, "key");
+    }
+
+    [Fact]
+    public void Given_A_Provider_Of_More_Than_One_Value_In_A_Constructor_That_Never_Runs_TSH029_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(DiagnosticSources.UnstorableProviderOfAnotherConstructor);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH029");
+    }
+
+    [Fact]
+    public void Given_A_Provider_Of_More_Than_One_Value_That_Settings_Do_Not_Store_TSH029_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(DiagnosticSources.UnstoredProvider);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH029");
     }
 
     [Theory]

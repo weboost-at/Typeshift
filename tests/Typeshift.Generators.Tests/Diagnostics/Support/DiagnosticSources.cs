@@ -602,7 +602,7 @@ public static class DiagnosticSources
         }
         """;
 
-    // Built with the provider id type Demo.Vendor
+    // D77: WithModel makes the agent's providers of Demo.Vendor
     public const string PublicAgentOfInternalProviderIdType =
         """
         #pragma warning disable CS1591
@@ -1327,24 +1327,150 @@ public static class DiagnosticSources
         }
         """;
 
-    // The build's provider id type is string
-    public const string OtherProviderIdTypeModel =
+    // D77: the generated Settings, in a file of their own, cannot name an enum nested as private in the agent
+    public const string PrivateProviderIdType =
         """
         using Typeshift;
 
-        public partial class HelpAgent : Agent
+        internal partial class SupportAgent : Agent
         {
-            public HelpAgent() => WithChatOptions().WithModel(42, "fast-model");
+            public SupportAgent() =>
+                WithChatOptions().WithModel(Vendor.OpenAi, "fast-model").Configurable(o => o.ModelId);
+
+            private enum Vendor
+            {
+                OpenAi
+            }
         }
         """;
 
-    public const string OtherProviderIdTypeProvider =
+    // Nor an enum of the agent's file alone
+    public const string FileProviderIdType =
         """
+        using Typeshift;
+
+        file enum Vendor
+        {
+            OpenAi
+        }
+
+        internal partial class SupportAgent : Agent
+        {
+            public SupportAgent() =>
+                WithChatOptions().WithModel(Vendor.OpenAi, "fast-model").Configurable(o => o.ModelId);
+        }
+        """;
+
+    // D77: new HelpAgent() runs the constructor it chains to, whose provider is a record
+    public const string ChainedUnstorableProvider =
+        """
+        using Typeshift;
+
+        public sealed record ProviderKey(string Name);
+
+        public partial class HelpAgent : Agent
+        {
+            public HelpAgent()
+                : this(new ProviderKey("openai"))
+            {
+            }
+
+            private HelpAgent(ProviderKey key) =>
+                WithChatOptions().WithModel(key, "fast-model").Configurable(o => o.ModelId);
+        }
+        """;
+
+    // A constructor new HelpAgent() never runs names a record, which settings never see
+    public const string UnstorableProviderOfAnotherConstructor =
+        """
+        using Typeshift;
+
+        public sealed record ProviderKey(string Name);
+
+        public partial class HelpAgent : Agent
+        {
+            public HelpAgent() =>
+                WithChatOptions().WithModel("openai", "fast-model").Configurable(o => o.ModelId);
+
+            public HelpAgent(string name) =>
+                WithChatOptions().WithModel(new ProviderKey(name), "fast-model");
+        }
+        """;
+
+    // A helper generic over the provider and the store, which its callers' type arguments make one
+    public const string GenericRegistrationHelpers =
+        """
+        using Typeshift;
+
+        internal static class Registration
+        {
+            public static TypeshiftBuilder WithClients<T>(TypeshiftBuilder builder)
+                where T : class, IChatClientProvider<string> =>
+                builder.WithChatClientProvider<T>();
+
+            public static TypeshiftBuilder WithSettings<T>(TypeshiftBuilder builder)
+                where T : class, ISettingsStore<int> =>
+                builder.WithStore<T>();
+        }
+        """;
+
+    // D77: settings store the agent's providers, which are records
+    public const string UnstorableProvider =
+        """
+        using Typeshift;
+
+        public sealed record ProviderKey(string Name);
+
+        public partial class HelpAgent : Agent
+        {
+            public HelpAgent() =>
+                WithChatOptions().WithModel(new ProviderKey("openai"), "fast-model").Configurable(o => o.ModelId);
+        }
+        """;
+
+    // Settings store no provider, so a record serves
+    public const string UnstoredProvider =
+        """
+        using Typeshift;
+
+        public sealed record ProviderKey(string Name);
+
+        public partial class HelpAgent : Agent
+        {
+            public HelpAgent() =>
+                WithChatOptions().WithModel(new ProviderKey("openai"), "fast-model").Configurable(o => o.Temperature);
+        }
+        """;
+
+    public const string NoChatClientProvider =
+        """
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        public sealed class Clients;
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithChatClientProvider<Clients>();
+        }
+        """;
+
+    // D77: an agent's providers may be ints, and a provider of them serves those agents
+    public const string ChatClientProviderOfInts =
+        """
+        #pragma warning disable CS1591
+
         using System.Threading;
         using System.Threading.Tasks;
         using Typeshift;
         using Microsoft.Extensions.AI;
         using Microsoft.Extensions.DependencyInjection;
+
+        public partial class HelpAgent : Agent
+        {
+            public HelpAgent() => WithChatOptions().WithModel(42, "fast-model").Configurable(o => o.ModelId);
+        }
 
         public sealed class NumberedClients : IChatClientProvider<int>
         {

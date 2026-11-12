@@ -16,11 +16,9 @@ public static class ModuleRegistration
     /// <summary>
     /// Registers the services every module needs, once.
     /// </summary>
-    /// <typeparam name="TProviderId">The build's provider id type, <c>TypeshiftProviderIdType</c>.</typeparam>
     /// <param name="services">The services.</param>
     /// <returns>The registration chain <c>AddTypeshift()</c> returns.</returns>
-    public static TypeshiftBuilder AddCoreServices<TProviderId>(IServiceCollection services)
-        where TProviderId : notnull
+    public static TypeshiftBuilder AddCoreServices(IServiceCollection services)
     {
         services.TryAddSingleton(provider => new ToolJson(
             provider.GetServices<JsonContextRegistration>().Select(registration => registration.Resolver),
@@ -30,7 +28,6 @@ public static class ModuleRegistration
         services.TryAddSingleton(provider => new StoreAccess(provider, services));
         services.TryAddSingleton<LiveRuns>();
         services.TryAddSingleton<InstrumentedClients>();
-        services.TryAddSingleton<ChatClients, ChatClients<TProviderId>>();
         // D74: live updates are on from the start; WithRealtimeTracking tunes them
         services.TryAddSingleton(new RealtimeTrackingOptions());
         // D72: the tracker of every id type an app asks for; WithConversationTracker<TId>() closes one for Native AOT
@@ -39,13 +36,7 @@ public static class ModuleRegistration
         // D76: the root's services, whatever scope resolves it
         services.TryAddSingleton(provider => new TypeshiftRuntime(provider));
 
-        return new TypeshiftBuilder(
-            services,
-            static (services, clients) => services.AddScoped<IChatClientProvider<TProviderId>>(provider =>
-                clients(provider) as IChatClientProvider<TProviderId>
-                ?? throw new InvalidOperationException(
-                    $"The chat client provider is no IChatClientProvider<{typeof(TProviderId).Name}>, of the build's "
-                    + "provider id type (TSH030).")));
+        return new TypeshiftBuilder(services);
     }
 
     /// <summary>

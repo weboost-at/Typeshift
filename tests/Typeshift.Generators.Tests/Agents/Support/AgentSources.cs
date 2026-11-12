@@ -43,7 +43,7 @@ public static class AgentSources
         }
         """;
 
-    // An agent whose model and summary model are configurable, in a build of the given provider id type
+    // An agent whose model and summary model are configurable, of the provider id type its WithModel names (D77)
     public static string Routed(string providerIdType, string provider) =>
         $$"""
         #pragma warning disable CS1591
@@ -76,7 +76,7 @@ public static class AgentSources
             }
         }
 
-        public sealed class Clients : IChatClientProvider
+        public sealed class Clients : IChatClientProvider<{{providerIdType}}>
         {
             public ValueTask<IChatClient> GetChatClientAsync(
                 {{providerIdType}} provider,
@@ -89,6 +89,77 @@ public static class AgentSources
         {
             public static void Register(IServiceCollection services) =>
                 services.AddTypeshift().WithChatClientProvider<Clients>();
+        }
+        """;
+
+    // D77: one agent's providers are an enum, the other's strings, and each agent's model is configurable without a
+    // WithModel, which makes its providers strings
+    public const string TwoProviderIdTypes =
+        """
+        #pragma warning disable CS1591
+
+        using Typeshift;
+
+        namespace Demo;
+
+        public enum Vendor
+        {
+            OpenAi,
+            Anthropic
+        }
+
+        public partial class VendorAgent : Agent
+        {
+            public VendorAgent() =>
+                WithChatOptions().WithModel(Vendor.OpenAi, "fast-model").Configurable(o => o.ModelId);
+        }
+
+        public partial class NamedAgent : Agent
+        {
+            public NamedAgent() =>
+                WithChatOptions().WithModel("openai", "fast-model").Configurable(o => o.ModelId);
+        }
+
+        public partial class PickedAgent : Agent
+        {
+            public PickedAgent() => WithChatOptions().Configurable(o => o.ModelId);
+        }
+        """;
+
+    // D77: new SplitAgent() runs the enum's constructor, and new OverridingAgent() its own WithModel after it
+    public const string ProvidersOfSeveralConstructors =
+        """
+        #pragma warning disable CS1591
+
+        using Typeshift;
+
+        namespace Demo;
+
+        public enum Vendor
+        {
+            OpenAi
+        }
+
+        public partial class SplitAgent : Agent
+        {
+            public SplitAgent()
+                : this(Vendor.OpenAi)
+            {
+            }
+
+            public SplitAgent(Vendor vendor) =>
+                WithChatOptions().WithModel(vendor, "fast-model").Configurable(o => o.ModelId);
+
+            public SplitAgent(string provider) => WithChatOptions().WithModel(provider, "fast-model");
+        }
+
+        public partial class OverridingAgent : Agent
+        {
+            public OverridingAgent()
+                : this(Vendor.OpenAi) =>
+                WithChatOptions().WithModel("openai", "fast-model").Configurable(o => o.ModelId);
+
+            public OverridingAgent(Vendor vendor) => WithChatOptions().WithModel(vendor, "fast-model");
         }
         """;
 

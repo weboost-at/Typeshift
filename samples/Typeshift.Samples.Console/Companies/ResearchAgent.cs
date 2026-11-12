@@ -8,10 +8,13 @@ internal partial class ResearchAgent : Agent
     {
         WithDescription("Researches the companies of a city.");
 
+        // begin-snippet: provider-enum-model
         WithChatOptions()
             .WithModel(Provider.Scripted, "scripted-model")
             .WithTemperature(0.2f)
+            .Configurable(o => o.ModelId)
             .Configurable(o => o.Temperature);
+        // end-snippet
 
         WithRunOptions()
             .Configurable(r => r.MaxToolIterations);

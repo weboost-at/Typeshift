@@ -151,8 +151,8 @@ internal partial class SupportAgent : Agent
 
 | Declaration | Member |
 |---|---|
-| `WithChatOptions().Configurable(o => o.ModelId)` | Two members: `Provider`, of the [provider id type](./models.md#the-provider-id-type), and `string? Model`. They override the provider and model that `WithModel` sets in code. |
-| `WithRunOptions().Configurable(r => r.SummaryModel)` | `SummaryProvider`, of the provider id type, and `string? SummaryModel`. If either is still null after every layer, the summary uses the run's own provider or model. |
+| `WithChatOptions().Configurable(o => o.ModelId)` | Two members: `Provider`, of the agent's [provider id type](./models.md#the-provider-id-type), such as `string?`, and `string? Model`. They override the provider and model that `WithModel` sets in code. |
+| `WithRunOptions().Configurable(r => r.SummaryModel)` | `SummaryProvider`, of the agent's provider id type, and `string? SummaryModel`. If either is still null after every layer, the summary uses the run's own provider or model. |
 | `WithChatOptions().Configurable(o => o.X)` | `X`, nullable: `float? Temperature`, `string? Instructions`. |
 | `WithRunOptions().Configurable(r => r.X)` | `X`, nullable: `AgentMode? Mode`, `int? MaxToolIterations`. |
 | `UseToolset<T>()` offering a tool with `{Tool}Overrides` | `{Tool}`, its overrides, never null. A name taken by an option or by one of the record's own members, such as `Kind`, gets a `Tool` suffix. |
@@ -219,9 +219,8 @@ Every agent also gets:
 | Member | Triggered by | Is |
 |---|---|---|
 | `{Assembly}Module` (hidden) | A toolset or an agent in the assembly | Registers the assembly's toolsets, agents, hosts, JSON contexts and XML docs; see [Registration](./registration.md#what-addtypeshift-registers). |
-| `[GeneratedModule]` (hidden) | The same | Stamps the module, its version and the provider id type for the projects that reference the assembly. |
+| `[GeneratedModule]` (hidden) | The same | Stamps the module and its version for the projects that reference the assembly. |
 | `TypeshiftSchemaAnnotations_{Assembly}` (hidden) | `GenerateDocumentationFile`, on unless the project turns it off, and `TypeshiftSchemaAnnotations`, unless `false` | Added by the package's build, not the generator. It carries the `[SchemaAnnotations]` attribute that makes Weboost.SchemaAnnotations collect the XML docs of your types; see [Registration](./registration.md#xml-docs-of-parameter-types). |
-| `IChatClientProvider` | A reference to the package | A `global using` alias that closes `IChatClientProvider<TProviderId>` over the [provider id type](./models.md#the-provider-id-type). |
 | The `AddTypeshift()` interceptor | A call of `services.AddTypeshift()` | See [Registration](./registration.md). |
 
 ## The agent host
