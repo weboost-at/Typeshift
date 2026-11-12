@@ -2,11 +2,10 @@
 
   <Import Project="../../build/UseGenerator.props" />
 
-  <!-- begin-snippet: id-type -->
+  <!-- The scenarios' conversations are ints, and the container has the ConversationTracker of this type only -->
   <PropertyGroup>
     <TypeshiftIdType>int</TypeshiftIdType>
   </PropertyGroup>
-  <!-- end-snippet -->
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>

@@ -12,7 +12,7 @@ for approval and what is stored when.
 
 ```mermaid
 flowchart TD
-  start(["RunAsync(input, settingsId, conversationId, settings)"]) --> resolve[Resolve the options]
+  start(["RunAsync(input, settings)"]) --> resolve[Resolve the options]
   resolve --> conversation[Resume the conversation]
   conversation --> middleware[Run middleware]
   middleware --> context[Context providers]

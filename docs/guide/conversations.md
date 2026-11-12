@@ -5,8 +5,8 @@ description: Store a conversation under an id, resume it after a crash, steer an
 
 # Conversations
 
-Pass a conversation id to a run, and Typeshift stores every step under it. The next run picks up where the last one
-ended, even after a crash.
+Give the host a conversation id, and Typeshift stores every step of its runs under it. The next run picks up where
+the last one ended, even after a crash.
 
 ## Tracking a conversation
 
@@ -14,26 +14,30 @@ ended, even after a crash.
 <a id='snippet-conversation'></a>
 ```cs
 var conversationId = 7;
+var chat = support.WithConversationId(conversationId);
 
-await support.RunAsync("Where is my refund?", conversationId: conversationId);
-await support.RunAsync("When will it arrive?", conversationId: conversationId);
+await chat.RunAsync("Where is my refund?");
+await chat.RunAsync("When will it arrive?");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L15-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L15-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The first run starts the conversation and the second resumes it. Typeshift puts the stored messages ahead of the new
-input, so the model sees the whole conversation. Because Typeshift sends the history itself, it never passes the
-conversation id on to the provider. Settings ids and conversation ids are independent, and a run may pass either or
-both. A conversation does not remember a settings id, so pass it to every run of the conversation that should use the
-stored settings, the run that answers an approval included.
+`chat` is the host with conversation 7 ([Ids of your own types](./settings-and-stores.md#ids-of-your-own-types)). The
+first run starts the conversation and the second resumes it. Typeshift puts the stored messages ahead of the new input,
+so the model sees the whole conversation. Because Typeshift sends the history itself, it never passes the conversation
+id on to the provider.
+
+Settings ids and conversation ids are independent, and a host may have either or both. A conversation does not
+remember a settings id, so every run of it that should use the stored settings needs a host with both, the run that
+answers an approval included: `support.WithSettingsId(42).WithConversationId(conversationId)`.
 
 ## Conversation ids
 
 You pick a conversation id when a chat starts, usually the key of your own record of the chat, such as a row in a
-`Chats` table, and pass it to every run of that chat. Its type is the build's [id type](./registration.md#the-id-type),
-so with `Guid` ids and no record of your own, `Guid.CreateVersion7()` gives a new chat its id. On the
-[raw path](./running-agents.md#the-raw-path), `ChatOptions.ConversationId` carries it as a string. The response's
-`ConversationId` names the conversation a run was stored in.
+`Chats` table, and give it to the host of every run of that chat. Its type is up to you: it picks the conversation
+store of that type ([Ids of your own types](./settings-and-stores.md#ids-of-your-own-types)). With no record of your
+own, `Guid.CreateVersion7()` gives a new chat its id. The response's `ConversationId` names the conversation a run
+was stored in, as text.
 
 The store keeps a conversation's entries under its id, and `ConversationTracker` finds a running run by it to steer or
 watch it. Without a conversation id, and without [`PersistAllConversations`](#keeping-every-conversation), a run
@@ -42,7 +46,7 @@ handoffs, and `ConversationTracker` never sees it.
 
 ### Keeping every conversation
 
-To keep the runs that pass no conversation id as well, turn on `PersistAllConversations`:
+To keep the runs of a host without a conversation id as well, turn on `PersistAllConversations`:
 `AddTypeshift().WithOptions(options => options.PersistAllConversations = true)`. Such a run then starts a
 conversation under a new id, and its response's `ConversationId` names it, so the next run continues it with
 `support.WithConversationId(Guid.Parse(response.ConversationId!))`. A handoff continues that conversation.
@@ -54,14 +58,13 @@ Some runs start no conversation, even with the option on:
 - A raw-path call whose options did not come from `ResolveOptionsAsync`, such as `ChatOptions` your code created, or
   a call with no options at all ([the raw path](./running-agents.md#the-raw-path)).
 
-New ids follow [the build's id type](./registration.md#the-id-type). For `Guid`, they are `Guid`s of version 7, which
-sort by the time they were made, and for `string` the text of one. For any other id type, or a conversation store of
-another type than the build's, give them with `options.NewConversationIds(() => ...)`; without it, a build of another
-id type throws an `InvalidOperationException` on the first run that starts a conversation. Runs that start together
-call the function at the same time, so make it thread-safe, and have it return an id no conversation has on every
-call.
+New ids are `Guid`s of version 7, which sort by the time they were made. For a conversation store of another id
+type, give them with `options.NewConversationIds(() => ...)`. Without it, a build whose
+[id type](./registration.md#ids) is `string` gets the text of such a `Guid`, and one of any other type but `Guid`
+throws an `InvalidOperationException` on the first run that starts a conversation. Runs that start together call the
+function at the same time, so make it thread-safe, and have it return an id no conversation has on every call.
 
-::: danger Check the caller before you pass a conversation id
+::: danger Check the caller before you use a conversation id
 Typeshift resumes whichever conversation it is given, so deciding who may see one is your app's job. Check the caller
 against your own record of the conversation, as you would for any other id from a request.
 :::
@@ -85,12 +88,12 @@ API can pass entries on with either library and no settings.
 <!-- snippet: load-conversation -->
 <a id='snippet-load-conversation'></a>
 ```cs
-var store = provider.GetRequiredService<IConversationStore>();
+var store = provider.GetRequiredService<IConversationStore<int>>();
 var entries = await store.LoadConversationAsync(conversationId, ct);
 
 Console.WriteLine($"{entries.Count} entries, {entries.Sum(entry => entry.Usage?.TotalTokenCount)} tokens");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L22-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L23-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Runs that fail or stop early are stored too:
@@ -111,21 +114,21 @@ runs it, so the stored entries, `ApprovalRequests` and the tool's result all car
 ## Resuming
 
 Each model response is stored as it arrives, and tool results before the next model call, so an app that crashes
-mid-run loses at most the calls in flight. `ResumeAsync` continues the conversation's interrupted run from its last
-stored step, without new input:
+mid-run loses at most the calls in flight. `ResumeAsync` continues the interrupted run of the host's conversation from
+its last stored step, without new input:
 
 <!-- snippet: resume -->
 <a id='snippet-resume'></a>
 ```cs
-var resumed = await support.ResumeAsync(interrupted, settingsId);
+var resumed = await support.WithSettingsId(settingsId).WithConversationId(interrupted).ResumeAsync();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L63-L65' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L64-L66' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-On a conversation whose last run ended, `ResumeAsync` throws an `InvalidOperationException`. After a restart, the
-entries tell you which conversations to resume: when the last entry that `LoadConversationAsync` returns has
-`EndsRun` false, a crash cut that run off. A new run with input works on an interrupted conversation too: it starts
-from the interrupted run's steps and adds its own input.
+`ResumeAsync` throws an `InvalidOperationException` on a host without a conversation id, or when the conversation's last
+run ended. After a restart, the entries tell you which conversations to resume: when the last entry that
+`LoadConversationAsync` returns has `EndsRun` false, a crash cut that run off. A new run with input works on an
+interrupted conversation too: it starts from the interrupted run's steps and adds its own input.
 
 ::: warning A tool can be called twice
 A call interrupted while its tool ran is left out on resume. The model decides again and may call the tool a second
@@ -145,18 +148,20 @@ conversation is up to your app.
 run's updates, so a second tab or a support dashboard can follow a chat that another request is answering
 ([Live updates](#live-updates)).
 
-`Runs` lists the runs with a conversation id that are going on in this process, each with its conversation, the agent
+The container has the tracker of the build's [id type](./registration.md#ids): `ConversationTracker<Guid>` in a
+default app, and `ConversationTracker<int>` in the docs samples, which set `TypeshiftIdType` to `int`. Its `Runs`
+lists the runs going on in this process under conversation ids of that type, each with its conversation, the agent
 that answers, its model and when it started:
 
 <!-- snippet: live-sessions -->
 <a id='snippet-live-sessions'></a>
 ```cs
-var tracker = provider.GetRequiredService<ConversationTracker>();
+var tracker = provider.GetRequiredService<ConversationTracker<int>>();
 
 foreach (var run in tracker.Runs)
     Console.WriteLine($"{run.Agent} is answering conversation {run.Conversation} on {run.Model}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L31-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-live-sessions' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L32-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-live-sessions' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `WatchRunsAsync` tells a UI when that list changes, so a list of running conversations needs no polling. It yields the
@@ -169,7 +174,7 @@ Cancelling ends the loop with an `OperationCanceledException`, so catch it where
 await foreach (var run in tracker.WatchRunsAsync(ct))
     Console.WriteLine($"Conversation {run.Conversation} is {(run.Ended ? "idle" : "running")}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L90-L93' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-runs' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L91-L94' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-runs' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Steering
@@ -188,9 +193,9 @@ ending. Start a run with the input instead:
 var input = "Send me the invoice too.";
 
 if (!tracker.TrySteer(conversationId, input))
-    await support.RunAsync(input, settingsId, conversationId);
+    await chat.WithSettingsId(settingsId).RunAsync(input);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L50-L55' title='Snippet source file'>snippet source</a> | <a href='#snippet-steering' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L51-L56' title='Snippet source file'>snippet source</a> | <a href='#snippet-steering' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 To stop a run, cancel its token. It is stored up to where it stopped.
@@ -209,7 +214,7 @@ model response and tool result as it stores it. A browser can follow them over S
 await foreach (var update in tracker.WatchAsync(conversationId, ct))
     Console.Write(update.Text);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L75-L78' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L76-L79' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Text, reasoning and usage updates are merged and published at most every 100 ms, and other updates go out at once. A
@@ -278,7 +283,7 @@ conversation](./tool-approval.md#approving-for-the-conversation) and the backgro
 
 ## Related
 
-- [Running agents](./running-agents.md): passing a conversation id to a run.
+- [Running agents](./running-agents.md#conversations): giving a run a conversation id.
 - [How a run works](./how-a-run-works.md): where a run resumes and stores its steps.
 - [Implementing a store](./implementing-a-store.md#append-to-a-conversation): the store methods that keep conversations.
 - [Builders](./builders.md#runoptionsbuilder): the run options of compaction and their defaults.

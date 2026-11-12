@@ -11,10 +11,10 @@ internal static class Approval
     {
         await using var scope = provider.CreateAsyncScope();
         var support = scope.ServiceProvider.GetRequiredService<AgentHost<SupportAgent>>();
-        var conversationId = 8;
 
         // begin-snippet: approval-run
-        var answer = await support.RunAsync("Close ticket 1234.", conversationId: conversationId);
+        var chat = support.WithConversationId(8);
+        var answer = await chat.RunAsync("Close ticket 1234.");
 
         foreach (var request in answer.ApprovalRequests)
             if (request.ToolCall is FunctionCallContent call)
@@ -26,7 +26,7 @@ internal static class Approval
 
         var approval = new ChatMessage(ChatRole.User, [.. approvals]);
 
-        var resumed = await support.RunAsync(approval, conversationId: conversationId);
+        var resumed = await chat.RunAsync(approval);
         // end-snippet
 
         var ticket = await scope.ServiceProvider.GetRequiredService<ITicketClient>().GetAsync(1234, default);
@@ -35,7 +35,7 @@ internal static class Approval
         // begin-snippet: approval-closed
         try
         {
-            await support.RunAsync(approval, conversationId: conversationId);
+            await chat.RunAsync(approval);
         }
         catch (ApprovalClosedException closed)
         {
@@ -45,14 +45,14 @@ internal static class Approval
         // end-snippet
 
         // begin-snippet: approval-for-conversation
-        var again = await support.RunAsync("Close ticket 1234 again.", conversationId: conversationId);
+        var again = await chat.RunAsync("Close ticket 1234 again.");
 
         var always = new ChatMessage(ChatRole.User, [again.ApprovalRequests[0].ApproveForConversation()]);
 
-        await support.RunAsync(always, conversationId: conversationId);
+        await chat.RunAsync(always);
         // end-snippet
 
-        var later = await support.RunAsync("Close ticket 1234 once more.", conversationId: conversationId);
+        var later = await chat.RunAsync("Close ticket 1234 once more.");
         if (later.ApprovalRequests.Count > 0) throw new InvalidOperationException("Expected the standing approval.");
     }
 }

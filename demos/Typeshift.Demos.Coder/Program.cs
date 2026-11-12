@@ -48,7 +48,7 @@ await using var provider = services.BuildServiceProvider(new ServiceProviderOpti
 });
 
 var store = provider.GetRequiredService<JsonFileStore>();
-var tracker = provider.GetRequiredService<ConversationTracker>();
+var tracker = provider.GetRequiredService<ConversationTracker<Guid>>();
 
 if (Demo.Flag(args, "--list"))
 {
@@ -65,14 +65,14 @@ if (Demo.Flag(args, "--list"))
 }
 
 await using var scope = provider.CreateAsyncScope();
-var coder = scope.ServiceProvider.GetRequiredService<AgentHost<CoderAgent>>();
 
 // The settings of this workspace: the model the user picked, and limits a host might raise per customer
 var settingsId = Guid.Parse("00000000-0000-0000-0000-000000000007");
+var coder = scope.ServiceProvider.GetRequiredService<AgentHost<CoderAgent>>().WithSettingsId(settingsId);
 var coding = ModelRef.Parse(model ?? "canned/coder");
 var exploring = ModelRef.Parse(model ?? "canned/explorer");
 
-await coder.ConfigureAsync(settingsId, settings => settings with
+await coder.ConfigureAsync(settings => settings with
 {
     Provider = coding.Provider,
     Model = coding.Model,
@@ -81,9 +81,11 @@ await coder.ConfigureAsync(settingsId, settings => settings with
 
 // The explorer is a separate agent with settings of its own under the same id
 await scope.ServiceProvider.GetRequiredService<AgentHost<ExplorerAgent>>()
-    .ConfigureAsync(settingsId, settings => settings with { Provider = exploring.Provider, Model = exploring.Model });
+    .WithSettingsId(settingsId)
+    .ConfigureAsync(settings => settings with { Provider = exploring.Provider, Model = exploring.Model });
 
 var conversationId = Demo.Option(args, "--resume") is { } resume ? Guid.Parse(resume) : Guid.CreateVersion7();
+var chat = coder.WithConversationId(conversationId);
 
 Demo.Heading($"Workspace {workspace}");
 Demo.Note($"model {coding}, conversation {conversationId}");
@@ -132,7 +134,7 @@ if (Demo.Option(args, "--resume") is not null)
     if (entries.Count > 0 && !entries[^1].EndsRun)
     {
         Demo.Heading("Resuming the interrupted run");
-        var resumed = await RunAsync(coder.ResumeStreamingAsync(conversationId, settingsId, ct: session.Token));
+        var resumed = await RunAsync(chat.ResumeStreamingAsync(ct: session.Token));
         next = ConsoleApprover.Answer(resumed, ReadLine, approveAll);
     }
 }
@@ -151,7 +153,7 @@ while (next is not null && !session.IsCancellationRequested)
 
     try
     {
-        response = await RunAsync(coder.RunStreamingAsync(next, settingsId, conversationId, ct: session.Token));
+        response = await RunAsync(chat.RunStreamingAsync(next, ct: session.Token));
     }
     catch (ApprovalClosedException)
     {

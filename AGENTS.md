@@ -98,7 +98,7 @@ style; the essentials:
 | Fact | Canonical page | Also mentioned in |
 |---|---|---|
 | What Typeshift is for, what it builds on and leaves to you, how its pieces fit | `guide/what-is-typeshift.md` | `index.md` (the pitch) |
-| Package setup, requirements, the id type | `guide/registration.md` | `getting-started.md` (the steps) |
+| Package setup, requirements, ids and the build's id type | `guide/registration.md` | `getting-started.md` (the steps) |
 | The runtime: `TypeshiftRuntime.Create` without a container, injecting it, its hosts as units of work | `guide/registration.md#the-runtime` | `using-an-agent.md#run-from-a-background-job` (the job's host), `generated-members.md` (`DisposeAsync`) |
 | `AddTypeshift()` chain calls and lifetimes | `guide/registration.md#the-chain` | each feature page shows its own `With...` call |
 | Builder calls of toolsets and agents | `guide/builders.md` | `toolsets.md`, `tool-settings.md`, `defining-agents.md` |
@@ -106,7 +106,7 @@ style; the essentials:
 | Parameters the call fills, tool results | `guide/toolsets.md` | `builders.md` (link) |
 | Storable types of configurable members | `guide/tool-settings.md#configurable-members` | `builders.md` (link) |
 | Chat options and run options, their defaults | `guide/builders.md` | `defining-agents.md`, `conversations.md#compaction` |
-| Providers and models, clients from configuration, keys per customer, wrapping clients, provider failures, the provider id type, the summary model | `guide/models.md` | `running-agents.md#chat-clients`, `registration.md#the-id-type`, `conversations.md#compaction` |
+| Providers and models, clients from configuration, keys per customer, wrapping clients, provider failures, the provider id type, the summary model | `guide/models.md` | `running-agents.md#chat-clients`, `registration.md#ids`, `conversations.md#compaction` |
 | Approval and modes | `guide/tool-approval.md` | `builders.md` (link) |
 | Settings layers and precedence | `guide/settings-and-stores.md#settings-layering` | `tool-settings.md`, `defining-agents.md`, `running-agents.md` |
 | Getting an agent's host: injecting it, resolving it from a scope, or taking it from the runtime in a job | `guide/using-an-agent.md` | `getting-started.md` (step 4), `registration.md` (the lifetime), `running-agents.md` (lead) |
@@ -114,7 +114,7 @@ style; the essentials:
 | The store's lifetime and contract, kinds, schema versions, versions, conversation entries and summaries, checking a store | `guide/implementing-a-store.md` | `settings-and-stores.md` (link), `conversations.md#what-is-stored` |
 | The `Settings` JSON, an agent's own settings and those under a settings id | `guide/settings-and-stores.md` | `generated-members.md#settings` |
 | Keeping every conversation (`WithOptions`, `PersistAllConversations`, `NewConversationIds`) | `guide/conversations.md#keeping-every-conversation` | `registration.md#the-chain` |
-| Ids in code (`WithSettingsId`, `WithConversationId`), stores of several id types | `guide/settings-and-stores.md#ids-of-your-own-types` | `registration.md#the-id-type`, `diagnostics.md#tsh028` |
+| Ids in code (`WithSettingsId`, `WithConversationId`), stores of several id types | `guide/settings-and-stores.md#ids-of-your-own-types` | `registration.md#ids`, `generated-members.md` (signatures), `diagnostics.md#tsh028` |
 | Conversations: storage, resume, steering, live updates, compaction | `guide/conversations.md` | |
 | A chat UI's endpoints: posting, streaming as server-sent events, approvals by their ids | `guide/chat-endpoint.md` | |
 | Generated members, `AgentHost` members and signatures | `guide/generated-members.md` | `running-agents.md` |

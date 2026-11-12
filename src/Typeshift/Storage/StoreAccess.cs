@@ -101,7 +101,7 @@ internal sealed class StoreAccess(IServiceProvider services, BuildIds build)
         ?? (_inMemory.Value ? _agentSettingsMemory : null)
         ?? throw new InvalidOperationException(
             "No agent settings store is registered: call WithStore<T>() after AddTypeshift() with an "
-            + "IAgentSettingsStore, such as InMemoryTypeshiftStore, to load or save an agent's own settings.");
+            + "IAgentSettingsStore, such as InMemoryTypeshiftStore<TId>, to load or save an agent's own settings.");
 
     // One store per id type, made the first time an id of the type comes
     private InMemoryTypeshiftStore<TId>? Memory<TId>() where TId : notnull =>

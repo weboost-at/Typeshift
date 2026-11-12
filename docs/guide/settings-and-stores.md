@@ -7,8 +7,8 @@ description: How a run's settings layer from the code through stored settings to
 
 Typeshift stores each agent's `Settings`, as the agent's own or under a settings id, and conversations under a
 conversation id. An agent's own settings go through an `IAgentSettingsStore`, settings under an id through an
-`ISettingsStore`, and conversations through an `IConversationStore`. You [implement](./implementing-a-store.md) the
-ones your app needs, in one class or in several.
+`ISettingsStore<TId>`, and conversations through an `IConversationStore<TId>`, where `TId` is the type of your ids.
+You [implement](./implementing-a-store.md) the ones your app needs, in one class or in several.
 
 ## Settings layering
 
@@ -34,8 +34,8 @@ constructor holds 5. This layer sets every member, so a tool always receives a w
 searches with 3 unless a layer above sets another limit. Its chat and run options, such as `WithTemperature(0.2f)`,
 live here too. Because this layer is reviewed, compiled code, it may set any settable member, configurable or not.
 
-**3. The stored settings.** `ConfigureAsync(42, ...)` stores `Limit = 2` and `Temperature = 0.4f`, so every run with
-settings id 42 searches with 2, at a temperature of 0.4. `IncludeInactive` cannot be stored, because
+**3. The stored settings.** `WithSettingsId(42).ConfigureAsync(...)` stores `Limit = 2` and `Temperature = 0.4f`, so
+every run with settings id 42 searches with 2, at a temperature of 0.4. `IncludeInactive` cannot be stored, because
 `ResearchAgent.Settings` has only the configurable members. Below the settings of the id lie the agent's own stored
 settings, which every run applies, with a settings id or without one ([Agent settings](#agent-settings)).
 
@@ -49,7 +49,7 @@ The highest layer that sets a value wins:
 | Layer | Set by | May set | Holds for |
 |---|---|---|---|
 | 4. The run | The `settings` argument of `RunAsync` and the other runs | Configurable members | That run |
-| 3. Stored | The agent's own `Settings`, then those under the run's settings id: `ConfigureAsync`, `SaveSettingsAsync` | Configurable members | Every run, or every run with that settings id |
+| 3. Stored | The agent's own `Settings`, then those under the host's settings id: `ConfigureAsync`, `SaveSettingsAsync` | Configurable members | Every run, or every run with that settings id |
 | 2. The agent's code | `Configure{Tool}()`, `WithChatOptions()`, `WithRunOptions()`, `WithInstructions()` or `GetInstructions()` | Every settable member | Every run of the agent |
 | 1. The code's defaults | The settings record's parameterless constructor; the run options' defaults | Every member | Every run |
 
@@ -98,7 +98,7 @@ Register the store in the `AddTypeshift()` chain:
 var services = new ServiceCollection();
 
 services.AddTypeshift()
-    .WithStore<InMemoryTypeshiftStore>();
+    .WithStore<InMemoryTypeshiftStore<int>>();
 
 services.AddKeyedChatClient("openai", new CannedChatClient());
 
@@ -107,18 +107,18 @@ await using var provider = services.BuildServiceProvider(validateScopes: true);
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L11-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-clients' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`InMemoryTypeshiftStore` keeps everything in memory and serves tests and samples. For your database, write a store of
-your own: [Implementing a store](./implementing-a-store.md) covers its methods, its versions and the conversation
-summaries it reads.
+`InMemoryTypeshiftStore<int>` keeps everything under `int` ids in memory, and serves tests and samples. For your
+database, write a store of your own: [Implementing a store](./implementing-a-store.md) covers its methods, its
+versions and the conversation summaries it reads.
 
-`WithStore<T>()` registers each store interface your class implements, so an `ITypeshiftStore` takes one call. A
+`WithStore<T>()` registers each store interface your class implements, so an `ITypeshiftStore<TId>` takes one call. A
 store of settings and a store of conversations take one call each.
 
 ### Ids of your own types
 
 Each store has the id type of its interface, and one app may have several: an `ISettingsStore<int>` keeps settings
-under `int` ids while an `IConversationStore<string>` keeps conversations under `string` ids. Give a run its ids in
-code, and each id's type picks the store of that type:
+under `int` ids while an `IConversationStore<string>` keeps conversations under `string` ids. You give a host its ids
+in code, and each id's type picks the store of that type:
 
 - `support.WithSettingsId(42)` applies the settings stored under 42 in the `ISettingsStore<int>`, over the agent's
   own. Its settings members, such as `ConfigureAsync(...)`, load and save those settings.
@@ -127,18 +127,19 @@ code, and each id's type picks the store of that type:
 
 Each call returns a copy of the host with the id, in the host's scope, so
 `support.WithSettingsId(42).WithConversationId(chat).RunAsync(input)` runs with both, and `support` itself keeps none.
-A copy never disposes that scope, so it works as long as `support` does. Ids of the same value and different types are
+A copy is a small object, so make one wherever your code has the ids, such as in each request. It never disposes
+the scope, so it works as long as `support` does. Ids of the same value and different types are
 different ids: a conversation under 5 as an `int` is not the one under 5 as a `long`. An id whose type no registered
 store keeps throws an `InvalidOperationException` that names the interface it needs, such as `ISettingsStore<long>`.
-Passing an id to a call of a host that has one already throws an `ArgumentException`.
 
-A few things follow the id's type:
+A few things follow the host's ids:
 
-- `ResumeAsync()` without an id resumes the host's conversation, and `ResolveOptionsAsync()` hands it on to the raw
-  path.
-- `ConversationTracker.TrySteer(chat, input)` and `WatchAsync(chat, ct)` take a conversation id of any type, while
-  `Runs` lists the conversations under ids of the build's [id type](./registration.md#the-id-type).
-- Each `InMemoryTypeshiftStore` keeps agents' own settings too, so of several, the last one registered keeps them.
+- `ResumeAsync()` resumes the host's conversation, and `ResolveOptionsAsync()` hands it on to the raw path.
+- `ConversationTracker<TId>` steers and watches a conversation under an id of any type with `TrySteer(chat, input)`
+  and `WatchAsync(chat, ct)`, while `Runs` and `WatchRunsAsync` list only those under ids of `TId`. The container has
+  the tracker of the build's id type ([Ids](./registration.md#ids)).
+- Each `InMemoryTypeshiftStore<TId>` keeps agents' own settings too, so of several, the last one registered keeps
+  them.
 
 ::: warning The store is a singleton
 `WithStore<T>()` registers the store as a singleton, so one instance serves every run at the same time. It cannot
@@ -152,8 +153,8 @@ settings. The memory is gone when the app stops, so register a store before your
 
 Once you register a store, Typeshift uses only the stores you registered. For each store interface, the last call
 that registers a store wins, so a second store that also implements it takes its place. A run applies the agents' own
-settings only when a registered store implements `IAgentSettingsStore`, as `InMemoryTypeshiftStore` does. A call that
-needs an interface none of your stores implements, such as a run with a conversation id and a store of settings
+settings only when a registered store implements `IAgentSettingsStore`, as `InMemoryTypeshiftStore<TId>` does. A call
+that needs an interface none of your stores implements, such as a run with a conversation id and a store of settings
 alone, throws an `InvalidOperationException` that names `WithStore<T>()` and the interface.
 
 ## Agent settings
@@ -171,10 +172,11 @@ var everyRun = await research.RunAsync("Graz");
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L52-L56' title='Snippet source file'>snippet source</a> | <a href='#snippet-own-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)` load and save them as the members below do for
-a settings id, and `ConfigureAsync(configure)` retries the same way.
+`LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)` load and save them, and
+`ConfigureAsync(configure)` retries on a conflict, as the rest of this section shows. On a host from
+`WithSettingsId(id)`, the same three members load and save the settings under the id instead.
 
-`InMemoryTypeshiftStore` forgets them when the app stops. To keep them without a database, for example in a local
+`InMemoryTypeshiftStore<TId>` forgets them when the app stops. To keep them without a database, for example in a local
 tool or a single-agent service, register the file store with `WithFileStore`:
 
 <!-- snippet: file-agent-settings -->
@@ -214,7 +216,7 @@ loads them again and reapplies your change, ten tries in all. If the tenth save 
 <!-- snippet: configure-settings -->
 <a id='snippet-configure-settings'></a>
 ```cs
-await support.ConfigureAsync(settingsId, settings => settings with
+await support.WithSettingsId(42).ConfigureAsync(settings => settings with
 {
     Provider = "anthropic",
     Model = "claude-sonnet-5-5",
@@ -222,7 +224,7 @@ await support.ConfigureAsync(settingsId, settings => settings with
     SearchTickets = settings.SearchTickets with { Limit = 20 }
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L14-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-configure-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L13-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-configure-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A settings form does it in two steps: it loads the settings with their version and saves them back with it. The
@@ -232,18 +234,19 @@ in between ([Save with a version](./implementing-a-store.md#save-with-a-version)
 <!-- snippet: load-and-save-settings -->
 <a id='snippet-load-and-save-settings'></a>
 ```cs
-var stored = await support.LoadSettingsAsync(settingsId);
+var host = support.WithSettingsId(42);
+var stored = await host.LoadSettingsAsync();
 
 try
 {
-    await support.SaveSettingsAsync(settingsId, stored.Data with { Instructions = null }, stored.Version);
+    await host.SaveSettingsAsync(stored.Data with { Instructions = null }, stored.Version);
 }
 catch (StoreConflictException)
 {
-    stored = await support.LoadSettingsAsync(settingsId);
+    stored = await host.LoadSettingsAsync();
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L24-L35' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-and-save-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L23-L35' title='Snippet source file'>snippet source</a> | <a href='#snippet-load-and-save-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Saving `Instructions = null` removes the stored instructions, so runs with this settings id use the agent's own
@@ -285,6 +288,6 @@ schema version ([Migrate older settings](./implementing-a-store.md#migrate-older
 - [Tool settings](./tool-settings.md): declaring a tool's settings and opening members to the layers.
 - [Implementing a store](./implementing-a-store.md): the store's methods, its versions and conversation summaries.
 - [Generated members](./generated-members.md#settings): the `Settings` record a store keeps.
-- [Running agents](./running-agents.md#run-settings): passing a settings id and run settings.
+- [Running agents](./running-agents.md#run-settings): running with a settings id and run settings.
 - [Conversations](./conversations.md): what a run stores in a conversation, and resuming it.
-- [Registration](./registration.md#the-id-type): the id type and the other chain calls.
+- [Registration](./registration.md#ids): ids and the other chain calls.

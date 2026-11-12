@@ -1,8 +1,8 @@
 namespace Typeshift;
 
 /// <summary>
-/// Keeps the agents' settings: a JSON document per settings id and kind, guarded by a version. Each project sees it
-/// as <c>ISettingsStore</c>, an alias the generator writes for the build's id type. Implement it alone when
+/// Keeps the agents' settings: a JSON document per settings id and kind, guarded by a version. It receives the
+/// settings ids of <typeparamref name="TId"/> that <c>WithSettingsId</c> gives a host. Implement it alone when
 /// conversations live elsewhere, or <see cref="ITypeshiftStore{TId}"/> for both.
 /// </summary>
 /// <typeparam name="TId">The id type of settings; the library never creates ids, it passes on the host's.</typeparam>

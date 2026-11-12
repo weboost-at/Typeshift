@@ -70,7 +70,7 @@ compile-time half, and [How a run works](./how-a-run-works.md) the steps of a ru
 | Tool settings | A record of values a tool needs that the model must not choose | [Tool settings](./tool-settings.md) |
 | Agent | A `partial` class deriving from `Agent`, with chat options, instructions and tools | [Agents](./defining-agents.md) |
 | Agent host | `AgentHost<TAgent>`, which runs one agent in the scope it was resolved from | [Using an agent](./using-an-agent.md) |
-| Store | Your `ITypeshiftStore`, or an `ISettingsStore` and an `IConversationStore`, which keep settings and conversations; an `IAgentSettingsStore` for each agent's own settings | [Settings and stores](./settings-and-stores.md) |
+| Store | Your `ITypeshiftStore<TId>`, or an `ISettingsStore<TId>` and an `IConversationStore<TId>`, which keep settings and conversations under ids of your type; an `IAgentSettingsStore` for each agent's own settings | [Settings and stores](./settings-and-stores.md) |
 
 The [glossary](./glossary.md) defines every other term.
 
@@ -79,7 +79,7 @@ The [glossary](./glossary.md) defines every other term.
 - **The model.** You register the `IChatClient` of your provider; Typeshift ships no provider SDK.
 - **Your app.** Typeshift runs inside ASP.NET Core, a worker or a console app, and serves no endpoints of its own.
   [Serving a chat endpoint](./chat-endpoint.md) shows the few a chat UI needs.
-- **Your database.** `InMemoryTypeshiftStore` serves tests and samples. For settings and conversations that must
+- **Your database.** `InMemoryTypeshiftStore<TId>` serves tests and samples. For settings and conversations that must
   survive a restart, you write a [store](./implementing-a-store.md) over your own database.
 - **Search over your documents.** A [context provider](./middleware.md#context-providers) adds what your own search
   returns to a run.

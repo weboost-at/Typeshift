@@ -60,15 +60,16 @@ its options to the model's answer.
 
 ## Stored settings
 
-Pass a settings id, and the run layers the [settings stored](./settings-and-stores.md) under it over the agent's code
-and its own stored settings:
+Give the host a settings id with `WithSettingsId`, and its runs layer the [settings stored](./settings-and-stores.md)
+under it over the agent's code and its own stored settings. The call returns a copy of the host, as
+[Ids of your own types](./settings-and-stores.md#ids-of-your-own-types) explains:
 
 <!-- snippet: run-with-settings-id -->
 <a id='snippet-run-with-settings-id'></a>
 ```cs
 var settingsId = 42;
 
-var stored = await support.RunAsync("Where is my refund?", settingsId);
+var stored = await support.WithSettingsId(settingsId).RunAsync("Where is my refund?");
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L34-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-with-settings-id' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
@@ -90,7 +91,7 @@ var run = new SupportAgent.Settings
     SearchArticles = new KnowledgeToolset.SearchArticlesOverrides { Language = "de" }
 };
 
-var thorough = await support.RunAsync("Where is my refund?", settingsId, settings: run);
+var thorough = await support.WithSettingsId(settingsId).RunAsync("Where is my refund?", settings: run);
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L42-L53' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
@@ -100,8 +101,9 @@ Values the run leaves null keep what the stored settings or the agent's code set
 
 ## Conversations
 
-Pass a conversation id, and the run continues that conversation and stores each of its steps in it. If a crash cuts a
-run off, `ResumeAsync` continues it. [Conversations](./conversations.md) covers both.
+Give the host a conversation id with `WithConversationId`, and its runs continue that conversation and store each of
+their steps in it. If a crash cuts a run off, `ResumeAsync` continues it. [Conversations](./conversations.md) covers
+both.
 
 ## Structured output
 
@@ -110,7 +112,7 @@ run off, `ResumeAsync` continues it. [Conversations](./conversations.md) covers 
 <!-- snippet: structured-output -->
 <a id='snippet-structured-output'></a>
 ```cs
-var report = await support.RunAsync<RefundStatus>("Summarize the refund.", settingsId);
+var report = await support.WithSettingsId(settingsId).RunAsync<RefundStatus>("Summarize the refund.");
 
 Console.WriteLine($"{report.Result.Invoice}: {report.Result.State}");
 ```
@@ -149,7 +151,7 @@ holds the result:
 <!-- snippet: structured-streaming -->
 <a id='snippet-structured-streaming'></a>
 ```cs
-var summary = support.RunStreamingAsync<RefundStatus>("Summarize the refund.", settingsId);
+var summary = support.WithSettingsId(settingsId).RunStreamingAsync<RefundStatus>("Summarize the refund.");
 
 await foreach (var update in summary)
     Console.Write(update.Text);
@@ -175,7 +177,7 @@ updates, and the stream goes on with the model's next response:
 <!-- snippet: streaming -->
 <a id='snippet-streaming'></a>
 ```cs
-await foreach (var update in support.RunStreamingAsync("Where is my refund?", settingsId))
+await foreach (var update in support.WithSettingsId(settingsId).RunStreamingAsync("Where is my refund?"))
     Console.Write(update.Text);
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L76-L79' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
@@ -192,7 +194,7 @@ three steps: resolve the options, create the client, and call the client with th
 <!-- snippet: raw-path -->
 <a id='snippet-raw-path'></a>
 ```cs
-var options = await support.ResolveOptionsAsync(settingsId, run);
+var options = await support.WithSettingsId(settingsId).ResolveOptionsAsync(settings: run);
 
 using var client = await support.CreateChatClientAsync(options);
 var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "Where is my refund?")], options);
@@ -201,9 +203,11 @@ var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "Wh
 <!-- endSnippet -->
 
 The client is the run's whole pipeline, the tool loop and the agent's run options included. It serves concurrent
-calls, each with the limits of its own options. Disposing it does not dispose the client your provider returned. To
-run in a conversation, set `ChatOptions.ConversationId` on the options to the conversation's id, written as a string
-of the build's id type. Typeshift reads the conversation from it and never sends it to the provider.
+calls, each with the limits of its own options. Disposing it does not dispose the client your provider returned.
+
+To run in a conversation, resolve the options on a host with a conversation id, such as
+`support.WithConversationId(chat).ResolveOptionsAsync()`, and every call with those options continues and stores that
+conversation. Typeshift never sends the conversation's id to the provider.
 
 ## Related
 

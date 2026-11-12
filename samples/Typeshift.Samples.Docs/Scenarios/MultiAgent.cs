@@ -11,19 +11,21 @@ internal static class MultiAgent
         var settingsId = 42;
 
         // begin-snippet: agent-as-tool-run
-        var reports = scope.ServiceProvider.GetRequiredService<AgentHost<ReportAgent>>();
+        var reports = scope.ServiceProvider.GetRequiredService<AgentHost<ReportAgent>>()
+            .WithSettingsId(settingsId);
 
-        var report = await reports.RunAsync("Compare the robotics scenes of Vienna and Graz.", settingsId);
+        var report = await reports.RunAsync("Compare the robotics scenes of Vienna and Graz.");
         // end-snippet
 
         if (report.Messages.Count < 3) throw new InvalidOperationException("Expected the sub-agent's call.");
 
         // begin-snippet: handoff-run
-        var triage = scope.ServiceProvider.GetRequiredService<AgentHost<TriageAgent>>();
-        var conversationId = 21;
+        var triage = scope.ServiceProvider.GetRequiredService<AgentHost<TriageAgent>>()
+            .WithSettingsId(settingsId)
+            .WithConversationId(21);
 
-        var first = await triage.RunAsync("I was charged twice.", settingsId, conversationId);
-        var second = await triage.RunAsync("It was invoice 2024-17.", settingsId, conversationId);
+        var first = await triage.RunAsync("I was charged twice.");
+        var second = await triage.RunAsync("It was invoice 2024-17.");
 
         Console.WriteLine($"{second.Messages[^1].AuthorName}: {second.Text}");
         // end-snippet

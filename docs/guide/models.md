@@ -266,7 +266,7 @@ services.AddKeyedChatClient("openai", openAi);
 ## The provider id type
 
 A provider is a string unless you choose another type. Set `TypeshiftProviderIdType` once for the build, in
-`Directory.Build.props`, as you set the [id type](./registration.md#the-id-type):
+`Directory.Build.props`:
 
 <!-- snippet: provider-id-type -->
 <a id='snippet-provider-id-type'></a>
@@ -321,7 +321,7 @@ that offers your providers and their models, for example:
 <!-- snippet: configure-settings -->
 <a id='snippet-configure-settings'></a>
 ```cs
-await support.ConfigureAsync(settingsId, settings => settings with
+await support.WithSettingsId(42).ConfigureAsync(settings => settings with
 {
     Provider = "anthropic",
     Model = "claude-sonnet-5-5",
@@ -329,7 +329,7 @@ await support.ConfigureAsync(settingsId, settings => settings with
     SearchTickets = settings.SearchTickets with { Limit = 20 }
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L14-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-configure-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L13-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-configure-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## The summary model

@@ -1,6 +1,6 @@
 ---
 title: Registration
-description: What a project needs, the id type, and every service AddTypeshift() and its chain register, with lifetimes.
+description: What a project needs, where ids come from, and every service AddTypeshift() and its chain register, with lifetimes.
 ---
 
 # Registration
@@ -43,33 +43,24 @@ Weboost.SchemaAnnotations then generates no `AIJsonSchemaCreateOptions.Annotated
 compiling. Delete your own class, and the one the package adds brings `Annotated` back.
 :::
 
-## The id type
+## Ids
 
-Settings ids and conversation ids share one type across the whole build. It is `Guid` unless `TypeshiftIdType` names
-another, set once in `Directory.Build.props`:
+Your app keeps settings and conversations under ids it already has, such as a customer's id or the key of a chat.
+You give them to a host in code, with `support.WithSettingsId(42)` and `support.WithConversationId(chat)`, and the
+id's type picks the store of that type, so one app can keep settings under `int` ids and conversations under `Guid`
+ids ([Ids of your own types](./settings-and-stores.md#ids-of-your-own-types)).
+Typeshift creates an id only when you keep every conversation, for a conversation a run starts without one
+([Keeping every conversation](./conversations.md#keeping-every-conversation)).
 
-<!-- snippet: id-type -->
-<a id='snippet-id-type'></a>
-```csproj
-<PropertyGroup>
-  <TypeshiftIdType>int</TypeshiftIdType>
-</PropertyGroup>
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Typeshift.Samples.Docs.csproj#L5-L9' title='Snippet source file'>snippet source</a> | <a href='#snippet-id-type' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
-
-`TypeshiftIdType` takes a C# keyword (`int`, `long`, `string`), the name of a type in the `System` namespace, such as
-`Guid`, or any other type's full name with its namespace ([TSH029](./diagnostics.md#tsh029)). A public agent needs a
-public id type, since its host members take ids of it ([TSH006](./diagnostics.md#tsh006)).
-
-Generated members take the id type, as in `RunAsync(input, settingsId: 42)`. The generator also writes aliases that
-close `ITypeshiftStore`, `ISettingsStore`, `IConversationStore`, `InMemoryTypeshiftStore`, `ConversationTracker` and
-`LiveRun` over it, so you use these names without a type argument. Your code chooses the ids. The library creates
-one only when you keep every conversation, for a conversation a run starts without an id
-([Keeping every conversation](./conversations.md#keeping-every-conversation)). If a referenced project was built with
-another id type, the analyzer reports [TSH021](./diagnostics.md#tsh021).
-In code, `WithSettingsId(id)` and `WithConversationId(id)` take ids of any type, each picking the store of its type:
-see [Ids of your own types](./settings-and-stores.md#ids-of-your-own-types).
+::: info `TypeshiftIdType` still sets the build's id type
+The MSBuild property `TypeshiftIdType` is still accepted, and a coming release removes it. It is `Guid` unless set.
+The container has the `ConversationTracker<TId>` of that type only, so a default app's tracker is
+`ConversationTracker<Guid>`. Its `TrySteer` and `WatchAsync` take ids of any type, but `Runs` and `WatchRunsAsync`
+list only the conversations under ids of the build's type. An app that lists its running conversations under `int`
+ids sets the property to `int`, as the docs samples do. The generated members also still take `settingsId` and
+`conversationId` parameters of that type, which the same release removes, so give ids with `WithSettingsId` and
+`WithConversationId` instead.
+:::
 
 Providers have an id type of their own, `TypeshiftProviderIdType`, which is `string` unless set. See
 [the provider id type](./models.md#the-provider-id-type).
@@ -151,7 +142,7 @@ and `anthropic`, and a run takes the client registered under its provider
 | `AgentHost<TAgent>` per agent | Transient, so it runs with the services of the scope it was resolved from ([Using an agent](./using-an-agent.md)) |
 | `TypeshiftRuntime`, which gives each host a scope of its own ([The runtime](#the-runtime)) | Singleton |
 | The JSON contexts of each assembly, which tools ask before the defaults | Singleton |
-| `ConversationTracker` and the core services runs need | Singleton |
+| `ConversationTracker<TId>` of the build's id type ([Ids](#ids)), and the core services runs need | Singleton |
 
 The generator writes a registration module for each project that declares toolsets or agents. `AddTypeshift()` runs the
 modules of the project that calls it and of every project it references that declares toolsets or agents. Each module
@@ -170,7 +161,7 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 
 | Call | Registers | Lifetime | Needed by |
 |---|---|---|---|
-| `WithStore<TStore>()` | `TStore`, and each of `IAgentSettingsStore`, `ISettingsStore`, `IConversationStore` and `ITypeshiftStore` it implements, resolving to it. Call it once for each class. | Singleton, so it takes no scoped services ([Implementing a store](./implementing-a-store.md#register-your-store)) | Keeping agents' own settings, settings ids and conversations across restarts. Without any store, they are kept in memory, and the first save logs a warning. |
+| `WithStore<TStore>()` | `TStore`, and each of `IAgentSettingsStore`, `ISettingsStore<TId>`, `IConversationStore<TId>` and `ITypeshiftStore<TId>` it implements, of any id type, resolving to it. Call it once for each class. | Singleton, so it takes no scoped services ([Implementing a store](./implementing-a-store.md#register-your-store)) | Keeping agents' own settings, settings ids and conversations across restarts. Without any store, they are kept in memory, and the first save logs a warning. |
 | `WithStore(store)` | The store you created yourself, as each store interface the instance implements. The container never disposes it. | Singleton, your app's | The same. |
 | `WithFileStore(Action<FileStoreOptions>? configure = null)` | The file store as `IAgentSettingsStore`, built by the container with your app's `TimeProvider`. By default, `Folder` is `typeshift` under `AppContext.BaseDirectory`; the settings files lie in its `settings` folder. | Singleton | Agents' own settings, kept in files ([Agent settings](./settings-and-stores.md#agent-settings)). |
 | `WithChatClientProvider<TProvider>()` | `TProvider`, and `IChatClientProvider` resolving to it | Scoped | Every run with a provider and a model, before any `IChatClient` you registered ([Registering clients](./models.md#registering-clients)). |
@@ -190,6 +181,5 @@ credentials, folder or rules, for example.
 - [Using an agent](./using-an-agent.md): injecting a host or resolving it from a scope.
 - [Running agents](./running-agents.md): running an agent.
 - [Settings and stores](./settings-and-stores.md): the store `WithStore<T>()` registers.
-- [Generated members](./generated-members.md#per-project): the module, the aliases and the interceptor the generator
-  writes.
+- [Generated members](./generated-members.md#per-project): the module and the interceptor the generator writes.
 - [Diagnostics](./diagnostics.md): what the analyzer reports when the setup is incomplete.

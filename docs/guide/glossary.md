@@ -19,13 +19,13 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | **Compaction** | Shrinking the history a model call sees once it nears a token limit. See [Compaction](./conversations.md#compaction). |
 | **Configurable** | A settings member or an option that stored settings or a run may change, marked in code with `Configurable(...)` or `WithConfigurableSettings<T>()`. Everything else keeps the value the code sets. |
 | **Context provider** | An `IContextProvider` that adds instructions, messages or tools to every run of the agents that use it. |
-| **Conversation** | The entries a run stores under a conversation id: inputs, model responses, tool results and run endings. See [Conversations](./conversations.md). |
+| **Conversation** | The entries runs store under a conversation id, which `WithConversationId` gives a host: inputs, model responses, tool results and run endings. See [Conversations](./conversations.md). |
 | **Declaration** | The chain of calls in a toolset's or agent's constructor, such as `AddTool(...).ReadOnly()`. The generator reads it at compile time, and at runtime it only records values. See [How Typeshift reads your code](./how-typeshift-reads-your-code.md). |
 | **Diagnostic** | A `TSHnnn` error or warning the analyzer reports for a mistake in a toolset, an agent or the setup. See [Diagnostics](./diagnostics.md). |
 | **Generated member** | A member the source generator writes into or next to your toolsets and agents. See [Generated members](./generated-members.md). |
 | **Handoff** | A tool, `handoff_to_{name}`, declared with `UseHandoff<T>()`, that hands the conversation to another agent. See [Multiple agents](./multi-agent.md#handoff). |
 | **Host** | Short for agent host, `AgentHost<TAgent>`. The application that uses Typeshift is "your app". |
-| **Id type** | The type of every settings id and conversation id in a build: `Guid` unless `TypeshiftIdType` names another. |
+| **Id type** | The type of a settings id or a conversation id, such as `int` or `Guid`, which picks the store that keeps it. One app may use several. See [Ids of your own types](./settings-and-stores.md#ids-of-your-own-types). |
 | **Kind** | The stable name a store keeps a document under. An agent's settings kind is its class name, or the name `WithStorageKind("...")` sets. |
 | **Layer** | One source of settings: the code defaults, the agent's code, the stored settings or the run. A higher layer overrides a lower one, and a conversation's mode sits between the stored settings and the run. |
 | **Middleware** | An `IRunMiddleware` around every run, or an `IToolMiddleware` around every tool call. |
@@ -39,12 +39,12 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | **Runtime** | `TypeshiftRuntime`, the root of Typeshift in your app, which gives you a host with a scope of its own. `TypeshiftRuntime.Create` builds one without a container, and `AddTypeshift()` registers one. See [The runtime](./registration.md#the-runtime). |
 | **Schema version** | The number in a stored document's JSON, `"$schemaVersion"`, that names the shape of the record that wrote it: 1 unless the agent's `WithSchemaVersion(n)` raises it. Reading a newer one fails. See [The stored JSON](./settings-and-stores.md#the-stored-json). |
 | **Settings** | An agent's generated `Settings` record, with exactly the values that may change at runtime. Stored as the agent's own, stored under a settings id, or passed for one run. |
-| **Settings id** | The id your app stores an agent's `Settings` under, such as one per customer, team or user. |
+| **Settings id** | The id your app stores an agent's `Settings` under, such as one per customer, team or user, and gives a host with `WithSettingsId`. |
 | **Settings record** | The record a tool receives its settings in, declared with `WithSettings<T>()` or `WithConfigurableSettings<T>()`. The model never sees it. |
 | **Stamp** | A hidden attribute the generator writes so that other assemblies can read a toolset's tools or a project's module. |
 | **Standing approval** | An approval for every later call of a tool in a conversation, given with `ApproveForConversation()`. |
 | **Steering** | Input a user sends while a run works, which you hand to that run with `ConversationTracker.TrySteer`. See [Steering](./conversations.md#steering). |
-| **Store** | What your app registers with `WithStore<T>()` to keep settings (`ISettingsStore`), conversations (`IConversationStore`) or both (`ITypeshiftStore`). See [Settings and stores](./settings-and-stores.md). |
+| **Store** | What your app registers with `WithStore<T>()` to keep settings (`ISettingsStore<TId>`), conversations (`IConversationStore<TId>`) or both (`ITypeshiftStore<TId>`). See [Settings and stores](./settings-and-stores.md). |
 | **Sub-agent** | Another agent offered as a tool with `UseAgent<T>()`. It works in a context of its own and answers with text. |
 | **Tool** | A static method that a toolset or an agent declares with `AddTool`, offered to the model as a generated `AIFunction`. |
 | **Tool list** | `ToolList<TToolset>`, the type `Include` and `Exclude` pick tools from. The generated `{Toolset}ToolList` gives it one property per tool. |

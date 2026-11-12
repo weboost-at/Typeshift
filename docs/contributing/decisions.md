@@ -805,9 +805,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   conversation, and the raw path keeps it. The settings members of a host with a settings id load, save and configure
   the id's settings in place of the agent's own (D66). Without any store, D69 keeps one store in memory per id type,
   and warns on the first write that one of them takes. The id parameters of the generated members stay, of the build's
-  id type (D11), until the docs and samples move to the scopes; a call that passes an id the host has already throws,
-  naming both. A copy runs in its host's scope and owns none of it (D76): disposing a copy leaves the scope alone,
-  so the copy works as long as the host it came from, and only a host the runtime created disposes the scope, once.
+  id type (D11), deprecated: the docs and samples use the scopes, and the removal comes next. A call that passes an id
+  the host has already throws, naming both. A copy runs in its host's scope and owns none of it (D76): disposing a copy
+  leaves the scope alone, so the copy works as long as the host it came from, and only a host the runtime created
+  disposes the scope, once.
 - **Where:** `Hosting/AgentHost.cs`, `Storage/StoreId.cs`, `Storage/StoreAccess.cs`, `Generated/AgentRuns.cs`,
   `Generated/ModuleRegistration.cs`, `DependencyInjection/TypeshiftBuilder.cs`, `Conversations/ConversationTracker.cs`,
   `Analysis/TypeshiftAnalyzer.cs`.

@@ -45,18 +45,7 @@ Build AI agents for .NET with just a few lines of code, and let the compiler cat
 dotnet add package Typeshift --prerelease
 ```
 
-The types are in the `Typeshift` namespace, so add `using Typeshift;` to your files. Turn on XML docs and pick your id
-type once, in a `Directory.Build.props` next to your solution:
-
-```xml
-<Project>
-  <PropertyGroup>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- Ids are Guids unless you name another type -->
-    <TypeshiftIdType>int</TypeshiftIdType>
-  </PropertyGroup>
-</Project>
-```
+The types are in the `Typeshift` namespace, so add `using Typeshift;` to your files.
 
 ### 1. Write a toolset
 
@@ -161,7 +150,7 @@ of a provider's model, and a store for settings and conversations:
 var services = new ServiceCollection();
 
 services.AddTypeshift()
-    .WithStore<InMemoryTypeshiftStore>()
+    .WithStore<InMemoryTypeshiftStore<int>>()
     .WithChatClientProvider<KeyedChatClientProvider>();
 
 services.AddKeyedSingleton<IChatClient>("openai", new CannedChatClient());
@@ -203,7 +192,7 @@ await using var scope = provider.CreateAsyncScope();
 var research = scope.ServiceProvider.GetRequiredService<AgentHost<ResearchAgent>>();
 var settingsId = 42;
 
-await research.ConfigureAsync(settingsId, settings => settings with
+await research.WithSettingsId(settingsId).ConfigureAsync(settings => settings with
 {
     Temperature = 0.4f,
     FindCompanies = settings.FindCompanies with { Limit = 2 }
@@ -215,7 +204,7 @@ await research.ConfigureAsync(settingsId, settings => settings with
 <!-- snippet: quickstart-run -->
 <a id='snippet-quickstart-run'></a>
 ```cs
-var answer = await research.RunAsync("Vienna", settingsId, conversationId: 1);
+var answer = await research.WithSettingsId(settingsId).WithConversationId(1).RunAsync("Vienna");
 
 Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
 ```

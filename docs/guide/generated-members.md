@@ -221,13 +221,15 @@ Every agent also gets:
 | `{Assembly}Module` (hidden) | A toolset or an agent in the assembly | Registers the assembly's toolsets, agents, hosts, JSON contexts and XML docs; see [Registration](./registration.md#what-addtypeshift-registers). |
 | `[GeneratedModule]` (hidden) | The same | Stamps the module, its version and the id type for the projects that reference the assembly. |
 | `TypeshiftSchemaAnnotations_{Assembly}` (hidden) | `GenerateDocumentationFile`, on unless the project turns it off, and `TypeshiftSchemaAnnotations`, unless `false` | Added by the package's build, not the generator. It carries the `[SchemaAnnotations]` attribute that makes Weboost.SchemaAnnotations collect the XML docs of your types; see [Registration](./registration.md#xml-docs-of-parameter-types). |
-| `ITypeshiftStore`, `ISettingsStore`, `IConversationStore`, `InMemoryTypeshiftStore`, `ConversationTracker`, `LiveRun`, `IChatClientProvider` | A reference to the package | `global using` aliases that close the library's types over the [id type](./registration.md#the-id-type), and `IChatClientProvider` over the [provider id type](./models.md#the-provider-id-type). |
+| `IChatClientProvider` | A reference to the package | A `global using` alias that closes `IChatClientProvider<TProviderId>` over the [provider id type](./models.md#the-provider-id-type). |
+| `ITypeshiftStore`, `ISettingsStore`, `IConversationStore`, `InMemoryTypeshiftStore`, `ConversationTracker`, `LiveRun` | The same | `global using` aliases over the build's [id type](./registration.md#ids), which a coming release removes. Name the id type instead, as in `ITypeshiftStore<int>`. |
 | The `AddTypeshift()` interceptor | A call of `services.AddTypeshift()` | See [Registration](./registration.md). |
 
 ## The agent host
 
-`AgentHost<TAgent>` runs one agent. Its own members are `Agent`, `CreateChatClientAsync`, `DisposeAsync` and
-`Dispose`, and the generator adds the typed runs and settings of each agent.
+`AgentHost<TAgent>` runs one agent. Its own members are `Agent`, `WithSettingsId`, `WithConversationId`,
+`CreateChatClientAsync`, `DisposeAsync` and `Dispose`, and the generator adds the typed runs and settings of each
+agent.
 
 ### The host's scope
 
@@ -236,14 +238,23 @@ resolved from. A host from `TypeshiftRuntime.Agent<TAgent>()` runs in a scope th
 ([The runtime](./registration.md#the-runtime)). Tools, the chat client provider, middleware, context providers,
 approval rules and the MCP tool provider all resolve from the host's scope.
 
-Every member that loads or saves settings needs an `ISettingsStore`, and every member that loads or appends to a
-conversation needs an `IConversationStore`. [Registering a store](./settings-and-stores.md#registering-a-store) says
-what happens without one.
+Every member that loads or saves settings under a settings id needs an `ISettingsStore<TId>` of the id's type, and
+every member that loads or appends to a conversation needs an `IConversationStore<TId>` of the conversation id's type.
+[Registering a store](./settings-and-stores.md#registering-a-store) says what happens without one.
 
 ### `Agent`
 
 `TAgent Agent { get; }` is the agent as its code declares it, a singleton. `Agent.Name` reads what `WithName`
 declared, and `Agent.Description` what `WithDescription` or the agent's `<summary>` did.
+
+### `WithSettingsId` and `WithConversationId`
+
+`AgentHost<TAgent> WithSettingsId<TId>(TId id)` and `AgentHost<TAgent> WithConversationId<TId>(TId id)`, where `TId`
+is any type but a nullable one.
+
+Both return a copy of the host with the id, in the host's scope, and throw an `ArgumentNullException` for a null id.
+[Ids of your own types](./settings-and-stores.md#ids-of-your-own-types) explains the copy and the store its id picks:
+an `ISettingsStore<TId>` for a settings id, an `IConversationStore<TId>` for a conversation id.
 
 ### `CreateChatClientAsync`
 
@@ -254,8 +265,10 @@ declared, and `Agent.Description` what `WithDescription` or the agent's `<summar
 ([Registering clients](./models.md#registering-clients)), and wraps it in the run's pipeline, with the agent's run
 options and the tool loop.
 
-Calling the client with those options runs and stores like `RunAsync`. `ChatOptions.ConversationId` names the
-conversation, as a string of the id type. Disposing the client does not dispose the one your provider returned.
+Calling the client with those options runs and stores like `RunAsync`, in the conversation of the host that resolved
+them. On options of a host without a conversation id, `ChatOptions.ConversationId` can name one, as the text of an id
+of the build's [id type](./registration.md#ids), which a coming release removes. Disposing the client does not
+dispose the one your provider returned.
 
 It throws an `InvalidOperationException` when no client is registered for the options' provider and model, and none
 for every agent.
@@ -270,8 +283,11 @@ use its scope. `Dispose` throws an `InvalidOperationException` when a scoped ser
 
 ### Typed members
 
-In these signatures, `TId` is the build's [id type](./registration.md#the-id-type) and `Settings` the agent's
-[generated `Settings` record](#settings). Every member takes a `CancellationToken ct = default` last.
+In these signatures, `TId` is the build's [id type](./registration.md#ids) and `Settings` the agent's
+[generated `Settings` record](#settings). Every member takes a `CancellationToken ct = default` last. Give the ids
+with [`WithSettingsId` and `WithConversationId`](#withsettingsid-and-withconversationid) and leave the `settingsId`
+and `conversationId` parameters out: they are still accepted, and a coming release removes them, along with the
+overloads marked below.
 
 | Member | Returns |
 |---|---|
@@ -283,17 +299,23 @@ In these signatures, `TId` is the build's [id type](./registration.md#the-id-typ
 | `RunStreamingAsync(ChatMessage input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
 | `RunStreamingAsync<TResult>(string input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `StreamingRun<TResult>` |
 | `RunStreamingAsync<TResult>(ChatMessage input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `StreamingRun<TResult>` |
-| `ResumeAsync(TId conversationId, TId? settingsId = null, Settings? settings = null)` | `Task<ChatResponse>` |
-| `ResumeStreamingAsync(TId conversationId, TId? settingsId = null, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
 | `ResumeAsync(Settings? settings = null)` | `Task<ChatResponse>` |
 | `ResumeStreamingAsync(Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
 | `ResolveOptionsAsync(TId? settingsId = null, Settings? settings = null)` | `Task<ChatOptions>` |
-| `LoadSettingsAsync(TId settingsId)` | `Task<Stored<Settings>>` |
-| `SaveSettingsAsync(TId settingsId, Settings settings, long loadedVersion)` | `Task<long>` |
-| `ConfigureAsync(TId settingsId, Func<Settings, Settings> configure)` | `Task<Settings>` |
 | `LoadSettingsAsync()` | `Task<Stored<Settings>>` |
 | `SaveSettingsAsync(Settings settings, long loadedVersion)` | `Task<long>` |
 | `ConfigureAsync(Func<Settings, Settings> configure)` | `Task<Settings>` |
+| `ResumeAsync(TId conversationId, TId? settingsId = null, Settings? settings = null)`, removed in a coming release | `Task<ChatResponse>` |
+| `ResumeStreamingAsync(TId conversationId, TId? settingsId = null, Settings? settings = null)`, removed in a coming release | `IAsyncEnumerable<ChatResponseUpdate>` |
+| `LoadSettingsAsync(TId settingsId)`, removed in a coming release | `Task<Stored<Settings>>` |
+| `SaveSettingsAsync(TId settingsId, Settings settings, long loadedVersion)`, removed in a coming release | `Task<long>` |
+| `ConfigureAsync(TId settingsId, Func<Settings, Settings> configure)`, removed in a coming release | `Task<Settings>` |
+
+::: warning Pass `settings` by name
+The id parameters come before `settings`, so a positional `RunAsync(input, run)` does not compile: write
+`RunAsync(input, settings: run)`. An id passed to a call on a host that has that id already throws an
+`ArgumentException`.
+:::
 
 ### `RunAsync`
 
@@ -301,10 +323,10 @@ In these signatures, `TId` is the build's [id type](./registration.md#the-id-typ
 It layers the agent's code, the stored settings, the mode the conversation's last run ended in, then `settings`
 ([Settings layering](./settings-and-stores.md#settings-layering)).
 
-With a `conversationId`, it stores the run as it goes ([What a run stores](#what-a-run-stores)). Without one, it
-stores nothing and offers no handoffs. If the model then calls a tool that requires approval and no rule or mode
-approves the call, it throws an `InvalidOperationException`. To avoid that, run with a conversation id, approve the
-call with a rule, or run in `Auto` mode.
+On a host with a conversation id, it stores the run as it goes ([What a run stores](#what-a-run-stores)). Without
+one, it stores nothing and offers no handoffs. If the model then calls a tool that requires approval and no rule or
+mode approves the call, it throws an `InvalidOperationException`. To avoid that, run with a conversation id, approve
+the call with a rule, or run in `Auto` mode.
 
 `RunAsync` returns the model's messages with the tool calls and results between them, and each message carries the
 answering agent's name as `AuthorName`.
@@ -321,12 +343,11 @@ running between them. The updates of a run with a conversation are also publishe
 
 ### `ResumeAsync` and `ResumeStreamingAsync`
 
-Both continue the conversation's interrupted run from its last stored step, without new input. They layer like
-`RunAsync` and store the continuation in the same conversation. A tool call that was still running when the run
-stopped is left out, so the model decides again and may call the tool a second time
-([Resuming](./conversations.md#resuming)). They throw an `InvalidOperationException` when the conversation has no
-interrupted run. The overloads without a conversation id resume the host's, from `WithConversationId(id)`, and throw
-when the host has none.
+Both continue the interrupted run of the host's conversation, the one `WithConversationId(id)` gave it, from its last
+stored step, without new input. They layer like `RunAsync` and store the continuation in the same conversation. A tool
+call that was still running when the run stopped is left out, so the model decides again and may call the tool a second
+time ([Resuming](./conversations.md#resuming)). They throw an `InvalidOperationException` when the host has no
+conversation id or the conversation has no interrupted run.
 
 ### `ResolveOptionsAsync`
 
@@ -338,16 +359,16 @@ sub-agents, the tools of `WithTools`, then the MCP servers' tools.
 
 ### `LoadSettingsAsync`
 
-`LoadSettingsAsync` loads the `Settings` stored under an id, with their version, or empty settings at version 0
-when none are stored. It layers nothing, so the record holds only what was stored. Without an id, it loads the
-agent's own settings, and `SaveSettingsAsync` and `ConfigureAsync` save them, through the `IAgentSettingsStore`. On a
-host from `WithSettingsId(id)`, the three take that id's settings instead.
+`LoadSettingsAsync` loads the agent's own settings, through the `IAgentSettingsStore`, or on a host from
+`WithSettingsId(id)` the settings stored under that id. It returns them with their version, or empty settings at
+version 0 when none are stored. It layers nothing, so the record holds only what was stored. `SaveSettingsAsync` and
+`ConfigureAsync` save the same settings.
 
 ### `SaveSettingsAsync`
 
-`SaveSettingsAsync` saves `Settings` under an id if the stored version is still `loadedVersion`, the version
-`LoadSettingsAsync` returned, or 0 when it loaded none. It returns the new version, which your app passes to its next
-save. It throws a `StoreConflictException` when another save came first.
+`SaveSettingsAsync` saves the settings `LoadSettingsAsync` loads, if the stored version is still `loadedVersion`:
+the version `LoadSettingsAsync` returned, or 0 when it loaded none. It returns the new version, which your app passes
+to its next save. It throws a `StoreConflictException` when another save came first.
 
 ### `ConfigureAsync`
 

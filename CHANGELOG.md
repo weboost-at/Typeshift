@@ -81,6 +81,14 @@ All notable changes to this project are documented here. The format follows
 - Without any store, settings and conversations are kept in memory, and the first save logs a warning, where every
   load and save threw. Once you register a store, an interface none of your stores implements still throws.
 
+### Deprecated
+
+- `TypeshiftIdType`, the `settingsId` and `conversationId` parameters of the generated members, their overloads that
+  take an id first, and the aliases `ITypeshiftStore`, `ISettingsStore`, `IConversationStore`,
+  `InMemoryTypeshiftStore`, `ConversationTracker` and `LiveRun` are removed in a coming release. Give ids with
+  `host.WithSettingsId(id)` and `host.WithConversationId(id)`, and name the id type, as in `ITypeshiftStore<int>`; the
+  docs and samples do both.
+
 ### Fixed
 
 - `RunAsync<T>` on a conversation that a handoff passed on, or one that hands off itself, asked the agent that

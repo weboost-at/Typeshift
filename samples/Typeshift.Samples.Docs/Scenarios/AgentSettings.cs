@@ -9,10 +9,9 @@ internal static class AgentSettings
     {
         await using var scope = provider.CreateAsyncScope();
         var support = scope.ServiceProvider.GetRequiredService<AgentHost<SupportAgent>>();
-        var settingsId = 42;
 
         // begin-snippet: configure-settings
-        await support.ConfigureAsync(settingsId, settings => settings with
+        await support.WithSettingsId(42).ConfigureAsync(settings => settings with
         {
             Provider = "anthropic",
             Model = "claude-sonnet-5-5",
@@ -22,19 +21,20 @@ internal static class AgentSettings
         // end-snippet
 
         // begin-snippet: load-and-save-settings
-        var stored = await support.LoadSettingsAsync(settingsId);
+        var host = support.WithSettingsId(42);
+        var stored = await host.LoadSettingsAsync();
 
         try
         {
-            await support.SaveSettingsAsync(settingsId, stored.Data with { Instructions = null }, stored.Version);
+            await host.SaveSettingsAsync(stored.Data with { Instructions = null }, stored.Version);
         }
         catch (StoreConflictException)
         {
-            stored = await support.LoadSettingsAsync(settingsId);
+            stored = await host.LoadSettingsAsync();
         }
         // end-snippet
 
-        var saved = await support.LoadSettingsAsync(settingsId);
+        var saved = await host.LoadSettingsAsync();
 
         if (saved.Data.Instructions is not null || saved.Data.SearchTickets.Limit != 20 || saved.Version != 2)
             throw new InvalidOperationException("Expected the configured settings, saved twice.");
@@ -42,14 +42,14 @@ internal static class AgentSettings
         var lost = saved.Data with { Instructions = "Lost." };
 
         await ExpectConflictAsync(
-            () => support.SaveSettingsAsync(settingsId, lost, stored.Version),
+            () => host.SaveSettingsAsync(lost, stored.Version),
             "Expected a stale version to conflict.");
 
         await ExpectConflictAsync(
-            () => support.SaveSettingsAsync(settingsId, lost, loadedVersion: 0),
+            () => host.SaveSettingsAsync(lost, loadedVersion: 0),
             "Expected a second first save to conflict.");
 
-        var after = await support.LoadSettingsAsync(settingsId);
+        var after = await host.LoadSettingsAsync();
 
         if (after.Version != saved.Version || after.Data.Instructions is not null)
             throw new InvalidOperationException("Expected a conflict to leave the settings as they were.");

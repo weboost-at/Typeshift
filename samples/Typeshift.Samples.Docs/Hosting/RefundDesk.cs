@@ -7,7 +7,7 @@ internal sealed class RefundDesk(AgentHost<SupportAgent> support, ICurrentCustom
 {
     public async Task<string> AnswerAsync(string question, CancellationToken ct)
     {
-        var answer = await support.RunAsync(question, settingsId: customer.Id, ct: ct);
+        var answer = await support.WithSettingsId(customer.Id).RunAsync(question, ct: ct);
         return answer.Text;
     }
 }

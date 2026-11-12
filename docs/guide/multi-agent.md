@@ -60,11 +60,12 @@ Run the calling agent like any other:
 <!-- snippet: agent-as-tool-run -->
 <a id='snippet-agent-as-tool-run'></a>
 ```cs
-var reports = scope.ServiceProvider.GetRequiredService<AgentHost<ReportAgent>>();
+var reports = scope.ServiceProvider.GetRequiredService<AgentHost<ReportAgent>>()
+    .WithSettingsId(settingsId);
 
-var report = await reports.RunAsync("Compare the robotics scenes of Vienna and Graz.", settingsId);
+var report = await reports.RunAsync("Compare the robotics scenes of Vienna and Graz.");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/MultiAgent.cs#L13-L17' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-as-tool-run' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/MultiAgent.cs#L13-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-as-tool-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A sub-agent needs a description and a lower_snake_case name ([TSH023](./diagnostics.md#tsh023)), because its name
@@ -209,15 +210,16 @@ other agents' handoffs. Each message carries its agent's name as `AuthorName`:
 <!-- snippet: handoff-run -->
 <a id='snippet-handoff-run'></a>
 ```cs
-var triage = scope.ServiceProvider.GetRequiredService<AgentHost<TriageAgent>>();
-var conversationId = 21;
+var triage = scope.ServiceProvider.GetRequiredService<AgentHost<TriageAgent>>()
+    .WithSettingsId(settingsId)
+    .WithConversationId(21);
 
-var first = await triage.RunAsync("I was charged twice.", settingsId, conversationId);
-var second = await triage.RunAsync("It was invoice 2024-17.", settingsId, conversationId);
+var first = await triage.RunAsync("I was charged twice.");
+var second = await triage.RunAsync("It was invoice 2024-17.");
 
 Console.WriteLine($"{second.Messages[^1].AuthorName}: {second.Text}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/MultiAgent.cs#L21-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-handoff-run' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/MultiAgent.cs#L22-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-handoff-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The `Settings` you pass to one run apply only to the agent you started it on. An agent it hands off to runs with its

@@ -59,24 +59,27 @@ When the model calls such a tool, the run ends without making the call. `Approva
 <!-- snippet: approval-run -->
 <a id='snippet-approval-run'></a>
 ```cs
-var answer = await support.RunAsync("Close ticket 1234.", conversationId: conversationId);
+var chat = support.WithConversationId(8);
+var answer = await chat.RunAsync("Close ticket 1234.");
 
 foreach (var request in answer.ApprovalRequests)
     if (request.ToolCall is FunctionCallContent call)
         Console.WriteLine($"Approve {call.Name}({string.Join(", ", call.Arguments!.Values)})?");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L16-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-run' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L15-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 If the model called other tools in the same response, those calls wait too, even when they need no approval, and run
 once your app has answered.
 
-Asking needs a [conversation](./conversations.md) to store the request in. A run without a conversation id throws,
-naming the tool. Run with one, approve the calls with a rule, or use [auto mode](#auto-mode).
+Asking needs a [conversation](./conversations.md) to store the request in, so the sample runs on a host from
+`WithConversationId`. A run without a conversation id throws, naming the tool. Run with one, approve the calls with a
+rule, or use [auto mode](#auto-mode).
 
 ## Approving or rejecting
 
-Answer each request in the conversation's next run with `CreateResponse(approved)`:
+Answer each request in the conversation's next run, on a host with the same conversation id, with
+`CreateResponse(approved)`:
 
 <!-- snippet: approval-resume -->
 <a id='snippet-approval-resume'></a>
@@ -85,7 +88,7 @@ var approvals = answer.ApprovalRequests.Select(request => request.CreateResponse
 
 var approval = new ChatMessage(ChatRole.User, [.. approvals]);
 
-var resumed = await support.RunAsync(approval, conversationId: conversationId);
+var resumed = await chat.RunAsync(approval);
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L24-L30' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-resume' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
@@ -93,7 +96,7 @@ var resumed = await support.RunAsync(approval, conversationId: conversationId);
 Approved calls run. A rejected call reaches the model as rejected, and the run goes on. To tell the model why, pass a
 reason with the rejection: `CreateResponse(approved: false, reason)`.
 
-Send the settings id again with the answers, because the
+When the run that asked had a settings id, run the answers on a host with that settings id as well, because the
 [conversation doesn't keep it](./conversations.md#tracking-a-conversation). Without it, the approved call runs on the
 agent's code instead of your customer's stored settings.
 
@@ -130,7 +133,7 @@ message. `Requests` says why each request is closed, as an `ApprovalClosedReason
 ```cs
 try
 {
-    await support.RunAsync(approval, conversationId: conversationId);
+    await chat.RunAsync(approval);
 }
 catch (ApprovalClosedException closed)
 {
@@ -158,11 +161,11 @@ with the conversation, so it holds across runs and processes:
 <!-- snippet: approval-for-conversation -->
 <a id='snippet-approval-for-conversation'></a>
 ```cs
-var again = await support.RunAsync("Close ticket 1234 again.", conversationId: conversationId);
+var again = await chat.RunAsync("Close ticket 1234 again.");
 
 var always = new ChatMessage(ChatRole.User, [again.ApprovalRequests[0].ApproveForConversation()]);
 
-await support.RunAsync(always, conversationId: conversationId);
+await chat.RunAsync(always);
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L47-L53' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-for-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
@@ -237,10 +240,11 @@ so this run can pass `Mode = AgentMode.Plan` and start in plan mode:
 <a id='snippet-switch-mode'></a>
 ```cs
 var plan = new TriageAgent.Settings { Mode = AgentMode.Plan };
+var chat = triage.WithConversationId(conversationId);
 
-var planned = await triage.RunAsync("Sort out ticket 1234.", settingsId, conversationId, plan);
+var planned = await chat.RunAsync("Sort out ticket 1234.", settings: plan);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Modes.cs#L16-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-switch-mode' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Modes.cs#L15-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-switch-mode' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A conversation keeps its mode. The agent's code and its stored settings decide only the mode of a conversation's first
@@ -282,7 +286,7 @@ Approve it with `ApprovePlan(mode)` to continue in the mode your app picks, `Def
 ```cs
 var approval = new ChatMessage(ChatRole.User, [proposal.ApprovePlan(AgentMode.Auto)]);
 
-await triage.RunAsync(approval, settingsId, conversationId);
+await chat.RunAsync(approval);
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Modes.cs#L29-L33' title='Snippet source file'>snippet source</a> | <a href='#snippet-approve-plan' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->

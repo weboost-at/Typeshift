@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Typeshift.Samples.Stores.EfCore;
 
 // begin-snippet: ef-core-load
-internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) : ITypeshiftStore
+internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) : ITypeshiftStore<int>
 {
     public async Task<StoredDocument?> LoadAsync(int id, string kind, CancellationToken ct)
     {

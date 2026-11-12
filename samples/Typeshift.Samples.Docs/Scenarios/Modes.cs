@@ -10,13 +10,13 @@ internal static class Modes
     {
         await using var scope = provider.CreateAsyncScope();
         var triage = scope.ServiceProvider.GetRequiredService<AgentHost<TriageAgent>>();
-        var settingsId = 42;
         var conversationId = 13;
 
         // begin-snippet: switch-mode
         var plan = new TriageAgent.Settings { Mode = AgentMode.Plan };
+        var chat = triage.WithConversationId(conversationId);
 
-        var planned = await triage.RunAsync("Sort out ticket 1234.", settingsId, conversationId, plan);
+        var planned = await chat.RunAsync("Sort out ticket 1234.", settings: plan);
         // end-snippet
 
         // begin-snippet: plan-mode
@@ -29,10 +29,10 @@ internal static class Modes
         // begin-snippet: approve-plan
         var approval = new ChatMessage(ChatRole.User, [proposal.ApprovePlan(AgentMode.Auto)]);
 
-        await triage.RunAsync(approval, settingsId, conversationId);
+        await chat.RunAsync(approval);
         // end-snippet
 
-        var store = provider.GetRequiredService<ITypeshiftStore>();
+        var store = provider.GetRequiredService<ITypeshiftStore<int>>();
         var entries = await store.LoadConversationAsync(conversationId, default);
 
         if (entries[^1].Mode != AgentMode.Auto)
