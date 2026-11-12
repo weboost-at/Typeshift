@@ -123,7 +123,8 @@ internal sealed class StoreAccess<TId>(IServiceProvider services, Func<string, T
 
         services.GetService<ILoggerFactory>()?.CreateLogger("Typeshift").LogWarning(
             "No store is registered, so Typeshift keeps settings and conversations in memory and loses them when the "
-            + "app stops: call WithStore<T>() after AddTypeshift() to keep them.");
+            + "app stops: call WithStore<T>() after AddTypeshift() to keep them, or WithFileStore() to keep agents' "
+            + "own settings in files.");
     }
 
     private static Stored<TData>? Read<TData>(StoredDocument? document) where TData : class, IStorable<TData> =>

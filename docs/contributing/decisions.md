@@ -779,10 +779,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   get-go". Without `WithStore<T>()`, every settings save, every run with an id and every approval threw.
 - **Decision:** when no `ISettingsStore`, `IConversationStore` or `IAgentSettingsStore` of the build's id type is
   registered, the store access keeps everything in an `InMemoryTypeshiftStore` of its own, a singleton like the
-  host's other services. The first save or append logs a warning, once, that names `WithStore<T>()` and says the data
-  is gone when the app stops; loads stay quiet, since a load of nothing loses nothing. Once any store is registered,
-  only registered stores serve, so an app that kept settings in a database and forgot a store of conversations still
-  gets the exception of D43 instead of conversations that vanish.
+  host's other services. The first save or append logs a warning, once, that names `WithStore<T>()`, and
+  `WithFileStore()` for agents' own settings, and says the data is gone when the app stops; loads stay quiet, since a
+  load of nothing loses nothing. Once any store is registered, only registered stores serve, so an app that kept
+  settings in a database and forgot a store of conversations still gets the exception of D43 instead of conversations
+  that vanish.
 - **Where:** `Storage/StoreAccess.cs`.
 - **Alternatives:** throwing as before, ceremony every first run hits; memory for each interface no registered store
   implements, which hides a forgotten store in an app that chose one; a warning at startup, which an app that never

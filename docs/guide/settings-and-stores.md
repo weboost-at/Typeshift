@@ -121,8 +121,8 @@ shows how to build one around that.
 :::
 
 Without any store, Typeshift keeps settings and conversations in memory, so everything works from the first run on,
-and the first save or stored run logs a warning that names `WithStore<T>()`. The memory is gone when the app stops, so
-register a store before your app keeps anything it must not lose.
+and the first save or stored run logs a warning that names `WithStore<T>()`, and `WithFileStore()` for agents' own
+settings. The memory is gone when the app stops, so register a store before your app keeps anything it must not lose.
 
 Once you register a store, Typeshift uses only the stores you registered. For each store interface, the last call
 that registers a store wins, so a second store that also implements it takes its place. A run applies the agents' own
