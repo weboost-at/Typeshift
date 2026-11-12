@@ -27,8 +27,18 @@ conversation id on to the provider. Settings ids and conversation ids are indepe
 both. A conversation does not remember a settings id, so pass it to every run of the conversation that should use the
 stored settings, the run that answers an approval included.
 
-You choose the conversation id, for example the key of your own record of the conversation, and pass the same id to
-every run of that conversation. The response's `ConversationId` names the conversation a run was stored in.
+## Conversation ids
+
+You pick a conversation id when a chat starts, usually the key of your own record of the chat, such as a row in a
+`Chats` table, and pass it to every run of that chat. Its type is the build's [id type](./registration.md#the-id-type),
+so with `Guid` ids and no record of your own, `Guid.CreateVersion7()` gives a new chat its id. On the
+[raw path](./running-agents.md#the-raw-path), `ChatOptions.ConversationId` carries it as a string. The response's
+`ConversationId` names the conversation a run was stored in.
+
+The store keeps a conversation's entries under its id, and `ConversationTracker` finds a running run by it to steer or
+watch it. Without a conversation id, and without [`PersistAllConversations`](#keeping-every-conversation), a run
+stores nothing, so the next one starts from scratch. A tool call that needs your approval makes it throw, it offers no
+handoffs, and `ConversationTracker` never sees it.
 
 ### Keeping every conversation
 
@@ -131,8 +141,12 @@ conversation is up to your app.
 
 ## Live runs
 
-`ConversationTracker` lists the runs with a conversation id that are going on in this process, each with its
-conversation, the agent that answers, its model and when it started:
+`ConversationTracker` tells your app which conversations have a run going on in this process. It also hands out each
+run's updates, so a second tab or a support dashboard can follow a chat that another request is answering
+([Live updates](#live-updates)).
+
+`Runs` lists the runs with a conversation id that are going on in this process, each with its conversation, the agent
+that answers, its model and when it started:
 
 <!-- snippet: live-sessions -->
 <a id='snippet-live-sessions'></a>
@@ -186,7 +200,8 @@ To stop a run, cancel its token. It is stored up to where it stopped.
 Typeshift publishes the updates of runs as they happen, and `WatchAsync` reads one conversation's updates until you
 cancel its token, which ends the loop with an `OperationCanceledException`, as with
 `WatchRunsAsync`. A streaming run publishes its updates as they stream; a run that does not stream publishes each
-model response and tool result as it stores it. A UI can forward them over SignalR, for example:
+model response and tool result as it stores it. A browser can follow them over SignalR, as
+[Follow a chat from elsewhere](./chat-endpoint.md#follow-a-chat-from-elsewhere) shows:
 
 <!-- snippet: watch-conversation -->
 <a id='snippet-watch-conversation'></a>
@@ -211,7 +226,7 @@ services.AddTypeshift()
         MaxPendingUpdates = 1024
     });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L50-L57' title='Snippet source file'>snippet source</a> | <a href='#snippet-realtime-options' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L49-L56' title='Snippet source file'>snippet source</a> | <a href='#snippet-realtime-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ::: warning Live updates stay in their process

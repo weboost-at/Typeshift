@@ -18,7 +18,6 @@ internal static class Registration
         // begin-snippet: registration
         services.AddTypeshift()
             .WithStore<EfTypeshiftStore>()
-            .WithChatClientProvider<KeyedChatClientProvider>()
             .WithRunMiddleware<BlockedTopics>()
             .WithToolMiddleware<AuditToolCalls>();
 
