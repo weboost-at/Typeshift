@@ -31,7 +31,7 @@ internal static class FileSettings
         var services = new ServiceCollection();
 
         services.AddTypeshift()
-            .WithFileSettings(options => options.Folder = folder)
+            .WithFileStore(store => store.Folder = folder)
             .WithChatClientProvider<KeyedChatClientProvider>();
         // end-snippet
 
