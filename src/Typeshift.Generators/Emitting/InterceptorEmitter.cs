@@ -11,8 +11,8 @@ internal static class InterceptorEmitter
 
     private const string Builder = "global::Typeshift.TypeshiftBuilder";
 
-    // D1: every call in the project registers this assembly's module and those of its references; D75: an app's call
-    // builds its services the same way
+    // D1: every call in the project registers this assembly's module and those of its references; D75: a runtime's
+    // call builds its services the same way
     public static string Emit(
         IReadOnlyList<InterceptModel> calls,
         IReadOnlyList<string> modules,
@@ -27,7 +27,7 @@ internal static class InterceptorEmitter
         using (writer.Block($"namespace {Names.GeneratedNamespace}"))
         using (writer.Block($"file static class {KnownTypes.RegistrationMethod}Interceptor"))
         {
-            foreach (var call in calls.Where(call => !call.IsApp))
+            foreach (var call in calls.Where(call => !call.IsRuntime))
             {
                 writer.Line(call.Attribute);
             }
@@ -51,7 +51,7 @@ internal static class InterceptorEmitter
                 writer.Line("return builder;");
             }
 
-            if (calls.Any(call => call.IsApp)) WriteApp(writer, calls);
+            if (calls.Any(call => call.IsRuntime)) WriteRuntime(writer, calls);
         }
 
         // Every generator that intercepts declares the attribute itself, file-local so the declarations never clash
@@ -73,18 +73,18 @@ internal static class InterceptorEmitter
             .ToString();
     }
 
-    private static void WriteApp(SourceWriter writer, IReadOnlyList<InterceptModel> calls)
+    private static void WriteRuntime(SourceWriter writer, IReadOnlyList<InterceptModel> calls)
     {
         writer.Line();
 
-        foreach (var call in calls.Where(call => call.IsApp))
+        foreach (var call in calls.Where(call => call.IsRuntime))
         {
             writer.Line(call.Attribute);
         }
 
         writer.Lines(
             $"""
-            public static global::{KnownTypes.App} {KnownTypes.AppMethod}(
+            public static global::{KnownTypes.Runtime} {KnownTypes.RuntimeMethod}(
                 global::Microsoft.Extensions.AI.IChatClient client,
                 global::System.Action<{Builder}>? configure = null)
             """);
@@ -93,7 +93,7 @@ internal static class InterceptorEmitter
         {
             writer.Line("var services = new global::Microsoft.Extensions.DependencyInjection.ServiceCollection();");
             writer.Line(
-                "return global::Typeshift.Generated.ModuleRegistration.CreateApp("
+                "return global::Typeshift.Generated.ModuleRegistration.CreateRuntime("
                 + $"services, {KnownTypes.RegistrationMethod}(services), client, configure);");
         }
     }

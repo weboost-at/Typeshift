@@ -226,14 +226,15 @@ Every agent also gets:
 
 ## The agent host
 
-`AgentHost<TAgent>` runs one agent. Its own members are `Agent` and `CreateChatClientAsync`, and the generator adds
-the typed runs and settings of each agent.
+`AgentHost<TAgent>` runs one agent. Its own members are `Agent`, `CreateChatClientAsync`, `DisposeAsync` and
+`Dispose`, and the generator adds the typed runs and settings of each agent.
 
 ### The host's scope
 
 `AddTypeshift()` registers a host per agent as transient, so a host runs with the services of the scope it was
-resolved from. Tools, the chat client provider, middleware, context providers, approval rules and the MCP tool
-provider all resolve from that scope.
+resolved from. A host from `TypeshiftRuntime.Agent<TAgent>()` runs in a scope the runtime created for it
+([The runtime](./registration.md#the-runtime)). Tools, the chat client provider, middleware, context providers,
+approval rules and the MCP tool provider all resolve from the host's scope.
 
 Every member that loads or saves settings needs an `ISettingsStore`, and every member that loads or appends to a
 conversation needs an `IConversationStore`. [Registering a store](./settings-and-stores.md#registering-a-store) says
@@ -258,6 +259,14 @@ conversation, as a string of the id type. Disposing the client does not dispose 
 
 It throws an `InvalidOperationException` when no client is registered for the options' provider and model, and none
 for every agent.
+
+### `DisposeAsync` and `Dispose`
+
+`ValueTask DisposeAsync()` and `void Dispose()` dispose the scope of a host that `TypeshiftRuntime.Agent<TAgent>()`
+created, and with it the scoped services its runs resolved. A host your container resolved, such as one injected into
+a request, owns nothing, so disposing it does nothing. Dispose a host once its runs and streams are done, since they
+use its scope. `Dispose` throws an `InvalidOperationException` when a scoped service implements only
+`IAsyncDisposable`, so prefer `await using`.
 
 ### Typed members
 
