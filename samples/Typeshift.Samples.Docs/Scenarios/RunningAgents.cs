@@ -34,7 +34,7 @@ internal static class RunningAgents
         // begin-snippet: run-with-settings-id
         var settingsId = 42;
 
-        var stored = await support.RunAsync("Where is my refund?", settingsId);
+        var stored = await support.WithSettingsId(settingsId).RunAsync("Where is my refund?");
         // end-snippet
 
         Expect(stored.Text == answer.Text, "a run with a settings id answers");
@@ -49,13 +49,13 @@ internal static class RunningAgents
             SearchArticles = new KnowledgeToolset.SearchArticlesOverrides { Language = "de" }
         };
 
-        var thorough = await support.RunAsync("Where is my refund?", settingsId, settings: run);
+        var thorough = await support.WithSettingsId(settingsId).RunAsync("Where is my refund?", settings: run);
         // end-snippet
 
         Expect(thorough.Text.Length > 0, "a run with settings answers");
 
         // begin-snippet: structured-output
-        var report = await support.RunAsync<RefundStatus>("Summarize the refund.", settingsId);
+        var report = await support.WithSettingsId(settingsId).RunAsync<RefundStatus>("Summarize the refund.");
 
         Console.WriteLine($"{report.Result.Invoice}: {report.Result.State}");
         // end-snippet
@@ -63,7 +63,7 @@ internal static class RunningAgents
         Expect(report.Result.State == RefundState.Approved, "structured output is parsed");
 
         // begin-snippet: structured-streaming
-        var summary = support.RunStreamingAsync<RefundStatus>("Summarize the refund.", settingsId);
+        var summary = support.WithSettingsId(settingsId).RunStreamingAsync<RefundStatus>("Summarize the refund.");
 
         await foreach (var update in summary)
             Console.Write(update.Text);
@@ -74,14 +74,14 @@ internal static class RunningAgents
         Expect(summary.Response.Result.State == RefundState.Approved, "streamed structured output is parsed");
 
         // begin-snippet: streaming
-        await foreach (var update in support.RunStreamingAsync("Where is my refund?", settingsId))
+        await foreach (var update in support.WithSettingsId(settingsId).RunStreamingAsync("Where is my refund?"))
             Console.Write(update.Text);
         // end-snippet
 
         Console.WriteLine();
 
         // begin-snippet: raw-path
-        var options = await support.ResolveOptionsAsync(settingsId, run);
+        var options = await support.WithSettingsId(settingsId).ResolveOptionsAsync(settings: run);
 
         using var client = await support.CreateChatClientAsync(options);
         var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "Where is my refund?")], options);

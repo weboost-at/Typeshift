@@ -5,10 +5,11 @@ description: Write the store that keeps your agents' settings and conversations 
 
 # Implementing a store
 
-Typeshift keeps your agents' settings through an `ISettingsStore` and your conversations through an
-`IConversationStore`, which you implement over your own database. This page walks through a store in the order you build
-it: you register it, implement its interfaces, load and save settings, append conversations, migrate older settings and
-check it. `InMemoryTypeshiftStore` is for tests and samples, so a production app writes its own.
+Typeshift keeps your agents' settings through an `ISettingsStore<TId>` and your conversations through an
+`IConversationStore<TId>`, which you implement over your own database for the type `TId` of your ids. This page walks
+through a store in the order you build it: you register it, implement its interfaces, load and save settings, append
+conversations, migrate older settings and check it. `InMemoryTypeshiftStore<TId>` is for tests and samples, so a
+production app writes its own.
 
 ## Register your store
 
@@ -21,7 +22,7 @@ runs often call it at the same time, so plan for that before you write its first
 - **Any method can run while others are running**, even on the same document or conversation. Keep no state between
   calls, or guard what you keep.
 - **It knows nothing of the caller.** Your app decides who may use a settings id or a conversation id before it
-  passes one to a run ([Conversation ids](./conversations.md#conversation-ids)), and the store keeps whatever it
+  gives one to a host ([Conversation ids](./conversations.md#conversation-ids)), and the store keeps whatever it
   is given.
 
 ::: warning A scoped DbContext breaks the store
@@ -43,10 +44,10 @@ services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite("Data Sou
 
 ## Implement the interfaces
 
-A store has five methods in two interfaces. `ISettingsStore` keeps settings under a settings id with the first two, and
-`IConversationStore` keeps conversations with the other three. The store on this page implements `ITypeshiftStore`,
-which is both. When settings and conversations live in different databases, implement each interface in a class of its
-own and [register each](./settings-and-stores.md#registering-a-store).
+A store has five methods in two interfaces. `ISettingsStore<TId>` keeps settings under a settings id with the first
+two, and `IConversationStore<TId>` keeps conversations with the other three. The store on this page implements
+`ITypeshiftStore<int>`, which is both, for `int` ids. When settings and conversations live in different databases,
+implement each interface in a class of its own and [register each](./settings-and-stores.md#registering-a-store).
 
 An app that keeps [each agent's own settings](./settings-and-stores.md#agent-settings) implements `IAgentSettingsStore`
 too, or alone when it has no settings ids. Its `LoadAsync(kind)` and `SaveAsync(kind, json, loadedVersion)` work as
@@ -59,7 +60,7 @@ customer's document as every customer's defaults. `VerifyAsync` checks for this.
 :::
 
 You implement all five. Every id has your store's id type, the type argument of its interfaces, and the samples on
-this page use `int`: runs with ids of that type reach your store, as
+this page use `int`: a host's ids of that type reach your store, as
 [Ids of your own types](./settings-and-stores.md#ids-of-your-own-types) shows. Each method takes a `CancellationToken`
 last.
 
@@ -132,7 +133,7 @@ the record as JSON before it calls `SaveAsync` and reads it back after `LoadAsyn
 numbers only. Keep each document in a row keyed by the id and the kind, with the JSON and the
 [version](#save-with-a-version):
 
-- **The id** is the settings id your app passed, such as a customer's.
+- **The id** is the settings id your app gave the host, such as a customer's.
 - **The kind** is the agent's class name, or what its `WithStorageKind("...")` sets. One settings id holds a document
   per agent of a run, sub-agents and handoffs included
   ([Sub-agents and handoffs](./settings-and-stores.md#sub-agents-and-handoffs)), so the id and the kind together are
@@ -145,7 +146,7 @@ Loading reads the row by its id and kind and returns its JSON and version as a `
 <!-- snippet: ef-core-load -->
 <a id='snippet-ef-core-load'></a>
 ```cs
-internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) : ITypeshiftStore
+internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) : ITypeshiftStore<int>
 {
     public async Task<StoredDocument?> LoadAsync(int id, string kind, CancellationToken ct)
     {

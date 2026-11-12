@@ -12,7 +12,7 @@ internal static class Quickstart
         var services = new ServiceCollection();
 
         services.AddTypeshift()
-            .WithStore<InMemoryTypeshiftStore>();
+            .WithStore<InMemoryTypeshiftStore<int>>();
 
         services.AddKeyedChatClient("openai", new CannedChatClient());
 
@@ -24,7 +24,7 @@ internal static class Quickstart
         var research = scope.ServiceProvider.GetRequiredService<AgentHost<ResearchAgent>>();
         var settingsId = 42;
 
-        await research.ConfigureAsync(settingsId, settings => settings with
+        await research.WithSettingsId(settingsId).ConfigureAsync(settings => settings with
         {
             Temperature = 0.4f,
             FindCompanies = settings.FindCompanies with { Limit = 2 }
@@ -32,7 +32,7 @@ internal static class Quickstart
         // end-snippet
 
         // begin-snippet: quickstart-run
-        var answer = await research.RunAsync("Vienna", settingsId, conversationId: 1);
+        var answer = await research.WithSettingsId(settingsId).WithConversationId(1).RunAsync("Vienna");
 
         Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
         // end-snippet
@@ -43,7 +43,7 @@ internal static class Quickstart
             FindCompanies = new CompanyToolset.FindCompaniesOverrides { Limit = 1 }
         };
 
-        await foreach (var update in research.RunStreamingAsync("Vienna", settingsId, settings: run))
+        await foreach (var update in research.WithSettingsId(settingsId).RunStreamingAsync("Vienna", settings: run))
             Console.Write(update.Text);
         // end-snippet
 
@@ -59,7 +59,7 @@ internal static class Quickstart
         if (resolved.Temperature != 0.3f || everyRun.Text.Length == 0)
             throw new InvalidOperationException("Expected the agent's own settings to apply.");
 
-        var stored = await research.LoadSettingsAsync(settingsId);
+        var stored = await research.WithSettingsId(settingsId).LoadSettingsAsync();
 
         if (stored.Data.Temperature != 0.4f) throw new InvalidOperationException("Expected the configured settings.");
     }
@@ -71,7 +71,7 @@ internal static class Quickstart
         var services = new ServiceCollection();
 
         services.AddTypeshift()
-            .WithStore<InMemoryTypeshiftStore>()
+            .WithStore<InMemoryTypeshiftStore<int>>()
             .WithChatClientProvider<KeyedChatClientProvider>();
 
         services.AddKeyedSingleton<IChatClient>("openai", new CannedChatClient());

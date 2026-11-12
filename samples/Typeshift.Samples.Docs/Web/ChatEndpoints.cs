@@ -25,11 +25,10 @@ internal static class ChatEndpoints
                 ICurrentCustomer customer,
                 CancellationToken ct) =>
             {
-                var response = await support.RunAsync(
-                    input.Text,
-                    settingsId: customer.Id,
-                    conversationId: chatId,
-                    ct: ct);
+                var response = await support
+                    .WithSettingsId(customer.Id)
+                    .WithConversationId(chatId)
+                    .RunAsync(input.Text, ct: ct);
 
                 return ChatReply.From(response);
             });
@@ -43,11 +42,10 @@ internal static class ChatEndpoints
                 ICurrentCustomer customer,
                 CancellationToken ct) =>
             {
-                var updates = support.RunStreamingAsync(
-                    input.Text,
-                    settingsId: customer.Id,
-                    conversationId: chatId,
-                    ct: ct);
+                var updates = support
+                    .WithSettingsId(customer.Id)
+                    .WithConversationId(chatId)
+                    .RunStreamingAsync(input.Text, ct: ct);
 
                 return TypedResults.ServerSentEvents(Events(updates));
             });
@@ -68,11 +66,10 @@ internal static class ChatEndpoints
 
                 try
                 {
-                    var resumed = await support.RunAsync(
-                        reply,
-                        settingsId: customer.Id,
-                        conversationId: chatId,
-                        ct: ct);
+                    var resumed = await support
+                        .WithSettingsId(customer.Id)
+                        .WithConversationId(chatId)
+                        .RunAsync(reply, ct: ct);
 
                     return TypedResults.Ok(ChatReply.From(resumed));
                 }

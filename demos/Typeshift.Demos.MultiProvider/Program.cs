@@ -69,8 +69,9 @@ await using var provider = services.BuildServiceProvider(new ServiceProviderOpti
 });
 
 await using var scope = provider.CreateAsyncScope();
-var assistant = scope.ServiceProvider.GetRequiredService<AgentHost<AssistantAgent>>();
+// The user's id is the settings id, so the user's choices apply to every run of this host
 var userId = Guid.Parse("00000000-0000-0000-0000-000000000042");
+var assistant = scope.ServiceProvider.GetRequiredService<AgentHost<AssistantAgent>>().WithSettingsId(userId);
 var chosen = ModelRef.Parse(
     args.FirstOrDefault(argument => !argument.StartsWith("--", StringComparison.Ordinal)) ?? catalog.DefaultModel);
 
@@ -78,7 +79,7 @@ Demo.Heading($"The user picks '{chosen}' in the settings UI");
 
 // CLUNKY 5: ConfigureAsync stores any provider and model; a provider that does not exist, or a model the provider
 // lacks, fails at the next run, not here
-var settings = await assistant.ConfigureAsync(userId, settings => settings with
+var settings = await assistant.ConfigureAsync(settings => settings with
 {
     Provider = chosen.Provider,
     Model = chosen.Model
@@ -86,26 +87,26 @@ var settings = await assistant.ConfigureAsync(userId, settings => settings with
 Demo.Note($"stored Settings.Provider = {settings.Provider}, Settings.Model = {settings.Model}");
 
 Demo.Heading("A run routes through the user's provider");
-var response = await assistant.RunAsync("What time is it in Vienna?", userId);
+var response = await assistant.RunAsync("What time is it in Vienna?");
 Console.WriteLine($"{response.Messages[^1].AuthorName}> {response.Text}");
 Demo.Note($"the provider reported model '{response.ModelId}' for '{chosen}'");
 
 Demo.Heading("One run on another provider, the stored choice untouched");
 var oneRun = new AssistantAgent.Settings { Provider = "canned", Model = "echo" };
-var canned1 = await assistant.RunAsync("What time is it in Vienna?", userId, settings: oneRun);
+var canned1 = await assistant.RunAsync("What time is it in Vienna?", settings: oneRun);
 Console.WriteLine($"{canned1.Messages[^1].AuthorName}> {canned1.Text}");
-var kept = (await assistant.LoadSettingsAsync(userId)).Data;
+var kept = (await assistant.LoadSettingsAsync()).Data;
 Demo.Note($"stored Settings are still {kept.Provider}/{kept.Model}");
 
 Demo.Heading("Streaming goes through the same provider");
-await Demo.StreamAsync(assistant.RunStreamingAsync("And in Tokyo?", userId), CancellationToken.None);
+await Demo.StreamAsync(assistant.RunStreamingAsync("And in Tokyo?"), CancellationToken.None);
 
 Demo.Heading("A mistyped model fails at run time, not when it was stored");
-await assistant.ConfigureAsync(userId, settings => settings with { Model = "does-not-exist" });
+await assistant.ConfigureAsync(settings => settings with { Model = "does-not-exist" });
 
 try
 {
-    await assistant.RunAsync("What time is it in Vienna?", userId);
+    await assistant.RunAsync("What time is it in Vienna?");
     Demo.Note("the provider accepted the model (it may fall back to a default of its own)");
 }
 catch (Exception exception)
@@ -113,7 +114,7 @@ catch (Exception exception)
     Demo.Note($"{exception.GetType().Name}: {exception.Message.ReplaceLineEndings(" ")[..Math.Min(160, exception.Message.Length)]}");
 }
 
-await assistant.ConfigureAsync(userId, settings => settings with { Model = chosen.Model });
+await assistant.ConfigureAsync(settings => settings with { Model = chosen.Model });
 
 Demo.Heading("What a settings UI can offer the user");
 var offered = await catalog.ListModelsAsync(chosen.Provider, CancellationToken.None);

@@ -12,9 +12,9 @@ builds those endpoints with ASP.NET Core minimal APIs, on the [runs](./running-a
 
 ## Post a message
 
-Each chat is a conversation, and the chat's id in the route is its conversation id. The endpoint runs the agent in
-that conversation, with the current customer's id as the [settings id](./running-agents.md#stored-settings), so the
-customer's stored settings apply:
+Each chat is a conversation, and the chat's id in the route is its conversation id. The endpoint runs the agent on a
+copy of the host with that conversation id and with the current customer's id as the
+[settings id](./running-agents.md#stored-settings), so the customer's stored settings apply:
 
 <!-- snippet: chat-endpoint -->
 <a id='snippet-chat-endpoint'></a>
@@ -29,16 +29,15 @@ chat.MapPost("/messages", async (
     ICurrentCustomer customer,
     CancellationToken ct) =>
 {
-    var response = await support.RunAsync(
-        input.Text,
-        settingsId: customer.Id,
-        conversationId: chatId,
-        ct: ct);
+    var response = await support
+        .WithSettingsId(customer.Id)
+        .WithConversationId(chatId)
+        .RunAsync(input.Text, ct: ct);
 
     return ChatReply.From(response);
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L17-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-endpoint' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L17-L35' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-endpoint' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - The host and `ICurrentCustomer` come from the request's scope, as
@@ -127,16 +126,15 @@ chat.MapPost("/messages/stream", (
     ICurrentCustomer customer,
     CancellationToken ct) =>
 {
-    var updates = support.RunStreamingAsync(
-        input.Text,
-        settingsId: customer.Id,
-        conversationId: chatId,
-        ct: ct);
+    var updates = support
+        .WithSettingsId(customer.Id)
+        .WithConversationId(chatId)
+        .RunStreamingAsync(input.Text, ct: ct);
 
     return TypedResults.ServerSentEvents(Events(updates));
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L38-L54' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-endpoint' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L37-L52' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-endpoint' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Each update becomes a `text` event with the text it adds, and each approval request an `approval` event:
@@ -158,7 +156,7 @@ private static async IAsyncEnumerable<SseItem<object>> Events(IAsyncEnumerable<C
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L89-L103' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-events' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L86-L100' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-events' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - Both events carry JSON, written with your app's JSON options: a `text` event holds its text as a JSON string, and an
@@ -179,7 +177,7 @@ group's filter does, and then streams the chat's text:
 <!-- snippet: conversation-hub -->
 <a id='snippet-conversation-hub'></a>
 ```cs
-internal sealed class ConversationHub(ConversationTracker tracker, IChats chats, ICurrentCustomer customer) : Hub
+internal sealed class ConversationHub(ConversationTracker<int> tracker, IChats chats, ICurrentCustomer customer) : Hub
 {
     public async IAsyncEnumerable<string> Watch(int chatId, [EnumeratorCancellation] CancellationToken ct)
     {
@@ -223,11 +221,10 @@ chat.MapPost("/approvals", async Task<IResult> (
 
     try
     {
-        var resumed = await support.RunAsync(
-            reply,
-            settingsId: customer.Id,
-            conversationId: chatId,
-            ct: ct);
+        var resumed = await support
+            .WithSettingsId(customer.Id)
+            .WithConversationId(chatId)
+            .RunAsync(reply, ct: ct);
 
         return TypedResults.Ok(ChatReply.From(resumed));
     }
@@ -238,7 +235,7 @@ chat.MapPost("/approvals", async Task<IResult> (
     }
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L56-L85' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-approval-endpoint' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L54-L82' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-approval-endpoint' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 An answer to a request that has closed, for example one the user approved in another tab already, throws
@@ -279,7 +276,7 @@ internal sealed record ApprovalAnswer(
   `Tool` the UI sent.
 - Post an answer to every pending approval at once, since the next run closes each request it has no answer for, and
   clear the UI's pending approvals when the user sends a new message instead.
-- The answering run passes the customer's settings id again
+- The answering run's host has the customer's settings id again
   ([Tracking a conversation](./conversations.md#tracking-a-conversation)).
 
 ::: warning A chat runs one answer at a time

@@ -49,25 +49,26 @@ await using var provider = services.BuildServiceProvider(new ServiceProviderOpti
 await using var scope = provider.CreateAsyncScope();
 scope.ServiceProvider.GetRequiredService<CurrentCustomer>().Set(CrmData.Ada, "Ada", "Business");
 
-var triage = scope.ServiceProvider.GetRequiredService<AgentHost<TriageAgent>>();
-var support = scope.ServiceProvider.GetRequiredService<AgentHost<SupportAgent>>();
-var billing = scope.ServiceProvider.GetRequiredService<AgentHost<BillingAgent>>();
-var knowledge = scope.ServiceProvider.GetRequiredService<AgentHost<KnowledgeAgent>>();
-var report = scope.ServiceProvider.GetRequiredService<AgentHost<ReportAgent>>();
+// Ada's id is the settings id of every agent: each has settings of its own under it
+var ada = CrmData.Ada;
+var triage = scope.ServiceProvider.GetRequiredService<AgentHost<TriageAgent>>().WithSettingsId(ada);
+var support = scope.ServiceProvider.GetRequiredService<AgentHost<SupportAgent>>().WithSettingsId(ada);
+var billing = scope.ServiceProvider.GetRequiredService<AgentHost<BillingAgent>>().WithSettingsId(ada);
+var knowledge = scope.ServiceProvider.GetRequiredService<AgentHost<KnowledgeAgent>>().WithSettingsId(ada);
+var report = scope.ServiceProvider.GetRequiredService<AgentHost<ReportAgent>>().WithSettingsId(ada);
 
 Demo.Heading("Each customer has settings per agent, under one settings id");
-var ada = CrmData.Ada;
 
 // The command line names one provider and model for every agent; offline each agent has a canned model of its own
 var pick = model is null ? (ModelRef?)null : ModelRef.Parse(model);
 var picked = pick?.Provider ?? "canned";
 
-await triage.ConfigureAsync(ada, settings => settings with { Provider = picked, Model = pick?.Model ?? "triage" });
-await billing.ConfigureAsync(ada, settings => settings with { Provider = picked, Model = pick?.Model ?? "billing" });
-await knowledge.ConfigureAsync(ada, settings => settings with { Provider = picked, Model = pick?.Model ?? "knowledge" });
-await report.ConfigureAsync(ada, settings => settings with { Provider = picked, Model = pick?.Model ?? "report" });
+await triage.ConfigureAsync(settings => settings with { Provider = picked, Model = pick?.Model ?? "triage" });
+await billing.ConfigureAsync(settings => settings with { Provider = picked, Model = pick?.Model ?? "billing" });
+await knowledge.ConfigureAsync(settings => settings with { Provider = picked, Model = pick?.Model ?? "knowledge" });
+await report.ConfigureAsync(settings => settings with { Provider = picked, Model = pick?.Model ?? "report" });
 
-var configured = await support.ConfigureAsync(ada, settings => settings with
+var configured = await support.ConfigureAsync(settings => settings with
 {
     Provider = picked,
     Model = pick?.Model ?? "support",
@@ -79,7 +80,8 @@ Demo.Note($"support: {configured.Serialize()}");
 
 Demo.Heading("Triage hands the conversation to billing, which asks before it refunds");
 var conversation = Guid.CreateVersion7();
-var first = await triage.RunAsync("Hi, I was charged twice for invoice INV-7.", ada, conversation);
+var chat = triage.WithConversationId(conversation);
+var first = await chat.RunAsync("Hi, I was charged twice for invoice INV-7.");
 Console.WriteLine($"{first.Messages[^1].AuthorName}> {first.Text}");
 
 foreach (var request in first.ApprovalRequests)
@@ -91,37 +93,37 @@ Demo.Heading("The host approves the refund for the rest of the conversation");
 if (first.ApprovalRequests.Count > 0)
 {
     var approvals = first.ApprovalRequests.Select(request => request.ApproveForConversation());
-    var refunded = await triage.RunAsync(new ChatMessage(ChatRole.User, [.. approvals]), ada, conversation);
+    var refunded = await chat.RunAsync(new ChatMessage(ChatRole.User, [.. approvals]));
     Console.WriteLine($"{refunded.Messages[^1].AuthorName}> {refunded.Text}");
 }
 else
 {
     // A small model asks the customer instead of calling issue_refund; then there is nothing to approve
-    var confirmed = await triage.RunAsync("Yes, please refund the duplicate charge.", ada, conversation);
+    var confirmed = await chat.RunAsync("Yes, please refund the duplicate charge.");
     Console.WriteLine($"{confirmed.Messages[^1].AuthorName}> {confirmed.Text}");
 
     if (confirmed.ApprovalRequests.Count > 0)
     {
         var approvals = confirmed.ApprovalRequests.Select(request => request.ApproveForConversation());
-        var refunded = await triage.RunAsync(new ChatMessage(ChatRole.User, [.. approvals]), ada, conversation);
+        var refunded = await chat.RunAsync(new ChatMessage(ChatRole.User, [.. approvals]));
         Console.WriteLine($"{refunded.Messages[^1].AuthorName}> {refunded.Text}");
     }
 }
 
 Demo.Heading("A follow-up reaches the agent that answered last, which hands back to support");
-var followUp = await triage.RunAsync("Thanks! Also, my ticket about logging in: is there a fix?", ada, conversation);
+var followUp = await chat.RunAsync("Thanks! Also, my ticket about logging in: is there a fix?");
 Console.WriteLine($"{followUp.Messages[^1].AuthorName}> {followUp.Text}");
 
 Demo.Heading("The MCP status tool, offered next to the toolsets");
-var status = await support.RunAsync("Is the login service down?", ada);
+var status = await support.RunAsync("Is the login service down?");
 Console.WriteLine($"{status.Messages[^1].AuthorName}> {status.Text}");
 
 Demo.Heading("Run middleware answers a blocked topic without a model");
-var blocked = await support.RunAsync("Can you read me my card number?", ada);
+var blocked = await support.RunAsync("Can you read me my card number?");
 Console.WriteLine($"{blocked.Messages[^1].AuthorName}> {blocked.Text}");
 
 Demo.Heading("The raw path: the options a run resolves, and the tools the support agent offers");
-var options = await support.ResolveOptionsAsync(ada);
+var options = await support.ResolveOptionsAsync();
 Demo.Note($"model {options.ModelId}, temperature {options.Temperature}, tools: {string.Join(", ", options.Tools!.Select(tool => tool.Name))}");
 Demo.Note($"instructions: {options.Instructions}");
 
@@ -131,7 +133,7 @@ var entries = await store.LoadConversationAsync(conversation, CancellationToken.
 var transcript = string.Join("\n", entries.SelectMany(entry => entry.Messages).Where(message => message.Text.Length > 0)
     .Select(message => $"{message.AuthorName ?? message.Role.Value}: {message.Text}"));
 
-var summary = await report.RunAsync<TicketSummary>($"Summarize this conversation:\n{transcript}", ada);
+var summary = await report.RunAsync<TicketSummary>($"Summarize this conversation:\n{transcript}");
 Demo.Note($"issue: {summary.Result.Issue}");
 Demo.Note($"outcome: {summary.Result.Outcome}, refund issued: {summary.Result.RefundIssued}");
 Demo.Note($"next: {summary.Result.NextStep}");

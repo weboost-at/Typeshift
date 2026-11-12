@@ -8,40 +8,40 @@ using Microsoft.Extensions.DependencyInjection;
 var services = new ServiceCollection();
 
 services.AddTypeshift()
-    .WithStore<InMemoryTypeshiftStore>()
+    .WithStore<InMemoryTypeshiftStore<Guid>>()
     .WithChatClientProvider<ScriptedChatClientProvider>();
 
 await using var provider = services.BuildServiceProvider();
 await using var research = provider.GetRequiredService<TypeshiftRuntime>().Agent<ResearchAgent>();
 
-var settingsId = Guid.CreateVersion7();
 var conversationId = Guid.CreateVersion7();
+var customer = research.WithSettingsId(Guid.CreateVersion7());
 
-await research.ConfigureAsync(settingsId, settings => settings with
+await customer.ConfigureAsync(settings => settings with
 {
     Temperature = 0.4f,
     FindCompanies = new CompanyToolset.FindCompaniesOverrides { Limit = 2 }
 });
 
-var answer = await research.RunAsync("Vienna", settingsId, conversationId);
+var answer = await customer.WithConversationId(conversationId).RunAsync("Vienna");
 Expect(answer.Text == "Found Danube Robotics, Prater Motion.", answer.Text);
 
-var entries = await provider.GetRequiredService<ITypeshiftStore>().LoadConversationAsync(conversationId, default);
+var entries = await provider.GetRequiredService<ITypeshiftStore<Guid>>().LoadConversationAsync(conversationId, default);
 Expect(entries is [.., { EndsRun: true }], $"{entries.Count} entries without an end");
 
 var streamed = new System.Text.StringBuilder();
 
-await foreach (var update in research.RunStreamingAsync("Graz", settingsId))
+await foreach (var update in customer.RunStreamingAsync("Graz"))
 {
     streamed.Append(update.Text);
 }
 
 Expect(streamed.ToString() == "Found Alpine Grippers.", streamed.ToString());
 
-var count = await research.RunAsync<CompanyCount>("Vienna", settingsId);
+var count = await customer.RunAsync<CompanyCount>("Vienna");
 Expect(count.Result == new CompanyCount("Vienna", 2), count.Text);
 
-var counting = research.RunStreamingAsync<CompanyCount>("Graz", settingsId);
+var counting = customer.RunStreamingAsync<CompanyCount>("Graz");
 await foreach (var _ in counting) { }
 Expect(counting.Response.Result == new CompanyCount("Graz", 1), counting.Response.Text);
 

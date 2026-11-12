@@ -14,13 +14,14 @@ internal static class Conversations
 
         // begin-snippet: conversation
         var conversationId = 7;
+        var chat = support.WithConversationId(conversationId);
 
-        await support.RunAsync("Where is my refund?", conversationId: conversationId);
-        await support.RunAsync("When will it arrive?", conversationId: conversationId);
+        await chat.RunAsync("Where is my refund?");
+        await chat.RunAsync("When will it arrive?");
         // end-snippet
 
         // begin-snippet: load-conversation
-        var store = provider.GetRequiredService<IConversationStore>();
+        var store = provider.GetRequiredService<IConversationStore<int>>();
         var entries = await store.LoadConversationAsync(conversationId, ct);
 
         Console.WriteLine($"{entries.Count} entries, {entries.Sum(entry => entry.Usage?.TotalTokenCount)} tokens");
@@ -29,7 +30,7 @@ internal static class Conversations
         if (entries.Count != 6) throw new InvalidOperationException("Expected two runs of three entries each.");
 
         // begin-snippet: live-sessions
-        var tracker = provider.GetRequiredService<ConversationTracker>();
+        var tracker = provider.GetRequiredService<ConversationTracker<int>>();
 
         foreach (var run in tracker.Runs)
             Console.WriteLine($"{run.Agent} is answering conversation {run.Conversation} on {run.Model}");
@@ -39,7 +40,7 @@ internal static class Conversations
         var watcher = WatchAsync(tracker, conversationId, watching.Token);
         var runWatcher = WatchRunsAsync(tracker, watching.Token);
 
-        await foreach (var update in support.RunStreamingAsync("Thanks!", settingsId, conversationId, ct: ct))
+        await foreach (var update in chat.WithSettingsId(settingsId).RunStreamingAsync("Thanks!", ct: ct))
             Console.Write(update.Text);
 
         Console.WriteLine();
@@ -51,7 +52,7 @@ internal static class Conversations
         var input = "Send me the invoice too.";
 
         if (!tracker.TrySteer(conversationId, input))
-            await support.RunAsync(input, settingsId, conversationId);
+            await chat.RunAsync(input);
         // end-snippet
 
         // A run cut off by a crash: its input is stored, nothing else
@@ -61,14 +62,14 @@ internal static class Conversations
         await store.AppendConversationAsync(interrupted, entry, ct);
 
         // begin-snippet: resume
-        var resumed = await support.ResumeAsync(interrupted, settingsId);
+        var resumed = await support.WithSettingsId(settingsId).WithConversationId(interrupted).ResumeAsync();
         // end-snippet
 
         if (resumed.Text.Length == 0) throw new InvalidOperationException("Expected the resumed run to answer.");
     }
 
     // Watches until the scenario stops it, as a UI would until its user leaves
-    private static async Task WatchAsync(ConversationTracker tracker, int conversationId, CancellationToken ct)
+    private static async Task WatchAsync(ConversationTracker<int> tracker, int conversationId, CancellationToken ct)
     {
         try
         {
@@ -83,7 +84,7 @@ internal static class Conversations
         }
     }
 
-    private static async Task WatchRunsAsync(ConversationTracker tracker, CancellationToken ct)
+    private static async Task WatchRunsAsync(ConversationTracker<int> tracker, CancellationToken ct)
     {
         try
         {

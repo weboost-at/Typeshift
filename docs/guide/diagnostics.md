@@ -92,8 +92,9 @@ id type as accessible as what exposes it. There are four cases:
 - A public agent makes its model or its summary model configurable, and the
   [provider id type](./models.md#the-provider-id-type) is less accessible. The agent's `Settings` record names the
   type for the model's provider.
-- The build's [id type](./registration.md#the-id-type) is less accessible than a public agent. The agent's host
-  members take settings ids and conversation ids of that type, so the generator keeps those members internal.
+- The build's [id type](./registration.md#ids) is less accessible than a public agent. The agent's host
+  members still take `settingsId` and `conversationId` parameters of that type, so the generator keeps those members
+  internal.
 
 ## TSH007
 
@@ -263,5 +264,5 @@ type. Pass a provider of that type, or implement `IChatClientProvider`, the alia
 - [Toolsets](./toolsets.md): the rules most toolset diagnostics guard.
 - [Agents](./defining-agents.md): the rules of an agent's declarations.
 - [Builders](./builders.md): every call the analyzer checks.
-- [Registration](./registration.md): the package, the id type and what each project needs.
+- [Registration](./registration.md): the package, ids and what each project needs.
 - [Native AOT](./native-aot.md): the JSON metadata [TSH027](#tsh027) asks for.

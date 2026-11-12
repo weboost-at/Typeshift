@@ -25,17 +25,7 @@ to the `Program.cs` of step 4. A solution of several projects needs the package 
 ([Project setup](./registration.md#project-setup)).
 
 The package turns on XML docs in your project, because Typeshift builds each tool's description for the model from
-them. Next to your solution, create a `Directory.Build.props` that sets the type of the ids you pass to runs. This
-tutorial uses `int`, which keeps the ids in its examples short:
-
-```xml
-<Project>
-  <PropertyGroup>
-    <!-- Ids are Guids unless you name another type. This sample uses int. -->
-    <TypeshiftIdType>int</TypeshiftIdType>
-  </PropertyGroup>
-</Project>
-```
+them.
 
 ## 2. Write a toolset
 
@@ -157,7 +147,7 @@ client of the agent's provider under the provider's name:
 var services = new ServiceCollection();
 
 services.AddTypeshift()
-    .WithStore<InMemoryTypeshiftStore>();
+    .WithStore<InMemoryTypeshiftStore<int>>();
 
 services.AddKeyedChatClient("openai", new CannedChatClient());
 
@@ -166,9 +156,9 @@ await using var provider = services.BuildServiceProvider(validateScopes: true);
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L11-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-clients' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`InMemoryTypeshiftStore` keeps settings and conversations in memory and loses them when the app stops. That is fine
-for this tutorial and for tests, and [Implementing a store](./implementing-a-store.md) shows how to keep them in your
-database.
+`InMemoryTypeshiftStore<int>` keeps settings and conversations under `int` ids, so the ids in this tutorial stay
+short. It holds them in memory and loses them when the app stops. That is fine for this tutorial and for tests, and
+[Implementing a store](./implementing-a-store.md) shows how to keep them in your database.
 
 `CannedChatClient` is a fake from the docs samples, so they run without a network. In your app, register your
 provider's client instead. For OpenAI, with the `Microsoft.Extensions.AI.OpenAI` package, that is:
@@ -192,8 +182,9 @@ and other providers, and [Registering clients](./models.md#registering-clients) 
 
 You configure and run the agent through its host, `AgentHost<ResearchAgent>`. A console app resolves it from a scope,
 and a web app takes it as a constructor parameter ([Using an agent](./using-an-agent.md)). Settings are stored under
-a settings id that you choose, for example one per customer. This code stores a limit of 2 and a temperature of 0.4
-under the id 42:
+a settings id that you choose, for example one per customer. `research.WithSettingsId(settingsId)` returns a copy of
+the host whose runs and settings members use the settings under that id, so this code stores a limit of 2 and a
+temperature of 0.4 under the id 42:
 
 <!-- snippet: quickstart-settings -->
 <a id='snippet-quickstart-settings'></a>
@@ -202,7 +193,7 @@ await using var scope = provider.CreateAsyncScope();
 var research = scope.ServiceProvider.GetRequiredService<AgentHost<ResearchAgent>>();
 var settingsId = 42;
 
-await research.ConfigureAsync(settingsId, settings => settings with
+await research.WithSettingsId(settingsId).ConfigureAsync(settings => settings with
 {
     Temperature = 0.4f,
     FindCompanies = settings.FindCompanies with { Limit = 2 }
@@ -212,13 +203,14 @@ await research.ConfigureAsync(settingsId, settings => settings with
 <!-- endSnippet -->
 
 `ConfigureAsync` loads the agent's generated `ResearchAgent.Settings` record, which holds only what the code marked
-`Configurable`, applies your change and saves it. Now run the agent with that settings id, in conversation 1. With
-the docs samples' fake client, it prints the line below; a real model words its answer its own way:
+`Configurable`, applies your change and saves it. Now run the agent with that settings id, and add
+`WithConversationId(1)` so the run takes place in conversation 1. With the docs samples' fake client, it prints the
+line below; a real model words its answer its own way:
 
 <!-- snippet: quickstart-run -->
 <a id='snippet-quickstart-run'></a>
 ```cs
-var answer = await research.RunAsync("Vienna", settingsId, conversationId: 1);
+var answer = await research.WithSettingsId(settingsId).WithConversationId(1).RunAsync("Vienna");
 
 Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
 ```
@@ -232,7 +224,7 @@ research_agent: Found Danube Robotics and Prater Motion.
 The model called `find_companies` with `Vienna`, and the tool ran with the stored limit of 2, which wins over the
 agent's 3 and the record's 5. Vienna has only two active companies, so both fit.
 
-Because the run passed conversation id 1, the store kept the conversation, and a later run with that id continues it
+Because the run had conversation id 1, the store kept the conversation, and a later run with that id continues it
 ([Conversations](./conversations.md)).
 
 A run can also pass settings of its own, for that run only. With a limit of 1, the tool returns one company:
@@ -245,7 +237,7 @@ var run = new ResearchAgent.Settings
     FindCompanies = new CompanyToolset.FindCompaniesOverrides { Limit = 1 }
 };
 
-await foreach (var update in research.RunStreamingAsync("Vienna", settingsId, settings: run))
+await foreach (var update in research.WithSettingsId(settingsId).RunStreamingAsync("Vienna", settings: run))
     Console.Write(update.Text);
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L40-L48' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run-settings' title='Start of snippet'>anchor</a></sup>
@@ -265,7 +257,7 @@ Your app implements a few interfaces when it needs the feature that uses them:
 | Interface | Needed for | Read |
 |---|---|---|
 | `IChatClientProvider` | A client that depends on more than its provider, such as a key per customer. | [Your own provider](./models.md#your-own-provider) |
-| `ITypeshiftStore`, or `ISettingsStore` and `IConversationStore` | Settings ids and conversation ids; `IAgentSettingsStore` for each agent's own settings. A singleton; `InMemoryTypeshiftStore` serves tests and samples. | [Implementing a store](./implementing-a-store.md) |
+| `ITypeshiftStore<TId>`, or `ISettingsStore<TId>` and `IConversationStore<TId>` | Settings and conversations under ids of your type `TId`; `IAgentSettingsStore` for each agent's own settings. A singleton; `InMemoryTypeshiftStore<TId>` serves tests and samples. | [Implementing a store](./implementing-a-store.md) |
 | `IContextProvider` | Memory, documents or other data added to every run of an agent. | [Context providers](./middleware.md#context-providers) |
 | `IToolApprovalRule`, `IRunMiddleware`, `IToolMiddleware`, `IMcpToolProvider` | Approval rules, middleware and MCP servers. | [The chain](./registration.md#the-chain) |
 
