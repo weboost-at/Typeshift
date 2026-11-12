@@ -321,4 +321,71 @@ public static class AgentSources
             }
         }
         """;
+
+    // D75: an app without a container of its own
+    public const string App =
+        """
+        using Typeshift;
+        using Microsoft.Extensions.AI;
+
+        namespace Demo;
+
+        internal static class Program
+        {
+            public static TypeshiftApp Start(IChatClient client) =>
+                TypeshiftApp.Create(client, typeshift => typeshift.WithStore<InMemoryTypeshiftStore>());
+        }
+        """;
+
+    // D75: an app whose only call is TypeshiftApp.Create, through the given receiver, with no AddTypeshift()
+    public static string AppOnly(string receiver) =>
+        $$"""
+        #pragma warning disable CS1591
+
+        using Typeshift;
+        using Microsoft.Extensions.AI;
+
+        namespace Demo;
+
+        public partial class SupportAgent : Agent
+        {
+            public SupportAgent() => WithChatOptions().WithModel("openai", "fast-model");
+        }
+
+        internal static class Program
+        {
+            public static TypeshiftApp Start(IChatClient client) => {{receiver}}.Create(client);
+        }
+        """;
+
+    // A Create method of the project's own, which the generator leaves alone
+    public const string OwnCreate =
+        """
+        using Microsoft.Extensions.AI;
+
+        namespace Demo;
+
+        public static class Factory
+        {
+            public static IChatClient Create(IChatClient client) => client;
+        }
+
+        internal static class Program
+        {
+            public static IChatClient Start(IChatClient client) => Factory.Create(client);
+        }
+        """;
+
+    // D75: a call bound at run time, which the library's body answers
+    public const string DynamicApp =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class Program
+        {
+            public static TypeshiftApp Start(dynamic client) => TypeshiftApp.Create(client);
+        }
+        """;
 }

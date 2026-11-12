@@ -62,7 +62,8 @@ what does not parse (D2).
    stays cached while what it offers stays the same.
 6. **Registration.** `Emitting/ModuleEmitter.cs` writes one module, stamped with `[GeneratedModule]`, per assembly
    that declares toolsets or agents. `Emitting/InterceptorEmitter.cs` intercepts every `AddTypeshift()` call and
-   registers the core services, the project's module and its references' modules (D1).
+   registers the core services, the project's module and its references' modules (D1). It intercepts every
+   `TypeshiftApp.Create` call too, which builds a container of the same registration (D75).
 
 The analyzer checks what spans declarations in a compilation-end action: unique tool names, the references' stamps
 included, and references without a module. Calls the generator cannot read (TSH014, TSH015) it checks in an

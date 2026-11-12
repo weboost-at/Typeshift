@@ -70,6 +70,36 @@ and for a store of another id type it reports [TSH028](./diagnostics.md#tsh028).
 Providers have an id type of their own, `TypeshiftProviderIdType`, which is `string` unless set. See
 [the provider id type](./models.md#the-provider-id-type).
 
+## Without a container
+
+A console tool or a script without a container of its own creates a `TypeshiftApp`. It holds every agent of the
+project and of the projects it references, and one chat client serves all their runs:
+
+<!-- snippet: typeshift-app -->
+<a id='snippet-typeshift-app'></a>
+```cs
+await using var app = TypeshiftApp.Create(client);
+
+var research = app.Agent<ResearchAgent>();
+var answer = await research.RunAsync("Vienna");
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/NoContainer.cs#L11-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-typeshift-app' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+`TypeshiftApp.Create(client, typeshift => typeshift.WithStore<MyStore>())` takes the rest of the chain, as
+`AddTypeshift()` does. The generator intercepts the call, so write it as `TypeshiftApp.Create(...)`: a call through
+`using static` or a method group is not intercepted and throws. Create the app once and keep it while your app runs.
+Disposing it disposes its services, but not the client. An app with a container calls `services.AddTypeshift()`
+instead, and so does one whose tools or stores need services of its own.
+
+::: warning The app's scoped services live as long as the app
+The app has one scope for its whole lifetime. The services the chain registers as scoped, such as the
+`WithChatClientProvider<T>()` provider, approval rules, middleware and the MCP tool provider, and the scoped services
+your tools resolve, are created once and shared by every run, concurrent runs included. An app that needs a scope per
+request, such as a web app with a customer per request, calls `services.AddTypeshift()` and resolves each host from the
+request's scope ([Using an agent](./using-an-agent.md)).
+:::
+
 ## What `AddTypeshift()` registers
 
 A typical registration, with the chain:

@@ -680,6 +680,31 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** carried (v0 D26). Without `WithStore<T>()`, runs without a settings or conversation id work; everything
   that loads or saves throws, naming `WithStore<T>()` and the store interface it needs (D38).
 
+### D75. An app without a container creates a TypeshiftApp
+
+- **Status:** owner.
+- **Context:** the owner asked for less ceremony, "Wolverine-style", and chose `TypeshiftApp.Create` over a factory on
+  each agent. A first run took a `ServiceCollection`, `AddTypeshift()`, a provider, a scope and a host from it.
+- **Decision:** `TypeshiftApp.Create(client, configure)` returns an app that owns a container and one scope, and
+  `app.Agent<TAgent>()` returns a host from that scope. With one scope for the app's lifetime, its scoped services
+  (the chat client provider, approval rules, middleware, the MCP tool provider and what tools resolve) act as
+  singletons of the app, shared by concurrent runs; an app that needs a scope per request uses `AddTypeshift()`. The
+  generator intercepts `Create` as it does `AddTypeshift()` (D1): the interceptor builds a `ServiceCollection`,
+  registers the core services and the modules with its own `AddTypeshift`, and `ModuleRegistration.CreateApp`
+  registers the client as an instance for every agent (D63), runs `configure` on the chain and builds the provider
+  with scope validation. The container never disposes an instance, so the client outlives the app. Disposing the app
+  disposes the provider even when disposing the scope throws. The generator reads only a `Create` whose receiver
+  names `TypeshiftApp` and skips a call bound at run time, such as one with a `dynamic` argument; a call it did not
+  intercept throws, saying how to call it. The generator's pass binds the call to its sole candidate when the
+  `configure` lambda names an alias it has not written yet. The library references
+  `Microsoft.Extensions.DependencyInjection`, the container, which it did not before.
+- **Where:** `Hosting/TypeshiftApp.cs`, `Generated/ModuleRegistration.cs`, `Parsing/InterceptParser.cs`,
+  `Emitting/InterceptorEmitter.cs`.
+- **Alternatives:** a generated `Create` on each agent, which the owner turned down, and whose agents would not share
+  a store or a tracker; a library `Create` that registers nothing, since only the generator knows the project's
+  modules; a container of the library's own, which would serve neither scoped services nor the app's;
+  `AddChatClient(client)`, whose factory makes the container own the client and dispose it with the app.
+
 ### D44. Settings records serialize themselves
 
 - **Status:** carried (v0 D27), extended.
