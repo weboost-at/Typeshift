@@ -92,7 +92,7 @@ A page that grows past a few screens usually explains a fact another page owns. 
 |---|---|---|---|
 | Tutorial | "Show me it working." Only [Getting started](../guide/getting-started.md). | `docs/guide/` | none |
 | Concept | "How does this fit together, and why?" | `docs/guide/`, next to the guides it explains | [concept](#concept) |
-| Guide | "How do I use this feature?" | `docs/guide/`, in the group of its feature, or in the Introduction when every app needs it, such as implementing a store | [guide](#guide) |
+| Guide | "How do I use this feature?" | `docs/guide/`, in the group of its feature, or in the Introduction when every app needs it, such as registration | [guide](#guide) |
 | Reference | "What exactly does this call take and do?" | `docs/guide/`, the Reference group | [reference](#reference) |
 | Contributing | "How do I work on the repository?" | `docs/contributing/` | [concept](#concept) |
 

@@ -81,11 +81,31 @@ internal static class AgentEmitter
 
                 writer.Line();
                 ToolsetEmitter.WriteTools(writer, agent.Tools);
-            },
-            writer =>
-            {
-                if (agent.IsReachable) WriteHostMembers(writer, agent, idType, idTypeIsPublic);
             });
+    }
+
+    // D12: the typed members of the agent's host, in the global namespace, so every file sees them whatever it
+    // imports; null for an agent the generated code cannot reach
+    public static string? EmitHost(AgentModel agent, string idType, bool idTypeIsPublic)
+    {
+        if (!agent.IsReachable) return null;
+
+        var writer = new SourceWriter();
+        writer.Line(SourceWriter.Header);
+
+        WriteHostMembers(writer, agent, idType, idTypeIsPublic);
+        return writer.ToString();
+    }
+
+    // D12: each part of the agent's full name prefixed by its length, so no two agents share the global name
+    public static string HostClassName(TypeModel agent)
+    {
+        var parts = (agent.Namespace?.Split('.') ?? [])
+            .Concat(agent.ContainingTypes.Select(container => container.Substring(container.LastIndexOf(' ') + 1)))
+            .Append(agent.Name)
+            .Select(part => part.Replace("@", ""));
+
+        return "TypeshiftHost_" + string.Concat(parts.Select(part => $"{part.Length}{part}"));
     }
 
     // The user's own Configure{Tool}() wins; a tool without settings has nothing to configure
@@ -471,7 +491,6 @@ internal static class AgentEmitter
         }
     }
 
-    // D12: the typed members of the agent's host, next to the agent in its namespace
     private static void WriteHostMembers(SourceWriter writer, AgentModel agent, string idType, bool idTypeIsPublic)
     {
         // D6: a public agent's host members cannot take ids of a less accessible type (TSH006)
@@ -488,7 +507,10 @@ internal static class AgentEmitter
         writer.Line();
         Docs.WriteSummary(writer, $"The runs and stored settings of <see cref=\"{agent.Type.FullName}\"/>.");
 
-        using (writer.Block($"{access} static class {agent.Type.FlatName}HostExtensions"))
+        // Hidden, so the class stays out of type completion in every file; the members stay in member completion
+        writer.Line(Names.Hidden);
+
+        using (writer.Block($"{access} static class {HostClassName(agent.Type)}"))
         using (writer.Block($"extension({host} host)"))
         {
             const string Answer = "The response; its messages carry the agent's name as their author.";

@@ -21,7 +21,7 @@ runs often call it at the same time, so plan for that before you write its first
 - **Any method can run while others are running**, even on the same document or conversation. Keep no state between
   calls, or guard what you keep.
 - **It knows nothing of the caller.** Your app decides who may use a settings id or a conversation id before it
-  passes one to a run ([Conversations](./conversations.md#tracking-a-conversation)), and the store keeps whatever it
+  passes one to a run ([Conversation ids](./conversations.md#conversation-ids)), and the store keeps whatever it
   is given.
 
 ::: warning A scoped DbContext breaks the store
@@ -38,7 +38,7 @@ This page builds a store on Entity Framework Core. Register its context factory 
 ```cs
 services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite("Data Source=typeshift.db"));
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L44-L46' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L43-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Implement the interfaces

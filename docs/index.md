@@ -39,11 +39,11 @@ features:
     link: /guide/conversations
     linkText: Keep a conversation
   - title: Approve, plan and delegate
-    details: Tool approval, plan mode, sub-agents, compaction and MCP servers.
+    details: Pause a run until your app approves a tool call, let the model plan before it changes anything, and hand work to other agents.
     link: /guide/tool-approval
     linkText: Approve tool calls
   - title: Publish with Native AOT
-    details: The generator writes every path a run takes, so nothing reflects, and the analyzer reports a tool type that lacks JSON metadata.
+    details: The generator writes the code every run takes, so nothing reflects over your types, and the build names each tool type that still needs JSON metadata.
     link: /guide/production#native-aot
     linkText: Publish with AOT
 ---

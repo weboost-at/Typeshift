@@ -20,7 +20,7 @@ so you fix it there instead of debugging a compiler error inside generated code.
 | [TSH008](#tsh008) | Error | Tool name is not lower_snake_case |
 | [TSH009](#tsh009) | Warning | Tool has no description |
 | [TSH010](#tsh010) | Warning | Tool does not take its settings |
-| [TSH011](#tsh011) | Warning | Tool relies on XML docs that are not generated |
+| [TSH011](#tsh011) | Warning | XML docs are not generated |
 | [TSH012](#tsh012) | Error | Configurable member has a type settings cannot store |
 | [TSH013](#tsh013) | Error | Configurable member cannot be set |
 | [TSH014](#tsh014) | Error | Declaration outside the constructor |
@@ -125,9 +125,10 @@ reach nothing. Add the parameter to the method.
 
 ## TSH011
 
-**Tool relies on XML docs that are not generated.** The compiler reads XML docs only with
-`GenerateDocumentationFile`, so set it in the project. `WithDescription` is a way around it only when the parameters
-have no `<param>` docs, since it replaces only the `<summary>`.
+**XML docs are not generated.** A tool or an agent takes its description from its `<summary>`, but the compiler reads
+XML docs only with `GenerateDocumentationFile`, which the package turns on, so your project turned it off. Remove that
+setting. `WithDescription` is a way around it only when a tool's parameters have no `<param>` docs, since it replaces
+only the `<summary>`.
 
 ## TSH012
 
@@ -199,9 +200,9 @@ project or across a project and the projects it references. Give one of them a `
 ## TSH023
 
 **Agent cannot be a tool or a handoff target.** The diagnostic sits on `UseAgent<T>()` or `UseHandoff<T>()` and is
-about the agent `T`. The model needs that agent's `WithDescription` to decide when to call it, and a lower_snake_case
-name to call it by: its class name in snake_case, unless `WithName(...)` sets another. Add a `WithDescription(...)` to
-that agent's constructor, or fix its name. An agent of a referenced project is checked too.
+about the agent `T`. The model needs that agent's description to decide when to call it, and a lower_snake_case name
+to call it by: its class name in snake_case, unless `WithName(...)` sets another. Give that agent a `<summary>` or a
+`WithDescription(...)` in its constructor, or fix its name. An agent of a referenced project is checked too.
 
 ## TSH024
 

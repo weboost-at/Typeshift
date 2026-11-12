@@ -79,8 +79,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** carried (v0 D2), extended.
 - **Decision:** per toolset a `{Tool}Overrides` record per tool with configurable settings and a `{Toolset}ToolList`
   extension block; per agent the nested `Settings` record, a private `Configure{Tool}()` per offered tool with
-  settings and an `{Agent}HostExtensions` extension block; per assembly a module; per project the id aliases. Nested
-  classes join their containers' names with `_`; keywords get `@`. A clash with a user member is TSH018.
+  settings and a `TypeshiftHost_{full name}` extension block in the global namespace (D12); per assembly a module;
+  per project the id aliases. Nested classes join their containers' names with `_`; keywords get `@`. A clash with a
+  user member is TSH018.
 - **Agents:** besides those, the hidden `Declaration` override, one private nested class `TypeshiftGenerated` (the
   declaration, the builders and the per-agent store of `Configure{Tool}()` values) and one private field
   `_typeshift`, so an agent gains as few names as possible. A tool's member in `Settings` named like an option or a
@@ -150,6 +151,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** `extension(AgentHost<TAgent> host)` per agent, in the agent's assembly, with `RunAsync`, `RunAsync<T>`,
   `RunStreamingAsync`, `ResumeAsync`, `ResumeStreamingAsync`, `LoadSettingsAsync`, `SaveSettingsAsync`, `ConfigureAsync`
   and `ResolveOptionsAsync`. They call hidden library methods, so the logic lives and is tested in the library.
+- **Namespace:** the blocks live in the global namespace, in a file of their own per agent, so every file has them in
+  scope. In the agent's namespace, a file that named the agent in full or through an alias saw no typed members, and
+  the owner asked why `RunAsync` was missing at times; the `Typeshift` namespace would have hidden them from a file
+  that names `AgentHost` in full. Each class spells out the agent's full name, every part after its length, so two
+  agents never share one, whatever their namespaces hold.
 
 ## Declarations
 
@@ -167,7 +173,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D14. Descriptions come from XML docs
 
 - **Status:** carried (v0), `WithDescription` overrides; parameters the model never sees need no `<param>` (D2's
-  suppressor).
+  suppressor). An agent's summary describes it as a method's describes its tool, at the owner's request.
 
 ### D55. The types tools take describe themselves with their XML docs
 
@@ -364,6 +370,24 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Alternatives:** a model record with a request type, a client cache and a catalog, more surface than the problem
   needs; methods that list providers and their models, which Typeshift never calls; a summary provider in code, tied
   to a provider the user may switch away from; compaction that drops turns without a summary model.
+
+### D63. A registered chat client serves a run no IChatClientProvider serves
+
+- **Status:** owner.
+- **Context:** the owner asked that an agent without a model still run, and for a simpler setup than writing an
+  `IChatClientProvider`: one provider, or a client per provider, for a demo or a local test.
+- **Decision:** a run takes its client from the first of these that serves it:
+  - the host's `IChatClientProvider`, for a provider and a model;
+  - an `IChatClient` registered under the agent's provider as its key, as Microsoft.Extensions.AI's
+    `AddKeyedChatClient` registers one;
+  - the `IChatClient` registered for every agent, as `AddChatClient` registers it.
+  The provider decides alone for a run that names a provider and a model; when it throws, no client is tried after
+  it. An agent that names no model runs on the last client, without a `ModelId`, so the client's own model answers.
+  A model the agent names reaches a registered client as `ModelId`, as it reaches a provider's.
+- **Where:** `Hosting/ChatClients.cs`, `Hosting/AgentHost.cs`, `Compaction/Compaction.cs`.
+- **Alternatives:** chain calls of Typeshift's own, such as `WithChatClient(client)`, which repeat what
+  Microsoft.Extensions.AI's registration already does; a built-in provider keyed by a registry of Typeshift's, a
+  second place to register clients.
 
 ### D29. The chat client pipeline
 
@@ -610,6 +634,33 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   the folder from configuration, which ties the store to a configuration section the app may not have; one file for
   every agent, where a save of one agent's settings rewrites the others'.
 
+### D68. The package turns XML docs on
+
+- **Status:** owner.
+- **Context:** the owner asked for less ceremony and sane defaults, and a project without
+  `GenerateDocumentationFile` got tools without descriptions (TSH011), a step every tutorial reader had to take.
+- **Decision:** the package's props set `GenerateDocumentationFile` to `true` when the project leaves it empty, and
+  add CS1591 to `NoWarn` only then, so a project that never documented its public members gets no warning for each.
+  The props run before the project's own properties, so a project that sets the property, either way, keeps its
+  choice. The package consumer sample sets no `GenerateDocumentationFile`, checks a tool's description and the docs of
+  a type it takes, and carries an undocumented public type.
+- **Where:** `buildTransitive/Typeshift.props`, `samples/Typeshift.Samples.PackageConsumer`.
+- **Alternatives:** the tutorial's `Directory.Build.props`, a step of ceremony; docs on without hiding CS1591, which
+  fails every build that treats warnings as errors.
+
+### D70. Instructions that never change are one call
+
+- **Status:** owner.
+- **Context:** the owner asked for less ceremony. Constant instructions took an override of `GetInstructions()`, three
+  lines outside the constructor that holds everything else an agent declares.
+- **Decision:** `WithInstructions(text)` in the constructor sets the instructions, and `GetInstructions()` returns
+  them unless the agent overrides it. The call runs when the agent is built, as the chat options' calls do, so the
+  text need not be a constant. An override still wins, for instructions built per run.
+- **Where:** `Agents/Agent.cs`.
+- **Alternatives:** `WithChatOptions().WithInstructions(...)`, beside the model, which would split the instructions
+  between `ChatOptions` and the override; reading them from the agent's XML docs, which already describe it to other
+  agents (D14).
+
 ### D71. Every conversation store implements the load from the last summary
 
 - **Status:** owner.
@@ -748,6 +799,31 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `ForSettings(id)` and `InConversation(id)`, names the owner turned down; ids as parameters of every generic run
   member, which repeats them on every call and every overload; looking the store up by the id's runtime type, which
   needs `MakeGenericType` and misses an id whose runtime type differs from its declared one.
+
+### D75. An app without a container creates a TypeshiftApp
+
+- **Status:** owner.
+- **Context:** the owner asked for less ceremony, "Wolverine-style", and chose `TypeshiftApp.Create` over a factory on
+  each agent. A first run took a `ServiceCollection`, `AddTypeshift()`, a provider, a scope and a host from it.
+- **Decision:** `TypeshiftApp.Create(client, configure)` returns an app that owns a container and one scope, and
+  `app.Agent<TAgent>()` returns a host from that scope. With one scope for the app's lifetime, its scoped services
+  (the chat client provider, approval rules, middleware, the MCP tool provider and what tools resolve) act as
+  singletons of the app, shared by concurrent runs; an app that needs a scope per request uses `AddTypeshift()`. The
+  generator intercepts `Create` as it does `AddTypeshift()` (D1): the interceptor builds a `ServiceCollection`,
+  registers the core services and the modules with its own `AddTypeshift`, and `ModuleRegistration.CreateApp`
+  registers the client as an instance for every agent (D63), runs `configure` on the chain and builds the provider
+  with scope validation. The container never disposes an instance, so the client outlives the app. Disposing the app
+  disposes the provider even when disposing the scope throws. The generator reads only a `Create` whose receiver
+  names `TypeshiftApp` and skips a call bound at run time, such as one with a `dynamic` argument; a call it did not
+  intercept throws, saying how to call it. The generator's pass binds the call to its sole candidate when the
+  `configure` lambda names an alias it has not written yet. The library references
+  `Microsoft.Extensions.DependencyInjection`, the container, which it did not before.
+- **Where:** `Hosting/TypeshiftApp.cs`, `Generated/ModuleRegistration.cs`, `Parsing/InterceptParser.cs`,
+  `Emitting/InterceptorEmitter.cs`.
+- **Alternatives:** a generated `Create` on each agent, which the owner turned down, and whose agents would not share
+  a store or a tracker; a library `Create` that registers nothing, since only the generator knows the project's
+  modules; a container of the library's own, which would serve neither scoped services nor the app's;
+  `AddChatClient(client)`, whose factory makes the container own the client and dispose it with the app.
 
 ### D44. Settings records serialize themselves
 

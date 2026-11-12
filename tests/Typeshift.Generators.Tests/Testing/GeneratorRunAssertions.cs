@@ -1,5 +1,7 @@
 using FluentAssertions;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Typeshift.Generators.Tests.Testing;
 
@@ -83,6 +85,19 @@ public sealed class GeneratorRunAssertions(GeneratorRun run)
         return run;
     }
 
+    // The call, found by its source in the subject's own code, is rerouted to a generated interceptor
+    public GeneratorRun Intercepts(string call)
+    {
+        Interceptor(call).Should().NotBeNull($"the generator intercepts {call}");
+        return run;
+    }
+
+    public GeneratorRun DoesNotIntercept(string call)
+    {
+        Interceptor(call).Should().BeNull($"the generator leaves {call} alone");
+        return run;
+    }
+
     public GeneratorRun Cached(params string[] steps)
     {
         foreach (var step in steps)
@@ -119,6 +134,16 @@ public sealed class GeneratorRunAssertions(GeneratorRun run)
         steps.SelectMany(step => step.Outputs).Select(output => output.Reason);
 
     private bool Generated(SyntaxTree tree) => run.Result.GeneratedTrees.Contains(tree);
+
+    private IMethodSymbol? Interceptor(string call)
+    {
+        var invocation = run.Output.SyntaxTrees
+            .Where(tree => !Generated(tree))
+            .SelectMany(tree => tree.GetRoot().DescendantNodes().OfType<InvocationExpressionSyntax>())
+            .Single(invocation => invocation.ToString() == call);
+
+        return run.Output.GetSemanticModel(invocation.SyntaxTree).GetInterceptorMethod(invocation);
+    }
 
     private static string SourceAt(Location location) =>
         location.SourceTree!.GetText().ToString(location.SourceSpan);
