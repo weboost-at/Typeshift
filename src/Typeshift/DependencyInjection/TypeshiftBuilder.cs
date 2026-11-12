@@ -42,7 +42,8 @@ public sealed class TypeshiftBuilder
     }
 
     /// <summary>
-    /// Registers the provider that returns the client of a provider's model, scoped.
+    /// Registers the provider that returns the client of a provider's model, scoped. It serves a run before any
+    /// <see cref="Microsoft.Extensions.AI.IChatClient"/> registered under the provider or for every agent.
     /// </summary>
     /// <typeparam name="TProvider">An <c>IChatClientProvider</c> of the build's provider id type (TSH030).</typeparam>
     /// <returns>The same chain.</returns>

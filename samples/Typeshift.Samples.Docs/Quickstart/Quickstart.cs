@@ -8,14 +8,13 @@ internal static class Quickstart
 {
     public static async Task RunAsync()
     {
-        // begin-snippet: quickstart-registration
+        // begin-snippet: quickstart-clients
         var services = new ServiceCollection();
 
         services.AddTypeshift()
-            .WithStore<InMemoryTypeshiftStore>()
-            .WithChatClientProvider<KeyedChatClientProvider>();
+            .WithStore<InMemoryTypeshiftStore>();
 
-        services.AddKeyedSingleton<IChatClient>("openai", new CannedChatClient());
+        services.AddKeyedChatClient("openai", new CannedChatClient());
 
         await using var provider = services.BuildServiceProvider(validateScopes: true);
         // end-snippet
@@ -53,5 +52,21 @@ internal static class Quickstart
         var stored = await research.LoadSettingsAsync(settingsId);
 
         if (stored.Data.Temperature != 0.4f) throw new InvalidOperationException("Expected the configured settings.");
+    }
+
+    // The README's quickstart still shows this registration with a provider class of the app's own
+    internal static async Task RegisterWithProviderAsync()
+    {
+        // begin-snippet: quickstart-registration
+        var services = new ServiceCollection();
+
+        services.AddTypeshift()
+            .WithStore<InMemoryTypeshiftStore>()
+            .WithChatClientProvider<KeyedChatClientProvider>();
+
+        services.AddKeyedSingleton<IChatClient>("openai", new CannedChatClient());
+
+        await using var provider = services.BuildServiceProvider(validateScopes: true);
+        // end-snippet
     }
 }

@@ -249,14 +249,15 @@ declared, and `Agent.Description` what `WithDescription` or the agent's `<summar
 `Task<IChatClient> CreateChatClientAsync(ChatOptions options, CancellationToken ct = default)`
 
 `CreateChatClientAsync` creates the client of the [raw path](./running-agents.md#the-raw-path) for options that
-`ResolveOptionsAsync` returned. It asks the `IChatClientProvider` for the options' provider and model and wraps that
-client in the run's pipeline, with the agent's run options and the tool loop.
+`ResolveOptionsAsync` returned. It takes the client for the options' provider and model, as a run does
+([Registering clients](./models.md#registering-clients)), and wraps it in the run's pipeline, with the agent's run
+options and the tool loop.
 
 Calling the client with those options runs and stores like `RunAsync`. `ChatOptions.ConversationId` names the
 conversation, as a string of the id type. Disposing the client does not dispose the one your provider returned.
 
-It throws an `InvalidOperationException` when the options name no provider or no model, or when no
-`IChatClientProvider` is registered.
+It throws an `InvalidOperationException` when no client is registered for the options' provider and model, and none
+for every agent.
 
 ### Typed members
 

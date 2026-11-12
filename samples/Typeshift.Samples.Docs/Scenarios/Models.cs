@@ -11,14 +11,18 @@ namespace Typeshift.Samples.Scenarios;
 
 internal static class Models
 {
-    public static void ShowChatClientProvider(IServiceCollection services, IChatClient openAi, IChatClient anthropic)
+    public static void ShowKeyedChatClients(IServiceCollection services, IChatClient openAi, IChatClient anthropic)
     {
-        // begin-snippet: chat-client-provider-registration
-        services.AddTypeshift()
-            .WithChatClientProvider<KeyedChatClientProvider>();
+        // begin-snippet: keyed-chat-clients
+        services.AddKeyedChatClient("openai", openAi);
+        services.AddKeyedChatClient("anthropic", anthropic);
+        // end-snippet
+    }
 
-        services.AddKeyedSingleton("openai", openAi);
-        services.AddKeyedSingleton("anthropic", anthropic);
+    public static void ShowChatClient(IServiceCollection services, IChatClient openAi)
+    {
+        // begin-snippet: chat-client
+        services.AddChatClient(openAi);
         // end-snippet
     }
 
@@ -29,7 +33,7 @@ internal static class Models
             .GetChatClient("gpt-5-mini")
             .AsIChatClient();
 
-        services.AddKeyedSingleton("openai", openAi);
+        services.AddKeyedChatClient("openai", openAi);
         // end-snippet
     }
 
@@ -45,7 +49,7 @@ internal static class Models
             .GetChatClient("qwen3-8b")
             .AsIChatClient();
 
-        services.AddKeyedSingleton("local", local);
+        services.AddKeyedChatClient("local", local);
         // end-snippet
     }
 
@@ -64,7 +68,7 @@ internal static class Models
                 .GetChatClient("default")
                 .AsIChatClient();
 
-            services.AddKeyedSingleton(provider.Key, client);
+            services.AddKeyedChatClient(provider.Key, client);
         }
         // end-snippet
     }
@@ -101,7 +105,7 @@ internal static class Models
             .GetChatClient("gpt-5-mini")
             .AsIChatClient();
 
-        services.AddKeyedSingleton("openai", openAi);
+        services.AddKeyedChatClient("openai", openAi);
         // end-snippet
     }
 

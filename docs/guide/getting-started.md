@@ -147,23 +147,22 @@ internal partial class ResearchAgent : Agent
 
 ## 4. Run it
 
-`AddTypeshift()` registers every toolset and agent. Chain a store, which keeps settings and conversations, and a chat
-client provider, which returns the `IChatClient` that serves each model:
+`AddTypeshift()` registers every toolset and agent. Chain a store, which keeps settings and conversations, and register
+the `IChatClient` that serves the agent's provider, with the provider's name as its key:
 
-<!-- snippet: quickstart-registration -->
-<a id='snippet-quickstart-registration'></a>
+<!-- snippet: quickstart-clients -->
+<a id='snippet-quickstart-clients'></a>
 ```cs
 var services = new ServiceCollection();
 
 services.AddTypeshift()
-    .WithStore<InMemoryTypeshiftStore>()
-    .WithChatClientProvider<KeyedChatClientProvider>();
+    .WithStore<InMemoryTypeshiftStore>();
 
-services.AddKeyedSingleton<IChatClient>("openai", new CannedChatClient());
+services.AddKeyedChatClient("openai", new CannedChatClient());
 
 await using var provider = services.BuildServiceProvider(validateScopes: true);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L11-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L11-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-clients' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `CannedChatClient` is a fake client from the docs samples, so they run without a network. In your app, register your
@@ -176,35 +175,17 @@ var openAi = new OpenAIClient(apiKey)
     .GetChatClient("gpt-5-mini")
     .AsIChatClient();
 
-services.AddKeyedSingleton("openai", openAi);
+services.AddKeyedChatClient("openai", openAi);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L27-L33' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-client' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L31-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `OpenAIClient` is in the `OpenAI` namespace, and `apiKey` comes from your app's configuration, for example an
 environment variable. The key `"openai"` is a name you choose: it is the provider the agent names in
-`WithModel("openai", "gpt-5-mini")`.
-[A real client](./models.md#a-real-client) shows a local server and other providers. `InMemoryTypeshiftStore` comes
-with Typeshift and stands in for your database.
-
-`KeyedChatClientProvider` is your `IChatClientProvider`. For each run, Typeshift asks it for the client of the
-provider and model the agent names, here `"openai"` and `"gpt-5-mini"`, and it returns the `IChatClient` registered
-under the provider's key:
-
-<!-- snippet: chat-client-provider -->
-<a id='snippet-chat-client-provider'></a>
-```cs
-internal sealed class KeyedChatClientProvider(IServiceProvider services) : IChatClientProvider
-{
-    // One client per provider serves all its models: Typeshift puts the model into every request
-    public ValueTask<IChatClient> GetChatClientAsync(string provider, string model, CancellationToken ct) =>
-        ValueTask.FromResult(
-            services.GetKeyedService<IChatClient>(provider)
-                ?? throw new InvalidOperationException($"No IChatClient is registered for the provider '{provider}'."));
-}
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/KeyedChatClientProvider.cs#L6-L15' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client-provider' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
+`WithModel("openai", "gpt-5-mini")`, and Typeshift sends that client the run's model. With one client for every agent,
+`services.AddChatClient(client)` is enough, and an agent without `WithModel` runs on it too
+([Registering clients](./models.md#registering-clients)). [A real client](./models.md#a-real-client) shows a local
+server and other providers. `InMemoryTypeshiftStore` comes with Typeshift and stands in for your database.
 
 You configure and run the agent through its host, `AgentHost<ResearchAgent>`, which `AddTypeshift()` registered for
 it. The next snippet starts by creating a scope and resolving the host from it. In a web app, you take the host as a
@@ -227,7 +208,7 @@ await research.ConfigureAsync(settingsId, settings => settings with
     FindCompanies = settings.FindCompanies with { Limit = 2 }
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L23-L33' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L22-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Every run with settings id 42 now finds at most 2 companies. Both ids are optional: a run without a settings id uses
@@ -241,7 +222,7 @@ var answer = await research.RunAsync("Vienna", settingsId, conversationId: 1);
 
 Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L35-L39' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L34-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The limit passes through three layers: 5 in the record, 3 in the agent and 2 in the stored settings. Each layer
@@ -260,8 +241,7 @@ flowchart LR
     generator --> registration["AddTypeshift()"]
   end
   subgraph runtime [Runtime]
-    host["AgentHost&lt;TAgent&gt;"] --> provider[Your IChatClientProvider]
-    provider --> client[The model's IChatClient]
+    host["AgentHost&lt;TAgent&gt;"] --> client[The provider's IChatClient]
     host --> store[Your store]
   end
   registration --> host
@@ -282,12 +262,11 @@ The [glossary](./glossary.md) defines every other term.
 
 ## What your app implements
 
-Your app implements a few interfaces. Every run needs a chat client provider, and the others come with the feature
-that uses them:
+Your app implements a few interfaces when it needs the feature that uses them:
 
 | Interface | Needed for | Read |
 |---|---|---|
-| `IChatClientProvider` | Every run. It returns the `IChatClient` for a provider and a model. | [Models and providers](./models.md) |
+| `IChatClientProvider` | A client that depends on more than its provider, such as a key per customer. | [Your own provider](./models.md#your-own-provider) |
 | `ITypeshiftStore`, or `ISettingsStore` and `IConversationStore` | Settings ids and conversation ids. A singleton; `InMemoryTypeshiftStore` serves tests and samples. | [Implementing a store](./implementing-a-store.md) |
 | `IContextProvider` | Memory, documents or other data added to every run of an agent. | [Context providers](./middleware.md#context-providers) |
 | `IToolApprovalRule`, `IRunMiddleware`, `IToolMiddleware`, `IMcpToolProvider` | Approval rules, middleware and MCP servers. | [The chain](./registration.md#the-chain) |

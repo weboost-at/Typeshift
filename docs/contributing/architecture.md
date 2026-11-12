@@ -96,8 +96,8 @@ unless it is an object of properties.
    applies each settings layer through the generated declaration: the stored settings, then the run's. Each layer
    reaches the configurable options and the run options. Then come the offered tools, created with their layered
    settings (D27), the sub-agents (D33) and the MCP servers' tools (D35).
-3. It asks the scope's `IChatClientProvider` for the client of the run's provider and model and builds the pipeline,
-   outermost first:
+3. It takes the client of the run's provider and model from the scope's `IChatClientProvider`, an `IChatClient` keyed
+   by the provider, or the one registered for every agent (D63), and builds the pipeline, outermost first:
    - the conversation (D46, D50), run middleware (D30), context providers (D31), approval and modes (D24, D52),
      and author names on every message (D26);
    - `FunctionInvokingChatClient`, with the run options, the scope's services, `exit_plan_mode` and the tool

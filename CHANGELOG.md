@@ -24,6 +24,10 @@ All notable changes to this project are documented here. The format follows
   its description from its method's. That description satisfies TSH023, names the agent's sub-agent tool and handoff,
   and is the `gen_ai.agent.description` of its spans. Without `GenerateDocumentationFile`, TSH011 says the summary is
   lost.
+- A run takes an `IChatClient` registered under its provider, such as with `services.AddKeyedChatClient("openai",
+  client)`, or the one registered for every agent with `services.AddChatClient(client)`, when no
+  `IChatClientProvider` is registered for it. An agent that names no model runs on that last client, with its own model, so a
+  demo needs neither a provider class nor `WithModel`.
 
 ### Changed
 

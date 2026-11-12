@@ -79,7 +79,6 @@ A typical registration, with the chain:
 ```cs
 services.AddTypeshift()
     .WithStore<EfTypeshiftStore>()
-    .WithChatClientProvider<KeyedChatClientProvider>()
     .WithRealtimeTracking()
     .WithRunMiddleware<BlockedTopics>()
     .WithToolMiddleware<AuditToolCalls>();
@@ -87,12 +86,12 @@ services.AddTypeshift()
 services.AddKeyedSingleton("openai", fast);
 services.AddKeyedSingleton("anthropic", reasoning);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L18-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L18-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `fast` and `reasoning` are `IChatClient`s your app creates. The last two lines register them under the keys `openai`
-and `anthropic`, and `KeyedChatClientProvider` returns the client registered under a run's provider
-([the chat client provider](./models.md#the-chat-client-provider)).
+and `anthropic`, and a run takes the client registered under its provider
+([Registering clients](./models.md#registering-clients)).
 
 `AddTypeshift()` itself registers these:
 
@@ -122,7 +121,7 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 | Call | Registers | Lifetime | Needed by |
 |---|---|---|---|
 | `WithStore<TStore>()` | `TStore`, and each of `ISettingsStore`, `IConversationStore` and `ITypeshiftStore` it implements, resolving to it. Call it once for each class. | Singleton, so it takes no scoped services ([Implementing a store](./implementing-a-store.md#register-your-store)) | Settings ids, conversation ids, approval and handoffs. Without a store, every call that loads or saves throws, naming this method. |
-| `WithChatClientProvider<TProvider>()` | `TProvider`, and `IChatClientProvider` resolving to it | Scoped | Every run. |
+| `WithChatClientProvider<TProvider>()` | `TProvider`, and `IChatClientProvider` resolving to it | Scoped | Every run with a provider and a model, before any `IChatClient` you registered ([Registering clients](./models.md#registering-clients)). |
 | `WithRealtimeTracking(RealtimeTrackingOptions? options = null)` | The options. By default, `PublishInterval` is 100 ms and `MaxPendingUpdates` 256. | Singleton | `ConversationTracker.WatchAsync`. |
 | `WithApprovalRule<TRule>()` | One more `IToolApprovalRule` | Scoped | Deciding calls before your app is asked. |
 | `WithRunMiddleware<TMiddleware>()` | One more `IRunMiddleware`. The first registered is the outermost. | Scoped | Wrapping every run. |

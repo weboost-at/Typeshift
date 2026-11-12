@@ -370,6 +370,24 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   needs; methods that list providers and their models, which Typeshift never calls; a summary provider in code, tied
   to a provider the user may switch away from; compaction that drops turns without a summary model.
 
+### D63. A registered chat client serves a run no IChatClientProvider serves
+
+- **Status:** owner.
+- **Context:** the owner asked that an agent without a model still run, and for a simpler setup than writing an
+  `IChatClientProvider`: one provider, or a client per provider, for a demo or a local test.
+- **Decision:** a run takes its client from the first of these that serves it:
+  - the host's `IChatClientProvider`, for a provider and a model;
+  - an `IChatClient` registered under the agent's provider as its key, as Microsoft.Extensions.AI's
+    `AddKeyedChatClient` registers one;
+  - the `IChatClient` registered for every agent, as `AddChatClient` registers it.
+  The provider decides alone for a run that names a provider and a model; when it throws, no client is tried after
+  it. An agent that names no model runs on the last client, without a `ModelId`, so the client's own model answers.
+  A model the agent names reaches a registered client as `ModelId`, as it reaches a provider's.
+- **Where:** `Hosting/ChatClients.cs`, `Hosting/AgentHost.cs`, `Compaction/Compaction.cs`.
+- **Alternatives:** chain calls of Typeshift's own, such as `WithChatClient(client)`, which repeat what
+  Microsoft.Extensions.AI's registration already does; a built-in provider keyed by a registry of Typeshift's, a
+  second place to register clients.
+
 ### D29. The chat client pipeline
 
 - **Status:** approved.
