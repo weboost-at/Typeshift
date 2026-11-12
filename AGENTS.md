@@ -97,6 +97,7 @@ style; the essentials:
 
 | Fact | Canonical page | Also mentioned in |
 |---|---|---|
+| What Typeshift is for, what it builds on and leaves to you, how its pieces fit | `guide/what-is-typeshift.md` | `index.md` (the pitch) |
 | Package setup, requirements, the id type | `guide/registration.md` | `getting-started.md` (the steps) |
 | An app without a container (`TypeshiftApp.Create`) | `guide/registration.md#without-a-container` | |
 | `AddTypeshift()` chain calls and lifetimes | `guide/registration.md#the-chain` | each feature page shows its own `With...` call |

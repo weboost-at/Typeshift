@@ -21,6 +21,7 @@ const sidebar = {
     {
       text: 'Introduction',
       items: [
+        { text: 'What is Typeshift?', link: '/guide/what-is-typeshift' },
         { text: 'Getting started', link: '/guide/getting-started' },
         { text: 'Registration', link: '/guide/registration' },
         { text: 'Using an agent', link: '/guide/using-an-agent' }
