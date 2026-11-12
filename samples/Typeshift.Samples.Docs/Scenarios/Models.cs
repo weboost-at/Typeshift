@@ -121,4 +121,15 @@ internal static class Models
 
         return settings;
     }
+
+    public static IChatClient ShowOpenAiChatClient(string apiKey)
+    {
+        // begin-snippet: openai-chat-client
+        var client = new OpenAIClient(apiKey)
+            .GetChatClient("gpt-5-mini")
+            .AsIChatClient();
+        // end-snippet
+
+        return client;
+    }
 }
