@@ -56,6 +56,29 @@ public static class AgentRuns
         host.RunCoreAsync<TResult>(input, settingsId, conversationId, settings, ct);
 
     /// <summary>
+    /// Runs the agent on one message, streaming the updates and asking for JSON of <typeparamref name="TResult"/>'s
+    /// schema.
+    /// </summary>
+    /// <typeparam name="TAgent">The agent.</typeparam>
+    /// <typeparam name="TResult">The result.</typeparam>
+    /// <param name="host">The host, with the run's services.</param>
+    /// <param name="input">The message.</param>
+    /// <param name="settingsId">The id of the stored settings to apply, or null.</param>
+    /// <param name="conversationId">The id of the conversation to resume and store the run in, or null.</param>
+    /// <param name="settings">The run's settings, over the stored ones.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The run, which streams its updates and then holds the result.</returns>
+    public static StreamingRun<TResult> RunStreamingAsync<TAgent, TResult>(
+        AgentHost<TAgent> host,
+        ChatMessage input,
+        object? settingsId,
+        object? conversationId,
+        object? settings,
+        CancellationToken ct)
+        where TAgent : Agent =>
+        host.RunStreamingCoreAsync<TResult>(input, settingsId, conversationId, settings, ct);
+
+    /// <summary>
     /// Runs the agent on one message, streaming the updates.
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>

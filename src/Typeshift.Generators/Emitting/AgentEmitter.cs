@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Typeshift.Generators.Models;
@@ -18,6 +19,8 @@ internal static class AgentEmitter
 
     private const string SettingsIdDoc =
         "The id of the stored settings to apply over the agent's own, or null for none.";
+
+    private const string StreamingRun = "global::Typeshift.StreamingRun<TResult>";
 
     private const string Tools =
         "global::System.Collections.Generic.IEnumerable<global::Microsoft.Extensions.AI.AITool>";
@@ -488,26 +491,42 @@ internal static class AgentEmitter
         using (writer.Block($"{access} static class {agent.Type.FlatName}HostExtensions"))
         using (writer.Block($"extension({host} host)"))
         {
-            run.Write(writer, "Runs the agent on a message", $"{Task}<{response}>", "RunAsync", "string",
-                $"{Runs}.RunAsync(host, {user}, settingsId, conversationId, settings, ct);");
-            writer.Line();
-            run.Write(writer, "Runs the agent on a message, which may carry images or approvals", $"{Task}<{response}>",
-                "RunAsync", message, $"{Runs}.RunAsync(host, input, settingsId, conversationId, settings, ct);");
-            writer.Line();
+            const string Answer = "The response; its messages carry the agent's name as their author.";
+            const string Streamed = "The updates; they carry the agent's name as their author.";
+            const string Run = "The run, which streams its updates and then holds the result.";
+            const string Asking = "asking the model for JSON of <typeparamref name=\"TResult\"/>'s schema";
+            const string Once = " Once its updates are read to the end, its <c>Response</c> holds the result.";
+            const string Message = "Runs the agent on a message";
+            const string Images = Message + ", which may carry images or approvals";
+            var typed = $"{agent.Type.FullName}, TResult";
+            var answer = $"{Task}<{response}>";
+            var typedAnswer = $"{Task}<{response}<TResult>>";
+            var call = "settingsId, conversationId, settings, ct);";
 
-            Docs.WriteSummary(
-                writer,
-                "Runs the agent on a message, asking the model for JSON of <typeparamref name=\"TResult\"/>'s schema.");
-            Docs.WriteTypeParam(writer, "TResult", "The result's type.");
-            run.Write(writer, null, $"{Task}<{response}<TResult>>", "RunAsync<TResult>", "string",
-                $"{Runs}.RunAsync<{agent.Type.FullName}, TResult>"
-                + $"(host, {user}, settingsId, conversationId, settings, ct);");
+            run.Write(writer, Message, answer, Answer, "RunAsync", "string",
+                $"{Runs}.RunAsync(host, {user}, {call}");
             writer.Line();
-            run.Write(writer, "Runs the agent on a message, streaming the updates", Updates, "RunStreamingAsync",
-                "string", $"{Runs}.RunStreamingAsync(host, {user}, settingsId, conversationId, settings, ct);");
+            run.Write(writer, Images, answer, Answer, "RunAsync", message, $"{Runs}.RunAsync(host, input, {call}");
             writer.Line();
-            run.Write(writer, "Runs the agent on a message, streaming the updates", Updates, "RunStreamingAsync",
-                message, $"{Runs}.RunStreamingAsync(host, input, settingsId, conversationId, settings, ct);");
+            run.Write(writer, $"{Message}, {Asking}", typedAnswer, Answer, "RunAsync<TResult>", "string",
+                $"{Runs}.RunAsync<{typed}>(host, {user}, {call}");
+            writer.Line();
+            run.Write(writer, $"{Images}, {Asking}", typedAnswer, Answer, "RunAsync<TResult>", message,
+                $"{Runs}.RunAsync<{typed}>(host, input, {call}");
+            writer.Line();
+            run.Write(writer, $"{Message}, streaming the updates", Updates, Streamed, "RunStreamingAsync", "string",
+                $"{Runs}.RunStreamingAsync(host, {user}, {call}");
+            writer.Line();
+            run.Write(writer, $"{Images}, streaming the updates", Updates, Streamed, "RunStreamingAsync", message,
+                $"{Runs}.RunStreamingAsync(host, input, {call}");
+            writer.Line();
+            run.Write(writer, $"{Message}, streaming the updates and {Asking}", StreamingRun, Run,
+                "RunStreamingAsync<TResult>", "string", $"{Runs}.RunStreamingAsync<{typed}>(host, {user}, {call}",
+                Once);
+            writer.Line();
+            run.Write(writer, $"{Images}, streaming the updates and {Asking}", StreamingRun, Run,
+                "RunStreamingAsync<TResult>", message, $"{Runs}.RunStreamingAsync<{typed}>(host, input, {call}",
+                Once);
             writer.Line();
 
             WriteResume(writer, "ResumeAsync", $"{Task}<{response}>", idType, settings, "ResumeAsync");
@@ -687,10 +706,21 @@ internal static class AgentEmitter
     // The parameters every run takes, after its input
     private sealed class HostRun(string idType, string settings)
     {
-        public void Write(SourceWriter writer, string? summary, string returns, string name, string input, string call)
+        public void Write(
+            SourceWriter writer,
+            string summary,
+            string returns,
+            string returnsDoc,
+            string name,
+            string input,
+            string call,
+            string note = "")
         {
-            if (summary is not null)
-                Docs.WriteSummary(writer, $"{summary}, with the stored and the run's settings over the agent's code.");
+            Docs.WriteSummary(
+                writer,
+                $"{summary}, with the stored and the run's settings over the agent's code.{note}");
+            if (name.EndsWith("<TResult>", StringComparison.Ordinal))
+                Docs.WriteTypeParam(writer, "TResult", "The result's type.");
 
             Docs.WriteParam(writer, "input", "The user's message.");
             Docs.WriteParam(writer, "settingsId", SettingsIdDoc);
@@ -700,11 +730,7 @@ internal static class AgentEmitter
                 "The id of the conversation the run resumes and is stored in, or null for none.");
             Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
             Docs.WriteParam(writer, "ct", "Cancels the run.");
-            Docs.WriteReturns(
-                writer,
-                returns.Contains("IAsyncEnumerable")
-                    ? "The updates; they carry the agent's name as their author."
-                    : "The response; its messages carry the agent's name as their author.");
+            Docs.WriteReturns(writer, returnsDoc);
             writer.Lines(
                 $"""
                 public {returns} {name}(

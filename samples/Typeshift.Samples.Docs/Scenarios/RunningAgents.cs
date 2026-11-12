@@ -62,6 +62,17 @@ internal static class RunningAgents
 
         Expect(report.Result.State == RefundState.Approved, "structured output is parsed");
 
+        // begin-snippet: structured-streaming
+        var summary = support.RunStreamingAsync<RefundStatus>("Summarize the refund.", settingsId);
+
+        await foreach (var update in summary)
+            Console.Write(update.Text);
+
+        Console.WriteLine($" ({summary.Response.Result.State})");
+        // end-snippet
+
+        Expect(summary.Response.Result.State == RefundState.Approved, "streamed structured output is parsed");
+
         // begin-snippet: streaming
         await foreach (var update in support.RunStreamingAsync("Where is my refund?", settingsId))
             Console.Write(update.Text);

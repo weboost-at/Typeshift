@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Typeshift.Tests.Approval.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
@@ -68,6 +69,29 @@ public class ToolApprovalTests : ApprovalTestBase
         // Assert
         ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
         response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_An_Approval_In_A_Typed_Run_The_Run_Goes_On_In_Its_Format()
+    {
+        // Arrange
+        var lives = JsonSerializer.Serialize(new { data = Data.Tool.Lives }, Json.SerializerOptions);
+
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(lives));
+
+        var asked = await RunAsync(Data.Tool.Question);
+
+        // Act
+        var response = await Host<GuardedAgent>().RunAsync<int>(
+            new ChatMessage(ChatRole.User, [asked.ApprovalRequests[0].CreateResponse(approved: true)]),
+            conversationId: Data.Agent.ConversationId,
+            ct: Ct);
+
+        // Assert
+        ChatClient.Options[1]!.ResponseFormat.Should().BeOfType<ChatResponseFormatJson>();
+        response.Result.Should().Be(Data.Tool.Lives);
     }
 
     [Fact]
