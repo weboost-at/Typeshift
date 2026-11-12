@@ -194,12 +194,17 @@ the agent declares itself replaces the generated one.
 `{Tool}Function`, and its `{Tool}Overrides` when it has configurable members, as a toolset does. It gets no tool list
 and no toolset stamp.
 
-### `{Agent}HostExtensions`
+### Host members
 
 **Triggered by** every agent the generated code can reach: one that is not nested as `private` or `protected` and
 has a public or internal parameterless constructor. For any other agent, the analyzer reports
 [TSH016](./diagnostics.md#tsh016). A static class, as accessible as the agent, holds an extension block on
 `AgentHost<TAgent>` with the agent's [typed members](#typed-members).
+
+The class lives in the global namespace, so the typed members are in scope in every file, whatever it imports. Its
+name spells out the agent's full name, each part after its length, such as `TypeshiftHost_4Demo12SupportAgent` for
+`Demo.SupportAgent`, so no two agents share one. Editors leave the class out of type completion, since you call the
+members on the host and never need its name.
 
 ### Hidden members
 

@@ -43,6 +43,9 @@ All notable changes to this project are documented here. The format follows
   `InvalidOperationException`. `TryGetResult` returns false, as before.
 - `IConversationStore.LoadConversationSinceCompactionAsync` has no default any more, so your store implements it. A store
   that cannot start at the last summary returns `(await LoadConversationAsync(id, ct)).SinceLastSummary()`.
+- The class of an agent's host members is `TypeshiftHost_4Demo12SupportAgent` for `Demo.SupportAgent`, in the global
+  namespace and hidden from type completion, where it was `SupportAgentHostExtensions` in the agent's namespace. Code
+  that called the members through the class's name, or with `using static`, calls them on the host instead.
 
 ### Fixed
 
@@ -72,6 +75,9 @@ All notable changes to this project are documented here. The format follows
   rejected a tool or a typed run with such a type, and a typed run of an object union reached it with no schema at all.
   `RunAsync<T>` asks for a union, a polymorphic type or a dictionary under a `data` property now, as
   Microsoft.Extensions.AI does for a number, since Anthropic's client sent no schema for them.
+- The typed members of an agent's host, such as `RunAsync`, are in scope in every file. They lived in the agent's
+  namespace, so a file that named the agent in full, without importing its namespace, found no `RunAsync` on
+  `AgentHost<TAgent>`.
 
 ## [0.1.0-alpha.5] - 2026-10-30
 - A tool parameter or a `RunAsync<T>` type with a member System.Text.Json cannot handle, such as an `Exception`, sent

@@ -21,7 +21,7 @@ runs often call it at the same time, so plan for that before you write its first
 - **Any method can run while others are running**, even on the same document or conversation. Keep no state between
   calls, or guard what you keep.
 - **It knows nothing of the caller.** Your app decides who may use a settings id or a conversation id before it
-  passes one to a run ([Conversations](./conversations.md#tracking-a-conversation)), and the store keeps whatever it
+  passes one to a run ([Conversation ids](./conversations.md#conversation-ids)), and the store keeps whatever it
   is given.
 
 ::: warning A scoped DbContext breaks the store
