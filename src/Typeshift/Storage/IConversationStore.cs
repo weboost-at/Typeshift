@@ -6,7 +6,8 @@ namespace Typeshift;
 /// live elsewhere, or <see cref="ITypeshiftStore{TId}"/> for both.
 /// </summary>
 /// <typeparam name="TId">
-/// The id type of conversations; the library never creates ids, it passes on the host's.
+/// The id type of conversations. The library passes on the host's ids, and creates one only for a conversation a run
+/// starts with <c>PersistAllConversations</c>.
 /// </typeparam>
 public interface IConversationStore<TId> where TId : notnull
 {
