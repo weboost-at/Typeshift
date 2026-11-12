@@ -121,7 +121,7 @@ internal sealed class ConversationRun(
 
     // D33: a sub-agent working while the run goes on; its answer joins the run as a message before a later model
     // call, or what went wrong, unless the run stopped
-    public void StartBackground(string agent, string callId, Func<CancellationToken, Task<ChatResponse>> work)
+    public void StartBackground(string agent, string callId, Func<CancellationToken, Task<string>> work)
     {
         _background[callId] = agent;
 
@@ -348,11 +348,11 @@ internal sealed class ConversationRun(
     private bool IsKnown(AIContent content) => _stored.Contains(content) || _transient.Contains(content);
 
     // Null once the run stopped: it cancelled the sub-agent, nothing hears its answer, and the task must not fault
-    private async Task<string?> AnswerAsync(string agent, Func<CancellationToken, Task<ChatResponse>> work)
+    private async Task<string?> AnswerAsync(string agent, Func<CancellationToken, Task<string>> work)
     {
         try
         {
-            return $"The background agent {agent} answered:\n\n{(await work(_stopping.Token)).Text}";
+            return $"The background agent {agent} answered:\n\n{await work(_stopping.Token)}";
         }
         catch (Exception exception) when (!_stopping.IsCancellationRequested)
         {
