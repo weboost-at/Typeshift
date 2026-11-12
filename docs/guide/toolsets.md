@@ -5,8 +5,9 @@ description: Group the tools that belong together into a toolset, declare each o
 
 # Toolsets
 
-A toolset holds tools that belong together, such as the tools for your support tickets. Each tool is a static
-method, and the generator turns it into an `AIFunction` at compile time, without reflection.
+A toolset is a class that groups the tools an agent can call, for example searching, reading and closing support
+tickets. You write each tool as a static method with XML docs. Typeshift builds the schema the model reads from the
+method's parameters and docs, so there is no schema to keep in step with your code.
 
 ## Design your toolsets
 
@@ -92,8 +93,9 @@ across the toolsets of your project and of the projects it references ([TSH007](
 
 The description matters more than the name. The model reads it to decide when to call the tool, and reads each
 `<param>` to fill in the arguments. It comes from the method's `<summary>` or from `WithDescription(...)`, and the
-analyzer warns about a tool with neither ([TSH009](./diagnostics.md#tsh009)). Your XML docs reach the generator only
-when the project sets `GenerateDocumentationFile` ([TSH011](./diagnostics.md#tsh011)).
+analyzer warns about a tool with neither ([TSH009](./diagnostics.md#tsh009)). The package turns on
+`GenerateDocumentationFile`, which your XML docs need to reach the generator, unless your project turns it off
+([TSH011](./diagnostics.md#tsh011)).
 
 ::: warning Renaming a method renames its tool
 Stored settings are keyed by the tool's name. Rename `SearchTickets`, and what your customers stored for

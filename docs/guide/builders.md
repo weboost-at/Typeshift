@@ -63,7 +63,7 @@ marked `[Obsolete]` out without a `NotConfigurable` call.
 | Call | Does |
 |---|---|
 | `WithName(string name)` | Names the agent, which is otherwise its class name in snake_case. Messages the agent writes carry the name as their author. |
-| `WithDescription(string description)` | Says what the agent does. A sub-agent or a handoff target needs one ([TSH023](./diagnostics.md#tsh023)). |
+| `WithDescription(string description)` | Says what the agent does, in place of its `<summary>`. A sub-agent or a handoff target needs one of the two ([TSH023](./diagnostics.md#tsh023)). |
 | `WithStorageKind(string kind)` | Sets the kind a store keys the agent's `Settings` by, in place of its class name, so renaming the class keeps its stored settings. |
 | `WithSchemaVersion(int version)` | Sets the schema version of the stored `Settings`, 1 unless raised. Raise it after you rename or remove a configurable member, so you can [migrate older documents](./implementing-a-store.md#migrate-older-settings). |
 | `WithChatOptions()` | Returns the [`ChatOptionsBuilder`](#chatoptionsbuilder). |
@@ -75,8 +75,9 @@ marked `[Obsolete]` out without a `NotConfigurable` call.
 | `UseMcpServer(string server)` | Offers the tools of an MCP server that your app's `IMcpToolProvider` connects. `.RequiresApproval()` makes every call to its tools wait for approval, and `.ReadOnly()` lets plan mode offer them. |
 | `UseContext<TProvider>()` | Adds what an `IContextProvider` returns to every run. The run's services resolve the provider, or create it when none is registered. |
 
-The agent's instructions come from `GetInstructions()`, a virtual method you override. Typeshift calls it each time it
-resolves a run's options, so it runs for every run.
+The agent's instructions come from `WithInstructions(...)` in its constructor, or from `GetInstructions()`, a virtual
+method you override when your code builds them. Typeshift calls it each time it resolves a run's options, so it runs
+for every run.
 
 ## ChatOptionsBuilder
 
@@ -88,7 +89,7 @@ run change an option, even one the code never sets, and makes it a member of the
 | Call | Sets | May be configurable |
 |---|---|---|
 | `WithModel(TProviderId provider, string model)` | `ModelId`, and the [provider](./models.md) that serves it | Yes, as `Provider` and `Model` |
-| `GetInstructions()`, overridden in the agent | `Instructions` | Yes |
+| `WithInstructions(...)` in the agent, or `GetInstructions()` overridden | `Instructions` | Yes |
 | `WithTemperature(float temperature)` | `Temperature` | Yes |
 | `WithMaxOutputTokens(int tokens)` | `MaxOutputTokens` | Yes |
 | `WithTopP(float topP)` | `TopP` | Yes |

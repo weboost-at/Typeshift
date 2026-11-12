@@ -7,6 +7,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `TypeshiftApp.Create(client)` runs the agents of an app without a container of its own:
+  `app.Agent<ResearchAgent>().RunAsync("Vienna")`, with one chat client for every run. The package now depends on
+  `Microsoft.Extensions.DependencyInjection`.
 - The docs site publishes the guide as Markdown for coding assistants: `llms.txt` lists its pages, `llms-full.txt`
   holds them all in one file, and each guide page is also served at its address with `.md`.
 - Tools take and return C# 15 unions, and `RunAsync<T>` returns one. A JSON string binds a union's `string` case and
@@ -20,6 +23,16 @@ All notable changes to this project are documented here. The format follows
 - `UseAgent<T>().WithResult<TResult>()` holds a sub-agent's answer to the JSON of `TResult`, which the calling model
   reads as the call's result, or as its answer in the background. An answer without it fails the call, and the
   calling model reads why.
+- An agent without `WithDescription` takes its description from the `<summary>` of its XML docs, as a tool takes
+  its description from its method's. That description satisfies TSH023, names the agent's sub-agent tool and handoff,
+  and is the `gen_ai.agent.description` of its spans. Without `GenerateDocumentationFile`, TSH011 says the summary is
+  lost.
+- A run takes an `IChatClient` registered under its provider, such as with `services.AddKeyedChatClient("openai",
+  client)`, or the one registered for every agent with `services.AddChatClient(client)`, when no
+  `IChatClientProvider` is registered for it. An agent that names no model runs on that last client, with its own model, so a
+  demo needs neither a provider class nor `WithModel`.
+- `WithInstructions("...")` sets an agent's instructions in its constructor; override `GetInstructions()` only for
+  instructions your code builds per run.
 - Each agent has settings of its own, which every run applies under no settings id: `ConfigureAsync(configure)`,
   `LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)`, kept by an `IAgentSettingsStore`.
   `InMemoryTypeshiftStore` implements it, and a settings id's settings apply over the agent's own.
@@ -40,6 +53,11 @@ All notable changes to this project are documented here. The format follows
   `InvalidOperationException`. `TryGetResult` returns false, as before.
 - `IConversationStore.LoadConversationSinceCompactionAsync` has no default any more, so your store implements it. A store
   that cannot start at the last summary returns `(await LoadConversationAsync(id, ct)).SinceLastSummary()`.
+- The class of an agent's host members is `TypeshiftHost_4Demo12SupportAgent` for `Demo.SupportAgent`, in the global
+  namespace and hidden from type completion, where it was `SupportAgentHostExtensions` in the agent's namespace. Code
+  that called the members through the class's name, or with `using static`, calls them on the host instead.
+- The package turns on `GenerateDocumentationFile` unless your project sets it, and hides CS1591 then, so tools get their
+  descriptions with no `Directory.Build.props`.
 - `LoadSettingsAsync(default)` loads the agent's own settings now, since the overload without an id wins. Pass the id
   itself, such as `Guid.Empty`, to load the settings under it.
 - Without any store, settings and conversations are kept in memory, and the first save logs a warning, where every
@@ -73,6 +91,9 @@ All notable changes to this project are documented here. The format follows
   rejected a tool or a typed run with such a type, and a typed run of an object union reached it with no schema at all.
   `RunAsync<T>` asks for a union, a polymorphic type or a dictionary under a `data` property now, as
   Microsoft.Extensions.AI does for a number, since Anthropic's client sent no schema for them.
+- The typed members of an agent's host, such as `RunAsync`, are in scope in every file. They lived in the agent's
+  namespace, so a file that named the agent in full, without importing its namespace, found no `RunAsync` on
+  `AgentHost<TAgent>`.
 
 ## [0.1.0-alpha.5] - 2026-10-30
 - A tool parameter or a `RunAsync<T>` type with a member System.Text.Json cannot handle, such as an `Exception`, sent

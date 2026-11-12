@@ -31,27 +31,26 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
     public TAgent Agent { get; }
 
     /// <summary>
-    /// The raw path: creates the client of a run whose options <c>ResolveOptionsAsync</c> resolved. It asks the
-    /// <see cref="IChatClientProvider{TProviderId}"/> for the options' provider and model and wraps the client in the
-    /// tool loop.
+    /// The raw path: creates the client of a run whose options <c>ResolveOptionsAsync</c> resolved. It takes the
+    /// client from the <see cref="IChatClientProvider{TProviderId}"/>, an <see cref="IChatClient"/> registered under
+    /// the options' provider, or the one registered for every agent, and wraps it in the tool loop.
     /// </summary>
     /// <param name="options">The resolved options; call the client with them.</param>
     /// <param name="ct">Cancels the creation.</param>
     /// <returns>The client; disposing it leaves the provider's client alone.</returns>
     /// <exception cref="InvalidOperationException">
-    /// The options name no provider or no model, or no chat client provider is registered.
+    /// No chat client serves the options' provider and model, or the agent, which names no model: no
+    /// <c>IChatClientProvider</c> is registered for a provider and a model, and no <see cref="IChatClient"/> under the
+    /// provider's key or for every agent.
     /// </exception>
     public async Task<IChatClient> CreateChatClientAsync(ChatOptions options, CancellationToken ct = default)
     {
         var resolved = options as ResolvedChatOptions;
         var provider = resolved is null ? Agent.Provider : resolved.Provider;
+        var model = options.ModelId;
 
-        if (provider is null || options.ModelId is not { } model)
-            throw new InvalidOperationException(
-                $"The agent '{Agent.Name}' has no model: set one with WithChatOptions().WithModel(provider, model), "
-                + "or make it configurable and pass a provider and a model in the settings.");
-
-        var client = await _services.GetRequiredService<ChatClients>().GetAsync(_services, provider, model, ct);
+        var client = await _services.GetRequiredService<ChatClients>().GetAsync(_services, provider, model, ct)
+            ?? throw new InvalidOperationException(ChatClients.NoClient($"the agent '{Agent.Name}'", provider, model));
         var run = resolved?.RunOptions ?? Agent.RunOptions;
 
         // D29: outermost the conversation, then run middleware, context and approval above the tool loop, the

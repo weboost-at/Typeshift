@@ -103,11 +103,12 @@ internal sealed class Compaction
 
         var region = call.Take(cut).ToList();
 
-        // D56: the run's provider and model unless the settings or the agent name others; a run has both
+        // D56: the run's provider and model unless the settings or the agent name others; D63: none for a run on the
+        // client registered for every agent
         var summary = await SummarizeAsync(
             region,
-            options.SummaryProvider ?? options.Provider!,
-            options.RunOptions.SummaryModel ?? options.ModelId!,
+            options.SummaryProvider ?? options.Provider,
+            options.RunOptions.SummaryModel ?? options.ModelId,
             options.AgentRun!,
             ct);
 
@@ -204,14 +205,17 @@ internal sealed class Compaction
 
     private static async Task<ChatMessage> SummarizeAsync(
         List<ChatMessage> region,
-        object provider,
-        string model,
+        object? provider,
+        string? model,
         AgentRun run,
         CancellationToken ct)
     {
         var clients = run.Services.GetRequiredService<ChatClients>();
         var instrumented = run.Services.GetRequiredService<InstrumentedClients>();
-        var provided = await clients.GetAsync(run.Services, provider, model, ct);
+
+        var provided = await clients.GetAsync(run.Services, provider, model, ct)
+            ?? throw new InvalidOperationException(
+                ChatClients.NoClient($"the summary of the agent '{run.Agent.Name}'", provider, model));
         using var client = instrumented.Instrument(provided, provider, model);
 
         var response = await client.GetResponseAsync(
