@@ -33,6 +33,8 @@ All notable changes to this project are documented here. The format follows
 - The package targets .NET 11 instead of .NET 10, so your app needs .NET 11 and its SDK.
 - `Result` of a typed run whose answer lacks the `data` property throws a `JsonException`, where it threw an
   `InvalidOperationException`. `TryGetResult` returns false, as before.
+- `IConversationStore.LoadConversationSinceCompactionAsync` has no default any more, so your store implements it. A store
+  that cannot start at the last summary returns `(await LoadConversationAsync(id, ct)).SinceLastSummary()`.
 
 ### Fixed
 
