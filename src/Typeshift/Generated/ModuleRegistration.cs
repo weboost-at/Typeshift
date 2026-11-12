@@ -1,3 +1,4 @@
+using Microsoft.Extensions.AI;
 using System.ComponentModel;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.DependencyInjection;
@@ -66,6 +67,29 @@ public static class ModuleRegistration
         if (keepsSettings) services.AddSingleton(provider => (ISettingsStore<TId>)store(provider));
         if (keepsConversations) services.AddSingleton(provider => (IConversationStore<TId>)store(provider));
         if (isTypeshiftStore) services.AddSingleton(provider => (ITypeshiftStore<TId>)store(provider));
+    }
+
+    /// <summary>
+    /// Builds the app <c>TypeshiftApp.Create</c> returns, over the services its interceptor registered.
+    /// </summary>
+    /// <param name="services">The services, with the core services and the modules registered.</param>
+    /// <param name="builder">The registration chain the core services returned.</param>
+    /// <param name="client">The chat client of every run.</param>
+    /// <param name="configure">What else the app registers; null for nothing.</param>
+    /// <returns>The app.</returns>
+    public static TypeshiftApp CreateApp(
+        IServiceCollection services,
+        TypeshiftBuilder builder,
+        IChatClient client,
+        Action<TypeshiftBuilder>? configure)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+
+        // D75: the client serves every agent, as one registered for every agent does (D63)
+        services.AddChatClient(client);
+        configure?.Invoke(builder);
+
+        return new TypeshiftApp(services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true }));
     }
 
     /// <summary>

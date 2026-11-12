@@ -321,4 +321,19 @@ public static class AgentSources
             }
         }
         """;
+
+    // D75: an app without a container of its own
+    public const string App =
+        """
+        using Typeshift;
+        using Microsoft.Extensions.AI;
+
+        namespace Demo;
+
+        internal static class Program
+        {
+            public static TypeshiftApp Start(IChatClient client) =>
+                TypeshiftApp.Create(client, typeshift => typeshift.WithStore<InMemoryTypeshiftStore>());
+        }
+        """;
 }

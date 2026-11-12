@@ -7,6 +7,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `TypeshiftApp.Create(client)` runs the agents of an app without a container of its own:
+  `app.Agent<ResearchAgent>().RunAsync("Vienna")`, with one chat client for every run. The package now depends on
+  `Microsoft.Extensions.DependencyInjection`.
 - The docs site publishes the guide as Markdown for coding assistants: `llms.txt` lists its pages, `llms-full.txt`
   holds them all in one file, and each guide page is also served at its address with `.md`.
 - Tools take and return C# 15 unions, and `RunAsync<T>` returns one. A JSON string binds a union's `string` case and

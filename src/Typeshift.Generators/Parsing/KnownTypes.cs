@@ -30,6 +30,10 @@ internal static class KnownTypes
 
     public const string RegistrationMethod = "AddTypeshift";
 
+    public const string App = "Typeshift.TypeshiftApp";
+
+    public const string AppMethod = "Create";
+
     public const string GeneratedModuleAttribute = "Typeshift.Generated.GeneratedModuleAttribute";
 
     public const string ModuleToolsetAttribute = "Typeshift.Generated.ModuleToolsetAttribute";

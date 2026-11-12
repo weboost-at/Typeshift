@@ -101,6 +101,29 @@ public class AgentGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_TypeshiftApp_Create_Call_The_Interceptor_Builds_The_App_With_The_Projects_Module()
+    {
+        // Act
+        var run = Run(AgentSources.Tickets, AgentSources.Support, AgentSources.App);
+
+        // Assert
+        var interceptor = run.Source("Typeshift.Generated.AddTypeshiftInterceptor.g.cs");
+        interceptor.Should().Contain("public static global::Typeshift.TypeshiftApp Create(");
+        interceptor.Should().Contain("CreateApp(services, AddTypeshift(services), client, configure)");
+        interceptor.Should().Contain("Module.Register(services);");
+    }
+
+    [Fact]
+    public void Given_A_TypeshiftApp_Create_Call_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(AgentSources.Tickets, AgentSources.Support, AgentSources.App);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
     public void Given_A_Reference_Of_Docs_Only_The_Interceptor_Registers_Its_Module()
     {
         // Arrange
