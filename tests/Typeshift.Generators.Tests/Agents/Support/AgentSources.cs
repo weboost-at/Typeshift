@@ -92,6 +92,84 @@ public static class AgentSources
         }
         """;
 
+    // Names the agent's type in full, without importing its namespace
+    public const string CallerOutsideTheAgentsNamespace =
+        """
+        #pragma warning disable CS1591
+
+        using Typeshift;
+
+        namespace App;
+
+        public static class Caller
+        {
+            public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> AskAsync(
+                AgentHost<Demo.SupportAgent> host) =>
+                host.RunAsync("Where is my refund?");
+        }
+        """;
+
+    // Names AgentHost in full from the agent's own namespace, without importing Typeshift
+    public const string CallerInTheAgentsNamespace =
+        """
+        #pragma warning disable CS1591
+
+        namespace Demo;
+
+        public static class Caller
+        {
+            public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> AskAsync(
+                global::Typeshift.AgentHost<SupportAgent> host) =>
+                host.RunAsync("Where is my refund?");
+        }
+        """;
+
+    // A nested type whose hint name could be the host members' file
+    public const string NestedHost =
+        """
+        #pragma warning disable CS1591
+
+        using Typeshift;
+
+        namespace Demo;
+
+        public partial class SupportAgent : Agent
+        {
+            public SupportAgent() => WithChatOptions().WithModel("openai", "fast-model");
+
+            public partial class Host : Toolset
+            {
+                public Host() => AddTool(Ping).WithDescription("Answers pong.");
+
+                public static string Ping() => "pong";
+            }
+        }
+        """;
+
+    // Two agents whose namespaces joined with an underscore would read the same
+    public const string UnderscoredNamespaces =
+        """
+        #pragma warning disable CS1591
+
+        using Typeshift;
+
+        namespace A.B_C
+        {
+            public partial class XAgent : Agent
+            {
+                public XAgent() => WithStorageKind("first");
+            }
+        }
+
+        namespace A_B.C
+        {
+            public partial class XAgent : Agent
+            {
+                public XAgent() => WithStorageKind("second");
+            }
+        }
+        """;
+
     public const string Support =
         """
         #pragma warning disable CS1591

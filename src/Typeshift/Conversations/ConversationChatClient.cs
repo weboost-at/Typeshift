@@ -88,7 +88,14 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         {
             try
             {
-                return await answering.RunAsync(messages, SettingsId(options), conversation, null, claim, ct);
+                return await answering.RunAsync(
+                    messages,
+                    SettingsId(options),
+                    conversation,
+                    null,
+                    claim,
+                    ResultFormat(options),
+                    ct);
             }
             finally
             {
@@ -119,7 +126,14 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
                     try
                     {
-                        answer = await target.RunAsync([], runOptions.SettingsId, run.Conversation, null, handed, ct);
+                        answer = await target.RunAsync(
+                            [],
+                            runOptions.SettingsId,
+                            run.Conversation,
+                            null,
+                            handed,
+                            runOptions.ResultFormat,
+                            ct);
                     }
                     finally
                     {
@@ -164,7 +178,13 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         {
             try
             {
-                var answer = answering.RunStreamingAsync(messages, SettingsId(options), conversation, claim, ct);
+                var answer = answering.RunStreamingAsync(
+                    messages,
+                    SettingsId(options),
+                    conversation,
+                    claim,
+                    ResultFormat(options),
+                    ct);
 
                 await foreach (var update in answer)
                 {
@@ -214,7 +234,13 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                     {
                         yield return new ChatResponseUpdate(ChatRole.Tool, result.Contents);
 
-                        var answer = target.RunStreamingAsync([], runOptions.SettingsId, run.Conversation, handed, ct);
+                        var answer = target.RunStreamingAsync(
+                            [],
+                            runOptions.SettingsId,
+                            run.Conversation,
+                            handed,
+                            runOptions.ResultFormat,
+                            ct);
 
                         await foreach (var update in answer)
                         {
@@ -269,6 +295,9 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         };
 
     private static object? SettingsId(ChatOptions? options) => (options as ResolvedChatOptions)?.SettingsId;
+
+    private static ChatResponseFormat? ResultFormat(ChatOptions? options) =>
+        (options as ResolvedChatOptions)?.ResultFormat;
 
     // D30, D32: a pass that called no model (run middleware answered) or the run's limit spent ends the run; the
     // input still waiting is stored with its end

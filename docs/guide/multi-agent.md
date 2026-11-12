@@ -20,8 +20,8 @@ conversation over to one.
 
 ## Sub-agents
 
-`UseAgent<T>()` offers another agent as a tool. The tool is named like the agent, described by its
-`WithDescription`, and takes one `input` parameter:
+`UseAgent<T>()` offers another agent as a tool. The tool has the agent's name and description, and takes one `input`
+parameter:
 
 <!-- snippet: agent-as-tool -->
 <a id='snippet-agent-as-tool'></a>
@@ -75,6 +75,42 @@ A sub-agent cannot stop to ask your app for approval. In the default mode, each 
 rejected unless a standing approval or a rule covers it. The analyzer warns about such tools
 ([TSH024](./diagnostics.md#tsh024)), so add a rule, or hand off to the agent instead.
 :::
+
+### Typed answers
+
+By default, the calling model reads the sub-agent's answer as text. `WithResult<T>()` asks the sub-agent for JSON of
+`T`'s schema instead, as [`RunAsync<T>`](./running-agents.md#structured-output) does, and hands that JSON to the
+calling model as the call's result:
+
+<!-- snippet: agent-as-tool-result -->
+<a id='snippet-agent-as-tool-result'></a>
+```cs
+internal partial class MarketAgent : Agent
+{
+    public MarketAgent()
+    {
+        WithChatOptions()
+            .WithModel("anthropic", "claude-sonnet-5-5");
+
+        UseAgent<ResearchAgent>()
+            .WithResult<CityCompanies>();
+    }
+
+    protected override string GetInstructions() =>
+        "Compare the markets of the cities you are given. Ask research_agent for each city's companies.";
+}
+
+internal sealed record CityCompanies(string City, IReadOnlyList<string> Companies);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/MarketAgent.cs#L5-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-as-tool-result' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- The calling model gets an object it can read field by field, here a city and its companies, instead of prose it
+  has to pick apart.
+- When the sub-agent answers without that JSON, the call fails, and the calling model reads why.
+- In the background, the JSON arrives as the sub-agent's answer, and so does the failure.
+- Under [Native AOT](./production.md#native-aot), `T` needs JSON metadata, as for `RunAsync<T>`. Without it, the call
+  fails, and only the calling model reads why.
 
 ### In the background
 

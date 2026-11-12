@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Typeshift.Tests.MultiAgent.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
@@ -268,6 +269,79 @@ public class HandoffTests : MultiAgentTestBase
         Tracker.Runs.Should().BeEmpty();
         ToolCalls.Should().BeEmpty();
     }
+
+    [Fact]
+    public async Task Given_A_Typed_Run_Handed_Off_The_Agent_Handed_To_Answers_In_Its_Format()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Lives()));
+
+        // Act
+        var response = await Host<FrontAgent>()
+            .RunAsync<int>(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+
+        // Assert
+        ChatClient.Options[1]!.ResponseFormat.Should().BeOfType<ChatResponseFormatJson>();
+        response.Result.Should().Be(Data.Tool.Lives);
+    }
+
+    [Fact]
+    public async Task Given_A_Typed_Streaming_Run_Handed_Off_The_Agent_Handed_To_Answers_In_Its_Format()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Lives()));
+
+        var run = Host<FrontAgent>()
+            .RunStreamingAsync<int>(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+
+        // Act
+        await run.ToListAsync(Ct);
+
+        // Assert
+        ChatClient.Options[1]!.ResponseFormat.Should().BeOfType<ChatResponseFormatJson>();
+        run.Response.Result.Should().Be(Data.Tool.Lives);
+    }
+
+    [Fact]
+    public async Task Given_A_Conversation_Handed_Off_A_Typed_Run_Asks_The_Agent_That_Answered_For_Its_Format()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Lives()));
+
+        await RunAsync(Data.Tool.Question);
+
+        // Act
+        var response = await Host<FrontAgent>()
+            .RunAsync<int>(Data.Agent.FollowUp, conversationId: Data.Agent.ConversationId, ct: Ct);
+
+        // Assert
+        ChatClient.Options[2]!.ResponseFormat.Should().BeOfType<ChatResponseFormatJson>();
+        response.Result.Should().Be(Data.Tool.Lives);
+    }
+
+    [Fact]
+    public async Task Given_An_Untyped_Run_Handed_Off_The_Agent_Handed_To_Answers_In_Text()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question);
+
+        // Assert
+        ChatClient.Options[1]!.ResponseFormat.Should().BeNull();
+    }
+
+    private string Lives() => JsonSerializer.Serialize(new { data = Data.Tool.Lives }, Json.SerializerOptions);
 
     private Task<ChatResponse> RunAsync(string input) =>
         Host<FrontAgent>().RunAsync(input, conversationId: Data.Agent.ConversationId, ct: Ct);
