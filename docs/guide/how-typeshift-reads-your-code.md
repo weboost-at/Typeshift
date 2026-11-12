@@ -83,7 +83,7 @@ On Microsoft.Extensions.AI alone, a tool is usually an `AIFunctionFactory.Create
 reflection when your app runs. Typeshift writes each tool's function when you build instead. The function binds the
 model's arguments to your method's parameters through JSON metadata, and the `Settings` and overrides records read and
 write themselves member by member. Generated code never reflects over your types, so your app can publish with
-[Native AOT](./production.md#native-aot).
+[Native AOT](./native-aot.md).
 
 ## Agents are defined when you build
 

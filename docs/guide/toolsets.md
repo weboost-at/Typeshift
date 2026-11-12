@@ -130,7 +130,7 @@ request, every tool of the run reaches that request's scoped services, such as t
 
 A tool returns a value, nothing (`void`), `Task`, `Task<T>`, `ValueTask`, `ValueTask<T>` or `IAsyncEnumerable<T>`.
 The model receives the result as JSON, serialized through its type's `JsonTypeInfo`, so under
-[Native AOT](./production.md#native-aot) that type needs JSON metadata. The model takes one result per call, so
+[Native AOT](./native-aot.md) that type needs JSON metadata. The model takes one result per call, so
 Typeshift reads a stream to its end and sends its items as one array. Under Native AOT, list `List<T>` in your JSON
 context for it.
 

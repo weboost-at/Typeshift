@@ -65,7 +65,7 @@ loses at most the calls in flight.
 
 When compaction is on and a call would exceed the token limit, the run compacts what the model sees, while the stored
 conversation keeps everything ([compaction](./conversations.md#compaction)). Typeshift traces every call to the
-provider's client ([Observability](./production.md#observability)).
+provider's client ([Observability](./observability.md)).
 
 ## What each step can change
 

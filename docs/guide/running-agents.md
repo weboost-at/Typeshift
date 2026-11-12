@@ -137,7 +137,7 @@ internal enum RefundState
 properties as the schema of an answer. So a `T` of another shape, such as a number, an enum, a list, a dictionary, a
 polymorphic type or a [union](./toolsets.md#union-types), is asked for under a `data` property, and `Result` reads it
 from there. Under
-[Native AOT](./production.md#native-aot), `T` needs JSON metadata.
+[Native AOT](./native-aot.md), `T` needs JSON metadata.
 
 A member that System.Text.Json cannot read or write, such as an `Exception`, whose `TargetSite` is a `MethodBase`,
 fails the run before it calls the model, naming the member. Leave such a member out of `T`, or mark it
