@@ -98,6 +98,7 @@ style; the essentials:
 | Fact | Canonical page | Also mentioned in |
 |---|---|---|
 | Package setup, requirements, the id type | `guide/registration.md` | `getting-started.md` (the steps) |
+| An app without a container (`TypeshiftApp.Create`) | `guide/registration.md#without-a-container` | |
 | `AddTypeshift()` chain calls and lifetimes | `guide/registration.md#the-chain` | each feature page shows its own `With...` call |
 | Builder calls of toolsets and agents | `guide/builders.md` | `toolsets.md`, `tool-settings.md`, `defining-agents.md` |
 | Parameters the call fills, tool results | `guide/toolsets.md` | `builders.md` (link) |

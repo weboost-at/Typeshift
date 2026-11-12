@@ -137,6 +137,56 @@ When a tool throws, the model reads the exception's message. Write it as a hint,
 Search for it first.", and the model can correct its call. Keep secrets out of it, because the message goes to the
 model provider.
 
+## Union types
+
+A tool can take or return a C# 15 union. The model sees a schema for each case and sends the JSON of the
+case it picks, and Typeshift binds the case that JSON fits:
+
+<!-- snippet: union-parameter -->
+<a id='snippet-union-parameter'></a>
+```cs
+internal union TicketKey(int, string);
+
+internal partial class TicketLookupToolset : Toolset
+{
+    public TicketLookupToolset()
+    {
+        AddTool(FindTicketAsync)
+            .ReadOnly();
+    }
+
+    /// <summary>
+    /// Finds a ticket by its number, or by words its title contains.
+    /// </summary>
+    /// <param name="key">The ticket's number, or words its title contains.</param>
+    public static async Task<Ticket?> FindTicketAsync(TicketKey key, IServiceProvider services, CancellationToken ct)
+    {
+        var tickets = services.GetRequiredService<ITicketClient>();
+
+        return key switch
+        {
+            int number => await tickets.GetAsync(number, ct),
+            string words => tickets.Search(words, includeClosed: true, limit: 1).FirstOrDefault(),
+            null => null
+        };
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketLookupToolset.cs#L5-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-union-parameter' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- A JSON string binds the `string` case and a number the `int` case. A string that holds a number, such as `"42"`,
+  binds a number case when no case reads a JSON string, as it would for an `int` parameter.
+- An object binds the case whose properties it carries, so a union of two records needs no attribute.
+- JSON `null` binds the empty union, whose `Value` is null. That is why the switch has a `null` arm.
+- Some unions JSON cannot tell apart: two cases that read a string, such as a `Guid` and a `string`, or two records
+  where one has every property of the other. A call with such a value fails, and the model reads which cases it
+  could have taken. Give the union a classifier of its own with `[JsonUnion]`, as the
+  [System.Text.Json docs](https://learn.microsoft.com/dotnet/standard/serialization/system-text-json/union-types)
+  show, and Typeshift uses it.
+- A result reaches the model as the JSON of its case, with nothing around it.
+- A union is no [storable type](./tool-settings.md#storable-types), so it cannot be a configurable setting.
+
 ## What a toolset cannot be
 
 A toolset derives from `Toolset` directly and has no type parameters ([TSH017](./diagnostics.md#tsh017)). Share code

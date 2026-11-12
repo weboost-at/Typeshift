@@ -120,11 +120,16 @@ Strings, `char`, `bool`, `short`, `int`, `long` and their unsigned forms, `float
 In a project that publishes with Native AOT or sets `IsAotCompatible`, the analyzer reports
 [TSH027](./diagnostics.md#tsh027) for every other tool type that no context lists.
 
+A [union](./toolsets.md#union-types) of two records gets warning SYSLIB1227 in a context, because the source
+generator finds no classifier that tells the records apart. Typeshift's tools and runs pick the case by its
+properties without one, as [Union types](./toolsets.md#union-types) describes, so you may suppress the warning for
+unions only they read. Code of yours that reads such a union still needs a classifier.
+
 ### Everything else
 
 The generated `Settings` and overrides records serialize member by member, conversations go through
 Microsoft.Extensions.AI's own contracts. None of these needs
-a context from you. `RunAsync<T>` does need one: list `T` in a context too. In the sample, `AppJsonContext` above
+a context from you. `RunAsync<T>`, `RunStreamingAsync<T>` and a sub-agent's `WithResult<T>()` do need one: list `T` in a context too. In the sample, `AppJsonContext` above
 lists `CompanyCount` because the app calls `RunAsync<CompanyCount>`.
 
 ## Related
@@ -132,5 +137,5 @@ lists `CompanyCount` because the app calls `RunAsync<CompanyCount>`.
 - [How a run works](./running-agents.md#how-a-run-works): the steps the spans of a run cover.
 - [Conversations](./conversations.md#live-updates): live updates of a run, for a UI.
 - [Toolsets](./toolsets.md#results): how a tool's result reaches the model as JSON.
-- [Running agents](./running-agents.md#structured-output): structured output with `RunAsync<T>`.
+- [Running agents](./running-agents.md#structured-output): structured output with `RunAsync<T>` and `RunStreamingAsync<T>`.
 - [Registration](./registration.md#what-addtypeshift-registers): what the generated modules register.

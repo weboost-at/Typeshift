@@ -11,7 +11,8 @@ namespace Typeshift;
 public interface IConversationStore<TId> where TId : notnull
 {
     /// <summary>
-    /// Loads the entries of a conversation, oldest first.
+    /// Loads every entry of a conversation, oldest first, summaries included, such as a chat UI shows. Runs start from
+    /// <see cref="LoadConversationSinceCompactionAsync"/> instead.
     /// </summary>
     /// <param name="conversation">The conversation's id.</param>
     /// <param name="ct">Cancels the load.</param>
@@ -19,20 +20,15 @@ public interface IConversationStore<TId> where TId : notnull
     Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(TId conversation, CancellationToken ct);
 
     /// <summary>
-    /// Loads the entries a run starts from: the conversation's last summary and the entries after it, or every entry
-    /// when compaction never summarized it. Override it where the store finds the last summary without reading the
-    /// rest; this one loads the whole conversation.
+    /// Loads what every run reads first: the conversation's last summary and the entries after it, or every entry when
+    /// compaction never summarized it. An agent that compacts writes a summary, and with this load a long conversation
+    /// is not read whole on every run, so start the store's query at the last summary. A store that cannot loads the
+    /// whole conversation and returns <c>entries.SinceLastSummary()</c>.
     /// </summary>
     /// <param name="conversation">The conversation's id.</param>
     /// <param name="ct">Cancels the load.</param>
     /// <returns>The entries, oldest first; none for a conversation never stored.</returns>
-    async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
-        TId conversation,
-        CancellationToken ct)
-    {
-        var entries = await LoadConversationAsync(conversation, ct);
-        return ConversationHistory.SinceSummary(entries);
-    }
+    Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(TId conversation, CancellationToken ct);
 
     /// <summary>
     /// Appends an entry to a conversation, creating it on the first. Runs append as they go, so this is the hot path.
