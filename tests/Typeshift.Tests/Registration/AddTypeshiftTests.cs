@@ -66,6 +66,30 @@ public class AddTypeshiftTests : AgentTestBase
     }
 
     [Fact]
+    public void Given_AddTypeshift_The_Tracker_Of_An_Id_Type_Is_One_Singleton()
+    {
+        // Act
+        var first = Services.GetRequiredService<ConversationTracker<long>>();
+        var second = Scope.GetRequiredService<ConversationTracker<long>>();
+
+        // Assert
+        first.Should().BeSameAs(second);
+    }
+
+    [Fact]
+    public void Given_WithConversationTracker_Its_Tracker_Is_Registered_Closed_So_Native_Aot_Needs_No_Generic_Type()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        services.AddTypeshift().WithConversationTracker<int>();
+
+        // Assert
+        services.Should().ContainSingle(service => service.ServiceType == typeof(ConversationTracker<int>));
+    }
+
+    [Fact]
     public void Given_A_Call_The_Generator_Did_Not_Intercept_It_Fails_Saying_What_To_Check()
     {
         // Arrange

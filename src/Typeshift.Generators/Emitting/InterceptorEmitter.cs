@@ -16,8 +16,6 @@ internal static class InterceptorEmitter
     public static string Emit(
         IReadOnlyList<InterceptModel> calls,
         IReadOnlyList<string> modules,
-        string idType,
-        string idParser,
         string providerIdType)
     {
         var writer = new SourceWriter();
@@ -38,7 +36,7 @@ internal static class InterceptorEmitter
             {
                 writer.Line(
                     "var builder = global::Typeshift.Generated.ModuleRegistration"
-                    + $".AddCoreServices<{idType}, {providerIdType}>(services, {idParser});");
+                    + $".AddCoreServices<{providerIdType}>(services);");
                 writer.Line();
 
                 foreach (var module in modules)

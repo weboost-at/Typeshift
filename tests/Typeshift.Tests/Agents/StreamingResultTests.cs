@@ -92,9 +92,8 @@ public class StreamingResultTests : AgentTestBase
         var json = JsonSerializer.Serialize(new ProbeSettings { Limit = 1 }, Json.GetTypeInfo<ProbeSettings>());
         ChatClient.Reply(Text(json));
 
-        var run = Host<ProbeAgent>().RunStreamingAsync<ProbeSettings>(
+        var run = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunStreamingAsync<ProbeSettings>(
             Data.Tool.Question,
-            conversationId: Data.Agent.ConversationId,
             ct: Ct);
 
         // Act

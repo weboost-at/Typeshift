@@ -48,18 +48,17 @@ public class TypeshiftRuntimeTests : AgentTestBase
         // Arrange
         await using var runtime = TypeshiftRuntime.Create(
             ChatClient,
-            typeshift => typeshift.WithStore<InMemoryTypeshiftStore>());
+            typeshift => typeshift.WithStore<InMemoryTypeshiftStore<Guid>>());
 
         await using var probe = runtime.Agent<ProbeAgent>();
         await using var configuring = runtime.Agent<ProbeAgent>();
 
-        await configuring.ConfigureAsync(
-            Data.Persistence.SettingsId,
+        await configuring.WithSettingsId(Data.Persistence.SettingsId).ConfigureAsync(
             settings => settings with { Temperature = Data.Agent.Temperature },
             Ct);
 
         // Act
-        var options = await probe.ResolveOptionsAsync(Data.Persistence.SettingsId, ct: Ct);
+        var options = await probe.WithSettingsId(Data.Persistence.SettingsId).ResolveOptionsAsync(ct: Ct);
 
         // Assert
         options.Temperature.Should().Be(Data.Agent.Temperature);
@@ -411,7 +410,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         // Act
         for (var run = 0; run < 3; run++)
         {
-            await front.RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct);
+            await front.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
         }
 
         // Assert

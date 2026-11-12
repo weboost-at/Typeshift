@@ -3,9 +3,9 @@ using System.Collections.Concurrent;
 namespace Typeshift.Tests.Conversations.Support;
 
 // A store in memory that records each conversation it appends to, so a test sees every conversation a run started
-public sealed class RecordingStore : ITypeshiftStore
+public sealed class RecordingStore : ITypeshiftStore<Guid>
 {
-    private readonly InMemoryTypeshiftStore _store = new();
+    private readonly InMemoryTypeshiftStore<Guid> _store = new();
     private readonly ConcurrentQueue<Guid> _appended = new();
 
     // Each conversation once, in the order it was first stored

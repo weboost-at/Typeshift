@@ -9,7 +9,7 @@ public class StoreExtensionsTests : UnitTestBase
     public async Task Given_The_Store_In_Memory_It_Passes()
     {
         // Arrange
-        var store = new InMemoryTypeshiftStore();
+        var store = new InMemoryTypeshiftStore<Guid>();
 
         // Act
         var verify = () => store.VerifyAsync(Data.Persistence.SettingsId, Ct);
@@ -22,7 +22,7 @@ public class StoreExtensionsTests : UnitTestBase
     public async Task Given_The_Store_In_Memory_Typed_As_A_Settings_Store_It_Passes()
     {
         // Arrange
-        ISettingsStore store = new InMemoryTypeshiftStore();
+        ISettingsStore<Guid> store = new InMemoryTypeshiftStore<Guid>();
 
         // Act
         var verify = () => store.VerifyAsync(Data.Persistence.SettingsId, Ct);
@@ -35,7 +35,7 @@ public class StoreExtensionsTests : UnitTestBase
     public async Task Given_The_Store_In_Memory_Typed_As_A_Conversation_Store_It_Passes()
     {
         // Arrange
-        IConversationStore store = new InMemoryTypeshiftStore();
+        IConversationStore<Guid> store = new InMemoryTypeshiftStore<Guid>();
 
         // Act
         var verify = () => store.VerifyAsync(Data.Agent.ConversationId, Ct);
@@ -48,7 +48,7 @@ public class StoreExtensionsTests : UnitTestBase
     public async Task Given_The_Store_In_Memory_Typed_As_A_Store_Of_Agent_Settings_It_Passes()
     {
         // Arrange
-        IAgentSettingsStore store = new InMemoryTypeshiftStore();
+        IAgentSettingsStore store = new InMemoryTypeshiftStore<Guid>();
 
         // Act
         var verify = () => store.VerifyAgentSettingsAsync(Data.Persistence.Kind, Ct);
@@ -61,7 +61,7 @@ public class StoreExtensionsTests : UnitTestBase
     public async Task Given_A_Store_With_A_Document_Of_The_Kind_The_Agent_Settings_Check_Asks_For_A_New_Kind()
     {
         // Arrange
-        IAgentSettingsStore store = new InMemoryTypeshiftStore();
+        IAgentSettingsStore store = new InMemoryTypeshiftStore<Guid>();
         await store.SaveAsync(Data.Persistence.Kind, "{}", 0, Ct);
 
         // Act
@@ -95,7 +95,7 @@ public class StoreExtensionsTests : UnitTestBase
     public async Task Given_A_Store_With_A_Document_Under_The_Id_It_Fails_Asking_For_A_New_Id()
     {
         // Arrange
-        var store = new InMemoryTypeshiftStore();
+        var store = new InMemoryTypeshiftStore<Guid>();
         await store.SaveAsync(Data.Persistence.SettingsId, "typeshift_check", "{}", 0, Ct);
 
         // Act
@@ -119,7 +119,7 @@ public class StoreExtensionsTests : UnitTestBase
     public async Task Given_A_Store_Of_Both_Typed_As_A_Conversation_Store_It_Fails_On_Its_Settings()
     {
         // Arrange
-        IConversationStore store = new IdOnlyStore();
+        IConversationStore<Guid> store = new IdOnlyStore();
 
         // Act
         var verify = () => store.VerifyAsync(Data.Persistence.SettingsId, Ct);
@@ -162,7 +162,7 @@ public class StoreExtensionsTests : UnitTestBase
     public async Task Given_A_Store_Of_Both_Typed_As_A_Settings_Store_It_Fails_On_Its_Conversations()
     {
         // Arrange
-        ISettingsStore store = new NewestFirstStore();
+        ISettingsStore<Guid> store = new NewestFirstStore();
 
         // Act
         var verify = () => store.VerifyAsync(Data.Agent.ConversationId, Ct);

@@ -9,6 +9,7 @@ var services = new ServiceCollection();
 
 services.AddTypeshift()
     .WithStore<InMemoryTypeshiftStore<Guid>>()
+    .WithConversationTracker<Guid>()
     .WithChatClientProvider<ScriptedChatClientProvider>();
 
 await using var provider = services.BuildServiceProvider();
@@ -23,8 +24,15 @@ await customer.ConfigureAsync(settings => settings with
     FindCompanies = new CompanyToolset.FindCompaniesOverrides { Limit = 2 }
 });
 
+// Native AOT: the Guid tracker is the one WithConversationTracker<Guid>() closed; the container makes that of string
+var tracker = provider.GetRequiredService<ConversationTracker<Guid>>();
+Expect(provider.GetRequiredService<ConversationTracker<string>>().Runs.Count == 0, "a run under a string id");
+var live = tracker.WatchRunsAsync(CancellationToken.None).GetAsyncEnumerator();
+var watched = live.MoveNextAsync();
+
 var answer = await customer.WithConversationId(conversationId).RunAsync("Vienna");
 Expect(answer.Text == "Found Danube Robotics, Prater Motion.", answer.Text);
+Expect(await watched && live.Current.Conversation == conversationId, "no run watched");
 
 var entries = await provider.GetRequiredService<ITypeshiftStore<Guid>>().LoadConversationAsync(conversationId, default);
 Expect(entries is [.., { EndsRun: true }], $"{entries.Count} entries without an end");

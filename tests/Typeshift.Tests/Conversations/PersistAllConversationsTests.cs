@@ -102,7 +102,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
     }
 
     [Fact]
-    public async Task Given_A_Build_Of_Guid_Ids_A_New_Conversation_Id_Is_A_Guid_Of_Version_7_At_The_Clocks_Time()
+    public async Task Given_No_NewConversationIds_A_New_Conversation_Id_Is_A_Guid_Of_Version_7_At_The_Clocks_Time()
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
@@ -117,24 +117,27 @@ public class PersistAllConversationsTests : MultiAgentTestBase
     }
 
     [Fact]
-    public void Given_A_Build_Of_String_Ids_A_New_Conversation_Id_Is_The_Text_Of_A_Guid_Of_Version_7()
+    public async Task Given_No_NewConversationIds_And_No_Store_Of_Guid_Conversations_A_Run_Fails_Naming_Them()
     {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift()
+            .WithStore<InMemoryTypeshiftStore<int>>()
+            .WithOptions(options => options.PersistAllConversations = true)
+            .WithChatClientProvider<ScriptedChatClientProvider>();
+
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider(validateScopes: true);
+        await using var scope = provider.CreateAsyncScope();
+
         // Act
-        var conversation = new BuildIds<string>(text => text).NewConversationId(Time);
+        var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
-        conversation.Value.Should().BeOfType<string>();
-        Guid.Parse(conversation.ToString()).Version.Should().Be(7);
-    }
-
-    [Fact]
-    public void Given_A_Build_Of_Another_Id_Type_A_New_Conversation_Id_Fails_Naming_NewConversationIds()
-    {
-        // Act
-        var create = () => new BuildIds<int>(int.Parse).NewConversationId(Time);
-
-        // Assert
-        create.Should().Throw<InvalidOperationException>().WithMessage("*NewConversationIds*");
+        await run.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("No IConversationStore<Guid> is registered*NewConversationIds*");
     }
 
     [Fact]
@@ -266,7 +269,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
 
         var services = new ServiceCollection();
         services.AddTypeshift()
-            .WithStore<InMemoryTypeshiftStore>()
+            .WithStore<InMemoryTypeshiftStore<Guid>>()
             .WithChatClientProvider<ScriptedChatClientProvider>();
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
@@ -281,7 +284,7 @@ public class PersistAllConversationsTests : MultiAgentTestBase
         response.ConversationId.Should().BeNull();
     }
 
-    // The store registered last serves the build's ids, so a test sees each conversation a run stored
+    // The store registered last serves the Guid ids, so a test sees each conversation a run stored
     protected override void ConfigureServices(IServiceCollection services)
     {
         base.ConfigureServices(services);

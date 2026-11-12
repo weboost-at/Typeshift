@@ -34,9 +34,8 @@ public class ModeTests : ApprovalTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<GuardedAgent>().RunAsync(
+        await Host<GuardedAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
             Data.Tool.Question,
-            conversationId: Data.Agent.ConversationId,
             settings: new() { Mode = AgentMode.Auto, MaxToolIterations = 2 },
             ct: Ct);
 
@@ -169,9 +168,8 @@ public class ModeTests : ApprovalTestBase
         await RunAsync(new string('x', Page), AgentMode.Plan);
 
         // Act
-        await Host<GuardedAgent>().RunAsync(
+        await Host<GuardedAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
             Data.Agent.FollowUp,
-            conversationId: Data.Agent.ConversationId,
             settings: new() { Mode = AgentMode.Plan, MaxInputTokens = 1_000 },
             ct: Ct);
 

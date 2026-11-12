@@ -1,32 +1,42 @@
+using System.ComponentModel;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift;
 
 /// <summary>
-/// The conversations running in this process. The container has the tracker of the build's id type,
-/// <see cref="Guid"/> unless <c>TypeshiftIdType</c> names another, which a coming release removes. It steers and
-/// watches conversations under ids of any type, and lists those under ids of <typeparamref name="TId"/>.
+/// The conversations under ids of <typeparamref name="TId"/> running in this process. Inject the tracker of your
+/// conversation ids' type, such as <c>ConversationTracker&lt;int&gt;</c>; the container has one for every id type, a
+/// singleton.
 /// </summary>
-/// <typeparam name="TId">The id type.</typeparam>
+/// <typeparam name="TId">The type of the conversation ids, as <c>WithConversationId</c> gave them.</typeparam>
 public sealed class ConversationTracker<TId> where TId : notnull
 {
     private readonly LiveRuns _runs;
     private readonly RealtimeTrackingOptions _realtime;
 
-    internal ConversationTracker(LiveRuns runs, RealtimeTrackingOptions realtime)
+    // D72: public, so the container makes the tracker of any id type it is asked for
+    /// <summary>
+    /// The tracker of the runtime's conversations, which the container creates.
+    /// </summary>
+    /// <param name="runtime">The runtime whose runs it tracks.</param>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    public ConversationTracker(TypeshiftRuntime runtime)
     {
-        _runs = runs;
-        _realtime = realtime;
+        ArgumentNullException.ThrowIfNull(runtime);
+
+        _runs = runtime.Services.GetRequiredService<LiveRuns>();
+        _realtime = runtime.Services.GetRequiredService<RealtimeTrackingOptions>();
     }
 
     /// <summary>
-    /// The runs going on now of conversations under ids of <typeparamref name="TId"/>.
+    /// The runs of conversations under ids of <typeparamref name="TId"/> going on now.
     /// </summary>
     public IReadOnlyList<LiveRun<TId>> Runs => [.. _runs.Runs.Where(IsOfIdType).Select(Live)];
 
     /// <summary>
-    /// The runs of conversations going on now, then each run as it starts and as it ends, until cancelled. A watcher
-    /// that falls behind loses its oldest changes.
+    /// The runs of conversations under ids of <typeparamref name="TId"/> going on now, then each run as it starts and
+    /// as it ends, until cancelled. A watcher that falls behind loses its oldest changes.
     /// </summary>
     /// <param name="ct">Ends the watch.</param>
     /// <returns>The runs; one that ended has <see cref="LiveRun{TId}.Ended"/> set.</returns>
@@ -43,22 +53,7 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// <param name="ct">Ends the watch.</param>
     /// <returns>The updates.</returns>
     public IAsyncEnumerable<ChatResponseUpdate> WatchAsync(TId conversation, CancellationToken ct) =>
-        WatchAsync<TId>(conversation, ct);
-
-    /// <summary>
-    /// The updates of the streaming runs of a conversation under an id of any type, as
-    /// <c>WithConversationId</c> gave it, as they happen, until cancelled. A watcher that falls behind loses its oldest
-    /// updates.
-    /// </summary>
-    /// <param name="conversation">The conversation's id.</param>
-    /// <param name="ct">Ends the watch.</param>
-    /// <typeparam name="TConversation">The id's type.</typeparam>
-    /// <returns>The updates.</returns>
-    public IAsyncEnumerable<ChatResponseUpdate> WatchAsync<TConversation>(
-        TConversation conversation,
-        CancellationToken ct)
-        where TConversation : notnull =>
-        _runs.WatchAsync(new StoreId<TConversation>(conversation), _realtime.MaxPendingUpdates, ct);
+        _runs.WatchAsync(new StoreId<TId>(conversation), _realtime.MaxPendingUpdates, ct);
 
     /// <summary>
     /// Steers a run going on in this process: the input reaches the model before its next call, and the run does not
@@ -69,21 +64,7 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// <returns>
     /// False when no run of the conversation is going on here, or it is ending; start a run with the input instead.
     /// </returns>
-    public bool TrySteer(TId conversation, string input) => TrySteer<TId>(conversation, input);
-
-    /// <summary>
-    /// Steers a run of a conversation under an id of any type, as <c>WithConversationId</c> gave it: the input reaches
-    /// the model before its next call, and the run does not end before it has. The input is stored with the
-    /// conversation.
-    /// </summary>
-    /// <param name="conversation">The conversation's id.</param>
-    /// <param name="input">The user's input.</param>
-    /// <typeparam name="TConversation">The id's type.</typeparam>
-    /// <returns>
-    /// False when no run of the conversation is going on here, or it is ending; start a run with the input instead.
-    /// </returns>
-    public bool TrySteer<TConversation>(TConversation conversation, string input) where TConversation : notnull =>
-        _runs.TrySteer(new StoreId<TConversation>(conversation), input);
+    public bool TrySteer(TId conversation, string input) => _runs.TrySteer(new StoreId<TId>(conversation), input);
 
     // D72: a conversation of another id type is another tracker's
     private static bool IsOfIdType(ConversationRun run) => run.Conversation is StoreId<TId>;

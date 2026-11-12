@@ -624,27 +624,6 @@ public static class DiagnosticSources
         }
         """;
 
-    // Built with the id type Demo.TenantId
-    public const string PublicAgentOfInternalIdType =
-        """
-        #pragma warning disable CS1591
-
-        using Typeshift;
-
-        namespace Demo;
-
-        internal enum TenantId
-        {
-            North,
-            South
-        }
-
-        public partial class SupportAgent : Agent
-        {
-            public SupportAgent() => WithChatOptions().WithModel("openai", "fast-model");
-        }
-        """;
-
     public const string UnstorablePick =
         """
         using System;
@@ -1319,7 +1298,7 @@ public static class DiagnosticSources
         }
         """;
 
-    public const string SettingsStoreOfTheBuildsIdType =
+    public const string SettingsStoreAlone =
         """
         using System;
         using System.Threading;

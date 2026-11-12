@@ -1,9 +1,9 @@
 namespace Typeshift.Tests.Persistence.Support;
 
 // Keeps settings in memory and no conversations, as a store of settings in a database of their own
-public sealed class SettingsOnlyStore : ISettingsStore
+public sealed class SettingsOnlyStore : ISettingsStore<Guid>
 {
-    private readonly InMemoryTypeshiftStore _store = new();
+    private readonly InMemoryTypeshiftStore<Guid> _store = new();
 
     public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken ct) =>
         _store.LoadAsync(id, kind, ct);

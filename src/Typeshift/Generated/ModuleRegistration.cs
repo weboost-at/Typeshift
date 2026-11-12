@@ -16,84 +16,35 @@ public static class ModuleRegistration
     /// <summary>
     /// Registers the services every module needs, once.
     /// </summary>
-    /// <typeparam name="TId">The build's id type, <c>TypeshiftIdType</c>.</typeparam>
     /// <typeparam name="TProviderId">The build's provider id type, <c>TypeshiftProviderIdType</c>.</typeparam>
     /// <param name="services">The services.</param>
-    /// <param name="parse">
-    /// Reads an id from text, for the raw path's <c>ChatOptions.ConversationId</c>; null for an id type without one.
-    /// </param>
     /// <returns>The registration chain <c>AddTypeshift()</c> returns.</returns>
-    public static TypeshiftBuilder AddCoreServices<TId, TProviderId>(
-        IServiceCollection services,
-        Func<string, TId>? parse)
-        where TId : notnull
+    public static TypeshiftBuilder AddCoreServices<TProviderId>(IServiceCollection services)
         where TProviderId : notnull
     {
         services.TryAddSingleton(provider => new ToolJson(
             provider.GetServices<JsonContextRegistration>().Select(registration => registration.Resolver),
             provider.GetServices<SchemaAnnotationsRegistration>().Select(registration => registration.Source)));
 
-        services.TryAddSingleton(provider => new StoreAccess(provider, new BuildIds<TId>(parse)));
+        services.TryAddSingleton(provider => new StoreAccess(provider));
         services.TryAddSingleton<LiveRuns>();
         services.TryAddSingleton<InstrumentedClients>();
         services.TryAddSingleton<ChatClients, ChatClients<TProviderId>>();
         // D74: live updates are on from the start; WithRealtimeTracking tunes them
         services.TryAddSingleton(new RealtimeTrackingOptions());
-        services.TryAddSingleton(provider => new ConversationTracker<TId>(
-            provider.GetRequiredService<LiveRuns>(),
-            provider.GetRequiredService<RealtimeTrackingOptions>()));
+        // D72: the tracker of every id type an app asks for; WithConversationTracker<TId>() closes one for Native AOT
+        services.TryAddSingleton(typeof(ConversationTracker<>));
 
         // D76: the root's services, whatever scope resolves it
         services.TryAddSingleton(provider => new TypeshiftRuntime(provider));
 
         return new TypeshiftBuilder(
             services,
-            AddStore<TId>,
             static (services, clients) => services.AddScoped<IChatClientProvider<TProviderId>>(provider =>
                 clients(provider) as IChatClientProvider<TProviderId>
                 ?? throw new InvalidOperationException(
                     $"The chat client provider is no IChatClientProvider<{typeof(TProviderId).Name}>, of the build's "
                     + "provider id type (TSH030).")));
-    }
-
-    // D38, D72: a store is registered as each store interface it implements, of any id type; the type check reads no
-    // members. A store your app created is checked as the instance it is as well, and registered as that instance,
-    // which the container never disposes
-    private static void AddStore<TId>(
-        IServiceCollection services,
-        Type type,
-        IReadOnlyList<Type> contracts,
-        object? instance,
-        Func<IServiceProvider, object> store)
-        where TId : notnull
-    {
-        List<Type> kept = [.. contracts];
-
-        if (instance is not null)
-        {
-            Keep<ISettingsStore<TId>>();
-            Keep<IConversationStore<TId>>();
-            Keep<ITypeshiftStore<TId>>();
-            Keep<IAgentSettingsStore>();
-        }
-
-        if (kept.Count == 0)
-            throw new InvalidOperationException(
-                $"{type.Name} is no store: implement ISettingsStore<TId>, IConversationStore<TId> or "
-                + "IAgentSettingsStore (TSH028).");
-
-        services.TryAddSingleton<RegisteredStores>();
-
-        foreach (var contract in kept)
-        {
-            if (instance is null) services.AddSingleton(contract, provider => store(provider));
-            else services.AddSingleton(contract, instance);
-        }
-
-        void Keep<TStore>()
-        {
-            if (instance is TStore && !kept.Contains(typeof(TStore))) kept.Add(typeof(TStore));
-        }
     }
 
     /// <summary>

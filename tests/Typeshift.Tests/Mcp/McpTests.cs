@@ -86,9 +86,8 @@ public class McpTests : McpTestBase
     }
 
     private Task<ChatResponse> RunAsync(McpAgent.Settings? settings = null) =>
-        Host<McpAgent>().RunAsync(
+        Host<McpAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
             Data.Tool.Question,
-            conversationId: Data.Agent.ConversationId,
             settings: settings,
             ct: Ct);
 }

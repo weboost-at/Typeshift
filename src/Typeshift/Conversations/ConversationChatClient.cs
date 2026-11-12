@@ -47,7 +47,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         options = WithNewConversation(messages, options);
         using var activity = Telemetry.StartRun(agent, options);
         var usage = new UsageDetails();
-        string? conversation = null;
+        var conversation = Named(options);
 
         await using var updates = RunStreamingAsync(messages, options, activity, cancellationToken)
             .GetAsyncEnumerator(cancellationToken);
@@ -56,8 +56,6 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         {
             try
             {
-                // In the try, so an id that does not parse fails the span
-                conversation ??= Named(options);
                 if (!await updates.MoveNextAsync()) break;
             }
             catch (Exception exception)
@@ -89,7 +87,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             return options;
 
         var started = (ResolvedChatOptions)resolved.Clone();
-        started.Conversation = typeshift.NewConversationId() ?? Store.NewConversationId(Time);
+        started.Conversation = typeshift.NewConversationId(Time);
         return started;
     }
 
@@ -101,7 +99,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     }
 
     // The conversation the run is stored in, as the response names it
-    private string? Named(ChatOptions? options) => options is null ? null : GetConversation(options)?.ToString();
+    private static string? Named(ChatOptions? options) => options is null ? null : GetConversation(options)?.ToString();
 
     private LiveRuns Runs => services.GetRequiredService<LiveRuns>();
 
@@ -318,12 +316,12 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             ? new LivePublisher(Runs, run.Conversation, realtime, Time)
             : null;
 
-    // The id a typed run passes, or the raw path's ChatOptions.ConversationId in the build's id type
-    private StoreId? GetConversation(ChatOptions options) =>
+    // D72: the host's conversation, or the raw path's ChatOptions.ConversationId, a string id
+    private static StoreId? GetConversation(ChatOptions options) =>
         options switch
         {
             ResolvedChatOptions { Conversation: { } conversation } => conversation,
-            { ConversationId: { } text } => Store.Parse(text),
+            { ConversationId: { } text } => new StoreId<string>(text),
             _ => null
         };
 

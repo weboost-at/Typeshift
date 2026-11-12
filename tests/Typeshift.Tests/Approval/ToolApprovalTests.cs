@@ -35,16 +35,14 @@ public class ToolApprovalTests : ApprovalTestBase
             .Reply(CloseTicket(Data.Tool.SecondCallId, Data.Agent.Ticket))
             .Reply(Text(Data.Tool.Answer));
 
-        var asked = await Host<GuardedAgent>().RunAsync(
+        var asked = await Host<GuardedAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
             Data.Tool.Question,
-            conversationId: Data.Agent.ConversationId,
             settings: settings,
             ct: Ct);
 
         // Act
-        var response = await Host<GuardedAgent>().RunAsync(
+        var response = await Host<GuardedAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
             new ChatMessage(ChatRole.User, [asked.ApprovalRequests[0].CreateResponse(approved: true)]),
-            conversationId: Data.Agent.ConversationId,
             settings: settings,
             ct: Ct);
 
@@ -84,9 +82,8 @@ public class ToolApprovalTests : ApprovalTestBase
         var asked = await RunAsync(Data.Tool.Question);
 
         // Act
-        var response = await Host<GuardedAgent>().RunAsync<int>(
+        var response = await Host<GuardedAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync<int>(
             new ChatMessage(ChatRole.User, [asked.ApprovalRequests[0].CreateResponse(approved: true)]),
-            conversationId: Data.Agent.ConversationId,
             ct: Ct);
 
         // Assert
@@ -239,7 +236,7 @@ public class ToolApprovalTests : ApprovalTestBase
         var asked = await RunAsync(Data.Tool.Question);
         await AnswerAsync(asked.ApprovalRequests[0].ApproveForConversation());
 
-        var store = Services.GetRequiredService<ITypeshiftStore>();
+        var store = Services.GetRequiredService<ITypeshiftStore<Guid>>();
         var summary = new ConversationEntry(
             "guarded_agent",
             [new ChatMessage(ChatRole.User, Data.Agent.Reason)],
@@ -272,9 +269,8 @@ public class ToolApprovalTests : ApprovalTestBase
         var asked = await RunAsync(Data.Tool.Question);
         await AnswerAsync(asked.ApprovalRequests[0].ApproveForConversation());
 
-        await Host<GuardedAgent>().RunAsync(
+        await Host<GuardedAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
             new string('x', Page),
-            conversationId: Data.Agent.ConversationId,
             settings: new() { MaxInputTokens = 1_000 },
             ct: Ct);
 
@@ -530,7 +526,8 @@ public class ToolApprovalTests : ApprovalTestBase
         ToolApprovalRequestContent? request = null;
 
         await foreach (var update in Host<GuardedAgent>()
-            .RunStreamingAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, ct: Ct))
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunStreamingAsync(Data.Tool.Question, ct: Ct))
         {
             request = update.Contents.OfType<ToolApprovalRequestContent>().FirstOrDefault();
             if (request is not null) break;
@@ -640,12 +637,12 @@ public class ToolApprovalTests : ApprovalTestBase
             .Reply(Text(Data.Tool.Answer))
             .Reply(Text(Data.Tool.Answer));
 
-        var host = Host<GuardedAgent>();
-        await host.RunAsync(Data.Tool.Question, conversationId: Data.Agent.ConversationId, settings: settings, ct: Ct);
-        await host.RunAsync(Data.Agent.FollowUp, conversationId: Data.Agent.ConversationId, settings: settings, ct: Ct);
+        var host = Host<GuardedAgent>().WithConversationId(Data.Agent.ConversationId);
+        await host.RunAsync(Data.Tool.Question, settings: settings, ct: Ct);
+        await host.RunAsync(Data.Agent.FollowUp, settings: settings, ct: Ct);
 
         // Act
-        await host.RunAsync(Data.Agent.Steering, conversationId: Data.Agent.ConversationId, settings: settings, ct: Ct);
+        await host.RunAsync(Data.Agent.Steering, settings: settings, ct: Ct);
 
         // Assert
         var sent = ChatClient.Requests[^1].SelectMany(message => message.Contents).ToList();

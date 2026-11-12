@@ -2,11 +2,6 @@
 
   <Import Project="../../build/UseGenerator.props" />
 
-  <!-- The scenarios' conversations are ints, and the container has the ConversationTracker of this type only -->
-  <PropertyGroup>
-    <TypeshiftIdType>int</TypeshiftIdType>
-  </PropertyGroup>
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net11.0</TargetFramework>

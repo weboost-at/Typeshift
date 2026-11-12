@@ -4,38 +4,27 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Typeshift;
 
-// Registers a store of the type, or the instance your app created, as each store interface it implements (D38)
-internal delegate void StoreRegistration(
-    IServiceCollection services,
-    Type type,
-    IReadOnlyList<Type> contracts,
-    object? instance,
-    Func<IServiceProvider, object> store);
-
 /// <summary>
 /// The registration chain <c>AddTypeshift()</c> starts.
 /// </summary>
 public sealed class TypeshiftBuilder
 {
     private readonly IServiceCollection _services;
-    private readonly StoreRegistration _addStore;
     private readonly Action<IServiceCollection, Func<IServiceProvider, object>> _addChatClientProvider;
 
     internal TypeshiftBuilder(
         IServiceCollection services,
-        StoreRegistration addStore,
         Action<IServiceCollection, Func<IServiceProvider, object>> addChatClientProvider)
     {
         _services = services;
-        _addStore = addStore;
         _addChatClientProvider = addChatClientProvider;
     }
 
     /// <summary>
     /// Registers a store, a singleton, and turns persistence on for what it keeps: agents' own settings, stored
     /// settings, conversations or several of them. Call it once per class, for example for a store of settings and
-    /// another of conversations; for each store interface, the last call wins. Without it, every call that loads or
-    /// saves throws, naming this method.
+    /// another of conversations; for each store interface, the last call wins. Without any store, Typeshift keeps
+    /// everything in memory until the app stops.
     /// </summary>
     /// <typeparam name="TStore">
     /// An <c>IAgentSettingsStore</c>, an <c>ISettingsStore&lt;TId&gt;</c>, an <c>IConversationStore&lt;TId&gt;</c>, or
@@ -48,15 +37,13 @@ public sealed class TypeshiftBuilder
         where TStore : class
     {
         _services.AddSingleton<TStore>();
-        var store = typeof(TStore);
-        _addStore(_services, store, Contracts(store), null, provider => provider.GetRequiredService<TStore>());
+        AddStore(typeof(TStore), null, provider => provider.GetRequiredService<TStore>());
         return this;
     }
 
     /// <summary>
-    /// Registers a store you created yourself, as each store interface <typeparamref name="TStore"/> implements, and as
-    /// those of the build's id type the instance implements. Your app owns the instance, so the container never
-    /// disposes it.
+    /// Registers a store you created yourself, as each store interface <typeparamref name="TStore"/> implements. Your
+    /// app owns the instance, so the container never disposes it.
     /// </summary>
     /// <param name="store">The store, a singleton.</param>
     /// <typeparam name="TStore">
@@ -70,7 +57,7 @@ public sealed class TypeshiftBuilder
     {
         ArgumentNullException.ThrowIfNull(store);
         if (!typeof(TStore).IsInterface) _services.AddSingleton(store);
-        _addStore(_services, typeof(TStore), Contracts(typeof(TStore)), store, _ => store);
+        AddStore(typeof(TStore), store, _ => store);
         return this;
     }
 
@@ -81,9 +68,32 @@ public sealed class TypeshiftBuilder
         where TStore : class
     {
         _services.AddSingleton(create);
-        var store = typeof(TStore);
-        _addStore(_services, store, Contracts(store), null, provider => provider.GetRequiredService<TStore>());
+        AddStore(typeof(TStore), null, provider => provider.GetRequiredService<TStore>());
         return this;
+    }
+
+    // D38, D72: a store is registered as each store interface its declared type implements, of any id type; the type
+    // check reads no members. A store your app created is registered as that instance, which the container never
+    // disposes
+    private void AddStore(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type type,
+        object? instance,
+        Func<IServiceProvider, object> store)
+    {
+        var contracts = Contracts(type);
+
+        if (contracts.Length == 0)
+            throw new InvalidOperationException(
+                $"{type.Name} is no store: implement ISettingsStore<TId>, IConversationStore<TId> or "
+                + "IAgentSettingsStore (TSH028).");
+
+        _services.TryAddSingleton<RegisteredStores>();
+
+        foreach (var contract in contracts)
+        {
+            if (instance is null) _services.AddSingleton(contract, provider => store(provider));
+            else _services.AddSingleton(contract, instance);
+        }
     }
 
     // D72: the store interfaces a type implements, of whatever id types, the type itself when it is one
@@ -134,7 +144,25 @@ public sealed class TypeshiftBuilder
     }
 
     /// <summary>
-    /// Tunes the live updates of runs, which <c>ConversationTracker.WatchAsync</c> reads; they are on without it.
+    /// Registers the <see cref="ConversationTracker{TId}"/> of an id type as its own singleton, for an app published
+    /// with Native AOT: there the container cannot make the tracker of a value type, such as <see cref="Guid"/> or
+    /// <see cref="int"/>, from the one it has for every id type. Elsewhere, and for <see cref="string"/> ids, the
+    /// container has it without this call.
+    /// </summary>
+    /// <typeparam name="TId">The type of the conversation ids, as <c>WithConversationId</c> gives them.</typeparam>
+    /// <returns>The same chain.</returns>
+    public TypeshiftBuilder WithConversationTracker<TId>() where TId : notnull
+    {
+        // D72: closed here, so the container makes no generic type at run time
+        _services.TryAddSingleton(provider => new ConversationTracker<TId>(
+            provider.GetRequiredService<TypeshiftRuntime>()));
+
+        return this;
+    }
+
+    /// <summary>
+    /// Tunes the live updates of runs, which each <see cref="ConversationTracker{TId}"/> reads with <c>WatchAsync</c>;
+    /// they are on without it.
     /// </summary>
     /// <param name="options">Intervals and limits; the defaults when null.</param>
     /// <returns>The same chain.</returns>

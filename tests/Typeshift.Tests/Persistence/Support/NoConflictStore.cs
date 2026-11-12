@@ -1,9 +1,9 @@
 namespace Typeshift.Tests.Persistence.Support;
 
 // Saves over whatever is stored, ignoring the version it is given
-public sealed class NoConflictStore : ISettingsStore
+public sealed class NoConflictStore : ISettingsStore<Guid>
 {
-    private readonly InMemoryTypeshiftStore _store = new();
+    private readonly InMemoryTypeshiftStore<Guid> _store = new();
 
     public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken ct) =>
         _store.LoadAsync(id, kind, ct);

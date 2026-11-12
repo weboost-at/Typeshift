@@ -39,7 +39,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.GeneratedNameClash,
         Descriptors.NotGenerated,
         Descriptors.UnstampedReference,
-        Descriptors.OtherIdType,
+        Descriptors.ReferenceOfOtherProviderIdType,
         Descriptors.SharedKind,
         Descriptors.NotUsableAgent,
         Descriptors.SubAgentNeedsApproval,
@@ -47,7 +47,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.OfferedTwice,
         Descriptors.NoJsonMetadata,
         Descriptors.NoStore,
-        Descriptors.UnknownIdType,
+        Descriptors.UnusableProviderIdType,
         Descriptors.OtherProviderIdType
     ];
 
@@ -66,26 +66,19 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         var kinds = new ConcurrentBag<(string Kind, INamedTypeSymbol Agent)>();
         var found = new Found();
 
-        var options = context.Options.AnalyzerConfigOptionsProvider.GlobalOptions;
-        var property = IdTypes.Read(options);
-        var idType = IdTypes.Resolve(property, context.Compilation);
-
-        // D56: a provider id type the build finds but settings cannot store as one value is TSH029 too
-        var providerProperty = IdTypes.Read(options, IdTypes.ProviderProperty);
+        // D56: a provider id type the build cannot find, or settings cannot store as one value, is TSH029
+        var providerProperty = IdTypes.Read(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
         var providerIdType = IdTypes.ResolveProvider(providerProperty, context.Compilation);
-        var unknown = new List<Diagnostic>();
 
-        if (idType is null) unknown.Add(UnknownIdType(IdTypes.Name, property, Descriptors.NotFound));
-
-        if (providerIdType is null)
-        {
-            unknown.Add(UnknownIdType(
-                IdTypes.ProviderName,
+        var unusable = providerIdType is null
+            ? Diagnostic.Create(
+                Descriptors.UnusableProviderIdType,
+                Location.None,
                 providerProperty,
-                IdTypes.Resolve(providerProperty, context.Compilation, "string") is null
+                IdTypes.Resolve(providerProperty, context.Compilation) is null
                     ? Descriptors.NotFound
-                    : Descriptors.NotOneValue));
-        }
+                    : Descriptors.NotOneValue)
+            : null;
 
         context.RegisterSymbolStartAction(
             start => StartClass(start, providerIdType, tools, kinds, found),
@@ -102,15 +95,11 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
         context.RegisterCompilationEndAction(end =>
         {
-            foreach (var diagnostic in unknown)
-            {
-                end.ReportDiagnostic(diagnostic);
-            }
+            if (unusable is not null) end.ReportDiagnostic(unusable);
 
             ReportClashesAcrossToolsets(end, tools);
             ReportUnstampedReferences(end);
-            ReportOtherIdTypes(end, idType, providerIdType);
-            ReportHiddenIdType(end, idType, found);
+            ReportOtherProviderIdTypes(end, providerIdType);
             ReportSharedKinds(end, kinds);
             ReportAgentUses(end, found);
             if (aot) ReportMissingJsonMetadata(end, found);
@@ -235,9 +224,6 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             { BaseType: var direct } when !direct.Is($"Typeshift.{baseType}") => $"derives from '{direct!.Name}'",
             _ => null
         };
-
-    private static Diagnostic UnknownIdType(string name, string? property, string reason) =>
-        Diagnostic.Create(Descriptors.UnknownIdType, Location.None, name, property, reason);
 
     private static void AnalyzeCall(OperationAnalysisContext context, ITypeSymbol? providerIdType)
     {
@@ -414,46 +400,17 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         return null;
     }
 
-    private static void ReportOtherIdTypes(
-        CompilationAnalysisContext context, ITypeSymbol? idType, ITypeSymbol? providerIdType)
+    // D56: TSH021, a reference with agents built with another provider id type
+    private static void ReportOtherProviderIdTypes(CompilationAnalysisContext context, ITypeSymbol? providerIdType)
     {
-        foreach (var (assembly, other) in ReferenceReader.GetOtherIdTypes(context.Compilation, idType))
-        {
-            ReportOtherIdType(context, assembly, IdTypes.Name, other, idType);
-        }
-
         foreach (var (assembly, other) in ReferenceReader.GetOtherProviderIdTypes(context.Compilation, providerIdType))
         {
-            ReportOtherIdType(context, assembly, IdTypes.ProviderName, other, providerIdType);
-        }
-    }
-
-    private static void ReportOtherIdType(
-        CompilationAnalysisContext context,
-        IAssemblySymbol assembly,
-        string name,
-        ITypeSymbol other,
-        ITypeSymbol? own) =>
-        context.ReportDiagnostic(Diagnostic.Create(
-            Descriptors.OtherIdType,
-            Location.None,
-            assembly.Name,
-            name,
-            other.ToDisplayString(),
-            own?.ToDisplayString()));
-
-    // D6: a public agent's host members take settings and conversation ids of the build's id type
-    private static void ReportHiddenIdType(CompilationAnalysisContext context, ITypeSymbol? idType, Found found)
-    {
-        if (idType is null || idType.IsEffectivelyPublic()) return;
-
-        foreach (var agent in found.Agents.Where(agent => agent.Type.IsEffectivelyPublic()))
-        {
             context.ReportDiagnostic(Diagnostic.Create(
-                Descriptors.SettingsLessAccessible,
-                agent.Type.Locations.FirstOrDefault(),
-                idType.Name,
-                agent.Type.Name));
+                Descriptors.ReferenceOfOtherProviderIdType,
+                Location.None,
+                assembly.Name,
+                other.ToDisplayString(),
+                providerIdType?.ToDisplayString()));
         }
     }
 

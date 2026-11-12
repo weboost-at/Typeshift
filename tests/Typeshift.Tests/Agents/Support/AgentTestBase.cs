@@ -18,10 +18,10 @@ public abstract class AgentTestBase : HostTestBase
 
     protected TypeshiftRuntime Runtime => Services.GetRequiredService<TypeshiftRuntime>();
 
-    protected ConversationTracker Tracker => Services.GetRequiredService<ConversationTracker>();
+    protected ConversationTracker<Guid> Tracker => Services.GetRequiredService<ConversationTracker<Guid>>();
 
     protected Task<IReadOnlyList<ConversationEntry>> EntriesAsync(Guid conversation) =>
-        Services.GetRequiredService<ITypeshiftStore>().LoadConversationAsync(conversation, Ct);
+        Services.GetRequiredService<ITypeshiftStore<Guid>>().LoadConversationAsync(conversation, Ct);
 
     // The JSON schema the run's first model call asked the answer to match
     protected JsonElement ResponseSchema() =>
@@ -30,7 +30,7 @@ public abstract class AgentTestBase : HostTestBase
     protected override void ConfigureServices(IServiceCollection services)
     {
         services.AddTypeshift()
-            .WithStore<InMemoryTypeshiftStore>()
+            .WithStore<InMemoryTypeshiftStore<Guid>>()
             .WithChatClientProvider<ScriptedChatClientProvider>();
 
         services.AddSingleton(ChatClient);

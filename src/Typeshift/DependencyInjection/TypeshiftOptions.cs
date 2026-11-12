@@ -15,8 +15,8 @@ public sealed class TypeshiftOptions
 
     /// <summary>
     /// Gives new conversations ids of your conversation store's type. Without it, they get a <see cref="Guid"/> of
-    /// version 7, ordered by the time, or its text when the build's id type is <see cref="string"/>; a build of any
-    /// other id type needs it. Runs call it at the same time, so make it thread-safe.
+    /// version 7, ordered by the time, and need an <c>IConversationStore&lt;Guid&gt;</c>. Runs call it at the same
+    /// time, so make it thread-safe.
     /// </summary>
     /// <param name="create">Returns a new id, one no conversation has, each time it is called.</param>
     /// <typeparam name="TId">The id type of your conversation store.</typeparam>
@@ -26,6 +26,7 @@ public sealed class TypeshiftOptions
         _newConversationId = () => new StoreId<TId>(create());
     }
 
-    // D73: an id the app chose; null leaves it to the build's id type
-    internal StoreId? NewConversationId() => _newConversationId?.Invoke();
+    // D73: an id the app chose, or a Guid of version 7, ordered by the clock the host injects
+    internal StoreId NewConversationId(TimeProvider time) =>
+        _newConversationId?.Invoke() ?? new StoreId<Guid>(Guid.CreateVersion7(time.GetUtcNow()));
 }

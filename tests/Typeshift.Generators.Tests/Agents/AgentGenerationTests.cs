@@ -241,23 +241,6 @@ public class AgentGenerationTests : GeneratorTestBase
         sources.Should().Contain(source => source.Contains($"global::Typeshift.IChatClientProvider<{type}>;"));
         sources.Should().Contain(source => source.Contains($"public {type}? Provider {{ get; init; }}"));
         sources.Should().Contain(source => source.Contains($"public {type}? SummaryProvider {{ get; init; }}"));
-        sources.Should().Contain(source => source.Contains($"AddCoreServices<global::System.Guid, {type}>"));
-    }
-
-    [Fact]
-    public void Given_An_Id_Type_The_Aliases_And_The_Host_Members_Use_It()
-    {
-        // Arrange
-        var compilation = Compile(AgentSources.Tickets, AgentSources.Support);
-
-        // Act
-        var run = Run(compilation, properties: BuildProperties.WithIdType("int"));
-
-        var sources = run.Result.GeneratedTrees.Select(tree => tree.ToString()).ToList();
-
-        // Assert
-        run.Assert.CompilesCleanly();
-        sources.Should().Contain(source => source.Contains("global::Typeshift.ITypeshiftStore<int>;"));
-        sources.Should().Contain(source => source.Contains("int? settingsId = null"));
+        sources.Should().Contain(source => source.Contains($"AddCoreServices<{type}>(services)"));
     }
 }

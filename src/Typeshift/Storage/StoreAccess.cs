@@ -4,18 +4,14 @@ using Microsoft.Extensions.Logging;
 
 namespace Typeshift;
 
-// D72: each id names the store of its own type, so the stores of an app may have several; the build's id type
-// (D11) remains for the ids the generated members take, boxed, and for the raw path's ChatOptions.ConversationId
-internal sealed class StoreAccess(IServiceProvider services, BuildIds build)
+// D72: each id names the store of its own type, so the stores of an app may have several
+internal sealed class StoreAccess(IServiceProvider services)
 {
     private readonly ConcurrentDictionary<Type, object> _memory = [];
 
-    // D69: an app that registered no store at all keeps everything in memory, so a stock setup works; one that
-    // registered any store chose, and an interface no store of it implements throws
-    private readonly Lazy<bool> _inMemory = new(() =>
-        services.GetService<RegisteredStores>() is null
-        && services.GetService<IAgentSettingsStore>() is null
-        && !build.HasStore(services));
+    // D69: an app that registered no store with WithStore keeps in memory what no service of its container keeps, so
+    // a stock setup works; one that registered any store chose, and an interface no store of it implements throws
+    private readonly Lazy<bool> _inMemory = new(() => services.GetService<RegisteredStores>() is null);
 
     // Every run asks, so the lookup runs once
     private readonly Lazy<IAgentSettingsStore?> _agentSettingsStore = new(services.GetService<IAgentSettingsStore>);
@@ -26,15 +22,6 @@ internal sealed class StoreAccess(IServiceProvider services, BuildIds build)
 
     // D66: whether runs have an agent's own settings to load, which no settings id reaches
     public bool KeepsAgentSettings => _agentSettingsStore.Value is not null || _inMemory.Value;
-
-    // The ids the generated members pass, of the build's id type
-    public StoreId Wrap(object id) => build.Wrap(id);
-
-    // The raw path names its conversation in ChatOptions.ConversationId, a string
-    public StoreId Parse(string id) => build.Parse(id);
-
-    // D73: the id of a conversation a run starts, when the app gives none
-    public StoreId NewConversationId(TimeProvider time) => build.NewConversationId(time);
 
     public async Task<Stored<TData>?> LoadAsync<TData>(StoreId id, CancellationToken ct)
         where TData : class, IStorable<TData> =>
@@ -88,13 +75,15 @@ internal sealed class StoreAccess(IServiceProvider services, BuildIds build)
             + "WithStore<T>() after AddTypeshift() with a store that implements it, or pass an id of your store's "
             + "type.");
 
+    // D73: a conversation PersistAllConversations starts is under a Guid unless NewConversationIds gives other ids
     public IConversationStore<TId> ConversationStore<TId>() where TId : notnull =>
         services.GetService<IConversationStore<TId>>()
         ?? Memory<TId>()
         ?? throw new InvalidOperationException(
             $"No IConversationStore<{TypeNames.Of<TId>()}> is registered for a conversation id of that type: call "
-            + "WithStore<T>() after AddTypeshift() with a store that implements it, or pass an id of your store's "
-            + "type.");
+            + "WithStore<T>() after AddTypeshift() with a store that implements it, or give ids of your store's "
+            + "type, to WithConversationId and, for the conversations PersistAllConversations starts, with "
+            + "NewConversationIds.");
 
     private IAgentSettingsStore AgentSettingsStore =>
         _agentSettingsStore.Value
@@ -115,46 +104,6 @@ internal sealed class StoreAccess(IServiceProvider services, BuildIds build)
 
 // Registered by WithStore, whatever the store's id type
 internal sealed class RegisteredStores;
-
-// D11: the build's id type, which the library is compiled before
-internal abstract class BuildIds
-{
-    public abstract StoreId Wrap(object id);
-
-    public abstract StoreId Parse(string id);
-
-    public abstract StoreId NewConversationId(TimeProvider time);
-
-    // A store of the build's id type registered without WithStore
-    public abstract bool HasStore(IServiceProvider services);
-}
-
-internal sealed class BuildIds<TId>(Func<string, TId>? parse) : BuildIds where TId : notnull
-{
-    public override StoreId Wrap(object id) => new StoreId<TId>((TId)id);
-
-    public override StoreId Parse(string id) =>
-        parse is null
-            ? throw new InvalidOperationException(
-                $"{typeof(TId).Name} is not parsable, so ChatOptions.ConversationId cannot name a conversation: "
-                + "run through the agent's generated members instead.")
-            : new StoreId<TId>(parse(id));
-
-    // D73: a Guid of version 7, ordered by the clock the host injects, or its text; other types have no new ids
-    public override StoreId NewConversationId(TimeProvider time) =>
-        Guid.CreateVersion7(time.GetUtcNow()) switch
-        {
-            TId id => new StoreId<TId>(id),
-            var guid when guid.ToString() is TId text => new StoreId<TId>(text),
-            _ => throw new InvalidOperationException(
-                $"New conversations need ids of the build's id type, {TypeNames.Of<TId>()}, and Typeshift makes "
-                + "only Guid and string ids: give them with WithOptions(options => options.NewConversationIds(...)).")
-        };
-
-    public override bool HasStore(IServiceProvider services) =>
-        services.GetService<ISettingsStore<TId>>() is not null
-        || services.GetService<IConversationStore<TId>>() is not null;
-}
 
 // The C# names an error message gives the common id types
 internal static class TypeNames
