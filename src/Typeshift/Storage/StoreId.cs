@@ -41,7 +41,7 @@ internal sealed record StoreId<TId>(TId Id) : StoreId where TId : notnull
         string json,
         long loadedVersion,
         CancellationToken ct) =>
-        stores.SettingsStore<TId>().SaveAsync(Id, kind, json, loadedVersion, ct);
+        stores.Written(stores.SettingsStore<TId>()).SaveAsync(Id, kind, json, loadedVersion, ct);
 
     public override Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
         StoreAccess stores,
@@ -54,5 +54,5 @@ internal sealed record StoreId<TId>(TId Id) : StoreId where TId : notnull
         stores.ConversationStore<TId>().LoadConversationSinceCompactionAsync(Id, ct);
 
     public override Task AppendConversationAsync(StoreAccess stores, ConversationEntry entry, CancellationToken ct) =>
-        stores.ConversationStore<TId>().AppendConversationAsync(Id, entry, ct);
+        stores.Written(stores.ConversationStore<TId>()).AppendConversationAsync(Id, entry, ct);
 }

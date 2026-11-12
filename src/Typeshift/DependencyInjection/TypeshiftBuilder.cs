@@ -54,7 +54,8 @@ public sealed class TypeshiftBuilder
 
     /// <summary>
     /// Registers a store you created, such as a <c>FileAgentSettingsStore</c> over its folder, as each store interface
-    /// the instance implements. Your app owns the instance, so the container never disposes it.
+    /// <typeparamref name="TStore"/> implements, and as those of the build's id type the instance implements. Your app
+    /// owns the instance, so the container never disposes it.
     /// </summary>
     /// <param name="store">The store, a singleton.</param>
     /// <typeparam name="TStore">

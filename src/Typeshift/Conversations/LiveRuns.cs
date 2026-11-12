@@ -5,7 +5,7 @@ using Microsoft.Extensions.AI;
 
 namespace Typeshift;
 
-// The conversations running in this process, their steering input and their watchers. Ids are the build's, boxed
+// The conversations running in this process, their steering input and their watchers, by id and its type (D72)
 internal sealed class LiveRuns
 {
     private readonly ConcurrentDictionary<StoreId, RunClaim> _runs = new();

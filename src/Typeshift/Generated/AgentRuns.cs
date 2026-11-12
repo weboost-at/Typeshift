@@ -119,19 +119,19 @@ public static class AgentRuns
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <param name="host">The host, with the run's services.</param>
-    /// <param name="conversationId">The conversation's id.</param>
+    /// <param name="conversationId">The conversation's id, or null for the one the host was given.</param>
     /// <param name="settingsId">The id of the stored settings to apply, or null.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The response.</returns>
     public static Task<ChatResponse> ResumeAsync<TAgent>(
         AgentHost<TAgent> host,
-        object conversationId,
+        object? conversationId,
         object? settingsId,
         object? settings,
         CancellationToken ct)
         where TAgent : Agent =>
-        host.RunCoreAsync(null, host.SettingsIdOf(settingsId), host.ConversationIdOf(conversationId), settings, ct);
+        host.RunCoreAsync(null, host.SettingsIdOf(settingsId), host.ResumedConversation(conversationId), settings, ct);
 
     /// <summary>
     /// Continues a conversation's interrupted run from its last stored step, without new input, streaming the
@@ -139,14 +139,14 @@ public static class AgentRuns
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <param name="host">The host, with the run's services.</param>
-    /// <param name="conversationId">The conversation's id.</param>
+    /// <param name="conversationId">The conversation's id, or null for the one the host was given.</param>
     /// <param name="settingsId">The id of the stored settings to apply, or null.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The updates.</returns>
     public static IAsyncEnumerable<ChatResponseUpdate> ResumeStreamingAsync<TAgent>(
         AgentHost<TAgent> host,
-        object conversationId,
+        object? conversationId,
         object? settingsId,
         object? settings,
         CancellationToken ct)
@@ -154,7 +154,7 @@ public static class AgentRuns
         host.RunStreamingCoreAsync(
             null,
             host.SettingsIdOf(settingsId),
-            host.ConversationIdOf(conversationId),
+            host.ResumedConversation(conversationId),
             settings,
             ct);
 

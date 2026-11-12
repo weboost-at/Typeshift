@@ -38,22 +38,16 @@ internal sealed class StoreAccess(IServiceProvider services, BuildIds build)
         Read<TData>(await id.LoadAsync(this, TData.Kind, ct));
 
     public Task<long> SaveAsync<TData>(StoreId id, TData data, long loadedVersion, CancellationToken ct)
-        where TData : class, IStorable<TData>
-    {
-        WarnOfMemory();
-        return id.SaveAsync(this, TData.Kind, data.Serialize(), loadedVersion, ct);
-    }
+        where TData : class, IStorable<TData> =>
+        id.SaveAsync(this, TData.Kind, data.Serialize(), loadedVersion, ct);
 
     public async Task<Stored<TData>?> LoadAgentSettingsAsync<TData>(CancellationToken ct)
         where TData : class, IStorable<TData> =>
         Read<TData>(await AgentSettingsStore.LoadAsync(TData.Kind, ct));
 
     public Task<long> SaveAgentSettingsAsync<TData>(TData data, long loadedVersion, CancellationToken ct)
-        where TData : class, IStorable<TData>
-    {
-        WarnOfMemory();
-        return AgentSettingsStore.SaveAsync(TData.Kind, data.Serialize(), loadedVersion, ct);
-    }
+        where TData : class, IStorable<TData> =>
+        Written(AgentSettingsStore).SaveAsync(TData.Kind, data.Serialize(), loadedVersion, ct);
 
     public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(StoreId conversation, CancellationToken ct) =>
         conversation.LoadConversationAsync(this, ct);
@@ -63,10 +57,22 @@ internal sealed class StoreAccess(IServiceProvider services, BuildIds build)
         CancellationToken ct) =>
         conversation.LoadConversationSinceCompactionAsync(this, ct);
 
-    public Task AppendConversationAsync(StoreId conversation, ConversationEntry entry, CancellationToken ct)
+    public Task AppendConversationAsync(StoreId conversation, ConversationEntry entry, CancellationToken ct) =>
+        conversation.AppendConversationAsync(this, entry, ct);
+
+    // The store a write goes to; a load of nothing loses nothing, so the first write to the memory says where it goes
+    public T Written<T>(T store) where T : class
     {
-        WarnOfMemory();
-        return conversation.AppendConversationAsync(this, entry, ct);
+        if (_inMemory.Value
+            && (ReferenceEquals(store, _agentSettingsMemory) || _memory.Values.Contains(store))
+            && Interlocked.Exchange(ref _warned, 1) == 0)
+        {
+            services.GetService<ILoggerFactory>()?.CreateLogger("Typeshift").LogWarning(
+                "No store is registered, so Typeshift keeps settings and conversations in memory and loses them when "
+                + "the app stops: call WithStore<T>() after AddTypeshift() to keep them.");
+        }
+
+        return store;
     }
 
     // D43: the stores are the persistence switch
@@ -98,16 +104,6 @@ internal sealed class StoreAccess(IServiceProvider services, BuildIds build)
         _inMemory.Value
             ? (InMemoryTypeshiftStore<TId>)_memory.GetOrAdd(typeof(TId), static _ => new InMemoryTypeshiftStore<TId>())
             : null;
-
-    // A load of nothing loses nothing, so the first write says where the data goes
-    private void WarnOfMemory()
-    {
-        if (!_inMemory.Value || Interlocked.Exchange(ref _warned, 1) == 1) return;
-
-        services.GetService<ILoggerFactory>()?.CreateLogger("Typeshift").LogWarning(
-            "No store is registered, so Typeshift keeps settings and conversations in memory and loses them when the "
-            + "app stops: call WithStore<T>() after AddTypeshift() to keep them.");
-    }
 
     private static Stored<TData>? Read<TData>(StoredDocument? document) where TData : class, IStorable<TData> =>
         document is null ? null : new Stored<TData>(TData.Deserialize(document.Json), document.Version);

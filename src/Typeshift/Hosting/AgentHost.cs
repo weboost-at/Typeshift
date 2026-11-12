@@ -78,6 +78,12 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
     internal StoreId? ConversationIdOf(object? conversationId) =>
         IdOf(conversationId, _conversationId, nameof(conversationId), nameof(WithConversationId));
 
+    // A resume needs a conversation, passed or given
+    internal StoreId ResumedConversation(object? conversationId) =>
+        ConversationIdOf(conversationId)
+        ?? throw new InvalidOperationException(
+            "A resume needs a conversation: call WithConversationId(id) on the host, or pass the conversation's id.");
+
     /// <summary>
     /// The raw path: creates the client of a run whose options <c>ResolveOptionsAsync</c> resolved. It asks the
     /// <see cref="IChatClientProvider{TProviderId}"/> for the options' provider and model and wraps the client in the
@@ -176,6 +182,9 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
         options.RunOptions = run;
         options.RunSetsMode = settings is not null && SetsMode(declaration, settings);
         options.SettingsId = settingsId;
+
+        // The raw path's conversation, which a run replaces with its own
+        options.Conversation = _conversationId;
 
         return options;
     }

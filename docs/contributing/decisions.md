@@ -551,9 +551,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Details:** `WithStore<T>()` registers each interface `T` implements, so settings and conversations may live in
   two stores, each registered by its own call. Settings and conversations differ in shape and load: a few documents
   read once per run and saved with a version, against an append-only log written at every step. TSH028 reports a
-  store that implements neither interface for the build's id type, nor `IAgentSettingsStore` (D66), or either for
-  another id type, and registration throws for the same stores. Registration checks
-  the store's type with `IsAssignableFrom`, which reads no members and stays safe under trimming.
+  type that implements none of the store interfaces, of any id type (D72), and registration throws for the same types.
+  Registration reads the interfaces of the store's declared type, which `DynamicallyAccessedMembers` keeps under
+  trimming, and checks a store your app created against those of the build's id type as well.
 - **Alternatives:** v0's load and save only, which rewrote a whole conversation per turn; a generic append for any kind,
   a concept with one user; `LoadAsync<TData>` and `SaveAsync<TData>` over `IStorable` documents (up to 0.1.0-alpha.3),
   which made every store call `TData.Kind`, `Serialize` and `Deserialize` itself; one document per settings id holding
@@ -733,11 +733,14 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `IConversationStore<Guid>`. The id goes down the run as a `StoreId<TId>`, which reaches the store of its type
   through a generic call, so no type is made at run time and Native AOT keeps working; it is equal only to an id of
   the same type and value, so conversation 5 as an `int` and as a `long` are two conversations. `WithStore<T>()`
-  registers a store as each store interface it implements, of any id type, and TSH028 reports only a type that is no
-  store. The settings members of a host with a settings id load, save and configure the id's settings in place of the
-  agent's own (D66). Without any store, D69 keeps one store in memory per id type. The id parameters of the generated
-  members stay, of the build's id type (D11), until the docs and samples move to the scopes; a call that passes an id
-  the host has already throws, naming both.
+  registers a store as each store interface its declared type implements, of any id type, and TSH028 reports only a
+  type that is no store. `ConversationTracker` steers and watches conversations of any id type through generic
+  overloads, while its `Runs` lists those of the build's id type. A resume without an id resumes the host's
+  conversation, and the raw path keeps it. The settings members of a host with a settings id load, save and configure
+  the id's settings in place of the agent's own (D66). Without any store, D69 keeps one store in memory per id type,
+  and warns on the first write that one of them takes. The id parameters of the generated members stay, of the build's
+  id type (D11), until the docs and samples move to the scopes; a call that passes an id the host has already throws,
+  naming both.
 - **Where:** `Hosting/AgentHost.cs`, `Storage/StoreId.cs`, `Storage/StoreAccess.cs`, `Generated/AgentRuns.cs`,
   `Generated/ModuleRegistration.cs`, `DependencyInjection/TypeshiftBuilder.cs`, `Conversations/ConversationTracker.cs`,
   `Analysis/TypeshiftAnalyzer.cs`.

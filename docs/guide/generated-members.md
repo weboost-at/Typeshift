@@ -270,6 +270,8 @@ In these signatures, `TId` is the build's [id type](./registration.md#the-id-typ
 | `RunStreamingAsync<TResult>(ChatMessage input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `StreamingRun<TResult>` |
 | `ResumeAsync(TId conversationId, TId? settingsId = null, Settings? settings = null)` | `Task<ChatResponse>` |
 | `ResumeStreamingAsync(TId conversationId, TId? settingsId = null, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
+| `ResumeAsync(Settings? settings = null)` | `Task<ChatResponse>` |
+| `ResumeStreamingAsync(Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
 | `ResolveOptionsAsync(TId? settingsId = null, Settings? settings = null)` | `Task<ChatOptions>` |
 | `LoadSettingsAsync(TId settingsId)` | `Task<Stored<Settings>>` |
 | `SaveSettingsAsync(TId settingsId, Settings settings, long loadedVersion)` | `Task<long>` |
@@ -308,7 +310,8 @@ Both continue the conversation's interrupted run from its last stored step, with
 `RunAsync` and store the continuation in the same conversation. A tool call that was still running when the run
 stopped is left out, so the model decides again and may call the tool a second time
 ([Resuming](./conversations.md#resuming)). They throw an `InvalidOperationException` when the conversation has no
-interrupted run.
+interrupted run. The overloads without a conversation id resume the host's, from `WithConversationId(id)`, and throw
+when the host has none.
 
 ### `ResolveOptionsAsync`
 
@@ -322,7 +325,8 @@ sub-agents, the tools of `WithTools`, then the MCP servers' tools.
 
 `LoadSettingsAsync` loads the `Settings` stored under an id, with their version, or empty settings at version 0
 when none are stored. It layers nothing, so the record holds only what was stored. Without an id, it loads the
-agent's own settings, and `SaveSettingsAsync` and `ConfigureAsync` save them, through the `IAgentSettingsStore`.
+agent's own settings, and `SaveSettingsAsync` and `ConfigureAsync` save them, through the `IAgentSettingsStore`. On a
+host from `WithSettingsId(id)`, the three take that id's settings instead.
 
 ### `SaveSettingsAsync`
 

@@ -701,6 +701,27 @@ internal static class AgentEmitter
                 {CancellationToken} ct = default) =>
                 {Runs}.{run}(host, conversationId, settingsId, settings, ct);
             """);
+
+        // D72: the conversation, and the settings id if any, are the host's
+        writer.Line();
+        Docs.WriteSummary(
+            writer,
+            "Continues the run of the host's conversation, from <c>WithConversationId</c>, that was interrupted, from "
+            + "its last stored step, without new input.");
+        Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
+        Docs.WriteParam(writer, "ct", "Cancels the run.");
+        Docs.WriteReturns(
+            writer,
+            returns.Contains("IAsyncEnumerable") ? "The updates." : "The response.");
+        Docs.WriteException(
+            writer,
+            "global::System.InvalidOperationException",
+            "The host has no conversation, or the conversation has no interrupted run.");
+        writer.Lines(
+            $"""
+            public {returns} {name}({settings}? settings = null, {CancellationToken} ct = default) =>
+                {Runs}.{run}(host, null, null, settings, ct);
+            """);
     }
 
     // The parameters every run takes, after its input
