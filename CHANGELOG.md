@@ -20,6 +20,10 @@ All notable changes to this project are documented here. The format follows
 - `UseAgent<T>().WithResult<TResult>()` holds a sub-agent's answer to the JSON of `TResult`, which the calling model
   reads as the call's result, or as its answer in the background. An answer without it fails the call, and the
   calling model reads why.
+- An agent without `WithDescription` takes its description from the `<summary>` of its XML docs, as a tool takes
+  its description from its method's. That description satisfies TSH023, names the agent's sub-agent tool and handoff,
+  and is the `gen_ai.agent.description` of its spans. Without `GenerateDocumentationFile`, TSH011 says the summary is
+  lost.
 
 ### Changed
 

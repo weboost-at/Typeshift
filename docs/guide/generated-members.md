@@ -236,8 +236,8 @@ what happens without one.
 
 ### `Agent`
 
-`TAgent Agent { get; }` is the agent as its code declares it, a singleton. `Agent.Name` and `Agent.Description` read
-what `WithName` and `WithDescription` declared.
+`TAgent Agent { get; }` is the agent as its code declares it, a singleton. `Agent.Name` reads what `WithName`
+declared, and `Agent.Description` what `WithDescription` or the agent's `<summary>` did.
 
 ### `CreateChatClientAsync`
 
