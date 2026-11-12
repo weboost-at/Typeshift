@@ -264,8 +264,11 @@ In these signatures, `TId` is the build's [id type](./registration.md#the-id-typ
 | `RunAsync(string input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `Task<ChatResponse>` |
 | `RunAsync(ChatMessage input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `Task<ChatResponse>` |
 | `RunAsync<TResult>(string input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
+| `RunAsync<TResult>(ChatMessage input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
 | `RunStreamingAsync(string input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
 | `RunStreamingAsync(ChatMessage input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
+| `RunStreamingAsync<TResult>(string input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `StreamingRun<TResult>` |
+| `RunStreamingAsync<TResult>(ChatMessage input, TId? settingsId = null, TId? conversationId = null, Settings? settings = null)` | `StreamingRun<TResult>` |
 | `ResumeAsync(TId conversationId, TId? settingsId = null, Settings? settings = null)` | `Task<ChatResponse>` |
 | `ResumeStreamingAsync(TId conversationId, TId? settingsId = null, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
 | `ResolveOptionsAsync(TId? settingsId = null, Settings? settings = null)` | `Task<ChatOptions>` |
@@ -294,7 +297,8 @@ answering agent's name as `AuthorName`.
 
 `RunStreamingAsync` layers settings and stores the run like `RunAsync`, but streams the updates, with the tool calls
 running between them. With `WithRealtimeTracking()`, the updates are also published to
-`ConversationTracker.WatchAsync`.
+`ConversationTracker.WatchAsync`. `RunStreamingAsync<TResult>` is its typed form
+([Structured output](./running-agents.md#structured-output)).
 
 ### `ResumeAsync` and `ResumeStreamingAsync`
 

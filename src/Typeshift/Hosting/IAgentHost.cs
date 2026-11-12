@@ -8,13 +8,15 @@ internal interface IAgentHost
     Agent Agent { get; }
 
     // Runs with the stored settings of the id only; a sub-agent's run takes its caller's mode and approvals, and a run
-    // handed a claim on the conversation takes it in place of claiming the conversation itself (D34, D50)
+    // handed a claim on the conversation takes it in place of claiming the conversation itself (D34, D50); a format
+    // asks for a typed answer (D64)
     Task<ChatResponse> RunAsync(
         IEnumerable<ChatMessage> messages,
         object? settingsId,
         object? conversation,
         AgentRun? caller,
         RunClaim? claim,
+        ChatResponseFormat? format,
         CancellationToken ct);
 
     IAsyncEnumerable<ChatResponseUpdate> RunStreamingAsync(
@@ -22,5 +24,6 @@ internal interface IAgentHost
         object? settingsId,
         object? conversation,
         RunClaim? claim,
+        ChatResponseFormat? format,
         CancellationToken ct);
 }

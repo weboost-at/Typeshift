@@ -315,7 +315,8 @@ public static class DeskAgentHostExtensions
             global::Typeshift.Generated.AgentRuns.RunAsync(host, input, settingsId, conversationId, settings, ct);
 
         /// <summary>
-        /// Runs the agent on a message, asking the model for JSON of <typeparamref name="TResult"/>'s schema.
+        /// Runs the agent on a message, asking the model for JSON of <typeparamref name="TResult"/>'s schema, with the
+        /// stored and the run's settings over the agent's code.
         /// </summary>
         /// <typeparam name="TResult">The result's type.</typeparam>
         /// <param name="input">The user's message.</param>
@@ -333,6 +334,27 @@ public static class DeskAgentHostExtensions
             global::Demo.DeskAgent.Settings? settings = null,
             global::System.Threading.CancellationToken ct = default) =>
             global::Typeshift.Generated.AgentRuns.RunAsync<global::Demo.DeskAgent, TResult>(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settingsId, conversationId, settings, ct);
+
+        /// <summary>
+        /// Runs the agent on a message, which may carry images or approvals, asking the model for JSON of
+        /// <typeparamref name="TResult"/>'s schema, with the stored and the run's settings over the agent's code.
+        /// </summary>
+        /// <typeparam name="TResult">The result's type.</typeparam>
+        /// <param name="input">The user's message.</param>
+        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="conversationId">
+        /// The id of the conversation the run resumes and is stored in, or null for none.
+        /// </param>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
+        /// <param name="ct">Cancels the run.</param>
+        /// <returns>The response; its messages carry the agent's name as their author.</returns>
+        public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse<TResult>> RunAsync<TResult>(
+            global::Microsoft.Extensions.AI.ChatMessage input,
+            global::System.Guid? settingsId = null,
+            global::System.Guid? conversationId = null,
+            global::Demo.DeskAgent.Settings? settings = null,
+            global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.RunAsync<global::Demo.DeskAgent, TResult>(host, input, settingsId, conversationId, settings, ct);
 
         /// <summary>
         /// Runs the agent on a message, streaming the updates, with the stored and the run's settings over the agent's
@@ -355,8 +377,8 @@ public static class DeskAgentHostExtensions
             global::Typeshift.Generated.AgentRuns.RunStreamingAsync(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settingsId, conversationId, settings, ct);
 
         /// <summary>
-        /// Runs the agent on a message, streaming the updates, with the stored and the run's settings over the agent's
-        /// code.
+        /// Runs the agent on a message, which may carry images or approvals, streaming the updates, with the stored and
+        /// the run's settings over the agent's code.
         /// </summary>
         /// <param name="input">The user's message.</param>
         /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
@@ -373,6 +395,50 @@ public static class DeskAgentHostExtensions
             global::Demo.DeskAgent.Settings? settings = null,
             global::System.Threading.CancellationToken ct = default) =>
             global::Typeshift.Generated.AgentRuns.RunStreamingAsync(host, input, settingsId, conversationId, settings, ct);
+
+        /// <summary>
+        /// Runs the agent on a message, streaming the updates and asking the model for JSON of
+        /// <typeparamref name="TResult"/>'s schema, with the stored and the run's settings over the agent's code. Once
+        /// its updates are read to the end, its <c>Response</c> holds the result.
+        /// </summary>
+        /// <typeparam name="TResult">The result's type.</typeparam>
+        /// <param name="input">The user's message.</param>
+        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="conversationId">
+        /// The id of the conversation the run resumes and is stored in, or null for none.
+        /// </param>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
+        /// <param name="ct">Cancels the run.</param>
+        /// <returns>The run, which streams its updates and then holds the result.</returns>
+        public global::Typeshift.StreamingRun<TResult> RunStreamingAsync<TResult>(
+            string input,
+            global::System.Guid? settingsId = null,
+            global::System.Guid? conversationId = null,
+            global::Demo.DeskAgent.Settings? settings = null,
+            global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.RunStreamingAsync<global::Demo.DeskAgent, TResult>(host, new(global::Microsoft.Extensions.AI.ChatRole.User, input), settingsId, conversationId, settings, ct);
+
+        /// <summary>
+        /// Runs the agent on a message, which may carry images or approvals, streaming the updates and asking the model
+        /// for JSON of <typeparamref name="TResult"/>'s schema, with the stored and the run's settings over the agent's
+        /// code. Once its updates are read to the end, its <c>Response</c> holds the result.
+        /// </summary>
+        /// <typeparam name="TResult">The result's type.</typeparam>
+        /// <param name="input">The user's message.</param>
+        /// <param name="settingsId">The id of the stored settings to apply, or null for none.</param>
+        /// <param name="conversationId">
+        /// The id of the conversation the run resumes and is stored in, or null for none.
+        /// </param>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
+        /// <param name="ct">Cancels the run.</param>
+        /// <returns>The run, which streams its updates and then holds the result.</returns>
+        public global::Typeshift.StreamingRun<TResult> RunStreamingAsync<TResult>(
+            global::Microsoft.Extensions.AI.ChatMessage input,
+            global::System.Guid? settingsId = null,
+            global::System.Guid? conversationId = null,
+            global::Demo.DeskAgent.Settings? settings = null,
+            global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.RunStreamingAsync<global::Demo.DeskAgent, TResult>(host, input, settingsId, conversationId, settings, ct);
 
         /// <summary>
         /// Continues the conversation's run that was interrupted, from its last stored step, without new input.
