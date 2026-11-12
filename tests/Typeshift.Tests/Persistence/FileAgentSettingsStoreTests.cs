@@ -25,28 +25,6 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_Settings_Saved_By_One_Store_A_Run_With_Another_Over_The_Folder_Applies_Them()
-    {
-        // Arrange
-        await using (var first = Provider(new FileAgentSettingsStore(_folder)))
-        {
-            await using var scope = first.CreateAsyncScope();
-            await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>().ConfigureAsync(
-                settings => settings with { Temperature = Data.Agent.Temperature },
-                Ct);
-        }
-
-        await using var second = Provider(new FileAgentSettingsStore(_folder));
-        await using var run = second.CreateAsyncScope();
-
-        // Act
-        var options = await run.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>().ResolveOptionsAsync(ct: Ct);
-
-        // Assert
-        options.Temperature.Should().Be(Data.Agent.Temperature);
-    }
-
-    [Fact]
     public async Task Given_A_Save_The_File_Holds_The_Kind_The_Version_And_The_Settings_As_Json()
     {
         // Arrange
@@ -157,6 +135,90 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
         store.Disposed.Should().Be(0);
     }
 
+    [Fact]
+    public async Task Given_Settings_Saved_Through_WithFileStore_A_Provider_Over_The_Same_Folder_Applies_Them()
+    {
+        // Arrange
+        await using (var first = Provider(typeshift => typeshift.WithFileStore(store => store.Folder = _folder)))
+        {
+            await using var scope = first.CreateAsyncScope();
+            await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>().ConfigureAsync(
+                settings => settings with { Temperature = Data.Agent.Temperature },
+                Ct);
+        }
+
+        await using var second = Provider(typeshift => typeshift.WithFileStore(store => store.Folder = _folder));
+        await using var run = second.CreateAsyncScope();
+
+        // Act
+        var applied = await run.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>().ResolveOptionsAsync(ct: Ct);
+
+        // Assert
+        applied.Temperature.Should().Be(Data.Agent.Temperature);
+    }
+
+    [Fact]
+    public void Given_No_Folder_The_File_Store_Lies_Under_The_Apps_Base_Directory()
+    {
+        // Act
+        var options = new FileStoreOptions();
+
+        // Assert
+        options.Folder.Should().Be(Path.Combine(AppContext.BaseDirectory, "typeshift"));
+    }
+
+    [Fact]
+    public async Task Given_A_Save_The_File_Lies_In_The_Settings_Folder_Of_The_Store()
+    {
+        // Arrange
+        await using var provider = Provider(typeshift => typeshift.WithFileStore(store => store.Folder = _folder));
+
+        // Act
+        await provider.GetRequiredService<IAgentSettingsStore>().SaveAsync(Data.Persistence.Kind, "{}", 0, Ct);
+
+        // Assert
+        Path.GetDirectoryName(OnlyFile()).Should().Be(Path.Combine(_folder, "settings"));
+    }
+
+    [Fact]
+    public void Given_A_Blank_Folder_WithFileStore_Fails_Naming_The_Option()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        // Act
+        var register = () => services.AddTypeshift().WithFileStore(store => store.Folder = " ");
+
+        // Assert
+        register.Should().Throw<ArgumentException>().WithParameterName("FileStoreOptions.Folder");
+    }
+
+    [Fact]
+    public async Task Given_A_Kind_Locked_By_Another_Save_The_File_Store_Waits_On_The_Apps_Clock()
+    {
+        // Arrange
+        await using var provider = Provider(
+            typeshift => typeshift.WithFileStore(store => store.Folder = _folder),
+            new RefusingClock());
+
+        var fileStore = provider.GetRequiredService<IAgentSettingsStore>();
+        await fileStore.SaveAsync(Data.Persistence.Kind, "{}", 0, Ct);
+
+        var otherSave = new FileStream(
+            path: $"{OnlyFile()}.lock",
+            mode: FileMode.Open,
+            access: FileAccess.ReadWrite,
+            share: FileShare.None);
+
+        // Act
+        var save = fileStore.SaveAsync(Data.Persistence.Kind, "{}", 1, Ct);
+        await otherSave.DisposeAsync();
+
+        // Assert
+        await FluentActions.Awaiting(() => save).Should().ThrowAsync<NotSupportedException>()
+            .WithMessage(RefusingClock.Refusal);
+    }
+
     protected override ValueTask DisposeCoreAsync()
     {
         if (Directory.Exists(_folder)) Directory.Delete(_folder, recursive: true);
@@ -181,13 +243,15 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
         }
     }
 
-    private string OnlyFile() => Directory.GetFiles(_folder, "*.json").Single();
+    private string OnlyFile() => Directory.GetFiles(_folder, "*.json", SearchOption.AllDirectories).Single();
 
-    private ServiceProvider Provider(IAgentSettingsStore store)
+    private ServiceProvider Provider(IAgentSettingsStore store) => Provider(typeshift => typeshift.WithStore(store));
+
+    private ServiceProvider Provider(Action<TypeshiftBuilder> withStore, TimeProvider? time = null)
     {
         var services = new ServiceCollection();
-        services.AddTypeshift().WithStore(store).WithChatClientProvider<ScriptedChatClientProvider>();
-        services.AddSingleton(ChatClient).AddSingleton(Models);
+        withStore(services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>());
+        services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton(time ?? Time);
 
         return services.BuildServiceProvider(validateScopes: true);
     }

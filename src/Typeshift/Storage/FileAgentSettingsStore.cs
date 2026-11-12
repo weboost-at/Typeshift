@@ -4,13 +4,10 @@ using System.Text.Json;
 
 namespace Typeshift;
 
-/// <summary>
-/// Keeps each agent's own settings in a JSON file named after its kind, in a folder: the store of a single-agent app
-/// or a local tool that has no database. Several stores and processes may share the folder.
-/// </summary>
+// The settings part of the file store, which WithFileStore registers over a folder it resolved
 // D67: a save holds the kind's lock file, writes a file of its own beside the old one and moves it over, so a load
 // reads the old file or the new one whole and two saves never pass the same version
-public sealed class FileAgentSettingsStore : IAgentSettingsStore
+internal sealed class FileAgentSettingsStore : IAgentSettingsStore
 {
     private const string Shape = "{\"kind\": \"...\", \"version\": n, \"settings\": {...}}, with n from 1";
 
@@ -26,33 +23,19 @@ public sealed class FileAgentSettingsStore : IAgentSettingsStore
 
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _saves = [];
 
-    /// <summary>
-    /// Creates the store over a folder, which its first save creates when it is missing.
-    /// </summary>
-    /// <param name="directory">
-    /// The folder. A relative one resolves against the current directory now, which for a service may be the system's
-    /// folder, so pass an absolute one there, such as one under <c>AppContext.BaseDirectory</c>.
-    /// </param>
-    /// <param name="time">
-    /// The clock a save waits on while another holds the kind's lock; the system's when null.
-    /// </param>
+    // The folder is absolute, and the first save creates it when it is missing
     public FileAgentSettingsStore(string directory, TimeProvider? time = null)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(directory);
-        _directory = Path.GetFullPath(directory);
+        _directory = directory;
         _time = time ?? TimeProvider.System;
     }
 
-    /// <inheritdoc />
-    /// <exception cref="InvalidDataException">The kind's file is no settings file of this store.</exception>
     public async Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct)
     {
         var path = PathOf(kind);
         return await TryReadAsync(path, ct) is { } file ? Read(path, kind, file) : null;
     }
 
-    /// <inheritdoc />
-    /// <exception cref="InvalidDataException">The kind's file is no settings file of this store.</exception>
     public async Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct)
     {
         var path = PathOf(kind);

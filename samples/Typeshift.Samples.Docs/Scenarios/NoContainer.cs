@@ -8,15 +8,15 @@ internal static class NoContainer
 {
     public static async Task RunAsync(IChatClient client)
     {
-        // begin-snippet: typeshift-app
-        await using var app = TypeshiftApp.Create(client);
+        // begin-snippet: typeshift-runtime
+        await using var runtime = TypeshiftRuntime.Create(client);
+        await using var research = runtime.Agent<ResearchAgent>();
 
-        var research = app.Agent<ResearchAgent>();
         var answer = await research.RunAsync("Vienna");
         // end-snippet
 
         if (string.IsNullOrEmpty(answer.Text))
-            throw new InvalidOperationException("The app's agent answered nothing.");
+            throw new InvalidOperationException("The runtime's agent answered nothing.");
 
         Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
     }

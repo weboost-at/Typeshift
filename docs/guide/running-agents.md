@@ -135,7 +135,7 @@ internal enum RefundState
 properties as the schema of an answer. So a `T` of another shape, such as a number, an enum, a list, a dictionary, a
 polymorphic type or a [union](./toolsets.md#union-types), is asked for under a `data` property, and `Result` reads it
 from there. Under
-[Native AOT](./production.md#native-aot), `T` needs JSON metadata.
+[Native AOT](./native-aot.md), `T` needs JSON metadata.
 
 A member that System.Text.Json cannot read or write, such as an `Exception`, whose `TargetSite` is a `MethodBase`,
 fails the run before it calls the model, naming the member. Leave such a member out of `T`, or mark it
@@ -262,7 +262,7 @@ loses at most the calls in flight.
 
 When compaction is on and a call would exceed the token limit, the run compacts what the model sees, while the stored
 conversation keeps everything ([compaction](./conversations.md#compaction)). Typeshift traces every call to the
-provider's client ([Observability](./production.md#observability)).
+provider's client ([Observability](./observability.md)).
 
 ### What each step can change
 

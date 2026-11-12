@@ -134,7 +134,7 @@ public abstract class Agent
     /// <returns>The use, to run it in the background or to hold its answer to a type.</returns>
     protected AgentUse UseAgent<TAgent>() where TAgent : Agent
     {
-        var use = new AgentUse(services => services.GetRequiredService<AgentHost<TAgent>>());
+        var use = new AgentUse(AgentHost<TAgent>.In);
         SubAgents.Add(use);
         return use;
     }
@@ -145,7 +145,7 @@ public abstract class Agent
     /// </summary>
     /// <typeparam name="TAgent">The agent to hand off to.</typeparam>
     protected void UseHandoff<TAgent>() where TAgent : Agent =>
-        Handoffs.Add(services => services.GetRequiredService<AgentHost<TAgent>>());
+        Handoffs.Add(AgentHost<TAgent>.In);
 
     /// <summary>
     /// Offers the tools of an MCP server, which the host's <see cref="IMcpToolProvider"/> connects by name.

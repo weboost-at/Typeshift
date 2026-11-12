@@ -7,17 +7,25 @@ using Typeshift.Generated;
 namespace Typeshift;
 
 /// <summary>
-/// Runs <typeparamref name="TAgent"/> with the services of the scope it was resolved from: its tools and its chat
-/// client provider resolve there. Registered as transient by <c>AddTypeshift()</c>: inject it, or resolve it from a
-/// scope, never from the root provider. The generator adds the agent's typed members (D12): <c>RunAsync</c>,
-/// <c>RunAsync&lt;T&gt;</c>, <c>RunStreamingAsync</c>, <c>ResumeAsync</c>, <c>ResumeStreamingAsync</c>,
-/// <c>ResolveOptionsAsync</c>, <c>LoadSettingsAsync</c>, <c>SaveSettingsAsync</c> and <c>ConfigureAsync</c>.
+/// Runs <typeparamref name="TAgent"/> with the services of its scope: its tools and its chat client provider resolve
+/// there. Registered as transient by <c>AddTypeshift()</c>: inject it, or resolve it from a scope, never from the root
+/// provider. <see cref="TypeshiftRuntime.Agent{TAgent}"/> creates one in a scope of its own, which disposing the host
+/// disposes. The generator adds the agent's typed members (D12): <c>RunAsync</c>, <c>RunAsync&lt;T&gt;</c>,
+/// <c>RunStreamingAsync</c>, <c>ResumeAsync</c>, <c>ResumeStreamingAsync</c>, <c>ResolveOptionsAsync</c>,
+/// <c>LoadSettingsAsync</c>, <c>SaveSettingsAsync</c> and <c>ConfigureAsync</c>.
 /// </summary>
 /// <typeparam name="TAgent">The agent.</typeparam>
-public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
+public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposable where TAgent : Agent
 {
-    // D25: the scope's services, never a scope of its own
+    // D25: the services of the scope it was resolved from, or of the one the runtime created for it (D76)
     private readonly IServiceProvider _services;
+
+    // D76: only a host the runtime created owns its scope; one the container resolved leaves it to the container
+    private readonly AsyncServiceScope? _scope;
+
+    // D72: the ids WithSettingsId and WithConversationId gave, each with its type
+    private StoreId? _settingsId;
+    private StoreId? _conversationId;
 
     internal AgentHost(TAgent agent, IServiceProvider services)
     {
@@ -25,9 +33,12 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
         _services = services;
     }
 
-    // D72: the ids WithSettingsId and WithConversationId gave, each with its type
-    private StoreId? _settingsId;
-    private StoreId? _conversationId;
+    internal AgentHost(TAgent agent, AsyncServiceScope scope) : this(agent, scope.ServiceProvider) => _scope = scope;
+
+    // D76: built rather than resolved where the library makes a host, since a scope keeps every disposable the
+    // container builds until it ends
+    internal static AgentHost<TAgent> In(IServiceProvider services) =>
+        new(services.GetRequiredService<TAgent>(), services);
 
     /// <summary>
     /// The agent as its code declares it.
@@ -40,15 +51,14 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
     /// </summary>
     /// <param name="id">The id of the stored settings.</param>
     /// <typeparam name="TId">The id's type.</typeparam>
-    /// <returns>A host with the id; this one keeps the ids it had.</returns>
+    /// <returns>
+    /// A host with the id, in this host's scope; this one keeps the ids it had. Disposing it leaves the scope to this
+    /// host.
+    /// </returns>
     public AgentHost<TAgent> WithSettingsId<TId>(TId id) where TId : notnull
     {
         ArgumentNullException.ThrowIfNull(id);
-        return new AgentHost<TAgent>(Agent, _services)
-        {
-            _settingsId = new StoreId<TId>(id),
-            _conversationId = _conversationId
-        };
+        return Copy(new StoreId<TId>(id), _conversationId);
     }
 
     /// <summary>
@@ -57,16 +67,23 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
     /// </summary>
     /// <param name="id">The conversation's id.</param>
     /// <typeparam name="TId">The id's type.</typeparam>
-    /// <returns>A host with the id; this one keeps the ids it had.</returns>
+    /// <returns>
+    /// A host with the id, in this host's scope; this one keeps the ids it had. Disposing it leaves the scope to this
+    /// host.
+    /// </returns>
     public AgentHost<TAgent> WithConversationId<TId>(TId id) where TId : notnull
     {
         ArgumentNullException.ThrowIfNull(id);
-        return new AgentHost<TAgent>(Agent, _services)
-        {
-            _settingsId = _settingsId,
-            _conversationId = new StoreId<TId>(id)
-        };
+        return Copy(_settingsId, new StoreId<TId>(id));
     }
+
+    // D72, D76: a copy shares this host's scope but never owns it, so only the host the runtime created disposes it
+    private AgentHost<TAgent> Copy(StoreId? settingsId, StoreId? conversationId) =>
+        new(Agent, _services)
+        {
+            _settingsId = settingsId,
+            _conversationId = conversationId
+        };
 
     // The settings id WithSettingsId gave, which the settings members use in place of the agent's own settings
     internal StoreId? SettingsId => _settingsId;
@@ -142,6 +159,24 @@ public sealed class AgentHost<TAgent> : IAgentHost where TAgent : Agent
             return new AuthorNameChatClient(loop, Agent.Name);
         }
     }
+
+    /// <summary>
+    /// Disposes the scope of a host <see cref="TypeshiftRuntime.Agent{TAgent}"/> created, and with it the scoped
+    /// services its runs resolved. A host your app's container resolved, injected into a request for example, owns
+    /// nothing, and disposing it leaves its scope alone. So does a copy <c>WithSettingsId</c> or
+    /// <c>WithConversationId</c> made, which works only as long as the host it came from.
+    /// </summary>
+    /// <returns>The disposal.</returns>
+    public ValueTask DisposeAsync() => _scope?.DisposeAsync() ?? ValueTask.CompletedTask;
+
+    /// <summary>
+    /// Disposes the scope of a host <see cref="TypeshiftRuntime.Agent{TAgent}"/> created. Prefer
+    /// <see cref="DisposeAsync"/>: this one throws when a scoped service disposes only asynchronously.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// A service of the scope implements only <see cref="IAsyncDisposable"/>.
+    /// </exception>
+    public void Dispose() => _scope?.Dispose();
 
     // D27, D66: the agent's code, its own stored settings, those under the settings id, then the run's; values a layer
     // leaves null keep the one below
