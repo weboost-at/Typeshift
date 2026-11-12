@@ -92,6 +92,84 @@ public static class AgentSources
         }
         """;
 
+    // Names the agent's type in full, without importing its namespace
+    public const string CallerOutsideTheAgentsNamespace =
+        """
+        #pragma warning disable CS1591
+
+        using Typeshift;
+
+        namespace App;
+
+        public static class Caller
+        {
+            public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> AskAsync(
+                AgentHost<Demo.SupportAgent> host) =>
+                host.RunAsync("Where is my refund?");
+        }
+        """;
+
+    // Names AgentHost in full from the agent's own namespace, without importing Typeshift
+    public const string CallerInTheAgentsNamespace =
+        """
+        #pragma warning disable CS1591
+
+        namespace Demo;
+
+        public static class Caller
+        {
+            public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> AskAsync(
+                global::Typeshift.AgentHost<SupportAgent> host) =>
+                host.RunAsync("Where is my refund?");
+        }
+        """;
+
+    // A nested type whose hint name could be the host members' file
+    public const string NestedHost =
+        """
+        #pragma warning disable CS1591
+
+        using Typeshift;
+
+        namespace Demo;
+
+        public partial class SupportAgent : Agent
+        {
+            public SupportAgent() => WithChatOptions().WithModel("openai", "fast-model");
+
+            public partial class Host : Toolset
+            {
+                public Host() => AddTool(Ping).WithDescription("Answers pong.");
+
+                public static string Ping() => "pong";
+            }
+        }
+        """;
+
+    // Two agents whose namespaces joined with an underscore would read the same
+    public const string UnderscoredNamespaces =
+        """
+        #pragma warning disable CS1591
+
+        using Typeshift;
+
+        namespace A.B_C
+        {
+            public partial class XAgent : Agent
+            {
+                public XAgent() => WithStorageKind("first");
+            }
+        }
+
+        namespace A_B.C
+        {
+            public partial class XAgent : Agent
+            {
+                public XAgent() => WithStorageKind("second");
+            }
+        }
+        """;
+
     public const string Support =
         """
         #pragma warning disable CS1591
@@ -241,6 +319,73 @@ public static class AgentSources
             {
                 public HiddenAgent() => WithChatOptions().WithModel("openai", "fast-model");
             }
+        }
+        """;
+
+    // D75: an app without a container of its own
+    public const string App =
+        """
+        using Typeshift;
+        using Microsoft.Extensions.AI;
+
+        namespace Demo;
+
+        internal static class Program
+        {
+            public static TypeshiftApp Start(IChatClient client) =>
+                TypeshiftApp.Create(client, typeshift => typeshift.WithStore<InMemoryTypeshiftStore>());
+        }
+        """;
+
+    // D75: an app whose only call is TypeshiftApp.Create, through the given receiver, with no AddTypeshift()
+    public static string AppOnly(string receiver) =>
+        $$"""
+        #pragma warning disable CS1591
+
+        using Typeshift;
+        using Microsoft.Extensions.AI;
+
+        namespace Demo;
+
+        public partial class SupportAgent : Agent
+        {
+            public SupportAgent() => WithChatOptions().WithModel("openai", "fast-model");
+        }
+
+        internal static class Program
+        {
+            public static TypeshiftApp Start(IChatClient client) => {{receiver}}.Create(client);
+        }
+        """;
+
+    // A Create method of the project's own, which the generator leaves alone
+    public const string OwnCreate =
+        """
+        using Microsoft.Extensions.AI;
+
+        namespace Demo;
+
+        public static class Factory
+        {
+            public static IChatClient Create(IChatClient client) => client;
+        }
+
+        internal static class Program
+        {
+            public static IChatClient Start(IChatClient client) => Factory.Create(client);
+        }
+        """;
+
+    // D75: a call bound at run time, which the library's body answers
+    public const string DynamicApp =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class Program
+        {
+            public static TypeshiftApp Start(dynamic client) => TypeshiftApp.Create(client);
         }
         """;
 }

@@ -1,12 +1,14 @@
 ---
-title: Running agents
+title: Running an agent
 description: Run an agent through its host with stored settings, run settings, typed output or streaming, and the steps every run passes through.
 ---
 
-# Running agents
+# Running an agent
 
-You run an agent through its host, `AgentHost<TAgent>`, which your app takes from the scope of the request or job that
-runs the agent ([Using an agent](./using-an-agent.md)).
+You run an agent through its host, `AgentHost<TAgent>`: pass the user's message, and get back the model's answer with
+the tool calls it made on the way. A run can apply a customer's stored settings, change them for one run, ask for a
+typed answer, or stream as the model writes. [Using an agent](./using-an-agent.md) shows where your app gets the
+host.
 
 ## Registration
 
@@ -15,7 +17,6 @@ runs the agent ([Using an agent](./using-an-agent.md)).
 ```cs
 services.AddTypeshift()
     .WithStore<EfTypeshiftStore>()
-    .WithChatClientProvider<KeyedChatClientProvider>()
     .WithRealtimeTracking()
     .WithRunMiddleware<BlockedTopics>()
     .WithToolMiddleware<AuditToolCalls>();
@@ -23,20 +24,19 @@ services.AddTypeshift()
 services.AddKeyedSingleton("openai", fast);
 services.AddKeyedSingleton("anthropic", reasoning);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L18-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L18-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `AddTypeshift()` registers the toolsets and agents of this project and the projects it references, plus a host per
-agent. `fast` and `reasoning` stand for the `IChatClient` instances your app creates, one per provider. This page
-needs two calls of the chain: `WithChatClientProvider<T>()` registers your class that returns the client of a
-provider's model, and `WithStore<T>()` registers the store that keeps settings and conversations.
-[Registration](./registration.md#the-chain) covers the rest.
+agent. `fast` and `reasoning` stand for the `IChatClient` instances your app creates, one per provider, registered
+under the provider's name. `WithStore<T>()` registers the store that keeps settings and conversations.
+[Registration](./registration.md#the-chain) covers the rest of the chain.
 
 ## Chat clients
 
-Your `IChatClientProvider` returns the `IChatClient` for a provider and a model, and Typeshift resolves it from the
-run's services. [Models and providers](./models.md) shows how to write one, how an agent names its model and how to
-create [a real client](./models.md#a-real-client).
+A run takes the `IChatClient` registered under its provider, or the one registered for every agent, from the run's
+services. [Models and providers](./models.md) shows how to register them, how an agent names its model, how to
+create [a real client](./models.md#a-real-client) and when to write a provider of your own.
 
 ## Run an agent
 
