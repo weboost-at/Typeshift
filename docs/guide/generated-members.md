@@ -1,9 +1,9 @@
 ---
-title: Generated members and the host
+title: AgentHost and generated members
 description: Every member the generator writes for your toolsets and agents, what triggers it, and every member of AgentHost<TAgent> with its signature.
 ---
 
-# Generated members and the host
+# AgentHost and generated members
 
 The generator adds members to your toolsets and agents, and to `AgentHost<TAgent>`, the class that runs an agent. Each
 section names the declaration that adds a member.
@@ -194,12 +194,17 @@ the agent declares itself replaces the generated one.
 `{Tool}Function`, and its `{Tool}Overrides` when it has configurable members, as a toolset does. It gets no tool list
 and no toolset stamp.
 
-### `{Agent}HostExtensions`
+### Host members
 
 **Triggered by** every agent the generated code can reach: one that is not nested as `private` or `protected` and
 has a public or internal parameterless constructor. For any other agent, the analyzer reports
 [TSH016](./diagnostics.md#tsh016). A static class, as accessible as the agent, holds an extension block on
 `AgentHost<TAgent>` with the agent's [typed members](#typed-members).
+
+The class lives in the global namespace, so the typed members are in scope in every file, whatever it imports. Its
+name spells out the agent's full name, each part after its length, such as `TypeshiftHost_4Demo12SupportAgent` for
+`Demo.SupportAgent`, so no two agents share one. Editors leave the class out of type completion, since you call the
+members on the host and never need its name.
 
 ### Hidden members
 
@@ -215,7 +220,7 @@ Every agent also gets:
 |---|---|---|
 | `{Assembly}Module` (hidden) | A toolset or an agent in the assembly | Registers the assembly's toolsets, agents, hosts, JSON contexts and XML docs; see [Registration](./registration.md#what-addtypeshift-registers). |
 | `[GeneratedModule]` (hidden) | The same | Stamps the module, its version and the id type for the projects that reference the assembly. |
-| `TypeshiftSchemaAnnotations_{Assembly}` (hidden) | `GenerateDocumentationFile`, unless `TypeshiftSchemaAnnotations` is `false` | Added by the package's build, not the generator. It carries the `[SchemaAnnotations]` attribute that makes Weboost.SchemaAnnotations collect the XML docs of your types; see [Registration](./registration.md#xml-docs-of-parameter-types). |
+| `TypeshiftSchemaAnnotations_{Assembly}` (hidden) | `GenerateDocumentationFile`, on unless the project turns it off, and `TypeshiftSchemaAnnotations`, unless `false` | Added by the package's build, not the generator. It carries the `[SchemaAnnotations]` attribute that makes Weboost.SchemaAnnotations collect the XML docs of your types; see [Registration](./registration.md#xml-docs-of-parameter-types). |
 | `ITypeshiftStore`, `ISettingsStore`, `IConversationStore`, `InMemoryTypeshiftStore`, `ConversationTracker`, `LiveRun`, `IChatClientProvider` | A reference to the package | `global using` aliases that close the library's types over the [id type](./registration.md#the-id-type), and `IChatClientProvider` over the [provider id type](./models.md#the-provider-id-type). |
 | The `AddTypeshift()` interceptor | A call of `services.AddTypeshift()` | See [Registration](./registration.md). |
 
@@ -236,22 +241,23 @@ what happens without one.
 
 ### `Agent`
 
-`TAgent Agent { get; }` is the agent as its code declares it, a singleton. `Agent.Name` and `Agent.Description` read
-what `WithName` and `WithDescription` declared.
+`TAgent Agent { get; }` is the agent as its code declares it, a singleton. `Agent.Name` reads what `WithName`
+declared, and `Agent.Description` what `WithDescription` or the agent's `<summary>` did.
 
 ### `CreateChatClientAsync`
 
 `Task<IChatClient> CreateChatClientAsync(ChatOptions options, CancellationToken ct = default)`
 
 `CreateChatClientAsync` creates the client of the [raw path](./running-agents.md#the-raw-path) for options that
-`ResolveOptionsAsync` returned. It asks the `IChatClientProvider` for the options' provider and model and wraps that
-client in the run's pipeline, with the agent's run options and the tool loop.
+`ResolveOptionsAsync` returned. It takes the client for the options' provider and model, as a run does
+([Registering clients](./models.md#registering-clients)), and wraps it in the run's pipeline, with the agent's run
+options and the tool loop.
 
 Calling the client with those options runs and stores like `RunAsync`. `ChatOptions.ConversationId` names the
 conversation, as a string of the id type. Disposing the client does not dispose the one your provider returned.
 
-It throws an `InvalidOperationException` when the options name no provider or no model, or when no
-`IChatClientProvider` is registered.
+It throws an `InvalidOperationException` when no client is registered for the options' provider and model, and none
+for every agent.
 
 ### Typed members
 

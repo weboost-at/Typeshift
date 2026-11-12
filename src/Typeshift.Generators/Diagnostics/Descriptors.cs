@@ -61,9 +61,8 @@ internal static class Descriptors
 
     public static readonly DiagnosticDescriptor DocumentationOff = Warning(
         "TSH011",
-        "Tool relies on XML docs that are not generated",
-        "The tool '{0}' takes its descriptions from XML docs, which the compiler reads only with "
-        + "GenerateDocumentationFile");
+        "XML docs are not generated",
+        "{0} takes its descriptions from XML docs, which the compiler reads only with GenerateDocumentationFile");
 
     public static readonly DiagnosticDescriptor NotStorable = Error(
         "TSH012",

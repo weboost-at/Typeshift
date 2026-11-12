@@ -6,26 +6,45 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Typeshift.Generators.Parsing;
 
-// D1: the services.AddTypeshift() calls of the library's method, the ones the generator intercepts
+// D1, D75: the services.AddTypeshift() and TypeshiftApp.Create() calls of the library's methods, the ones the
+// generator intercepts
 internal static class InterceptParser
 {
     public static bool IsCandidate(SyntaxNode node, CancellationToken ct) =>
-        node is InvocationExpressionSyntax
+        node is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax access }
+        && access.Name.Identifier.ValueText switch
         {
-            Expression: MemberAccessExpressionSyntax { Name.Identifier.ValueText: KnownTypes.RegistrationMethod }
+            KnownTypes.RegistrationMethod => true,
+            KnownTypes.AppMethod => NamesApp(access.Expression),
+            _ => false
         };
 
     public static InterceptModel? Parse(GeneratorSyntaxContext context, CancellationToken ct)
     {
         var invocation = (InvocationExpressionSyntax)context.Node;
 
-        if (context.SemanticModel.GetSymbolInfo(invocation, ct).Symbol is not IMethodSymbol method) return null;
-        if (!IsLibraryMethod(method)) return null;
+        var info = context.SemanticModel.GetSymbolInfo(invocation, ct);
+
+        // D75: a call bound at run time, such as one with a dynamic argument, reaches the body that says how to call it
+        if (info.CandidateReason is CandidateReason.LateBound) return null;
+
+        // The generator's own pass has no aliases yet, so a configure lambda that names one leaves a sole candidate
+        var symbol = info.Symbol ?? (info.CandidateSymbols.Length == 1 ? info.CandidateSymbols[0] : null);
+        if (symbol is not IMethodSymbol method) return null;
+
+        var isApp = method is { Name: KnownTypes.AppMethod, IsStatic: true }
+            && method.ContainingType.Is(KnownTypes.App);
+        if (!isApp && !IsLibraryMethod(method)) return null;
 
         return context.SemanticModel.GetInterceptableLocation(invocation, ct) is { } location
-            ? new InterceptModel(location.GetInterceptsLocationAttributeSyntax())
+            ? new InterceptModel(location.GetInterceptsLocationAttributeSyntax(), isApp)
             : null;
     }
+
+    // TypeshiftApp.Create, Typeshift.TypeshiftApp.Create or global::Typeshift.TypeshiftApp.Create
+    private static bool NamesApp(ExpressionSyntax receiver) =>
+        receiver is IdentifierNameSyntax { Identifier.ValueText: KnownTypes.AppName }
+            or MemberAccessExpressionSyntax { Name.Identifier.ValueText: KnownTypes.AppName };
 
     // A call of a C# 14 extension member binds to a method of the extension block nested in the declaring class
     private static bool IsLibraryMethod(IMethodSymbol method)

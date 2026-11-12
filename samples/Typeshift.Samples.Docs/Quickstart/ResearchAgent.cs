@@ -6,6 +6,7 @@ internal partial class ResearchAgent : Agent
     public ResearchAgent()
     {
         WithDescription("Researches the companies of a city.");
+        WithInstructions("Find companies with the find_companies tool and list them.");
 
         WithChatOptions()
             .WithModel("openai", "gpt-5-mini")
@@ -18,10 +19,5 @@ internal partial class ResearchAgent : Agent
         ConfigureFindCompanies()
             .WithLimit(3);
     }
-
-    protected override string GetInstructions() =>
-        """
-        Find companies with the find_companies tool and list them.
-        """;
 }
 // end-snippet

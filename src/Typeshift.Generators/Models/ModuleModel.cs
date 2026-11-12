@@ -24,5 +24,5 @@ internal sealed record ModuleAgent(
 // The modules and toolsets of the referenced assemblies compiled with the generator
 internal sealed record ReferenceModel(EquatableArray<string> Modules, EquatableArray<ToolsetSummary> Toolsets);
 
-// One services.AddTypeshift() call: the [InterceptsLocation] attribute that reroutes it
-internal sealed record InterceptModel(string Attribute);
+// One services.AddTypeshift() or TypeshiftApp.Create() call: the [InterceptsLocation] attribute that reroutes it
+internal sealed record InterceptModel(string Attribute, bool IsApp);

@@ -180,6 +180,26 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
+    public void Given_No_WithDescription_The_Summary_Of_The_Agents_Docs_Describes_It()
+    {
+        // Act
+        var description = Host<SchemaAgent>().Agent.Description;
+
+        // Assert
+        description.Should().Be(SchemaAgent.Summary);
+    }
+
+    [Fact]
+    public void Given_WithDescription_And_A_Summary_WithDescription_Describes_The_Agent()
+    {
+        // Act
+        var description = Host<ProbeAgent>().Agent.Description;
+
+        // Assert
+        description.Should().Be("Probes what a run resolves.");
+    }
+
+    [Fact]
     public async Task Given_A_Failing_Tool_Call_The_Model_Reads_Why_It_Failed()
     {
         // Arrange
@@ -368,6 +388,33 @@ public class AgentRunTests : AgentTestBase
 
         // Assert
         ChatClient.Requests.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task Given_Instructions_Set_In_The_Constructor_A_Run_Sends_Them()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<InstructedAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.Instructions.Should().Be(InstructedAgent.Prompt);
+    }
+
+    [Fact]
+    public async Task Given_Instructions_Set_In_The_Constructor_A_Runs_Own_Replace_Them()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var run = new InstructedAgent.Settings { Instructions = Data.Agent.Reason };
+        await Host<InstructedAgent>().RunAsync(Data.Tool.Question, settings: run, ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.Instructions.Should().Be(Data.Agent.Reason);
     }
 
     [Fact]

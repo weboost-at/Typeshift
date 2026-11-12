@@ -15,7 +15,7 @@ TSH007 | Typeshift | Error | Tool name is not unique
 TSH008 | Typeshift | Error | Tool name is not lower_snake_case
 TSH009 | Typeshift | Warning | Tool has no description
 TSH010 | Typeshift | Warning | Tool does not take its settings
-TSH011 | Typeshift | Warning | Tool relies on XML docs that are not generated
+TSH011 | Typeshift | Warning | XML docs are not generated
 TSH012 | Typeshift | Error | Configurable member has a type settings cannot store
 TSH013 | Typeshift | Error | Configurable member cannot be set
 TSH014 | Typeshift | Error | Declaration outside the constructor
