@@ -10,7 +10,10 @@ context provider, such as a memory, adds instructions, messages or tools only to
 
 ## Middleware
 
-### Around runs
+### Wrap every run
+
+An `IRunMiddleware` sees each run of every agent before the model does. This one answers in place of the model when
+the user asks about passwords:
 
 <!-- snippet: run-middleware -->
 <a id='snippet-run-middleware'></a>
@@ -65,7 +68,9 @@ answer starts another pass of the run, and that pass goes through the middleware
 more than once.
 :::
 
-### Around tool calls
+### Wrap every tool call
+
+An `IToolMiddleware` sees each tool call that runs. This one logs which customer calls which tool:
 
 <!-- snippet: tool-middleware -->
 <a id='snippet-tool-middleware'></a>
@@ -86,11 +91,13 @@ internal sealed class AuditToolCalls(ICurrentCustomer customer, ILogger<AuditToo
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/AuditToolCalls.cs#L6-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-tool-middleware' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-An `IToolMiddleware` wraps every tool call that runs and receives Microsoft.Extensions.AI's `FunctionInvocationContext`:
-the function, its arguments and the messages so far. A call that a rule or your app rejects never reaches it. What it
-returns is the result the model receives, so returning without calling `next` answers in place of the tool. Setting
-`call.Terminate` ends the tool loop: the model is not called again with this round's results, and other calls of the
-same round may be skipped.
+- It receives Microsoft.Extensions.AI's `FunctionInvocationContext`: the function, its arguments and the messages so
+  far.
+- A call that a rule or your app rejects never reaches it.
+- What it returns is the result the model receives. Return without calling `next`, and it answers in place of the
+  tool.
+- Setting `call.Terminate` ends the tool loop. The model isn't called again with this round's results, and other
+  calls of the same round may be skipped.
 
 ### Registering
 
@@ -119,6 +126,8 @@ The other lines register the store, the chat clients and live updates, which
 ## Context providers
 
 ### Writing a provider
+
+A context provider adds to the runs of the agents that use it, for example the current customer's profile:
 
 <!-- snippet: context-provider -->
 <a id='snippet-context-provider'></a>
