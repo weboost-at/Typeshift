@@ -7,9 +7,11 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
-- `TypeshiftApp.Create(client)` runs the agents of an app without a container of its own:
-  `app.Agent<ResearchAgent>().RunAsync("Vienna")`, with one chat client for every run. The package now depends on
-  `Microsoft.Extensions.DependencyInjection`.
+- `TypeshiftRuntime.Create(client)` runs the agents of an app without a container of its own, with one chat client
+  for every run: `await using var research = runtime.Agent<ResearchAgent>()`, then `research.RunAsync("Vienna")`.
+  `AddTypeshift()` registers the runtime as a singleton too, so a background service injects it and takes a host for
+  each job. Each host the runtime gives you has scoped services of its own, which disposing the host disposes. The
+  package now depends on `Microsoft.Extensions.DependencyInjection`.
 - The docs site publishes the guide as Markdown for coding assistants: `llms.txt` lists its pages, `llms-full.txt`
   holds them all in one file, and each guide page is also served at its address with `.md`.
 - Tools take and return C# 15 unions, and `RunAsync<T>` returns one. A JSON string binds a union's `string` case and
@@ -42,6 +44,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- `AgentHost<TAgent>` is `IAsyncDisposable` and `IDisposable`. Disposing a host your container resolved, such as one
+  injected into a request, does nothing, so code that injects hosts works as before.
+- A run that ends while background sub-agents work, for example cancelled or failed, waits until the sub-agents it
+  stops have stopped, so none works on after the run.
 - An answer to an approval request that is no longer open throws `ApprovalClosedException` before the run stores
   anything or calls the model, where the run dropped the answer and called the model with no new input. Its
   `Requests` say why each request is closed: answered already, passed by, or unknown. Catch it to tell your user that

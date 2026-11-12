@@ -110,7 +110,7 @@ internal sealed record CityCompanies(string City, IReadOnlyList<string> Companie
   has to pick apart.
 - When the sub-agent answers without that JSON, the call fails, and the calling model reads why.
 - In the background, the JSON arrives as the sub-agent's answer, and so does the failure.
-- Under [Native AOT](./production.md#native-aot), `T` needs JSON metadata, as for `RunAsync<T>`. Without it, the call
+- Under [Native AOT](./native-aot.md), `T` needs JSON metadata, as for `RunAsync<T>`. Without it, the call
   fails, and only the calling model reads why.
 
 ### In the background
@@ -130,7 +130,9 @@ When the sub-agent finishes, its answer reaches the calling run as a message bef
 
 - A run does not end while its sub-agents work. Once the model stops calling tools, the run waits for the next
   answer and continues with it.
-- A run that ends some other way, for example with an error, stops the sub-agents still working.
+- A run that ends some other way, for example with an error or a cancellation, stops the sub-agents still working
+  and waits until they have stopped, so none of them works on after the run. A sub-agent stops once its model call
+  or tool call sees the cancellation, so a tool that ignores its `CancellationToken` holds up the end of the run.
 - When a background sub-agent never answered, because the calling run ended first or the process crashed, the
   conversation's next run tells the model it was lost, so the model can call it again.
 

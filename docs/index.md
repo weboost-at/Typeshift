@@ -44,6 +44,6 @@ features:
     linkText: Approve tool calls
   - title: Publish with Native AOT
     details: The generator writes the code every run takes, so nothing reflects over your types, and the build names each tool type that still needs JSON metadata.
-    link: /guide/production#native-aot
+    link: /guide/native-aot
     linkText: Publish with AOT
 ---

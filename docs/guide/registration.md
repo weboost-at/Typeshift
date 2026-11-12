@@ -71,34 +71,50 @@ and for a store of another id type it reports [TSH028](./diagnostics.md#tsh028).
 Providers have an id type of their own, `TypeshiftProviderIdType`, which is `string` unless set. See
 [the provider id type](./models.md#the-provider-id-type).
 
-## Without a container
+## The runtime
 
-A console tool or a script without a container of its own creates a `TypeshiftApp`. It holds every agent of the
-project and of the projects it references, and one chat client serves all their runs:
+`TypeshiftRuntime` is the root of Typeshift in your app. It gives you the host of every agent of your project and of
+the projects it references. Each host it gives you is one unit of work, such as a job, with scoped services of its
+own.
 
-<!-- snippet: typeshift-app -->
-<a id='snippet-typeshift-app'></a>
+A console tool or a script without a container of its own creates the runtime, and one chat client serves all its
+runs:
+
+<!-- snippet: typeshift-runtime -->
+<a id='snippet-typeshift-runtime'></a>
 ```cs
-await using var app = TypeshiftApp.Create(client);
+await using var runtime = TypeshiftRuntime.Create(client);
+await using var research = runtime.Agent<ResearchAgent>();
 
-var research = app.Agent<ResearchAgent>();
 var answer = await research.RunAsync("Vienna");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/NoContainer.cs#L11-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-typeshift-app' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/NoContainer.cs#L11-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-typeshift-runtime' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`TypeshiftApp.Create(client, typeshift => typeshift.WithStore<MyStore>())` takes the rest of the chain, as
-`AddTypeshift()` does. The generator intercepts the call, so write it as `TypeshiftApp.Create(...)`: a call through
-`using static` or a method group is not intercepted and throws. Create the app once and keep it while your app runs.
-Disposing it disposes its services, but not the client. An app with a container calls `services.AddTypeshift()`
-instead, and so does one whose tools or stores need services of its own.
+- `TypeshiftRuntime.Create(client, typeshift => typeshift.WithStore<MyStore>())` takes the rest of the chain, as
+  `AddTypeshift()` does. The generator intercepts the call, so write it as `TypeshiftRuntime.Create(...)`: a call
+  through `using static` or a method group is not intercepted and throws.
+- Create the runtime once and keep it while your app runs. Disposing it disposes its singletons, such as your
+  store, but not the client. A host's scoped services are disposed only with the host, so dispose each host as well.
+- An app whose tools or stores need services of its own calls `services.AddTypeshift()` instead, so it can register
+  them.
 
-::: warning The app's scoped services live as long as the app
-The app has one scope for its whole lifetime. The services the chain registers as scoped, such as the
+An app with a container gets the runtime from `services.AddTypeshift()`, which registers it as a singleton. Inject it
+where no request's scope is at hand, such as in a background service, and take a host from it for each job, as
+[Run from a background job](./using-an-agent.md#run-from-a-background-job) shows. Your container owns that runtime,
+so disposing it does nothing. A request injects the host itself, from the request's scope
+([Using an agent](./using-an-agent.md)).
+
+`runtime.Services` holds the root services, for singletons such as the `ConversationTracker`. Scoped services are
+not among them, since each lives in a scope, such as the one a host has.
+
+::: warning Dispose every host the runtime gives you
+`runtime.Agent<TAgent>()` creates a scope for the host. The services the chain registers as scoped, such as the
 `WithChatClientProvider<T>()` provider, approval rules, middleware and the MCP tool provider, and the scoped services
-your tools resolve, are created once and shared by every run, concurrent runs included. An app that needs a scope per
-request, such as a web app with a customer per request, calls `services.AddTypeshift()` and resolves each host from the
-request's scope ([Using an agent](./using-an-agent.md)).
+your tools resolve, are created in it. Every run of that host shares them, and no other host sees them. Disposing the
+host disposes the scope and its services, so write `await using`, and let every run and stream of the host finish
+first: a stream read after its host was disposed throws an `ObjectDisposedException`. A host injected from a
+request's scope owns nothing, and disposing it leaves the request's services alone.
 :::
 
 ## What `AddTypeshift()` registers
@@ -131,6 +147,7 @@ and `anthropic`, and a run takes the client registered under its provider
 | Each toolset | Singleton |
 | Each agent | Singleton |
 | `AgentHost<TAgent>` per agent | Transient, so it runs with the services of the scope it was resolved from ([Using an agent](./using-an-agent.md)) |
+| `TypeshiftRuntime`, which gives each host a scope of its own ([The runtime](#the-runtime)) | Singleton |
 | The JSON contexts of each assembly, which tools ask before the defaults | Singleton |
 | `ConversationTracker` and the core services runs need | Singleton |
 
