@@ -749,6 +749,26 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   member, which repeats them on every call and every overload; looking the store up by the id's runtime type, which
   needs `MakeGenericType` and misses an id whose runtime type differs from its declared one.
 
+### D73. Every conversation can be kept
+
+- **Status:** owner.
+- **Context:** the owner asked for an option, "if enabled by the user in the global settings", that "automatically
+  generates conversation IDs when none was provided and stores them automatically", under a general configuration
+  prefix, and accepted `WithOptions(options => options.PersistAllConversations = true)`.
+- **Decision:** `TypeshiftOptions` holds what every run does, set by `WithOptions(configure)`, whose calls change one
+  instance. With `PersistAllConversations`, a run of the host's own that has no conversation, no
+  `ChatOptions.ConversationId` and no caller starts one: the conversation client gives a copy of the options a new
+  id, so options the app reuses never share it. New ids are `Guid`s of version 7 from the injected clock, or of
+  `NewConversationIds(create)`, typed like any id (D72). A sub-agent's run belongs to its caller's conversation and
+  starts none. Every run with a conversation names it in `ChatResponse.ConversationId`, and each streaming update in a
+  copy, since the tool loop still holds the update and reads an update that names a conversation as one the service
+  keeps, which would leave the history out of its next call.
+- **Where:** `DependencyInjection/TypeshiftOptions.cs`, `DependencyInjection/TypeshiftBuilder.cs`,
+  `Conversations/ConversationChatClient.cs`.
+- **Alternatives:** `WithStoredConversations` or `TrackAll`, names the owner turned down for one under a general
+  prefix; `Guid.NewGuid()`, which does not sort by time; ids from the store, which would add a method every store must
+  implement; naming the new conversation only in a header or a property bag, which a typed run's response would hide.
+
 ### D44. Settings records serialize themselves
 
 - **Status:** carried (v0 D27), extended.

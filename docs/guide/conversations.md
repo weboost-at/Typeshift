@@ -27,8 +27,19 @@ conversation id on to the provider. Settings ids and conversation ids are indepe
 both. A conversation does not remember a settings id, so pass it to every run of the conversation that should use the
 stored settings, the run that answers an approval included.
 
-Typeshift never creates ids ([the id type](./registration.md#the-id-type)). You choose the conversation id, for
-example the key of your own record of the conversation, and pass the same id to every run of that conversation.
+You choose the conversation id, for example the key of your own record of the conversation, and pass the same id to
+every run of that conversation. The response's `ConversationId` names the conversation a run was stored in.
+
+### Keeping every conversation
+
+To keep the runs that pass no conversation id as well, turn on `PersistAllConversations`:
+`AddTypeshift().WithOptions(options => options.PersistAllConversations = true)`. Such a run then starts a
+conversation under a new id, and its response's `ConversationId` names it, so the next run continues it with
+`support.WithConversationId(Guid.Parse(response.ConversationId!))`. A sub-agent's run belongs to its caller and starts
+none.
+
+New ids are `Guid`s of version 7, which sort by the time they were made. If your conversation store has ids of
+another type, give them with `options.NewConversationIds(() => ...)`, which returns a new id of that type each time.
 
 ::: danger Check the caller before you pass a conversation id
 Typeshift resumes whichever conversation it is given, so deciding who may see one is your app's job. Check the caller

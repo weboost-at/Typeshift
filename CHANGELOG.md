@@ -28,9 +28,14 @@ All notable changes to this project are documented here. The format follows
 - `host.WithSettingsId(id)` and `host.WithConversationId(id)` give a run its ids in code, and each id's type picks the
   store of that type, so settings under `int` ids and conversations under `string` ids serve one app. `WithStore<T>()`
   takes stores of any id type, and TSH028 reports only a type that is no store.
+- `AddTypeshift().WithOptions(options => options.PersistAllConversations = true)` keeps the runs that pass no
+  conversation id too: each starts a conversation under a new `Guid` of version 7, or an id of
+  `options.NewConversationIds(...)`.
 
 ### Changed
 
+- The response of a run with a conversation names it in `ChatResponse.ConversationId`, and so does each update of a
+  streaming run, where it was null.
 - An answer to an approval request that is no longer open throws `ApprovalClosedException` before the run stores
   anything or calls the model, where the run dropped the answer and called the model with no new input. Its
   `Requests` say why each request is closed: answered already, passed by, or unknown. Catch it to tell your user that
