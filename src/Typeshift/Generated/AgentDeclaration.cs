@@ -19,7 +19,7 @@ public abstract class AgentDeclaration
     public abstract string Name { get; }
 
     /// <summary>
-    /// The description <c>WithDescription</c> gives.
+    /// The description <c>WithDescription</c> or the agent's summary gives.
     /// </summary>
     public abstract string? Description { get; }
 

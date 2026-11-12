@@ -19,6 +19,12 @@ public class ToolTestData(Faker faker)
 
     public GeoPoint Point { get; } = new(faker.Address.Latitude(), faker.Address.Longitude());
 
+    public string PetName { get; } = faker.Name.FirstName();
+
+    public string Breed { get; } = faker.PickRandom("collie", "pug", "beagle", "poodle");
+
+    public int Lives { get; } = faker.Random.Int(1, 9);
+
     // The probe's code default is 10; Default and Updated stay clear of it and of each other
     public TestValue<int> Limit { get; } =
         new TestValue<int>(faker.Random.Int(11, 49))

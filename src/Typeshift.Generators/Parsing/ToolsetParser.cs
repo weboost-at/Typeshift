@@ -163,7 +163,7 @@ internal static class ToolsetParser
         var unread = documented ? "" : XmlDocs.ReadUnparsed(method, ct);
 
         if (unread.Contains("<param ") || (chain.Description is null && unread.Length > 0))
-            reporter.Report(Descriptors.DocumentationOff, addTool.Syntax, name);
+            reporter.Report(Descriptors.DocumentationOff, addTool.Syntax, $"The tool '{name}'");
         else if (description is null)
             reporter.Report(Descriptors.MissingDescription, addTool.Syntax, name);
 

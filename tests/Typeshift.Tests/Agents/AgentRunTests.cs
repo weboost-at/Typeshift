@@ -180,6 +180,26 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
+    public void Given_No_WithDescription_The_Summary_Of_The_Agents_Docs_Describes_It()
+    {
+        // Act
+        var description = Host<SchemaAgent>().Agent.Description;
+
+        // Assert
+        description.Should().Be(SchemaAgent.Summary);
+    }
+
+    [Fact]
+    public void Given_WithDescription_And_A_Summary_WithDescription_Describes_The_Agent()
+    {
+        // Act
+        var description = Host<ProbeAgent>().Agent.Description;
+
+        // Assert
+        description.Should().Be("Probes what a run resolves.");
+    }
+
+    [Fact]
     public async Task Given_A_Failing_Tool_Call_The_Model_Reads_Why_It_Failed()
     {
         // Arrange
@@ -256,6 +276,102 @@ public class AgentRunTests : AgentTestBase
 
         // Assert
         response.Result.Should().Be(expected);
+    }
+
+    [Fact]
+    public async Task Given_A_Number_Result_Type_The_Run_Reads_It_Under_Data()
+    {
+        // Arrange
+        var answer = new { data = Data.Tool.Limit.Default };
+        ChatClient.Reply(Text(JsonSerializer.Serialize(answer, Json.SerializerOptions)));
+
+        // Act
+        var response = await Host<ProbeAgent>().RunAsync<int>(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.Result.Should().Be(Data.Tool.Limit.Default);
+    }
+
+    [Fact]
+    public async Task Given_An_Enum_Result_Type_The_Run_Reads_It_Under_Data()
+    {
+        // Arrange
+        var answer = new { data = SearchMode.Thorough };
+        ChatClient.Reply(Text(JsonSerializer.Serialize(answer, Json.SerializerOptions)));
+
+        // Act
+        var response = await Host<ProbeAgent>().RunAsync<SearchMode>(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.Result.Should().Be(SearchMode.Thorough);
+    }
+
+    [Fact]
+    public async Task Given_A_Polymorphic_Result_Type_The_Run_Reads_It_Under_Data()
+    {
+        // Arrange
+        var circle = new Circle(Data.Tool.Lives);
+        var answer = new { data = (Shape)circle };
+        ChatClient.Reply(Text(JsonSerializer.Serialize(answer, Json.SerializerOptions)));
+
+        // Act
+        var response = await Host<ProbeAgent>().RunAsync<Shape>(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.Result.Should().Be(circle);
+    }
+
+    [Fact]
+    public async Task Given_A_Dictionary_Result_Type_The_Response_Schema_Holds_It_Under_Data()
+    {
+        // Arrange
+        var answer = new { data = new Dictionary<string, int> { [Data.Tool.Query] = Data.Tool.Lives } };
+        ChatClient.Reply(Text(JsonSerializer.Serialize(answer, Json.SerializerOptions)));
+
+        // Act
+        await Host<ProbeAgent>().RunAsync<Dictionary<string, int>>(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ResponseSchema().Assert.Properties("data");
+    }
+
+    [Fact]
+    public async Task Given_A_Result_Type_With_An_Exception_The_Run_Fails_Naming_The_Member()
+    {
+        // Act
+        var run = () => Host<ProbeAgent>().RunAsync<FailedLookup>(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<NotSupportedException>().WithMessage("*'exception.targetSite'*[JsonIgnore]*");
+        ChatClient.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_An_Answer_Without_Data_Its_Result_Cannot_Be_Read()
+    {
+        // Arrange
+        var answer = new { value = Data.Tool.Lives };
+        ChatClient.Reply(Text(JsonSerializer.Serialize(answer, Json.SerializerOptions)));
+
+        // Act
+        var response = await Host<ProbeAgent>().RunAsync<int>(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.TryGetResult(out _).Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Given_A_Result_Type_With_Xml_Docs_The_Response_Schema_Describes_Its_Properties()
+    {
+        // Arrange
+        var company = new Company(Data.Agent.CompanyName, null);
+        ChatClient.Reply(Text(JsonSerializer.Serialize(company, Json.GetTypeInfo<Company>())));
+
+        // Act
+        await Host<ProbeAgent>().RunAsync<Company>(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ResponseSchema().Assert.ParameterDescription("name", "The company's registered name.");
     }
 
     [Fact]
