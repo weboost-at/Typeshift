@@ -260,4 +260,25 @@ public class AgentGenerationTests : GeneratorTestBase
             .Should()
             .Be(provider);
     }
+
+    [Theory]
+    [InlineData("Demo.SplitAgent+Settings", "Demo.Vendor?")]
+    [InlineData("Demo.OverridingAgent+Settings", "string?")]
+    public void Given_Several_Constructors_The_Settings_Store_Providers_Of_What_The_Parameterless_One_Runs(
+        string settings,
+        string provider)
+    {
+        // Act
+        var run = Run(AgentSources.ProvidersOfSeveralConstructors);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+        run.Output.GetTypeByMetadataName(settings)!
+            .GetMembers("Provider")
+            .OfType<IPropertySymbol>()
+            .Single()
+            .Type.ToDisplayString()
+            .Should()
+            .Be(provider);
+    }
 }

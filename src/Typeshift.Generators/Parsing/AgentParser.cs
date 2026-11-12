@@ -86,7 +86,7 @@ internal static class AgentParser
                 $"The agent '{agent.Name}'");
         }
 
-        var providerId = ReadProviderId(agent, declarations, reporter);
+        var providerId = ReadProviderId(agent, constructors, declarations, reporter);
 
         if (notPartial is not null || clash is not null) return null;
 
@@ -186,8 +186,7 @@ internal static class AgentParser
         return null;
     }
 
-    // D77: the static type of WithModel's provider is the agent's provider id type; the last WithModel wins, as it
-    // does at runtime
+    // D77: the static type of WithModel's provider is the agent's provider id type
     private static void ReadModel(IInvocationOperation call, Declarations declarations)
     {
         var models = ConstructorChains.GetChainedCalls(call).Where(next => next.TargetMethod.Name == "WithModel");
@@ -197,7 +196,7 @@ internal static class AgentParser
             if (model.TargetMethod.TypeArguments[0] is not { TypeKind: not TypeKind.Error } type) continue;
 
             var argument = model.Arguments.First(passed => passed.Parameter?.Ordinal == 0).Syntax;
-            declarations.Provider = (type, argument);
+            declarations.Models.Add((type, argument));
         }
     }
 
@@ -292,31 +291,82 @@ internal static class AgentParser
         return new ToolsetUseModel(type, excludes, picks.ToEquatableArray());
     }
 
-    // D77: the agent's provider id type, string without WithModel. Settings that store a provider need a type they
-    // store as one value (TSH029), with string in its place so the generated code stays valid, and a public agent's
-    // Settings one as accessible (TSH006, D6)
-    private static ProviderIdModel ReadProviderId(INamedTypeSymbol agent, Declarations declarations, Reporter reporter)
+    // D77: the agent's provider id type, from the WithModel that runs last, string without one. Settings that store
+    // a provider need a type they store as one value (TSH029) and can name (TSH006, D6), with string in its place
+    // so the generated code stays valid; a public agent's Settings need a public one, or name it internal (TSH006)
+    private static ProviderIdModel ReadProviderId(
+        INamedTypeSymbol agent,
+        IEnumerable<IOperation> constructors,
+        Declarations declarations,
+        Reporter reporter)
     {
-        if (declarations.Provider is not ({ } type, { } argument)) return ProviderIdModel.String;
+        if (GetRunModel(agent, constructors, declarations.Models) is not var (type, argument))
+            return ProviderIdModel.String;
+
+        var stored = declarations.ProviderPicks.Count > 0;
 
         if (GetOneValue(type) is not { } storage)
         {
-            if (declarations.ProviderPicks.Count > 0)
-                reporter.Report(Descriptors.UnusableProviderIdType, argument, type.ToDisplayString());
-
+            if (stored) reporter.Report(Descriptors.UnusableProviderIdType, argument, type.ToDisplayString());
             return ProviderIdModel.String;
         }
 
+        var nameable = IsNameable(type);
         var providerId = new ProviderIdModel(type.ToTypeOf(), storage, type.IsEffectivelyPublic());
-        if (providerId.IsPublic || !agent.IsEffectivelyPublic()) return providerId;
+        if (nameable && (providerId.IsPublic || !agent.IsEffectivelyPublic())) return providerId;
 
         foreach (var pick in declarations.ProviderPicks)
         {
             reporter.Report(Descriptors.SettingsLessAccessible, pick, type.Name, agent.Name);
         }
 
-        return providerId;
+        return nameable ? providerId : ProviderIdModel.String;
     }
+
+    // D77: the WithModel that new TAgent() runs last: the parameterless constructor runs those it chains to with
+    // this(...) first, so the last WithModel of the outermost constructor that has one
+    private static (ITypeSymbol Type, SyntaxNode Argument)? GetRunModel(
+        INamedTypeSymbol agent,
+        IEnumerable<IOperation> constructors,
+        IReadOnlyList<(ITypeSymbol Type, SyntaxNode Argument)> models)
+    {
+        var chained = new Dictionary<IMethodSymbol, IMethodSymbol>(SymbolEqualityComparer.Default);
+
+        foreach (var call in ConstructorChains.GetInvocations(constructors))
+        {
+            if (call.Syntax is ConstructorInitializerSyntax
+                && Same(call.TargetMethod.ContainingType, agent)
+                && GetConstructor(agent, call.Syntax) is { } caller)
+                chained[caller] = call.TargetMethod;
+        }
+
+        var constructor = agent.InstanceConstructors.FirstOrDefault(each => each.Parameters.IsEmpty);
+        var visited = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
+
+        while (constructor is not null && visited.Add(constructor))
+        {
+            var own = models.Where(model => Declares(GetConstructor(agent, model.Argument), constructor)).ToList();
+
+            if (own.Count > 0) return own[own.Count - 1];
+
+            constructor = chained.TryGetValue(constructor, out var next) ? next : null;
+        }
+
+        return null;
+    }
+
+    private static bool Declares(IMethodSymbol? declaring, IMethodSymbol constructor) =>
+        SymbolEqualityComparer.Default.Equals(declaring, constructor);
+
+    private static IMethodSymbol? GetConstructor(INamedTypeSymbol agent, SyntaxNode syntax) =>
+        agent.InstanceConstructors.FirstOrDefault(constructor => constructor.DeclaringSyntaxReferences.Any(reference =>
+            reference.SyntaxTree == syntax.SyntaxTree && reference.Span.Contains(syntax.Span)));
+
+    // The generated Settings, in a file of their own, can name it: visible in the assembly and not file-local
+    private static bool IsNameable(ITypeSymbol type) =>
+        type is not INamedTypeSymbol named
+        || (!named.IsFileLocal && named.IsVisibleInAssembly() && (named.ContainingType is null
+            || IsNameable(named.ContainingType)));
 
     // A string, a number, a Guid or an enum; a nullable value type would type the code's provider and the stored
     // one apart
@@ -366,8 +416,8 @@ internal static class AgentParser
 
         public List<SyntaxNode> ProviderPicks { get; } = [];
 
-        // WithModel's provider: its static type and the argument
-        public (ITypeSymbol Type, SyntaxNode Argument)? Provider { get; set; }
+        // Each WithModel's provider: its static type and the argument, in source order
+        public List<(ITypeSymbol Type, SyntaxNode Argument)> Models { get; } = [];
 
         public List<ToolsetUseModel> Toolsets { get; } = [];
 

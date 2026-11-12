@@ -99,7 +99,14 @@ All notable changes to this project are documented here. The format follows
 - TSH030 is "Type is no chat client provider" and reports a `WithChatClientProvider<T>()` whose class implements no
   `IChatClientProvider<T>`, where it reported a provider of another type than the build's.
 - TSH006 no longer reports a public agent of a less accessible settings or conversation id type. It still reports one
-  whose configurable model names a less accessible provider type.
+  whose configurable model names a less accessible provider type, and any agent whose configurable model names a
+  provider type nested as `private` or `protected` or declared `file`, which the generated `Settings` cannot name.
+- An agent whose model is configurable but that calls no `WithModel` stores its providers as strings, where they were
+  of `TypeshiftProviderIdType`. A stored enum provider reads back as its name and reaches your
+  `IChatClientProvider<string>`, and a stored number reads back as null, so the layer below decides. To keep the old
+  type, name a default provider of it with `WithModel(provider, model)`, or serve strings.
+- `WithModel(provider, model)` throws an `ArgumentNullException` on a null provider, where the agent ran as if it
+  named no provider.
 - Module stamps are at version 6, so a referenced project built with an earlier Typeshift is TSH020 until it is
   rebuilt.
 
@@ -133,6 +140,8 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- TSH028 and TSH030 no longer report a type parameter, such as that of a helper generic over a store or a chat client
+  provider whose constraints make it one.
 - `RunAsync<T>` on a conversation that a handoff passed on, or one that hands off itself, asked the agent that
   answers for no schema. That agent answers in `T` now.
 - An answer to an approval request that a later run of the conversation passed by ran the call, and approving it for

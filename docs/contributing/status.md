@@ -182,8 +182,13 @@ rewrite.
   types only there, so an app registers the tracker of each value type it injects with `WithConversationTracker<TId>()`.
   A generator that read the injected trackers could register them itself.
 - **A provider type nothing serves.** No diagnostic sees an agent whose provider id type no registered
-  `IChatClientProvider<T>`, keyed client or client for every agent serves, since the registration may lie in another
-  project. Its first run fails, naming the `IChatClientProvider<T>` it needs.
+  `IChatClientProvider<T>` serves, since the registration may lie in another project. Its runs take a client keyed
+  by the provider or the one for every agent, even when a provider class of another type is registered, and fail,
+  naming the `IChatClientProvider<T>` they need, only when neither is registered.
+- **Declarations of constructors that never run.** The generator reads the declarations of every constructor of an
+  agent, while the module creates it with the parameterless one, which runs only the constructors it chains to with
+  `this(...)`. Only the provider id type follows that chain (D77); a pick or a toolset use in another constructor
+  still reaches the generated `Settings` and tools.
 - **One conversation through unrelated hosts.** An app that runs one conversation id through the hosts of two agents
   that never hand off to each other shares their standing approvals, and no diagnostic sees it.
 

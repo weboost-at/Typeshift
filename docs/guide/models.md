@@ -52,11 +52,11 @@ When none is registered, the run throws an `InvalidOperationException` that name
 
 ## Your own provider
 
-Write an `IChatClientProvider<T>` when a client depends on more than its provider, such as a key per customer. `T`
-is the type your agents name providers by, `string` for `WithModel("openai", ...)`
+Write an `IChatClientProvider<TProviderId>` when a client depends on more than its provider, such as a key per
+customer. `TProviderId` is the type your agents name providers by, `string` for `WithModel("openai", ...)`
 ([The provider id type](#the-provider-id-type)). Its one method gets the provider and the model of every run that
-names both, and again when [compaction](./conversations.md#compaction) needs the summary model. Register it with
-`WithChatClientProvider<T>()`, and [A key per customer](#a-key-per-customer) shows one.
+names both, and again when [compaction](./conversations.md#compaction) needs the summary model. Register your class
+with `WithChatClientProvider<TProvider>()`, and [A key per customer](#a-key-per-customer) shows one.
 
 ::: info The provider is scoped
 Typeshift resolves your provider from each run's scope, so it can use that request's services, such as the current
@@ -320,8 +320,17 @@ internal sealed class ScriptedChatClientProvider : IChatClientProvider<Provider>
 - With `Configurable(o => o.ModelId)`, the agent's `Settings` store its provider, so a user's pick is a `Provider`
   too. An agent that makes its model configurable without calling `WithModel` stores providers as strings.
 - `Settings` store a provider as a single value, so an agent whose `Settings` store one needs a string, a number, a
-  `Guid` or an enum ([TSH029](./diagnostics.md#tsh029)). A public agent's `Settings` name the type, so it must be
-  public too ([TSH006](./diagnostics.md#tsh006)).
+  `Guid` or an enum ([TSH029](./diagnostics.md#tsh029)). The generated `Settings` name the type in a file of their
+  own, so it may not be nested as `private` or `protected` or be a `file` type, and a public agent's must be public
+  ([TSH006](./diagnostics.md#tsh006)).
+
+::: warning A provider class of another type serves nothing
+A run asks only the `IChatClientProvider<T>` of its agent's provider type. If your app registers a provider class
+for strings and an agent names an enum provider, that agent's runs skip your class without a word and take a client
+registered under the provider's value, or the one for every agent, which may be a different model or account. Only
+when neither is registered does the run fail, naming the `IChatClientProvider<T>` it needs. Implement the interface
+for each provider type your agents use.
+:::
 
 ## Naming a model
 

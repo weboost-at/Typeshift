@@ -376,9 +376,13 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   fallbacks hold for any type, since keyed services take keys of any type. `WithChatClientProvider<T>()` registers `T`
   as each `IChatClientProvider<X>` it implements, of any `X`, as `WithStore<T>()` registers a store, and a `T` that
   implements none is TSH030. Settings that store a provider need a type they store as one value, a string, a number,
-  a `Guid` or an enum: TSH029, on the provider. An agent whose settings store none may name a provider of any type. A
-  public agent's settings need a provider type as accessible (TSH006). The last `WithModel` of an agent types its
-  providers, since it is the one that runs. Gone with the build's type: `TypeshiftProviderIdType`, the
+  a `Guid` or an enum: TSH029, on the provider. An agent whose settings store none may name a provider of any type.
+  Settings that store one need a type the generated `Settings`, in a file of their own, can name, so no type nested
+  as `private` or `protected` and no `file` type, and a public agent's settings a public one (TSH006); the
+  generator writes `string` in place of a type it cannot name, so its code compiles. The `WithModel` that
+  `new TAgent()` runs last types the providers, as the module creates an agent with its parameterless constructor:
+  the last `WithModel` of that constructor, or else of the constructors it chains to with `this(...)`, nearest
+  first. Gone with the build's type: `TypeshiftProviderIdType`, the
   `IChatClientProvider` alias, the type parameter of `AddCoreServices`, `ChatClients<TProviderId>`, the module
   stamps' provider id type (stamp version 6), TSH021, and the build-wide parts of TSH029 and TSH030.
 - **Where:** `Hosting/ProviderId.cs`, `Hosting/ChatClients.cs`, `Hosting/IChatClientProvider.cs`,

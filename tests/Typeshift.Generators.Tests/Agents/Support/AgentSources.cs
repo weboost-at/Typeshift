@@ -126,6 +126,43 @@ public static class AgentSources
         }
         """;
 
+    // D77: new SplitAgent() runs the enum's constructor, and new OverridingAgent() its own WithModel after it
+    public const string ProvidersOfSeveralConstructors =
+        """
+        #pragma warning disable CS1591
+
+        using Typeshift;
+
+        namespace Demo;
+
+        public enum Vendor
+        {
+            OpenAi
+        }
+
+        public partial class SplitAgent : Agent
+        {
+            public SplitAgent()
+                : this(Vendor.OpenAi)
+            {
+            }
+
+            public SplitAgent(Vendor vendor) =>
+                WithChatOptions().WithModel(vendor, "fast-model").Configurable(o => o.ModelId);
+
+            public SplitAgent(string provider) => WithChatOptions().WithModel(provider, "fast-model");
+        }
+
+        public partial class OverridingAgent : Agent
+        {
+            public OverridingAgent()
+                : this(Vendor.OpenAi) =>
+                WithChatOptions().WithModel("openai", "fast-model").Configurable(o => o.ModelId);
+
+            public OverridingAgent(Vendor vendor) => WithChatOptions().WithModel(vendor, "fast-model");
+        }
+        """;
+
     // Names the agent's type in full, without importing its namespace
     public const string CallerOutsideTheAgentsNamespace =
         """

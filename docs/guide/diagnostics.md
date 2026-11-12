@@ -87,9 +87,11 @@ accessible as what exposes it. There are three cases:
   the toolset can be named.
 - A toolset with configurable settings is less accessible than a public agent that offers it. The agent's `Settings`
   record names the toolset's overrides.
-- A public agent makes its model or its summary model configurable, and its
+- An agent makes its model or its summary model configurable, and its
   [provider id type](./models.md#the-provider-id-type), the type of the provider its `WithModel` names, is less
-  accessible. The agent's `Settings` record names the type for the model's provider.
+  accessible than its `Settings`, which name the type for the model's provider. The generated `Settings` live in a
+  file of their own, so they cannot name a type nested as `private` or `protected` or a `file` type, and a public
+  agent's `Settings` need a public type.
 
 ## TSH007
 

@@ -96,6 +96,28 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Provider_Id_Type_Nested_As_Private_In_The_Agent_TSH006_Is_Reported_On_The_Model_Pick()
+    {
+        // Act
+        var run = Run(DiagnosticSources.PrivateProviderIdType);
+
+        // Assert
+        run.Assert.Reports("TSH006", DiagnosticSeverity.Error, "o => o.ModelId");
+        run.Assert.GeneratesValidCode();
+    }
+
+    [Fact]
+    public void Given_A_Provider_Id_Type_Of_One_File_TSH006_Is_Reported_On_The_Model_Pick()
+    {
+        // Act
+        var run = Run(DiagnosticSources.FileProviderIdType);
+
+        // Assert
+        run.Assert.Reports("TSH006", DiagnosticSeverity.Error, "o => o.ModelId");
+        run.Assert.GeneratesValidCode();
+    }
+
+    [Fact]
     public void Given_Two_Tools_Mapping_To_One_Member_TSH007_Is_Reported_On_The_Second()
     {
         // Act
@@ -595,6 +617,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Helper_Generic_Over_The_Store_TSH028_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(DiagnosticSources.GenericRegistrationHelpers);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH028");
+    }
+
+    [Fact]
     public void Given_A_Store_Of_Another_Id_Type_TSH028_Is_Not_Reported()
     {
         // Act
@@ -662,6 +694,16 @@ public class DiagnosticTests : GeneratorTestBase
 
         // Assert
         run.Assert.Reports("TSH030", DiagnosticSeverity.Error, "WithChatClientProvider<Clients>");
+    }
+
+    [Fact]
+    public void Given_A_Helper_Generic_Over_The_Chat_Client_Provider_TSH030_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(DiagnosticSources.GenericRegistrationHelpers);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH030");
     }
 
     [Fact]
@@ -888,6 +930,26 @@ public class DiagnosticTests : GeneratorTestBase
 
         // Assert
         run.Assert.Reports("TSH029", DiagnosticSeverity.Error, "new ProviderKey(\"openai\")");
+    }
+
+    [Fact]
+    public void Given_A_Chained_Constructor_Of_A_Provider_Of_More_Than_One_Value_TSH029_Is_Reported_On_It()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ChainedUnstorableProvider);
+
+        // Assert
+        run.Assert.Reports("TSH029", DiagnosticSeverity.Error, "key");
+    }
+
+    [Fact]
+    public void Given_A_Provider_Of_More_Than_One_Value_In_A_Constructor_That_Never_Runs_TSH029_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(DiagnosticSources.UnstorableProviderOfAnotherConstructor);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH029");
     }
 
     [Fact]

@@ -27,7 +27,7 @@ internal sealed record ProviderId<TProviderId>(TProviderId Id) : ProviderId wher
 {
     public override object Value => Id;
 
-    public override string Contract => $"IChatClientProvider<{typeof(TProviderId).Name}>";
+    public override string Contract => $"IChatClientProvider<{TypeNames.Of<TProviderId>()}>";
 
     public override async ValueTask<IChatClient?> GetChatClientAsync(
         IServiceProvider services,
