@@ -182,7 +182,8 @@ do when a configurable member is renamed.
 ### `Configure{Tool}()`
 
 **Triggered by** an offered tool with settings, from `WithSettings<T>()` or `WithConfigurableSettings<T>()`, whether
-it has configurable members or not.
+it has configurable members or not. A settings record without a settable member leaves nothing to set, so its tool
+gets none.
 
 `ConfigureSearchTickets()` in the `SupportAgent` above is a private method. It returns a builder with one
 `With{Member}(value)` per settable member of the settings record, configurable or not. `SearchTicketsSettings` has

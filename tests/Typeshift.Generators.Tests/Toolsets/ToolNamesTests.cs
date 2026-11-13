@@ -42,4 +42,34 @@ public class ToolNamesTests
         // Assert
         name.Should().Be(tool);
     }
+
+    [Theory]
+    [InlineData("echo")]
+    [InlineData("get_v2")]
+    [InlineData("base64_encode")]
+    public void Given_Lower_Snake_Case_A_Name_Is_A_Tool_Name(string name)
+    {
+        // Act
+        var accepted = ToolNames.IsLowerSnakeCase(name);
+
+        // Assert
+        accepted.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("Echo")]
+    [InlineData("echo_")]
+    [InlineData("_echo")]
+    [InlineData("2nd_echo")]
+    [InlineData("echo__twice")]
+    [InlineData("echo\n")]
+    [InlineData("")]
+    public void Given_Anything_Else_Than_Lower_Snake_Case_A_Name_Is_No_Tool_Name(string name)
+    {
+        // Act
+        var accepted = ToolNames.IsLowerSnakeCase(name);
+
+        // Assert
+        accepted.Should().BeFalse();
+    }
 }

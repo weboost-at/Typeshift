@@ -114,9 +114,10 @@ internal static class AgentEmitter
         return "TypeshiftHost_" + string.Concat(parts.Select(part => $"{part.Length}{part}"));
     }
 
-    // The user's own Configure{Tool}() wins; a tool without settings has nothing to configure
+    // The user's own Configure{Tool}() wins; a tool without settings, or with settings that have no settable member,
+    // has nothing to configure
     private static bool HasConfigure(AgentModel agent, ToolSummary tool) =>
-        tool.Settings is not null && !agent.Configures.Contains(Configure(tool));
+        tool.Settings is not null && tool.Members.Count > 0 && !agent.Configures.Contains(Configure(tool));
 
     private static string Configure(ToolSummary tool) => $"Configure{Names.ToPascalCase(tool.Name)}";
 

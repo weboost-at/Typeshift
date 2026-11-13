@@ -1178,6 +1178,16 @@ public class DiagnosticTests : GeneratorTestBase
         run.Assert.Reports("TSH003", DiagnosticSeverity.Error, "List<int>.Grow");
     }
 
+    [Fact]
+    public void Given_A_Tool_Name_Ending_In_A_Line_Break_TSH008_Is_Reported_On_The_Name()
+    {
+        // Act
+        var run = Run(DiagnosticSources.NameEndingInALineBreak);
+
+        // Assert
+        run.Assert.Reports("TSH008", DiagnosticSeverity.Error, "\"echo\\n\"");
+    }
+
     [Theory]
     [MemberData(nameof(Mistakes))]
     public void Given_Any_Mistake_The_Generated_Code_Holds_No_Error(string mistake)

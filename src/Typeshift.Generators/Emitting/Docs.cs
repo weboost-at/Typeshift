@@ -22,8 +22,13 @@ internal static class Docs
 
     public static void WriteInheritDoc(SourceWriter writer) => writer.Line("/// <inheritdoc />");
 
-    // Docs and descriptions are read as plain text; put back into XML they need escaping
-    public static string Escape(string text) => text.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+    // Docs and descriptions are read as plain text; put back into XML they need escaping, and lose the characters
+    // XML has no form for, such as the control characters a description may hold
+    public static string Escape(string text) =>
+        string.Concat(text.Where(IsXmlCharacter)).Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+
+    private static bool IsXmlCharacter(char character) =>
+        character is '\t' or '\n' or '\r' or (>= ' ' and not ('\uFFFE' or '\uFFFF'));
 
     // A summary always on lines of its own, any other tag on one line while it fits the width the writer has left
     private static void WriteTag(SourceWriter writer, string open, string close, string text)

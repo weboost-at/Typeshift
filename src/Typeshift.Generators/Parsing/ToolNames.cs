@@ -6,7 +6,8 @@ namespace Typeshift.Generators.Parsing;
 
 internal static class ToolNames
 {
-    private static readonly Regex LowerSnakeCase = new("^[a-z][a-z0-9]*(_[a-z0-9]+)*$");
+    // \z, since $ also matches before a line break that ends the name
+    private static readonly Regex LowerSnakeCase = new(@"^[a-z][a-z0-9]*(_[a-z0-9]+)*\z");
 
     public static bool IsLowerSnakeCase(string name) => LowerSnakeCase.IsMatch(name);
 

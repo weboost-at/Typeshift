@@ -135,6 +135,10 @@ All notable changes to this project are documented here. The format follows
   called it by a name that does not compile. A tool method of a class closed over a nullable type, such as
   `Finder<string?>.Find`, no longer gives a nullability warning in the generated file.
 - A `CancellationToken?` parameter receives the call's token. It was offered to the model as an argument.
+- Four rare declarations no longer end in errors or warnings inside generated files. A tool name that ends in a
+  line break, as `WithName("echo\n")`, is TSH008. A tool whose settings record has no settable member gets no
+  `Configure{Tool}()`, which was a builder with nothing to set and warned with CS9113. A control character in a
+  description stays out of the generated doc comments. A default declared by `[DateTimeConstant]` compiles.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

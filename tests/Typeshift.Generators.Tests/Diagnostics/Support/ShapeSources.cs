@@ -889,4 +889,82 @@ public static class ShapeSources
             }
         }
         """;
+
+    // Nothing to configure: the agent gets no Configure{Tool}() for the tool
+    public const string SettingsWithoutSettableMembers =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record Nothing
+        {
+            public int Computed => 1;
+        }
+
+        internal partial class NothingToolset : Toolset
+        {
+            public NothingToolset() => AddTool(Echo).WithDescription("Echoes.").WithSettings<Nothing>();
+
+            public static string Echo(string text, Nothing nothing) => text;
+        }
+
+        internal partial class NothingAgent : Agent
+        {
+            public NothingAgent()
+            {
+                WithDescription("Nothing.");
+                UseToolset<NothingToolset>();
+            }
+        }
+        """;
+
+    // XML has no form for a control character, so the doc comments leave it out
+    public const string ControlCharactersInADescription =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class ControlToolset : Toolset
+        {
+            public ControlToolset() => AddTool(Echo).WithDescription("ctl \0 \u0001 \uFFFE \u2028 end");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class ControlAgent : Agent
+        {
+            public ControlAgent()
+            {
+                WithDescription("ctl \0 \u0001 \uFFFE \u2028 end");
+                UseToolset<ControlToolset>();
+            }
+        }
+        """;
+
+    public const string DefaultsDeclaredByAttribute =
+        """
+        using System;
+        using System.Runtime.CompilerServices;
+        using System.Runtime.InteropServices;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class WhenToolset : Toolset
+        {
+            public WhenToolset() => AddTool(When).WithDescription("Tells when.");
+
+            public static string When(
+                [Optional, DateTimeConstant(5)] DateTime at,
+                [Optional, DecimalConstant(2, 0, 0, 0, 125)] decimal price,
+                [Optional, DefaultParameterValue(7)] long count,
+                [Optional, DefaultParameterValue("soon")] object note,
+                [Optional] string zone,
+                sbyte step = -1,
+                ushort port = 80) =>
+                "";
+        }
+        """;
 }

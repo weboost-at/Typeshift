@@ -53,7 +53,14 @@ internal static class DefaultValues
             long number => number.ToString(CultureInfo.InvariantCulture) + "L",
             uint number => number.ToString(CultureInfo.InvariantCulture) + "U",
             ulong number => number.ToString(CultureInfo.InvariantCulture) + "UL",
-            _ => $"({Keyword(value)}){Convert.ToString(value, CultureInfo.InvariantCulture)}"
+            short number => $"(short){number.ToString(CultureInfo.InvariantCulture)}",
+            ushort number => $"(ushort){number.ToString(CultureInfo.InvariantCulture)}",
+            byte number => $"(byte){number.ToString(CultureInfo.InvariantCulture)}",
+            sbyte number => $"(sbyte){number.ToString(CultureInfo.InvariantCulture)}",
+
+            // [DateTimeConstant] declares the one default that is no literal
+            DateTime time => $"new global::System.DateTime({time.Ticks.ToString(CultureInfo.InvariantCulture)}L)",
+            _ => "default!"
         };
 
     private static string FormatFloat(float number) =>
@@ -72,14 +79,5 @@ internal static class DefaultValues
             double.PositiveInfinity => "double.PositiveInfinity",
             double.NegativeInfinity => "double.NegativeInfinity",
             _ => number.ToString("R", CultureInfo.InvariantCulture) + "d"
-        };
-
-    private static string Keyword(object value) =>
-        value switch
-        {
-            short => "short",
-            ushort => "ushort",
-            byte => "byte",
-            _ => "sbyte"
         };
 }

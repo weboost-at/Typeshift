@@ -1919,4 +1919,16 @@ public static class DiagnosticSources
             public ListTools() => AddTool(List<int>.Grow).WithDescription("Sizes a list.");
         }
         """;
+
+    public const string NameEndingInALineBreak =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithName("echo\n").WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
 }

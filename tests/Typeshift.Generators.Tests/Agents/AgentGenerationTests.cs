@@ -346,4 +346,14 @@ public class AgentGenerationTests : GeneratorTestBase
         // Assert
         run.Assert.CompilesCleanly();
     }
+
+    [Fact]
+    public void Given_Settings_Without_A_Settable_Member_The_Agent_Gets_No_Configure_For_The_Tool()
+    {
+        // Act
+        var run = Run(ShapeSources.SettingsWithoutSettableMembers);
+
+        // Assert
+        run.Source("Demo.NothingAgent.g.cs").Should().NotContain("ConfigureEcho");
+    }
 }
