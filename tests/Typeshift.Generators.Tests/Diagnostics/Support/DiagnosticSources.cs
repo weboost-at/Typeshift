@@ -1164,6 +1164,30 @@ public static class DiagnosticSources
         }
         """;
 
+    // System.Text.Json's generator writes a Default only for a partial context, so the module registers none here
+    public const string JsonContextThatIsNotPartial =
+        """
+        using System.Text.Json.Serialization;
+        using Typeshift;
+
+        internal sealed record Company(string Name);
+
+        internal partial class CompanyToolset : Toolset
+        {
+            public CompanyToolset() => AddTool(Find).WithDescription("Finds a company.");
+
+            public static Company Find(string name) => new(name);
+        }
+
+        [JsonSerializable(typeof(Company))]
+        internal class CompanyJson() : JsonSerializerContext(null)
+        {
+            protected override System.Text.Json.JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type) => null;
+        }
+        """;
+
     public const string PickBeingTyped =
         """
         using Typeshift;

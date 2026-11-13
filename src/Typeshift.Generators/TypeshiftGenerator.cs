@@ -140,7 +140,8 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
         });
     }
 
-    // D55: an assembly that only documents types still gets a module, so the tools of its referrers describe them
+    // D45, D55: an assembly that only holds a JSON context or only documents types still gets a module, so the
+    // tools of its referrers serialize with the one and describe the other
     private static ModuleModel? CreateModule(
         ImmutableArray<ToolsetModel> toolsets,
         ImmutableArray<AgentOutput> outputs,
@@ -148,7 +149,10 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
         ImmutableArray<string> annotations,
         string assemblyName)
     {
-        if (toolsets.IsEmpty && outputs.IsEmpty && annotations.IsEmpty) return null;
+        if (toolsets.IsEmpty && outputs.IsEmpty && contexts.IsEmpty && annotations.IsEmpty) return null;
+
+        // The library builds with the generator and registers its own JSON context itself
+        if (assemblyName == KnownTypes.LibraryAssembly) return null;
 
         var reachableToolsets = toolsets
             .Where(toolset => toolset.IsReachable)

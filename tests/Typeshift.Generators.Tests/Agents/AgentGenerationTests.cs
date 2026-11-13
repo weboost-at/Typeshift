@@ -224,6 +224,62 @@ public class AgentGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Project_With_Only_A_Json_Context_Its_Module_Registers_It()
+    {
+        // Act
+        var run = Run(AgentSources.JsonContextOnly);
+
+        // Assert
+        run.Source("Typeshift.Generated.SubjectModule.g.cs")
+            .Should()
+            .Contain("AddJsonContext(services, global::App.AppJsonContext.Default);");
+    }
+
+    [Fact]
+    public void Given_A_Project_With_Only_A_Json_Context_The_Interceptor_Registers_Its_Module()
+    {
+        // Act
+        var run = Run(AgentSources.JsonContextOnly);
+
+        // Assert
+        run.Source("Typeshift.Generated.AddTypeshiftInterceptor.g.cs")
+            .Should()
+            .Contain("global::Typeshift.Generated.SubjectModule.Register(services);");
+    }
+
+    [Fact]
+    public void Given_A_Project_With_Only_A_Json_Context_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(AgentSources.JsonContextOnly);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
+    public void Given_A_Json_Context_Without_A_Default_The_Module_Leaves_It_Out()
+    {
+        // Act
+        var run = Run(ShapeSources.JsonContextWithoutDefault);
+
+        // Assert
+        run.Source("Typeshift.Generated.SubjectModule.g.cs").Should().NotContain("AddJsonContext");
+    }
+
+    [Fact]
+    public void Given_A_Json_Context_With_A_Default_Field_Of_Its_Own_The_Module_Registers_It()
+    {
+        // Act
+        var run = Run(ShapeSources.JsonContextWithADefaultField);
+
+        // Assert
+        run.Source("Typeshift.Generated.SubjectModule.g.cs")
+            .Should()
+            .Contain("AddJsonContext(services, global::Demo.HandWritten.Default);");
+    }
+
+    [Fact]
     public void Given_A_Toolset_Of_A_Reference_The_Generated_Code_Compiles_Without_Warnings()
     {
         // Arrange

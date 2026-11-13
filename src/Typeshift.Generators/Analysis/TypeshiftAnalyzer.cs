@@ -648,8 +648,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
         // The contexts the module registers, as the generator finds them
         if (type is { IsAbstract: true } or { IsGenericType: true }
-            || !type.DerivesFrom(KnownTypes.JsonSerializerContext)
-            || !type.IsVisibleInAssembly()) return;
+            || !type.BaseType.Is(KnownTypes.JsonSerializerContext)
+            || !Discovery.CanRegister(type, context.CancellationToken)) return;
 
         var listed = type.GetAttributes()
             .Where(attribute => attribute.AttributeClass.Is(KnownTypes.JsonSerializableAttribute))

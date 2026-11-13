@@ -236,14 +236,14 @@ Every agent also gets:
 
 | Member | Triggered by | Is |
 |---|---|---|
-| `{Assembly}Module` (hidden) | A toolset, an agent or XML docs in the project | The assembly's [registrations](./registration.md#what-addtypeshift-registers) |
+| `{Assembly}Module` (hidden) | A toolset, an agent, a JSON context or XML docs in the project | The assembly's [registrations](./registration.md#what-addtypeshift-registers) |
 | `[GeneratedModule]` (hidden) | The same | The module's stamp |
 | `TypeshiftSchemaAnnotations_{Assembly}` (hidden) | XML docs, which are on unless the project turns them off | What collects the [XML docs of your types](./registration.md#xml-docs-of-parameter-types) |
 | The interceptor | A call of `services.AddTypeshift()` or `TypeshiftRuntime.Create(...)` | See [Registration](./registration.md) |
 
 - The module registers the assembly's toolsets, agents, hosts, JSON contexts and XML docs. A project without a
   toolset or an agent still gets one for its `TypeshiftSchemaAnnotations_{Assembly}` class, which every project with
-  XML docs on has.
+  XML docs on has, and for a [JSON context](./native-aot.md#tool-parameter-and-result-types) it holds.
 - `[GeneratedModule]` stamps the module and its version for the projects that reference the assembly.
 - The package's build adds `TypeshiftSchemaAnnotations_{Assembly}`, not the generator. It does so while
   `GenerateDocumentationFile` is on, which it is unless the project turns it off, and `TypeshiftSchemaAnnotations`

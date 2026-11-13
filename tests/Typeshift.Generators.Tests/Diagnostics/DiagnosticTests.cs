@@ -1028,6 +1028,19 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Tool_Type_Only_A_Context_Without_A_Default_Lists_Under_Native_Aot_TSH027_Is_Reported()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.JsonContextThatIsNotPartial);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.PublishingAot());
+
+        // Assert
+        run.Assert.Reports("TSH027", DiagnosticSeverity.Error, "AddTool(Find)");
+    }
+
+    [Fact]
     public void Given_A_Pick_Being_Typed_TSH015_Is_Reported_And_The_Generator_Runs_On()
     {
         // Act

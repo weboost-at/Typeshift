@@ -1253,4 +1253,61 @@ public static class ShapeSources
             }
         }
         """;
+
+    // A context written by hand has no Default unless it declares one, so the module has nothing to register
+    public const string JsonContextWithoutDefault =
+        """
+        using System;
+        using System.Text.Json;
+        using System.Text.Json.Serialization;
+        using System.Text.Json.Serialization.Metadata;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal class HandWritten : JsonSerializerContext
+        {
+            public HandWritten() : base(null) { }
+
+            protected override JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override JsonTypeInfo? GetTypeInfo(Type type) => null;
+        }
+        """;
+
+    public const string JsonContextWithADefaultField =
+        """
+        using System;
+        using System.Text.Json;
+        using System.Text.Json.Serialization;
+        using System.Text.Json.Serialization.Metadata;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal class HandWritten : JsonSerializerContext
+        {
+            public static readonly JsonSerializerContext Default = new HandWritten();
+
+            private HandWritten() : base(null) { }
+
+            protected override JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override JsonTypeInfo? GetTypeInfo(Type type) => null;
+        }
+        """;
 }

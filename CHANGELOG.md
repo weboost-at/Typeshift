@@ -262,6 +262,14 @@ All notable changes to this project are documented here. The format follows
   `<paramref name="amount"/> <paramref name="from"/>`, and sets `<para>`, `<list>` items, `<code>` and `<br/>` apart
   from the text around them. A `<see href="..."/>` without a text reads as its address. Before, the model read
   `Converts amountfrom`, and a list of allowed values as one word, such as `One of fastslow`.
+- A project that holds a JSON context and no toolset, agent or XML docs gets a module, so `AddTypeshift()`
+  registers the context. An app that kept its agents in a library and turned `GenerateDocumentationFile` or
+  `TypeshiftSchemaAnnotations` off registered none, and under Native AOT its first `RunAsync<T>` failed for lack of
+  JSON metadata.
+- The module registers only a JSON context whose static `Default` it can read: a `partial` one with a
+  `[JsonSerializable]`, or one that declares `Default` itself. A context written by hand without one gave CS0117 in
+  the generated module. TSH027 counts the same contexts, so a type that only such a context lists is reported under
+  Native AOT.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

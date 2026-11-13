@@ -235,7 +235,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   project that marked its own class has two, and Weboost.SchemaAnnotations then writes no
   `AIJsonSchemaCreateOptions.Annotated`; deleting its own brings `Annotated` back from the added class. A project
   that declares no toolsets or agents but documents types gets a module that registers just those docs, which the
-  `AddTypeshift()` of a project referencing it registers like any referenced module.
+  `AddTypeshift()` of a project referencing it registers like any referenced module. A project that only holds a
+  JSON context gets one in the same way (D45).
 - **Consequences:** Weboost.SchemaAnnotations collects every documented type and property of the project, internal
   ones included, not only those a tool takes. Their docs are compiled into the assembly as text. And its generated
   file names each documented type, so one marked `[Obsolete]` is CS0618 there, an error where warnings are errors,
@@ -1177,14 +1178,22 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `TimeSpan`, JSON elements) and the contexts of the compilation; a tool returning `IAsyncEnumerable<T>` returns a
   `List<T>`, which it checks. The console sample publishes as Native AOT in CI, where a trim or AOT warning fails the
   build.
+- **Which contexts:** the module names a context and reads its static `Default`, so `Discovery.CanRegister` takes a
+  context the assembly can name that is partial and carries a `[JsonSerializable]`, for which System.Text.Json's
+  generator writes the member where this generator cannot see it, or that declares a static `Default` itself. A
+  context written by hand without one was CS0117 in the module. TSH027 counts the same contexts. An assembly that
+  holds a context and no toolset, agent or schema annotations class gets a module that registers just the context,
+  as D55's docs-only module; without it an app that keeps its agents in a library and turns XML docs off registered
+  no context and failed at its first typed run under Native AOT. The library itself, which builds with the generator
+  and registers its own context, gets none.
 - **Streams are read by the library:** the generated function hands the stream to the hidden
   `GeneratedToolFunction.GetResultAsync`, which collects the list. Generated code called
   `System.Linq.AsyncEnumerable.ToListAsync` once, a name that exists twice in a consumer whose packages bring
   System.Linq.Async before 7.0, so the call was CS0433 in a file the consumer cannot edit. The library compiles
   against the framework alone, where no reference of the consumer makes a name ambiguous. It also checks the call's
   token before each item, since an iterator without `[EnumeratorCancellation]` never sees the token.
-- **Where:** `Analysis/TypeshiftAnalyzer.cs`, `Generated/GeneratedToolFunction.cs`, `Emitting/ToolsetEmitter.cs`,
-  `samples/Typeshift.Samples.Console`.
+- **Where:** `Analysis/TypeshiftAnalyzer.cs`, `Parsing/Discovery.cs`, `TypeshiftGenerator.cs` (`CreateModule`),
+  `Generated/GeneratedToolFunction.cs`, `Emitting/ToolsetEmitter.cs`, `samples/Typeshift.Samples.Console`.
 
 ### D62. Union types in tools and typed runs
 

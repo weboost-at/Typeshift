@@ -45,7 +45,18 @@ internal partial class AppJsonContext : JsonSerializerContext;
 
 You don't register the context yourself: `AddTypeshift()` does. Each assembly's generated module adds that assembly's
 contexts, `internal` ones included, so a toolset library ships its own contexts and your app registers nothing for
-them.
+them. A project that holds nothing of Typeshift but a context, such as an app whose agents live in a library, gets a
+module for it too.
+
+The module registers a context through its static `Default` member, so it takes the contexts that have one:
+
+- A `partial` context with at least one `[JsonSerializable]`, as the one above. System.Text.Json's source generator
+  writes its `Default`.
+- A context you write by hand, when it declares a public or internal static `Default` property or field itself.
+
+Any other context is left out, and the types it lists count as not listed for
+[TSH027](./diagnostics.md#tsh027). The context derives from `JsonSerializerContext` directly and names it in its base
+list.
 
 Strings, `char`, `bool`, `short`, `int`, `long` and their unsigned forms, `float`, `double`, `decimal`, `DateTime`,
 `DateTimeOffset`, `TimeSpan`, `IEnumerable<string>` and the JSON element, document and node types need no context.

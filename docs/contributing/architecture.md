@@ -68,7 +68,7 @@ what does not parse (D2).
    tools, whose members `AgentEmitter` writes into the agent through `ToolsetEmitter.WriteTools`. An agent's output
    stays cached while what it offers stays the same.
 6. **Registration.** `Emitting/ModuleEmitter.cs` writes one module, stamped with `[GeneratedModule]`, per assembly
-   that declares toolsets or agents or holds a `[SchemaAnnotations]` class. The package adds that class to each
+   that declares toolsets or agents or holds a JSON context or a `[SchemaAnnotations]` class. The package adds that class to each
    project with XML docs on, so by default every project gets a module (D55). `Emitting/InterceptorEmitter.cs`
    intercepts every `AddTypeshift()` call and registers the core services, the project's module and its references'
    modules (D1). It intercepts every `TypeshiftRuntime.Create` call too, which builds a container of the same

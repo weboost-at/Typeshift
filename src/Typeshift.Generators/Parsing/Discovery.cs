@@ -39,9 +39,19 @@ internal static class Discovery
 
     // D45: the module registers the assembly's JSON contexts, which tools ask before the defaults
     public static string? ClassifyJsonContext(GeneratorSyntaxContext context, CancellationToken ct) =>
-        GetDeclared(context, KnownTypes.JsonSerializerContext, ct) is { } type && type.IsVisibleInAssembly()
+        GetDeclared(context, KnownTypes.JsonSerializerContext, ct) is { } type && CanRegister(type, ct)
             ? type.ToTypeOf()
             : null;
+
+    // D45: the module names the context and reads its static Default. System.Text.Json's generator writes that
+    // member for a partial context with a [JsonSerializable], where this generator cannot see it; any other context
+    // has to declare it
+    public static bool CanRegister(INamedTypeSymbol context, CancellationToken ct) =>
+        context.IsVisibleInAssembly()
+        && (context.GetMembers("Default").Any(IsDefault)
+            || (context.GetNotPartial(ct) is null
+                && context.GetAttributes()
+                    .Any(attribute => attribute.AttributeClass.Is(KnownTypes.JsonSerializableAttribute))));
 
     // D55: the module registers the docs Weboost.SchemaAnnotations collects for a marked class, which gets a Source
     // only when it is partial and not generic
@@ -52,6 +62,23 @@ internal static class Discovery
         && type.IsVisibleInAssembly()
             ? type.ToTypeOf()
             : null;
+
+    private static bool IsDefault(ISymbol member) =>
+        member is
+        {
+            IsStatic: true,
+            DeclaredAccessibility: Accessibility.Public or Accessibility.Internal or Accessibility.ProtectedOrInternal
+        }
+        && member switch
+        {
+            IPropertySymbol property => IsJsonContext(property.Type),
+            IFieldSymbol field => IsJsonContext(field.Type),
+            _ => false
+        };
+
+    private static bool IsJsonContext(ITypeSymbol type) =>
+        type is INamedTypeSymbol named
+        && (named.Is(KnownTypes.JsonSerializerContext) || named.DerivesFrom(KnownTypes.JsonSerializerContext));
 
     private static bool HasBase(SyntaxNode node, string baseName) =>
         node is ClassDeclarationSyntax { BaseList: { } bases } declaration
