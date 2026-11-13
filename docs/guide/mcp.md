@@ -108,6 +108,29 @@ WithChatOptions()
 The model provider then connects to the server itself, and your `IMcpToolProvider` takes no part. A hosted tool
 carries no `ReadOnly()` mark, so plan mode hides it.
 
+::: warning Only some clients send a hosted server
+The `IChatClient` that serves the run has to pass the server on to the provider, and only a client of an API with
+hosted MCP does. With Microsoft.Extensions.AI.OpenAI 10.10.0 and Anthropic 12.55.0, two clients send it: OpenAI's
+Responses client, shown below, and Anthropic's beta client, `client.Beta.AsIChatClient(model)`. OpenAI's Chat
+Completions client, `GetChatClient(model).AsIChatClient()`, and Anthropic's default `client.AsIChatClient(model)`
+drop the tool without an error, so the model never sees the server's tools.
+:::
+
+<!-- snippet: openai-responses-client -->
+<a id='snippet-openai-responses-client'></a>
+```cs
+#pragma warning disable OPENAI001
+var client = new OpenAIClient(apiKey)
+    .GetResponsesClient()
+    .AsIChatClient("gpt-5-mini");
+#pragma warning restore OPENAI001
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L138-L144' title='Snippet source file'>snippet source</a> | <a href='#snippet-openai-responses-client' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+With Microsoft.Extensions.AI.OpenAI 10.10.0, the Responses client is still marked experimental: `GetResponsesClient()`
+and its `AsIChatClient(model)` fail the build with OPENAI001 until you suppress it, as the two `#pragma` lines do.
+
 ## Related
 
 - [Approval and modes](./tool-approval.md): asking before a server's tools run.

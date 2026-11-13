@@ -195,6 +195,10 @@ rewrite.
   instances of an app can run or resume one conversation at once, and an entry without an ending one looks the same
   for an interrupted run and for a run another instance is still on. A claim in the store, such as a lease or a
   heartbeat, would change D50.
+- **Hosted MCP servers a client cannot send.** A `HostedMcpServerTool` (D35) reaches the provider only through a
+  client of an API with hosted MCP. Other clients, such as OpenAI's Chat Completions client and Anthropic's default
+  adapter, drop it without an error, and Typeshift neither logs nor throws. The guide warns about it; a check
+  against the client that serves the run would need a decision next to D35.
 
 ## Related
 

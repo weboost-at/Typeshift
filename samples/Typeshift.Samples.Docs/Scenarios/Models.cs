@@ -132,4 +132,17 @@ internal static class Models
 
         return client;
     }
+
+    public static IChatClient ShowOpenAiResponsesClient(string apiKey)
+    {
+        // begin-snippet: openai-responses-client
+        #pragma warning disable OPENAI001
+        var client = new OpenAIClient(apiKey)
+            .GetResponsesClient()
+            .AsIChatClient("gpt-5-mini");
+        #pragma warning restore OPENAI001
+        // end-snippet
+
+        return client;
+    }
 }
