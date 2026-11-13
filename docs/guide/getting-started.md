@@ -308,6 +308,6 @@ at hand. Add `llms-full.txt` to the context of one that cannot fetch. `llms.txt`
 - [Using an agent](./using-an-agent.md): the host in a controller, an endpoint or a background job.
 - [Models and providers](./models.md): real chat clients, local servers and a client per customer.
 - [Settings and stores](./settings-and-stores.md): the settings layers and the store behind them.
-- [Running agents](./running-agents.md): structured output and streaming.
+- [Running an agent](./running-agents.md): structured output and streaming.
 - [Conversations](./conversations.md): resuming, steering and watching runs.
 - [Glossary](./glossary.md): the words these docs use.

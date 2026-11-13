@@ -54,4 +54,4 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 ## Related
 
 - [What is Typeshift?](./what-is-typeshift.md#how-the-pieces-fit): how the pieces fit together.
-- [Writing style](../contributing/writing.md): for contributors, how these docs use the terms above.
+- [Writing the docs](../contributing/writing.md): for contributors, how these docs use the terms above.

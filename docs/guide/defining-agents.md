@@ -209,6 +209,6 @@ or remove a configurable member ([Migrate older settings](./implementing-a-store
 
 - [Toolsets](./toolsets.md): declaring the tools an agent offers.
 - [Tool settings](./tool-settings.md): the record a `Configure{Tool}()` sets.
-- [Running agents](./running-agents.md): running an agent through its host.
+- [Running an agent](./running-agents.md): what a run takes and returns.
 - [Builders](./builders.md#agent): every call an agent's constructor can make.
 - [Generated members](./generated-members.md#per-agent): what the generator writes for each agent.

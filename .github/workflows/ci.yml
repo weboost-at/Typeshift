@@ -10,7 +10,6 @@ on:
       - '!*.md'
       - 'docs/contributing/decisions.md'
       - 'docs/guide/diagnostics.md'
-      - 'docs/**/agents.md'
   pull_request:
     paths: *code
   # The release workflow runs these steps on the tagged commit and publishes the packages they pack

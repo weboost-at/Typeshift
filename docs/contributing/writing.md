@@ -174,7 +174,7 @@ of each kind of fact, and its change checklist names the pages a kind of change 
 | Decision IDs (`D25`) on guide pages | Plain reasons; the IDs belong to the contributing pages |
 | The same explanation on two pages | One canonical page and links |
 | "Updated on …" or "new in …" notes | Git history and the [changelog](https://github.com/weboost-at/Typeshift/blob/main/CHANGELOG.md) |
-| A page named `agents.md` | Any other name: mdsnippets skips every file of that name, whatever its folder |
+| A page named `agents.md`, `claude.md`, `gemini.md` or `copilot-instructions.md` | Any other name: mdsnippets skips every file of these names, whatever its folder and case |
 
 ## Where the code comes from
 
@@ -226,17 +226,28 @@ to find than many thin ones.
 The docs rules check what a machine can:
 
 - every page has a title and a description, and its H1 matches the title;
-- every page ends with `## Related`;
-- every page is in the sidebar, and every sidebar link has a page;
-- every code block has a language, and C# appears only where mdsnippets wrote it;
+- every page ends with `## Related`, and an entry that links a whole page calls it by its title;
+- every page is in the sidebar, and every sidebar and nav link reaches its page and its anchor;
+- every code block has a language, and C# appears only where mdsnippets wrote it, in `README.md` and
+  `src/Typeshift/PACKAGE.md` too;
+- no page has a name mdsnippets skips, and no `snippet:` line is left as the tool should have found it;
 - every callout has a title;
-- every link into the docs reaches its page and its anchor;
+- every link into the docs reaches its page and its anchor: from a page, from the home page's cards, and by the
+  page's address on the site, as `README.md` and `PACKAGE.md` link it. A link to a file on GitHub, or a relative one
+  in those two files, reaches a file of the repository;
+- the guide and the home page hold nothing the [Voice](#voice) section and [What never goes in](#what-never-goes-in)
+  ban by name: an em dash, a trailing "say", "plain C#", the fillers "basically", "simply", "note that", "it's worth
+  noting", "seamless" and "robust", a decision ID, and a note such as "updated on" a date or "new in" a version. The
+  two readmes are checked for "plain C#";
+- Getting started has at most five numbered steps;
 - every repository path and every anchor of a docs page that `AGENTS.md`, the playbooks and the contributing pages
   name in backticks exists;
 - every test that [Status](./status.md) names exists.
 
 The `docs` workflow runs `docs:snippets:check`, `docs:lint` and the build on every pull request, and deploys the site
-from `main`. Everything else on this page is for the reviewer.
+from `main`. Everything else on this page is for the reviewer, because no pattern can tell it: a "just" that softens,
+a rhetorical question, staging, a lead that does not answer, a sentence the reader has to read twice, and a fact
+explained on two pages.
 
 ## Templates
 

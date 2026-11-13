@@ -125,6 +125,6 @@ run option may be configurable: `Configurable(r => r.X)` puts it into the agent'
 - [Toolsets](./toolsets.md): declaring tools, and their names, parameters and results.
 - [Tool settings](./tool-settings.md): settings records and their configurable members.
 - [Agents](./defining-agents.md): declaring an agent and choosing its tools.
-- [Generated members](./generated-members.md): what the generator writes from these chains.
+- [AgentHost and generated members](./generated-members.md): what the generator writes from these chains.
 - [How Typeshift reads your code](./how-typeshift-reads-your-code.md): why the chains follow these rules.
 - [Diagnostics](./diagnostics.md): what the analyzer reports when a chain breaks a rule.

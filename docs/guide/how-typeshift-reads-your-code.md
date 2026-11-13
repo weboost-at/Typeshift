@@ -113,6 +113,6 @@ which takes the place of the exact call the generator saw, so how you write the 
 ## Related
 
 - [Builders](./builders.md): every call the generator reads, and the rules for each chain.
-- [Generated members](./generated-members.md): what the generator writes, and what triggers each member.
+- [AgentHost and generated members](./generated-members.md): what the generator writes, and what triggers each member.
 - [Diagnostics](./diagnostics.md): every mistake the analyzer reports, and how to fix it.
 - [How a run works](./how-a-run-works.md): the steps your agent passes through once your app runs it.

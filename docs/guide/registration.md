@@ -191,7 +191,7 @@ compiling. Delete your own class, and the one the package adds brings `Annotated
 
 - [Getting started](./getting-started.md): the setup, step by step.
 - [Using an agent](./using-an-agent.md): injecting a host or resolving it from a scope.
-- [Running agents](./running-agents.md): running an agent.
+- [Running an agent](./running-agents.md): what a run takes and returns.
 - [Implementing a store](./implementing-a-store.md#register-your-store): the store `WithStore<T>()` registers, and the
   memory without one.
 - [Generated members](./generated-members.md#per-project): the module and the interceptor the generator writes.

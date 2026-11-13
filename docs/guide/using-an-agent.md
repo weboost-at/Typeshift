@@ -140,7 +140,7 @@ with `services.AddSingleton(TimeProvider.System)`.
 ## Related
 
 - [Getting started](./getting-started.md): a first toolset, agent and run.
-- [Running agents](./running-agents.md): settings ids, run settings, typed output, streaming and the raw path.
+- [Running an agent](./running-agents.md): settings ids, run settings, typed output, streaming and the raw path.
 - [Registration](./registration.md#what-addtypeshift-registers): every service `AddTypeshift()` registers and its
   lifetime, and [the runtime](./registration.md#the-runtime).
 - [Agent host](./generated-members.md#the-agent-host): every member of the host and its signature.

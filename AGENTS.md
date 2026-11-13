@@ -37,7 +37,9 @@ Each of these cost a debugging session once.
 - The analyzer sees the generated code too: a check for user members excludes generated trees (`Names.IsGenerated`).
 - `UseToolset<T>().Include(t => t.X)` cannot bind inside the generator's own compilation, since the generator writes
   `t.X`; the parser reads picks from syntax and the analyzer reports every other shape (D4).
-- `dotnet mdsnippets` skips any file named `agents.md`, whatever its folder, so no docs page may have that name.
+- mdsnippets skips any file named `agents.md`, `claude.md`, `gemini.md` or `copilot-instructions.md`, whatever its
+  folder and case, so no docs page may have such a name. `lint.mjs` fails on one, and on a `snippet:` line the tool
+  left as it was.
 - No builder inside a lambda: every declaration is one chain (D17). At runtime the chains declare nothing (D4).
 - Generated code compiles into the consumer and sees only public API; what only it calls is public and hidden from
   editors (D10).
@@ -184,7 +186,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | CI: the steps after the pack in `ci.yml` | The package's build files sit under `buildTransitive/net11.0/` (D61). The consumer sample, which never chose XML docs, builds with mistakes in its XML comments and publishes without an XML file, and with XML docs of its own choice it keeps CS1591 (D68). |
 | `release.yml`, for a tag | The tag sits on `main`, has its section in `CHANGELOG.md` and is the version MinVer packed, or nothing is published. |
 | CI: the Windows and macOS legs | The build and the tests pass where the file system ignores case, and on a Windows checkout with Git's default `core.autocrlf`. |
-| CI: docs workflow | The Markdown matches its snippets, passes markdownlint and the docs rules (`docs/.vitepress/lint.mjs`), and the site has no dead links or anchors. |
+| CI: docs workflow | The Markdown matches its snippets (`npm run docs:snippets:check`) and passes markdownlint and the docs rules (`docs/.vitepress/lint.mjs`): page anatomy, the words `writing.md` bans by name, the names mdsnippets skips, and links and anchors from the pages, the home page, the nav, README.md and PACKAGE.md. The site builds without a dead link. |
 
 ## Layout
 

@@ -54,16 +54,6 @@ public partial class SourceConventionTests
     }
 
     [Fact]
-    public void No_Docs_Page_Is_Named_Agents()
-    {
-        // Act
-        var pages = RepositoryFiles.Find("*.md", "docs").Where(page => Path.GetFileName(page) == "agents.md");
-
-        // Assert
-        pages.Should().BeEmpty("mdsnippets skips every file of that name");
-    }
-
-    [Fact]
     public void The_Code_Holds_No_Todo()
     {
         // Act
