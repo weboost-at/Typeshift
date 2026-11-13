@@ -100,6 +100,18 @@ internal static class SymbolExtensions
                 _ => false
             };
 
+        // A type parameter, by itself, as a type argument, an array's element or of a containing type: a generic
+        // type named without its type arguments, which only code still being typed does
+        public bool ContainsTypeParameter() =>
+            type switch
+            {
+                ITypeParameterSymbol => true,
+                IArrayTypeSymbol array => array.ElementType.ContainsTypeParameter(),
+                INamedTypeSymbol named => named.TypeArguments.Any(argument => argument.ContainsTypeParameter())
+                    || (named.ContainingType?.ContainsTypeParameter() ?? false),
+                _ => false
+            };
+
         // What generated code names of a settings type: the type, its settable members and their types
         public EquatableArray<string> GetSettingsExperimentalIds() =>
             type.GetPublicProperties()
@@ -183,6 +195,10 @@ internal static class SymbolExtensions
         symbol switch
         {
             null => [],
+
+            // No attribute marks a type parameter, and what contains it holds it among its own type arguments, so
+            // reading on would never end. One gets here in AddTool(Finder<>.Find), while the type argument is typed
+            ITypeParameterSymbol => [],
             IArrayTypeSymbol array => ReadExperimentalIds(array.ElementType),
             INamedTypeSymbol named => ReadOwnExperimentalIds(named)
                 .Concat(named.TypeArguments.SelectMany(ReadExperimentalIds))

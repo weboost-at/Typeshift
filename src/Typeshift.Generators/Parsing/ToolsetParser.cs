@@ -171,8 +171,9 @@ internal static class ToolsetParser
             return null;
         }
 
-        // A static abstract or virtual member of an interface is the compiler's CS8926 where AddTool names it
-        if (method.IsAbstract || method.IsVirtual) return null;
+        // A static abstract or virtual member of an interface is the compiler's CS8926 where AddTool names it, and a
+        // member of a generic class without its type argument, AddTool(Finder<>.Find) while it is typed, its CS0305
+        if (method.IsAbstract || method.IsVirtual || method.ContainingType.ContainsTypeParameter()) return null;
 
         if (!ConstructorChains.EndsInStatement(addTool))
         {

@@ -292,6 +292,9 @@ All notable changes to this project are documented here. The format follows
 - A dictionary's enum key that is a negative value without a name is stored in digits with `-`, whatever the
   culture of the machine that saves. Under a culture that writes another minus sign, such as Swedish, the key was
   stored with that sign and its entry was missing when the settings were read.
+- A tool method of a generic class named without its type argument, as `AddTool(Finder<>.Find)` while you type
+  the argument, no longer overflows the stack of the generator and the analyzer, which ended the compiler and the
+  editor's analysis with them. Only the compiler reports the missing argument, as CS0305.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

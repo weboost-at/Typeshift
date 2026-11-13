@@ -128,6 +128,8 @@ public static class HalfTypedSources
         "UseToolset<EchoToolset, EchoToolset>();",
         "UseToolset<int>();",
         "UseToolset<(EchoToolset, int)>();",
+        "UseToolset<System.Collections.Generic.List<>.Enumerator>();",
+        "UseAgent<System.Collections.Generic.List<>.Enumerator>();",
         "UseAgent<>();",
         "UseAgent<Missing>();",
         "UseAgent();",
@@ -309,7 +311,11 @@ public static class HalfTypedSources
         "AddTool(this.Echo);",
         "AddTool(Echo).WithDescription(\"d\"); AddTool(Echo).WithDescription();",
         "WithDisplayName();",
-        "WithDisplayName("
+        "WithDisplayName(",
+        "AddTool(System.Collections.Generic.Comparer<>.Create);",
+        "AddTool(System.Collections.Generic.Comparer<>.Create).WithDescription(\"Compares.\");",
+        "AddTool(Echo2).WithSettings<System.Collections.Generic.List<>>();",
+        "AddTool(Echo2).WithConfigurableSettings<System.Collections.Generic.KeyValuePair<,>>();"
     ];
 
     private static readonly string[] RegistrationBodies =

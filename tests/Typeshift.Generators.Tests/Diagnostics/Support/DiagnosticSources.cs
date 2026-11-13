@@ -2258,6 +2258,25 @@ public static class DiagnosticSources
         }
         """;
 
+    // A generic class named without its type argument, as while the argument is typed: the method's class is
+    // Finder<T>, with the type parameter where an argument belongs
+    public const string ToolOfAGenericClassWithoutItsTypeArgument =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class Finder<T>
+        {
+            public static string Find(string text) => text;
+        }
+
+        internal partial class FindToolset : Toolset
+        {
+            public FindToolset() => AddTool(Finder<>.Find);
+        }
+        """;
+
     // No toolset, no agent and no AddTypeshift(): nothing the generator writes code for
     public const string NothingOfTypeshift =
         """

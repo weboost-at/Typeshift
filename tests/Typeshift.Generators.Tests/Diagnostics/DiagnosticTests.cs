@@ -1408,6 +1408,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Tool_Of_A_Generic_Class_Without_Its_Type_Argument_Only_The_Compiler_Reports_It()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToolOfAGenericClassWithoutItsTypeArgument);
+
+        // Assert
+        run.Assert.ReportsNothingOfTheAnalyzers();
+    }
+
+    [Fact]
     public void Given_A_Static_Virtual_Member_Of_An_Interface_As_Tool_Only_The_Compiler_Reports_It()
     {
         // Act
