@@ -11,7 +11,8 @@ public static class RepositoryFiles
         .Single(attribute => attribute.Key == "RepositoryDirectory")
         .Value!;
 
-    public static string Read(string path) => File.ReadAllText(Path.Combine(Root, path));
+    // With LF line endings, whatever the checkout holds
+    public static string Read(string path) => File.ReadAllText(Path.Combine(Root, path)).ReplaceLineEndings("\n");
 
     // Every file under the folders, outside bin/ and obj/, as a path from the repository root
     public static IReadOnlyList<string> Find(string pattern, params string[] folders) =>

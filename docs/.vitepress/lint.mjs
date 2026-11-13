@@ -60,9 +60,12 @@ const headingText = raw =>
     .replace(/[`*]/g, '')
     .trim()
 
+// A checkout may hold CRLF line endings, the rules read LF
+const textOf = file => readFileSync(file, 'utf8').replace(/\r\n/g, '\n')
+
 // Splits a page into its frontmatter and lines, marking which lines are inside a fence
 const read = file => {
-  const source = readFileSync(file, 'utf8')
+  const source = textOf(file)
   const match = source.match(/^---\n([\s\S]*?)\n---\n/)
   let frontmatter = null
   try {
@@ -90,7 +93,7 @@ const read = file => {
   return { frontmatter, lines, fenced, opens, offset }
 }
 
-const source = file => readFileSync(file, 'utf8').split('\n---\n')[0]
+const source = file => textOf(file).split('\n---\n')[0]
 
 const pages = walk(docs)
 const parsed = new Map(pages.map(file => [file, read(file)]))

@@ -24,6 +24,9 @@ for you to review, and rerunning with `ACCEPT_SNAPSHOTS=1` accepts it. The publi
 `PublicApi.verified.txt`, so a change to it shows as a diff in your pull request. Open work goes into
 [Status](./status.md), never into a TODO in code, and a change people can see changes the docs in the same commit.
 
+Every text file checks out with LF line endings on every platform, Windows included: `.gitattributes` overrides
+Git's `core.autocrlf`, because tests and the docs rules read the files.
+
 ## Working with coding agents
 
 `AGENTS.md` is written for coding agents as much as for people. It maps each task to the docs to read and the
