@@ -230,8 +230,15 @@ internal sealed class ConversationRun(
         Telemetry.Asked(run.Activity, batch);
     }
 
-    // The batch the run asked is expired or answered: it waits for nobody any more
-    public void Settle() => Asked = null;
+    // T5: steering input passed the batch the run asked by, which waits for nobody any more. The batch as it stands:
+    // expired, or what answers that came first made of it
+    public async Task<DecisionBatch?> ExpireAsync()
+    {
+        var batch = await ledger.ExpireAsync(Conversation!, CancellationToken.None);
+        Asked = null;
+
+        return batch;
+    }
 
     // T3 happened: each call of the batch has its verdict from the record, and the calls go to the tool loop once, as
     // the response they came in. The conversation holds them already, so they are stored a single time
@@ -306,8 +313,8 @@ internal sealed class ConversationRun(
         return call;
     }
 
-    // D46: the end of a run is an entry of its own, with what went wrong and the mode it ended in (D52); background
-    // sub-agents still working stop, and input no model received is stored ahead of it
+    // D46: the end of a run is an entry of its own, with what went wrong; background sub-agents still working stop,
+    // and input no model received is stored ahead of it
     public async Task EndAsync(string? error)
     {
         _stopping.Cancel();
@@ -374,7 +381,10 @@ internal sealed class ConversationRun(
             Usage = usage,
             EstimatedInputTokens = estimated,
             EndsRun = endsRun,
-            Mode = endsRun || summary ? run.Mode : null,
+
+            // D52: the conversation's mode is in its decisions document. A summary carries on only the mode an
+            // earlier version stored on the entries it replaces, until the document names one
+            Mode = summary ? ledger.LegacyMode : null,
             IsSummary = summary,
             BackgroundCalls = summary ? new Dictionary<string, string>(_background) : null
         };

@@ -48,8 +48,8 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
     public bool EndsRun { get; init; }
 
     /// <summary>
-    /// The mode the run ended in, on its last entry, or was in, on a summary; a later run without a mode of its own
-    /// continues in it.
+    /// The mode of the conversation as an earlier version stored it, on a run's last entry and on a summary. A
+    /// conversation's mode is now kept with its decisions, and this one holds only until they name one.
     /// </summary>
     public AgentMode? Mode { get; init; }
 

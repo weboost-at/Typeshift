@@ -42,9 +42,9 @@ public sealed class AgentRun
     public IServiceProvider Services { get; }
 
     /// <summary>
-    /// The mode the run is in; an approved plan switches it.
+    /// The mode the run is in, from its first model call to its last.
     /// </summary>
-    public AgentMode Mode { get; internal set; }
+    public AgentMode Mode { get; }
 
     /// <summary>
     /// The response, once the run has one; run middleware that sets it without calling <c>next</c> answers in place

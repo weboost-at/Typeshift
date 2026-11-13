@@ -180,7 +180,8 @@ while ((next is not null || answers.Count > 0) && !session.IsCancellationRequest
 
 Demo.Heading("Stored");
 var stored = await store.LoadConversationAsync(conversationId, CancellationToken.None);
-Demo.Note($"{stored.Count} entries, {stored.Sum(entry => entry.Usage?.TotalTokenCount ?? 0)} tokens, ended in {stored[^1].Mode} mode");
+var mode = (await chat.GetDecisionsAsync(CancellationToken.None)).Mode?.ToString() ?? "the agent's own";
+Demo.Note($"{stored.Count} entries, {stored.Sum(entry => entry.Usage?.TotalTokenCount ?? 0)} tokens, in {mode} mode");
 Demo.Note($"resume or continue with: --resume {conversationId}");
 
 return 0;

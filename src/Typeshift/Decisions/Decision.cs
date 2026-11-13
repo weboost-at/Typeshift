@@ -338,7 +338,12 @@ public sealed record StandingApproval(string Tool, string? Server, DateTimeOffse
 /// Whether every decision is answered and the answers are not carried out yet, so <c>ResumeAsync</c> continues the run.
 /// </param>
 /// <param name="Standing">The tools approved for the conversation.</param>
+/// <param name="Mode">
+/// The mode the conversation is in, once a run's settings, an approved plan or <c>SetModeAsync</c> named one; null
+/// while each run is in its agent's own mode.
+/// </param>
 public sealed record ConversationDecisions(
     IReadOnlyList<Decision> Open,
     bool CanResume,
-    IReadOnlyList<StandingApproval> Standing);
+    IReadOnlyList<StandingApproval> Standing,
+    AgentMode? Mode);

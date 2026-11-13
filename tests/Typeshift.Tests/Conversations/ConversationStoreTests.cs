@@ -378,6 +378,44 @@ public class ConversationStoreTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Store_Of_Conversations_Alone_A_Run_Naming_A_Mode_Fails_Naming_IDecisionStore()
+    {
+        // Arrange
+        await using var provider = Provider(new StoredJsonStore(), new WarningLog());
+        await using var scope = provider.CreateAsyncScope();
+
+        // Act
+        var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<GuardedAgent>>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*IDecisionStore*");
+    }
+
+    [Fact]
+    public async Task Given_A_Run_Whose_Mode_No_Store_Keeps_The_Conversation_Is_Free_For_The_Next_Run()
+    {
+        // Arrange
+        await using var provider = Provider(new StoredJsonStore(), new WarningLog());
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<GuardedAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var refused = await Record.ExceptionAsync(() =>
+            host.RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, ct: Ct));
+
+        var response = await host.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        refused.Should().BeOfType<InvalidOperationException>();
+        response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
     public async Task Given_A_Store_Of_Settings_Alone_A_Run_With_A_Conversation_Fails_Naming_IConversationStore()
     {
         // Arrange

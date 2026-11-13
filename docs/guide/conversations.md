@@ -77,13 +77,14 @@ against your own record of the conversation, as you would for any other id from 
 ## What is stored
 
 A conversation is a list of entries, appended as they happen: each run's input, every model response with its model and
-token usage, the tool results of each round of calls, and an entry that ends the run and records its mode. Your store
-receives each entry through `AppendConversationAsync`
+token usage, the tool results of each round of calls, and an entry that ends the run. Your store receives each entry
+through `AppendConversationAsync`
 ([Implementing a store](./implementing-a-store.md#append-to-a-conversation)).
 
 What a run asks your app is not among the entries. A conversation has a second, small record beside them, its
-decisions: the decisions that wait, with the calls they stand for, the answers your app gave, and the tools
-[approved for the conversation](./tool-approval.md#approving-for-the-conversation). Your store keeps it through
+decisions: the decisions that wait, with the calls they stand for, the answers your app gave, the tools
+[approved for the conversation](./tool-approval.md#approving-for-the-conversation), and the conversation's
+[mode](./tool-approval.md#setting-the-mode) once something named one. Your store keeps it through
 `IDecisionStore<TId>` ([Keep decisions](./implementing-a-store.md#keep-decisions)). The entries hold the model's call
 and, once it ran or was rejected, its result, and never a request for approval or its answer.
 
@@ -336,7 +337,8 @@ middleware put in place of another is summarized like the message it stands for.
 
 The stored conversation keeps everything. Compaction appends an entry of its own, with `IsSummary` set to true, that
 holds the summary and the messages it kept after it. Later runs start from that entry instead of summarizing again, and
-read nothing before it: the entry also keeps the conversation's mode and the background agents still working. The
+read nothing before it: the entry also keeps the background agents still working. The conversation's
+[mode](./tool-approval.md#setting-the-mode) and the
 [approvals for the conversation](./tool-approval.md#approving-for-the-conversation) are stored with its decisions,
 which no summary touches.
 

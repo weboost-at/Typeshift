@@ -490,6 +490,123 @@ public class DecisionLedgerTests : LedgerTestBase
     }
 
     [Fact]
+    public async Task Given_A_Mode_Setting_It_Stores_It_With_The_Decisions()
+    {
+        // Act
+        await Ledger.SetModeAsync(Conversation, AgentMode.Auto, Ct);
+
+        // Assert
+        (await DocumentAsync()).Mode.Should().Be(AgentMode.Auto);
+    }
+
+    [Fact]
+    public async Task Given_The_Mode_The_Document_Names_Setting_It_Again_Saves_Nothing()
+    {
+        // Arrange
+        await Ledger.SetModeAsync(Conversation, AgentMode.Plan, Ct);
+        var saves = Store.Saves;
+
+        // Act
+        await Ledger.SetModeAsync(Conversation, AgentMode.Plan, Ct);
+
+        // Assert
+        Store.Saves.Should().Be(saves);
+    }
+
+    [Fact]
+    public async Task Given_A_Mode_Set_While_Decisions_Wait_They_Stay_Open()
+    {
+        // Arrange
+        await Ledger.OpenAsync(Conversation, Batch(Approval(Data.Tool.CallId)), Ct);
+
+        // Act
+        var document = await Ledger.SetModeAsync(Conversation, AgentMode.Auto, Ct);
+
+        // Assert
+        document.Open.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Given_A_Plan_Approved_Into_Auto_Mode_Starting_Its_Batch_Switches_The_Mode_In_The_Same_Save()
+    {
+        // Arrange
+        var batch = Batch(Plan(Data.Tool.CallId));
+        await Ledger.SetModeAsync(Conversation, AgentMode.Plan, Ct);
+        await Ledger.OpenAsync(Conversation, batch, Ct);
+
+        var answered = await Ledger.RecordAsync(
+            Conversation,
+            [DecisionAnswer.ApprovePlan(batch.Ids.Single(), AgentMode.Auto)],
+            Ct);
+
+        var saves = Store.Saves;
+
+        // Act
+        var started = await Ledger.StartAsync(Conversation, answered.Batch!, Ct);
+
+        // Assert
+        started.Mode.Should().Be(AgentMode.Auto);
+        (Store.Saves - saves).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Given_A_Rejected_Plan_Starting_Its_Batch_Leaves_The_Mode()
+    {
+        // Arrange
+        var batch = Batch(Plan(Data.Tool.CallId));
+        await Ledger.SetModeAsync(Conversation, AgentMode.Plan, Ct);
+        await Ledger.OpenAsync(Conversation, batch, Ct);
+        var answered = await Ledger.RecordAsync(Conversation, [DecisionAnswer.Reject(batch.Ids.Single())], Ct);
+
+        // Act
+        var started = await Ledger.StartAsync(Conversation, answered.Batch!, Ct);
+
+        // Assert
+        started.Mode.Should().Be(AgentMode.Plan);
+    }
+
+    [Fact]
+    public async Task Given_A_Mode_An_Earlier_Version_Stored_On_The_Entries_The_Ledgers_First_Save_Copies_It()
+    {
+        // Arrange
+        var ledger = LedgerAfter(AgentMode.Plan);
+
+        // Act
+        await ledger.OpenAsync(Conversation, Batch(Approval(Data.Tool.CallId)), Ct);
+
+        // Assert
+        (await DocumentAsync()).Mode.Should().Be(AgentMode.Plan);
+        ledger.LegacyMode.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Given_A_Mode_An_Earlier_Version_Stored_On_The_Entries_A_Document_That_Names_One_Keeps_Its_Own()
+    {
+        // Arrange
+        await Ledger.SetModeAsync(Conversation, AgentMode.Auto, Ct);
+
+        // Act
+        await LedgerAfter(AgentMode.Plan).OpenAsync(Conversation, Batch(Approval(Data.Tool.CallId)), Ct);
+
+        // Assert
+        (await DocumentAsync()).Mode.Should().Be(AgentMode.Auto);
+    }
+
+    [Fact]
+    public async Task Given_A_Mode_An_Earlier_Version_Stored_On_The_Entries_A_Change_That_Saves_Nothing_Keeps_It()
+    {
+        // Arrange
+        var ledger = LedgerAfter(AgentMode.Plan);
+
+        // Act
+        await ledger.ExpireAsync(Conversation, Ct);
+
+        // Assert
+        ledger.LegacyMode.Should().Be(AgentMode.Plan);
+        Store.Saves.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Given_A_Save_That_Lost_To_Another_Answer_Recording_Decides_Again_On_What_The_Winner_Stored()
     {
         // Arrange

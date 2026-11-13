@@ -28,10 +28,14 @@ internal static class Modes
         await chat.AnswerAsync([proposal.Approve(AgentMode.Auto)]);
         // end-snippet
 
-        var store = provider.GetRequiredService<ITypeshiftStore<int>>();
-        var entries = await store.LoadConversationAsync(conversationId, default);
+        if ((await chat.GetDecisionsAsync()).Mode != AgentMode.Auto)
+            throw new InvalidOperationException("Expected the conversation to continue in auto mode.");
 
-        if (entries[^1].Mode != AgentMode.Auto)
-            throw new InvalidOperationException("Expected the run to end in auto mode.");
+        // begin-snippet: set-mode
+        await chat.SetModeAsync(AgentMode.Default);
+        // end-snippet
+
+        if ((await chat.GetDecisionsAsync()).Mode != AgentMode.Default)
+            throw new InvalidOperationException("Expected the conversation to be back in the default mode.");
     }
 }

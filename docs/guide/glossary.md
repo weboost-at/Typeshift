@@ -29,7 +29,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | **Kind** | The stable name a store keeps a document under. An agent's settings kind is its class name, or the name `WithStorageKind("...")` sets. |
 | **Layer** | One source of settings: the code defaults, the agent's code, the stored settings or the run. A higher layer overrides a lower one, and a conversation's mode sits between the stored settings and the run. |
 | **Middleware** | An `IRunMiddleware` around every run, or an `IToolMiddleware` around every tool call. |
-| **Mode** | `Default`, `Plan` or `Auto`, which decides what a run offers the model and what happens to tools that require approval. See [The three modes](./tool-approval.md#the-three-modes). |
+| **Mode** | `Default`, `Plan` or `Auto`, which decides what a run offers the model and what happens to tools that require approval. A conversation keeps the mode a run's settings, an approved plan or `SetModeAsync` named. See [The three modes](./tool-approval.md#the-three-modes). |
 | **Module** | The registration the generator writes for each assembly with toolsets, agents or documented types: its toolsets, agents, JSON contexts and XML docs. `AddTypeshift()` registers the modules of the project and its references. |
 | **Overrides** | The generated `{Tool}Overrides` record, a tool's configurable settings with each one nullable. Null keeps the layer below. |
 | **Provider id type** | The type of an agent's providers: that of the provider its `WithModel(provider, model)` names, such as `string` or an enum, and `string` without `WithModel`. One app may use several. See [Models and providers](./models.md#the-provider-id-type). |

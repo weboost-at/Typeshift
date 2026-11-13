@@ -187,10 +187,11 @@ ends. In a run that carries out an answered batch, the gate answers the first mo
 place of the model. `ToolGate`, the loop's function invoker, returns a rejected call's text and runs every other
 call through the tool middleware, and a `GatedFunction` runs only a call the gate cleared (D81).
 
-`AgentHost` has the members that need no run, `GetDecisionsAsync` and `RecordAnswersAsync`, both through the ledger.
-`AgentRun` carries the mode, and the run's ending entry stores it, so the conversation's next run resumes in it; a
-summary stores the mode too, since a later run reads nothing before it (D52, D32). Standing approvals are in the
-decisions document, which a summary leaves alone.
+`AgentHost` has the members that need no run, `GetDecisionsAsync`, `RecordAnswersAsync` and `SetModeAsync`, all
+through the ledger. The conversation's mode is in the decisions document, with the standing approvals, so a summary
+leaves both alone. A run whose settings name a mode saves it when it takes the conversation, before it learns which
+agent answers, and the save that starts an answered batch switches to the mode of an approved plan. When the run
+begins, `AgentRun` takes the document's mode, or the agent's own while the document names none (D52).
 
 ## Middleware and context
 

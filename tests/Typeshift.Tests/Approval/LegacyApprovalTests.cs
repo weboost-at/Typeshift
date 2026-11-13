@@ -118,6 +118,97 @@ public class LegacyApprovalTests : ApprovalTestBase
         ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal("read_ticket", "exit_plan_mode");
     }
 
+    [Fact]
+    public async Task Given_A_Run_An_Earlier_Version_Ended_In_Auto_Mode_The_Next_Runs_Call_Does_Not_Ask()
+    {
+        // Arrange
+        await SeedAsync(Ended(Data.Tool.Question, AgentMode.Auto));
+
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await RunAsync(Data.Agent.FollowUp);
+
+        // Assert
+        response.Decisions.Should().BeEmpty();
+        ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
+    }
+
+    [Fact]
+    public async Task Given_A_Mode_An_Earlier_Version_Stored_A_Run_That_Asks_Copies_It_To_The_Decisions()
+    {
+        // Arrange
+        await SeedAsync(Ended(Data.Tool.Question, AgentMode.Plan));
+        ChatClient.Reply(Call(Data.Tool.CallId, "exit_plan_mode", ("plan", Data.Tool.Answer)));
+
+        // Act
+        await RunAsync(Data.Agent.FollowUp);
+        var decisions = await DecisionsAsync();
+
+        // Assert
+        decisions.Mode.Should().Be(AgentMode.Plan);
+    }
+
+    [Fact]
+    public async Task Given_A_Mode_An_Earlier_Version_Stored_A_Run_That_Asks_Nothing_Stores_No_Decisions()
+    {
+        // Arrange
+        await SeedAsync(Ended(Data.Tool.Question, AgentMode.Plan));
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Agent.FollowUp);
+
+        // Assert
+        (await StoredDecisionsAsync()).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Given_A_Mode_An_Earlier_Version_Stored_A_New_Summary_Keeps_It_For_The_Runs_After()
+    {
+        // Arrange
+        await SeedAsync(Ended(new string('x', Page), AgentMode.Plan));
+
+        ChatClient
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer));
+
+        await Chat.RunAsync(Data.Agent.FollowUp, settings: new() { MaxInputTokens = 1_000 }, ct: Ct);
+
+        // Act
+        await RunAsync(Data.Agent.Steering);
+
+        // Assert
+        (await EntriesAsync(Data.Agent.ConversationId)).Should().Contain(entry => entry.IsSummary);
+        ChatClient.Options[^1]!.Tools!.Select(tool => tool.Name).Should().Equal("read_ticket", "exit_plan_mode");
+    }
+
+    [Fact]
+    public async Task Given_A_Mode_An_Earlier_Version_Stored_Setting_The_Mode_Replaces_It()
+    {
+        // Arrange
+        await SeedAsync(Ended(Data.Tool.Question, AgentMode.Plan));
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Chat.SetModeAsync(AgentMode.Default, Ct);
+        await RunAsync(Data.Agent.FollowUp);
+
+        // Assert
+        ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal("close_ticket", "read_ticket", "note");
+    }
+
+    // A run that answered and ended in a mode, which its last entry names
+    private string[] Ended(string input, AgentMode mode) =>
+    [
+        LegacyEntries.Input(input),
+        LegacyEntries.Answer(Data.Tool.Answer),
+        LegacyEntries.End(mode)
+    ];
+
     // A run that asked for approval and ended, in the default mode
     private string[] LeftOpen() =>
     [

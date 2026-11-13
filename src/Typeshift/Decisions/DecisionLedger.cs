@@ -3,13 +3,21 @@ namespace Typeshift;
 // D80: the only code that loads and saves a conversation's decisions document. Every change is a compare-and-set on
 // the version it loaded: after a lost save it loads again and checks its precondition again, so of two writers one
 // wins and the other sees what the winner wrote
-internal sealed class DecisionLedger(StoreAccess stores, TimeProvider time)
+internal sealed class DecisionLedger(StoreAccess stores, TimeProvider time, AgentMode? legacyMode = null)
 {
     // A store that conflicts every time would keep a change going forever
     private const int MaxAttempts = 10;
 
+    // D52: the mode an earlier version stored on the conversation's entries. It holds while the document names none,
+    // and joins the document with the first save of the run that found it
+    public AgentMode? LegacyMode { get; private set; } = legacyMode;
+
     public async Task<DecisionDocument> LoadAsync(StoreId conversation, CancellationToken ct) =>
         (await ReadAsync(conversation, ct)).Document;
+
+    // D52: a run's settings or your app name the conversation's mode, which every agent that answers it then runs in
+    public Task<DecisionDocument> SetModeAsync(StoreId conversation, AgentMode mode, CancellationToken ct) =>
+        ChangeAsync(conversation, document => document.Mode == mode ? document : document with { Mode = mode }, ct);
 
     // T1: a run asks. A conversation waits for one batch at a time, which every run settles before its first model
     // call, so a batch found here was opened by a run of another process
@@ -40,13 +48,15 @@ internal sealed class DecisionLedger(StoreAccess stores, TimeProvider time)
     }
 
     // T3, the commit point: from here on every call the batch would run counts as started, so no later run starts
-    // one again. Of two runs that continue one answered batch, one wins and the other learns its answers are closed
+    // one again. Of two runs that continue one answered batch, one wins and the other learns its answers are closed.
+    // The same save switches the conversation to the mode of an approved plan (D52)
     public Task<DecisionDocument> StartAsync(StoreId conversation, DecisionBatch batch, CancellationToken ct) =>
         ChangeAsync(
             conversation,
             document => document.Batch is { State: BatchState.Answered } answered && answered.IsSame(batch)
                 ? document with
                 {
+                    Mode = ApprovedMode(answered) ?? document.Mode,
                     Batch = answered with { State = BatchState.Started },
                     Standing = WithGranted(document.Standing, answered)
                 }
@@ -136,6 +146,12 @@ internal sealed class DecisionLedger(StoreAccess stores, TimeProvider time)
     private static DecisionClosedReason ClosedAs(BatchState state) =>
         state is BatchState.Expired ? DecisionClosedReason.Expired : DecisionClosedReason.Answered;
 
+    // The mode a plan was approved into; an answer stored without one continues in the default mode
+    private static AgentMode? ApprovedMode(DecisionBatch batch) =>
+        batch.Asks.FirstOrDefault(ask => ask is { Kind: AskKind.Plan, Answer.Approved: true }) is { } plan
+            ? plan.Answer!.Mode ?? AgentMode.Default
+            : null;
+
     // The tools the batch's answers approved for the conversation join those it has, each once
     private List<StandingApproval> WithGranted(IReadOnlyList<StandingApproval> standing, DecisionBatch batch)
     {
@@ -159,10 +175,13 @@ internal sealed class DecisionLedger(StoreAccess stores, TimeProvider time)
             var changed = change(document);
 
             if (ReferenceEquals(changed, document)) return document;
+            if (changed.Mode is null && LegacyMode is { } legacy) changed = changed with { Mode = legacy };
 
             try
             {
                 await stores.SaveDecisionsAsync(conversation, changed.Serialize(), version, ct);
+                LegacyMode = null;
+
                 return changed;
             }
             catch (StoreConflictException) when (attempt < MaxAttempts)

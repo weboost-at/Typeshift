@@ -51,7 +51,8 @@ registered:
   an id of a type none of your stores keeps, such as a settings id of `long` beside an `ISettingsStore<int>`.
 - Decisions are the one exception to that rule, so that a conversation that never has one costs nothing. Without an
   `IDecisionStore<TId>` of the conversation id's type, loading a conversation's decisions finds none and calls no
-  store. The first decision Typeshift has to keep throws the exception above, naming `IDecisionStore<TId>`. Typeshift
+  store. The first thing Typeshift has to keep there, a decision, an approval for the conversation or the
+  conversation's mode, throws the exception above, naming `IDecisionStore<TId>`. Typeshift
   never keeps decisions in memory beside a store you registered, because they would vanish with the process while
   the conversation they belong to stays ([Keep decisions](#keep-decisions)). The analyzer warns about a chain that
   registers a store of conversations and none of their decisions, when an agent of your project can ask
@@ -364,7 +365,8 @@ entry, and the next run of the conversation logs how many contents it went witho
 When clearing old tool results does not shrink the history enough, [compaction](./conversations.md#compaction)
 summarizes a run's oldest turns. It appends one entry of its own that holds the summary and the messages it kept after
 the summary, with `IsSummary` set to true. Every later run starts from the latest such entry, because it carries what
-the runs need from before it, including the conversation's mode and its standing approvals.
+the runs need from before it. The conversation's mode and its standing approvals are not among the entries: they
+are [kept with its decisions](#keep-decisions).
 
 `LoadConversationSinceCompactionAsync` returns that entry and everything after it, oldest first, or every entry when
 the conversation has no summary. Every run calls it first, and an agent that compacts makes conversations long, so start
@@ -433,14 +435,15 @@ instead of loading every conversation whole.
 ## Keep decisions
 
 A decision is something a run asks your app before it goes on, such as whether a tool call may run. Typeshift keeps
-what a conversation waits for, and the tools your app approved for it, in one JSON document per conversation. Your
+what a conversation waits for, the tools your app approved for it and its mode in one JSON document per
+conversation. Your
 store keeps that document as it keeps a settings document: as text, with a
 [version](#save-with-a-version), under the conversation's id alone.
 
 Unlike a conversation's entries, the document is small and changes in place. It holds the calls of one model response
-at most, the standing approvals and a handful of ids, whatever the conversation's length. Typeshift reads it when a
-run starts and when your app asks what waits, and saves it when a run asks, when your app answers and when the run
-carries the answers out.
+at most, the standing approvals, the mode and a handful of ids, whatever the conversation's length. Typeshift reads
+it when a run starts and when your app asks what waits. It saves it when a run asks, when your app answers, when the
+run carries the answers out, and when a run's settings or your app name the conversation's mode.
 
 `SaveDecisionsAsync` follows the rules of [Save with a version](#save-with-a-version), and they matter more here.
 Two requests may answer the same question at once, and two instances of your app may continue the same conversation

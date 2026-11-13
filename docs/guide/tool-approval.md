@@ -291,9 +291,9 @@ that require approval:
 ## Setting the mode
 
 The mode is a [run option](./defining-agents.md#run-options). `WithMode(mode)` in the agent's `WithRunOptions()` sets
-the mode runs start in, `Default` unless set. Add `Configurable(r => r.Mode)` to the same chain, and the agent's
-generated `Settings` gets a `Mode`, so stored settings or a run can change it. `TriageAgent` makes `Mode` configurable,
-so this run can pass `Mode = AgentMode.Plan` and start in plan mode:
+the mode the agent's runs are in, `Default` unless set. Add `Configurable(r => r.Mode)` to the same chain, and the
+agent's generated `Settings` gets a `Mode`, so stored settings or a run can change it. `TriageAgent` makes `Mode`
+configurable, so this run can pass `Mode = AgentMode.Plan` and start in plan mode:
 
 <!-- snippet: switch-mode -->
 <a id='snippet-switch-mode'></a>
@@ -306,22 +306,40 @@ var planned = await chat.RunAsync("Sort out ticket 1234.", settings: plan);
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Modes.cs#L14-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-switch-mode' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-A conversation keeps its mode. The agent's code and its stored settings decide only the mode of a conversation's first
-run. After that, each run continues in the mode the conversation's last run ended in, unless the settings you pass to
-the run name a mode, which switches the conversation to it.
+A conversation keeps its mode once something names one. Three things do: the settings you pass to a run, an
+[approved plan](#plan-mode), and `SetModeAsync`. From then on every run of the conversation is in that mode, whichever
+agent answers it and whatever mode that agent's code or stored settings set, until one of the three names another.
+A conversation whose mode nothing named has each run in the mode of the agent that answers it.
 
-::: warning A conversation stays in the mode it ended in
-After your app approves a plan with `Approve(AgentMode.Auto)`, later runs of the conversation run in auto mode,
-whatever mode the agent's code starts runs in. To switch back, pass a mode in a run's settings, which needs
-`Configurable(r => r.Mode)`.
+`SetModeAsync(mode)` switches a conversation without a run, and the agent needs no configurable `Mode` for it:
+
+<!-- snippet: set-mode -->
+<a id='snippet-set-mode'></a>
+```cs
+await chat.SetModeAsync(AgentMode.Default);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Modes.cs#L34-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-set-mode' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+The switch holds from the conversation's next run on. A run that is going on stays in the mode it began in.
+
+The mode is stored with the conversation's decisions, so it holds across runs, processes and
+[compaction](./conversations.md#compaction), and a conversation whose mode is named needs a store that
+[keeps decisions](./implementing-a-store.md#keep-decisions). `GetDecisionsAsync()` returns it as `Mode`, which is
+null while nothing named one.
+
+::: warning A conversation stays in the mode it was switched to
+After your app approves a plan with `Approve(AgentMode.Auto)`, every later run of the conversation is in auto mode,
+whatever mode the agent's code sets. Switch it back with `SetModeAsync(AgentMode.Default)` once the plan is carried
+out.
 :::
 
 ::: danger A configurable mode lets settings turn approval off
 With `Configurable(r => r.Mode)`, the mode is a member of the agent's `Settings`. Settings that a customer stores or
 a page posts can then name `Auto`, in which tools that require approval run unasked. The analyzer warns about an
 agent that makes its mode configurable and offers such tools ([TSH037](./diagnostics.md#tsh037)). Pass a mode only
-in settings your own code builds, as the run above does, and reject in an [approval rule](#approval-rules) what must
-never run unasked.
+in settings your own code builds, as the run above does, or switch the conversation with `SetModeAsync`, which
+needs no pick, and reject in an [approval rule](#approval-rules) what must never run unasked.
 :::
 
 ## Plan mode

@@ -77,10 +77,10 @@ append to whatever instructions the layers resolved.
 
 ### The mode of a conversation
 
-A run with a conversation id continues in the mode (`Default`, `Plan` or `Auto`) that the conversation's last run
-ended in. That mode overrides the agent's code and the stored settings, but not the run's own settings. A run whose
-own settings name a mode switches the conversation to it, and so does an approved plan
-([The three modes](./tool-approval.md#the-three-modes)).
+A conversation whose mode was named is in that mode (`Default`, `Plan` or `Auto`) for every later run. It overrides
+the agent's code and the stored settings, but not the run's own settings. A run whose own settings name a mode
+switches the conversation to it, and so do an approved plan and `SetModeAsync`
+([Setting the mode](./tool-approval.md#setting-the-mode)).
 
 ### Sub-agents and handoffs
 

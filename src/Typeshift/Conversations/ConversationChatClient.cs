@@ -409,10 +409,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     // input. Null when answers came first: the batch then waits for the run that carries them out
     private async Task<ChatMessage?> ExpireAsync(ConversationRun run, DecisionBatch asked)
     {
-        var batch = await Ledger.ExpireAsync(run.Conversation!, CancellationToken.None);
-        run.Settle();
-
-        if (batch is not { State: BatchState.Expired } expired || !expired.IsSame(asked)) return null;
+        if (await run.ExpireAsync() is not { State: BatchState.Expired } expired || !expired.IsSame(asked)) return null;
 
         var results = DecisionResults.Message(expired.Calls.Select(call => (call.CallId, DecisionResults.Expired)));
 
@@ -480,6 +477,11 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                     conversation,
                     unread);
             }
+
+            // D52: a run whose settings name a mode switches the conversation to it before anyone answers, so the
+            // agent the run is passed on or handed to runs in it too (D34)
+            if (options is ResolvedChatOptions { RunSetsMode: true } named)
+                await Ledger.SetModeAsync(conversation, named.RunOptions.Mode, ct);
 
             return (conversation, entries, claim, AnsweringAgent(entries));
         }
@@ -605,10 +607,12 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             runOptions.RunOptions = agent.RunOptions;
         }
 
-        var mode = runOptions.RunOptions.Mode;
-
         var hasInput = input.Count > 0;
         var document = conversation is null ? DecisionDocument.Empty : await Ledger.LoadAsync(conversation, ct);
+
+        // D52: until the document names a mode, the one an earlier version stored on the conversation's entries holds
+        var legacy = document.Mode is null ? entries.LastOrDefault(entry => entry.Mode is not null)?.Mode : null;
+        var ledger = new DecisionLedger(Store, Time, legacy);
 
         // D50: a run without input continues the conversation's interrupted run, or carries out what your app answered
         if (conversation is not null
@@ -621,27 +625,24 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                 + "out: run it with input instead.");
         }
 
-        // D52: a conversation keeps its mode, unless the run's settings name one
-        if (!runOptions.RunSetsMode && entries.LastOrDefault(entry => entry.Mode is not null)?.Mode is { } kept)
-            mode = kept;
-
         // D80: the batch the run finds is settled before its first model call, so no model call and no compaction
-        // ever sees calls that wait. New input passes an open batch by (T5), and an answered one starts (T3)
+        // ever sees calls that wait. New input passes an open batch by (T5), and an answered one starts (T3), which
+        // switches the conversation to the mode of an approved plan (D52)
         var batch = document.Batch;
         var started = false;
 
-        if (batch is { State: BatchState.Open } && hasInput) batch = await Ledger.ExpireAsync(conversation!, ct);
+        if (batch is { State: BatchState.Open } && hasInput) batch = await ledger.ExpireAsync(conversation!, ct);
 
         if (batch is { State: BatchState.Answered })
         {
-            document = await Ledger.StartAsync(conversation!, batch, ct);
+            document = await ledger.StartAsync(conversation!, batch, ct);
             batch = document.Batch!;
             started = true;
-
-            // D52: an approved plan switches the mode in the run that carries it out
-            if (batch.Asks.FirstOrDefault(ask => ask is { Kind: AskKind.Plan, Answer.Approved: true }) is { } plan)
-                mode = plan.Answer!.Mode ?? AgentMode.Default;
         }
+
+        // D52: a conversation runs in the mode its document names, which the run's own settings, an approved plan or
+        // your app set. While it names none, each run is in its agent's own mode
+        var mode = document.Mode ?? legacy ?? runOptions.RunOptions.Mode;
 
         // What the calls of a batch that will not run read: of an expired one that it did not run, and of one another
         // run started and left that nobody knows (T7). The calls that have their result already keep it
@@ -675,7 +676,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             LastCall = LastCall(entries)
         };
 
-        var run = new ConversationRun(conversation, agentRun, runOptions.ModelId ?? "", Store, Ledger, Time, Logger);
+        var run = new ConversationRun(conversation, agentRun, runOptions.ModelId ?? "", Store, ledger, Time, Logger);
 
         runOptions.ConversationId = null;
         runOptions.AgentRun = agentRun;

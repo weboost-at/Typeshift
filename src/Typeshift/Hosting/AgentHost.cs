@@ -108,8 +108,8 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
 
     /// <summary>
     /// Loads what the host's conversation, from <c>WithConversationId</c>, waits for: the decisions your app has not
-    /// answered yet, whether the answered ones are ready to be carried out, and the tools approved for the
-    /// conversation. It reads the conversation's decisions and none of its history, and starts no run.
+    /// answered yet, whether the answered ones are ready to be carried out, the tools approved for the conversation
+    /// and its mode. It reads the conversation's decisions and none of its history, and starts no run.
     /// </summary>
     /// <param name="ct">Cancels the load.</param>
     /// <returns>The decisions; none open for a conversation that never asked.</returns>
@@ -142,6 +142,22 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
 
         return (await Ledger.RecordAsync(DecidedConversation, answers, ct)).ToDecisions();
     }
+
+    /// <summary>
+    /// Switches the mode of the host's conversation, from <c>WithConversationId</c>. Its next run is in
+    /// <paramref name="mode"/>, whichever agent answers it, and so are the runs after it, until a run's settings, an
+    /// approved plan or this method names another mode. It is the way back from auto mode, and needs no configurable
+    /// <c>Mode</c>. It starts no run, and a run going on stays in the mode it began in.
+    /// </summary>
+    /// <param name="mode">The mode the conversation's next runs are in.</param>
+    /// <param name="ct">Cancels the save.</param>
+    /// <returns>The save.</returns>
+    /// <exception cref="StoreConflictException">Other saves came first ten times in a row.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// The host has no conversation, or stores are registered and none keeps the decisions of its id type.
+    /// </exception>
+    public async Task SetModeAsync(AgentMode mode, CancellationToken ct = default) =>
+        await Ledger.SetModeAsync(DecidedConversation, mode, ct);
 
     /// <summary>
     /// The raw path: creates the client of a run whose options <c>ResolveOptionsAsync</c> resolved. It takes the

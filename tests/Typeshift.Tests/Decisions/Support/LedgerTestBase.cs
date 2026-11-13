@@ -19,6 +19,10 @@ public abstract class LedgerTestBase : HostTestBase
 
     internal DecisionLedger OtherProcess => new(_otherProcess.Value.GetRequiredService<StoreAccess>(), Time);
 
+    // The ledger of a run that found a mode on entries an earlier version stored
+    internal DecisionLedger LedgerAfter(AgentMode legacy) =>
+        new(Services.GetRequiredService<StoreAccess>(), Time, legacy);
+
     internal Task<DecisionDocument> DocumentAsync() => Ledger.LoadAsync(Conversation, Ct);
 
     // A batch as the gate opens it: every call of one model response

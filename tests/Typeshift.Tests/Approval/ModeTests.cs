@@ -201,7 +201,27 @@ public class ModeTests : ApprovalTestBase
     }
 
     [Fact]
-    public async Task Given_A_Compaction_In_Plan_Mode_Its_Summary_Keeps_The_Mode()
+    public async Task Given_A_Compaction_In_Plan_Mode_The_Next_Run_Still_Plans()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer));
+
+        await RunAsync(new string('x', Page), AgentMode.Plan);
+        await Chat.RunAsync(Data.Agent.FollowUp, settings: new() { MaxInputTokens = 1_000 }, ct: Ct);
+
+        // Act
+        await RunAsync(Data.Agent.Steering);
+
+        // Assert
+        ChatClient.Options[^1]!.Tools!.Select(tool => tool.Name).Should().Equal("read_ticket", "exit_plan_mode");
+    }
+
+    [Fact]
+    public async Task Given_A_Conversation_In_Plan_Mode_None_Of_Its_Entries_Names_The_Mode()
     {
         // Arrange
         ChatClient
@@ -212,15 +232,125 @@ public class ModeTests : ApprovalTestBase
         await RunAsync(new string('x', Page), AgentMode.Plan);
 
         // Act
-        await Host<GuardedAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
-            Data.Agent.FollowUp,
-            settings: new() { Mode = AgentMode.Plan, MaxInputTokens = 1_000 },
-            ct: Ct);
-
-        var summary = (await EntriesAsync(Data.Agent.ConversationId)).Single(entry => entry.IsSummary);
+        await Chat.RunAsync(Data.Agent.FollowUp, settings: new() { MaxInputTokens = 1_000 }, ct: Ct);
+        var entries = await EntriesAsync(Data.Agent.ConversationId);
 
         // Assert
-        summary.Mode.Should().Be(AgentMode.Plan);
+        entries.Should().Contain(entry => entry.IsSummary);
+        entries.Where(entry => entry.Mode is not null).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Run_Naming_A_Mode_The_Conversations_Decisions_Name_It()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question, AgentMode.Plan);
+        var decisions = await DecisionsAsync();
+
+        // Assert
+        decisions.Mode.Should().Be(AgentMode.Plan);
+    }
+
+    [Fact]
+    public async Task Given_A_Conversation_No_Run_Named_A_Mode_For_Its_Decisions_Name_None()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question);
+        var decisions = await DecisionsAsync();
+
+        // Assert
+        decisions.Mode.Should().BeNull();
+        (await StoredDecisionsAsync()).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Given_An_Approved_Plan_The_Conversations_Decisions_Name_The_Chosen_Mode()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "exit_plan_mode", ("plan", Data.Tool.Answer)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var planned = await RunAsync(Data.Tool.Question, AgentMode.Plan);
+
+        // Act
+        await AnswerAsync(planned.Decisions.OfType<PlanDecision>().Single().Approve(AgentMode.Auto));
+        var decisions = await DecisionsAsync();
+
+        // Assert
+        decisions.Mode.Should().Be(AgentMode.Auto);
+    }
+
+    [Fact]
+    public async Task Given_A_Plan_Approved_Into_Auto_Mode_Setting_The_Default_Mode_Makes_The_Next_Call_Ask()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "exit_plan_mode", ("plan", Data.Tool.Answer)))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(CloseTicket(Data.Tool.SecondCallId, Data.Agent.Ticket));
+
+        var planned = await RunAsync(Data.Tool.Question, AgentMode.Plan);
+        await AnswerAsync(planned.Decisions.OfType<PlanDecision>().Single().Approve(AgentMode.Auto));
+
+        // Act
+        await Chat.SetModeAsync(AgentMode.Default, Ct);
+        var response = await RunAsync(Data.Agent.FollowUp);
+
+        // Assert
+        response.Decisions.Should().ContainSingle();
+        ToolCalls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_An_Agent_Without_A_Configurable_Mode_Setting_The_Mode_Switches_Its_Conversation()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        var chat = Host<PlanningAgent>().WithConversationId(Data.Agent.ConversationId);
+
+        // Act
+        await chat.SetModeAsync(AgentMode.Default, Ct);
+        await chat.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal("close_ticket", "read_ticket", "note");
+    }
+
+    [Fact]
+    public async Task Given_A_Run_Going_On_Setting_The_Mode_Leaves_It_In_The_Mode_It_Began_In()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+        ChatClient.Reply(gate, CloseTicket(Data.Tool.CallId, Data.Agent.Ticket));
+
+        var run = RunAsync(Data.Tool.Question);
+        await ChatClient.Requested;
+
+        // Act
+        await Chat.SetModeAsync(AgentMode.Auto, Ct);
+        gate.SetResult();
+        var response = await run;
+
+        // Assert
+        response.Decisions.Should().ContainSingle();
+        ToolCalls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Host_Without_A_Conversation_Setting_The_Mode_Fails_Naming_WithConversationId()
+    {
+        // Act
+        var set = () => Host<GuardedAgent>().SetModeAsync(AgentMode.Auto, Ct);
+
+        // Assert
+        await set.Should().ThrowAsync<InvalidOperationException>().WithMessage("*WithConversationId*");
     }
 
     [Fact]

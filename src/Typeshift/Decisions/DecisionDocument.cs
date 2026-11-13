@@ -4,8 +4,8 @@ using Typeshift.Generated;
 namespace Typeshift;
 
 // D80: a conversation's decisions as its store keeps them: at most one batch, the tools approved for the
-// conversation, and why the decisions of the last batch closed, so a late answer learns why it is late. Whether a
-// decision is open, answered or carried out is read here, never from the conversation's messages
+// conversation, its mode (D52), and why the decisions of the last batch closed, so a late answer learns why it is
+// late. Whether a decision is open, answered or carried out is read here, never from the conversation's messages
 internal sealed record DecisionDocument
 {
     public const string Kind = "decisions";
@@ -14,7 +14,8 @@ internal sealed record DecisionDocument
 
     public static readonly DecisionDocument Empty = new();
 
-    // The conversation's mode, once a run or your app names one; null while it runs in the agent's own
+    // D52: the conversation's mode, once a run's settings, an approved plan or your app names one; null while each
+    // run is in its agent's own
     public AgentMode? Mode { get; init; }
 
     public IReadOnlyList<StandingApproval> Standing { get; init; } = [];
@@ -26,7 +27,8 @@ internal sealed record DecisionDocument
     // The decisions your app may still answer: those of an open batch that have no answer
     public IReadOnlyList<Decision> Open => Batch is { State: BatchState.Open } batch ? batch.Unanswered : [];
 
-    public ConversationDecisions ToDecisions() => new(Open, Batch is { State: BatchState.Answered }, Standing);
+    public ConversationDecisions ToDecisions() =>
+        new(Open, Batch is { State: BatchState.Answered }, Standing, Mode);
 
     // Why a decision that is not in the batch is closed; older than the last batch, nothing remembers it
     public DecisionClosedReason ClosedReason(string decision) =>

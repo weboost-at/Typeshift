@@ -573,10 +573,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   its own model call, and every later run of the conversation, since each summarizes first. The run's cancellation
   still ends it. What compaction did holds for the rest of the run: the tool loop keeps the whole
   history, so each later call gets the same cleared results and summary. The summary entry holds the summary, the
-  kept todo list and copies of the kept messages, with the run's mode and the background calls still working, so a
+  kept todo list and copies of the kept messages, with the background calls still working, so a
   later run loads only that entry and the ones after it (`LoadConversationSinceCompactionAsync`, which a store may
-  override to leave the rest unread). Standing approvals are no part of it: they are in the conversation's decisions
-  document, which no summary touches (D80). The passes steering input or background answers start share
+  override to leave the rest unread). The mode and the standing approvals are no part of it: they are in the
+  conversation's decisions document, which no summary touches (D52, D80). The passes steering input or background answers start share
   `MaxToolIterations`: each gets what the run has left. A call a rule, a standing approval or auto mode approves is
   a round like any other, since the gate decides it inside the loop (D81). Calls your app approves run in the
   conversation's next run, which counts its own rounds; carrying them out takes one turn of the loop that calls no
@@ -1049,7 +1049,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   interface a class implements, `InMemoryTypeshiftStore<TId>` implements it, and `VerifyAsync` runs the version rules
   against it (D58). With no store at all, the memory of D69 keeps decisions too. With stores registered and none of
   decisions for the conversation's id type, a load answers "none" without a store call, so an agent that never asks
-  pays nothing, and the first write throws, naming `IDecisionStore<TId>` and `WithStore<T>()`. Nothing is kept in
+  pays nothing, and the first write (a batch, a standing approval, a mode) throws, naming `IDecisionStore<TId>` and
+  `WithStore<T>()`. Nothing is kept in
   memory beside a real store. TSH036 warns at build time about a `WithStore<T>()` whose store keeps conversations
   of an id type no store of the same chain keeps decisions for, when an agent the project sees can ask: one with a
   tool or an MCP server that requires approval, with plan mode in code or a configurable mode, or with
@@ -1418,18 +1419,30 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `Default` or `Auto`, a rejection's reason sends the model back to planning. Outside a host's run in plan mode a
   call of `exit_plan_mode` asks nobody: the model reads that it is not planning, so no model can raise a plan prompt
   in a conversation that never planned (D81). `Auto` runs tools that require approval unless a
-  rule rejects the call. A conversation keeps its mode: a run without one continues in the mode the last run ended in,
-  stored on the run's ending entry and on a summary; a run whose settings name a mode switches it. Plan mode appends a
-  short instruction to research, then call `exit_plan_mode`. Sub-agents run in their caller's mode; plan mode offers
-  them, and in it a sub-agent gets its read-only tools and no `exit_plan_mode`, and answers its caller.
+  rule rejects the call. A conversation keeps its mode once something names one: a run whose settings name a mode,
+  an approved plan, or `SetModeAsync` on the host. From then on every run of the conversation is in it, whichever
+  agent answers (D34), until one of the three names another; an approved plan into `Auto` therefore holds until
+  your app switches back, which `SetModeAsync` does without a configurable `Mode`. While nothing named a mode, each
+  run is in its agent's own. Plan mode appends a short instruction to research, then call `exit_plan_mode`.
+  Sub-agents run in their caller's mode; plan mode offers them, and in it a sub-agent gets its read-only tools and
+  no `exit_plan_mode`, and answers its caller.
 - **A configurable mode:** `Configurable(r => r.Mode)` makes the mode a member of the agent's `Settings`, so
   settings that are stored per customer or posted by a page can name `Auto`. The owner kept the mode configurable
   and chose a warning: TSH037 reports the pick on an agent that offers a tool or an MCP server that requires
   approval. A rule's rejection holds in every mode, which is the fix the message names beside removing the pick.
+- **As built:** the mode is a member of the conversation's decisions document (D80), null until named. A run whose
+  settings name a mode saves it when it takes the conversation, before it learns which agent answers, and the save
+  that starts an answered batch switches to an approved plan's mode. A run reads the document when it begins and
+  stays in that mode to its end. Entries no longer store the mode. One an earlier version stored on a run's ending
+  entry or on a summary holds while the document names none: the run that finds it copies it into the document with
+  its first save, and until then repeats it on a summary it writes, since later runs read nothing before a summary.
 - **Where:** `Agents/RunOptions.cs`, `Decisions/ExitPlanModeFunction.cs`, `Approval/ModeChatClient.cs`, the gate of
-  D81.
+  D81, `Decisions/DecisionLedger.cs` (`SetModeAsync`, `StartAsync`), `Conversations/ConversationChatClient.cs`.
 - **Alternatives:** modes as tools the model calls (MAF's `mode_get`/`mode_set`), which lets the model leave plan
-  mode unasked; a classifier built into auto mode, where a rule the host writes can ask any model it chooses.
+  mode unasked; a classifier built into auto mode, where a rule the host writes can ask any model it chooses; the
+  mode on each run's ending entry, which every agent of a handoff had to pass on and every summary to repeat, and
+  which a run's settings were the only way to change; an approved plan's mode holding for one run only, and a mode
+  that is never a stored setting, both left open.
 
 ### D54. Runs starting and ending are a feed too
 
@@ -1489,9 +1502,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   scans disagreed, an approved call ran twice, and calls ran after the user had sent something else.
 - **Decision:** a decision is a stored record with an id and a state: an `ApprovalDecision` for a call of a tool that
   requires approval, a `PlanDecision` for `exit_plan_mode`, a `QuestionDecision` for `ask_user` (D82). A conversation
-  has one decisions document (D79): at most
-  one batch, the tools approved for the conversation, and the ids of the last batch's decisions with why they
-  closed. A batch holds every call of one model response of which at least one waits for your app: with an ask for
+  has one decisions document (D79): at most one batch, the tools approved for the conversation, the conversation's
+  mode (D52), and the ids of the last batch's decisions with why they closed. A batch holds every call of one model
+  response of which at least one waits for your app: with an ask for
   a call that waits, with a rejection for a call a rule rejected, bare for a call that runs with the batch. It
   repeats each call's name and arguments, so the decisions are listed and the calls replayed from the document
   alone. An answer (`DecisionAnswer`) names its decision by id. The same answer again changes nothing; another

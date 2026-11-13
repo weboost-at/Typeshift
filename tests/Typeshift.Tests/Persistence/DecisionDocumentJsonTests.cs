@@ -106,6 +106,33 @@ public class DecisionDocumentJsonTests : UnitTestBase
     }
 
     [Fact]
+    public void Given_A_Document_That_Names_A_Mode_It_Is_Stored_By_Its_Name()
+    {
+        // Arrange
+        var document = new DecisionDocument { Mode = AgentMode.Auto };
+
+        // Act
+        var json = document.Serialize();
+
+        // Assert
+        json.Should().Be("""{"mode":"Auto","standing":[],"closed":[]}""");
+    }
+
+    [Fact]
+    public void Given_A_Document_Stored_Before_The_Mode_Joined_It_It_Reads_As_Naming_No_Mode()
+    {
+        // Arrange
+        var json = """{"standing":[{"tool":"add_note","at":"2026-10-11T08:00:00+00:00"}],"closed":[]}""";
+
+        // Act
+        var document = DecisionDocument.Deserialize(json);
+
+        // Assert
+        document.Mode.Should().BeNull();
+        document.ToDecisions().Mode.Should().BeNull();
+    }
+
+    [Fact]
     public void Given_No_Stored_Members_An_Empty_Object_Reads_As_A_Document_Without_A_Batch()
     {
         // Act

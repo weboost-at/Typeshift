@@ -255,8 +255,8 @@ Every agent also gets:
 ## The agent host
 
 `AgentHost<TAgent>` runs one agent. Its own members are `Agent`, `WithSettingsId`, `WithConversationId`,
-`CreateChatClientAsync`, `DisposeAsync` and `Dispose`, and the generator adds the typed runs and settings of each
-agent.
+`CreateChatClientAsync`, the members for [the decisions of a conversation](#decisions-of-the-conversation), `DisposeAsync`
+and `Dispose`, and the generator adds the typed runs and settings of each agent.
 
 ### The host's scope
 
@@ -299,6 +299,34 @@ them. On options of a host without a conversation id, `ChatOptions.ConversationI
 It throws an `InvalidOperationException` when no client is registered for the options' provider and model, and none
 for every agent.
 
+### Decisions of the conversation
+
+These members work on the decisions of the host's conversation, the one `WithConversationId(id)` gave it. None
+starts a run, each takes a `CancellationToken ct = default` last, and each throws an `InvalidOperationException` on
+a host without a conversation id.
+
+| Member | Returns |
+|---|---|
+| `GetDecisionsAsync()` | `Task<ConversationDecisions>` |
+| `RecordAnswersAsync(IReadOnlyList<DecisionAnswer> answers)` | `Task<ConversationDecisions>` |
+| `SetModeAsync(AgentMode mode)` | `Task` |
+
+`GetDecisionsAsync` reads what the conversation waits for in one load, without its history. `Open` lists the
+decisions your app has not answered, `CanResume` says whether the answered ones wait to be carried out, `Standing`
+lists the tools approved for the conversation, and `Mode` is the conversation's mode, null while nothing named one
+([When a call needs approval](./tool-approval.md#when-a-call-needs-approval)).
+
+`RecordAnswersAsync` records answers and continues no run. It throws what
+[`AnswerAsync`](#answerasync-and-answerstreamingasync) throws
+([Approving or rejecting](./tool-approval.md#approving-or-rejecting)).
+
+`SetModeAsync` switches the conversation's mode from its next run on
+([Setting the mode](./tool-approval.md#setting-the-mode)).
+
+The two that save throw a `StoreConflictException` when ten saves in a row lost to another writer, and an
+`InvalidOperationException` when your app registered stores and none of them
+[keeps decisions](./implementing-a-store.md#which-store-serves-a-call).
+
 ### `DisposeAsync` and `Dispose`
 
 `ValueTask DisposeAsync()` and `void Dispose()` dispose the scope of a host that `TypeshiftRuntime.Agent<TAgent>()`
@@ -337,7 +365,7 @@ In these signatures, `Settings` is the agent's [generated `Settings` record](#se
 ### `RunAsync`
 
 `RunAsync` runs the agent on one message, a `string` or a `ChatMessage`, which can carry images.
-It layers the agent's code, the stored settings, the mode the conversation's last run ended in, then `settings`
+It layers the agent's code, the stored settings, the conversation's mode, then `settings`
 ([Settings layering](./settings-and-stores.md#settings-layering)).
 
 On a host with a conversation id, it stores the run as it goes ([What a run stores](#what-a-run-stores)). Without

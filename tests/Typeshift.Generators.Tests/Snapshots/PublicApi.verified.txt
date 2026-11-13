@@ -44,6 +44,7 @@ public void Typeshift.AgentHost<TAgent>.Dispose()
 public System.Threading.Tasks.ValueTask Typeshift.AgentHost<TAgent>.DisposeAsync()
 public System.Threading.Tasks.Task<Typeshift.ConversationDecisions> Typeshift.AgentHost<TAgent>.GetDecisionsAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public System.Threading.Tasks.Task<Typeshift.ConversationDecisions> Typeshift.AgentHost<TAgent>.RecordAnswersAsync(System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public System.Threading.Tasks.Task Typeshift.AgentHost<TAgent>.SetModeAsync(Typeshift.AgentMode mode, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithConversationId<TId>(TId id) where TId : notnull
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithSettingsId<TId>(TId id) where TId : notnull
 public enum Typeshift.AgentMode
@@ -103,11 +104,12 @@ public sealed class Typeshift.ConfigurableSettingsBuilder<TSettings> where TSett
 public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ConfigurableSettingsBuilder<TSettings>.NotConfigurable<TMember>(System.Func<TSettings, TMember> member)
 public sealed record Typeshift.ConversationDecisions : System.IEquatable<Typeshift.ConversationDecisions>
 public bool Typeshift.ConversationDecisions.CanResume { get; init; }
-public Typeshift.ConversationDecisions.ConversationDecisions(System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Open, bool CanResume, System.Collections.Generic.IReadOnlyList<Typeshift.StandingApproval> Standing)
-public void Typeshift.ConversationDecisions.Deconstruct(out System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Open, out bool CanResume, out System.Collections.Generic.IReadOnlyList<Typeshift.StandingApproval> Standing)
+public Typeshift.ConversationDecisions.ConversationDecisions(System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Open, bool CanResume, System.Collections.Generic.IReadOnlyList<Typeshift.StandingApproval> Standing, Typeshift.AgentMode? Mode)
+public void Typeshift.ConversationDecisions.Deconstruct(out System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Open, out bool CanResume, out System.Collections.Generic.IReadOnlyList<Typeshift.StandingApproval> Standing, out Typeshift.AgentMode? Mode)
 public bool Typeshift.ConversationDecisions.Equals(Typeshift.ConversationDecisions? other)
 public override bool Typeshift.ConversationDecisions.Equals(object? obj)
 public override int Typeshift.ConversationDecisions.GetHashCode()
+public Typeshift.AgentMode? Typeshift.ConversationDecisions.Mode { get; init; }
 public System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ConversationDecisions.Open { get; init; }
 public System.Collections.Generic.IReadOnlyList<Typeshift.StandingApproval> Typeshift.ConversationDecisions.Standing { get; init; }
 public override string Typeshift.ConversationDecisions.ToString()

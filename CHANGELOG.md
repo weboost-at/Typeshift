@@ -61,6 +61,9 @@ All notable changes to this project are documented here. The format follows
   `[JsonSourceGenerationOptions(UseStringEnumConverter = true)]` to the context.
 - `ToolException`: a tool throws it to tell the model why a call failed. The model reads its message as the call's
   result, so write it as a hint, such as "No ticket 4711 exists. Search for it first."
+- `host.SetModeAsync(mode)` switches a conversation's mode without a run, and the agent needs no
+  `Configurable(r => r.Mode)` for it. It is the way back to the default mode after a plan was approved into auto
+  mode. `GetDecisionsAsync()` returns the conversation's mode as `Mode`.
 
 ### Changed
 
@@ -142,6 +145,14 @@ All notable changes to this project are documented here. The format follows
 - **Breaking:** conversations stored by earlier versions load, with two losses. An approval request that was open
   cannot be answered any more: the model decides again and asks again. Standing approvals given before are not
   carried over, so the conversation asks once more.
+- **Breaking:** a conversation's mode is stored with its decisions. The entry that ends a run and a summary no
+  longer carry it in `ConversationEntry.Mode`, and the `ConversationDecisions` record has a fourth member, `Mode`.
+  A run whose settings name a mode, an approved plan and `SetModeAsync` set the conversation's mode. Until one of
+  them does, each run is in the mode of its agent's code and stored settings, where the mode of the conversation's
+  first run used to stay. A run that names a mode needs a store that keeps decisions: an app with an
+  `IConversationStore<TId>` of its own and no `IDecisionStore<TId>` of that id type fails such a run, naming the
+  interface. A mode an earlier version stored on a conversation's entries holds until the conversation's decisions
+  name one, and `GetDecisionsAsync().Mode` is null for such a conversation until then.
 - A run without a conversation that must ask throws `DecisionUnavailableException`, an `InvalidOperationException`
   as before. An app with an `IConversationStore<TId>` of its own and no `IDecisionStore<TId>` of that id type fails
   the first run that must ask, naming the interface.
@@ -247,6 +258,10 @@ All notable changes to this project are documented here. The format follows
 - `exit_plan_mode` called outside plan mode asks nobody: the model reads that it is not planning. A model in the
   default mode that named the tool raised a plan prompt, and approving it into auto mode switched every later
   approval off. In auto mode without a conversation such a call failed the run.
+- A mode named in a run's settings reaches the agent that answers after a handoff. It was dropped there: on a
+  conversation in auto mode that had been handed off, a run with `Mode = AgentMode.Default` asked for nothing, and
+  the tools behind `RequiresApproval()` kept running. A plan approved into auto mode before a handoff put the agent
+  handed to back into plan mode.
 - A run that asks your app throws the store's exception when the store could not save the model's response or the
   decision. It returned a request that was never stored, and the answer to it was refused as unknown.
 - The update of a streaming run that carries what it asks keeps the message id, response id, model and finish

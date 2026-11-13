@@ -18,7 +18,7 @@ internal sealed class ResolvedChatOptions : ChatOptions
 
     public RunOptions RunOptions { get; set; } = new();
 
-    // D52: a run whose settings name a mode leaves the conversation's mode behind
+    // D52: a run whose settings name a mode switches the conversation to it
     public bool RunSetsMode { get; set; }
 
     public StoreId? SettingsId { get; set; }
