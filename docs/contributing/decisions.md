@@ -80,7 +80,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** per toolset a `{Tool}Overrides` record per tool with configurable settings and a `{Toolset}ToolList`
   extension block; per agent the nested `Settings` record, a private `Configure{Tool}()` per offered tool with settings
   and a `TypeshiftHost_{full name}` extension block in the global namespace (D12); per assembly a module. Nested
-  classes join their containers' names with `_`; keywords get `@`. A clash with a user member is TSH018.
+  classes join their containers' names with `_`; keywords get `@`. A clash with a user member is TSH018. A
+  generated file is named after its class's full name. The compiler compares those file names without case, so
+  where two full names differ only by case, each file's name also carries a hash of its class's spelling.
 - **Agents:** besides those, the hidden `Declaration` override, one private nested class `TypeshiftGenerated` (the
   declaration, the builders and the per-agent store of `Configure{Tool}()` values) and one private field
   `_typeshift`, so an agent gains as few names as possible. A tool's member in `Settings` named like an option or a

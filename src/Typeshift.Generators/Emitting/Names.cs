@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using Typeshift.Generators.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -57,5 +60,32 @@ internal static class Names
     // A hint name takes no '@', which a name spelled like a keyword carries
     public static string HintName(string fullName) => $"{fullName.Replace("global::", "").Replace("@", "")}.g.cs";
 
+    // AddSource compares hint names without case, so a class whose name another one spells in another case carries a
+    // hash of its own spelling; part names a second file of the class
+    public static string HintName(string fullName, EquatableArray<string> caseClashes, string part = "") =>
+        HintName(caseClashes.Contains(fullName) ? $"{fullName}-{GetStableHash(fullName)}{part}" : fullName + part);
+
+    // The full names whose hint names differ from another's by case alone: none, in nearly every project
+    public static EquatableArray<string> GetCaseClashes(IEnumerable<string> fullNames) =>
+        fullNames
+            .GroupBy(name => HintName(name), StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Skip(1).Any())
+            .SelectMany(group => group)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToEquatableArray();
+
     public static bool IsGenerated(SyntaxTree tree) => tree.FilePath.Contains(Generator);
+
+    // FNV-1a: string.GetHashCode differs from run to run
+    private static string GetStableHash(string text)
+    {
+        var hash = 2166136261;
+
+        foreach (var character in text)
+        {
+            hash = unchecked((hash ^ character) * 16777619);
+        }
+
+        return hash.ToString("x8", CultureInfo.InvariantCulture);
+    }
 }

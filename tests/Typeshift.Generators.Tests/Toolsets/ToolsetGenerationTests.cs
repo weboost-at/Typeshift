@@ -1,3 +1,4 @@
+using Typeshift.Generators.Tests.Diagnostics.Support;
 using Typeshift.Generators.Tests.Toolsets.Support;
 using FluentAssertions;
 
@@ -76,6 +77,16 @@ public class ToolsetGenerationTests : GeneratorTestBase
         run.Result.GeneratedTrees.Select(tree => Path.GetFileName(tree.FilePath))
             .Should()
             .Contain("Demo.EchoToolset.g.cs");
+    }
+
+    [Fact]
+    public void Given_Two_Classes_Whose_Names_Differ_Only_By_Case_Both_Are_Generated()
+    {
+        // Act
+        var run = Run(ShapeSources.NamesThatDifferByCase);
+
+        // Assert
+        run.Assert.CompilesCleanly();
     }
 
     [Fact]

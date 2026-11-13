@@ -45,6 +45,8 @@ All notable changes to this project are documented here. The format follows
   approvals are kept under the tool's name, so pin the old one with `WithName("enable_mfa_async")` or let it change.
 - A negative `WithSchemaVersion` compiles under cultures that write another minus sign, such as Swedish, Norwegian
   and Finnish.
+- Two toolsets or agents whose full names differ only by case, such as `TicketTools` and `Tickettools` in one
+  namespace, no longer stop the generator with CS8785.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

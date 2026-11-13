@@ -26,7 +26,7 @@ public class IncrementalTests : GeneratorTestBase
         var second = RunAgain(first, Edit(compilation, 1, Unrelated.Replace("Value", "Other")));
 
         // Assert
-        second.Assert.Cached(TrackingNames.Toolsets);
+        second.Assert.Cached(TrackingNames.Toolsets, TrackingNames.CaseClashes);
         second.Assert.OutputsCached();
     }
 
@@ -70,7 +70,12 @@ public class IncrementalTests : GeneratorTestBase
         var second = RunAgain(first, Edit(compilation, 2, Unrelated.Replace("Value", "Other")));
 
         // Assert
-        second.Assert.Cached(TrackingNames.Agents, TrackingNames.References, TrackingNames.AgentOutputs);
+        second.Assert.Cached(
+            TrackingNames.Agents,
+            TrackingNames.References,
+            TrackingNames.AgentOutputs,
+            TrackingNames.CaseClashes);
+
         second.Assert.OutputsCached();
     }
 

@@ -81,15 +81,24 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
                 pair.Right))
             .WithTrackingName(TrackingNames.Module);
 
-        context.RegisterSourceOutput(toolsets, static (output, toolset) =>
-            output.AddSource(Names.HintName(toolset.Type.FullName), ToolsetEmitter.Emit(toolset)));
+        // The names stay equal across edits, so the outputs that take them stay cached
+        var caseClashes = toolsets
+            .Select(static (toolset, _) => toolset.Type.FullName)
+            .Collect()
+            .Combine(agents.Select(static (agent, _) => agent.Type.FullName).Collect())
+            .Select(static (names, _) => Names.GetCaseClashes(names.Left.Concat(names.Right)))
+            .WithTrackingName(TrackingNames.CaseClashes);
 
-        context.RegisterSourceOutput(outputs, static (output, agent) =>
+        context.RegisterSourceOutput(toolsets.Combine(caseClashes), static (output, pair) =>
+            output.AddSource(Names.HintName(pair.Left.Type.FullName, pair.Right), ToolsetEmitter.Emit(pair.Left)));
+
+        context.RegisterSourceOutput(outputs.Combine(caseClashes), static (output, pair) =>
         {
-            output.AddSource(Names.HintName(agent.Agent.Type.FullName), AgentEmitter.Emit(agent));
+            var agent = pair.Left.Agent;
+            output.AddSource(Names.HintName(agent.Type.FullName, pair.Right), AgentEmitter.Emit(pair.Left));
 
-            if (AgentEmitter.EmitHost(agent.Agent) is { } host)
-                output.AddSource(Names.HintName($"{agent.Agent.Type.FullName}+Host"), host);
+            if (AgentEmitter.EmitHost(agent) is { } host)
+                output.AddSource(Names.HintName(agent.Type.FullName, pair.Right, "+Host"), host);
         });
 
         context.RegisterSourceOutput(module, static (output, model) =>

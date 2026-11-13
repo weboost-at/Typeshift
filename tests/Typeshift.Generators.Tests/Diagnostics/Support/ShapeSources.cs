@@ -465,6 +465,46 @@ public static class ShapeSources
         }
         """;
 
+    // The compiler tells the classes apart by case; a generator's hint names are compared without it
+    public const string NamesThatDifferByCase =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class TicketTools : Toolset
+        {
+            public TicketTools() => AddTool(Open).WithDescription("Opens a ticket.");
+
+            public static string Open(string title) => title;
+        }
+
+        internal partial class Tickettools : Toolset
+        {
+            public Tickettools() => AddTool(Close).WithDescription("Closes a ticket.");
+
+            public static string Close(int number) => "";
+        }
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent()
+            {
+                WithDescription("Opens tickets.");
+                UseToolset<TicketTools>().Include(t => t.Open);
+            }
+        }
+
+        internal partial class Helpagent : Agent
+        {
+            public Helpagent()
+            {
+                WithDescription("Closes tickets.");
+                UseToolset<Tickettools>().Include(t => t.Close);
+            }
+        }
+        """;
+
     public const string ConstructorWithOtherStatements =
         """
         using System.Collections.Generic;

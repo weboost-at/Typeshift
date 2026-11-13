@@ -12,4 +12,6 @@ internal static class TrackingNames
     public const string AgentOutputs = nameof(AgentOutputs);
 
     public const string Module = nameof(Module);
+
+    public const string CaseClashes = nameof(CaseClashes);
 }
