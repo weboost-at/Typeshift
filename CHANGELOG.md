@@ -36,6 +36,8 @@ All notable changes to this project are documented here. The format follows
   CS1573 for a missing `<param>`, no longer fail a build that treats warnings as errors. They show as warnings.
 - The XML file of a project that leaves `GenerateDocumentationFile` unset stays in `obj`. It was copied to the output
   folder, published with the app and packed with the project.
+- A `UseToolset<T>()` whose type does not resolve yet, such as `UseToolset<>()` while you type, no longer stops the
+  generator: it failed with CS8785 and every generated member of the project disappeared until the name resolved.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

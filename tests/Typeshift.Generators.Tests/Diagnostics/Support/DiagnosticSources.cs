@@ -1179,6 +1179,58 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string ToolsetUseBeingTyped =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent() => UseToolset<>();
+        }
+        """;
+
+    public const string ToolsetUseUnresolvedGlobal =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent() => UseToolset<global::Missing>();
+        }
+        """;
+
+    // A namespace several assemblies share places the missing type in none of them
+    public const string ToolsetUseUnresolvedShared =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent() => UseToolset<System.Missing>();
+        }
+        """;
+
     public const string NoStore =
         """
         using Typeshift;

@@ -905,6 +905,24 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Theory]
+    [InlineData(nameof(DiagnosticSources.ToolsetUseBeingTyped))]
+    [InlineData(nameof(DiagnosticSources.ToolsetUseUnresolvedGlobal))]
+    [InlineData(nameof(DiagnosticSources.ToolsetUseUnresolvedShared))]
+    public void Given_A_Toolset_Use_Being_Typed_The_Generator_Runs_On(string mistake)
+    {
+        // Arrange
+        var source = (string)typeof(DiagnosticSources).GetField(mistake)!.GetValue(null)!;
+
+        // Act
+        var run = Run(source);
+
+        // Assert
+        run.Result.Diagnostics.Should().BeEmpty();
+        run.Assert.DoesNotReport("AD0001");
+        run.Source("EchoToolset.g.cs").Should().Contain("partial class EchoToolset");
+    }
+
+    [Theory]
     [InlineData("TypeshiftIdType", "TenantId")]
     [InlineData("TypeshiftProviderIdType", "ProviderKey")]
     public void Given_A_Leftover_Id_Type_Property_Naming_An_Unknown_Type_TSH029_Is_Not_Reported(

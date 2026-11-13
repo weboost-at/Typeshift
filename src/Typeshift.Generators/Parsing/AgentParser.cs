@@ -240,6 +240,10 @@ internal static class AgentParser
         Reporter reporter)
     {
         var toolset = call.TargetMethod.TypeArguments[0];
+
+        // A type that does not resolve has no assembly to look a module up in; the compiler reports it
+        if (toolset.TypeKind == TypeKind.Error) return null;
+
         var type = toolset.ToTypeOf();
         var name = ConstructorChains.GetCalledName(call);
 
