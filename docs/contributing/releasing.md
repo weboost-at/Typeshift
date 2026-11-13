@@ -37,7 +37,8 @@ nuget.org keeps later packages under the name.
 2. Move the rows of `src/Typeshift.Generators/AnalyzerReleases.Unshipped.md` to `AnalyzerReleases.Shipped.md` under a
    `## Release <version>` heading. From then on, a shipped diagnostic ID is never reused or renumbered. A prerelease
    skips this step, because the heading takes only a plain version (RS2007), so the rules ship with the next stable
-   release.
+   release. Its IDs are taken all the same: a number any tag shipped is never given to another diagnostic, though
+   what it reports may still change before 1.0, with a line in the changelog (D49).
 3. Compare the public API with the last release, with that release's tag in place of `v0.1.0`:
 
    ```shell

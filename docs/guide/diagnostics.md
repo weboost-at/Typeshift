@@ -55,6 +55,19 @@ Most diagnostics are reported on the declaration they are about, so the usual
 to silence it, add it to `<NoWarn>` in the project file. [TSH007](#tsh007) and [TSH022](#tsh022) have no location
 either when the clash lies between two referenced projects.
 
+## Retired IDs
+
+A number that a release once used is never given to another diagnostic, so an old `#pragma` or `<NoWarn>` entry
+cannot silence a new mistake. A retired ID reports nothing any more, and you can remove what suppresses it.
+
+| ID | Was | Retired |
+|---|---|---|
+| TSH021 | Referenced assembly has another id type | In 0.1.0-alpha.6. Ids and providers take their types in code, so projects built with different id types work together. |
+
+[TSH028](#tsh028), [TSH029](#tsh029) and [TSH030](#tsh030) reported other mistakes up to 0.1.0-alpha.5, about the one
+id type a build had then. An entry that suppresses one of them since those versions silences today's diagnostic, so
+check whether you still mean it.
+
 ## TSH001
 
 **Toolset or agent is not partial.** The generator adds members to every toolset and agent, so the class and every

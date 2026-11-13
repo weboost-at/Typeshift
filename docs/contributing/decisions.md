@@ -1242,8 +1242,13 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 ### D49. Diagnostics are numbered afresh
 
-- **Decision:** the rewrite started the catalog again at TSH001, since none of v0's IDs had shipped. Once a release
-  ships a diagnostic's row, its ID never changes (see [Releasing](./releasing.md#cutting-a-release)).
+- **Decision:** the rewrite started the catalog again at TSH001, since none of v0's IDs had shipped. A number is
+  taken once any tag shipped it, a prerelease included: no other diagnostic ever gets it, and a diagnostic that goes
+  away stays listed under "Retired IDs" in the guide, as TSH021 does since 0.1.0-alpha.6. A new diagnostic takes the
+  number after the highest ever used. Before 1.0 an ID's meaning may still change, with a CHANGELOG entry, as those of
+  TSH028 to TSH030 did in 0.1.0-alpha.6. Once a stable release ships a diagnostic's row, its ID never changes (see
+  [Releasing](./releasing.md#cutting-a-release)).
+- **Where:** `docs/guide/diagnostics.md#retired-ids`, `Diagnostics/DiagnosticCatalogTests` (generator tests).
 
 ## Withdrawn
 
