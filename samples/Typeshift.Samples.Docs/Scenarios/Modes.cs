@@ -1,4 +1,3 @@
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Typeshift.Samples.Agents;
 
@@ -20,16 +19,13 @@ internal static class Modes
         // end-snippet
 
         // begin-snippet: plan-mode
-        var proposal = planned.ApprovalRequests.Single();
+        var proposal = planned.Decisions.OfType<PlanDecision>().Single();
 
-        if (proposal.ToolCall is FunctionCallContent { Arguments: { } arguments })
-            Console.WriteLine(arguments["plan"]);
+        Console.WriteLine(proposal.Plan);
         // end-snippet
 
         // begin-snippet: approve-plan
-        var approval = new ChatMessage(ChatRole.User, [proposal.ApprovePlan(AgentMode.Auto)]);
-
-        await chat.RunAsync(approval);
+        await chat.AnswerAsync([proposal.Approve(AgentMode.Auto)]);
         // end-snippet
 
         var store = provider.GetRequiredService<ITypeshiftStore<int>>();

@@ -1,4 +1,5 @@
 using Typeshift.Tests.Agents.Support;
+using Typeshift.Tests.Approval.Support;
 using Typeshift.Tests.Mcp.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
@@ -34,8 +35,56 @@ public class McpTests : McpTestBase
         var response = await RunAsync();
 
         // Assert
-        response.ApprovalRequests.Should().ContainSingle();
+        response.Decisions.OfType<ApprovalDecision>().Select(decision => decision.Server).Should().Equal("deploy");
         ToolCalls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Servers_Tool_Approved_For_The_Conversation_Its_Standing_Approval_Names_The_Server()
+    {
+        // Arrange
+        Servers["deploy"] = [Tool("deploy")];
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "deploy"))
+            .Reply(Call(Data.Tool.SecondCallId, "deploy"))
+            .Reply(Text(Data.Tool.Answer));
+
+        var chat = Host<McpAgent>().WithConversationId(Data.Agent.ConversationId);
+        var asked = await chat.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await chat.AnswerAsync([DecisionAnswer.ApproveForConversation(asked.Decisions[0].Id)], ct: Ct);
+        var decisions = await chat.GetDecisionsAsync(Ct);
+
+        // Assert
+        decisions.Standing.Select(standing => (standing.Tool, standing.Server)).Should().Equal(("deploy", "deploy"));
+        ToolCalls.Should().Equal("deploy", "deploy");
+    }
+
+    [Fact]
+    public async Task Given_A_Servers_Tool_Approved_For_The_Conversation_A_Toolset_Tool_Of_Its_Name_Still_Asks()
+    {
+        // Arrange
+        Servers["deploy"] = [Tool("close_ticket")];
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "close_ticket"))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Call(Data.Tool.SecondCallId, "close_ticket", ("number", Data.Agent.Ticket.Default)));
+
+        var chat = Host<McpAgent>().WithConversationId(Data.Agent.ConversationId);
+        var asked = await chat.RunAsync(Data.Tool.Question, ct: Ct);
+        await chat.AnswerAsync([DecisionAnswer.ApproveForConversation(asked.Decisions[0].Id)], ct: Ct);
+
+        // Act
+        var later = await Host<GuardedAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Assert
+        later.Decisions.Should().ContainSingle();
+        ToolCalls.Should().Equal("close_ticket");
     }
 
     [Fact]

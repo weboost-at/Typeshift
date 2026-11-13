@@ -165,6 +165,8 @@ public partial class GuardedBackAgent : Agent
         WithChatOptions().WithModel("scripted", "back-model");
 
         UseToolset<GuardedToolset>().Include(t => t.CloseTicket);
+
+        UseHandoff<GuardedFrontAgent>();
     }
 }
 

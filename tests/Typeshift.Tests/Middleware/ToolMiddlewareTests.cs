@@ -72,4 +72,43 @@ public class ToolMiddlewareTests : MiddlewareTestBase
             .Should()
             .ContainSingle(result => result.CallId == Data.Tool.CallId);
     }
+
+    [Fact]
+    public async Task Given_A_Call_That_Waits_For_Approval_Tool_Middleware_Sees_It_Only_Once_It_Runs()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "close_ticket", ("number", Data.Agent.Ticket.Default)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var chat = Host<ContextAgent>().WithConversationId(Data.Agent.ConversationId);
+        var asked = await RunAsync(Data.Tool.Question);
+        var seenWhileWaiting = Script.Log.Count(entry => entry.StartsWith("tool"));
+
+        // Act
+        await chat.AnswerAsync([DecisionAnswer.Approve(asked.Decisions[0].Id)], ct: Ct);
+
+        // Assert
+        seenWhileWaiting.Should().Be(0);
+        Script.Log.Where(entry => entry.StartsWith("tool")).Should().StartWith("tool 0 before close_ticket");
+    }
+
+    [Fact]
+    public async Task Given_A_Rejected_Call_Tool_Middleware_Never_Sees_It()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "close_ticket", ("number", Data.Agent.Ticket.Default)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var chat = Host<ContextAgent>().WithConversationId(Data.Agent.ConversationId);
+        var asked = await RunAsync(Data.Tool.Question);
+
+        // Act
+        await chat.AnswerAsync([asked.Decisions[0].Reject(Data.Agent.Reason)], ct: Ct);
+
+        // Assert
+        Script.Log.Where(entry => entry.StartsWith("tool")).Should().BeEmpty();
+        ToolCalls.Should().BeEmpty();
+    }
 }

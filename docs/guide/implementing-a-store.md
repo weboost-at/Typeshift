@@ -422,9 +422,7 @@ public async Task AppendConversationAsync(int conversation, ConversationEntry en
 <!-- endSnippet -->
 
 `LoadConversationAsync` still returns every entry, summaries included, for your app's own use, such as showing the whole
-history. Runs call it too in one case: when the last summary has no `StandingApprovals`, as one stored by a Typeshift
-version before 0.1.0-alpha.3, they read the whole conversation. Compaction always fills them in, even as an empty list,
-so set them on any summary you build for a test of your own, as [`VerifyAsync`](#check-your-store) does.
+history. Runs never call it: they load from the last summary on.
 
 Columns for `entry.EndsRun` and `entry.At` pay off in the same way. An app that looks for interrupted runs after a
 restart ([Resuming](./conversations.md#resuming)) then finds them with one query over each conversation's last row,
@@ -541,8 +539,8 @@ await store.VerifyAsync(9001, 9002);
   the first document at version 0, and with its old version after a save with the current one. Those two saves must
   throw a `StoreConflictException` and leave the document as it was. Every save that succeeds must return a new
   version other than 0.
-- For conversations, it appends a run's input and its end, then two summaries with `IsSummary` and
-  `StandingApprovals` set, each followed by a run's end. After the first run and again at the end, it loads the
+- For conversations, it appends a run's input and its end, then two summaries with `IsSummary` set, each followed
+  by a run's end. After the first run and again at the end, it loads the
   conversation whole and from the last summary on, which is every entry while there is no summary. Each entry must
   come back unchanged, in the order it was appended.
 - For decisions, it saves a conversation's document and loads it back, then runs the saves that must conflict: at

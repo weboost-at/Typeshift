@@ -166,8 +166,9 @@ The updates carry the model's JSON as it writes it, under `data` for a `T` that 
 second `await foreach` throws an `InvalidOperationException`. `Response` throws one until the updates are read to the
 end, and keeps throwing when the run failed, was cancelled or was left early.
 
-Both typed runs also take a `ChatMessage`, so the run that answers an [approval](./tool-approval.md) asks for `T`
-again. An agent the run is [handed off](./multi-agent.md) to answers in `T` too.
+Both typed runs also take a `ChatMessage`. `AnswerAsync<T>` and `AnswerStreamingAsync<T>` ask for `T` again when
+they continue a run that waited for your app's [approval](./tool-approval.md). An agent the run is
+[handed off](./multi-agent.md) to answers in `T` too.
 
 ## Streaming
 
@@ -221,6 +222,6 @@ never sends the conversation's id to the provider.
 - [Agent host](./generated-members.md#the-agent-host): every member of the host and its signature.
 - [Registration](./registration.md#the-chain): the chain calls and their lifetimes.
 - [Conversations](./conversations.md): storing, resuming and steering runs.
-- [Serving a chat endpoint](./chat-endpoint.md): runs, streaming and approvals behind ASP.NET Core endpoints.
+- [Serving a chat endpoint](./chat-endpoint.md): runs, streaming and decisions behind ASP.NET Core endpoints.
 - [Settings and stores](./settings-and-stores.md#settings-layering): where each of a run's values comes from.
 - [Architecture](../contributing/architecture.md#a-run): the same pipeline from the code's side.

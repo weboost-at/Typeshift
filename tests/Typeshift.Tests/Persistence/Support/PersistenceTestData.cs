@@ -104,7 +104,6 @@ public class PersistenceTestData(Faker faker)
             EndsRun = true,
             Mode = AgentMode.Plan,
             IsSummary = true,
-            StandingApprovals = [faker.Lorem.Word()],
             BackgroundCalls = new Dictionary<string, string> { [faker.Random.AlphaNumeric(12)] = faker.Lorem.Word() },
             EstimatedInputTokens = faker.Random.Int(1, 1000)
         };

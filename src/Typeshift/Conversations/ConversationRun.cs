@@ -6,12 +6,14 @@ namespace Typeshift;
 
 // One run, of a conversation or none: the contents it stored, by reference, since the tool loop hands the same ones on,
 // even in the copies of messages it makes; the steering input and background answers waiting for the next model
-// call, and where in the tool loop's messages that input went. Without a conversation it stores nothing
+// call, and where in the tool loop's messages that input went; the verdicts of its calls and the batch it asked or
+// carries out (D80, D81). Without a conversation it stores nothing
 internal sealed class ConversationRun(
     StoreId? conversation,
     AgentRun run,
     string model,
     StoreAccess store,
+    DecisionLedger ledger,
     TimeProvider time,
     ILogger logger)
 {
@@ -33,8 +35,15 @@ internal sealed class ConversationRun(
     // D78: the content types the run stored its steps without, each logged once
     private readonly HashSet<Type> _unwritable = [];
 
-    // D60: the approval requests this run left open, by what it stored, as the next run reads them
-    private OpenRequests _requests = new();
+    // D81: the verdict the gate gave each call that needs one, by call id; tools may run side by side
+    private readonly ConcurrentDictionary<string, CallVerdict> _verdicts = [];
+
+    // D80: the calls of the batch this run carries out whose results the conversation does not hold yet
+    private readonly HashSet<string> _unsettled = [];
+    private DecisionBatch? _carried;
+
+    // D81: the calls of an answered batch, handed to the tool loop once in place of a model response
+    private ChatResponse? _replay;
 
     // D33: the background sub-agents still working by call id, the work of each, and a signal for each answer or
     // steering input
@@ -59,6 +68,17 @@ internal sealed class ConversationRun(
     public string Model { get; } = model;
 
     public DateTimeOffset StartedAt { get; } = time.GetUtcNow();
+
+    public TimeProvider Time => time;
+
+    // D80: the batch this run opened, which waits for your app. The run ends with it, unless steering input passes
+    // it by first
+    public DecisionBatch? Asked { get; private set; }
+
+    // Why the store did not take the last model response, if it did not
+    public Exception? ResponseFailure { get; private set; }
+
+    public bool HasReplay => _replay is not null;
 
     // D47: a run that does not stream publishes each response and tool result as it stores them
     public LivePublisher? Publisher { get; set; }
@@ -87,7 +107,10 @@ internal sealed class ConversationRun(
 
             lock (_steering)
             {
-                if (_steering.Count > 0) return true;
+                // D33, D80: while a batch waits, a background answer starts no model call, since the model would
+                // not see the calls that wait and would make them again. The answer is stored ahead of the run's
+                // end, and the model reads it once the batch is settled
+                if (_steering.Any(input => Asked is null || !IsBackgroundAnswer(input))) return true;
 
                 if (!working)
                 {
@@ -191,7 +214,55 @@ internal sealed class ConversationRun(
 
     public bool IsAdded(ChatMessage message) => message.Contents.Any(_added.Contains);
 
-    public bool IsOpen(string request) => _requests.Contains(request);
+    public void Decide(string callId, CallVerdict verdict) => _verdicts[callId] = verdict;
+
+    public CallVerdict? VerdictOf(string callId) => _verdicts.TryGetValue(callId, out var verdict) ? verdict : null;
+
+    // T1: the batch exists once this returns, or the run fails and no decision does. Like every step, it is stored
+    // whatever became of the run's token
+    public async Task OpenAsync(DecisionBatch batch)
+    {
+        await ledger.OpenAsync(Conversation!, batch, CancellationToken.None);
+        Asked = batch;
+    }
+
+    // The batch the run asked is expired or answered: it waits for nobody any more
+    public void Settle() => Asked = null;
+
+    // T3 happened: each call of the batch has its verdict from the record, and the calls go to the tool loop once, as
+    // the response they came in. The conversation holds them already, so they are stored a single time
+    public void Carry(DecisionBatch started)
+    {
+        _carried = started;
+        _unsettled.UnionWith(started.Calls.Select(call => call.CallId));
+
+        foreach (var call in started.Calls)
+        {
+            _verdicts[call.CallId] = DecisionResults.VerdictOf(call);
+        }
+
+        var calls = new ChatMessage(ChatRole.Assistant, [.. started.Calls.Select(ToContent)]);
+
+        MarkStored([calls]);
+        _replay = new ChatResponse(calls);
+    }
+
+    public ChatResponse? TakeReplay() => Interlocked.Exchange(ref _replay, null);
+
+    // T4, T7 and the end of an expiry: the batch closes once the conversation holds a result for each of its calls.
+    // A close that fails leaves the batch to the conversation's next run, which finds the results and only closes
+    public async Task CloseAsync(DecisionBatch batch)
+    {
+        try
+        {
+            await ledger.CloseAsync(Conversation!, batch, CancellationToken.None);
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "Conversation {Conversation} could not close its decisions.", Conversation);
+            run.Activity?.AddException(exception);
+        }
+    }
 
     // The tool loop's list with the steering input put back where it went in; the steps not stored yet (tool results)
     // are stored, then the steering input waiting is taken in and stored (D51)
@@ -258,20 +329,10 @@ internal sealed class ConversationRun(
     // D32: what compaction left of the history, which later runs start from without reading what came before
     public Task AppendSummaryAsync(IReadOnlyList<ChatMessage> messages) => AppendAsync(messages, summary: true);
 
-    // D24: every request is stored, since the answers the approval layer gave bind to them, but watchers see only
-    // those left to the host, as the host of a streaming run does
-    public async Task AppendRequestsAsync(
-        IReadOnlyList<ToolApprovalRequestContent> requests,
-        IReadOnlyList<ToolApprovalRequestContent> left)
-    {
-        await AppendAsync([new ChatMessage(ChatRole.Assistant, [.. requests])], published: false);
-        Publish([new ChatMessage(ChatRole.Assistant, [.. left]) { AuthorName = Agent }]);
-    }
-
     public async Task AppendResponseAsync(ChatResponse response, ChatOptions? options, bool streamed)
     {
         // D32: with what compaction estimated the call at, the provider's report calibrates the next run
-        await AppendAsync(
+        ResponseFailure = await AppendAsync(
             [.. response.Messages],
             response.ModelId ?? options?.ModelId,
             response.Usage,
@@ -280,16 +341,16 @@ internal sealed class ConversationRun(
         if (streamed) _streamedUnmatched = response.Messages.Count;
     }
 
-    // D46: storing never observes the run's token, and a store that fails is logged while the run goes on
-    public async Task AppendAsync(
+    // D46: storing never observes the run's token, and a store that fails is logged while the run goes on. The
+    // store's exception when it did not take the step, for the steps a decision depends on (D80)
+    public async Task<Exception?> AppendAsync(
         IReadOnlyList<ChatMessage> messages,
         string? model = null,
         UsageDetails? usage = null,
         long? estimated = null,
         bool endsRun = false,
         bool summary = false,
-        string? answering = null,
-        bool published = true)
+        string? answering = null)
     {
         foreach (var message in messages)
         {
@@ -298,13 +359,9 @@ internal sealed class ConversationRun(
 
         MarkStored(messages);
 
-        // A summary is where the next run starts reading, so the requests it keeps are all that may stay open
-        if (summary) _requests = new OpenRequests();
-        _requests.Add(messages);
+        if (Conversation is null) return null;
 
-        if (Conversation is null) return;
-
-        if (published && !endsRun && !summary) Publish(messages);
+        if (!endsRun && !summary) Publish(messages);
 
         var entry = new ConversationEntry(answering ?? Agent, Writable(messages), time.GetUtcNow())
         {
@@ -314,7 +371,6 @@ internal sealed class ConversationRun(
             EndsRun = endsRun,
             Mode = endsRun || summary ? run.Mode : null,
             IsSummary = summary,
-            StandingApprovals = summary ? [.. run.Standing] : null,
             BackgroundCalls = summary ? new Dictionary<string, string>(_background) : null
         };
 
@@ -326,8 +382,39 @@ internal sealed class ConversationRun(
         {
             logger.LogError(exception, "Conversation {Conversation} could not store a step.", Conversation);
             run.Activity?.AddException(exception);
+
+            return exception;
         }
+
+        await SettleCarriedAsync(messages);
+        return null;
     }
+
+    // T4: the append that holds the last result of the batch the run carries out closes it
+    private async Task SettleCarriedAsync(IReadOnlyList<ChatMessage> stored)
+    {
+        if (_carried is not { } carried) return;
+
+        _unsettled.ExceptWith(stored
+            .SelectMany(message => message.Contents)
+            .OfType<FunctionResultContent>()
+            .Select(result => result.CallId));
+
+        if (_unsettled.Count > 0) return;
+
+        _carried = null;
+        await CloseAsync(carried);
+    }
+
+    // The arguments a provider's client delivers are JSON values, and so are the stored ones
+    private static AIContent ToContent(BatchCall call) =>
+        new FunctionCallContent(
+            call.CallId,
+            call.Tool,
+            call.Arguments.EnumerateObject().ToDictionary(pair => pair.Name, object? (pair) => pair.Value));
+
+    private static bool IsBackgroundAnswer(ChatMessage input) =>
+        input.AdditionalProperties?.ContainsKey(BackgroundCall) is true;
 
     // D78: a content Microsoft.Extensions.AI's contract cannot write would fail the append of its whole step, so the
     // step is stored without it

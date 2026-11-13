@@ -542,7 +542,7 @@ internal static class AgentEmitter
             const string Asking = "asking the model for JSON of <typeparamref name=\"TResult\"/>'s schema";
             const string Once = " Once its updates are read to the end, its <c>Response</c> holds the result.";
             const string Message = "Runs the agent on a message";
-            const string Images = Message + ", which may carry images or approvals";
+            const string Images = Message + ", which may carry images";
             var typed = $"{agent.Type.FullName}, TResult";
             var answer = $"{Task}<{response}>";
             var typedAnswer = $"{Task}<{response}<TResult>>";
@@ -572,6 +572,23 @@ internal static class AgentEmitter
             run.Write(writer, $"{Images}, streaming the updates and {Asking}", StreamingRun, Run,
                 "RunStreamingAsync<TResult>", message, $"{Runs}.RunStreamingAsync<{typed}>(host, input, {call}",
                 Once);
+            writer.Line();
+
+            const string Open = " With decisions left open it calls no model, and what it returns lists them.";
+            const string Read = " The answers are recorded when the updates are read.";
+            var answers = new HostAnswer(settings);
+
+            answers.Write(writer, "", answer, Answer, "AnswerAsync", $"{Runs}.AnswerAsync(host, answers, {call}", Open);
+            writer.Line();
+            answers.Write(writer, $", {Asking}", typedAnswer, Answer, "AnswerAsync<TResult>",
+                $"{Runs}.AnswerAsync<{typed}>(host, answers, {call}", Open);
+            writer.Line();
+            answers.Write(writer, ", streaming the updates", Updates, Streamed, "AnswerStreamingAsync",
+                $"{Runs}.AnswerStreamingAsync(host, answers, {call}", Open + Read);
+            writer.Line();
+            answers.Write(writer, $", streaming the updates and {Asking}", StreamingRun, Run,
+                "AnswerStreamingAsync<TResult>", $"{Runs}.AnswerStreamingAsync<{typed}>(host, answers, {call}",
+                Once + Read);
             writer.Line();
 
             WriteResume(writer, "ResumeAsync", $"{Task}<{response}>", settings);
@@ -658,13 +675,14 @@ internal static class AgentEmitter
         }
     }
 
-    // D50: the host's conversation's interrupted run, continued without input
+    // D50, D80: the host's conversation's interrupted run or answered decisions, continued without input
     private static void WriteResume(SourceWriter writer, string name, string returns, string settings)
     {
         Docs.WriteSummary(
             writer,
-            "Continues the run of the host's conversation, from <c>WithConversationId</c>, that was interrupted, from "
-            + "its last stored step, without new input.");
+            "Continues the host's conversation, from <c>WithConversationId</c>, without new input: the run that was "
+            + "interrupted, from its last stored step, or the decisions your app answered. While decisions are still "
+            + "open it calls no model, and what it returns lists them.");
         Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
         Docs.WriteParam(writer, "ct", "Cancels the run.");
         Docs.WriteReturns(
@@ -673,12 +691,63 @@ internal static class AgentEmitter
         Docs.WriteException(
             writer,
             "global::System.InvalidOperationException",
-            "The host has no conversation, or the conversation has no interrupted run.");
+            "The host has no conversation, or the conversation has nothing to continue.");
         writer.Lines(
             $"""
             public {returns} {name}({settings}? settings = null, {CancellationToken} ct = default) =>
                 {Runs}.{name}(host, settings, ct);
             """);
+    }
+
+    // D80: the answers to decisions of the host's conversation, and the run they continue
+    private sealed class HostAnswer(string settings)
+    {
+        private const string Answers =
+            "global::System.Collections.Generic.IReadOnlyList<global::Typeshift.DecisionAnswer>";
+
+        public void Write(
+            SourceWriter writer,
+            string how,
+            string returns,
+            string returnsDoc,
+            string name,
+            string call,
+            string note)
+        {
+            Docs.WriteSummary(
+                writer,
+                "Records your app's answers to decisions of the host's conversation, from <c>WithConversationId</c>, "
+                + $"and, once no decision is left open, carries them out and continues the run{how}.{note}");
+            if (name.EndsWith("<TResult>", StringComparison.Ordinal))
+                Docs.WriteTypeParam(writer, "TResult", "The result's type.");
+
+            Docs.WriteParam(
+                writer,
+                "answers",
+                "The answers, each made from its decision, as <c>decision.Approve()</c> makes one, or by its id.");
+            Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
+            Docs.WriteParam(writer, "ct", "Cancels the run.");
+            Docs.WriteReturns(writer, returnsDoc);
+            Docs.WriteException(
+                writer,
+                "global::Typeshift.DecisionClosedException",
+                "An answer names a decision that is not open: answered already, passed by a new message, or unknown. "
+                + "Nothing of the call is recorded.");
+            Docs.WriteException(
+                writer,
+                "global::System.ArgumentException",
+                "An answer does not fit its decision, one decision is answered twice, or there is no answer. Nothing "
+                + "is recorded.");
+            Docs.WriteException(writer, "global::System.InvalidOperationException", "The host has no conversation.");
+            writer.Lines(
+                $"""
+                public {returns} {name}(
+                    {Answers} answers,
+                    {settings}? settings = null,
+                    {CancellationToken} ct = default) =>
+                    {call}
+                """);
+        }
     }
 
     // The parameters every run takes, after its input

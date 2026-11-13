@@ -41,6 +41,8 @@ public TAgent Typeshift.AgentHost<TAgent>.Agent { get; }
 public System.Threading.Tasks.Task<Microsoft.Extensions.AI.IChatClient> Typeshift.AgentHost<TAgent>.CreateChatClientAsync(Microsoft.Extensions.AI.ChatOptions options, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public void Typeshift.AgentHost<TAgent>.Dispose()
 public System.Threading.Tasks.ValueTask Typeshift.AgentHost<TAgent>.DisposeAsync()
+public System.Threading.Tasks.Task<Typeshift.ConversationDecisions> Typeshift.AgentHost<TAgent>.GetDecisionsAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public System.Threading.Tasks.Task<Typeshift.ConversationDecisions> Typeshift.AgentHost<TAgent>.RecordAnswersAsync(System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithConversationId<TId>(TId id) where TId : notnull
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithSettingsId<TId>(TId id) where TId : notnull
 public enum Typeshift.AgentMode
@@ -57,13 +59,6 @@ public System.IServiceProvider Typeshift.AgentRun.Services { get; }
 public sealed class Typeshift.AgentUse
 public Typeshift.AgentUse Typeshift.AgentUse.InBackground()
 public Typeshift.AgentUse Typeshift.AgentUse.WithResult<TResult>()
-public sealed class Typeshift.ApprovalClosedException : System.InvalidOperationException
-public Typeshift.ApprovalClosedException.ApprovalClosedException(string message, System.Collections.Generic.IReadOnlyDictionary<string, Typeshift.ApprovalClosedReason> requests)
-public System.Collections.Generic.IReadOnlyDictionary<string, Typeshift.ApprovalClosedReason> Typeshift.ApprovalClosedException.Requests { get; }
-public enum Typeshift.ApprovalClosedReason
-Typeshift.ApprovalClosedReason.Answered = 0
-Typeshift.ApprovalClosedReason.PassedBy = 1
-Typeshift.ApprovalClosedReason.Unknown = 2
 public sealed record Typeshift.ApprovalDecision : Typeshift.Decision, Typeshift.Generated.IJsonStorable<Typeshift.ApprovalDecision>, System.IEquatable<Typeshift.ApprovalDecision>
 public Typeshift.DecisionAnswer Typeshift.ApprovalDecision.Approve()
 public Typeshift.DecisionAnswer Typeshift.ApprovalDecision.ApproveForConversation()
@@ -97,14 +92,12 @@ public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithTools(param
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithTopK(int topK)
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithTopP(float topP)
 public static class Typeshift.ChatResponseExtensions
-public static Microsoft.Extensions.AI.ToolApprovalResponseContent Typeshift.ChatResponseExtensions.ApproveForConversation(Microsoft.Extensions.AI.ToolApprovalRequestContent request)
-public static Microsoft.Extensions.AI.ToolApprovalResponseContent Typeshift.ChatResponseExtensions.ApprovePlan(Microsoft.Extensions.AI.ToolApprovalRequestContent request, Typeshift.AgentMode mode)
 public static Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponse)
-public System.Collections.Generic.IReadOnlyList<Microsoft.Extensions.AI.ToolApprovalRequestContent> Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponse).ApprovalRequests { get; }
-public static Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ToolApprovalRequestContent)
-public Microsoft.Extensions.AI.ToolApprovalResponseContent Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ToolApprovalRequestContent).ApproveForConversation()
-public Microsoft.Extensions.AI.ToolApprovalResponseContent Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ToolApprovalRequestContent).ApprovePlan(Typeshift.AgentMode mode)
-public static System.Collections.Generic.IReadOnlyList<Microsoft.Extensions.AI.ToolApprovalRequestContent> Typeshift.ChatResponseExtensions.get_ApprovalRequests(Microsoft.Extensions.AI.ChatResponse response)
+public System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponse).Decisions { get; }
+public static Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate)
+public System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate).Decisions { get; }
+public static System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.get_Decisions(Microsoft.Extensions.AI.ChatResponse response)
+public static System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.get_Decisions(Microsoft.Extensions.AI.ChatResponseUpdate update)
 public sealed class Typeshift.ConfigurableSettingsBuilder<TSettings> where TSettings : class, new()
 public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ConfigurableSettingsBuilder<TSettings>.NotConfigurable<TMember>(System.Func<TSettings, TMember> member)
 public sealed record Typeshift.ConversationDecisions : System.IEquatable<Typeshift.ConversationDecisions>
@@ -142,7 +135,6 @@ public Typeshift.AgentMode? Typeshift.ConversationEntry.Mode { get; init; }
 public string? Typeshift.ConversationEntry.Model { get; init; }
 public static int Typeshift.ConversationEntry.SchemaVersion { get; }
 public string Typeshift.ConversationEntry.Serialize()
-public System.Collections.Generic.IReadOnlyList<string>? Typeshift.ConversationEntry.StandingApprovals { get; init; }
 public override string Typeshift.ConversationEntry.ToString()
 public Microsoft.Extensions.AI.UsageDetails? Typeshift.ConversationEntry.Usage { get; init; }
 public static bool Typeshift.ConversationEntry.operator !=(Typeshift.ConversationEntry? left, Typeshift.ConversationEntry? right)
@@ -192,6 +184,9 @@ public enum Typeshift.DecisionClosedReason
 Typeshift.DecisionClosedReason.Answered = 0
 Typeshift.DecisionClosedReason.Expired = 1
 Typeshift.DecisionClosedReason.Unknown = 2
+public sealed class Typeshift.DecisionRequestContent : Microsoft.Extensions.AI.InputRequestContent
+public Typeshift.Decision Typeshift.DecisionRequestContent.Decision { get; }
+public Typeshift.DecisionRequestContent.DecisionRequestContent(Typeshift.Decision decision)
 public sealed class Typeshift.DecisionUnavailableException : System.InvalidOperationException
 public Typeshift.DecisionUnavailableException.DecisionUnavailableException(string message, System.Collections.Generic.IReadOnlyList<string> tools)
 public System.Collections.Generic.IReadOnlyList<string> Typeshift.DecisionUnavailableException.Tools { get; }
@@ -214,6 +209,10 @@ protected abstract System.Collections.Generic.IEnumerable<Microsoft.Extensions.A
 protected static void Typeshift.Generated.AgentDeclaration<TAgent, TSettings>.SetProvider<TProviderId>(Microsoft.Extensions.AI.ChatOptions options, TProviderId provider) where TProviderId : notnull
 protected static void Typeshift.Generated.AgentDeclaration<TAgent, TSettings>.SetSummaryProvider<TProviderId>(Microsoft.Extensions.AI.ChatOptions options, TProviderId provider) where TProviderId : notnull
 public static class Typeshift.Generated.AgentRuns
+public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse<TResult>> Typeshift.Generated.AgentRuns.AnswerAsync<TAgent, TResult>(Typeshift.AgentHost<TAgent> host, System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
+public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> Typeshift.Generated.AgentRuns.AnswerAsync<TAgent>(Typeshift.AgentHost<TAgent> host, System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
+public static Typeshift.StreamingRun<TResult> Typeshift.Generated.AgentRuns.AnswerStreamingAsync<TAgent, TResult>(Typeshift.AgentHost<TAgent> host, System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
+public static System.Collections.Generic.IAsyncEnumerable<Microsoft.Extensions.AI.ChatResponseUpdate> Typeshift.Generated.AgentRuns.AnswerStreamingAsync<TAgent>(Typeshift.AgentHost<TAgent> host, System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
 public static System.Threading.Tasks.Task<TSettings> Typeshift.Generated.AgentRuns.ConfigureAsync<TAgent, TSettings>(Typeshift.AgentHost<TAgent> host, System.Func<TSettings, TSettings> configure, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent where TSettings : class, Typeshift.IStorable<TSettings>, new()
 public static System.Threading.Tasks.Task<Typeshift.Stored<TSettings>> Typeshift.Generated.AgentRuns.LoadSettingsAsync<TAgent, TSettings>(Typeshift.AgentHost<TAgent> host, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent where TSettings : class, Typeshift.IStorable<TSettings>, new()
 public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatOptions> Typeshift.Generated.AgentRuns.ResolveOptionsAsync<TAgent>(Typeshift.AgentHost<TAgent> host, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent

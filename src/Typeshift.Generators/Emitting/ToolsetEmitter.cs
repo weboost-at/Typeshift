@@ -170,7 +170,7 @@ internal static class ToolsetEmitter
 
             writer.Line($"{ToolJson} json) =>");
 
-            // D24: the tool loop asks the host before it calls the tool
+            // D81: the mark by which the gate knows a tool whose calls your app decides
             writer.Line(tool.RequiresApproval
                 ? $"new {ApprovalRequired}(new {Names.FunctionName(tool.Name)}({arguments}));"
                 : $"new {Names.FunctionName(tool.Name)}({arguments});");

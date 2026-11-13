@@ -100,7 +100,9 @@ Sub-agents that work at the same time share their caller's scope, and with it th
 
 In the tool list the model receives, the servers' tools come after the agent's own.
 `UseMcpServer(...).RequiresApproval()` makes every call of the server's tools need approval, as
-[Approval and modes](./tool-approval.md) describes. `ReadOnly()` marks every tool of the server as reading only, so
+[Approval and modes](./tool-approval.md) describes. The decision about such a call names the server in `Server`, and
+an [approval for the conversation](./tool-approval.md#approving-for-the-conversation) covers that server's tool
+only. `ReadOnly()` marks every tool of the server as reading only, so
 [plan mode](./tool-approval.md#plan-mode) offers them all. Use it only for a server whose tools change nothing.
 
 The run fails when a server's tool is named like one of the agent's own tools or like a tool of another server it

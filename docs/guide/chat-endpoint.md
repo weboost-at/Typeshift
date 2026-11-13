@@ -1,14 +1,15 @@
 ---
 title: Serving a chat endpoint
-description: Run an agent from ASP.NET Core endpoints, stream its answer to a chat UI as server-sent events, and answer tool approvals by their ids.
+description: Run an agent from ASP.NET Core endpoints, stream its answer to a chat UI as server-sent events, and answer the decisions a run waits for by their ids.
 ---
 
 # Serving a chat endpoint
 
 A chat UI talks to your agent through endpoints of your web app. The UI posts the user's message to a chat, gets the
-answer back whole or as it streams, and posts the user's answers to the tool calls that wait for approval. This page
-builds those endpoints with ASP.NET Core minimal APIs, on the [runs](./running-agents.md),
-[conversations](./conversations.md) and [approvals](./tool-approval.md) the other pages describe.
+answer back whole or as it streams, and posts the user's answer to each decision the run waits for, such as a tool
+call that needs approval. This page builds those endpoints with ASP.NET Core minimal APIs, on the
+[runs](./running-agents.md), [conversations](./conversations.md) and [decisions](./tool-approval.md) the other pages
+describe.
 
 ## Post a message
 
@@ -46,7 +47,7 @@ chat.MapPost("/messages", async (
   for example with `RequireAuthorization()`.
 - The `CancellationToken` is the request's, so the run is cancelled when the user leaves the page. A run that should
   finish anyway takes no token.
-- `ChatReply` is the JSON the UI gets back: the answer's text and the approvals it waits for.
+- `ChatReply` is the JSON the UI gets back: the answer's text and the decisions it waits for.
 
 The filter on the group checks that the chat belongs to the caller before any endpoint of the group runs, because
 Typeshift resumes whichever conversation it is given
@@ -85,31 +86,20 @@ change:
 ```cs
 internal sealed record ChatInput(string Text);
 
-internal sealed record ChatReply(string Text, IReadOnlyList<PendingApproval> Approvals)
+// A decision writes its own JSON: its kind, its id, and what the UI shows to ask
+internal sealed record ChatReply(string Text, IReadOnlyList<Decision> Decisions)
 {
-    public static ChatReply From(ChatResponse answer) =>
-        new(answer.Text, [.. answer.ApprovalRequests.Select(PendingApproval.From).OfType<PendingApproval>()]);
-}
-
-// What the UI shows to ask, and sends back with the user's answer
-internal sealed record PendingApproval(
-    string RequestId,
-    string CallId,
-    string Tool,
-    IDictionary<string, object?>? Arguments)
-{
-    public static PendingApproval? From(ToolApprovalRequestContent request) =>
-        request.ToolCall is FunctionCallContent call
-            ? new(request.RequestId, call.CallId, call.Name, call.Arguments)
-            : null;
+    public static ChatReply From(ChatResponse answer) => new(answer.Text, answer.Decisions);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatContracts.cs#L5-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-contracts' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatContracts.cs#L5-L13' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-contracts' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`ApprovalRequests` lists the calls that wait for approval ([When a call needs approval](./tool-approval.md#when-a-call-needs-approval)).
-`PendingApproval` keeps the tool and its arguments, which the UI shows when it asks, and the ids the UI sends back with
-the user's answer. Show the arguments as the model sent them, because those are the arguments the call runs with.
+`Decisions` lists what the run waits for
+([When a call needs approval](./tool-approval.md#when-a-call-needs-approval)). A decision writes its own JSON, so the
+reply returns it as it is: its `kind`, `approval` or `plan`, its `id`, which the UI sends back with the user's
+answer, and what the UI shows to ask, the `tool` with its `arguments` or the `plan`. Show the arguments as they are,
+because those are the arguments the call runs with.
 
 ## Stream the answer
 
@@ -137,7 +127,7 @@ chat.MapPost("/messages/stream", (
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L37-L52' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-endpoint' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Each update becomes a `text` event with the text it adds, and each approval request an `approval` event:
+Each update becomes a `text` event with the text it adds, and each decision a `decision` event:
 
 <!-- snippet: chat-stream-events -->
 <a id='snippet-chat-stream-events'></a>
@@ -148,24 +138,24 @@ private static async IAsyncEnumerable<SseItem<object>> Events(IAsyncEnumerable<C
     {
         if (update.Text is { Length: > 0 } text) yield return new SseItem<object>(text, "text");
 
-        foreach (var request in update.Contents.OfType<ToolApprovalRequestContent>())
+        // Decisions come with the run's last update, so each one the UI shows can be answered
+        foreach (var decision in update.Decisions)
         {
-            if (PendingApproval.From(request) is { } approval)
-                yield return new SseItem<object>(approval, "approval");
+            yield return new SseItem<object>(decision, "decision");
         }
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L86-L100' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-events' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L87-L101' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-events' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-- Both events carry JSON, written with your app's JSON options: a `text` event holds its text as a JSON string, and an
-  `approval` event holds the `PendingApproval` with camelCase names. Parse each event's data with `JSON.parse`.
+- Both events carry JSON, written with your app's JSON options: a `text` event holds its text as a JSON string, and a
+  `decision` event holds the decision as the reply does. Parse each event's data with `JSON.parse`.
 - A browser reads the events with `fetch` and a reader over the response's body, because
   [`EventSource`](https://developer.mozilla.org/docs/Web/API/EventSource) sends only GET requests.
-- A run that asks for approval stores the requests, sends its `approval` events last, and then ends. Post the answers
-  once the stream has ended, when the reader reports that it is done. A reader that stops at an `approval` event
-  leaves the run to end on its own, and the answers still work.
+- A run that asks sends its `decision` events last, once it has ended, so the UI can post an answer the moment it
+  shows the prompt. A reader that left the stream before then gets the decisions from the
+  [endpoint below](#load-the-decisions).
 
 ## Follow a chat from elsewhere
 
@@ -202,90 +192,80 @@ internal sealed class ConversationHub(ConversationTracker<int> tracker, IChats c
 - The browser calls `connection.stream("Watch", chatId)`. SignalR cancels `ct` when the browser disposes its
   subscription or the connection drops, which ends the loop.
 
-## Answer the approvals
+## Load the decisions
 
-The UI posts the user's answer to each pending approval. The endpoint turns the answers into
-`ToolApprovalResponseContent`s and runs the conversation's next run with them:
+After a reload the page has lost what the last answer asked. `GetDecisionsAsync` reads it again, from the chat's
+decisions alone, without a run:
 
-<!-- snippet: chat-approval-endpoint -->
-<a id='snippet-chat-approval-endpoint'></a>
+<!-- snippet: chat-decisions-endpoint -->
+<a id='snippet-chat-decisions-endpoint'></a>
 ```cs
-chat.MapPost("/approvals", async Task<IResult> (
+chat.MapGet("/decisions", async (int chatId, AgentHost<SupportAgent> support, CancellationToken ct) =>
+    (await support.WithConversationId(chatId).GetDecisionsAsync(ct)).Open);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L54-L57' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-decisions-endpoint' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+The endpoint returns the open decisions, as the reply and the stream do. What it loaded also lists the tools
+[approved for the conversation](./tool-approval.md#approving-for-the-conversation), in `Standing`.
+
+## Answer a decision
+
+The UI posts the user's answer to one decision, by the decision's id. `AnswerAsync` records it and, once no decision
+of the chat is left open, carries the answers out and continues the run:
+
+<!-- snippet: chat-answer-endpoint -->
+<a id='snippet-chat-answer-endpoint'></a>
+```cs
+chat.MapPost("/decisions", async Task<IResult> (
     int chatId,
-    ApprovalAnswer[] answers,
+    DecisionAnswer answer,
     AgentHost<SupportAgent> support,
     ICurrentCustomer customer,
     CancellationToken ct) =>
 {
-    // No answers would drop every pending request
-    if (answers.Length == 0) return TypedResults.BadRequest();
-
-    var reply = new ChatMessage(ChatRole.User, [.. answers.Select(answer => answer.ToResponse())]);
-
     try
     {
         var resumed = await support
             .WithSettingsId(customer.Id)
             .WithConversationId(chatId)
-            .RunAsync(reply, ct: ct);
+            .AnswerAsync([answer], ct: ct);
 
+        // Its Decisions list what still waits
         return TypedResults.Ok(ChatReply.From(resumed));
     }
-    catch (ApprovalClosedException)
+    catch (DecisionClosedException)
     {
         // Answered already, in another tab or by a retry, or passed by a newer message: the UI drops it
         return TypedResults.Conflict();
     }
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L54-L82' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-approval-endpoint' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L59-L83' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-answer-endpoint' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-An answer to a request that has closed, for example one the user approved in another tab already, throws
-`ApprovalClosedException` before the run calls the model. The endpoint answers it with 409 Conflict, so the UI can
-drop the prompt ([When a request closes](./tool-approval.md#when-a-request-closes)).
-
-`ToResponse` rebuilds each request from its ids and answers it, with a
-[standing approval](./tool-approval.md#approving-for-the-conversation) of the tool when the user chose one:
-
-<!-- snippet: approval-answer -->
-<a id='snippet-approval-answer'></a>
-```cs
-internal sealed record ApprovalAnswer(
-    string RequestId,
-    string CallId,
-    string Tool,
-    bool Approved,
-    bool ForConversation = false,
-    string? Reason = null)
-{
-    // The call only fills in the request: Typeshift runs the call it stored under RequestId
-    public ToolApprovalResponseContent ToResponse()
-    {
-        var request = new ToolApprovalRequestContent(RequestId, new FunctionCallContent(CallId, Tool));
-
-        return Approved && ForConversation
-            ? request.ApproveForConversation()
-            : request.CreateResponse(Approved, Reason);
-    }
-}
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatContracts.cs#L28-L47' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-answer' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
-
-- The `CallId` and `Tool` the UI sends back only fill in the request. Typeshift runs the call it stored under
-  `RequestId` ([Approving or rejecting](./tool-approval.md#approving-or-rejecting)), and a standing approval goes to
-  that call's tool. Decide on the stored call with an [approval rule](./tool-approval.md#approval-rules), never on the
-  `Tool` the UI sent.
-- Post an answer to every pending approval at once, since the next run closes each request it has no answer for, and
-  clear the UI's pending approvals when the user sends a new message instead.
-- The answering run's host has the customer's settings id again
+- The body is a `DecisionAnswer`. `{"decisionId":"...","approved":true}` approves, `"approved":false` with a
+  `"reason"` rejects and tells the model why, `"forConversation":true` makes the approval a
+  [standing approval](./tool-approval.md#approving-for-the-conversation), and `"mode":"Auto"` picks the mode an
+  approved [plan](./tool-approval.md#plan-mode) continues in.
+- The UI sends back nothing of the call. Typeshift runs the call it stored under the id, with the arguments the user
+  saw, and checks the answer against the stored decision
+  ([Approving or rejecting](./tool-approval.md#approving-or-rejecting)).
+- While other decisions of the chat are open, no model is called and the reply's `Decisions` lists them, so the UI
+  posts one answer per prompt.
+- An answer to a decision that has closed, for example one the user approved in another tab already, throws
+  `DecisionClosedException` and records nothing. The endpoint answers it with 409 Conflict, so the UI can drop the
+  prompt ([When a decision closes](./tool-approval.md#when-a-decision-closes)).
+- Clear the UI's prompts when the user sends a new message instead, because the decisions that waited expire with it.
+- The answering host has the customer's settings id again
   ([Tracking a conversation](./conversations.md#tracking-a-conversation)).
 
 ::: warning A chat runs one answer at a time
 A conversation has one run at a time in a process ([One run at a time](./conversations.md#one-run-at-a-time)), so a
 second run of a chat throws an `InvalidOperationException` before it stores anything. That happens to a message posted
-while an answer still streams, a double click on send, or answers posted before the run that asked has ended.
+while an answer still streams, or to a double click on send. The last answer to a decision posted while a run of the
+chat goes on is recorded first and then throws the same way; post it again once that run has ended, and the chat
+continues.
 ASP.NET Core answers it with a 500 and logs an error. Disable the UI's send button while a run goes on, or pass a
 message to the running answer with `TrySteer` ([Steering](./conversations.md#steering)). With several instances of
 your app, nothing throws, so route each chat to one instance or keep its runs apart yourself.
@@ -295,5 +275,5 @@ your app, nothing throws, so route each chat to one instance or keep its runs ap
 
 - [Using an agent](./using-an-agent.md): the host from a request's scope, a console app or a background job.
 - [Streaming](./running-agents.md#streaming): what `RunStreamingAsync` returns.
-- [Approval and modes](./tool-approval.md): the approval round trip, rules and modes.
+- [Approval and modes](./tool-approval.md): decisions, their answers, rules and modes.
 - [Conversations](./conversations.md): what a chat stores, resuming, steering and live updates.

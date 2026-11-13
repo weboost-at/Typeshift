@@ -43,7 +43,7 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
     public long? EstimatedInputTokens { get; init; }
 
     /// <summary>
-    /// Whether the run ended with this entry: answered, failed, cancelled or waiting for approval.
+    /// Whether the run ended with this entry: answered, failed, cancelled or waiting for your app's decision.
     /// </summary>
     public bool EndsRun { get; init; }
 
@@ -58,12 +58,6 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
     /// later run starts from the latest such entry.
     /// </summary>
     public bool IsSummary { get; init; }
-
-    /// <summary>
-    /// The tools approved for the rest of the conversation, on a summary, since a run reads none of the answers
-    /// before it. Null on a summary an earlier version stored, whose runs load the whole conversation.
-    /// </summary>
-    public IReadOnlyList<string>? StandingApprovals { get; init; }
 
     /// <summary>
     /// The background sub-agents still working, on a summary: each call's id with the agent it called.
@@ -109,18 +103,6 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
         if (Mode is { } mode) writer.WriteString("mode", mode.ToString());
         if (IsSummary) writer.WriteBoolean("isSummary", true);
 
-        if (StandingApprovals is not null)
-        {
-            writer.WriteStartArray("standingApprovals");
-
-            foreach (var tool in StandingApprovals)
-            {
-                writer.WriteStringValue(tool);
-            }
-
-            writer.WriteEndArray();
-        }
-
         if (BackgroundCalls is not null)
         {
             writer.WriteStartObject("backgroundCalls");
@@ -162,7 +144,6 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
         }
 
         var estimate = StorableJson.Member(root, "estimatedInputTokens");
-        var approvals = StorableJson.Member(root, "standingApprovals");
         var background = StorableJson.Member(root, "backgroundCalls");
 
         entry = new ConversationEntry(
@@ -178,9 +159,6 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
             EndsRun = StorableJson.TryRead(StorableJson.Member(root, "endsRun"), out bool ends) && ends,
             Mode = StorableJson.TryReadEnum(StorableJson.Member(root, "mode"), out AgentMode mode) ? mode : null,
             IsSummary = StorableJson.TryRead(StorableJson.Member(root, "isSummary"), out bool summary) && summary,
-            StandingApprovals = StorableJson.TryReadList<string>(approvals, StorableJson.TryRead, out var tools)
-                ? tools
-                : null,
             BackgroundCalls = StorableJson.TryReadMap<string>(background, StorableJson.TryRead, out var calls)
                 ? calls
                 : null,

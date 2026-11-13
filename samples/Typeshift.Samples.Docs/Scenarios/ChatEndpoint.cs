@@ -17,7 +17,7 @@ using Typeshift.Samples.Web;
 namespace Typeshift.Samples.Scenarios;
 
 // Serves the chat endpoints on a local port and calls them as a chat UI would: a message, another customer's chat,
-// an approval answered by its ids, and a streamed answer
+// a decision loaded again and answered by its id, and a streamed answer
 internal static class ChatEndpoint
 {
     public static async Task RunAsync(IChatClient client, string database)
@@ -54,34 +54,37 @@ internal static class ChatEndpoint
             throw new InvalidOperationException("Expected another customer's chat to be hidden.");
 
         var asked = await PostAsync<ChatReply>(http, "/chats/42/messages", new ChatInput("Close ticket 1234."));
-        if (asked.Approvals is not [{ Tool: "close_ticket" } pending])
-            throw new InvalidOperationException("Expected one approval request for close_ticket.");
+        if (asked.Decisions is not [ApprovalDecision { Tool: "close_ticket" } pending])
+            throw new InvalidOperationException("Expected one decision about close_ticket.");
 
-        ApprovalAnswer[] answers = [new(pending.RequestId, pending.CallId, pending.Tool, Approved: true)];
-        await PostAsync<ChatReply>(http, "/chats/42/approvals", answers);
+        var reloaded = await http.GetFromJsonAsync<Decision[]>("/chats/42/decisions");
+        if (reloaded is not [{ } waiting] || waiting.Id != pending.Id)
+            throw new InvalidOperationException("Expected the page to load the decision again.");
 
-        var twice = await http.PostAsJsonAsync("/chats/42/approvals", answers);
+        var approved = new { decisionId = pending.Id, approved = true };
+        await PostAsync<ChatReply>(http, "/chats/42/decisions", approved);
+
+        var twice = await http.PostAsJsonAsync("/chats/42/decisions", approved);
         if (twice.StatusCode != HttpStatusCode.Conflict)
-            throw new InvalidOperationException("Expected the answers posted again to conflict.");
+            throw new InvalidOperationException("Expected the answer posted again to conflict.");
 
         var ticket = await app.Services.GetRequiredService<ITicketClient>().GetAsync(1234, default);
         if (ticket is not { Closed: true }) throw new InvalidOperationException("Expected the approved call to run.");
 
         var stream = await http.PostAsJsonAsync("/chats/43/messages/stream", new ChatInput("Close ticket 1234."));
         var events = await stream.Content.ReadAsStringAsync();
-        if (!events.Contains("event: approval", StringComparison.Ordinal))
-            throw new InvalidOperationException($"Expected an approval event: {events}");
+        if (!events.Contains("event: decision", StringComparison.Ordinal))
+            throw new InvalidOperationException($"Expected a decision event: {events}");
 
-        var streamed = JsonSerializer.Deserialize<PendingApproval>(
+        var streamed = JsonSerializer.Deserialize<Decision>(
             events.Split('\n').Single(line => line.StartsWith("data: {", StringComparison.Ordinal))[6..],
             JsonSerializerOptions.Web)!;
 
-        ApprovalAnswer[] always =
-            [new(streamed.RequestId, streamed.CallId, streamed.Tool, Approved: true, ForConversation: true)];
-        await PostAsync<ChatReply>(http, "/chats/43/approvals", always);
+        var always = new { decisionId = streamed.Id, approved = true, forConversation = true };
+        await PostAsync<ChatReply>(http, "/chats/43/decisions", always);
 
         var again = await PostAsync<ChatReply>(http, "/chats/43/messages", new ChatInput("Close ticket 1234 again."));
-        if (again.Approvals.Count > 0) throw new InvalidOperationException("Expected the standing approval.");
+        if (again.Decisions.Count > 0) throw new InvalidOperationException("Expected the standing approval.");
 
         var text = await http.PostAsJsonAsync("/chats/41/messages/stream", new ChatInput("Where is my refund?"));
         var answer = await text.Content.ReadAsStringAsync();

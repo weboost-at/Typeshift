@@ -102,7 +102,8 @@ unless it is an object of properties.
 ## A run
 
 1. The generated `RunAsync` passes the input, the settings id (boxed) and the run's `Settings` to `AgentRuns`, which
-   calls the host.
+   calls the host. `AnswerAsync` passes your app's answers the same way; the host records them and then resumes
+   (D80).
 2. `AgentHost<T>` resolves the options. It starts from a copy of the agent's chat options and its instructions, and
    applies each settings layer through the generated declaration: the agent's own stored settings, those under the
    settings id, then the run's. Each layer
@@ -111,13 +112,13 @@ unless it is an object of properties.
 3. It takes the client of the run's provider and model from the scope's `IChatClientProvider<T>` of the provider's
    type (D77), an `IChatClient` keyed by the provider, or the one registered for every agent (D63), and builds the
    pipeline, outermost first:
-   - the conversation (D46, D50), run middleware (D30), context providers (D31), approval and modes (D24, D52),
-     and author names on every message (D26);
-   - `FunctionInvokingChatClient`, with the run options, the scope's services, `exit_plan_mode` and the tool
-     middleware as its function invoker, built anew for each round with what is left of the run's limit, so one
-     client serves concurrent calls;
-   - the checkpoints, unique call ids (D59), compaction (D32), and the provider's client, instrumented (D36), behind a
-     wrapper that never disposes it (D29).
+   - the conversation (D46, D50), which also settles the decisions that wait (D80), run middleware (D30), context
+     providers (D31), the mode (D52), and author names on every message (D26);
+   - `FunctionInvokingChatClient`, with the run options, the scope's services, `exit_plan_mode` and, as its function
+     invoker, the tool gate with the tool middleware behind it, built anew for each pass with what is left of the
+     run's limit, so one client serves concurrent calls;
+   - the decision gate (D81), the checkpoints, unique call ids (D59), compaction (D32), and the provider's client,
+     instrumented (D36), behind a wrapper that never disposes it (D29).
 4. The options are a `ChatOptions` subclass that remembers the run options, so the raw path's client gets them too.
 
 ## Storage
@@ -137,7 +138,8 @@ from `WithSettingsId` and `WithConversationId`, and the id reaches the store of 
 folder of the file store's folder, a file per kind (D67). When the service collection, which `StoreAccess` reads at its
 first store call, holds no store, `StoreAccess` keeps everything in an `InMemoryTypeshiftStore` of its own per id type
 and warns on the first write (D69). Decisions alone have no store that must exist: without an `IDecisionStore<TId>`
-of the id's type a load answers "none" and only a write throws (D79).
+of the id's type a load answers "none" and only a write throws (D79). `DecisionLedger` is the only code that loads
+and saves a conversation's decisions document, each change as a compare-and-set on the version it loaded (D80).
 
 The generator writes each agent's `Settings` as an `IStorable<Settings>`, with a kind, a schema version, `Serialize` and
 `Deserialize`. It is an `IJsonStorable<Settings>` too, whose `WriteJson` and `TryReadJson` serve `Serialize` and the
@@ -148,9 +150,13 @@ well, so an agent's settings can delegate to the overrides of a toolset in anoth
 
 A run with a conversation id goes through `ConversationChatClient`. It claims the conversation in `LiveRuns`, which
 allows one run per conversation in a process, then loads the entries from the last summary on
-(`LoadConversationSinceCompactionAsync`) and builds the history without unanswered calls, errors and the approval
-requests that closed. It throws `ApprovalClosedException` when the input answers one of those (D60), stores the
-input, begins the run in `LiveRuns`, and ends the run with an entry of its own.
+(`LoadConversationSinceCompactionAsync`) and the conversation's decisions, and builds the history without unanswered
+calls, errors and the approval contents an earlier version stored. Before the run begins, it settles the batch of
+decisions the conversation holds (D80, D81). New input expires an open batch, and the history gets a result for each
+of its calls. An answered batch is marked started and handed to the run as a replay. A batch that another run
+started and left gets a result for each call that has none. A resume of an open batch returns its decisions without
+a run. Then it stores the input, begins the run in `LiveRuns`, and ends the run with an entry of its own. When the
+run asked your app, the decisions join the response after that end, in a message of their own that nothing stores.
 
 Inside the tool loop, `CheckpointChatClient` stores the steps before each model call, tool results first and then
 any steering input it takes in, and stores each response as it arrives. `ConversationRun` holds what one run stored
@@ -158,17 +164,25 @@ and where its steering input went. Streaming runs publish their updates through 
 that `ConversationTracker<TId>.WatchAsync` registered (D47). The container makes the tracker of each id type from one
 open-generic registration, and `WithConversationTracker<TId>()` closes one for Native AOT (D72).
 
-## Approval and modes
+## Decisions and modes
 
-`ApprovalChatClient` sits above `FunctionInvokingChatClient`. Before the tool loop runs, it binds the host's answers
-to the open requests the history holds and drops what no request matches. It also collects the standing
-approvals and switches the mode on an approved plan.
+`ModeChatClient` sits above `FunctionInvokingChatClient`, around each pass of a run. It hands the loop the run's
+tools, those that require approval inside a `GatedFunction`, which hides the mark the loop would pause on. In plan
+mode it offers only the read-only tools and `exit_plan_mode`, and appends the planning instruction. It builds the
+loop of the pass with what is left of the run's limit.
 
-After each pass of the tool loop, it answers the requests that rules, standing approvals and auto mode decide, and
-sends the tool loop round again. When requests are left, it stores them with its own answers and ends the run. In
-plan mode it offers only the read-only tools and `exit_plan_mode`, and appends the planning instruction. `AgentRun`
-carries the mode, and the run's ending entry stores it, so the conversation's next run resumes in it (D52). A
-summary stores the mode and the standing approvals too, since a later run reads nothing before it (D24, D32).
+`DecisionChatClient`, the gate, sits below the loop and above the checkpoints, so it reads each model response
+before the loop does. It gives every call that needs one a verdict on `ConversationRun`: the approval rules first,
+then the conversation's standing approvals, then the mode. When a call is left for your app, it opens a batch through
+`DecisionLedger` and marks the response's calls informational, so the loop invokes none and the run ends. In a run
+that carries out an answered batch, the gate answers the first model call with the batch's calls in place of the
+model. `ToolGate`, the loop's function invoker, returns a rejected call's text and runs every other call through the
+tool middleware, and a `GatedFunction` runs only a call the gate cleared (D81).
+
+`AgentHost` has the members that need no run, `GetDecisionsAsync` and `RecordAnswersAsync`, both through the ledger.
+`AgentRun` carries the mode, and the run's ending entry stores it, so the conversation's next run resumes in it; a
+summary stores the mode too, since a later run reads nothing before it (D52, D32). Standing approvals are in the
+decisions document, which a summary leaves alone.
 
 ## Middleware and context
 
@@ -204,7 +218,8 @@ other run starts in between (D50).
 ## MCP servers
 
 When `AgentHost` resolves a run's options, it asks the host's `IMcpToolProvider` for each server's tools. It offers
-them after the agent's own, marked for plan mode or wrapped for approval (D35).
+them after the agent's own, marked for plan mode or wrapped for approval with the server's name, which a decision
+and a standing approval about the tool carry (D35, D81).
 
 ## Related
 

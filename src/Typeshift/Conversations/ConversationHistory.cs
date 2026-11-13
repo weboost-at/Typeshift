@@ -4,18 +4,14 @@ namespace Typeshift;
 
 // D46: what a run starts from: the stored messages, as a provider accepts them. Each call's result follows the
 // message that made the call, wherever a later entry stored it. Left out are the error messages, a call that never
-// got a result, a result whose call is missing, every copy of a call stored twice but its last, and the requests
-// that closed (D24, D60). A call that waited for approval is in the conversation twice: as the model made it, before
-// its request, and as the tool loop made it again once the call was answered, so its last copy is the one that ran
+// got a result, a result whose call is missing, and every copy of a call stored twice but its last. Requests for
+// input and their answers, which a version before the decisions document stored (D80), are left out too: no
+// provider receives one
 internal static class ConversationHistory
 {
     public static List<ChatMessage> From(IReadOnlyList<ConversationEntry> entries)
     {
-        var since = SinceSummary(entries);
-        var messages = since.SelectMany(entry => entry.Messages).ToList();
-        var contents = messages.SelectMany(message => message.Contents).ToList();
-        var open = OpenRequests(since);
-        var replied = contents.OfType<ToolApprovalResponseContent>().Select(answer => answer.RequestId).ToHashSet();
+        var messages = SinceSummary(entries).SelectMany(entry => entry.Messages).ToList();
         var pairs = new Pairs(messages);
         var usable = new List<ChatMessage>();
 
@@ -24,11 +20,9 @@ internal static class ConversationHistory
             var kept = message.Contents
                 .Where(content => content switch
                 {
-                    ErrorContent => false,
+                    ErrorContent or InputRequestContent or InputResponseContent => false,
                     FunctionCallContent call => pairs.Keeps(call),
                     FunctionResultContent result => pairs.StaysIn(message, result),
-                    ToolApprovalRequestContent request =>
-                        replied.Contains(request.RequestId) || open.Contains(request.RequestId),
                     _ => true
                 })
                 .ToList();
@@ -40,49 +34,6 @@ internal static class ConversationHistory
 
         return usable;
     }
-
-    // D24, D60: the requests the host may still answer, those the conversation's last run left open. A later run
-    // dropped every request it had no answer for, so an answer to one of those would run nothing
-    public static HashSet<string> OpenRequests(IReadOnlyList<ConversationEntry> entries)
-    {
-        var since = SinceSummary(entries);
-
-        // The last run begins after the last end another entry follows
-        var start = since.Take(since.Count - 1).ToList().FindLastIndex(entry => entry.EndsRun) + 1;
-
-        var open = new OpenRequests();
-        open.Add(since.Skip(start).SelectMany(entry => entry.Messages));
-        return [.. open.Ids];
-    }
-
-    // D60: why each request is not open: answered, passed by, or none the conversation holds since its summary
-    public static Dictionary<string, ApprovalClosedReason> Closed(
-        IReadOnlyList<ConversationEntry> entries,
-        IEnumerable<string> requests)
-    {
-        var since = SinceSummary(entries);
-        var replied = Replied(since);
-        var asked = RequestIds(since.SelectMany(entry => entry.Messages)).ToHashSet();
-
-        return requests.Distinct()
-            .ToDictionary(
-                request => request,
-                request => replied.Contains(request) ? ApprovalClosedReason.Answered
-                    : asked.Contains(request) ? ApprovalClosedReason.PassedBy
-                    : ApprovalClosedReason.Unknown);
-    }
-
-    public static IEnumerable<string> RequestIds(IEnumerable<ChatMessage> messages) =>
-        messages.SelectMany(message => message.Contents)
-            .OfType<ToolApprovalRequestContent>()
-            .Select(request => request.RequestId);
-
-    private static HashSet<string> Replied(IEnumerable<ConversationEntry> entries) =>
-        entries.SelectMany(entry => entry.Messages)
-            .SelectMany(message => message.Contents)
-            .OfType<ToolApprovalResponseContent>()
-            .Select(answer => answer.RequestId)
-            .ToHashSet();
 
     // D32: compaction stored what it left of the history; what came before is in it
     public static IReadOnlyList<ConversationEntry> SinceSummary(IReadOnlyList<ConversationEntry> entries)

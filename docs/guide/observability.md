@@ -51,8 +51,13 @@ The `invoke_agent` span carries these tags:
 
 ::: warning A failed save does not fail the run
 When the store fails to save an entry, the run goes on. Typeshift logs the failure as an error and records the
-exception on the run's span, so watch your logs or spans for it.
+exception on the run's span, so watch your logs or spans for it. Only what a run asks your app must be saved: a run
+that could not store it fails, with the store's exception on its span.
 :::
+
+A run that ends asking your app is no failure. Its span has no error and no `execute_tool` span for the calls that
+wait; those appear under the run that carries your app's answers out
+([Approval and modes](./tool-approval.md#how-approval-works)).
 
 A compaction summary that fails does not fail the run either: Typeshift logs a warning, records the exception on the
 run's span, and goes on as [The summary model](./models.md#the-summary-model) describes.

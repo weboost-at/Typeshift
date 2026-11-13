@@ -74,7 +74,8 @@ call each other in a circle through `UseAgent` ([TSH026](./diagnostics.md#tsh026
 
 ::: warning A sub-agent cannot ask for approval
 A sub-agent cannot stop to ask your app for approval. In the default mode, each of its calls that needs approval is
-rejected unless a standing approval or a rule covers it. The analyzer warns about such tools
+rejected unless a standing approval or a rule covers it, and the sub-agent's model reads why. The analyzer warns
+about such tools
 ([TSH024](./diagnostics.md#tsh024)), so add a rule, or hand off to the agent instead.
 :::
 

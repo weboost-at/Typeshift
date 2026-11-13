@@ -122,7 +122,7 @@ style; the essentials:
 | Storable types of configurable members | `guide/tool-settings.md#storable-types` | `builders.md` (link) |
 | Chat options and run options, their defaults | `guide/builders.md` | `defining-agents.md`, `conversations.md#compaction` |
 | Providers and models, clients from configuration, keys per customer, wrapping clients, provider failures, each agent's provider id type (from its `WithModel`), the summary model | `guide/models.md` | `running-agents.md#chat-clients`, `registration.md#ids`, `builders.md` (`WithModel`), `defining-agents.md` (link), `generated-members.md#per-agent` (`Provider`), `diagnostics.md#tsh029`, `conversations.md#compaction` |
-| Approval and modes | `guide/tool-approval.md` | `builders.md` (link) |
+| Decisions (what a run asks your app, answering by id, when a decision closes), approval rules, standing approvals and modes | `guide/tool-approval.md` | `builders.md` (link), `chat-endpoint.md` (the endpoints), `conversations.md#what-is-stored` (where decisions are kept), `generated-members.md#answerasync-and-answerstreamingasync` (signatures) |
 | Settings layers and precedence | `guide/settings-and-stores.md#settings-layering` | `tool-settings.md`, `defining-agents.md`, `running-agents.md` |
 | Getting an agent's host: injecting it, resolving it from a scope, or taking it from the runtime in a console app or a job | `guide/using-an-agent.md` | `getting-started.md` (step 4), `registration.md` (the lifetime), `running-agents.md` (lead) |
 | The order of a run's steps | `guide/how-a-run-works.md` | `contributing/architecture.md#a-run` (the code's side) |
@@ -131,7 +131,7 @@ style; the essentials:
 | Keeping every conversation (`WithOptions`, `PersistAllConversations`, `NewConversationIds`) | `guide/conversations.md#keeping-every-conversation` | `registration.md#the-chain`, `generated-members.md#runasync`, `multi-agent.md#handoff`, `tool-approval.md#when-a-call-needs-approval` (what a run without a conversation id cannot do) |
 | Ids in code (`WithSettingsId`, `WithConversationId`), stores of several id types | `guide/settings-and-stores.md#ids-of-your-own-types` | `registration.md#ids`, `generated-members.md` (signatures), `diagnostics.md#tsh028`, `running-agents.md#the-raw-path` (a `string` id in `ChatOptions.ConversationId`) |
 | Conversations: storage, resume, steering, live updates and the tracker of each id type, compaction | `guide/conversations.md` | `native-aot.md#trackers-of-value-type-ids` |
-| A chat UI's endpoints: posting, streaming as server-sent events, approvals by their ids | `guide/chat-endpoint.md` | |
+| A chat UI's endpoints: posting, streaming as server-sent events, loading the decisions and answering one by its id | `guide/chat-endpoint.md` | |
 | Generated members, `AgentHost` members and signatures | `guide/generated-members.md` | `running-agents.md` |
 | Spans, metrics and message content | `guide/observability.md` | `models.md#wrapping-a-client` (a second `UseOpenTelemetry()`) |
 | Native AOT: the project, JSON metadata for tool and run types, trackers of value-type ids | `guide/native-aot.md` | `diagnostics.md#tsh027`, `toolsets.md#results` (link), `conversations.md#live-updates` (the tracker tip) |

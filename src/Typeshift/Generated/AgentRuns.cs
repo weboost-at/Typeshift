@@ -84,7 +84,89 @@ public static class AgentRuns
         host.RunStreamingCoreAsync(input, settings, ct);
 
     /// <summary>
-    /// Continues the interrupted run of the host's conversation from its last stored step, without new input.
+    /// Records answers to decisions of the host's conversation and, once no decision is left open, carries them out
+    /// and continues the run.
+    /// </summary>
+    /// <typeparam name="TAgent">The agent.</typeparam>
+    /// <param name="host">The host, with the run's services and ids.</param>
+    /// <param name="answers">The answers.</param>
+    /// <param name="settings">The run's settings, over the stored ones.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The response; with decisions left open, one that lists them and called no model.</returns>
+    /// <exception cref="DecisionClosedException">An answer names a decision that is not open.</exception>
+    /// <exception cref="ArgumentException">An answer does not fit its decision, or there is none.</exception>
+    /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
+    public static Task<ChatResponse> AnswerAsync<TAgent>(
+        AgentHost<TAgent> host,
+        IReadOnlyList<DecisionAnswer> answers,
+        object? settings,
+        CancellationToken ct)
+        where TAgent : Agent =>
+        host.AnswerCoreAsync(answers, settings, ct);
+
+    /// <summary>
+    /// Records answers to decisions of the host's conversation and, once no decision is left open, carries them out
+    /// and continues the run, asking for JSON of <typeparamref name="TResult"/>'s schema.
+    /// </summary>
+    /// <typeparam name="TAgent">The agent.</typeparam>
+    /// <typeparam name="TResult">The result.</typeparam>
+    /// <param name="host">The host, with the run's services and ids.</param>
+    /// <param name="answers">The answers.</param>
+    /// <param name="settings">The run's settings, over the stored ones.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The response, with the result; with decisions left open, one that lists them and has none.</returns>
+    /// <exception cref="DecisionClosedException">An answer names a decision that is not open.</exception>
+    /// <exception cref="ArgumentException">An answer does not fit its decision, or there is none.</exception>
+    /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
+    public static Task<ChatResponse<TResult>> AnswerAsync<TAgent, TResult>(
+        AgentHost<TAgent> host,
+        IReadOnlyList<DecisionAnswer> answers,
+        object? settings,
+        CancellationToken ct)
+        where TAgent : Agent =>
+        host.AnswerCoreAsync<TResult>(answers, settings, ct);
+
+    /// <summary>
+    /// Records answers to decisions of the host's conversation and, once no decision is left open, carries them out
+    /// and continues the run, streaming the updates. The answers are recorded when the updates are read.
+    /// </summary>
+    /// <typeparam name="TAgent">The agent.</typeparam>
+    /// <param name="host">The host, with the run's services and ids.</param>
+    /// <param name="answers">The answers.</param>
+    /// <param name="settings">The run's settings, over the stored ones.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The updates; with decisions left open, one update that lists them.</returns>
+    public static IAsyncEnumerable<ChatResponseUpdate> AnswerStreamingAsync<TAgent>(
+        AgentHost<TAgent> host,
+        IReadOnlyList<DecisionAnswer> answers,
+        object? settings,
+        CancellationToken ct)
+        where TAgent : Agent =>
+        host.AnswerStreamingCoreAsync(answers, settings, ct);
+
+    /// <summary>
+    /// Records answers to decisions of the host's conversation and, once no decision is left open, carries them out
+    /// and continues the run, streaming the updates and asking for JSON of <typeparamref name="TResult"/>'s schema.
+    /// The answers are recorded when the updates are read.
+    /// </summary>
+    /// <typeparam name="TAgent">The agent.</typeparam>
+    /// <typeparam name="TResult">The result.</typeparam>
+    /// <param name="host">The host, with the run's services and ids.</param>
+    /// <param name="answers">The answers.</param>
+    /// <param name="settings">The run's settings, over the stored ones.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The run, which streams its updates and then holds the result.</returns>
+    public static StreamingRun<TResult> AnswerStreamingAsync<TAgent, TResult>(
+        AgentHost<TAgent> host,
+        IReadOnlyList<DecisionAnswer> answers,
+        object? settings,
+        CancellationToken ct)
+        where TAgent : Agent =>
+        host.AnswerStreamingCoreAsync<TResult>(answers, settings, ct);
+
+    /// <summary>
+    /// Continues the host's conversation without new input: its interrupted run from the last stored step, or the
+    /// decisions your app answered. While decisions are still open it calls no model and returns them.
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <param name="host">The host, with the run's services and ids.</param>
@@ -100,8 +182,9 @@ public static class AgentRuns
         host.RunCoreAsync(null, settings, ct);
 
     /// <summary>
-    /// Continues the interrupted run of the host's conversation from its last stored step, without new input,
-    /// streaming the updates.
+    /// Continues the host's conversation without new input, streaming the updates: its interrupted run from the last
+    /// stored step, or the decisions your app answered. While decisions are still open it calls no model and sends
+    /// them in one update.
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <param name="host">The host, with the run's services and ids.</param>

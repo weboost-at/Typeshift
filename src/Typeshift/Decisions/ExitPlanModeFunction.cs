@@ -3,12 +3,13 @@ using Microsoft.Extensions.AI;
 
 namespace Typeshift;
 
-// D52: the tool that ends plan mode; it always asks the host, and runs only once the host approved the plan
+// D52: the tool that ends plan mode. Its call always waits for your app, and the app's answer is its result, so the
+// function itself never runs
 internal sealed class ExitPlanModeFunction : AIFunction
 {
     public const string ToolName = "exit_plan_mode";
 
-    public static readonly AITool Instance = new ApprovalRequiredAIFunction(new ExitPlanModeFunction());
+    public static readonly ExitPlanModeFunction Instance = new();
 
     public const string Instructions =
         "You are in plan mode: research the task with the read-only tools you have, then present your plan with "
@@ -40,6 +41,7 @@ internal sealed class ExitPlanModeFunction : AIFunction
 
     public override JsonElement JsonSchema => Schema;
 
+    // D81: the tool loop's invoker answers the call from the decision's record and never gets here
     protected override ValueTask<object?> InvokeCoreAsync(AIFunctionArguments arguments, CancellationToken ct) =>
-        new("The user approved the plan. Carry it out now.");
+        throw new InvalidOperationException("exit_plan_mode is answered by your app's decision, never invoked.");
 }

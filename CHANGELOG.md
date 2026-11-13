@@ -17,6 +17,19 @@ All notable changes to this project are documented here. The format follows
 - `IDecisionStore<TId>` keeps one decisions document per conversation: JSON guarded by a version, saved like a
   settings document. `WithStore<T>()` registers it with the other store interfaces of a class,
   `InMemoryTypeshiftStore<TId>` implements it, and `VerifyAsync` checks it.
+- What a run asks your app is a decision, a record with an id of its own that is stored with the conversation.
+  `response.Decisions` lists an `ApprovalDecision` for each call of a tool that requires approval, with the tool, its
+  MCP server and the arguments the model sent, and a `PlanDecision` for a plan. A streaming run has them on its last
+  update, as `update.Decisions`.
+- `AnswerAsync(answers)` and `AnswerStreamingAsync(answers)` on an agent's host, with typed forms, record your app's
+  answers and continue the run once no decision is left open. Decisions can be answered one at a time: while others
+  are open no model is called, and the response lists the rest. `decision.Approve()`, `ApproveForConversation()`,
+  `Reject(reason)` and `plan.Approve(mode)` make the answers, and a `DecisionAnswer` binds from JSON such as
+  `{"decisionId":"...","approved":true}`, so an endpoint takes it as its body.
+- `host.GetDecisionsAsync()` loads what a conversation waits for without a run, for a page that was reloaded: the
+  open decisions, whether the answered ones wait to be carried out, and the tools approved for the conversation,
+  each with the time the approval took effect. `host.RecordAnswersAsync(answers)` records answers without a run,
+  and `ResumeAsync()` then carries them out.
 
 ### Changed
 
@@ -61,7 +74,7 @@ All notable changes to this project are documented here. The format follows
   every record has from `object`, which is CS0108. Settings stored under the tool's name are not affected.
 - The module of an assembly whose name holds other characters than letters, digits and dots carries a hash of the
   name, as `Acme_Tools_1a2b3c4dModule` for `Acme-Tools`. The generated registration names it for you.
-- Module stamps are at version 7, so a referenced project built with an earlier Typeshift is TSH020 until it is
+- Module stamps are at version 8, so a referenced project built with an earlier Typeshift is TSH020 until it is
   rebuilt.
 - The class that holds a toolset's picks for `Include` and `Exclude` lives in the global namespace, as the classes
   of the host members do. It was `{Toolset}ToolList` in the toolset's namespace and is `TypeshiftTools_` followed by
@@ -76,6 +89,34 @@ All notable changes to this project are documented here. The format follows
 - A layer taken out of the client `CreateChatClientAsync` created, such as its `FunctionInvokingChatClient` through
   `GetService`, throws when it is called on its own. Such a call ran the tools, stored nothing in the conversation
   and counted no model call. Call the created client itself.
+- **Breaking:** approvals no longer travel in messages. `response.ApprovalRequests`, `request.ApproveForConversation()`
+  and `request.ApprovePlan(mode)` are gone, and a `ChatMessage` that carries Microsoft.Extensions.AI's approval
+  contents throws an `ArgumentException` in `RunAsync`. Read `response.Decisions` in place of `ApprovalRequests`,
+  answer with `decision.Approve()` or `decision.Reject(reason)` in place of `request.CreateResponse(...)`, with
+  `ApproveForConversation()` on the decision, and with `plan.Approve(mode)` in place of `ApprovePlan(mode)`. Pass the
+  answers to `chat.AnswerAsync(answers)` in place of `chat.RunAsync(new ChatMessage(ChatRole.User, answers))`.
+- **Breaking:** `ApprovalClosedException` and `ApprovalClosedReason` are `DecisionClosedException` and
+  `DecisionClosedReason`. `Requests` is `Decisions`, and `PassedBy` is `Expired`. The same answer posted again is no
+  error while the answers are not carried out yet.
+- **Breaking:** a streaming run no longer sends `ToolApprovalRequestContent`. Its decisions arrive with its last
+  update, once the run has ended, so an app can answer each one the moment it shows it.
+- **Breaking:** `ResumeAsync` on a conversation whose decisions are open returns them without a model call, where it
+  threw.
+- **Breaking:** `ConversationEntry.StandingApprovals` is gone. Standing approvals are stored with the conversation's
+  decisions, listed by `GetDecisionsAsync()`, and take effect when a run carries their answer out. An MCP server's
+  tool is approved together with its server, so the approval reaches no other tool of that name.
+- **Breaking:** conversations stored by earlier versions load, with two losses. An approval request that was open
+  cannot be answered any more: the model decides again and asks again. Standing approvals given before are not
+  carried over, so the conversation asks once more.
+- A run without a conversation that must ask throws `DecisionUnavailableException`, an `InvalidOperationException`
+  as before. An app with an `IConversationStore<TId>` of its own and no `IDecisionStore<TId>` of that id type fails
+  the first run that must ask, naming the interface.
+- A new message while decisions wait still closes them. The model now reads, for each call of that response, that
+  the call did not run, where the calls were left out of what it saw.
+- A call that a rule, a standing approval or auto mode approves runs in the round the model called it and writes
+  nothing to the store. A run with such calls keeps to `WithMaxToolIterations`, which it could exceed by a round.
+- A provider's client wrapped in `UseFunctionInvocation()`, which the guide advises against, runs no tool that
+  requires approval: the model reads that the call was not approved.
 
 ### Fixed
 
@@ -85,6 +126,24 @@ All notable changes to this project are documented here. The format follows
 - A store that failed to save one model response no longer breaks the conversation. Its tool result stayed in the
   history without the call it answers, and providers rejected every later run. A run now leaves such a result out,
   and sends each tool result directly after the message that made its call, wherever the store holds it.
+- An approved call never starts twice. A run that was cancelled, or whose process stopped, while it carried out an
+  approval left the answer in the conversation, and the next run ran the call again, whatever its input. The next
+  run now tells the model that it is not known whether the call took effect.
+- A new message in place of an answer no longer runs the calls that waited beside the one that needed approval,
+  such as a call in the same response that a rule had approved.
+- No approval request or answer reaches a provider, and none is stored among a conversation's entries. Answered
+  pairs were sent with later model calls, and the app's answer was stored again on every pass of a steered run.
+- A background sub-agent's answer starts no model call while a decision is open. The model did not see the call
+  that waited, asked for it again, and the tool ran twice once both were approved.
+- An answer cannot reach another call that reuses its call id, also after a compaction summary, since a decision
+  has an id of its own.
+- `exit_plan_mode` called outside plan mode asks nobody: the model reads that it is not planning. A model in the
+  default mode that named the tool raised a plan prompt, and approving it into auto mode switched every later
+  approval off. In auto mode without a conversation such a call failed the run.
+- A run that asks your app throws the store's exception when the store could not save the model's response or the
+  decision. It returned a request that was never stored, and the answer to it was refused as unknown.
+- The update of a streaming run that carries what it asks keeps the message id, response id, model and finish
+  reason of the response that asked.
 - A streaming run's spans form one tree: its `execute_tool` spans and its `chat` spans after the first update are
   children of the run's `invoke_agent` span, as in a run that does not stream. They attached to the span of the
   caller, such as the web request's, or started traces of their own.

@@ -42,6 +42,15 @@ internal sealed class ResolvedChatOptions : ChatOptions
     // D64: the format a typed run asked for, which an agent answering in its place answers in too
     public ChatResponseFormat? ResultFormat { get; set; }
 
+    // D29: the conversation's client gives every call its run. A call without one came from a layer taken out of the
+    // created client, and passing it on would decide no call, store nothing and count no model call
+    public static ResolvedChatOptions OfRun(ChatOptions? options) =>
+        options is ResolvedChatOptions { AgentRun: not null, ConversationRun: not null } resolved
+            ? resolved
+            : throw new InvalidOperationException(
+                "A client taken out of the one CreateChatClientAsync created was called on its own: call the created "
+                + "client, which begins the run its tool loop and checkpoints belong to.");
+
     // A clone of the options, keeping what this type remembers
     public static ResolvedChatOptions From(ChatOptions options) =>
         options is ResolvedChatOptions resolved

@@ -41,9 +41,8 @@ internal sealed class DecisionLedger(StoreAccess stores, TimeProvider time)
 
     // T3, the commit point: from here on every call the batch would run counts as started, so no later run starts
     // one again. Of two runs that continue one answered batch, one wins and the other learns its answers are closed
-    public async Task<DecisionBatch> StartAsync(StoreId conversation, DecisionBatch batch, CancellationToken ct)
-    {
-        var started = await ChangeAsync(
+    public Task<DecisionDocument> StartAsync(StoreId conversation, DecisionBatch batch, CancellationToken ct) =>
+        ChangeAsync(
             conversation,
             document => document.Batch is { State: BatchState.Answered } answered && answered.IsSame(batch)
                 ? document with
@@ -55,9 +54,6 @@ internal sealed class DecisionLedger(StoreAccess stores, TimeProvider time)
                     conversation,
                     batch.Ids.ToDictionary(id => id, id => ClosedReason(document, id))),
             ct);
-
-        return started.Batch!;
-    }
 
     // T5: new input passes an open batch by. The batch as it stands afterwards: expired, or what answers that came
     // first made of it, which the caller then carries out

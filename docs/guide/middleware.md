@@ -93,7 +93,8 @@ internal sealed class AuditToolCalls(ICurrentCustomer customer, ILogger<AuditToo
 
 - It receives Microsoft.Extensions.AI's `FunctionInvocationContext`: the function, its arguments and the messages so
   far.
-- A call that a rule or your app rejects never reaches it.
+- A call that a rule or your app rejects never reaches it. A call that waits for your app reaches it once your
+  answer approved it, in the run that carries the answer out.
 - What it returns is the result the model receives. Return without calling `next`, and it answers in place of the
   tool.
 - Setting `call.Terminate` ends the tool loop. The model isn't called again with this round's results, and other

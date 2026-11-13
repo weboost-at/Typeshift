@@ -239,8 +239,6 @@ public class ContextProviderTests : MiddlewareTestBase
         var response = await RunAsync(Data.Tool.Question);
 
         // Assert
-        response.ApprovalRequests.Select(request => ((FunctionCallContent)request.ToolCall).Name)
-            .Should()
-            .Equal("lookup");
+        response.Decisions.OfType<ApprovalDecision>().Select(decision => decision.Tool).Should().Equal("lookup");
     }
 }

@@ -189,8 +189,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - **Status:** carried (v0 D4).
 - **Decision:** `extension(AgentHost<TAgent> host)` per agent, in the agent's assembly, with `RunAsync`, `RunAsync<T>`,
-  `RunStreamingAsync`, `ResumeAsync`, `ResumeStreamingAsync`, `LoadSettingsAsync`, `SaveSettingsAsync`, `ConfigureAsync`
-  and `ResolveOptionsAsync`. They call hidden library methods, so the logic lives and is tested in the library.
+  `RunStreamingAsync`, `ResumeAsync`, `ResumeStreamingAsync`, `AnswerAsync`, `AnswerStreamingAsync` (D80, at stamp
+  version 8), `LoadSettingsAsync`, `SaveSettingsAsync`, `ConfigureAsync` and `ResolveOptionsAsync`. They call hidden
+  library methods, so the logic lives and is tested in the library.
 - **Namespace:** the blocks live in the global namespace, in a file of their own per agent, so every file has them in
   scope. In the agent's namespace, a file that named the agent in full or through an alias saw no typed members, and
   the owner asked why `RunAsync` was missing at times; the `Typeshift` namespace would have hidden them from a file
@@ -334,31 +335,19 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 ### D24. Tool approval uses Microsoft.Extensions.AI's contents, with standing approvals and rules
 
-- **Status:** approved.
-- **Decision:** `RequiresApproval()` wraps the tool in `ApprovalRequiredAIFunction`; `FunctionInvokingChatClient` ends
-  the run with `ToolApprovalRequestContent`s, listed by `response.ApprovalRequests`. The host answers with
-  `CreateResponse(approved)` in the next run of the conversation; the stored request is the one that runs, a request
-  keeps its first answer, and an unanswered request is left out of the next run. Only the requests the conversation's
-  last run left unanswered, and did not pass by after steering input, are open: a later run's history leaves out the others, and an
-  answer to one throws before anything stores it (D60), so a closed request can neither run its call nor give a
-  standing approval.
-  A request in the input is dropped before anything stores it, so a host's input cannot bring a call of its own past the
-  rules. Standing approvals hold beyond what compaction left: a summary entry stores them. Calls in the same
-  response that need no approval wait with it and run once the host answered (the tool loop asks for every call of a
-  response once one needs approval; the approval layer approves the others). A run that asks without a conversation
-  throws, naming the tool. `request.ApproveForConversation()` approves the tool for the rest of the conversation; the
-  approval is stored with it, so it holds across runs and processes. `IToolApprovalRule`s (`WithApprovalRule<T>()`,
-  scoped) decide calls before the host is asked, seeing the exact arguments, with a `RuleVerdict`: `Approve`,
-  `Reject(reason)` (wins over every approval, and throws without a reason, which would read as no opinion) or
-  `Abstain`, which the mode resolves (D52). A layer above `FunctionInvokingChatClient` answers the
-  requests rules and standing approvals decide and continues the loop, so only the rest reach the host. It also stores
-  the requests and its own answers when a run ends asking, as `FunctionInvokingChatClient` keeps them out of what the
-  checkpoint layer below it sees; a streaming run stores them before the host reads them, so a host that stops
-  reading at a request can still answer it. Approvals match tools by name, which is unique per agent and across the agents its
-  approvals reach by handoff or as a sub-agent (TSH007, and a runtime check for MCP tools).
-- **Where:** `Approval/ApprovalChatClient.cs`, `Approval/ToolApproval.cs`.
-- **Alternatives:** an approval callback the run awaits, which holds a run open across requests; a Typeshift approval
-  type, a second vocabulary.
+- **Status:** approved; superseded by D80, which makes what a run asks a stored record, and D81, which moves the
+  pause below the tool loop.
+- **Was:** `FunctionInvokingChatClient` ended a run with `ToolApprovalRequestContent`s for the calls of tools wrapped
+  in `ApprovalRequiredAIFunction`, listed by `response.ApprovalRequests`. The host answered with
+  `CreateResponse(approved)`, `ApproveForConversation()` or `ApprovePlan(mode)` in a message of the conversation's
+  next run. A layer above the tool loop (`ApprovalChatClient`) answered the requests that rules and standing
+  approvals decided and continued the loop, stored the requests and its own answers when a run ended asking, and
+  read standing approvals from the stored answers and from a summary entry (`ConversationEntry.StandingApprovals`).
+- **Now:** a call that waits for your app is an `ApprovalDecision` in the conversation's decisions document, answered
+  by its id through `AnswerAsync` (D80). A gate below the tool loop decides each call, with the rules, the standing
+  approvals and the mode, and the loop never pauses (D81). `RequiresApproval()` still wraps the tool in
+  `ApprovalRequiredAIFunction`, which is how the gate knows it.
+- **Alternatives:** an approval callback the run awaits, which holds a run open across requests.
 
 ## Runtime
 
@@ -379,7 +368,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Decision:** `RunAsync` returns `ChatResponse`, `RunAsync<T>` `ChatResponse<T>`, `RunStreamingAsync`
   `ChatResponseUpdate`s; messages carry the answering agent as `AuthorName`. Inputs are a `string` or a
-  `ChatMessage` (for images and approvals). The raw path (`ResolveOptionsAsync`, `CreateChatClientAsync`, the client)
+  `ChatMessage` (for images). What a run asks your app comes back in the response as `DecisionRequestContent`s,
+  listed by `response.Decisions`, and is answered through `AnswerAsync`, never in an input (D80, D81). The raw path (`ResolveOptionsAsync`, `CreateChatClientAsync`, the client)
   stays; options it resolved remember their settings id, so the conversation id is the only string.
 - **Alternatives:** an own `AgentResponse`, a type to learn for what `ChatResponse` holds.
 
@@ -476,17 +466,17 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D29. The chat client pipeline
 
 - **Status:** approved.
-- **Decision:** outermost first: conversation tracking (resume, run boundaries, live updates, the `invoke_agent`
-  span), run middleware, context providers, approval (standing approvals and rules), `FunctionInvokingChatClient`
-  (handoff, run options, tool middleware as its `FunctionInvoker`), checkpoints (each step appended before compaction
+- **Decision:** outermost first: conversation tracking (resume, run boundaries, settling the decisions that wait,
+  live updates, the `invoke_agent` span), run middleware, context providers, the mode (the tools of the run's mode
+  and each pass's share of the limit), `FunctionInvokingChatClient` (handoff, run options, the tool gate and tool
+  middleware as its `FunctionInvoker`), the decision gate (D81), checkpoints (each step appended before compaction
   sees it; steering input and background answers injected here), unique call ids (D59), compaction,
   `OpenTelemetryChatClient`, the provider's client behind a wrapper that never disposes it.
-  Checkpoints and compaction sit inside the tool loop, so they act before every model call. The approval layer builds
-  a `FunctionInvokingChatClient` per round, whose iteration limit is that round's, so calls on one client never share
-  a limit.
+  The gate, checkpoints and compaction sit inside the tool loop, so they act around every model call. The mode
+  layer builds a `FunctionInvokingChatClient` per pass, whose iteration limit is that pass's, so calls on one client
+  never share a limit.
   The layers below the conversation's run only inside a run it began: the tool loop taken out of the created client
-  with `GetService` and called on its own throws at the checkpoint layer, where it would store nothing and count no
-  model call.
+  with `GetService` and called on its own throws at the gate, where it would store nothing and count no model call.
 - **Where:** `AgentHost.cs`.
 
 ### D30. Middleware: one interface around runs, one around tool calls
@@ -548,14 +538,16 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   its own model call, and every later run of the conversation, since each summarizes first. The run's cancellation
   still ends it. What compaction did holds for the rest of the run: the tool loop keeps the whole
   history, so each later call gets the same cleared results and summary. The summary entry holds the summary, the
-  kept todo list and copies of the kept messages, with the run's mode, its standing approvals and the background calls
-  still working, so a later run loads only that entry and the ones after it (`LoadConversationSinceCompactionAsync`,
-  which a store may override to leave the rest unread). A summary an earlier version stored keeps no standing approvals,
-  and its runs load the whole conversation. Rounds the approval layer continues share `MaxToolIterations`, and so do the
-  passes steering input or background answers start. Calls the host approves run in the conversation's next run, which
-  counts its own rounds.
+  kept todo list and copies of the kept messages, with the run's mode and the background calls still working, so a
+  later run loads only that entry and the ones after it (`LoadConversationSinceCompactionAsync`, which a store may
+  override to leave the rest unread). Standing approvals are no part of it: they are in the conversation's decisions
+  document, which no summary touches (D80). The passes steering input or background answers start share
+  `MaxToolIterations`: each gets what the run has left. A call a rule, a standing approval or auto mode approves is
+  a round like any other, since the gate decides it inside the loop (D81). Calls your app approves run in the
+  conversation's next run, which counts its own rounds; carrying them out takes one turn of the loop that calls no
+  model.
 - **Where:** `Compaction/`, `Conversations/ConversationEntry.cs` for the stored estimate,
-  `Conversations/ConversationRun.cs` for what a pass added, `Approval/ApprovalChatClient.cs` for the shared limit.
+  `Conversations/ConversationRun.cs` for what a pass added, `Approval/ModeChatClient.cs` for the shared limit.
 - **Alternatives:** MAF's strategy pipeline and trigger combinators, more concepts for the same two steps; a
   tokenizer dependency; message-count triggers, which ignore that one tool result may outweigh a hundred messages; a
   separate `WithCompaction()` chain next to the limits. For a summary call that fails: ending the run, as it did,
@@ -571,8 +563,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   call runs it in a fresh context with the same settings id, the caller's mode, standing approvals and rules, and no
   conversation of its own, and returns its text, or its JSON with `.WithResult<T>()` (D65). `.InBackground()` makes the tool return at once; the answer reaches
   the calling run as a message before a later model call, and the run does not end while sub-agents work. A
-  sub-agent cannot ask the host: in the default mode its calls that need approval and that nothing approves are
-  rejected (TSH024 warns). Circles are TSH026.
+  sub-agent cannot ask your app: in the default mode its calls that need approval and that nothing approves are
+  rejected, and its model reads the rejection as the call's result (D81; TSH024 warns). Circles are TSH026.
 - **As built:** the sub-agent's tool is a runtime `AIFunction` that builds the agent's `AgentHost<T>` over the
   caller's services through a factory `UseAgent<T>()` captured (D76), so no generated code is needed; it finds its caller's run through
   `FunctionInvokingChatClient.CurrentContext`. Background answers join the run through the steering queue, so
@@ -584,7 +576,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   require approval; tool stamps carry `RequiresApproval` for that list. TSH026 checks the compilation's own agents,
   since assemblies cannot reference each other in a circle.
 - **Where:** `Agents/SubAgentFunction.cs`, `Conversations/ConversationRun.cs`, `Analysis/TypeshiftAnalyzer.cs`.
-- **Alternatives:** passing a sub-agent's approval requests up to the caller's host, which pauses a parent run on a
+- **Alternatives:** passing a sub-agent's decisions up to the caller's conversation, which pauses a parent run on a
   child's call and needs the child's state stored to resume (possible later); MAF's six background-task tools
   (start, wait, results, continue, clear), where one tool and an injected answer do the job; storing each sub-agent
   run as a conversation of its own, which needs ids the library may not create.
@@ -595,7 +587,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** `UseHandoff<T>()` adds a declaration-only tool `handoff_to_{name}`. Calling it ends the current
   agent's loop; the target answers in the same run with the whole conversation. The conversation's last entry names
   the agent that answers its next run, if it is reachable through the host agent's handoffs. Handoff needs a
-  conversation; run settings apply to the host's agent only.
+  conversation; run settings apply to the host's agent only. A handoff called in a response of which a call waits
+  for your app is not carried out: the model reads that it was not handed off, and the agent that asked keeps the
+  conversation, so the answers continue with it (D81).
 - **As built:** the conversation layer sees the declaration's call the tool loop passes out, stores its result as an
   entry of the agent handed to, and lets that agent resume the run; a run without a conversation does not offer
   handoffs, and a call of an agent it does not hand off to is answered by the tool loop as an unknown tool. Tool results
@@ -882,8 +876,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - **Status:** owner; the second id, the entries' times and the save of a document that is not stored came with the
   audit of November 2026.
-- **Decision:** `store.VerifyAsync(id, otherId)`, an extension method on `ISettingsStore`, `IConversationStore` and
-  `ITypeshiftStore`, runs the rules Typeshift relies on against a store and throws an `InvalidOperationException` that
+- **Decision:** `store.VerifyAsync(id, otherId)`, an extension method on `ISettingsStore`, `IConversationStore`,
+  `IDecisionStore` and `ITypeshiftStore`, runs the rules Typeshift relies on against a store and throws an `InvalidOperationException` that
   names the rule a store broke. It runs the rules of every interface the store implements for ids of that type,
   whichever one it is called through, so a store that is both cannot pass on one alone. It needs no test framework,
   so a store's tests in any framework can call it. It writes under both ids, as settings ids and as conversation ids,
@@ -896,8 +890,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   reads no interfaces by reflection, which trimming rules out. A store whose settings ids and conversation ids have
   two types (D72) takes `VerifyAsync(settingsId, otherSettingsId, conversationId, otherConversationId)`, which
   throws when the store keeps no conversations under ids of that type, or one call per id type.
-- **Details:** the steps are on [Implementing a store](../guide/implementing-a-store.md#check-your-store). The summary
-  entries have `StandingApprovals` set, as compaction writes them. Entries carry fixed times, so the check reads no
+- **Details:** the steps are on [Implementing a store](../guide/implementing-a-store.md#check-your-store). A store
+  of decisions is checked under the conversation ids (D79). Entries carry fixed times, so the check reads no
   clock, and the times tie and run backwards, as real ones can after a clock step or between machines, so a store
   that orders a conversation by them fails; the check tells entries apart by their JSON. A save at a version other
   than 0 of a document that is not stored must conflict, as the save of a document deleted since it was loaded. A
@@ -1244,7 +1238,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** tracking wraps the tool loop and marks where a run begins and ends; checkpoints inside it store
   each step (D50). The provider never receives the
   conversation id. On resume, each result follows the message that made its call, and unanswered calls, results
-  without their call and error messages are left out. A failed save is logged and traced, and the answer returns. The agent's name goes on `AuthorName`, never into `AdditionalProperties`.
+  without their call and error messages are left out, and so are the approval requests and answers a version before
+  D80 stored. A failed save is logged and traced, and the answer returns; only the response that asks your app must
+  be stored, since a decision without its call could not be carried out (D81). The agent's name goes on
+  `AuthorName`, never into `AdditionalProperties`.
 - **Details:** the end of a run is an entry of its own (`EndsRun`), with an `ErrorContent` when the run failed, was
   cancelled or its stream was left early. Calls and results pair by call id, which D59 keeps unique in a conversation;
   of a call or a result a store holds twice, the last copy counts. The checkpoints know what they stored by reference, since the tool loop
@@ -1272,12 +1269,14 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** a conversation is a log of `ConversationEntry`s: a run's input, each model response (with model and
   usage), each tool result, compaction summaries; the run's last entry has `EndsRun`. Checkpoints append each step
   the moment it exists, tool results before the next model call. A run without an ending entry was interrupted:
-  `ResumeAsync(conversationId)` (and `ResumeStreamingAsync`) continues it without new input, leaving out a call that
-  was in flight; a new run on the conversation also starts from its steps. One run per conversation at a time in a
+  `ResumeAsync()` (and `ResumeStreamingAsync`) on the conversation's host continues it without new input, leaving
+  out a call that was in flight; a new run on the conversation also starts from its steps. Resuming also carries
+  out a batch of decisions your app answered, and while decisions are still open it calls no model and returns them
+  (D80, D81). One run per conversation at a time in a
   process, claimed before the run loads the conversation, so no run reads it while another still stores its end. A run
   that finds the conversation claimed by a run still loading it waits until that run began or let go; one that finds a
   run going on, or ending, throws. Across processes it is the host's to ensure. Resuming a conversation whose last run
-  ended throws.
+  ended and that waits for nothing throws.
 - **Alternatives:** one entry per run, rewritten at each step (a whole-run write per model call); re-running the
   interrupted tool call, unsafe for side effects; a `RunAsync` with a null input in place of `ResumeAsync`.
 - **Where:** `Conversations/`, the checkpoint layer of D29.
@@ -1292,7 +1291,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   cancelling its token. Steering input goes in after the message the tool loop's messages ended with when it
   arrived, found by reference in every later call of the run, so context that grows between passes cannot move it
   between a call and its result. Input a run took and no model received is stored with the run's end or its
-  handoff.
+  handoff. Steering input a run takes after it asked your app expires what it asked, as a new message does (D81). A
+  background agent's answer expires nothing and starts no model call while a batch is open: it is stored, and the
+  run that carries the answers out reads it.
 - **Where:** `Conversations/LiveRuns.cs`, `Conversations/ConversationRun.cs`.
 - **Alternatives:** a steering queue in the store, which works across processes but reads the store before every
   model call; queuing input for after the run, which is just the next run.
@@ -1302,13 +1303,16 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Decision:** `AgentMode` `Default`, `Plan`, `Auto`, a run option (`WithMode`, configurable like any run option).
   `Plan` offers only tools marked `ReadOnly()` (toolset tools, or MCP servers with `UseMcpServer(...).ReadOnly()`),
-  and a built-in `exit_plan_mode(plan)`, which asks the host; `ApprovePlan(mode)` continues in `Default`
-  or `Auto`, a rejection's reason sends the model back to planning. `Auto` runs tools that require approval unless a
+  and a built-in `exit_plan_mode(plan)`, which asks your app with a `PlanDecision`; `plan.Approve(mode)` continues in
+  `Default` or `Auto`, a rejection's reason sends the model back to planning. Outside a host's run in plan mode a
+  call of `exit_plan_mode` asks nobody: the model reads that it is not planning, so no model can raise a plan prompt
+  in a conversation that never planned (D81). `Auto` runs tools that require approval unless a
   rule rejects the call. A conversation keeps its mode: a run without one continues in the mode the last run ended in,
   stored on the run's ending entry and on a summary; a run whose settings name a mode switches it. Plan mode appends a
   short instruction to research, then call `exit_plan_mode`. Sub-agents run in their caller's mode; plan mode offers
   them, and in it a sub-agent gets its read-only tools and no `exit_plan_mode`, and answers its caller.
-- **Where:** `Agents/RunOptions.cs`, `Approval/ExitPlanModeFunction.cs`, the approval layer of D29.
+- **Where:** `Agents/RunOptions.cs`, `Decisions/ExitPlanModeFunction.cs`, `Approval/ModeChatClient.cs`, the gate of
+  D81.
 - **Alternatives:** modes as tools the model calls (MAF's `mode_get`/`mode_set`), which lets the model leave plan
   mode unasked; a classifier built into auto mode, where a rule the host writes can ask any model it chooses.
 
@@ -1337,11 +1341,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   numbered suffix, as `call_1_2`, when its id is in use: in the messages of the model call, in any entry the run
   loaded, its history leaving them out or not, in what the run stored since, or earlier in the same response. A result
   the provider returned with a renamed call follows it. The layer renames before the checkpoints store the response
-  and before the tool loop reads it, so the stored entries, the approval requests and the tool results carry the new
-  id, and the provider receives it in later calls; the renamed call drops the provider's raw item, which an adapter
+  and before the gate and the tool loop read it, so the stored entries, the decisions' batches and the tool results
+  carry the new id, and the provider receives it in later calls; the renamed call drops the provider's raw item, which an adapter
   would send back with the old id. A response with a conversation id keeps its ids, since a provider that keeps the
   conversation itself matches the results to them. The chat spans of a call that did not stream show the provider's
-  ids, everything else the new ones.
+  ids, everything else the new ones. A decision's id is made when the run asks and never from a call id (D80), so
+  an answer cannot reach another call that reuses the id.
 - **Where:** `Hosting/UniqueCallIdsChatClient.cs`, `Conversations/ConversationRun.cs` (the ids the run holds),
   `AgentHost.cs`.
 - **Alternatives:** dropping answered requests from the history, which leaves calls and results keyed by a reused id;
@@ -1350,35 +1355,15 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 ### D60. An answer to a closed request throws; steering that the run answers closes its requests
 
-- **Status:** owner (asked on the pull request to confirm).
-- **Context:** an answer to a request that was not open was dropped and the run went on. A second tab, a retried post
-  or a UI that kept an old prompt then made a model call with no new input, which the host paid for and could not
-  tell from a run that worked. A request also stayed open while its own run went on with steering input, so the model
-  answered "never mind", and a later click still ran the call.
-- **Decision:** a request is open while the conversation's last run left it without an answer, until the agent
-  answers steering input stored after it. Then it closes, as it would for a new message, and the run's response
-  leaves it out of `ApprovalRequests`; a streaming run has sent it already. A background agent's answer closes
-  nothing, since a run that asks waits for its background agents before it ends. A run whose input answers a request
-  that is not open throws `ApprovalClosedException` before it stores anything or calls the model, and releases its
-  claim. The exception names each request with an `ApprovalClosedReason`: answered, by the host or by Typeshift
-  (a rule, a standing approval, auto mode, or a call next to one that needed approval); passed by; or unknown, for an
-  id the conversation holds no request of since its last summary, and for every answer in a run without a
-  conversation. One closed answer rejects the whole input.
-- **Details:** `OpenRequests` reads the stored messages in order, with no new field, so the rule holds across
-  processes, and the run feeds it what it stores, so the requests a run returns are those the next run finds open.
-  An answer of the agent is an assistant message with contents other than requests and errors: a model response,
-  even a request's own call, or run middleware's answer. Steering input is a user message with more than answers and
-  without a background agent's mark. A model call that fails before any of its response arrives stores nothing, so
-  its requests stay open; a stream that fails after some text has stored it, and closes them. Watchers see only the
-  requests left to the host, though every request is stored for the answers the approval layer gave.
-- **Where:** `Conversations/OpenRequests.cs`, `Conversations/ConversationHistory.cs`,
-  `Conversations/ConversationRun.cs`, `Conversations/ConversationChatClient.cs`, `Approval/ApprovalClosedException.cs`.
-- **Alternatives:** dropping the answer and calling the model, as before; dropping it without a model call, which the
-  host still cannot tell from a run that answered; holding steering input back until the requests are answered, which
-  looks to the user as if their message was lost; a field on the entry that marks a request closed, which every store
-  would have to keep.
-
-## Repository
+- **Status:** owner; superseded by D80, which stores whether a decision is open, and D81, which expires what waits.
+- **Was:** a request was open while the conversation's last run left it without an answer, until the agent answered
+  steering input stored after it. `OpenRequests` worked that out from the stored messages, and a run whose input
+  answered a request that was not open threw `ApprovalClosedException`, naming each request with an
+  `ApprovalClosedReason`: answered, passed by, or unknown.
+- **Now:** whether a decision is open is the state of its batch in the conversation's decisions document. An answer
+  to a decision that is not open throws `DecisionClosedException`, naming each with a `DecisionClosedReason`
+  (`Answered`, `Expired` or `Unknown`), and records nothing (D80). New input, or steering input the run takes after
+  it asked, expires the batch, and the model reads a result for each of its calls (D81).
 
 ### D80. Decisions are records in a document per conversation
 
@@ -1395,7 +1380,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   repeats each call's name and arguments, so the decisions are listed and the calls replayed from the document
   alone. An answer (`DecisionAnswer`) names its decision by id. The same answer again changes nothing; another
   answer, or one to a decision that is not open, throws `DecisionClosedException` and records nothing of its call;
-  one that does not fit its decision throws `ArgumentException`.
+  one that does not fit its decision throws `ArgumentException`. Answering is an API of its own: the generated
+  `AnswerAsync(answers)` records the answers and, once no decision is left open, continues the run;
+  `RecordAnswersAsync` records them without a run, `ResumeAsync` continues, and `GetDecisionsAsync` lists what
+  waits, with the tools approved for the conversation. No answer travels in a run's input (D81).
 - **Details:** a batch is `open` until its last answer, then `answered`, then `started` once a run begins to carry
   the answers out, then gone and remembered as answered. `started` is the commit point: from it on every call the
   batch would run counts as started, so no later run starts one again. An open batch that new input passes by is
@@ -1406,12 +1394,67 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   when the run asks, never from the model's call ids, which a provider may reuse (D59). `Decision` reads and writes
   its own JSON (D44), and `DecisionAnswer` binds from the JSON a page posts.
 - **Where:** `Decisions/Decision.cs`, `Decisions/DecisionDocument.cs`, `Decisions/DecisionLedger.cs`,
-  `Decisions/DecisionClosedException.cs`.
+  `Decisions/DecisionClosedException.cs`, `Hosting/AgentHost.cs` (the members that list and answer),
+  `Emitting/AgentEmitter.cs` (the generated `AnswerAsync` family).
 - **Alternatives:** Microsoft.Extensions.AI's contents in the history with one function that decides which are live,
   which leaves the state derived and the request ids made of call ids; `started` marked per call, a write before
   each call and a lock around concurrent ones, which the document's shape still allows later; answers all at once
   or an exception, which one button per prompt and two tabs cannot give; timeouts, which need a timer the library
   does not run, where `AskedAt` lets your app withdraw what is old.
+
+### D81. The tool loop never pauses: a gate below it decides each call, and a replay carries the answers out
+
+- **Status:** owner.
+- **Context:** `FunctionInvokingChatClient` pauses a run itself when a tool is an `ApprovalRequiredAIFunction`. It
+  turns the response's calls into approval requests, keeps them from the layers below it, and expects the answers
+  in the messages of the next call. What Typeshift built around that pause had to agree with the loop's own reading
+  of the history, and where it did not, an approved call ran twice or ran after the user had sent something else
+  (D24, D60).
+- **Decision:** the loop gets no reason to pause. The mode layer hands it every tool that requires approval in a
+  wrapper that hides the mark (`GatedFunction`), and a gate between the loop and the checkpoints
+  (`DecisionChatClient`) reads each model response before the loop does and gives every call that needs one a
+  verdict: run, or answer with a text. Approval rules decide first: `IToolApprovalRule`s (`WithApprovalRule<T>()`,
+  scoped) see the exact arguments and answer with a `RuleVerdict`, `Approve`, `Reject(reason)` (which wins over
+  every approval, and throws without a reason, which would read as no opinion) or `Abstain`. Then the
+  conversation's standing approvals decide, each a tool's name and, for an MCP server's tool, the server; then the
+  mode (D52). A call nothing decides waits for your app: the gate opens a batch with the response's calls (D80) and
+  marks every call of the response informational, which the loop does not invoke, so the run ends with the
+  decisions and nothing of the response has run. Once the batch is answered, the conversation's next run marks it
+  started, and the gate answers that run's first model call itself with the batch's calls, the replay. The loop
+  invokes them through its function invoker (`ToolGate`), which answers a rejected call with its rejection and runs
+  the others through the tool middleware (D30).
+- **Details:** a call a rule, a standing approval or auto mode approves costs no extra round and no write. The
+  batch is saved after the response's entry and before the loop sees the response, so a decision your app holds
+  exists in the store: a save that fails, or a response whose append failed, fails the run with the store's
+  exception. A run without a conversation that must ask throws `DecisionUnavailableException`, naming the tools. A
+  streaming run holds back its updates from the first call of a response until the stream ends, since the loop
+  copies calls as they arrive; its decisions travel in the run's last update, after the run's end is stored, so
+  every decision your app sees can be answered, and that update keeps the ids, the model and the finish reason of
+  the response that asked. In a response, a decision is a `DecisionRequestContent`, derived from
+  `InputRequestContent`; it is never stored and never sent to a provider, and input that carries a request for
+  input or an answer to one throws `ArgumentException`, naming `AnswerAsync`. New input expires a batch that still
+  waits, and so does steering input the run takes after it asked: each call of the batch gets a result that says it
+  did not run, the model reads them with the new input, and an answer recorded before grants nothing. A started
+  batch whose run stopped is settled by the next run: each call without a stored result gets one that says it is
+  not known whether the call ran, and no call starts again. A handoff, or another tool the loop cannot run, called
+  next to a call that waits is answered at once as not carried out. `exit_plan_mode` asks only in a host's run in
+  plan mode (D52), and a sub-agent's call that would wait is rejected (D33). The loop's invoker refuses a call of
+  a tool that requires approval that reaches it without a verdict. `Decisions/ToolLoopGuardTests` pins the two
+  behaviors of Microsoft.Extensions.AI this rests on: the loop invokes no informational call, and a layer below it
+  may answer in the model's place.
+- **Where:** `Decisions/DecisionChatClient.cs`, `Decisions/ToolGate.cs`, `Decisions/GatedFunction.cs`,
+  `Decisions/DecisionRequestContent.cs`, `Approval/ModeChatClient.cs`, `Approval/ToolApproval.cs` (the rules),
+  `Conversations/ConversationChatClient.cs` and `Conversations/ConversationRun.cs` (settling a batch when a run
+  begins, and the replay).
+- **Alternatives:** keeping the loop's pause and translating its contents at the edge, which leaves what runs to
+  the loop's reading of the history; a tool loop of Typeshift's own, a second implementation of what
+  Microsoft.Extensions.AI maintains; an approval callback the run awaits, which holds a run open across requests
+  and loses it at a restart; showing a streaming run's decisions the moment it asks, where steering can close a
+  decision the app already shows; refusing new input while decisions wait, where "no, do this instead" is how
+  people answer a prompt; translating Microsoft.Extensions.AI's approval answers in a run's input, which fits a
+  bridge for clients that speak that protocol, if one is built.
+
+## Repository
 
 ### D48. Carried as they were
 
@@ -1439,6 +1482,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 |---|---|---|
 | D11 | The id type is an MSBuild property | D72 |
 | D56 | A model is a provider and a model, one interface serves both | D77 |
+| D24 | Tool approval uses Microsoft.Extensions.AI's contents, with standing approvals and rules | D80, D81 |
+| D60 | An answer to a closed request throws; steering that the run answers closes its requests | D80, D81 |
 
 ## Related
 

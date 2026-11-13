@@ -1,4 +1,5 @@
 using Typeshift.Tests.Agents.Support;
+using Typeshift.Tests.Approval.Support;
 using Typeshift.Tests.Compaction.Support;
 using Typeshift.Tests.Conversations.Support;
 using Typeshift.Tests.Persistence.Support;
@@ -327,6 +328,50 @@ public class ConversationStoreTests : AgentTestBase
         logs.Warnings.Should().ContainSingle();
         logs.Warnings[0].Should().Contain("WithStore");
         logs.Warnings[0].Should().Contain("WithFileStore");
+    }
+
+    [Fact]
+    public async Task Given_No_Store_A_Decision_Is_Kept_In_Memory_And_Its_Approval_Runs_The_Call()
+    {
+        // Arrange
+        var calls = new ToolCalls();
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton(calls);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<GuardedAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "close_ticket", ("number", Data.Agent.Ticket.Default)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var asked = await host.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await host.AnswerAsync([DecisionAnswer.Approve(asked.Decisions[0].Id)], ct: Ct);
+
+        // Assert
+        calls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_Of_Conversations_Alone_A_Run_That_Must_Ask_Fails_Naming_IDecisionStore()
+    {
+        // Arrange
+        await using var provider = Provider(new StoredJsonStore(), new WarningLog());
+        await using var scope = provider.CreateAsyncScope();
+        ChatClient.Reply(Call(Data.Tool.CallId, "close_ticket", ("number", Data.Agent.Ticket.Default)));
+
+        // Act
+        var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<GuardedAgent>>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*IDecisionStore*");
     }
 
     [Fact]

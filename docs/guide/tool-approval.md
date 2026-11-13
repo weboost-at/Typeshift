@@ -5,8 +5,8 @@ description: Pause a run until your app approves a tool call, let rules decide t
 
 # Approval and modes
 
-Some tools must not run unasked, such as closing a ticket. When the model calls one, the run ends and hands the call
-to your app, which approves or rejects it in the conversation's next run. Approval rules, standing approvals and the
+Some tools must not run unasked, such as closing a ticket. When the model calls one, the run ends with a decision
+for your app, which approves or rejects the call by the decision's id. Approval rules, standing approvals and the
 run's mode decide which calls need asking at all.
 
 ## How approval works
@@ -20,19 +20,22 @@ sequenceDiagram
   App->>Host: RunAsync("Close ticket 1234.")
   Host->>Model: The conversation and the input
   Model-->>Host: Call close_ticket
-  Note over Host: No rule or standing approval decides,<br/>so the run stores the request and ends
-  Host-->>App: The response, with ApprovalRequests
-  App->>Host: RunAsync(the answers)
-  Host->>Tool: The call the conversation stored
+  Note over Host: No rule or standing approval decides,<br/>so the run stores a decision and ends
+  Host-->>App: The response, with Decisions
+  App->>Host: AnswerAsync(the answers)
+  Host->>Tool: The call the decision stored
   Host->>Model: The tool's result
   Model-->>Host: The answer
   Host-->>App: The response
 ```
 
 Here no [approval rule](#approval-rules) or [standing approval](#approving-for-the-conversation) decides the call to
-`close_ticket`, so the run stores the request in the conversation and ends. Your app sends its answer in the
-conversation's next run, and the stored call runs once that answer approves it. Requests and answers are
-Microsoft.Extensions.AI's `ToolApprovalRequestContent` and `ToolApprovalResponseContent`.
+`close_ticket`, so the run stores a decision with the conversation and ends. Nothing of the model's response has run
+yet. Your app answers the decision by its id, and the stored call runs once the answer approves it.
+
+A decision is a record of Typeshift's own: an `ApprovalDecision` for a tool call, a `PlanDecision` for a
+[plan](#plan-mode). It is stored beside the conversation and never among its messages, so no provider receives it,
+and a page can load it again after a reload.
 
 ## Requiring approval
 
@@ -53,8 +56,9 @@ AddTool(CloseTicketAsync)
 
 ## When a call needs approval
 
-When the model calls such a tool, the run ends without making the call. `ApprovalRequests`, which Typeshift adds to
-`ChatResponse`, lists each waiting call, with the tool's name and the arguments the model sent:
+When the model calls such a tool, the run ends without making the call. `Decisions`, which Typeshift adds to
+`ChatResponse`, lists what waits for your app. An `ApprovalDecision` has the tool's name and the arguments the model
+sent, as JSON:
 
 <!-- snippet: approval-run -->
 <a id='snippet-approval-run'></a>
@@ -62,114 +66,162 @@ When the model calls such a tool, the run ends without making the call. `Approva
 var chat = support.WithConversationId(8);
 var answer = await chat.RunAsync("Close ticket 1234.");
 
-foreach (var request in answer.ApprovalRequests)
-    if (request.ToolCall is FunctionCallContent call)
-        Console.WriteLine($"Approve {call.Name}({string.Join(", ", call.Arguments!.Values)})?");
+var approvals = answer.Decisions.OfType<ApprovalDecision>().ToList();
+
+foreach (var approval in approvals)
+    Console.WriteLine($"Approve {approval.Tool}({approval.Arguments})?");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L15-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-run' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L14-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 If the model called other tools in the same response, those calls wait too, even when they need no approval, and run
-once your app has answered.
+once your app has answered every decision of that response.
 
-Asking needs a [conversation](./conversations.md) to store the request in, so the sample runs on a host from
-`WithConversationId`. A run without a conversation id throws, naming the tool, unless your app
-[keeps every conversation](./conversations.md#keeping-every-conversation). Run with one, approve the calls with a
-rule, or use [auto mode](#auto-mode).
+A streaming run carries its decisions in its last update, as `update.Decisions`, after the run has ended. So every
+decision your app shows can be answered at once.
+
+A decision is stored with a [conversation](./conversations.md), so the sample runs on a host from
+`WithConversationId`. A run without a conversation id throws a `DecisionUnavailableException`, naming the tool, unless
+your app [keeps every conversation](./conversations.md#keeping-every-conversation). Run with one, approve the calls
+with a rule, or use [auto mode](#auto-mode).
+
+`GetDecisionsAsync()` loads what a conversation waits for without a run, for a page that was reloaded: the decisions
+still open in `Open`, and the [standing approvals](#approving-for-the-conversation) in `Standing`.
 
 ## Approving or rejecting
 
-Answer each request in the conversation's next run, on a host with the same conversation id, with
-`CreateResponse(approved)`:
+Each decision makes its own answer, with `Approve()` or `Reject(reason)`. Pass the answers to `AnswerAsync`, on a
+host with the same conversation id:
 
 <!-- snippet: approval-resume -->
 <a id='snippet-approval-resume'></a>
 ```cs
-var approvals = answer.ApprovalRequests.Select(request => request.CreateResponse(approved: true));
-
-var approval = new ChatMessage(ChatRole.User, [.. approvals]);
-
-var resumed = await chat.RunAsync(approval);
+var resumed = await chat.AnswerAsync([.. approvals.Select(approval => approval.Approve())]);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L24-L30' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-resume' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L24-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-resume' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Approved calls run. A rejected call reaches the model as rejected, and the run goes on. To tell the model why, pass a
-reason with the rejection: `CreateResponse(approved: false, reason)`.
+`AnswerAsync` records the answers. Once no decision of the conversation is left open, it carries them out and
+continues the run: approved calls run, a rejected call reaches the model as rejected, with the reason if you gave
+one, and the model goes on. `AnswerStreamingAsync` streams that continuation.
 
-When the run that asked had a settings id, run the answers on a host with that settings id as well, because the
+You don't have to answer everything at once. While decisions are left open, `AnswerAsync` records what it got, calls
+no model, and returns a response whose `Decisions` lists the rest, so a UI can post one answer per button.
+
+An answer is a `DecisionAnswer`, which names its decision by id. A UI posts it as JSON, such as
+`{"decisionId":"...","approved":true}`, and sends back nothing of the call
+([Answer a decision](./chat-endpoint.md#answer-a-decision)). The call that runs is always the stored one, with the
+arguments your app saw.
+
+To record answers without a run, from a webhook for example, call `RecordAnswersAsync(answers)`. `GetDecisionsAsync()`
+then has `CanResume` set once every decision is answered, and
+[`ResumeAsync()`](./conversations.md#resuming) carries the answers out.
+
+When the run that asked had a settings id, answer on a host with that settings id as well, because the
 [conversation doesn't keep it](./conversations.md#tracking-a-conversation). Without it, the approved call runs on the
 agent's code instead of your customer's stored settings.
 
 ::: details Approvals and the run's limit of tool rounds
 `WithMaxToolIterations` limits how many rounds of tool calls one run makes. The calls you approve run in the next run,
-which starts its own count, so they run even when the run that asked had used up its rounds. Calls that a rule, a
-standing approval or auto mode approves go on in the same run and count toward its limit, and such a run may make one
-round more than the limit.
+which starts its own count, so they run even when the run that asked had used up its rounds. A call that a rule, a
+standing approval or auto mode approves is a round like any other and counts toward its run's limit.
 :::
 
-Typeshift matches each answer to the request the conversation stored and runs the call stored with it. An answer can
-carry a call of its own, but the call that runs is always the one your app saw, with the same arguments. When a run
-carries more than one answer to a request, the first one counts.
+## When a decision closes
 
-## When a request closes
+A decision stays open until your app answers it or the conversation goes on without it. It closes when:
 
-A request stays open until the conversation goes on without it. It closes when:
+- your app answers it. The same answer again changes nothing, so a retried post is safe; a different answer is
+  refused.
+- the conversation's next run starts with new input, such as a new message. The decisions that waited expire: none
+  of their calls runs, the calls next to them included, and the model reads for each call that it did not run.
+- its own run takes [steering input](./conversations.md#steering) after it asked. The decisions expire the same way,
+  and the run's response lists none of them. A background agent's answer expires nothing: it is stored, and the model
+  reads it once your app has answered.
 
-- a run answers it, or an approval rule does;
-- the conversation's next run starts with other input, such as a new message, since that run drops every request it
-  has no answer for, and the model sees the call as never made;
-- its own run takes [steering input](./conversations.md#steering) after it and answers the input. The run's
-  `ApprovalRequests` then leave it out. A background agent's answer closes no request, since the run waits for it
-  before it ends.
+An answer to a closed decision throws `DecisionClosedException` and records nothing, so your app learns that its
+prompt is out of date. Its `Decisions` says why each one is closed:
 
-An answer to a closed request throws `ApprovalClosedException` before the run stores anything or calls the model, so
-your app learns that its prompt is out of date. That happens when your user approved in a second tab after the first
-answer's run ended, when a retry posts the same answers again, or when a UI keeps an old prompt clickable after a new
-message. `Requests` says why each request is closed, as an `ApprovalClosedReason` (`Answered`, `PassedBy` or
-`Unknown`), so your app can tell the user that the approval has expired:
+| `DecisionClosedReason` | Means |
+|---|---|
+| `Answered` | Another answer stands, or the answers were carried out: a second tab, or a retry after the run continued. |
+| `Expired` | The user sent something else first, as a new message or as steering input. |
+| `Unknown` | The conversation holds no such decision: an id of another conversation, or of an earlier round of decisions. |
 
 <!-- snippet: approval-closed -->
 <a id='snippet-approval-closed'></a>
 ```cs
 try
 {
-    await chat.RunAsync(approval);
+    await chat.AnswerAsync([approvals[0].Approve()]);
 }
-catch (ApprovalClosedException closed)
+catch (DecisionClosedException closed)
 {
-    foreach (var (request, reason) in closed.Requests)
-        Console.WriteLine($"The approval {request} has expired: {reason}.");
+    foreach (var (decision, reason) in closed.Decisions)
+        Console.WriteLine($"The decision {decision} is closed: {reason}.");
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L35-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-closed' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L32-L42' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-closed' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-One closed answer rejects the whole input: the answers to open requests in it don't run, and nothing of it is
-stored. Run again without the answers `Requests` names to keep the rest.
+One closed answer rejects the whole call: the other answers passed with it are not recorded either. Answer again
+without the decisions the exception names to keep the rest.
 
-::: warning Answer every request in the same run
-The next run closes every request it has no answer for, so answer all of `ApprovalRequests` at once. A streaming run
-sends its requests the moment it asks. If steering input then reaches the run and the run answers it, those requests
-close although the stream has carried them, and an answer to them throws.
+An answer that does not fit its decision, such as a plan's mode for a tool call, throws an `ArgumentException`. So
+does a `ChatMessage` passed to `RunAsync` that carries Microsoft.Extensions.AI's approval contents, because answers
+go through `AnswerAsync`.
+
+::: warning An approved call never starts twice
+Once a run begins to carry out the answers, no later run starts those calls again. If that run is cancelled, or its
+process stops, before a call's result is stored, the next run tells the model that it is not known whether the call
+took effect, and the model checks before it repeats anything.
 :::
 
 ## Approving for the conversation
 
-`ApproveForConversation()` approves the call and every later call to the same tool in the conversation. It is stored
-with the conversation, so it holds across runs and processes:
+`ApproveForConversation()` approves the call and every later call of the same tool in the conversation. The standing
+approval is stored with the conversation's decisions, so it holds across runs, processes and
+[compaction](./conversations.md#compaction):
 
 <!-- snippet: approval-for-conversation -->
 <a id='snippet-approval-for-conversation'></a>
 ```cs
 var again = await chat.RunAsync("Close ticket 1234 again.");
+var asked = again.Decisions.OfType<ApprovalDecision>().Single();
 
-var always = new ChatMessage(ChatRole.User, [again.ApprovalRequests[0].ApproveForConversation()]);
-
-await chat.RunAsync(always);
+await chat.AnswerAsync([asked.ApproveForConversation()]);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L47-L53' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-for-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L44-L49' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-for-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
+
+`GetDecisionsAsync()` lists the conversation's standing approvals, each with its tool and the time it took effect:
+
+<!-- snippet: approval-standing -->
+<a id='snippet-approval-standing'></a>
+```cs
+var decisions = await chat.GetDecisionsAsync();
+
+foreach (var standing in decisions.Standing)
+    Console.WriteLine($"{standing.Tool} runs without asking since {standing.GrantedAt:t}.");
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L54-L59' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-standing' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+A standing approval:
+
+- matches a tool by its name, whatever arguments the model sends. An [MCP server's](./mcp.md) tool is approved with
+  its server, so the approval reaches no tool of the same name elsewhere.
+- holds for every agent of the conversation: the agents it is [handed to](./multi-agent.md#handoff) and the
+  [sub-agents](./multi-agent.md#sub-agents) they call.
+- takes effect when a run begins to carry the answer out. An answer that [expires](#when-a-decision-closes) before
+  then grants nothing.
+- never overrules a rule. A rule that rejects the call still wins.
+
+::: danger A standing approval covers calls your user never saw
+Approving `run_command` for the conversation approves every later command, whatever it runs, for as long as the
+conversation lasts. Offer it only for tools whose every call you would approve, and guard the others with
+[approval rules](#approval-rules).
+:::
 
 ## Approval rules
 
@@ -216,6 +268,9 @@ A rule answers with a `RuleVerdict`:
 | `RuleVerdict.Approve` | The call runs, unless another rule rejects it. |
 | `RuleVerdict.Abstain` | No opinion. Another rule, a standing approval or the [mode](#the-three-modes) decides: auto mode runs the call, and the default and plan modes ask your app. |
 
+A call a rule approves or rejects never becomes a decision: nothing is stored for it, and the run goes on in the
+same round.
+
 ::: danger Approve only what you can read in full
 A command that looks harmless may run code the model wrote. That is why the rule above only rejects and leaves the
 rest to your app.
@@ -247,7 +302,7 @@ var chat = triage.WithConversationId(conversationId);
 
 var planned = await chat.RunAsync("Sort out ticket 1234.", settings: plan);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Modes.cs#L15-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-switch-mode' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Modes.cs#L14-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-switch-mode' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A conversation keeps its mode. The agent's code and its stored settings decide only the mode of a conversation's first
@@ -255,7 +310,7 @@ run. After that, each run continues in the mode the conversation's last run ende
 the run name a mode, which switches the conversation to it.
 
 ::: warning A conversation stays in the mode it ended in
-After your app approves a plan with `ApprovePlan(AgentMode.Auto)`, later runs of the conversation run in auto mode,
+After your app approves a plan with `Approve(AgentMode.Auto)`, later runs of the conversation run in auto mode,
 whatever mode the agent's code starts runs in. To switch back, pass a mode in a run's settings. That needs
 `Configurable(r => r.Mode)`, so add it to every agent that can enter plan mode.
 :::
@@ -269,33 +324,33 @@ The model sees only the tools marked `ReadOnly()`, a toolset's or an [MCP server
 then present the plan. A sub-agent called in plan mode sees only its own read-only tools and answers its caller, which
 presents the plan.
 
-`exit_plan_mode(plan)` ends the run with an approval request that carries the plan:
+`exit_plan_mode(plan)` ends the run with a `PlanDecision` that carries the plan:
 
 <!-- snippet: plan-mode -->
 <a id='snippet-plan-mode'></a>
 ```cs
-var proposal = planned.ApprovalRequests.Single();
+var proposal = planned.Decisions.OfType<PlanDecision>().Single();
 
-if (proposal.ToolCall is FunctionCallContent { Arguments: { } arguments })
-    Console.WriteLine(arguments["plan"]);
+Console.WriteLine(proposal.Plan);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Modes.cs#L22-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-plan-mode' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Modes.cs#L21-L25' title='Snippet source file'>snippet source</a> | <a href='#snippet-plan-mode' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Approve it with `ApprovePlan(mode)` to continue in the mode your app picks, `Default` or `Auto`:
+Approve it with `Approve(mode)` to continue in the mode your app picks, `Default` or `Auto`:
 
 <!-- snippet: approve-plan -->
 <a id='snippet-approve-plan'></a>
 ```cs
-var approval = new ChatMessage(ChatRole.User, [proposal.ApprovePlan(AgentMode.Auto)]);
-
-await chat.RunAsync(approval);
+await chat.AnswerAsync([proposal.Approve(AgentMode.Auto)]);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Modes.cs#L29-L33' title='Snippet source file'>snippet source</a> | <a href='#snippet-approve-plan' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Modes.cs#L27-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-approve-plan' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-To reject the plan, answer with `CreateResponse(approved: false, reason)`. The model receives the reason as feedback
-and goes back to planning.
+To reject the plan, answer with `Reject(reason)`. The model receives the reason as feedback and goes back to planning.
+
+`exit_plan_mode` works only while the conversation plans. In the default and the auto mode the model is not offered
+it, and a call of it anyway asks nobody: the model reads that it is not planning and goes on with the task. So
+nothing the model read can raise a plan prompt in a conversation that never planned.
 
 ::: warning Plan mode hides every tool without the mark
 A tool without `ReadOnly()` is hidden in plan mode, whatever it does. Mark every tool that only reads, so the model can
@@ -314,8 +369,8 @@ classifier that asks a model.
 
 ## Related
 
-- [Conversations](./conversations.md): where requests, standing approvals and the mode are stored.
+- [Conversations](./conversations.md): where decisions, standing approvals and the mode are stored.
 - [Agents](./defining-agents.md#run-options): the run options that set the mode runs start in.
 - [MCP servers](./mcp.md): marking a server's tools read-only, so plan mode offers them.
 - [How a run works](./how-a-run-works.md): where approval sits among a run's steps.
-- [Serving a chat endpoint](./chat-endpoint.md#answer-the-approvals): answering approvals over HTTP.
+- [Serving a chat endpoint](./chat-endpoint.md#answer-a-decision): loading and answering decisions over HTTP.

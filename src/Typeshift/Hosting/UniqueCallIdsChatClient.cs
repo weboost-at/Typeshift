@@ -4,7 +4,7 @@ using Microsoft.Extensions.AI;
 namespace Typeshift;
 
 // D59: a provider may number its calls per response, so a later response reuses an id the conversation holds. The
-// tool loop and the conversation key calls and approval requests by id, so a reused id is renamed before the
+// tool loop and the conversation key calls and their results by id, so a reused id is renamed before the
 // checkpoints store the response and the tool loop reads it. A provider that keeps the conversation itself, which a
 // response with a conversation id shows, keeps its ids, as it matches the results to them
 internal sealed class UniqueCallIdsChatClient(IChatClient inner) : DelegatingChatClient(inner)
@@ -56,8 +56,6 @@ internal sealed class UniqueCallIdsChatClient(IChatClient inner) : DelegatingCha
             {
                 FunctionCallContent call => call.CallId,
                 FunctionResultContent result => result.CallId,
-                ToolApprovalRequestContent { ToolCall: { } call } => call.CallId,
-                ToolApprovalResponseContent { ToolCall: { } call } => call.CallId,
                 _ => null
             })
             .OfType<string>();

@@ -8,14 +8,15 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace Typeshift;
 
 // D46, D50: outermost, around the tool loop. It begins every run (its AgentRun, mode and invoke_agent span, D36),
-// and for a run with a conversation resumes it, marks where the run begins and ends, and publishes the updates of
-// streaming runs (D47). A run goes on while steering input or a background sub-agent's answer waits (D33, D51), and
-// a handoff continues it with the agent handed to (D34). The provider never receives the conversation id; the response
-// names it (D73)
+// and for a run with a conversation resumes it, settles the decisions it finds before the first model call (D80),
+// marks where the run begins and ends, and publishes the updates of streaming runs (D47). A run goes on while
+// steering input or a background sub-agent's answer waits (D33, D51), and a handoff continues it with the agent
+// handed to (D34). A run that waits for your app returns its decisions after it stored its end. The provider never
+// receives the conversation id; the response names it (D73)
 internal sealed class ConversationChatClient(IChatClient inner, Agent agent, IServiceProvider services)
     : DelegatingChatClient(inner)
 {
-    private const string HandoffPrefix = "handoff_to_";
+    public const string HandoffPrefix = "handoff_to_";
 
     public override async Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> messages,
@@ -114,6 +115,8 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
     private StoreAccess Store => services.GetRequiredService<StoreAccess>();
 
+    private DecisionLedger Ledger => new(Store, Time);
+
     private ILogger Logger =>
         (services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance).CreateLogger<ConversationChatClient>();
 
@@ -144,7 +147,11 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             }
         }
 
-        var (run, call, runOptions) = await BeginAsync(messages, options, conversation, entries, claim, activity);
+        var (run, call, runOptions, waiting) =
+            await BeginAsync(messages, options, conversation, entries, claim, activity, ct);
+
+        if (waiting is not null) return new ChatResponse(Asking(waiting, messageId: null));
+
         var handedOff = false;
 
         try
@@ -181,19 +188,38 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                         Runs.Release(handed);
                     }
 
-                    var asked = ChatResponses.Merge(OnlyOpen(response, run), new ChatResponse(result));
-                    return ChatResponses.Merge(asked, answer);
+                    return ChatResponses.Merge(ChatResponses.Merge(response, new ChatResponse(result)), answer);
                 }
 
                 if (!GoesFurther(runOptions, ref calls) || !await run.GoesOnAsync(ct)) break;
 
                 call = [.. call, .. last.Messages];
+
+                // D51, D80: steering input passed the batch the run asked by
+                if (run.Asked is { } passed)
+                {
+                    if (await ExpireAsync(run, passed) is not { } results) break;
+
+                    call.Add(results);
+                    response = ChatResponses.Merge(response, new ChatResponse(results));
+                }
+
                 last = await base.GetResponseAsync(call, runOptions, ct);
                 response = ChatResponses.Merge(response, last);
             }
 
             await run.EndAsync(null);
-            return OnlyOpen(response, run);
+
+            // D80: the decisions come last, once the run stored its end, so each one your app sees can be answered
+            if (run.Asked is { } asked)
+            {
+                var asking = Asking(asked, last.Messages.LastOrDefault(IsCalling)?.MessageId);
+
+                response.Messages.Add(asking);
+                run.Publisher?.Add(AsUpdate(asking));
+            }
+
+            return response;
         }
         catch (Exception exception) when (!handedOff)
         {
@@ -240,11 +266,19 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             yield break;
         }
 
-        var (run, call, runOptions) = await BeginAsync(messages, options, conversation, entries, claim, activity);
+        var (run, call, runOptions, waiting) =
+            await BeginAsync(messages, options, conversation, entries, claim, activity, ct);
+
+        if (waiting is not null)
+        {
+            yield return AskingUpdate(waiting, []);
+            yield break;
+        }
 
         LivePublisher? publisher = null;
         var ended = false;
         var calls = runOptions.AgentRun!.ModelCalls;
+        var updates = new List<ChatResponseUpdate>();
 
         try
         {
@@ -252,7 +286,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
             while (true)
             {
-                var updates = new List<ChatResponseUpdate>();
+                updates.Clear();
 
                 await foreach (var update in base.GetStreamingResponseAsync(call, runOptions, ct))
                 {
@@ -299,10 +333,32 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                 if (!GoesFurther(runOptions, ref calls) || !await run.GoesOnAsync(ct)) break;
 
                 call = [.. call, .. last];
+
+                // D51, D80: steering input passed the batch the run asked by
+                if (run.Asked is { } passed)
+                {
+                    if (await ExpireAsync(run, passed) is not { } results) break;
+
+                    var expired = AsUpdate(results);
+
+                    call.Add(results);
+                    publisher?.Add(expired);
+                    yield return expired;
+                }
             }
 
             ended = true;
             await run.EndAsync(null);
+
+            // D80: the decisions come in the last update, once the run stored its end, so a reader that stops there
+            // leaves nothing half done. It carries the ids of the response that made the calls
+            if (run.Asked is { } asked)
+            {
+                var asking = AskingUpdate(asked, updates);
+
+                publisher?.Add(asking);
+                yield return asking;
+            }
         }
         finally
         {
@@ -314,11 +370,53 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         }
     }
 
-    // D60: a run returns the requests it left open, without those it answered steering input after
-    private static ChatResponse OnlyOpen(ChatResponse response, ConversationRun run) =>
-        ChatResponses.WithoutRequests(
-            response,
-            ConversationHistory.RequestIds(response.Messages).Where(request => !run.IsOpen(request)).ToHashSet());
+    // D80: the decisions a run waits for travel in a message of their own, in memory only
+    private static ChatMessage Asking(DecisionBatch batch, string? messageId) =>
+        new(ChatRole.Assistant, [.. batch.Unanswered.Select(AsContent)])
+        {
+            AuthorName = batch.Agent,
+            MessageId = messageId
+        };
+
+    private static AIContent AsContent(Decision decision) => new DecisionRequestContent(decision);
+
+    private static ChatResponseUpdate AsUpdate(ChatMessage message) =>
+        new(message.Role, message.Contents)
+        {
+            AuthorName = message.AuthorName,
+            MessageId = message.MessageId
+        };
+
+    private static ChatResponseUpdate AskingUpdate(DecisionBatch batch, List<ChatResponseUpdate> updates)
+    {
+        var calling = updates.LastOrDefault(update => update.Contents.Any(content => content is FunctionCallContent));
+        var asking = AsUpdate(Asking(batch, calling?.MessageId));
+
+        asking.ResponseId = calling?.ResponseId;
+        asking.ModelId = calling?.ModelId;
+        asking.CreatedAt = calling?.CreatedAt;
+        asking.FinishReason = updates.LastOrDefault(update => update.FinishReason is not null)?.FinishReason;
+
+        return asking;
+    }
+
+    private static bool IsCalling(ChatMessage message) =>
+        message.Contents.Any(content => content is FunctionCallContent);
+
+    // T5 inside the run that asked: every call of the batch reads that it did not run, and the model then reads the
+    // input. Null when answers came first: the batch then waits for the run that carries them out
+    private async Task<ChatMessage?> ExpireAsync(ConversationRun run, DecisionBatch asked)
+    {
+        var batch = await Ledger.ExpireAsync(run.Conversation!, CancellationToken.None);
+        run.Settle();
+
+        if (batch is not { State: BatchState.Expired } expired || !expired.IsSame(asked)) return null;
+
+        var results = DecisionResults.Message(expired.Calls.Select(call => (call.CallId, DecisionResults.Expired)));
+
+        if (await run.AppendAsync([results]) is null) await run.CloseAsync(expired);
+        return results;
+    }
 
     // D47: only a conversation has watchers, and only realtime tracking feeds them
     private LivePublisher? CreatePublisher(ConversationRun run) =>
@@ -369,12 +467,6 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         try
         {
             var entries = await Store.LoadConversationSinceCompactionAsync(conversation, ct);
-
-            // D24: a summary an earlier version stored keeps no standing approvals, so the run reads them all
-            if (entries is [{ IsSummary: true, StandingApprovals: null }, ..])
-            {
-                entries = await Store.LoadConversationAsync(conversation, ct);
-            }
 
             // D78: said once per load, since the run goes on without what the entries left out
             if (entries.Sum(entry => entry.UnreadContents) is > 0 and var unread)
@@ -452,17 +544,23 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         return (result, target, Runs.HandOff(run));
     }
 
-    private async Task<(ConversationRun Run, List<ChatMessage> Call, ResolvedChatOptions Options)> BeginAsync(
+    // The run that began, or, for a run without input whose decisions are still open, the batch that waits
+    private async Task<(
+        ConversationRun Run,
+        List<ChatMessage> Call,
+        ResolvedChatOptions Options,
+        DecisionBatch? Waiting)> BeginAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options,
         StoreId? conversation,
         IReadOnlyList<ConversationEntry> entries,
         RunClaim? claim,
-        Activity? activity)
+        Activity? activity,
+        CancellationToken ct)
     {
         try
         {
-            return await BeginClaimedAsync(messages, options, conversation, entries, claim, activity);
+            return await BeginClaimedAsync(messages, options, conversation, entries, claim, activity, ct);
         }
         catch
         {
@@ -471,19 +569,30 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         }
     }
 
-    private async Task<(ConversationRun Run, List<ChatMessage> Call, ResolvedChatOptions Options)> BeginClaimedAsync(
+    private async Task<(
+        ConversationRun Run,
+        List<ChatMessage> Call,
+        ResolvedChatOptions Options,
+        DecisionBatch? Waiting)> BeginClaimedAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options,
         StoreId? conversation,
         IReadOnlyList<ConversationEntry> entries,
         RunClaim? claim,
-        Activity? activity)
+        Activity? activity,
+        CancellationToken ct)
     {
-        // D24: a request is the model's, never the host's; one in the input is dropped before anything stores it
-        var input = messages
-            .Select(message => Without(message, content => content is ToolApprovalRequestContent))
-            .OfType<ChatMessage>()
-            .ToList();
+        var input = messages.ToList();
+
+        // D80: a decision is answered by its id, in the document; approval contents in a run's input answer nothing
+        if (input.SelectMany(message => message.Contents).Any(IsApprovalContent))
+        {
+            throw new ArgumentException(
+                "The input carries an approval request or answer of Microsoft.Extensions.AI, which a run does not "
+                + "take: answer the decisions of a response by their ids, with AnswerAsync or RecordAnswersAsync.",
+                nameof(messages));
+        }
+
         var runOptions = ResolvedChatOptions.From(options ?? new ChatOptions());
 
         // Options the raw path made itself run with the agent's provider and run options, as its tool loop does
@@ -495,49 +604,72 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
         var mode = runOptions.RunOptions.Mode;
 
-        // D50: a run without input continues the conversation's interrupted run
-        if (conversation is not null && input.Count == 0 && (entries.Count == 0 || entries[^1].EndsRun))
+        var hasInput = input.Count > 0;
+        var document = conversation is null ? DecisionDocument.Empty : await Ledger.LoadAsync(conversation, ct);
+
+        // D50: a run without input continues the conversation's interrupted run, or carries out what your app answered
+        if (conversation is not null
+            && !hasInput
+            && document.Batch is null
+            && (entries.Count == 0 || entries[^1].EndsRun))
         {
             throw new InvalidOperationException(
-                $"Conversation {conversation} has no interrupted run to resume: run it with input instead.");
+                $"Conversation {conversation} has no interrupted run to resume and no answered decisions to carry "
+                + "out: run it with input instead.");
         }
-
-        // D60: an answer to a request the last run did not leave open would run nothing, so the run throws before it
-        // stores anything or calls the model, and the host can tell its user the request has closed
-        var open = ConversationHistory.OpenRequests(entries);
-
-        var closed = input.SelectMany(message => message.Contents)
-            .OfType<ToolApprovalResponseContent>()
-            .Select(answer => answer.RequestId)
-            .Where(request => !open.Contains(request))
-            .ToList();
-
-        if (closed.Count > 0)
-            throw ApprovalClosedException.For(conversation, ConversationHistory.Closed(entries, closed));
 
         // D52: a conversation keeps its mode, unless the run's settings name one
         if (!runOptions.RunSetsMode && entries.LastOrDefault(entry => entry.Mode is not null)?.Mode is { } kept)
             mode = kept;
 
+        // D80: the batch the run finds is settled before its first model call, so no model call and no compaction
+        // ever sees calls that wait. New input passes an open batch by (T5), and an answered one starts (T3)
+        var batch = document.Batch;
+        var started = false;
+
+        if (batch is { State: BatchState.Open } && hasInput) batch = await Ledger.ExpireAsync(conversation!, ct);
+
+        if (batch is { State: BatchState.Answered })
+        {
+            document = await Ledger.StartAsync(conversation!, batch, ct);
+            batch = document.Batch!;
+            started = true;
+
+            // D52: an approved plan switches the mode in the run that carries it out
+            if (batch.Asks.FirstOrDefault(ask => ask is { Kind: AskKind.Plan, Answer.Approved: true }) is { } plan)
+                mode = plan.Answer!.Mode ?? AgentMode.Default;
+        }
+
+        // What the calls of a batch that will not run read: of an expired one that it did not run, and of one another
+        // run started and left that nobody knows (T7). The calls that have their result already keep it
+        var results = batch switch
+        {
+            { State: BatchState.Expired } => ResultsOf(batch, entries, _ => DecisionResults.Expired),
+            { State: BatchState.Started } when !started =>
+                ResultsOf(batch, entries, call => DecisionResults.VerdictOf(call).Answer ?? DecisionResults.Unknown),
+            _ => null
+        };
+
         // D33: the background sub-agents of a run that stopped are lost; the model hears so, once
         input = [.. LostBackground(entries), .. input];
 
-        var history = ConversationHistory.From(entries);
-        List<ChatMessage> call = [.. history, .. input];
+        // The results follow their calls as if the store held them already (D46)
+        var history = ConversationHistory.From(
+            results is null ? entries : [.. entries, new ConversationEntry(agent.Name, [results], Time.GetUtcNow())]);
 
-        // D24: a standing approval holds for the whole conversation, beyond what compaction left of it
-        var summarized = entries.FirstOrDefault()?.StandingApprovals ?? [];
-        var granted = ApprovalChatClient.StandingIn(entries.SelectMany(entry => entry.Messages));
+        List<ChatMessage> call = [.. history, .. input];
 
         var agentRun = new AgentRun(agent, call, runOptions, services, mode)
         {
             InputStart = history.Count,
             Activity = activity,
-            Standing = [.. summarized, .. granted],
+
+            // D80: the tools approved for the conversation, and a sub-agent's caller's (D33)
+            Standing = [.. document.Standing, .. runOptions.Caller?.Standing ?? []],
             LastCall = LastCall(entries)
         };
 
-        var run = new ConversationRun(conversation, agentRun, runOptions.ModelId ?? "", Store, Time, Logger);
+        var run = new ConversationRun(conversation, agentRun, runOptions.ModelId ?? "", Store, Ledger, Time, Logger);
 
         runOptions.ConversationId = null;
         runOptions.AgentRun = agentRun;
@@ -556,12 +688,50 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         run.HoldCallIds(UniqueCallIdsChatClient.Ids(entries.SelectMany(entry => entry.Messages)));
         run.HoldCallIds(entries.FirstOrDefault()?.BackgroundCalls?.Keys ?? []);
 
+        // D80: decisions still open and nothing to continue with: no model is called, and the run's end is stored if
+        // a crash lost it, so the conversation reads as waiting
+        if (batch is { State: BatchState.Open })
+        {
+            if (entries is [.., { EndsRun: false }]) await run.EndAsync(null);
+            Runs.Release(claim);
+
+            return (run, call, runOptions, batch);
+        }
+
+        // The batch closes once the conversation holds a result for each call: now, for one that will not run, or
+        // with the last result of the one this run carries out (T4)
+        if (started) run.Carry(batch!);
+        else if (batch is not null && (results is null || await run.AppendAsync([results]) is null))
+            await run.CloseAsync(batch);
+
         if (input.Count > 0) await run.AppendAsync(input);
 
         // Last, so nothing that fails before it leaves the conversation claimed by a run that never ends
         Runs.Begin(run, claim);
 
-        return (run, call, runOptions);
+        return (run, call, runOptions, null);
+    }
+
+    private static bool IsApprovalContent(AIContent content) => content is InputRequestContent or InputResponseContent;
+
+    // A result for each call of the batch the conversation holds none for; null when it holds them all
+    private static ChatMessage? ResultsOf(
+        DecisionBatch batch,
+        IReadOnlyList<ConversationEntry> entries,
+        Func<BatchCall, string> result)
+    {
+        var stored = entries
+            .SelectMany(entry => entry.Messages)
+            .SelectMany(message => message.Contents)
+            .OfType<FunctionResultContent>()
+            .Select(content => content.CallId)
+            .ToHashSet();
+
+        var missing = batch.Calls.Where(call => !stored.Contains(call.CallId)).ToList();
+
+        return missing.Count == 0
+            ? null
+            : DecisionResults.Message(missing.Select(call => (call.CallId, result(call))));
     }
 
     // D32: the last model call the conversation holds both compaction's estimate and the provider's report of. A
@@ -573,15 +743,6 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         entry is { EstimatedInputTokens: { } estimated and > 0, Usage.InputTokenCount: { } reported }
             ? new ReportedCall(estimated, reported)
             : null;
-
-    private static ChatMessage? Without(ChatMessage message, Func<AIContent, bool> dropped)
-    {
-        if (!message.Contents.Any(dropped)) return message;
-
-        var kept = message.Clone();
-        kept.Contents = [.. message.Contents.Where(content => !dropped(content))];
-        return kept.Contents.Count > 0 ? kept : null;
-    }
 
     private static AIFunctionDeclaration Declare(IAgentHost target) =>
         AIFunctionFactory.CreateDeclaration(

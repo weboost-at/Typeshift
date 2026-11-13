@@ -84,16 +84,14 @@ var chat = triage.WithConversationId(conversation);
 var first = await chat.RunAsync("Hi, I was charged twice for invoice INV-7.");
 Console.WriteLine($"{first.Messages[^1].AuthorName}> {first.Text}");
 
-foreach (var request in first.ApprovalRequests)
-    if (request.ToolCall is FunctionCallContent call)
-        Demo.Note($"approval needed: {call.Name}({Demo.Arguments(call)})");
+foreach (var approval in first.Decisions.OfType<ApprovalDecision>())
+    Demo.Note($"approval needed: {approval.Tool}({Demo.Arguments(approval.Arguments)})");
 
 Demo.Heading("The host approves the refund for the rest of the conversation");
 
-if (first.ApprovalRequests.Count > 0)
+if (first.Decisions.Count > 0)
 {
-    var approvals = first.ApprovalRequests.Select(request => request.ApproveForConversation());
-    var refunded = await chat.RunAsync(new ChatMessage(ChatRole.User, [.. approvals]));
+    var refunded = await chat.AnswerAsync(ForConversation(first));
     Console.WriteLine($"{refunded.Messages[^1].AuthorName}> {refunded.Text}");
 }
 else
@@ -102,10 +100,9 @@ else
     var confirmed = await chat.RunAsync("Yes, please refund the duplicate charge.");
     Console.WriteLine($"{confirmed.Messages[^1].AuthorName}> {confirmed.Text}");
 
-    if (confirmed.ApprovalRequests.Count > 0)
+    if (confirmed.Decisions.Count > 0)
     {
-        var approvals = confirmed.ApprovalRequests.Select(request => request.ApproveForConversation());
-        var refunded = await chat.RunAsync(new ChatMessage(ChatRole.User, [.. approvals]));
+        var refunded = await chat.AnswerAsync(ForConversation(confirmed));
         Console.WriteLine($"{refunded.Messages[^1].AuthorName}> {refunded.Text}");
     }
 }
@@ -143,3 +140,6 @@ foreach (var line in provider.GetRequiredService<CrmData>().Log) Demo.Note(line)
 Demo.Note($"{entries.Count} entries stored for conversation {conversation}, last answered by {entries[^1].Agent}");
 
 return 0;
+
+static IReadOnlyList<DecisionAnswer> ForConversation(ChatResponse response) =>
+    [.. response.Decisions.OfType<ApprovalDecision>().Select(approval => approval.ApproveForConversation())];

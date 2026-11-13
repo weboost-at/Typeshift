@@ -16,13 +16,15 @@ flowchart TD
   resolve --> conversation[Resume the conversation]
   conversation --> middleware[Run middleware]
   middleware --> context[Context providers]
-  context --> approval[Approval and mode]
-  approval --> before
+  context --> mode[Mode]
+  mode --> before
   subgraph loop [Tool loop]
     before[Store new steps, then compact] --> model[Call the model]
-    model -->|tool calls| tools[Tool middleware, then the tools]
+    model -->|tool calls| gate[Decide each call]
+    gate -->|they may run| tools[Tool middleware, then the tools]
     tools --> before
   end
+  gate -->|one waits for your app| asks([ChatResponse with Decisions])
   model -->|an answer| done([ChatResponse])
 ```
 
@@ -36,9 +38,10 @@ the response before the conversation stores how the run ended.
    settings resolved through the same layers, and adds the sub-agents and the tools of MCP servers after them. The
    layers resolve once, when the run starts ([settings layering](./settings-and-stores.md#settings-layering)).
 2. **Resume the conversation.** With a conversation id, the run puts the stored entries ahead of the new input, so the
-   model sees the whole conversation, and stores the input. An input that answers an approval request that has
-   closed throws instead, before anything is stored
-   ([When a request closes](./tool-approval.md#when-a-request-closes)). The run keeps the conversation's mode unless
+   model sees the whole conversation, and stores the input. It also settles the decisions the conversation waits
+   for: new input expires the ones still open, so the model reads that their calls did not run, and the answers your
+   app gave are carried out as the run's first step
+   ([When a decision closes](./tool-approval.md#when-a-decision-closes)). The run keeps the conversation's mode unless
    the run's settings name one. If an earlier run [handed the conversation off](./multi-agent.md#handoff) to another
    agent, the agent that answered last answers this run too. Without a conversation id, the run starts fresh and
    stores nothing, unless [`PersistAllConversations`](./conversations.md#keeping-every-conversation) starts a
@@ -48,14 +51,15 @@ the response before the conversation stores how the run ended.
 4. **Context providers.** Each context provider the agent uses can add instructions, messages and tools to this run.
    The conversation stores none of it, so every run calls the providers again
    ([Context providers](./middleware.md#context-providers)).
-5. **Approval and mode.** If the input carries your app's answers to the approval requests the conversation's last
-   run left open, the run matches each answer to its request. In plan mode, it offers the model only the read-only
-   tools and `exit_plan_mode`. After each pass of the tool loop, approval rules, standing approvals and auto mode
-   decide every call they can. If calls remain that only your app can decide, the run stores their requests and ends
-   ([Approval and modes](./tool-approval.md)).
+5. **Mode.** In plan mode, the run offers the model only the read-only tools and `exit_plan_mode`
+   ([The three modes](./tool-approval.md#the-three-modes)).
 6. **The tool loop.** Microsoft.Extensions.AI's `FunctionInvokingChatClient` calls the model, runs the tools it asks
    for, each through the tool middleware, and calls the model again until it answers. The
-   [run options](./defining-agents.md#run-options) set its limits, such as the most rounds of tool calls.
+   [run options](./defining-agents.md#run-options) set its limits, such as the most rounds of tool calls. Every
+   model response passes a gate before the loop runs its calls. There, approval rules, standing approvals and auto
+   mode decide each call of a tool that requires approval, and a rejected call gets the reason as its result. If a
+   call remains that only your app can decide, the run stores a decision for it, runs none of the response's calls
+   and ends ([Approval and modes](./tool-approval.md)).
 
 ## Inside the tool loop
 

@@ -51,29 +51,30 @@ internal static class ChatEndpoints
             });
             // end-snippet
 
-            // begin-snippet: chat-approval-endpoint
-            chat.MapPost("/approvals", async Task<IResult> (
+            // begin-snippet: chat-decisions-endpoint
+            chat.MapGet("/decisions", async (int chatId, AgentHost<SupportAgent> support, CancellationToken ct) =>
+                (await support.WithConversationId(chatId).GetDecisionsAsync(ct)).Open);
+            // end-snippet
+
+            // begin-snippet: chat-answer-endpoint
+            chat.MapPost("/decisions", async Task<IResult> (
                 int chatId,
-                ApprovalAnswer[] answers,
+                DecisionAnswer answer,
                 AgentHost<SupportAgent> support,
                 ICurrentCustomer customer,
                 CancellationToken ct) =>
             {
-                // No answers would drop every pending request
-                if (answers.Length == 0) return TypedResults.BadRequest();
-
-                var reply = new ChatMessage(ChatRole.User, [.. answers.Select(answer => answer.ToResponse())]);
-
                 try
                 {
                     var resumed = await support
                         .WithSettingsId(customer.Id)
                         .WithConversationId(chatId)
-                        .RunAsync(reply, ct: ct);
+                        .AnswerAsync([answer], ct: ct);
 
+                    // Its Decisions list what still waits
                     return TypedResults.Ok(ChatReply.From(resumed));
                 }
-                catch (ApprovalClosedException)
+                catch (DecisionClosedException)
                 {
                     // Answered already, in another tab or by a retry, or passed by a newer message: the UI drops it
                     return TypedResults.Conflict();
@@ -90,10 +91,10 @@ internal static class ChatEndpoints
         {
             if (update.Text is { Length: > 0 } text) yield return new SseItem<object>(text, "text");
 
-            foreach (var request in update.Contents.OfType<ToolApprovalRequestContent>())
+            // Decisions come with the run's last update, so each one the UI shows can be answered
+            foreach (var decision in update.Decisions)
             {
-                if (PendingApproval.From(request) is { } approval)
-                    yield return new SseItem<object>(approval, "approval");
+                yield return new SseItem<object>(decision, "decision");
             }
         }
     }

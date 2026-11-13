@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Typeshift.Generated;
 
 namespace Typeshift;
@@ -11,8 +12,10 @@ namespace Typeshift;
 /// there. Registered as transient by <c>AddTypeshift()</c>: inject it, or resolve it from a scope, never from the root
 /// provider. <see cref="TypeshiftRuntime.Agent{TAgent}"/> creates one in a scope of its own, which disposing the host
 /// disposes. The generator adds the agent's typed members: <c>RunAsync</c>, <c>RunAsync&lt;T&gt;</c>,
-/// <c>RunStreamingAsync</c>, <c>RunStreamingAsync&lt;T&gt;</c>, <c>ResumeAsync</c>, <c>ResumeStreamingAsync</c>,
-/// <c>ResolveOptionsAsync</c>, <c>LoadSettingsAsync</c>, <c>SaveSettingsAsync</c> and <c>ConfigureAsync</c>.
+/// <c>RunStreamingAsync</c>, <c>RunStreamingAsync&lt;T&gt;</c>, <c>AnswerAsync</c>, <c>AnswerAsync&lt;T&gt;</c>,
+/// <c>AnswerStreamingAsync</c>, <c>AnswerStreamingAsync&lt;T&gt;</c>, <c>ResumeAsync</c>,
+/// <c>ResumeStreamingAsync</c>, <c>ResolveOptionsAsync</c>, <c>LoadSettingsAsync</c>, <c>SaveSettingsAsync</c> and
+/// <c>ConfigureAsync</c>.
 /// </summary>
 /// <typeparam name="TAgent">The agent.</typeparam>
 public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposable where TAgent : Agent
@@ -93,6 +96,51 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         ?? throw new InvalidOperationException(
             "A resume needs a conversation: resume on a host from WithConversationId(id).");
 
+    // D80: decisions belong to a conversation
+    private StoreId DecidedConversation =>
+        _conversationId
+        ?? throw new InvalidOperationException(
+            "Decisions belong to a conversation: call this on a host from WithConversationId(id).");
+
+    private DecisionLedger Ledger => new(Store, _services.GetService<TimeProvider>() ?? TimeProvider.System);
+
+    /// <summary>
+    /// Loads what the host's conversation, from <c>WithConversationId</c>, waits for: the decisions your app has not
+    /// answered yet, whether the answered ones are ready to be carried out, and the tools approved for the
+    /// conversation. It reads the conversation's decisions and none of its history, and starts no run.
+    /// </summary>
+    /// <param name="ct">Cancels the load.</param>
+    /// <returns>The decisions; none open for a conversation that never asked.</returns>
+    /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
+    public async Task<ConversationDecisions> GetDecisionsAsync(CancellationToken ct = default) =>
+        (await Ledger.LoadAsync(DecidedConversation, ct)).ToDecisions();
+
+    /// <summary>
+    /// Records your app's answers to decisions of the host's conversation, by their ids, and starts no run:
+    /// <c>ResumeAsync</c> continues once every decision is answered, and the generated <c>AnswerAsync</c> does both.
+    /// A decision may be answered alone, and the same answer again changes nothing.
+    /// </summary>
+    /// <param name="answers">The answers, at most one for each decision.</param>
+    /// <param name="ct">Cancels the save.</param>
+    /// <returns>The conversation's decisions after the answers.</returns>
+    /// <exception cref="DecisionClosedException">
+    /// An answer names a decision that is not open; nothing of the call is recorded.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// An answer does not fit its decision, one decision is answered twice, or there is no answer; nothing is
+    /// recorded.
+    /// </exception>
+    /// <exception cref="StoreConflictException">Other saves came first ten times in a row.</exception>
+    /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
+    public async Task<ConversationDecisions> RecordAnswersAsync(
+        IReadOnlyList<DecisionAnswer> answers,
+        CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(answers);
+
+        return (await Ledger.RecordAsync(DecidedConversation, answers, ct)).ToDecisions();
+    }
+
     /// <summary>
     /// The raw path: creates the client of a run whose options <c>ResolveOptionsAsync</c> resolved. It takes the
     /// client from the <see cref="IChatClientProvider{TProviderId}"/> of the provider's type, an
@@ -117,23 +165,28 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
             ?? throw new InvalidOperationException(ChatClients.NoClient($"the agent '{Agent.Name}'", provider, model));
         var run = resolved?.RunOptions ?? Agent.RunOptions;
 
-        // D29: outermost the conversation, then run middleware, context and approval above the tool loop, the
-        // checkpoints, unique call ids (D59) and compaction inside it, and innermost the provider's client,
-        // instrumented, behind a wrapper that never disposes it
+        // D29: outermost the conversation, then run middleware, context and the mode above the tool loop, the gate
+        // (D81), the checkpoints, unique call ids (D59) and compaction inside it, and innermost the provider's
+        // client, instrumented, behind a wrapper that never disposes it
         var provided = _services.GetRequiredService<InstrumentedClients>().Instrument(client, model);
 
         var checkpoints = new CheckpointChatClient(new UniqueCallIdsChatClient(new CompactingChatClient(provided)));
-        var middleware = _services.GetServices<IToolMiddleware>().ToList();
+        var decisions = new DecisionChatClient(checkpoints);
+        var loggers = _services.GetService<ILoggerFactory>();
 
-        var approval = new ApprovalChatClient(Loop(run.MaxToolIterations), Loop);
-        var context = new ContextChatClient(approval);
+        var gate = new ToolGate(
+            _services.GetServices<IToolMiddleware>().ToList(),
+            (loggers ?? NullLoggerFactory.Instance).CreateLogger<ToolGate>());
+
+        var mode = new ModeChatClient(Loop(run.MaxToolIterations), Loop);
+        var context = new ContextChatClient(mode);
 
         return new ConversationChatClient(new RunMiddlewareChatClient(context), Agent, _services);
 
         // D32: a tool loop per call with that call's iteration limit, so concurrent calls never share one
         IChatClient Loop(int iterations)
         {
-            var loop = new FunctionInvokingChatClient(checkpoints, _services.GetService<ILoggerFactory>(), _services)
+            var loop = new FunctionInvokingChatClient(decisions, loggers, _services)
             {
                 MaximumIterationsPerRequest = iterations,
                 MaximumConsecutiveErrorsPerRequest = run.MaxConsecutiveToolErrors,
@@ -142,12 +195,12 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
                 // D53: the model fixes a failed call only when it reads why it failed
                 IncludeDetailedErrors = true,
 
-                // An approved plan runs whatever mode the run continues in
-                AdditionalTools = [ExitPlanModeFunction.Instance]
-            };
+                // The call of an answered plan resolves whatever mode the run continues in
+                AdditionalTools = [ExitPlanModeFunction.Instance],
 
-            if (middleware.Count > 0)
-                loop.FunctionInvoker = (call, ct) => ToolMiddleware.InvokeAsync(middleware, 0, call, ct);
+                // D81: every call goes through its verdict, then the tool middleware (D30)
+                FunctionInvoker = gate.InvokeAsync
+            };
 
             return new AuthorNameChatClient(loop, Agent.Name);
         }
@@ -224,12 +277,20 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     private StoreId? Conversation(ChatMessage? input) => input is null ? ResumedConversation : _conversationId;
 
     internal async Task<ChatResponse<TResult>> RunCoreAsync<TResult>(
-        ChatMessage input,
+        ChatMessage? input,
         object? settings,
         CancellationToken ct)
     {
         var result = _services.GetRequiredService<ToolJson>().GetResultFormat<TResult>();
-        var response = await RunAsync([input], _settingsId, _conversationId, settings, null, null, result.Format, ct);
+        var response = await RunAsync(
+            input is null ? [] : [input],
+            _settingsId,
+            Conversation(input),
+            settings,
+            null,
+            null,
+            result.Format,
+            ct);
 
         return new ChatResponse<TResult>(response, result.SerializerOptions);
     }
@@ -244,6 +305,60 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         return new StreamingRun<TResult>(
             RunStreamingAsync([input], _settingsId, _conversationId, settings, null, result.Format, ct),
             result.SerializerOptions);
+    }
+
+    // D80: the answers are recorded first, by compare-and-set; the run then continues as a resume does, which calls
+    // no model while a decision is left open
+    internal async Task<ChatResponse> AnswerCoreAsync(
+        IReadOnlyList<DecisionAnswer> answers,
+        object? settings,
+        CancellationToken ct)
+    {
+        await RecordAnswersAsync(answers, ct);
+        return await RunCoreAsync(null, settings, ct);
+    }
+
+    internal async Task<ChatResponse<TResult>> AnswerCoreAsync<TResult>(
+        IReadOnlyList<DecisionAnswer> answers,
+        object? settings,
+        CancellationToken ct)
+    {
+        await RecordAnswersAsync(answers, ct);
+        return await RunCoreAsync<TResult>(null, settings, ct);
+    }
+
+    internal IAsyncEnumerable<ChatResponseUpdate> AnswerStreamingCoreAsync(
+        IReadOnlyList<DecisionAnswer> answers,
+        object? settings,
+        CancellationToken ct) =>
+        AnswerStreamingAsync(answers, settings, null, ct);
+
+    internal StreamingRun<TResult> AnswerStreamingCoreAsync<TResult>(
+        IReadOnlyList<DecisionAnswer> answers,
+        object? settings,
+        CancellationToken ct)
+    {
+        var result = _services.GetRequiredService<ToolJson>().GetResultFormat<TResult>();
+
+        return new StreamingRun<TResult>(
+            AnswerStreamingAsync(answers, settings, result.Format, ct),
+            result.SerializerOptions);
+    }
+
+    private async IAsyncEnumerable<ChatResponseUpdate> AnswerStreamingAsync(
+        IReadOnlyList<DecisionAnswer> answers,
+        object? settings,
+        ChatResponseFormat? format,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        await RecordAnswersAsync(answers, ct);
+
+        var resumed = RunStreamingAsync([], _settingsId, ResumedConversation, settings, null, format, ct);
+
+        await foreach (var update in resumed)
+        {
+            yield return update;
+        }
     }
 
     internal IAsyncEnumerable<ChatResponseUpdate> RunStreamingCoreAsync(

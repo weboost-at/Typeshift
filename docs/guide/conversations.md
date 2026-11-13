@@ -28,8 +28,8 @@ so the model sees the whole conversation. Because Typeshift sends the history it
 id on to the provider.
 
 Settings ids and conversation ids are independent, and a host may have either or both. A conversation does not
-remember a settings id, so every run of it that should use the stored settings needs a host with both, the run that
-answers an approval included: `support.WithSettingsId(42).WithConversationId(conversationId)`.
+remember a settings id, so every run of it that should use the stored settings needs a host with both, the call that
+answers a decision included: `support.WithSettingsId(42).WithConversationId(conversationId)`.
 
 ## Conversation ids
 
@@ -81,6 +81,12 @@ token usage, the tool results of each round of calls, and an entry that ends the
 receives each entry through `AppendConversationAsync`
 ([Implementing a store](./implementing-a-store.md#append-to-a-conversation)).
 
+What a run asks your app is not among the entries. A conversation has a second, small record beside them, its
+decisions: the decisions that wait, with the calls they stand for, the answers your app gave, and the tools
+[approved for the conversation](./tool-approval.md#approving-for-the-conversation). Your store keeps it through
+`IDecisionStore<TId>` ([Keep decisions](./implementing-a-store.md#keep-decisions)). The entries hold the model's call
+and, once it ran or was rejected, its result, and never a request for approval or its answer.
+
 Each entry is a `ConversationEntry`: the name of its agent in `Agent`, its `Messages` and the time it was stored in
 `At`, plus the `Model` and `Usage` of a model response, and `EndsRun` on the entry that ends a run. `IsSummary` is true
 on the entry [compaction](#compaction) appends when it summarizes, which is how your code and your store tell a summary
@@ -110,16 +116,19 @@ Runs that fail or stop early are stored too:
 - A run cut off by a crash has no ending entry, and [resuming](#resuming) continues it.
 
 When the store fails to save, the failure is logged and recorded on the run's span, and the run still returns its
-answer. The step it failed to save is missing from later runs.
+answer. The step it failed to save is missing from later runs. One step is different: a run that asks your app
+throws the store's exception when it could not store the model's response or the decision, because a prompt your app
+shows must be one it can answer.
 
 Whenever a run loads the conversation, it builds what the model sees so that a provider accepts it. Each tool result
 follows the message that made its call, even when the store holds input or an end of a run between the two. A call
 that never got a result is left out, and so are a result whose call is missing and error messages, because providers
-reject them.
+reject them. The approval requests and answers an earlier version of Typeshift stored among the entries are left out
+too.
 
 Some providers, such as local servers with an OpenAI-compatible API, number their tool calls per response, so a later
 call can get an id the conversation holds already. Typeshift renames such a call, as `call_1_2`, before it stores or
-runs it, so the stored entries, `ApprovalRequests` and the tool's result all carry the new id.
+runs it, so the stored entries, the decision that waits for the call and the tool's result all carry the new id.
 
 ## Resuming
 
@@ -135,9 +144,13 @@ var resumed = await support.WithSettingsId(settingsId).WithConversationId(interr
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L64-L66' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+`ResumeAsync` also continues a conversation whose decisions your app answered with `RecordAnswersAsync`: it carries
+the answers out and goes on. While decisions are still open, it calls no model and returns them
+([Approving or rejecting](./tool-approval.md#approving-or-rejecting)).
+
 `ResumeAsync` throws an `InvalidOperationException` on a host without a conversation id, or when the conversation's last
-run ended. A new run with input works on an interrupted conversation too: it starts from the interrupted run's steps
-and adds its own input.
+run ended and no answered decision waits. A new run with input works on an interrupted conversation too: it starts
+from the interrupted run's steps and adds its own input.
 
 After a restart, the entries tell you which conversations to resume. A run stores its ending entry only when it ends,
 so the last entry that `LoadConversationAsync` returns has `EndsRun` false for a run that a crash cut off and for one
@@ -151,7 +164,9 @@ last entry's `At` is older than a limit your app chooses, or behind a lease of y
 
 ::: warning A tool can be called twice
 A call interrupted while its tool ran is left out on resume. The model decides again and may call the tool a second
-time, so make tools with side effects safe to repeat.
+time, so make tools with side effects safe to repeat. A call your app approved is the exception: no later run starts
+it again, and the model reads that it is not known whether the call took effect
+([When a decision closes](./tool-approval.md#when-a-decision-closes)).
 :::
 
 ## One run at a time
@@ -205,8 +220,9 @@ conversations the caller may see before you return them from an endpoint.
 
 `TrySteer` hands new input to a conversation's run while it works, for example when a user adds a request halfway
 through. The model receives it before its next call, and the run does not end before then. The input is stored like
-any other. When the run had asked for approval, its requests close once it answers the input, as they would for a new
-message ([When a request closes](./tool-approval.md#when-a-request-closes)).
+any other. When the run had asked your app before it took the input, its decisions expire, as they would for a new
+message: the model reads that those calls did not run, and the run's response lists no decision
+([When a decision closes](./tool-approval.md#when-a-decision-closes)).
 
 `TrySteer` returns false when no run of the conversation is going on in this process, or when that run is already
 ending. Start a run with the input instead:
@@ -319,8 +335,9 @@ middleware put in place of another is summarized like the message it stands for.
 
 The stored conversation keeps everything. Compaction appends an entry of its own, with `IsSummary` set to true, that
 holds the summary and the messages it kept after it. Later runs start from that entry instead of summarizing again, and
-read nothing before it: the entry also keeps the conversation's mode, its [approvals for the
-conversation](./tool-approval.md#approving-for-the-conversation) and the background agents still working.
+read nothing before it: the entry also keeps the conversation's mode and the background agents still working. The
+[approvals for the conversation](./tool-approval.md#approving-for-the-conversation) are stored with its decisions,
+which no summary touches.
 
 ## Related
 

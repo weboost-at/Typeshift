@@ -106,6 +106,11 @@ No diagnostic reports a `T` of these calls that no context lists. The build and 
 published app throws a `NotSupportedException` that names the type when it makes the run.
 :::
 
+A conversation's [decisions](./tool-approval.md#how-approval-works) are stored without a context too. An endpoint of
+your own that returns a `Decision` or takes a `DecisionAnswer` needs both in the context your web app serializes
+with, as every type of an endpoint does: `[JsonSerializable(typeof(Decision))]` and
+`[JsonSerializable(typeof(DecisionAnswer))]`.
+
 ## Related
 
 - [Toolsets](./toolsets.md#results): how a tool's result reaches the model as JSON.

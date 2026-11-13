@@ -11,7 +11,7 @@ internal static class ReferenceReader
 {
     // D7: raised whenever the stamps change shape or a member generated code binds to changes; a reference with
     // another version is TSH020
-    public const int StampVersion = 7;
+    public const int StampVersion = 8;
 
     public static ReferenceModel Read(Compilation compilation, CancellationToken ct)
     {

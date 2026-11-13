@@ -246,7 +246,7 @@ public class HandoffTests : MultiAgentTestBase
     }
 
     [Fact]
-    public async Task Given_A_Closed_Request_Of_The_Agent_Handed_To_An_Answer_Throws_And_Frees_The_Conversation()
+    public async Task Given_An_Expired_Decision_Of_The_Agent_Handed_To_An_Answer_Throws_And_Frees_The_Conversation()
     {
         // Arrange
         ChatClient
@@ -263,14 +263,66 @@ public class HandoffTests : MultiAgentTestBase
             .RunAsync(Data.Agent.FollowUp, ct: Ct);
 
         // Act
-        var answer = () => Host<GuardedFrontAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
-            new ChatMessage(ChatRole.User, [asked.ApprovalRequests.Single().CreateResponse(approved: true)]),
+        var answer = () => Host<GuardedFrontAgent>().WithConversationId(Data.Agent.ConversationId).AnswerAsync(
+            [DecisionAnswer.Approve(asked.Decisions.Single().Id)],
             ct: Ct);
 
         // Assert
-        await answer.Should().ThrowAsync<ApprovalClosedException>();
+        await answer.Should().ThrowAsync<DecisionClosedException>();
         Tracker.Runs.Should().BeEmpty();
         ToolCalls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Decision_Of_The_Agent_Handed_To_An_Answer_Through_The_First_Agent_Continues_With_It()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_guarded_back_agent"))
+            .Reply(Call(Data.Tool.SecondCallId, "close_ticket", ("number", Data.Agent.Ticket.Default)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var front = Host<GuardedFrontAgent>().WithConversationId(Data.Agent.ConversationId);
+        var asked = await front.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        var response = await front.AnswerAsync([DecisionAnswer.Approve(asked.Decisions.Single().Id)], ct: Ct);
+
+        // Assert
+        Models[^1].Model.Should().Be("back-model");
+        response.Messages[^1].AuthorName.Should().Be("guarded_back_agent");
+        ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
+    }
+
+    [Fact]
+    public async Task Given_A_Handoff_Called_Next_To_A_Call_That_Waits_For_Approval_It_Is_Refused()
+    {
+        // Arrange
+        var handingBack = $"{Data.Tool.SecondCallId}_back";
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_guarded_back_agent"))
+            .Reply(Calls(
+                Call(Data.Tool.SecondCallId, "close_ticket", ("number", Data.Agent.Ticket.Default)),
+                Call(handingBack, "handoff_to_guarded_front_agent")))
+            .Reply(Text(Data.Tool.Answer));
+
+        var front = Host<GuardedFrontAgent>().WithConversationId(Data.Agent.ConversationId);
+        var asked = await front.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await front.AnswerAsync([DecisionAnswer.Approve(asked.Decisions.Single().Id)], ct: Ct);
+
+        var refused = ChatClient.Requests[^1]
+            .SelectMany(message => message.Contents)
+            .OfType<FunctionResultContent>()
+            .Single(result => result.CallId == handingBack)
+            .Result?.ToString();
+
+        // Assert
+        asked.Decisions.Single().Agent.Should().Be("guarded_back_agent");
+        refused.Should().Be(DecisionResults.NotHandedOff);
+        Models[^1].Model.Should().Be("back-model");
     }
 
     [Fact]

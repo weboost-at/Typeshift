@@ -323,6 +323,10 @@ In these signatures, `Settings` is the agent's [generated `Settings` record](#se
 | `RunStreamingAsync<TResult>(ChatMessage input, Settings? settings = null)` | `StreamingRun<TResult>` |
 | `ResumeAsync(Settings? settings = null)` | `Task<ChatResponse>` |
 | `ResumeStreamingAsync(Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
+| `AnswerAsync(IReadOnlyList<DecisionAnswer> answers, Settings? settings = null)` | `Task<ChatResponse>` |
+| `AnswerAsync<TResult>(IReadOnlyList<DecisionAnswer> answers, Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
+| `AnswerStreamingAsync(IReadOnlyList<DecisionAnswer> answers, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
+| `AnswerStreamingAsync<TResult>(IReadOnlyList<DecisionAnswer> answers, Settings? settings = null)` | `StreamingRun<TResult>` |
 | `ResolveOptionsAsync(Settings? settings = null)` | `Task<ChatOptions>` |
 | `LoadSettingsAsync()` | `Task<Stored<Settings>>` |
 | `SaveSettingsAsync(Settings settings, long loadedVersion)` | `Task<long>` |
@@ -330,15 +334,20 @@ In these signatures, `Settings` is the agent's [generated `Settings` record](#se
 
 ### `RunAsync`
 
-`RunAsync` runs the agent on one message, a `string` or a `ChatMessage`, which can carry images or approval answers.
+`RunAsync` runs the agent on one message, a `string` or a `ChatMessage`, which can carry images.
 It layers the agent's code, the stored settings, the mode the conversation's last run ended in, then `settings`
 ([Settings layering](./settings-and-stores.md#settings-layering)).
 
 On a host with a conversation id, it stores the run as it goes ([What a run stores](#what-a-run-stores)). Without
 one, it stores nothing, offers no handoffs and cannot ask for approval, unless your app keeps every conversation
-([Keeping every conversation](./conversations.md#keeping-every-conversation)). A run that cannot ask throws an
-`InvalidOperationException` when the model calls a tool that requires approval and no rule or mode approves the
-call. To avoid that, run with a conversation id, approve the call with a rule, or run in `Auto` mode.
+([Keeping every conversation](./conversations.md#keeping-every-conversation)). A run that cannot ask throws a
+`DecisionUnavailableException`, an `InvalidOperationException`, when the model calls a tool that requires approval
+and no rule or mode approves the call. To avoid that, run with a conversation id, approve the call with a rule, or
+run in `Auto` mode.
+
+When a run ends asking your app, the response's `Decisions` lists what it asks
+([When a call needs approval](./tool-approval.md#when-a-call-needs-approval)). A message that carries
+Microsoft.Extensions.AI's approval contents throws an `ArgumentException`: answers go through `AnswerAsync`.
 
 `RunAsync` returns the model's messages with the tool calls and results between them, and each message carries the
 answering agent's name as `AuthorName`.
@@ -355,11 +364,24 @@ running between them. The updates of a run with a conversation are also publishe
 
 ### `ResumeAsync` and `ResumeStreamingAsync`
 
-Both continue the interrupted run of the host's conversation, the one `WithConversationId(id)` gave it, from its last
-stored step, without new input. They layer like `RunAsync` and store the continuation in the same conversation. A tool
-call that was still running when the run stopped is left out, so the model decides again and may call the tool a second
-time ([Resuming](./conversations.md#resuming)). They throw an `InvalidOperationException` when the host has no
-conversation id or the conversation has no interrupted run.
+Both continue the host's conversation, the one `WithConversationId(id)` gave it, without new input: the interrupted
+run from its last stored step, or the decisions your app answered. They layer like `RunAsync` and store the
+continuation in the same conversation. A tool call that was still running when the run stopped is left out, so the
+model decides again and may call the tool a second time ([Resuming](./conversations.md#resuming)). While decisions
+are still open, they call no model and return them. They throw an `InvalidOperationException` when the host has no
+conversation id or the conversation has nothing to continue.
+
+### `AnswerAsync` and `AnswerStreamingAsync`
+
+Both record your app's answers to decisions of the host's conversation and, once no decision is left open, carry
+them out and continue the run, as `ResumeAsync` does
+([Approving or rejecting](./tool-approval.md#approving-or-rejecting)). With decisions left open they call no model,
+and what they return lists the rest. `AnswerStreamingAsync` records when its updates are read. The typed forms ask
+the continued run for `TResult`.
+
+They throw a `DecisionClosedException` when an answer names a decision that is not open, an `ArgumentException` when
+an answer does not fit its decision, one decision is answered twice or the list is empty, and an
+`InvalidOperationException` when the host has no conversation id. Nothing is recorded then.
 
 ### `ResolveOptionsAsync`
 

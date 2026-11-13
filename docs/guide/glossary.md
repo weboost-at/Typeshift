@@ -12,7 +12,6 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 |---|---|
 | **Agent** | A `partial` class deriving from `Agent` that bundles chat options, instructions, tools and their settings for one job. See [Agents](./defining-agents.md). |
 | **Agent host** | `AgentHost<TAgent>`, which runs one agent with the services of its scope: the one it was resolved from, or the one the runtime created for it. See [Using an agent](./using-an-agent.md). |
-| **Approval request** | The `ToolApprovalRequestContent` a run ends with when it needs approval. You answer it in the conversation's next run. See [Approval and modes](./tool-approval.md). |
 | **Approval rule** | An `IToolApprovalRule` that approves, rejects or abstains on a tool call before your app is asked. |
 | **Chat client provider** | An `IChatClientProvider<T>` your app may register with `WithChatClientProvider<TProvider>()`, which returns the `IChatClient` for a provider of type `T` and a model. Without one for its agent's provider id type, a run takes an `IChatClient` registered under its provider or for every agent. |
 | **Code defaults** | The values a settings record's parameterless constructor sets, the lowest [layer](./settings-and-stores.md#settings-layering). |
@@ -20,6 +19,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | **Configurable** | A settings member or an option that stored settings or a run may change, marked in code with `Configurable(...)` or `WithConfigurableSettings<T>()`. Everything else keeps the value the code sets. |
 | **Context provider** | An `IContextProvider` that adds instructions, messages or tools to every run of the agents that use it. |
 | **Conversation** | The entries runs store under a conversation id, which `WithConversationId` gives a host: inputs, model responses, tool results and run endings. See [Conversations](./conversations.md). |
+| **Decision** | What a run asks your app before it goes on: an `ApprovalDecision` for a call of a tool that requires approval, a `PlanDecision` for a plan. It is stored with the conversation and answered by its id through `AnswerAsync`. See [Approval and modes](./tool-approval.md#how-approval-works). |
 | **Declaration** | The chain of calls in a toolset's or agent's constructor, such as `AddTool(...).ReadOnly()`. The generator reads it at compile time, and at runtime it only records values. See [How Typeshift reads your code](./how-typeshift-reads-your-code.md). |
 | **Diagnostic** | A `TSHnnn` error or warning the analyzer reports for a mistake in a toolset, an agent or the setup. See [Diagnostics](./diagnostics.md). |
 | **Generated member** | A member the source generator writes into or next to your toolsets and agents. See [Generated members](./generated-members.md). |
@@ -34,7 +34,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | **Overrides** | The generated `{Tool}Overrides` record, a tool's configurable settings with each one nullable. Null keeps the layer below. |
 | **Provider id type** | The type of an agent's providers: that of the provider its `WithModel(provider, model)` names, such as `string` or an enum, and `string` without `WithModel`. One app may use several. See [Models and providers](./models.md#the-provider-id-type). |
 | **Raw path** | Resolving a run's options and creating its `IChatClient` yourself, for when your app needs the client. See [Running agents](./running-agents.md#the-raw-path). |
-| **Run** | One call of `RunAsync`, `RunAsync<T>`, `RunStreamingAsync`, `RunStreamingAsync<T>`, `ResumeAsync`, `ResumeStreamingAsync` or the raw path's client: the model calls and tool calls until the model answers. |
+| **Run** | One call of `RunAsync`, `RunAsync<T>`, `RunStreamingAsync`, `RunStreamingAsync<T>`, `ResumeAsync`, `ResumeStreamingAsync`, an `AnswerAsync` or `AnswerStreamingAsync` that continues, or the raw path's client: the model calls and tool calls until the model answers or asks your app. |
 | **Run options** | How a run's tool loop goes, with its mode, its limits and compaction. Set with `WithRunOptions()`. |
 | **Runtime** | `TypeshiftRuntime`, the root of Typeshift in your app, which gives you a host with a scope of its own. `TypeshiftRuntime.Create` builds one without a container, and `AddTypeshift()` registers one. See [The runtime](./registration.md#the-runtime). |
 | **Schema version** | The number in a stored document's JSON, `"$schemaVersion"`, that names the shape of the record that wrote it: 1 unless the agent's `WithSchemaVersion(n)` raises it. Reading a newer one fails. See [The stored JSON](./settings-and-stores.md#the-stored-json). |
@@ -42,7 +42,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | **Settings id** | The id your app stores an agent's `Settings` under, such as one per customer, team or user, and gives a host with `WithSettingsId`. |
 | **Settings record** | The record a tool receives its settings in, declared with `WithSettings<T>()` or `WithConfigurableSettings<T>()`. The model never sees it. |
 | **Stamp** | A hidden attribute the generator writes so that other assemblies can read a toolset's tools or a project's module. |
-| **Standing approval** | An approval for every later call of a tool in a conversation, given with `ApproveForConversation()`. |
+| **Standing approval** | An approval for every later call of a tool in a conversation, given with `ApproveForConversation()` and listed by `GetDecisionsAsync()`. |
 | **Steering** | Input a user sends while a run works, which you hand to that run with `ConversationTracker<TId>.TrySteer`. See [Steering](./conversations.md#steering). |
 | **Store** | What your app registers with `WithStore<T>()` to keep settings (`ISettingsStore<TId>`), conversations (`IConversationStore<TId>`), their decisions (`IDecisionStore<TId>`) or all three (`ITypeshiftStore<TId>`). See [Register your store](./implementing-a-store.md#register-your-store). |
 | **Sub-agent** | Another agent offered as a tool with `UseAgent<T>()`. It works in a context of its own and answers with text. |

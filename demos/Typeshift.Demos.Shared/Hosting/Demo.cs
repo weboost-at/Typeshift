@@ -29,6 +29,7 @@ public static class Demo
         services.AddSingleton(new JsonFileStore(DataDirectory));
         services.AddSingleton<ISettingsStore<Guid>>(provider => provider.GetRequiredService<JsonFileStore>());
         services.AddSingleton<IConversationStore<Guid>>(provider => provider.GetRequiredService<JsonFileStore>());
+        services.AddSingleton<IDecisionStore<Guid>>(provider => provider.GetRequiredService<JsonFileStore>());
         services.AddSingleton<ITypeshiftStore<Guid>>(provider => provider.GetRequiredService<JsonFileStore>());
 
         return services;
@@ -104,8 +105,8 @@ public static class Demo
                         Console.Write($"   [result] {Shorten(result.Result?.ToString() ?? "")}\n");
                         break;
 
-                    case ToolApprovalRequestContent request when request.ToolCall is FunctionCallContent asked:
-                        Console.Write($"\n   [approval needed] {asked.Name}({Arguments(asked)})\n");
+                    case DecisionRequestContent { Decision: ApprovalDecision asked }:
+                        Console.Write($"\n   [approval needed] {asked.Tool}({Arguments(asked.Arguments)})\n");
                         break;
                 }
             }
@@ -118,6 +119,11 @@ public static class Demo
     public static string Arguments(FunctionCallContent call) =>
         string.Join(", ", (call.Arguments ?? new Dictionary<string, object?>()).Select(argument =>
             $"{argument.Key}: {Shorten(argument.Value?.ToString() ?? "null")}"));
+
+    // The arguments of a call that waits for approval, a JSON object
+    public static string Arguments(System.Text.Json.JsonElement arguments) =>
+        string.Join(", ", arguments.EnumerateObject().Select(argument =>
+            $"{argument.Name}: {Shorten(argument.Value.ToString())}"));
 
     private static string Shorten(string text)
     {

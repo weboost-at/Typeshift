@@ -112,10 +112,10 @@ public class SubAgentTests : MultiAgentTestBase
 
         var lead = Host<TrustingLeadAgent>();
         var asked = await lead.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
-        var always = new ChatMessage(ChatRole.User, [asked.ApprovalRequests[0].ApproveForConversation()]);
+        var always = DecisionAnswer.ApproveForConversation(asked.Decisions[0].Id);
 
         // Act
-        await lead.WithConversationId(Data.Agent.ConversationId).RunAsync(always, ct: Ct);
+        await lead.WithConversationId(Data.Agent.ConversationId).AnswerAsync([always], ct: Ct);
 
         // Assert
         ToolCalls.Should().Equal(
@@ -314,7 +314,6 @@ public class SubAgentTests : MultiAgentTestBase
             Time.GetUtcNow())
         {
             IsSummary = true,
-            StandingApprovals = [],
             BackgroundCalls = new Dictionary<string, string> { [Data.Tool.CallId] = "helper_agent" }
         };
 
@@ -335,7 +334,7 @@ public class SubAgentTests : MultiAgentTestBase
     }
 
     [Fact]
-    public async Task Given_A_Request_While_A_Background_Sub_Agent_Works_The_Run_Returns_It_And_Its_Approval_Runs()
+    public async Task Given_A_Decision_While_A_Background_Sub_Agent_Works_The_Run_Returns_It_And_Its_Approval_Runs()
     {
         // Arrange
         var gate = new TaskCompletionSource();
@@ -343,7 +342,6 @@ public class SubAgentTests : MultiAgentTestBase
         ChatClient
             .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
             .Reply(Call(Data.Tool.SecondCallId, "close_ticket", ("number", Data.Agent.Ticket.Default)))
-            .Reply(Text(Data.Agent.Reason))
             .Reply(Text(Data.Tool.Answer));
 
         HelperClient.Reply(gate, Text(Data.Agent.Reason));
@@ -357,8 +355,8 @@ public class SubAgentTests : MultiAgentTestBase
         var asked = await running;
 
         // Act
-        await Host<GuardedBackgroundLeadAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
-            new ChatMessage(ChatRole.User, [asked.ApprovalRequests.Single().CreateResponse(approved: true)]),
+        await Host<GuardedBackgroundLeadAgent>().WithConversationId(Data.Agent.ConversationId).AnswerAsync(
+            [DecisionAnswer.Approve(asked.Decisions.Single().Id)],
             ct: Ct);
 
         // Assert

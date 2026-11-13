@@ -247,13 +247,37 @@ public class RunMiddlewareTests : MiddlewareTestBase
             return next();
         };
 
-        var approval = new ChatMessage(ChatRole.User, [asked.ApprovalRequests[0].CreateResponse(approved: true)]);
+        var approval = DecisionAnswer.Approve(asked.Decisions[0].Id);
 
         // Act
-        await Host<ContextAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(approval, ct: Ct);
+        await Host<ContextAgent>().WithConversationId(Data.Agent.ConversationId).AnswerAsync([approval], ct: Ct);
 
         // Assert
         ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
+    }
+
+    [Fact]
+    public async Task Given_An_Answering_Run_That_Failed_Before_Its_Approved_Call_Ran_No_Later_Run_Runs_The_Call()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "close_ticket", ("number", Data.Agent.Ticket.Default)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var chat = Host<ContextAgent>().WithConversationId(Data.Agent.ConversationId);
+        var asked = await RunAsync(Data.Tool.Question);
+        var approval = DecisionAnswer.Approve(asked.Decisions[0].Id);
+
+        Script.Runs[0] = (_, _) => throw new InvalidOperationException(Data.Agent.Reason);
+        var failed = await Record.ExceptionAsync(() => chat.AnswerAsync([approval], ct: Ct));
+        Script.Runs.Clear();
+
+        // Act
+        await RunAsync(Data.Agent.FollowUp);
+
+        // Assert
+        failed.Should().BeOfType<InvalidOperationException>();
+        ToolCalls.Should().BeEmpty();
     }
 
     [Fact]

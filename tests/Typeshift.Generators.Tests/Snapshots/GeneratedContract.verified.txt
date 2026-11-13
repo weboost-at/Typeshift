@@ -1,4 +1,4 @@
-StampVersion = 7
+StampVersion = 8
 protected virtual Typeshift.Generated.AgentDeclaration Typeshift.Agent.Declaration { get; }
 public abstract class Typeshift.Generated.AgentDeclaration
 public abstract string? Typeshift.Generated.AgentDeclaration.Description { get; }
@@ -10,6 +10,10 @@ protected abstract System.Collections.Generic.IEnumerable<Microsoft.Extensions.A
 protected static void Typeshift.Generated.AgentDeclaration<TAgent, TSettings>.SetProvider<TProviderId>(Microsoft.Extensions.AI.ChatOptions options, TProviderId provider) where TProviderId : notnull
 protected static void Typeshift.Generated.AgentDeclaration<TAgent, TSettings>.SetSummaryProvider<TProviderId>(Microsoft.Extensions.AI.ChatOptions options, TProviderId provider) where TProviderId : notnull
 public static class Typeshift.Generated.AgentRuns
+public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse<TResult>> Typeshift.Generated.AgentRuns.AnswerAsync<TAgent, TResult>(Typeshift.AgentHost<TAgent> host, System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
+public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> Typeshift.Generated.AgentRuns.AnswerAsync<TAgent>(Typeshift.AgentHost<TAgent> host, System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
+public static Typeshift.StreamingRun<TResult> Typeshift.Generated.AgentRuns.AnswerStreamingAsync<TAgent, TResult>(Typeshift.AgentHost<TAgent> host, System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
+public static System.Collections.Generic.IAsyncEnumerable<Microsoft.Extensions.AI.ChatResponseUpdate> Typeshift.Generated.AgentRuns.AnswerStreamingAsync<TAgent>(Typeshift.AgentHost<TAgent> host, System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
 public static System.Threading.Tasks.Task<TSettings> Typeshift.Generated.AgentRuns.ConfigureAsync<TAgent, TSettings>(Typeshift.AgentHost<TAgent> host, System.Func<TSettings, TSettings> configure, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent where TSettings : class, Typeshift.IStorable<TSettings>, new()
 public static System.Threading.Tasks.Task<Typeshift.Stored<TSettings>> Typeshift.Generated.AgentRuns.LoadSettingsAsync<TAgent, TSettings>(Typeshift.AgentHost<TAgent> host, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent where TSettings : class, Typeshift.IStorable<TSettings>, new()
 public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatOptions> Typeshift.Generated.AgentRuns.ResolveOptionsAsync<TAgent>(Typeshift.AgentHost<TAgent> host, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent

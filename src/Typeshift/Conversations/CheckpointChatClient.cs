@@ -49,18 +49,11 @@ internal sealed class CheckpointChatClient(IChatClient inner) : DelegatingChatCl
         }
     }
 
-    // D29: the conversation's client gives every call its run. A call without one came from a layer taken out of the
-    // created client, and passing it on would store nothing and count no model call
     private static ConversationRun Begin(ChatOptions? options)
     {
-        if (options is not ResolvedChatOptions { AgentRun: { } agentRun, ConversationRun: { } run })
-        {
-            throw new InvalidOperationException(
-                "A client taken out of the one CreateChatClientAsync created was called on its own: call the created "
-                + "client, which begins the run its tool loop and checkpoints belong to.");
-        }
+        var resolved = ResolvedChatOptions.OfRun(options);
 
-        agentRun.ModelCalls++;
-        return run;
+        resolved.AgentRun!.ModelCalls++;
+        return resolved.ConversationRun!;
     }
 }

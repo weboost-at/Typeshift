@@ -11,7 +11,7 @@ public abstract class LedgerTestBase : HostTestBase
 
     protected LedgerTestBase() => _otherProcess = new(BuildOtherProcess);
 
-    protected RacingDecisionStore Store { get; } = new();
+    protected UnreliableStore Store { get; } = new();
 
     internal StoreId Conversation => new StoreId<Guid>(Data.Agent.ConversationId);
 
@@ -47,6 +47,10 @@ public abstract class LedgerTestBase : HostTestBase
 
         return answered.Batch!;
     }
+
+    // A batch a run began to carry out
+    internal async Task<DecisionBatch> StartedAsync(DecisionBatch batch) =>
+        (await Ledger.StartAsync(Conversation, await AnsweredAsync(batch), Ct)).Batch!;
 
     protected override void ConfigureServices(IServiceCollection services) => services.AddTypeshift().WithStore(Store);
 

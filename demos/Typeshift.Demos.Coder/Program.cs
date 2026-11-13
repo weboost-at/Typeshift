@@ -126,20 +126,23 @@ _ = Task.Run(async () =>
 });
 
 ChatMessage? next = null;
+IReadOnlyList<DecisionAnswer> answers = [];
 
 if (Demo.Option(args, "--resume") is not null)
 {
     var entries = await store.LoadConversationAsync(conversationId, session.Token);
+    var waiting = await chat.GetDecisionsAsync(session.Token);
 
-    if (entries.Count > 0 && !entries[^1].EndsRun)
+    // A run cut off goes on; one that waited for an answer returns what it asked, without a model call
+    if (waiting.Open.Count > 0 || waiting.CanResume || (entries.Count > 0 && !entries[^1].EndsRun))
     {
         Demo.Heading("Resuming the interrupted run");
         var resumed = await RunAsync(chat.ResumeStreamingAsync(ct: session.Token));
-        next = ConsoleApprover.Answer(resumed, ReadLine, approveAll);
+        answers = ConsoleApprover.Answers(resumed, ReadLine, approveAll);
     }
 }
 
-if (next is null)
+if (answers.Count == 0)
 {
     Console.Write("\ntask> ");
     var task = Demo.Flag(args, "--once") || approveAll ? "Make the tests in test.sh pass." : ReadLine();
@@ -147,24 +150,27 @@ if (next is null)
     next = new ChatMessage(ChatRole.User, task);
 }
 
-while (next is not null && !session.IsCancellationRequested)
+while ((next is not null || answers.Count > 0) && !session.IsCancellationRequested)
 {
     ChatResponse response;
 
     try
     {
-        response = await RunAsync(chat.RunStreamingAsync(next, ct: session.Token));
+        response = await RunAsync(answers.Count > 0
+            ? chat.AnswerStreamingAsync(answers, ct: session.Token)
+            : chat.RunStreamingAsync(next!, ct: session.Token));
     }
-    catch (ApprovalClosedException)
+    catch (DecisionClosedException)
     {
-        // What you typed while it asked steered the run, which answered that instead of waiting for the approval
-        Demo.Note("That approval has expired: the agent went on with what you typed.");
+        // Another process answered first, or a newer message passed the decision by
+        Demo.Note("That decision is closed: the conversation went on without this answer.");
         response = new ChatResponse();
     }
 
-    next = ConsoleApprover.Answer(response, ReadLine, approveAll);
+    answers = ConsoleApprover.Answers(response, ReadLine, approveAll);
+    next = null;
 
-    if (next is null && !Demo.Flag(args, "--once") && !approveAll)
+    if (answers.Count == 0 && !Demo.Flag(args, "--once") && !approveAll)
     {
         Console.Write("\ntask> ");
         var task = ReadLine();
@@ -234,8 +240,8 @@ static void Print(ChatResponseUpdate update)
                 Console.WriteLine($"   [result] {Shorten(result.Result?.ToString() ?? "")}");
                 break;
 
-            case ToolApprovalRequestContent { ToolCall: FunctionCallContent asked }:
-                Console.WriteLine($"\n   [approval needed] {asked.Name}");
+            case DecisionRequestContent { Decision: ApprovalDecision asked }:
+                Console.WriteLine($"\n   [approval needed] {asked.Tool}");
                 break;
         }
     }

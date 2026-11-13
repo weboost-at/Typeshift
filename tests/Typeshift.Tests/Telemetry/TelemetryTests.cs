@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Typeshift.Tests.Agents.Support;
+using Typeshift.Tests.Approval.Support;
 using Typeshift.Tests.Compaction.Support;
 using Typeshift.Tests.Conversations.Support;
 using Typeshift.Tests.Telemetry.Support;
@@ -254,6 +255,21 @@ public sealed class TelemetryTests : AgentTestBase
         var span = Activities.Run(Data.Agent.ConversationId);
         span.Status.Should().Be(ActivityStatusCode.Error);
         span.GetTagItem("error.type").Should().Be(typeof(InvalidOperationException).FullName);
+    }
+
+    [Fact]
+    public async Task Given_A_Run_That_Waits_For_A_Decision_Its_Span_Carries_No_Error_And_No_Tool_Span()
+    {
+        // Arrange
+        ChatClient.Reply(Call(Data.Tool.CallId, "close_ticket", ("number", Data.Agent.Ticket.Default)));
+
+        // Act
+        await Host<GuardedAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        var run = Activities.Run(Data.Agent.ConversationId);
+        run.Status.Should().NotBe(ActivityStatusCode.Error);
+        Activities.Inside(run).Select(activity => activity.DisplayName).Should().Equal("chat guarded-model");
     }
 
     [Fact]

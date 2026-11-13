@@ -260,7 +260,7 @@ public class DecisionLedgerTests : LedgerTestBase
         var started = await Ledger.StartAsync(Conversation, answered, Ct);
 
         // Assert
-        started.State.Should().Be(BatchState.Started);
+        started.Batch!.State.Should().Be(BatchState.Started);
         (await DocumentAsync()).Batch!.State.Should().Be(BatchState.Started);
     }
 
@@ -430,7 +430,7 @@ public class DecisionLedgerTests : LedgerTestBase
     {
         // Arrange
         var answered = await AnsweredAsync(Batch(Approval(Data.Tool.CallId)));
-        var started = await Ledger.StartAsync(Conversation, answered, Ct);
+        var started = (await Ledger.StartAsync(Conversation, answered, Ct)).Batch!;
 
         // Act
         await Ledger.CloseAsync(Conversation, started, Ct);
@@ -476,12 +476,9 @@ public class DecisionLedgerTests : LedgerTestBase
     public async Task Given_Two_Batches_Closed_Only_The_Decisions_Of_The_Last_Are_Remembered()
     {
         // Arrange
-        var first = await Ledger.StartAsync(Conversation, await AnsweredAsync(Batch(Approval(Data.Tool.CallId))), Ct);
+        var first = await StartedAsync(Batch(Approval(Data.Tool.CallId)));
         await Ledger.CloseAsync(Conversation, first, Ct);
-        var second = await Ledger.StartAsync(
-            Conversation,
-            await AnsweredAsync(Batch(Approval(Data.Tool.SecondCallId))),
-            Ct);
+        var second = await StartedAsync(Batch(Approval(Data.Tool.SecondCallId)));
 
         // Act
         await Ledger.CloseAsync(Conversation, second, Ct);

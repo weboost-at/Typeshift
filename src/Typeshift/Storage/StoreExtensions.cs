@@ -564,8 +564,7 @@ public static class StoreExtensions
     private static ConversationEntry Summary(int step) =>
         Entry(step, ChatRole.User) with
         {
-            IsSummary = true,
-            StandingApprovals = []
+            IsSummary = true
         };
 
     private static InvalidOperationException Broken(string rule, Exception? inner = null) =>

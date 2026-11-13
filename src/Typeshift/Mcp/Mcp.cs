@@ -53,13 +53,21 @@ public sealed class McpServerUse
 
     private AIFunction Reading(AIFunction function) => OnlyReads ? new ReadOnlyFunction(function) : function;
 
-    // D35: the server's tools as this use offers them
+    // D35: the server's tools as this use offers them. One that requires approval knows its server, which its
+    // decision and its standing approval name (D80)
     internal AITool Offer(AITool tool) =>
         tool switch
         {
-            AIFunction function => AsksFirst ? new ApprovalRequiredAIFunction(Reading(function)) : Reading(function),
+            AIFunction function when AsksFirst =>
+                new ApprovalRequiredAIFunction(new McpServerFunction(Reading(function), Server)),
+            AIFunction function => Reading(function),
             _ => tool
         };
+}
+
+internal sealed class McpServerFunction(AIFunction inner, string server) : DelegatingAIFunction(inner)
+{
+    public string Server => server;
 }
 
 // D52: a tool plan mode offers, though no toolset declares it

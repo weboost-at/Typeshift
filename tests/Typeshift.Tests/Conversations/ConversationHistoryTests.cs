@@ -124,6 +124,33 @@ public class ConversationHistoryTests : UnitTestBase
         history.Should().Equal(served);
     }
 
+    [Fact]
+    public void Given_Approval_Contents_An_Earlier_Version_Stored_They_Are_Left_Out()
+    {
+        // Arrange
+        var request = new ToolApprovalRequestContent(
+            Data.Decisions.DecisionId,
+            new FunctionCallContent(Data.Tool.CallId, "probe"));
+
+        ConversationEntry[] entries =
+        [
+            Steps.Entry(Steps.Input(Data.Tool.Question)),
+            Steps.Entry(Steps.Calling(Data.Tool.CallId)),
+            Steps.Entry(new ChatMessage(ChatRole.Assistant, [request])),
+            Steps.Entry(new ChatMessage(ChatRole.User, [request.CreateResponse(approved: true)])),
+            Steps.Entry(Steps.Results(Data.Tool.CallId)),
+            Steps.Entry(Steps.Answer(Data.Tool.Answer))
+        ];
+
+        // Act
+        var history = ConversationHistory.From(entries);
+
+        // Assert
+        history.Select(message => message.Role)
+            .Should()
+            .Equal(ChatRole.User, ChatRole.Assistant, ChatRole.Tool, ChatRole.Assistant);
+    }
+
     private static IEnumerable<string> CallIds(IEnumerable<ChatMessage> messages) =>
         messages.SelectMany(message => message.Contents).OfType<FunctionCallContent>().Select(call => call.CallId);
 
