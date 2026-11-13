@@ -35,9 +35,7 @@ jobs:
       - run: dotnet tool restore
 
       - name: Fail when a snippet in the Markdown differs from its source
-        run: |
-          dotnet mdsnippets
-          git diff --exit-code
+        run: npm run docs:snippets:check
 
       - run: npm ci
 

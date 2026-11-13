@@ -7,7 +7,9 @@
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs",
     "docs:lint": "markdownlint-cli2 && node docs/.vitepress/lint.mjs",
-    "docs:check": "npm run docs:lint && npm run docs:build"
+    "docs:snippets": "node docs/.vitepress/snippets.mjs",
+    "docs:snippets:check": "node docs/.vitepress/snippets.mjs --check",
+    "docs:check": "npm run docs:snippets:check && npm run docs:lint && npm run docs:build"
   },
   "devDependencies": {
     "markdownlint-cli2": "0.23.3",

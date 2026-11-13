@@ -215,7 +215,7 @@ for (const link of sidebar)
 // AGENTS.md, the playbooks and the contributing pages name paths, anchors and tests that move with the code. ci.yml
 // skips a change that touches only docs/ or the root's Markdown, so a repository test would miss the edits that break
 // them; the docs workflow runs this file on every pull request
-const built = new Set(['bin', 'obj', 'node_modules'])
+const built = new Set(['bin', 'obj', 'node_modules', '.context'])
 
 const find = (dir, wanted) =>
   readdirSync(dir).flatMap(name => {

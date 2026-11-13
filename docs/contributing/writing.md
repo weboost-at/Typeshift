@@ -197,8 +197,9 @@ path from the repository root.
 
 1. Change the sample code, keeping the markers, and run the docs program:
    `dotnet run --project samples/Typeshift.Samples.Docs -c Release`.
-2. Run `dotnet mdsnippets` from the repository root. It rewrites every snippet in place, so never edit between the
-   markers by hand.
+2. Run `npm run docs:snippets`, never `dotnet mdsnippets` itself. The tool rewrites every snippet of every Markdown
+   file in place, so never edit between the markers by hand. When a run replaces lines you had not committed, the
+   script prints them and keeps the file as it was under `.context/mdsnippets-backup/`.
 3. Write the prose to this page, on the page the fact map names.
 4. Run `npm ci` once, then `npm run docs:check`, and `npm run docs:dev` to look at the page.
 5. Commit the code and the regenerated Markdown together.
@@ -217,10 +218,10 @@ to find than many thin ones.
 
 | Command | Fails on |
 |---|---|
-| `dotnet mdsnippets && git diff --exit-code` | Any C# in the Markdown that differs from the samples |
+| `npm run docs:snippets:check` | Any snippet in the Markdown that differs from its source. It runs mdsnippets on a copy and changes no file |
 | `npm run docs:lint` | markdownlint (`.markdownlint-cli2.jsonc`), then the docs rules (`docs/.vitepress/lint.mjs`) |
 | `npm run docs:build` | A dead page link |
-| `npm run docs:check` | `docs:lint`, then `docs:build` |
+| `npm run docs:check` | `docs:snippets:check`, `docs:lint`, then `docs:build` |
 
 The docs rules check what a machine can:
 
@@ -234,8 +235,8 @@ The docs rules check what a machine can:
   name in backticks exists;
 - every test that [Status](./status.md) names exists.
 
-The `docs` workflow runs mdsnippets, `docs:lint` and the build on every pull request, and deploys the site from
-`main`. Everything else on this page is for the reviewer.
+The `docs` workflow runs `docs:snippets:check`, `docs:lint` and the build on every pull request, and deploys the site
+from `main`. Everything else on this page is for the reviewer.
 
 ## Templates
 
