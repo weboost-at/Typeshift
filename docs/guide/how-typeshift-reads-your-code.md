@@ -34,8 +34,10 @@ your code the same way, so whatever the generator cannot read, the analyzer repo
 | An agent, a `partial` class that derives from `Agent` | The chains in its constructor: the toolsets and tools it offers, its own tools, its chat options and which of them are configurable | The agent's `Settings` record, a `Configure{Tool}()` for each offered tool with settings, and the typed runs of its host |
 | `services.AddTypeshift()` or `TypeshiftRuntime.Create(...)` | The call | A replacement for the call, which registers the toolsets and agents of your project and of the projects it references |
 
-The generator finds toolsets and agents by their base class, so they carry no attribute.
-[Generated members](./generated-members.md) lists every member it writes and what triggers each one.
+The generator finds toolsets and agents by their base class, so they carry no attribute. It looks for the name
+`Toolset` or `Agent` in the class's base list, with or without its namespace, and does not follow a using alias
+([TSH017](./diagnostics.md#tsh017)). [Generated members](./generated-members.md) lists every member it writes and what
+triggers each one.
 
 ## Declarations are read from source
 

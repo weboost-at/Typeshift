@@ -137,6 +137,12 @@ All notable changes to this project are documented here. The format follows
   machine that builds, so the same code could be reported in another file there. In a project whose file names mix
   upper and lower case, such as `agents.cs` and `Billing.cs`, the diagnostic may now sit on the other declaration:
   ordinal order puts upper case first.
+- TSH017 is titled "Toolset or agent does not derive from its base directly" and also reports a toolset or an
+  agent that names its base through a using alias, as in `using AgentBase = Typeshift.Agent;` and
+  `class DeskAgent : AgentBase`. The generator finds a class by the name `Toolset` or `Agent` in its base list, so
+  it wrote nothing for such a class: the build passed, a toolset's tools were missing from every agent, and an agent
+  failed at run time with "was not compiled with the Typeshift generator". Name the base itself, with its namespace
+  where your app has an `Agent` of its own: `class DeskAgent : Typeshift.Agent`.
 
 ### Fixed
 

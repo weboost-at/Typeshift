@@ -129,7 +129,19 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
                     type.Locations.FirstOrDefault(),
                     type.Name,
                     indirection,
-                    baseType);
+                    $"derive it from {baseType} directly, without type parameters");
+                return;
+            }
+
+            // D3: the generator finds the class by the name in its base list, and wrote nothing for this one
+            if (Discovery.GetAliasedBase(type, baseType, ct) is { } alias)
+            {
+                reporter.Report(
+                    Descriptors.NotDirectlyDerived,
+                    alias,
+                    type.Name,
+                    "names its base through a using alias, which the generator does not follow",
+                    $"name {baseType} itself, as in ': {baseType}' or ': Typeshift.{baseType}'");
                 return;
             }
 
@@ -653,6 +665,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         // The contexts the module registers, as the generator finds them
         if (type is { IsAbstract: true } or { IsGenericType: true }
             || !type.BaseType.Is(KnownTypes.JsonSerializerContext)
+            || Discovery.GetAliasedBase(type, "JsonSerializerContext", context.CancellationToken) is not null
             || !Discovery.CanRegister(type, context.CancellationToken)) return;
 
         var listed = type.GetAttributes()

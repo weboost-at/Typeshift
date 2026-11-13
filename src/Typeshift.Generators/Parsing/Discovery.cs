@@ -8,7 +8,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Typeshift.Generators.Parsing;
 
 // D3: attribute-free; the syntax check passes only classes whose base list names Toolset, Agent or
-// JsonSerializerContext, so an edit re-binds just those, and the semantic check confirms the direct base
+// JsonSerializerContext, so an edit re-binds just those, and the semantic check confirms the direct base. A base
+// named through a using alias is not found, which the analyzer reports (TSH017)
 internal static class Discovery
 {
     public static bool IsToolset(SyntaxNode node, CancellationToken ct) => HasBase(node, "Toolset");
@@ -62,6 +63,26 @@ internal static class Discovery
         && type.IsVisibleInAssembly()
             ? type.ToTypeOf()
             : null;
+
+    // D3: the base as a class names it through a using alias, where the syntax check does not find the class; null
+    // for a class one of whose declarations names the base itself
+    public static Location? GetAliasedBase(INamedTypeSymbol type, string baseName, CancellationToken ct)
+    {
+        var declarations = type.DeclaringSyntaxReferences
+            .Select(reference => reference.GetSyntax(ct))
+            .OfType<ClassDeclarationSyntax>()
+            .ToList();
+
+        if (declarations.Any(declaration => HasBase(declaration, baseName))) return null;
+
+        // The base class comes first in a base list, and a partial declaration may list interfaces alone
+        var alias = declarations
+            .Select(declaration => declaration.BaseList?.Types.FirstOrDefault()?.Type)
+            .OfType<TypeSyntax>()
+            .FirstOrDefault(named => type.Interfaces.All(contract => contract.Name != RightmostName(named)));
+
+        return alias?.GetLocation() ?? type.Locations.FirstOrDefault();
+    }
 
     private static bool IsDefault(ISymbol member) =>
         member is

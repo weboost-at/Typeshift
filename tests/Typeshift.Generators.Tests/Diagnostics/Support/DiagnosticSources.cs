@@ -2303,6 +2303,91 @@ public static class DiagnosticSources
         }
         """;
 
+    // The generator finds a class by the name in its base list (D3), which an alias hides
+    public const string AliasedToolsetBase =
+        """
+        using Typeshift;
+        using ToolBase = Typeshift.Toolset;
+
+        namespace Demo;
+
+        internal partial class EchoToolset : ToolBase
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    // An app with an Agent class of its own names Typeshift's through an alias, here one for the whole project
+    public const string AliasedAgentBase =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class DeskAgent : AgentBase
+        {
+            public DeskAgent() => WithDescription("Answers at the desk.");
+        }
+        """;
+
+    public const string GlobalAgentAlias =
+        """
+        global using AgentBase = Typeshift.Agent;
+        """;
+
+    public const string AliasedBaseBesideAnInterface =
+        """
+        using System;
+        using Typeshift;
+        using ToolBase = Typeshift.Toolset;
+
+        namespace Demo;
+
+        internal partial class EchoToolset : IDisposable
+        {
+            public void Dispose()
+            {
+            }
+        }
+
+        internal partial class EchoToolset : ToolBase
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    // The generator finds a context by the name in its base list too, so the module registers none here
+    public const string JsonContextNamedThroughAnAlias =
+        """
+        using System.Text.Json.Serialization;
+        using Typeshift;
+        using ContextBase = System.Text.Json.Serialization.JsonSerializerContext;
+
+        internal sealed record Company(string Name);
+
+        internal partial class CompanyToolset : Toolset
+        {
+            public CompanyToolset() => AddTool(Find).WithDescription("Finds a company.");
+
+            public static Company Find(string name) => new(name);
+        }
+
+        // The System.Text.Json generator does not run here; what it would write is stubbed
+        [JsonSerializable(typeof(Company))]
+        internal partial class CompanyJson() : ContextBase(null)
+        {
+            public static CompanyJson Default { get; } = new();
+
+            protected override System.Text.Json.JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type) => null;
+        }
+        """;
+
     // No toolset, no agent and no AddTypeshift(): nothing the generator writes code for
     public const string NothingOfTypeshift =
         """

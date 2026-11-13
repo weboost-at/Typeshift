@@ -49,8 +49,14 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Context:** v0 re-bound every class with a base list on each edit (about 170 ms per keystroke for 50 toolsets).
 - **Decision:** the syntax predicate takes classes whose base list names `Toolset`, `Agent` or
   `JsonSerializerContext` (any qualification); the semantic check confirms. No marker attribute.
+- **A using alias is not followed:** the predicate reads the name in the base list, so a class that names its base
+  through an alias, `using AgentBase = Typeshift.Agent;` in an app with an `Agent` of its own, is never generated.
+  The analyzer, which starts from the symbol, reports it as TSH017 on the alias and parses no further; before, the
+  class compiled, the agent offered nothing and failed at run time. A context named through an alias is not
+  registered and lists nothing for TSH027.
 - **Alternatives:** a marker attribute with `ForAttributeWithMetadataName`, which reruns only changed files but adds
-  ceremony to every declaration.
+  ceremony to every declaration. Following aliases in the predicate: one in the same file is cheap to resolve, but a
+  `global using` alias lives in another file and needs the compilation, which the predicate exists to avoid.
 - **Where:** `Parsing/Discovery.cs`.
 
 ### D4. Every declaration shape the generator cannot read is diagnosed

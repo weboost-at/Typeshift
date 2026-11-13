@@ -56,8 +56,8 @@ public abstract class Agent
     [EditorBrowsable(EditorBrowsableState.Never)]
     protected virtual AgentDeclaration Declaration =>
         throw new InvalidOperationException(
-            $"{GetType().Name} was not compiled with the Typeshift generator: make it partial and reference the "
-            + "Typeshift package in its project.");
+            $"{GetType().Name} was not compiled with the Typeshift generator: make it partial, name Agent itself in "
+            + "its base list, not through a using alias, and reference the Typeshift package in its project.");
 
     // D4: the generator reads the constant; at runtime the call declares nothing
     /// <summary>

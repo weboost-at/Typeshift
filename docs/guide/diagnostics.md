@@ -27,7 +27,7 @@ a compiler error inside generated code.
 | [TSH014](#tsh014) | Error | Declaration outside the constructor |
 | [TSH015](#tsh015) | Error | Chain the generator cannot read |
 | [TSH016](#tsh016) | Error | Toolset or agent is out of the generated code's reach |
-| [TSH017](#tsh017) | Error | Toolset or agent is generic or derives from another |
+| [TSH017](#tsh017) | Error | Toolset or agent does not derive from its base directly |
 | [TSH018](#tsh018) | Error | Member clashes with a generated member |
 | [TSH019](#tsh019) | Error | Toolset was not compiled with the generator |
 | [TSH020](#tsh020) | Warning | Referenced assembly was built with another Typeshift version or without the generator |
@@ -211,8 +211,13 @@ own file can name a file-local class.
 
 ## TSH017
 
-**Toolset or agent is generic or derives from another.** Derive each toolset from `Toolset` and each agent from
+**Toolset or agent does not derive from its base directly.** Derive each toolset from `Toolset` and each agent from
 `Agent` directly, without type parameters. Share code through static methods.
+
+The base list also has to name `Toolset` or `Agent` itself, as `Agent`, `Typeshift.Agent` or
+`global::Typeshift.Agent`. The generator finds your classes by that name, so it writes nothing for a class that names
+its base through a using alias, such as `using AgentBase = Typeshift.Agent;`. When your app has an `Agent` class of its
+own, name Typeshift's with its namespace.
 
 ## TSH018
 

@@ -21,7 +21,7 @@ TSH013 | Typeshift | Error | Configurable member cannot be set
 TSH014 | Typeshift | Error | Declaration outside the constructor
 TSH015 | Typeshift | Error | Chain the generator cannot read
 TSH016 | Typeshift | Error | Toolset or agent is out of the generated code's reach
-TSH017 | Typeshift | Error | Toolset or agent is generic or derives from another
+TSH017 | Typeshift | Error | Toolset or agent does not derive from its base directly
 TSH018 | Typeshift | Error | Member clashes with a generated member
 TSH019 | Typeshift | Error | Toolset was not compiled with the generator
 TSH020 | Typeshift | Warning | Referenced assembly was built with another Typeshift version or without the generator

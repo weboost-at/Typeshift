@@ -91,8 +91,8 @@ internal static class Descriptors
 
     public static readonly DiagnosticDescriptor NotDirectlyDerived = Error(
         "TSH017",
-        "Toolset or agent is generic or derives from another",
-        "'{0}' {1}: derive it from {2} directly, without type parameters");
+        "Toolset or agent does not derive from its base directly",
+        "'{0}' {1}: {2}");
 
     public static readonly DiagnosticDescriptor GeneratedNameClash = Error(
         "TSH018",

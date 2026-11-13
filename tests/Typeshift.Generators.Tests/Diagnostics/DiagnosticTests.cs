@@ -544,6 +544,41 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Toolset_Whose_Base_Is_Named_Through_An_Alias_TSH017_Is_Reported_On_The_Base()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AliasedToolsetBase);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH017",
+            DiagnosticSeverity.Error,
+            "ToolBase",
+            message: "'EchoToolset' names its base through a using alias, which the generator does not follow: name "
+                + "Toolset itself, as in ': Toolset' or ': Typeshift.Toolset'");
+    }
+
+    [Fact]
+    public void Given_An_Agent_Whose_Base_Is_Named_Through_A_Global_Alias_TSH017_Is_Reported_On_The_Base()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AliasedAgentBase, DiagnosticSources.GlobalAgentAlias);
+
+        // Assert
+        run.Assert.Reports("TSH017", DiagnosticSeverity.Error, "AgentBase");
+    }
+
+    [Fact]
+    public void Given_An_Aliased_Base_Beside_A_Declaration_That_Lists_An_Interface_TSH017_Is_Reported_On_The_Base()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AliasedBaseBesideAnInterface);
+
+        // Assert
+        run.Assert.Reports("TSH017", DiagnosticSeverity.Error, "ToolBase");
+    }
+
+    [Fact]
     public void Given_A_Member_Named_Like_A_Generated_Factory_TSH018_Is_Reported_On_It()
     {
         // Act
@@ -1197,6 +1232,19 @@ public class DiagnosticTests : GeneratorTestBase
     {
         // Arrange
         var compilation = Compile(DiagnosticSources.JsonContextThatIsNotPartial);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.PublishingAot());
+
+        // Assert
+        run.Assert.Reports("TSH027", DiagnosticSeverity.Error, "AddTool(Find)");
+    }
+
+    [Fact]
+    public void Given_A_Tool_Type_Only_A_Context_Named_Through_An_Alias_Lists_Under_Native_Aot_TSH027_Is_Reported()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.JsonContextNamedThroughAnAlias);
 
         // Act
         var run = Run(compilation, properties: BuildProperties.PublishingAot());
