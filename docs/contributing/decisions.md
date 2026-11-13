@@ -122,6 +122,17 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D9. Every project that declares toolsets or agents references the package
 
 - **Status:** carried (v0 D9). TSH020 catches a reference without it.
+- **Context:** v0 carried the rule without its reason. SDK 11.0.100 passes a package's analyzers and its
+  `buildTransitive` props on to a project that reaches the package only through a project or another package. That
+  is NuGet/Home#6279, open since 2017, in which analyzers ignore the default `PrivateAssets`, and no contract:
+  `PrivateAssets="all"` or a reference to a compiled DLL stops the flow, and so would a fix.
+- **Decision:** the rule stays, because a direct reference is the one setup that brings the generator whatever the
+  reference looks like. The guide gives this reason and the flip side: while the flow lasts, a project that
+  references yours gets XML docs on (D68) and a module (D55) too.
+- **Alternatives:** one reference per solution, guarded by an app-over-library pair in
+  `samples/Typeshift.Samples.PackageConsumer` that fails CI the day the SDK stops passing analyzers on; declined,
+  since the docs would promise what NuGet documents otherwise.
+- **Where:** `docs/guide/registration.md`, `src/Typeshift/PACKAGE.md`.
 
 ### D10. The hidden public surface generated code calls
 

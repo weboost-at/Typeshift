@@ -21,8 +21,8 @@ dotnet add package Microsoft.Extensions.DependencyInjection
 ```
 
 Typeshift needs .NET 11. Add `using Typeshift;` to your files, and `using Microsoft.Extensions.DependencyInjection;`
-to the `Program.cs` of step 4. A solution of several projects needs the package in more than one of them
-([Project setup](./registration.md#project-setup)).
+to the `Program.cs` of step 4. In a solution of several projects, reference the package in each project that declares
+toolsets or agents ([Project setup](./registration.md#project-setup)).
 
 The package turns on XML docs in your project, because Typeshift builds each tool's description for the model from
 them.

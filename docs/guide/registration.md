@@ -18,9 +18,13 @@ dotnet add package Typeshift --prerelease
 | Requirement | Why |
 |---|---|
 | .NET 11 | The package targets `net11.0`. Generated members are extension blocks, which need C# 14 or later. |
-| The package in every project that declares toolsets or agents, or calls `AddTypeshift()` | The package carries the generator, and NuGet does not pass a generator on to the projects that reference yours ([TSH019](./diagnostics.md#tsh019), [TSH020](./diagnostics.md#tsh020)). |
+| The package in every project that declares toolsets or agents, or calls `AddTypeshift()` or `TypeshiftRuntime.Create(...)` | The package carries the generator. Today's SDK also passes it on to the projects that reference yours, but NuGet's documented default keeps a package's analyzers private, and a reference with `PrivateAssets="all"` or to a compiled DLL stops it. A direct reference is the setup you can rely on ([TSH019](./diagnostics.md#tsh019), [TSH020](./diagnostics.md#tsh020)). |
 | `GenerateDocumentationFile` | Tools, agents and the types tools take get their descriptions from XML docs. The package turns it on unless your project sets it, and hides CS1591, the warning for undocumented public members, when it does ([TSH011](./diagnostics.md#tsh011)). |
 | `Typeshift.Generated` in `InterceptorsNamespaces` | The generator intercepts `AddTypeshift()` from that namespace. The package adds it for you. |
+
+While the SDK passes the package on, a project that references yours gets the package's build settings along with
+the generator. Its XML docs are turned on and CS1591 is hidden, unless it sets `GenerateDocumentationFile` itself, and
+with XML docs on it gets a [registration module](#what-addtypeshift-registers) of its own.
 
 ## XML docs of parameter types
 

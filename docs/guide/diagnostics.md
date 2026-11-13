@@ -175,14 +175,17 @@ member. [Generated members](./generated-members.md) lists the names.
 
 ## TSH019
 
-**Toolset was not compiled with the generator.** It is reported on `UseToolset<T>()`. Reference the package in the
-toolset's project.
+**Toolset was not compiled with the generator.** It is reported on `UseToolset<T>()`. The toolset's project builds
+without the generator when it reaches Typeshift through a compiled DLL, or through a reference that leaves out the
+package's analyzers, such as one with `PrivateAssets="all"`. A project built with another Typeshift version is
+reported too. Reference the package in the toolset's project, at the version the rest of the build uses.
 
 ## TSH020
 
 **Referenced assembly was not compiled with the generator.** It declares toolsets or agents but carries no module of
-this Typeshift version, so `AddTypeshift()` cannot register them. Reference the package in its project, at the
-version the rest of the build uses.
+this Typeshift version, so `AddTypeshift()` cannot register them. The causes are those of [TSH019](#tsh019): a
+compiled DLL, a reference that leaves out the package's analyzers, or a library built with another Typeshift version.
+Reference the package in its project, at the version the rest of the build uses.
 
 ## TSH022
 

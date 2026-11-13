@@ -23,8 +23,9 @@ Typeshift keeps settings and conversations in memory until you register a store,
 The [README](https://github.com/weboost-at/Typeshift#quick-start) shows the code, and
 [Getting started](https://weboost-at.github.io/Typeshift/guide/getting-started) explains every line.
 
-Add the package to every project that declares toolsets or agents, or calls `AddTypeshift()`, because NuGet does not
-pass a source generator on to the projects that reference yours.
+Add the package to every project that declares toolsets or agents, or calls `AddTypeshift()` or
+`TypeshiftRuntime.Create(...)`: the package carries the source generator, and a direct reference is the one setup
+that always passes it on.
 
 ## What makes Typeshift different
 
