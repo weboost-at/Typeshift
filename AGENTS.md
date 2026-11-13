@@ -170,7 +170,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 
 | Test | Enforces |
 |---|---|
-| `tests/Typeshift.Tests/Testing/Conventions/TestConventionTests` | The test rules below, for every test project. |
+| `tests/Typeshift.Tests/Testing/Conventions/TestConventionTests` | The test rules below, for every project under `tests/` that sets `IsTestProject`: names, files and folders, comments, an assertion in every test, and the banned calls (waits, clocks, `new Faker`, a raw token, chained assertions, a test switched off). |
 | `Repository/PublicApiDocumentationTests` (generator tests) | Every documented public member, a delegate included, has its `param`, `typeparam` and `returns` tags. |
 | `Repository/PublicApiSurfaceTests.The_Public_Surface_Matches_Its_Snapshot` (generator tests) | Every change of the public API is a reviewed diff of `Snapshots/PublicApi.verified.txt`. |
 | `Repository/PublicApiSurfaceTests.The_Surface_Generated_Code_Binds_To_Changes_Only_With_The_Stamp_Version` (generator tests) | `Typeshift.Generated`, `IStorable<TSelf>` and `Agent.Declaration`, kept in `Snapshots/GeneratedContract.verified.txt`, change only together with `ReferenceReader.StampVersion` (D7). |
@@ -263,22 +263,32 @@ The code must read as if the owner wrote it: terse, intention-revealing, comment
 ## Tests
 
 The rules come from the owner's skills; the convention tests in `tests/Typeshift.Tests/Testing/Conventions` enforce
-them for every test project, without exemptions.
+them for every test project, without exemptions. A failure reads `<file>:<line>: <what>: <what to do>`.
 
 - One test class per subject, one business rule per test, named `Given_<state>_<outcome>` (or `<outcome>` for the
-  base case); the declaration fits 120 columns.
-- Only `// Arrange`, `// Act`, `// Assert` and `// Act & Assert` comments in test bodies.
+  base case); the declaration fits 120 columns and reads `public void`, `public async Task` or the like, never
+  `static`.
+- A test class has a file named after it, in the folder its namespace names. `UnitTestBase`, `HostTestBase` and the
+  areas' bases such as `AgentTestBase` hold `Ct`, `Time` and `Data`; `GeneratorTestBase` holds `Ct`.
+- Only `// Arrange`, `// Act`, `// Assert` and `// Act & Assert` comments in test bodies: none behind a statement,
+  none between `/*` and `*/`. A `#pragma` keeps its reason beside it. No `#region` in a test file.
+- Every test asserts, with `.Should()`, an `.Assert` helper or `Snapshot.Verify`.
 - One assertion per statement: no `.And`, `.Which` or `.Subject`. A recurring check becomes an assertions class
   exposed as `.Assert` through an extension block, in `Testing/Assertions`.
-- Test data comes from the catalog (`Data`, seeded per test). No `new Faker(` outside it.
+- Test data comes from the catalog (`Data`, seeded per test). No `new Faker` outside it.
 - Time moves only through `FakeTimeProvider.Advance`. No `Task.Delay`, `Thread.Sleep` or real clocks; order
   concurrent work with `TaskCompletionSource` gates.
-- Take `Ct` from the test base and await every gate with it (`.WaitAsync(Ct)`). It cancels after 20 seconds of real
-  time, the one real clock the tests allow, so a gate nothing opens fails its test instead of hanging the suite.
-  When a run hangs all the same, start the test project's executable in `bin/Release/net11.0`: it names every test
-  that runs for 30 seconds or longer, which `dotnet test` does not show.
+- Take `Ct` from the test base and await every gate with it (`.WaitAsync(Ct)`), never with a time of its own
+  (`.WaitAsync(TimeSpan.FromSeconds(5))`) and never with `TestContext.Current.CancellationToken`, although the hint
+  of xUnit1051 names it. `Ct` cancels after 20 seconds of real time, the one real clock the tests allow, so a gate
+  nothing opens fails its test instead of hanging the suite. When a run hangs all the same, start the test
+  project's executable in `bin/Release/net11.0`: it names every test that runs for 30 seconds or longer, which
+  `dotnet test` does not show.
 - Bases, fakes, data and helpers go in `Testing/` or `<Area>/Support/`; other folders hold test classes only.
-- Never wrap a bug in a green test, never weaken an assertion, never skip a test.
+- Never wrap a bug in a green test, never weaken an assertion, never skip a test: no `Skip`, no `Explicit`, no
+  `Assert.Skip`.
+- Review-only, since no pattern sees them: one rule per test, an assertion that is the one the name promises, and
+  an assertion that was weakened.
 
 ## Commits
 

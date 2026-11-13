@@ -6,13 +6,20 @@ namespace Typeshift.Tests.Testing.Conventions;
 // Reads every test project's sources; tests are found in the source, so one copy covers all projects
 public static partial class TestSources
 {
-    private static readonly string[] Projects = ["Typeshift.Tests", "Typeshift.Generators.Tests"];
-
     // Deterministic CI builds rewrite [CallerFilePath], the project file passes the real directory instead
     public static string TestsDirectory { get; } = typeof(TestSources).Assembly
         .GetCustomAttributes<AssemblyMetadataAttribute>()
         .Single(attribute => attribute.Key == "TestsDirectory")
         .Value!;
+
+    // The folders under tests/ whose project file says it is a test project, so a new one is read unasked
+    public static IReadOnlyList<string> Projects { get; } =
+    [
+        .. Directory.EnumerateDirectories(TestsDirectory)
+            .Where(folder => Directory.EnumerateFiles(folder, "*.csproj").Any(IsTestProject))
+            .Select(folder => Path.GetFileName(folder))
+            .Order()
+    ];
 
     // Every test file outside bin/, obj/ and the shared Testing/ folders, as "<Project>/<path in the project>"
     public static IReadOnlyList<string> Files { get; } =
@@ -31,6 +38,16 @@ public static partial class TestSources
 
     public static string ProjectOf(string file) => file[..file.IndexOf('/')];
 
+    // A declaration the conventions cannot read keeps its whole line as its name, which no naming rule accepts, so
+    // a test never escapes them by its modifiers
+    internal static string NameOf(string declaration) =>
+        TestDeclaration().Match(declaration) is { Success: true } match
+            ? match.Groups["name"].Value
+            : declaration.Trim();
+
+    private static bool IsTestProject(string project) =>
+        File.ReadAllText(project).Contains("<IsTestProject>true</IsTestProject>");
+
     private static IEnumerable<TestMethod> FindTestMethods(string file)
     {
         var lines = Lines(file);
@@ -42,14 +59,15 @@ public static partial class TestSources
         {
             if (!TestAttribute().IsMatch(lines[index])) continue;
 
-            var declaration = Array.FindIndex(lines, index, line => TestDeclaration().IsMatch(line));
+            var declaration = Array.FindIndex(lines, index, line => Member().IsMatch(line));
             if (declaration < 0) yield break;
 
             yield return new TestMethod(
                 File: file,
+                Line: declaration + 1,
                 Namespace: nameSpace.Groups["name"].Value,
                 Class: type.Groups["name"].Value,
-                Name: TestDeclaration().Match(lines[declaration]).Groups["name"].Value);
+                Name: NameOf(lines[declaration]));
         }
     }
 
@@ -61,6 +79,10 @@ public static partial class TestSources
 
     [GeneratedRegex(@"^\s*\[(Fact|Theory)\b")]
     internal static partial Regex TestAttribute();
+
+    // The first line of a member, which follows a test's attributes
+    [GeneratedRegex(@"^\s*(public|internal|protected|private|static|async)\b")]
+    internal static partial Regex Member();
 
     [GeneratedRegex(@"^\s*public (async )?(Task|void|ValueTask) (?<name>\w+)\(")]
     internal static partial Regex TestDeclaration();
