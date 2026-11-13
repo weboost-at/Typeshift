@@ -81,7 +81,9 @@ npm run docs:snippets:check
   `ACCEPT_SNAPSHOTS=1 dotnet test --project tests/Typeshift.Generators.Tests -c Release --no-build`. Commit the
   snapshot with the change, so a reviewer reads the API change as its diff. `GeneratedContract.verified.txt` holds
   what generated code binds to, and is accepted only after `ReferenceReader.StampVersion` was raised (D7).
-- Run the whole suite three times before you call a change done. All green every time.
+- Run the whole suite three times before you call a change done, all green every time. A test that depends on the
+  order of concurrent work, as the conversation and background agent tests can, fails only in some runs. CI repeats
+  the suite twice on `main` and for a release, where no pull request waits for it.
 - The docs site: `npm ci`, then `npm run docs:check` (the snippets against their sources, markdownlint, the docs
   rules, a build that fails on dead links) or `npm run docs:dev`.
 - The demos in `demos/` stay outside the solution and outside the checks of a pull request, by the owner's choice.
@@ -194,6 +196,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | CI: the steps after the pack in `ci.yml` | The package's build files sit under `buildTransitive/net11.0/` (D61). The consumer sample, which never chose XML docs, builds with mistakes in its XML comments and publishes without an XML file, and with XML docs of its own choice it keeps CS1591 (D68). |
 | `release.yml`, for a tag | The tag sits on `main`, has its section in `CHANGELOG.md` and is the version MinVer packed, or nothing is published. |
 | CI: the Windows and macOS legs | The build and the tests pass where the file system ignores case, and on a Windows checkout with Git's default `core.autocrlf`. |
+| CI: two more runs of the suite, on `main` and for a release | A test that depends on the order of concurrent work fails before a tag, also when nobody ran the suite three times. |
 | CI: docs workflow | The Markdown matches its snippets (`npm run docs:snippets:check`) and passes markdownlint and the docs rules (`docs/.vitepress/lint.mjs`): page anatomy, the words `writing.md` bans by name, the names mdsnippets skips, and links and anchors from the pages, the home page, the nav, README.md and PACKAGE.md. The site builds without a dead link. |
 | CI: the `demos` workflow, on `main`, once a day and by hand | The demos build without a warning, and each one runs offline to its end. No pull request waits for it. |
 

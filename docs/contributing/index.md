@@ -18,11 +18,13 @@ dotnet test --solution Typeshift.slnx -c Release --no-build
 dotnet run --project samples/Typeshift.Samples.Docs -c Release --no-build
 ```
 
-The build needs the .NET 11 SDK. It treats warnings as errors and must stay free of them. Run the tests three times before you call a change
-done. Generator snapshots live in `tests/Typeshift.Generators.Tests/Snapshots`: a mismatch writes a `.received.txt`
-for you to review, and rerunning with `ACCEPT_SNAPSHOTS=1` accepts it. The public API is a snapshot there too,
-`PublicApi.verified.txt`, so a change to it shows as a diff in your pull request. Open work goes into
-[Status](./status.md), never into a TODO in code, and a change people can see changes the docs in the same commit.
+The build needs the .NET 11 SDK. It treats warnings as errors and must stay free of them. Run the tests three times
+before you call a change done: a test that depends on the order of concurrent work, as the conversation and
+background agent tests can, fails only in some runs. Generator snapshots live in
+`tests/Typeshift.Generators.Tests/Snapshots`: a mismatch writes a `.received.txt` for you to review, and rerunning
+with `ACCEPT_SNAPSHOTS=1` accepts it. The public API is a snapshot there too, `PublicApi.verified.txt`, so a change
+to it shows as a diff in your pull request. Open work goes into [Status](./status.md), never into a TODO in code,
+and a change people can see changes the docs in the same commit.
 
 CI builds and tests on Linux, Windows and macOS. Every text file checks out with LF line endings on all three:
 `.gitattributes` overrides Git's `core.autocrlf`, because tests and the docs rules read the files. The two commands

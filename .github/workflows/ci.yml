@@ -67,6 +67,13 @@ jobs:
       - run: dotnet build -c Release -warnaserror
       - run: dotnet test -c Release --no-build
 
+      # A test that depends on the order of concurrent work fails only in some runs. No pull request waits for these
+      - name: Run the tests two more times, on main and for a release
+        if: github.event_name != 'pull_request'
+        run: |
+          dotnet test -c Release --no-build
+          dotnet test -c Release --no-build
+
       # The runner's culture is the invariant one, which hides a number that follows the machine's culture into
       # generated code or stored JSON. Danish has the decimal comma and is among the cultures that compare text
       # their own way
