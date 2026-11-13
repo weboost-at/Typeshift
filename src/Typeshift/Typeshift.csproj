@@ -29,8 +29,9 @@
     <!-- The package carries the generator, so it builds with the library -->
     <ProjectReference Include="../Typeshift.Generators/Typeshift.Generators.csproj" ReferenceOutputAssembly="false" OutputItemType="Analyzer" />
     <None Include="../Typeshift.Generators/bin/$(Configuration)/netstandard2.0/Typeshift.Generators.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
-    <!-- D48: NuGet imports buildTransitive/{PackageId}.props only, so the file is packed under the package's ID -->
-    <None Include="buildTransitive/Typeshift.props" Pack="true" PackagePath="buildTransitive/$(PackageId).props" />
+    <!-- D48: NuGet imports buildTransitive/<framework>/{PackageId}.props only, so the file is packed under the
+         package's ID. D61: the framework folder makes a project on another framework fail at restore with NU1202 -->
+    <None Include="buildTransitive/Typeshift.props" Pack="true" PackagePath="buildTransitive/net11.0/$(PackageId).props" />
     <None Include="PACKAGE.md" Pack="true" PackagePath="README.md" />
     <None Include="../../docs/public/brand/icon-128.png" Pack="true" PackagePath="/" Visible="false" />
   </ItemGroup>

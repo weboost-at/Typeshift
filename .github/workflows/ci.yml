@@ -52,5 +52,14 @@ jobs:
       - name: Pack
         run: dotnet pack src/Typeshift -c Release --no-build -o artifacts/packages
 
+      # D61: NuGet takes a build file outside a framework folder as an asset for every framework, and a project on
+      # .NET 10 then restores the package and fails in the compiler
+      - name: Check that the package's build files sit under a framework folder
+        run: |
+          if unzip -Z1 artifacts/packages/Typeshift.*.nupkg | grep -E '^build(Transitive)?/[^/]+$'; then
+            echo "::error::These build files are packed outside a framework folder"
+            exit 1
+          fi
+
       - name: Build and run a consumer of the package, not of the projects
         run: dotnet run --project samples/Typeshift.Samples.PackageConsumer -c Release

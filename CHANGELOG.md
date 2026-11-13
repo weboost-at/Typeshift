@@ -23,6 +23,9 @@ All notable changes to this project are documented here. The format follows
 - An app whose model names or provider ids come from data, such as a model per customer, no longer keeps a meter and
   its instruments for each of them as long as it runs. Typeshift instruments each backend once, whatever provider
   ids and models the runs name.
+- A project on another framework than .NET 11 fails at restore with NU1202, which names `net11.0`. The restore
+  passed before, and the build then failed with CS0246 on `Agent` and `Toolset` and with CS0400 in a generated file,
+  none of which named the framework.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

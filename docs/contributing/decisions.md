@@ -113,7 +113,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   .NET 11.
 - **Decision:** the library, its tests, the samples and the demos target `net11.0`, and the repository builds with
   the .NET 11 SDK. There is no build for .NET 10: the next LTS release, .NET 12, is where the package moves next. The
-  generator stays on Roslyn 5.0 (D8), which every .NET 11 SDK exceeds.
+  generator stays on Roslyn 5.0 (D8), which every .NET 11 SDK exceeds. A project on another framework fails at
+  restore with NU1202, which names `net11.0`, because the package's build file sits under that framework's folder.
 - **Where:** `global.json`, the project files.
 - **Alternatives:** a build for `net10.0` next to `net11.0` from the same source, which the owner declined, since .NET
   12 brings an LTS release again; `net10.0` only, referencing System.Text.Json 11 from NuGet, which moves every .NET 10
@@ -1207,6 +1208,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - Sealing (v0 D19), CS1591 off in tests only (v0 D20), samples use a scripted client (v0 D21), package metadata
   (v0 D22), releases by tag through trusted publishing (v0 D37), the Typeshift name (v0 D38), the package README
   (v0 D39), nullable parameters widened at the schema root (v0 D12).
+- NuGet imports a package's build file only under the package's ID, from the folder of the project's framework, so
+  the props are packed as `buildTransitive/net11.0/Typeshift.props`. Outside a framework folder they would count as
+  an asset for every framework, and a project on .NET 10 would restore the package (D61).
 
 ### D49. Diagnostics are numbered afresh
 
