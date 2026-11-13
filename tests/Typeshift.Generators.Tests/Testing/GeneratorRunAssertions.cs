@@ -37,18 +37,32 @@ public sealed class GeneratorRunAssertions(GeneratorRun run)
         return run;
     }
 
-    public Diagnostic Reports(string id, DiagnosticSeverity severity, string offendingSyntax)
+    // The one report of the id, and nothing beside it: a fixture holds one mistake, so `also` names what else its
+    // run reports on purpose, another diagnostic of the analyzer or a compiler error in code still being typed
+    public Diagnostic Reports(
+        string id,
+        DiagnosticSeverity severity,
+        string offendingSyntax,
+        string? message = null,
+        params string[] also)
     {
         var reported = run.Reported.Where(diagnostic => diagnostic.Id == id).ToList();
 
         reported.Should().ContainSingle();
         reported[0].Severity.Should().Be(severity);
         SourceAt(reported[0].Location).Should().Be(offendingSyntax);
+        Says(reported[0], message);
+        ReportsOnly([id, .. also]);
         return reported[0];
     }
 
     // One of several reports of the id, for a mistake that several checks see
-    public Diagnostic ReportsAmong(string id, DiagnosticSeverity severity, string offendingSyntax)
+    public Diagnostic ReportsAmong(
+        string id,
+        DiagnosticSeverity severity,
+        string offendingSyntax,
+        string? message = null,
+        params string[] also)
     {
         var reported = run.Reported
             .Where(diagnostic => diagnostic.Id == id && SourceAt(diagnostic.Location) == offendingSyntax)
@@ -56,35 +70,40 @@ public sealed class GeneratorRunAssertions(GeneratorRun run)
 
         reported.Should().ContainSingle();
         reported[0].Severity.Should().Be(severity);
+        Says(reported[0], message);
+        ReportsOnly([id, .. also]);
         return reported[0];
     }
 
     // A diagnostic about the compilation as a whole, at no location
-    public Diagnostic ReportsOnTheCompilation(string id, DiagnosticSeverity severity)
+    public Diagnostic ReportsOnTheCompilation(
+        string id,
+        DiagnosticSeverity severity,
+        string? message = null,
+        params string[] also)
     {
         var reported = run.Reported.Where(diagnostic => diagnostic.Id == id).ToList();
 
         reported.Should().ContainSingle();
         reported[0].Severity.Should().Be(severity);
         reported[0].Location.Should().Be(Location.None);
+        Says(reported[0], message);
+        ReportsOnly([id, .. also]);
         return reported[0];
     }
 
-    public GeneratorRun DoesNotReport(string id)
+    // The fixture is the mistake's valid neighbour: its run reports nothing at all but what `also` names
+    public GeneratorRun DoesNotReport(string id, params string[] also)
     {
         run.Reported.Select(diagnostic => diagnostic.Id).Should().NotContain(id);
+        ReportsOnly(also);
         return run;
     }
 
     // What the compiler reports stands alone, without a diagnostic of the analyzer's beside it
     public GeneratorRun ReportsNothingOfTheAnalyzers()
     {
-        run.Reported
-            .Where(diagnostic => diagnostic.Id.StartsWith("TSH", StringComparison.Ordinal))
-            .Select(diagnostic => diagnostic.ToString())
-            .Should()
-            .BeEmpty();
-
+        run.Reported.Where(OfTheAnalyzer).Select(diagnostic => diagnostic.ToString()).Should().BeEmpty();
         return run;
     }
 
@@ -175,6 +194,32 @@ public sealed class GeneratorRunAssertions(GeneratorRun run)
         outputs.Should().Contain(IncrementalStepRunReason.Modified);
         return run;
     }
+
+    private static void Says(Diagnostic reported, string? message)
+    {
+        if (message is not null) reported.GetMessage().Should().Be(message);
+    }
+
+    // The analyzer's diagnostics and the compiler's errors in the subject's own code are exactly the expected ones:
+    // one more is a second report of the mistake or a fixture that drifted, one less an exception nobody needs
+    private void ReportsOnly(string[] ids)
+    {
+        var reported = run.Reported.Where(diagnostic => OfTheAnalyzer(diagnostic) || BreaksTheSubject(diagnostic));
+
+        reported
+            .Where(diagnostic => !ids.Contains(diagnostic.Id))
+            .Select(diagnostic => diagnostic.ToString())
+            .Should()
+            .BeEmpty("the fixture holds this one mistake");
+
+        ids.Except(reported.Select(diagnostic => diagnostic.Id)).Should().BeEmpty("the run reports each of them");
+    }
+
+    private static bool OfTheAnalyzer(Diagnostic diagnostic) =>
+        diagnostic.Id.StartsWith("TSH", StringComparison.Ordinal);
+
+    private bool BreaksTheSubject(Diagnostic diagnostic) =>
+        diagnostic is { Severity: DiagnosticSeverity.Error, Location.SourceTree: { } tree } && !Generated(tree);
 
     private static IEnumerable<IncrementalStepRunReason> Reasons(IEnumerable<IncrementalGeneratorRunStep> steps) =>
         steps.SelectMany(step => step.Outputs).Select(output => output.Reason);

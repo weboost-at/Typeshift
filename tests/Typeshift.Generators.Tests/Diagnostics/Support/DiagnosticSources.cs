@@ -226,9 +226,11 @@ public static class DiagnosticSources
 
         internal partial class EchoToolset : Toolset
         {
-            public EchoToolset(bool loud)
+            private static readonly bool Loud = true;
+
+            public EchoToolset()
             {
-                if (loud) AddTool(Echo).WithDescription("Echoes.");
+                if (Loud) AddTool(Echo).WithDescription("Echoes.");
             }
 
             public static string Echo(string text) => text;
@@ -1364,6 +1366,11 @@ public static class DiagnosticSources
         internal sealed class EntryStore : IConversationStore<int>
         {
             public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+                int conversation,
+                CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
                 int conversation,
                 CancellationToken ct) =>
                 throw new NotSupportedException();

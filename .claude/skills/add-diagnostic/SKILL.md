@@ -32,8 +32,19 @@ configuring a tool the agent does not offer need no diagnostic, because no gener
 
    ```csharp
    var run = Run(DiagnosticSources.YourCase);
-   run.Assert.Reports("TSHxxx", DiagnosticSeverity.Error, "<the exact offending syntax text>");
+
+   run.Assert.Reports(
+       "TSHxxx",
+       DiagnosticSeverity.Error,
+       "<the exact offending syntax text>",
+       message: "<the whole message, as the developer reads it>");
    ```
+
+   The first test of an ID states the whole message, so swapped arguments fail it; later tests of the ID leave
+   `message` out. `Reports`, `ReportsAmong`, `ReportsOnTheCompilation` and `DoesNotReport` also fail when the run
+   reports anything beside the ID: a second diagnostic of the analyzer, or a compiler error in the source constant.
+   A mistake that two checks see names the other one, `also: "TSH020"`, and so does code still being typed,
+   `also: "CS7036"`.
 
    The theory over every source in `DiagnosticSources` checks that the generated code holds no compiler error, and
    that neither the generator nor the analyzer throws. A shape the parser accepts after your change is a field of

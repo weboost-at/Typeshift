@@ -183,6 +183,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `DiagnosticTests.Given_Any_Mistake_The_Generated_Code_Holds_No_Error`, `..._Given_Any_Shape_The_Generated_Code_Holds_No_Error` | No mistake (`DiagnosticSources`) and no accepted shape (`ShapeSources`) ends in a compiler error inside generated code, in a failed generator or in an analyzer that threw. |
 | `HalfTypedCodeTests.Given_A_Declaration_Being_Typed_The_Generator_And_The_Analyzer_Do_Not_Throw` | The generator and the analyzer do not throw on half-typed code (`HalfTypedSources`). |
 | `Testing/GeneratorTestBase.Run` (generator tests) | Every run of a generator test fails when the generator failed (CS8785) or an analyzer threw (AD0001), whatever the test goes on to assert. |
+| `Testing/GeneratorRunAssertions`: `Reports`, `ReportsAmong`, `ReportsOnTheCompilation`, `DoesNotReport` (generator tests) | A fixture holds the one mistake its test names: the run reports no other diagnostic of the analyzer and no compiler error in the fixture, unless the test lists it (`also:`). |
 | RS2000 (analyzer) | Every descriptor has a row in `AnalyzerReleases.Unshipped.md` or `Shipped.md`. |
 | CA1305, CA1309, CA1310 as errors (`.editorconfig`, generator project) | No comparison or format call in the generator follows the build machine's culture. |
 | `IncrementalTests` (generator tests) | Unrelated edits leave the generator's output cached. |
@@ -253,9 +254,9 @@ The code must read as if the owner wrote it: terse, intention-revealing, comment
 - A generated type, and a member generated into a class of the user's, carries `Names.Generated`: `[GeneratedCode]`
   and `[ExcludeFromCodeCoverage]`. The user's partial class never does, since analyzers skip what the attribute
   marks.
-- A new diagnostic gets a descriptor, a release row, a docs row and section, and its own test; the
-  `add-diagnostic` playbook lists the steps. Its ID is the number after the highest ever used, the retired ones in
-  `docs/guide/diagnostics.md` included, and a gap is never filled (D49).
+- A new diagnostic gets a descriptor, a release row, a docs row and section, and tests of its own, the first of
+  them with its whole message; the `add-diagnostic` playbook lists the steps. Its ID is the number after the highest
+  ever used, the retired ones in `docs/guide/diagnostics.md` included, and a gap is never filled (D49).
 - Every shape of user code a change touches gets one field in a catalog of
   `tests/Typeshift.Generators.Tests/Diagnostics/Support`, which a theory runs: `ShapeSources` when the parser accepts
   it, `DiagnosticSources` when it rejects it, `HalfTypedSources` when it made the generator or the analyzer throw.

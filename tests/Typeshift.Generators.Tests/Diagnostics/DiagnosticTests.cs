@@ -19,7 +19,11 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.NotPartial);
 
         // Assert
-        run.Assert.Reports("TSH001", DiagnosticSeverity.Error, "EchoToolset");
+        run.Assert.Reports(
+            "TSH001",
+            DiagnosticSeverity.Error,
+            "EchoToolset",
+            message: "'EchoToolset' must be partial: the generator adds members to it");
     }
 
     [Fact]
@@ -29,7 +33,11 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.NotConstant);
 
         // Assert
-        run.Assert.Reports("TSH002", DiagnosticSeverity.Error, "Prefix + \"echo\"");
+        run.Assert.Reports(
+            "TSH002",
+            DiagnosticSeverity.Error,
+            "Prefix + \"echo\"",
+            message: "The tool name must be a constant: the generator reads it at compile time");
     }
 
     [Fact]
@@ -39,7 +47,12 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.Lambda);
 
         // Assert
-        run.Assert.Reports("TSH003", DiagnosticSeverity.Error, "(Func<string, string>)(text => text)");
+        run.Assert.Reports(
+            "TSH003",
+            DiagnosticSeverity.Error,
+            "(Func<string, string>)(text => text)",
+            message: "'(Func<string, string>)(text => text)' cannot be a tool: pass a static method that is not "
+                + "generic, AddTool(Method)");
     }
 
     [Fact]
@@ -49,7 +62,12 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.RefParameter);
 
         // Assert
-        run.Assert.Reports("TSH004", DiagnosticSeverity.Error, "value");
+        run.Assert.Reports(
+            "TSH004",
+            DiagnosticSeverity.Error,
+            "value",
+            message: "The parameter 'value' of the tool 'bump' cannot be bound from the model's arguments: it is "
+                + "passed by reference");
     }
 
     [Fact]
@@ -59,7 +77,12 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.SettingsNotRecord);
 
         // Assert
-        run.Assert.Reports("TSH005", DiagnosticSeverity.Error, "WithSettings<EchoSettings>");
+        run.Assert.Reports(
+            "TSH005",
+            DiagnosticSeverity.Error,
+            "WithSettings<EchoSettings>",
+            message: "The settings type 'EchoSettings' must be a record: each layer applies to a copy of the code "
+                + "defaults");
     }
 
     [Fact]
@@ -69,7 +92,11 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.SettingsLessAccessible);
 
         // Assert
-        run.Assert.Reports("TSH006", DiagnosticSeverity.Error, "WithSettings<EchoSettings>");
+        run.Assert.Reports(
+            "TSH006",
+            DiagnosticSeverity.Error,
+            "WithSettings<EchoSettings>",
+            message: "'EchoSettings' must be as accessible as 'EchoToolset', which exposes its settings");
     }
 
     [Fact]
@@ -122,7 +149,11 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.DuplicateName);
 
         // Assert
-        run.Assert.Reports("TSH007", DiagnosticSeverity.Error, "AddTool(GetOther)");
+        run.Assert.Reports(
+            "TSH007",
+            DiagnosticSeverity.Error,
+            "AddTool(GetOther)",
+            message: "Another tool is already named 'get_v_2', or maps to the same member 'GetV2'");
     }
 
     [Fact]
@@ -251,7 +282,11 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.NotLowerSnakeCase);
 
         // Assert
-        run.Assert.Reports("TSH008", DiagnosticSeverity.Error, "\"Echo\"");
+        run.Assert.Reports(
+            "TSH008",
+            DiagnosticSeverity.Error,
+            "\"Echo\"",
+            message: "The tool name 'Echo' is not lower_snake_case; name the tool with WithName(\"...\")");
     }
 
     [Fact]
@@ -261,7 +296,11 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.MissingDescription);
 
         // Assert
-        run.Assert.Reports("TSH009", DiagnosticSeverity.Warning, "AddTool(Echo)");
+        run.Assert.Reports(
+            "TSH009",
+            DiagnosticSeverity.Warning,
+            "AddTool(Echo)",
+            message: "The tool 'echo' has no description: add a <summary> to its method or WithDescription(...)");
     }
 
     [Fact]
@@ -271,7 +310,12 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.UnreadSettings);
 
         // Assert
-        run.Assert.Reports("TSH010", DiagnosticSeverity.Warning, "WithSettings<EchoSettings>");
+        run.Assert.Reports(
+            "TSH010",
+            DiagnosticSeverity.Warning,
+            "WithSettings<EchoSettings>",
+            message: "The tool 'echo' takes no parameter of its settings type 'EchoSettings', so its settings reach "
+                + "nothing");
     }
 
     [Fact]
@@ -281,7 +325,12 @@ public class DiagnosticTests : GeneratorTestBase
         var run = RunWithoutDocumentation(DiagnosticSources.SummaryOnly);
 
         // Assert
-        run.Assert.Reports("TSH011", DiagnosticSeverity.Warning, "AddTool(Echo)");
+        run.Assert.Reports(
+            "TSH011",
+            DiagnosticSeverity.Warning,
+            "AddTool(Echo)",
+            message: "The tool 'echo' takes its descriptions from XML docs, which the compiler reads only with "
+                + "GenerateDocumentationFile");
     }
 
     [Fact]
@@ -301,7 +350,11 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.UnstorablePick);
 
         // Assert
-        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, "s => s.Pick");
+        run.Assert.Reports(
+            "TSH012",
+            DiagnosticSeverity.Error,
+            "s => s.Pick",
+            message: "'Pick' cannot be configurable: settings cannot store it");
     }
 
     [Fact]
@@ -321,7 +374,11 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.ReadOnlyPick);
 
         // Assert
-        run.Assert.Reports("TSH013", DiagnosticSeverity.Error, "s => s.Twice");
+        run.Assert.Reports(
+            "TSH013",
+            DiagnosticSeverity.Error,
+            "s => s.Twice",
+            message: "The configurable member 'Twice' has no public set or init accessor");
     }
 
     [Fact]
@@ -331,7 +388,11 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.OutsideConstructor);
 
         // Assert
-        run.Assert.Reports("TSH014", DiagnosticSeverity.Error, "AddTool");
+        run.Assert.Reports(
+            "TSH014",
+            DiagnosticSeverity.Error,
+            "AddTool",
+            message: "'AddTool' is read by the generator only directly in the constructor");
     }
 
     [Fact]
@@ -361,7 +422,12 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.ChainOnVariable);
 
         // Assert
-        run.Assert.ReportsAmong("TSH015", DiagnosticSeverity.Error, "tool.WithDescription(\"Echoes.\")");
+        run.Assert.ReportsAmong(
+            "TSH015",
+            DiagnosticSeverity.Error,
+            "tool.WithDescription(\"Echoes.\")",
+            message: "The generator cannot read this declaration chain: keep the declaration in one chain and pick "
+                + "members as s => s.Member");
     }
 
     [Fact]
@@ -391,7 +457,11 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.PrivateNested);
 
         // Assert
-        run.Assert.Reports("TSH016", DiagnosticSeverity.Error, "EchoToolset");
+        run.Assert.Reports(
+            "TSH016",
+            DiagnosticSeverity.Error,
+            "EchoToolset",
+            message: "'EchoToolset' is out of the generated code's reach: it is nested as private or protected");
     }
 
     [Fact]
@@ -401,7 +471,12 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.Derived);
 
         // Assert
-        run.Assert.Reports("TSH017", DiagnosticSeverity.Error, "LoudToolset");
+        run.Assert.Reports(
+            "TSH017",
+            DiagnosticSeverity.Error,
+            "LoudToolset",
+            message: "'LoudToolset' derives from 'EchoToolset': derive it from Toolset directly, without type "
+                + "parameters");
     }
 
     [Fact]
@@ -421,7 +496,11 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.ClashingMember);
 
         // Assert
-        run.Assert.Reports("TSH018", DiagnosticSeverity.Error, "CreateEcho");
+        run.Assert.Reports(
+            "TSH018",
+            DiagnosticSeverity.Error,
+            "CreateEcho",
+            message: "The member 'CreateEcho' clashes with a member the generator writes for 'echo'");
     }
 
     [Fact]
@@ -534,7 +613,13 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.PlainToolsetAgent));
 
         // Assert
-        run.Assert.Reports("TSH019", DiagnosticSeverity.Error, "UseToolset<PlainToolset>");
+        run.Assert.Reports(
+            "TSH019",
+            DiagnosticSeverity.Error,
+            "UseToolset<PlainToolset>",
+            message: "'PlainToolset' was not compiled with the Typeshift generator: reference the Typeshift package "
+                + "in its project",
+            also: "TSH020");
     }
 
     [Fact]
@@ -547,7 +632,13 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.PlainToolsetAgent));
 
         // Assert
-        run.Assert.ReportsOnTheCompilation("TSH020", DiagnosticSeverity.Warning).GetMessage().Should().Contain("Plain");
+        run.Assert.ReportsOnTheCompilation(
+            "TSH020",
+            DiagnosticSeverity.Warning,
+            message: "'Plain' declares toolsets or agents but was built with another Typeshift version or without "
+                + "the Typeshift package, so AddTypeshift() cannot register them: reference the Typeshift package in "
+                + "its project, at this version, and build it again",
+            also: "TSH019");
     }
 
     [Fact]
@@ -587,7 +678,12 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.SharedKind);
 
         // Assert
-        run.Assert.Reports("TSH022", DiagnosticSeverity.Error, "HelpAgent").GetMessage().Should().Contain("Billing");
+        run.Assert.Reports(
+            "TSH022",
+            DiagnosticSeverity.Error,
+            "HelpAgent",
+            message: "'Billing.HelpAgent' stores its settings as 'HelpAgent', like 'Support.HelpAgent': give one of "
+                + "them a WithStorageKind of its own");
     }
 
     [Fact]
@@ -611,7 +707,12 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.NoStore);
 
         // Assert
-        run.Assert.Reports("TSH028", DiagnosticSeverity.Error, "WithStore<Clock>");
+        run.Assert.Reports(
+            "TSH028",
+            DiagnosticSeverity.Error,
+            "WithStore<Clock>",
+            message: "'Clock' is no store: implement ISettingsStore<TId>, IConversationStore<TId>, "
+                + "IDecisionStore<TId> or IAgentSettingsStore");
     }
 
     [Fact]
@@ -701,7 +802,11 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.NoChatClientProvider);
 
         // Assert
-        run.Assert.Reports("TSH030", DiagnosticSeverity.Error, "WithChatClientProvider<Clients>");
+        run.Assert.Reports(
+            "TSH030",
+            DiagnosticSeverity.Error,
+            "WithChatClientProvider<Clients>",
+            message: "'Clients' is no chat client provider: implement IChatClientProvider<TProviderId>");
     }
 
     [Fact]
@@ -731,7 +836,12 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.ToolsetUsedTwice);
 
         // Assert
-        run.Assert.ReportsAmong("TSH025", DiagnosticSeverity.Error, "UseToolset<EchoToolset>");
+        run.Assert.ReportsAmong(
+            "TSH025",
+            DiagnosticSeverity.Error,
+            "UseToolset<EchoToolset>",
+            message: "'EchoToolset' is offered twice: use each toolset once, pick each tool once, and leave out one "
+                + "of two tools of a name");
     }
 
     [Fact]
@@ -741,10 +851,11 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.SubAgentWithoutDescription);
 
         // Assert
-        run.Assert.Reports("TSH023", DiagnosticSeverity.Error, "UseAgent<HelpAgent>")
-            .GetMessage()
-            .Should()
-            .Contain("WithDescription");
+        run.Assert.Reports(
+            "TSH023",
+            DiagnosticSeverity.Error,
+            "UseAgent<HelpAgent>",
+            message: "'HelpAgent' cannot be a sub-agent: it has neither a WithDescription nor a <summary>");
     }
 
     [Fact]
@@ -780,10 +891,13 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.SubAgentWithOwnToolNeedingApproval);
 
         // Assert
-        run.Assert.Reports("TSH024", DiagnosticSeverity.Warning, "UseAgent<HelpAgent>")
-            .GetMessage()
-            .Should()
-            .Contain("close");
+        run.Assert.Reports(
+            "TSH024",
+            DiagnosticSeverity.Warning,
+            "UseAgent<HelpAgent>",
+            message: "'HelpAgent' offers tools that need approval (close), and a sub-agent cannot ask the host: in "
+                + "the default mode those calls are rejected unless a rule or a standing approval allows them; add a "
+                + "rule, or hand off to the agent");
     }
 
     [Fact]
@@ -822,8 +936,18 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.AgentCircle);
 
         // Assert
-        run.Assert.ReportsAmong("TSH026", DiagnosticSeverity.Error, "UseAgent<TellAgent>");
-        run.Assert.ReportsAmong("TSH026", DiagnosticSeverity.Error, "UseAgent<AskAgent>");
+        run.Assert.ReportsAmong(
+            "TSH026",
+            DiagnosticSeverity.Error,
+            "UseAgent<TellAgent>",
+            message: "'AskAgent' calls 'TellAgent' through UseAgent, and 'TellAgent' calls 'AskAgent' back: "
+                + "sub-agents may not form a circle");
+        run.Assert.ReportsAmong(
+            "TSH026",
+            DiagnosticSeverity.Error,
+            "UseAgent<AskAgent>",
+            message: "'TellAgent' calls 'AskAgent' through UseAgent, and 'AskAgent' calls 'TellAgent' back: "
+                + "sub-agents may not form a circle");
     }
 
     [Fact]
@@ -836,10 +960,12 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(compilation, properties: BuildProperties.PublishingAot());
 
         // Assert
-        run.Assert.Reports("TSH027", DiagnosticSeverity.Error, "AddTool(Count)")
-            .GetMessage()
-            .Should()
-            .Contain("global::System.Guid");
+        run.Assert.Reports(
+            "TSH027",
+            DiagnosticSeverity.Error,
+            "AddTool(Count)",
+            message: "'global::System.Guid' of 'count' has no JSON metadata, which Native AOT needs: list it in a "
+                + "JsonSerializerContext of this assembly, [JsonSerializable(typeof(global::System.Guid))]");
     }
 
     [Fact]
@@ -908,8 +1034,8 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.PickBeingTyped);
 
         // Assert
-        run.Assert.ReportsAmong("TSH015", DiagnosticSeverity.Error, "Include");
-        run.Result.Diagnostics.Should().BeEmpty();
+        run.Assert.ReportsAmong("TSH015", DiagnosticSeverity.Error, "Include", also: "CS7036");
+        run.Assert.RunsToTheEnd();
     }
 
     [Theory]
@@ -959,7 +1085,12 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.UnstorableProvider);
 
         // Assert
-        run.Assert.Reports("TSH029", DiagnosticSeverity.Error, "new ProviderKey(\"openai\")");
+        run.Assert.Reports(
+            "TSH029",
+            DiagnosticSeverity.Error,
+            "new ProviderKey(\"openai\")",
+            message: "The provider's type 'ProviderKey' is one the agent's settings cannot store as one value: name "
+                + "the provider by a string, a number, a Guid or an enum");
     }
 
     [Fact]
@@ -1049,7 +1180,7 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.FileLocalSettings);
 
         // Assert
-        run.Assert.Reports("TSH006", DiagnosticSeverity.Error, "WithSettings<ScratchSettings>");
+        run.Assert.Reports("TSH006", DiagnosticSeverity.Error, "WithSettings<ScratchSettings>", also: "CS9051");
     }
 
     [Fact]
@@ -1192,7 +1323,7 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.AliasedToolsetAgent));
 
         // Assert
-        run.Assert.Reports("TSH019", DiagnosticSeverity.Error, "UseToolset<TicketToolset>");
+        run.Assert.Reports("TSH019", DiagnosticSeverity.Error, "UseToolset<TicketToolset>", also: "TSH020");
     }
 
     [Fact]
@@ -1218,7 +1349,10 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.AliasedToolsetAgent));
 
         // Assert
-        run.Assert.ReportsOnTheCompilation("TSH020", DiagnosticSeverity.Warning).GetMessage().Should().Contain("alias");
+        run.Assert.ReportsOnTheCompilation("TSH020", DiagnosticSeverity.Warning, also: "TSH019")
+            .GetMessage()
+            .Should()
+            .Contain("alias");
     }
 
     [Fact]
@@ -1304,7 +1438,12 @@ public class DiagnosticTests : GeneratorTestBase
         var run = RunAs(LanguageVersion.CSharp13, AgentSources.Tickets, AgentSources.Support);
 
         // Assert
-        run.Assert.ReportsOnTheCompilation("TSH031", DiagnosticSeverity.Error).GetMessage().Should().Contain("C# 13.0");
+        run.Assert.ReportsOnTheCompilation(
+            "TSH031",
+            DiagnosticSeverity.Error,
+            message: "Typeshift's generated code needs C# 14 or later, and this project compiles as C# 13.0: remove "
+                + "<LangVersion> from the project, or raise it",
+            also: ["CS0103", "CS1061"]);
     }
 
     [Fact]
