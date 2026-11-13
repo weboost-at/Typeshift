@@ -121,7 +121,7 @@ style; the essentials:
 | Providers and models, clients from configuration, keys per customer, wrapping clients, provider failures, each agent's provider id type (from its `WithModel`), the summary model | `guide/models.md` | `running-agents.md#chat-clients`, `registration.md#ids`, `builders.md` (`WithModel`), `generated-members.md#per-agent` (`Provider`), `diagnostics.md#tsh029`, `conversations.md#compaction` |
 | Approval and modes | `guide/tool-approval.md` | `builders.md` (link) |
 | Settings layers and precedence | `guide/settings-and-stores.md#settings-layering` | `tool-settings.md`, `defining-agents.md`, `running-agents.md` |
-| Getting an agent's host: injecting it, resolving it from a scope, or taking it from the runtime in a job | `guide/using-an-agent.md` | `getting-started.md` (step 4), `registration.md` (the lifetime), `running-agents.md` (lead) |
+| Getting an agent's host: injecting it, resolving it from a scope, or taking it from the runtime in a console app or a job | `guide/using-an-agent.md` | `getting-started.md` (step 4), `registration.md` (the lifetime), `running-agents.md` (lead) |
 | The order of a run's steps | `guide/how-a-run-works.md` | `contributing/architecture.md#a-run` (the code's side) |
 | Registering a store, the memory without one, which store serves a call; the store's lifetime and contract, kinds, schema versions, versions, conversation entries and summaries, checking a store | `guide/implementing-a-store.md` | `settings-and-stores.md` (links), `registration.md#the-chain` (the `WithStore` rows), `conversations.md#what-is-stored` |
 | The `Settings` JSON, an agent's own settings and those under a settings id | `guide/settings-and-stores.md` | `generated-members.md#settings` |
