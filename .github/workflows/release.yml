@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # The check against main needs its history
           fetch-depth: 0
@@ -51,12 +51,12 @@ jobs:
       id-token: write
     steps:
       # Only CHANGELOG.md, for the release's notes: global.json would pin an SDK this job does not install
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           sparse-checkout: /CHANGELOG.md
           sparse-checkout-cone-mode: false
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: packages
           path: artifacts/packages
@@ -72,7 +72,7 @@ jobs:
 
       # Trusted publishing: nuget.org trusts this workflow and hands out a key valid for one hour
       - id: nuget
-        uses: NuGet/login@v1
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
         with:
           user: ${{ secrets.NUGET_USER }}
 
