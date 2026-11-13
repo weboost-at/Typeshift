@@ -308,9 +308,10 @@ It layers the agent's code, the stored settings, the mode the conversation's las
 ([Settings layering](./settings-and-stores.md#settings-layering)).
 
 On a host with a conversation id, it stores the run as it goes ([What a run stores](#what-a-run-stores)). Without
-one, it stores nothing and offers no handoffs. If the model then calls a tool that requires approval and no rule or
-mode approves the call, it throws an `InvalidOperationException`. To avoid that, run with a conversation id, approve
-the call with a rule, or run in `Auto` mode.
+one, it stores nothing, offers no handoffs and cannot ask for approval, unless your app keeps every conversation
+([Keeping every conversation](./conversations.md#keeping-every-conversation)). A run that cannot ask throws an
+`InvalidOperationException` when the model calls a tool that requires approval and no rule or mode approves the
+call. To avoid that, run with a conversation id, approve the call with a rule, or run in `Auto` mode.
 
 `RunAsync` returns the model's messages with the tool calls and results between them, and each message carries the
 answering agent's name as `AuthorName`.

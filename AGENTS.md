@@ -114,7 +114,7 @@ style; the essentials:
 | The order of a run's steps | `guide/how-a-run-works.md` | `contributing/architecture.md#a-run` (the code's side) |
 | Registering a store, the memory without one, which store serves a call; the store's lifetime and contract, kinds, schema versions, versions, conversation entries and summaries, checking a store | `guide/implementing-a-store.md` | `settings-and-stores.md` (links), `registration.md#the-chain` (the `WithStore` rows), `conversations.md#what-is-stored` |
 | The `Settings` JSON, an agent's own settings and those under a settings id | `guide/settings-and-stores.md` | `generated-members.md#settings` |
-| Keeping every conversation (`WithOptions`, `PersistAllConversations`, `NewConversationIds`) | `guide/conversations.md#keeping-every-conversation` | `registration.md#the-chain` |
+| Keeping every conversation (`WithOptions`, `PersistAllConversations`, `NewConversationIds`) | `guide/conversations.md#keeping-every-conversation` | `registration.md#the-chain`, `generated-members.md#runasync`, `multi-agent.md#handoff`, `tool-approval.md#when-a-call-needs-approval` (what a run without a conversation id cannot do) |
 | Ids in code (`WithSettingsId`, `WithConversationId`), stores of several id types | `guide/settings-and-stores.md#ids-of-your-own-types` | `registration.md#ids`, `generated-members.md` (signatures), `diagnostics.md#tsh028`, `running-agents.md#the-raw-path` (a `string` id in `ChatOptions.ConversationId`) |
 | Conversations: storage, resume, steering, live updates and the tracker of each id type, compaction | `guide/conversations.md` | `native-aot.md#trackers-of-value-type-ids` |
 | A chat UI's endpoints: posting, streaming as server-sent events, approvals by their ids | `guide/chat-endpoint.md` | |

@@ -73,7 +73,8 @@ If the model called other tools in the same response, those calls wait too, even
 once your app has answered.
 
 Asking needs a [conversation](./conversations.md) to store the request in, so the sample runs on a host from
-`WithConversationId`. A run without a conversation id throws, naming the tool. Run with one, approve the calls with a
+`WithConversationId`. A run without a conversation id throws, naming the tool, unless your app
+[keeps every conversation](./conversations.md#keeping-every-conversation). Run with one, approve the calls with a
 rule, or use [auto mode](#auto-mode).
 
 ## Approving or rejecting

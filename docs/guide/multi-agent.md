@@ -226,7 +226,8 @@ The `Settings` you pass to one run apply only to the agent you started it on. An
 own settings stored under the same settings id.
 
 ::: warning Handoffs need a conversation
-A run without a conversation id does not offer the handoff tools, so its agent cannot hand off.
+A run without a conversation id does not offer the handoff tools, so its agent cannot hand off, unless your app
+[keeps every conversation](./conversations.md#keeping-every-conversation).
 :::
 
 ## Related
