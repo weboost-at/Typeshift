@@ -61,7 +61,8 @@ with `WithChatClientProvider<TProvider>()`, and [A key per customer](#a-key-per-
 ::: info The provider is scoped
 Typeshift resolves your provider from each run's scope, so it can use that request's services, such as the current
 customer or your `DbContext` ([A key per customer](#a-key-per-customer)). Typeshift never disposes a client you
-return, and it instruments each provider and model once, whatever instance you return.
+return. You may return a new instance for every run: the metrics go on across instances, and each call's span names
+the backend of the client that answered it ([Spans](./observability.md#spans)).
 :::
 
 ## A real client

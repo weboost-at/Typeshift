@@ -53,10 +53,15 @@ When the store fails to save an entry, the run goes on. Typeshift logs the failu
 exception on the run's span, so watch your logs or spans for it.
 :::
 
+A `chat` span names the backend that answered its call. Its `gen_ai.provider.name`, `server.address` and
+`server.port` come from the `ChatClientMetadata` of the client the run got, which each provider's client library
+fills in. When [your own provider](./models.md#your-own-provider) returns a client per customer, each customer's
+calls therefore show that customer's endpoint, also when all of them run under one provider id.
+
 ## Metrics
 
 The metrics are Microsoft.Extensions.AI's `gen_ai.client.operation.duration` and `gen_ai.client.token.usage`, tagged
-with the model.
+with the model and with the same backend as the call's `chat` span.
 
 ## Message content
 

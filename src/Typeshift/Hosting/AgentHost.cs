@@ -123,7 +123,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         // D29: outermost the conversation, then run middleware, context and approval above the tool loop, the
         // checkpoints, unique call ids (D59) and compaction inside it, and innermost the provider's client,
         // instrumented, behind a wrapper that never disposes it
-        var provided = _services.GetRequiredService<InstrumentedClients>().Instrument(client, provider, model);
+        var provided = _services.GetRequiredService<InstrumentedClients>().Instrument(client, model);
 
         var checkpoints = new CheckpointChatClient(new UniqueCallIdsChatClient(new CompactingChatClient(provided)));
         var middleware = _services.GetServices<IToolMiddleware>().ToList();

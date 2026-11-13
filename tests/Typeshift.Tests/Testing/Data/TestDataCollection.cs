@@ -1,5 +1,6 @@
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Persistence.Support;
+using Typeshift.Tests.Telemetry.Support;
 using Typeshift.Tests.Tools.Support;
 using Bogus;
 
@@ -13,4 +14,6 @@ public class TestDataCollection(Faker faker)
     public AgentTestData Agent { get; } = new(faker);
 
     public PersistenceTestData Persistence { get; } = new(faker);
+
+    public TelemetryTestData Telemetry { get; } = new(faker);
 }

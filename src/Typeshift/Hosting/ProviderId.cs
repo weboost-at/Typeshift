@@ -5,8 +5,7 @@ namespace Typeshift;
 
 // D77: a provider with its type, made where the type is known, in WithModel and in the generated code that applies a
 // settings layer. It asks the IChatClientProvider of its type through a generic call, so agents of several provider
-// types serve one app and no type is made at run time. Equal when type and value are, as the instrumented clients are
-// kept by it
+// types serve one app and no type is made at run time
 internal abstract record ProviderId
 {
     public abstract object Value { get; }

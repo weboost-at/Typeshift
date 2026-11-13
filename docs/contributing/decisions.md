@@ -567,12 +567,20 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** source and meter `Typeshift`, GenAI conventions (`invoke_agent`, `chat`, `execute_tool`, operation
   duration, token usage); message content only with `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT`. No API.
 - **As built:** the conversation layer opens the `invoke_agent` span, so it covers middleware and context too.
-  Microsoft.Extensions.AI's `OpenTelemetryChatClient` writes the chat spans and the metrics: one per provider and model,
-  created the first time a run uses them and kept as long as the host (`InstrumentedClients`), which passes each call on
-  to the client its run got. One per run, disposed with it, reset the metrics after every run, since the OpenTelemetry
+  Microsoft.Extensions.AI's `OpenTelemetryChatClient` writes the chat spans and the metrics: one per backend, created
+  the first time a run reaches it and kept as long as the host (`InstrumentedClients`), which passes each call on to
+  the client its run got. One per run, disposed with it, reset the metrics after every run, since the OpenTelemetry
   SDK ends the instruments of a disposed meter; one per client instance did the same for a provider that hands out a
   client per run or per tenant. The tool loop writes its `execute_tool` spans under the run's span, with that span's
   source. A store that fails records the exception on the run's span.
+- **One per backend:** a backend is what the instrumentation reads once from a client's `ChatClientMetadata` and
+  writes on every span and metric: the provider's name, the server's address and port, and the client's own model.
+  That model names only the calls that name none, so it counts only for a run without a model, and the clients a
+  provider makes per model share one. One per provider and model of the run, as before, kept an instrumented client,
+  with its meter and four instruments, for every model name and provider id an app ever used, for ever where they
+  come from data, and gave all the clients under one provider id the metadata of the first. No entry is removed or
+  capped, since that would dispose a meter; the backends an app talks to bound them. Each is made once, under a
+  `Lazy`, so two runs that reach a new backend together leave no second meter behind.
 - **Streaming:** an async iterator resumes in its caller's context (dotnet/runtime#47802), so after a streaming run's
   first update its span was no longer the current one, and the later chat and tool spans hung under the caller's span
   or started traces of their own. The run makes its span current again before it asks for each update, as

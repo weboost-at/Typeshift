@@ -346,8 +346,103 @@ public sealed class TelemetryTests : AgentTestBase
             .ContainSingle();
     }
 
+    [Fact]
+    public async Task Given_Runs_Naming_Many_Models_On_One_Provider_They_Share_One_Instrumented_Client()
+    {
+        // Arrange
+        var backend = Data.Telemetry.Backend;
+
+        var clients = Data.Telemetry.Models
+            .Select(model => new ChatClientMetadata(backend.ProviderName, backend.ProviderUri, model));
+
+        await using var provider = ServicesOf([.. clients]);
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
+
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        foreach (var model in Data.Telemetry.Models)
+        {
+            await host.RunAsync(Data.Tool.Question, settings: new() { Model = model }, ct: Ct);
+        }
+
+        // Assert
+        Activities.Runs(Data.Agent.ConversationId)
+            .SelectMany(Activities.Inside)
+            .Select(activity => activity.Source)
+            .Distinct()
+            .Should()
+            .ContainSingle();
+    }
+
+    [Fact]
+    public async Task Given_Two_Clients_Of_Different_Metadata_Under_One_Provider_Each_Span_Names_Its_Own_Backend()
+    {
+        // Arrange
+        var first = Data.Telemetry.Backend;
+        var second = Data.Telemetry.SecondBackend;
+        await using var provider = ServicesOf(first, second);
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
+
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        Activities.Runs(Data.Agent.ConversationId)
+            .SelectMany(Activities.Inside)
+            .Select(activity => (activity.GetTagItem("gen_ai.provider.name"), activity.GetTagItem("server.address")))
+            .Should()
+            .Equal((first.ProviderName, first.ProviderUri!.Host), (second.ProviderName, second.ProviderUri!.Host));
+    }
+
+    [Fact]
+    public async Task Given_A_Run_Naming_No_Model_Its_Chat_Span_Names_The_Clients_Own_Model()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithStore<InMemoryTypeshiftStore<Guid>>();
+        services.AddChatClient(new BackendClient(ChatClient, new ChatClientMetadata(defaultModelId: Data.Agent.Model)));
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await scope.ServiceProvider.GetRequiredService<AgentHost<SchemaAgent>>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        var run = Activities.Run(Data.Agent.ConversationId);
+        Activities.Inside(run).Select(activity => activity.DisplayName).Should().Equal($"chat {Data.Agent.Model}");
+    }
+
     private Task<ChatResponse> RunAsync() =>
         Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+
+    // A container whose provider serves each run from a client of the next backend
+    private ServiceProvider ServicesOf(params ChatClientMetadata[] backends)
+    {
+        var services = new ServiceCollection();
+        services.AddTypeshift()
+            .WithStore<InMemoryTypeshiftStore<Guid>>()
+            .WithChatClientProvider<BackendProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(new Backends(backends));
+
+        return services.BuildServiceProvider();
+    }
 
     private ValueTask<List<ChatResponseUpdate>> RunStreamingAsync() =>
         Host<ProbeAgent>()

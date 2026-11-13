@@ -17,6 +17,12 @@ All notable changes to this project are documented here. The format follows
 - With `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` set, every run's `execute_tool` spans carry the call's
   arguments and result, in `gen_ai.tool.call.arguments` and `gen_ai.tool.call.result`. A run that does not stream
   left them out.
+- A `chat` span and its metrics name the backend that answered the call. With several clients under one provider
+  id, such as a client per customer, every span carried the provider name and server address of the client the app
+  used first.
+- An app whose model names or provider ids come from data, such as a model per customer, no longer keeps a meter and
+  its instruments for each of them as long as it runs. Typeshift instruments each backend once, whatever provider
+  ids and models the runs name.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 
