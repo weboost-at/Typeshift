@@ -71,10 +71,28 @@ public sealed class GeneratorRunAssertions(GeneratorRun run)
         return run;
     }
 
+    // The generator did not fail (CS8785 drops every generated file of the project) and no analyzer threw (AD0001),
+    // whatever the compiler says about the subject
+    public GeneratorRun RunsToTheEnd()
+    {
+        run.Result.Diagnostics.Select(diagnostic => diagnostic.ToString()).Should().BeEmpty();
+
+        run.Reported
+            .Where(diagnostic => diagnostic.Id == "AD0001")
+            .Select(diagnostic => diagnostic.ToString())
+            .Should()
+            .BeEmpty();
+
+        return run;
+    }
+
     // No generated file holds a compiler error or warning: the analyzer reports every shape the generator cannot
-    // handle. Hidden ones (an alias the project never uses) are the IDE's business
+    // handle. Hidden ones (an alias the project never uses) are the IDE's business. A generator that failed leaves
+    // no file to hold an error and an analyzer that threw reports nothing, so the run must reach its end too
     public GeneratorRun GeneratesValidCode()
     {
+        RunsToTheEnd();
+
         run.Reported
             .Where(diagnostic => diagnostic.Severity >= DiagnosticSeverity.Warning)
             .Where(diagnostic => diagnostic.Location.SourceTree is { } tree && Generated(tree))

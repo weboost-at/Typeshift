@@ -24,6 +24,8 @@ public abstract class GeneratorTestBase
 
     protected static CSharpCompilation Compile(params string[] sources) => Compile(SubjectAssembly, [], sources);
 
+    // Every warning wave is on, as the SDK builds a consumer's project; a later wave that warns about generated code
+    // is fixed there, never by lowering the level
     protected static CSharpCompilation Compile(
         string assemblyName,
         IEnumerable<MetadataReference> references,
@@ -34,7 +36,8 @@ public abstract class GeneratorTestBase
             references: FrameworkReferences.AddRange(references),
             options: new CSharpCompilationOptions(
                 OutputKind.DynamicallyLinkedLibrary,
-                nullableContextOptions: NullableContextOptions.Enable));
+                nullableContextOptions: NullableContextOptions.Enable,
+                warningLevel: 9999));
 
     protected static SyntaxTree Parse(string source, string path) =>
         CSharpSyntaxTree.ParseText(source, ParseOptions, path);
@@ -103,7 +106,8 @@ public abstract class GeneratorTestBase
     protected MetadataReference CompileReferenceWithoutGenerator(string assemblyName, params string[] sources) =>
         Emit(Compile(assemblyName, [], sources));
 
-    // Compiler diagnostics included, so the suppressor can act on them; suppressed ones are reported as such
+    // Compiler diagnostics included, so the suppressor can act on them; suppressed ones are reported as such. The
+    // analyzer enables concurrent execution, so it runs concurrently here as in a build
     private IReadOnlyList<Diagnostic> Analyze(Compilation output, BuildProperties properties) =>
         output
             .WithAnalyzers(
@@ -111,7 +115,7 @@ public abstract class GeneratorTestBase
                 new CompilationWithAnalyzersOptions(
                     new AnalyzerOptions([], properties),
                     onAnalyzerException: null,
-                    concurrentAnalysis: false,
+                    concurrentAnalysis: true,
                     logAnalyzerExecutionTime: false,
                     reportSuppressedDiagnostics: true))
             .GetAllDiagnosticsAsync(Ct)
