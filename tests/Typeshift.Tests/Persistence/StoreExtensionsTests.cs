@@ -78,7 +78,8 @@ public class StoreExtensionsTests : UnitTestBase
         var verify = () => new OneAgentDocumentStore().VerifyAgentSettingsAsync(Data.Persistence.Kind, Ct);
 
         // Assert
-        await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*key documents by kind*");
+        await verify.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Saving a document of another kind conflicted: key documents by kind*");
     }
 
     [Fact]
@@ -88,7 +89,8 @@ public class StoreExtensionsTests : UnitTestBase
         var verify = () => new OneAgentDocumentStore().VerifyAsync(Data.Persistence.SettingsId, Ct);
 
         // Assert
-        await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*key documents by kind*");
+        await verify.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Saving a document of another kind conflicted: key documents by kind*");
     }
 
     [Fact]
@@ -102,7 +104,8 @@ public class StoreExtensionsTests : UnitTestBase
         var verify = () => store.VerifyAsync(Data.Persistence.SettingsId, Ct);
 
         // Assert
-        await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*give VerifyAsync a new id*");
+        await verify.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("LoadAsync returned a document for*give VerifyAsync a new id*");
     }
 
     [Fact]
@@ -112,7 +115,8 @@ public class StoreExtensionsTests : UnitTestBase
         var verify = () => new IdOnlyStore().VerifyAsync(Data.Persistence.SettingsId, Ct);
 
         // Assert
-        await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*id and kind together*");
+        await verify.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*another kind under the same id conflicted: key documents by id and kind together*");
     }
 
     [Fact]
@@ -125,7 +129,8 @@ public class StoreExtensionsTests : UnitTestBase
         var verify = () => store.VerifyAsync(Data.Persistence.SettingsId, Ct);
 
         // Assert
-        await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*id and kind together*");
+        await verify.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*another kind under the same id conflicted: key documents by id and kind together*");
     }
 
     [Fact]
@@ -135,7 +140,61 @@ public class StoreExtensionsTests : UnitTestBase
         var verify = () => new NoConflictStore().VerifyAsync(Data.Persistence.SettingsId, Ct);
 
         // Assert
-        await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*StoreConflictException*");
+        await verify.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*A save at version 0 of a document stored already did not throw a StoreConflictException*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_That_Saves_Over_A_Document_At_Version_Zero_It_Fails_Naming_Version_Zero()
+    {
+        // Act
+        var verify = () => new UpsertAtZeroStore().VerifyAsync(Data.Persistence.SettingsId, Ct);
+
+        // Assert
+        await verify.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*A save at version 0 of a document stored already*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_That_Ignores_A_Stale_Version_It_Fails_Naming_The_Replaced_Version()
+    {
+        // Act
+        var verify = () => new StaleVersionStore().VerifyAsync(Data.Persistence.SettingsId, Ct);
+
+        // Assert
+        await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*a version another save replaced*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_That_Loads_By_Id_Alone_It_Fails_Naming_Another_Kinds_Document()
+    {
+        // Act
+        var verify = () => new LoadByIdAloneStore().VerifyAsync(Data.Persistence.SettingsId, Ct);
+
+        // Assert
+        await verify.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*LoadAsync returned another kind's document*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_That_Loads_Another_Version_Than_It_Saved_It_Fails_Naming_The_Version()
+    {
+        // Act
+        var verify = () => new OtherVersionStore().VerifyAsync(Data.Persistence.SettingsId, Ct);
+
+        // Assert
+        await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*the last save and version*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_That_Loads_An_Ids_Document_As_An_Agents_Own_It_Fails_Naming_Them_Apart()
+    {
+        // Act
+        var verify = () => new AgentLoadFallbackStore().VerifyAsync(Data.Persistence.SettingsId, Ct);
+
+        // Assert
+        await verify.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*An agent's own load returned a document saved under an id*");
     }
 
     [Fact]
@@ -179,5 +238,39 @@ public class StoreExtensionsTests : UnitTestBase
 
         // Assert
         await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*last summary*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_That_Loads_Nothing_Until_A_Summary_It_Fails_Naming_A_Conversation_With_No_Summary()
+    {
+        // Act
+        var verify = () => new NothingUntilSummaryStore().VerifyAsync(Data.Agent.ConversationId, Ct);
+
+        // Assert
+        await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*a conversation with no summary*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_That_Drops_A_Member_Of_An_Entry_It_Fails_Naming_The_Changed_Entry()
+    {
+        // Act
+        var verify = () => new DroppedMemberStore().VerifyAsync(Data.Agent.ConversationId, Ct);
+
+        // Assert
+        await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*An entry came back changed*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_Checked_Under_One_Id_It_Passes_Again_Under_Another()
+    {
+        // Arrange
+        var store = new InMemoryTypeshiftStore<Guid>();
+        await store.VerifyAsync(Data.Persistence.SettingsId, Ct);
+
+        // Act
+        var verify = () => store.VerifyAsync(Data.Agent.ConversationId, Ct);
+
+        // Assert
+        await verify.Should().NotThrowAsync();
     }
 }
