@@ -170,6 +170,8 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `DiagnosticTests.Given_Any_Mistake_The_Generated_Code_Holds_No_Error` | No mistake ends in a compiler error inside generated code. |
 | RS2000 (analyzer) | Every descriptor has a row in `AnalyzerReleases.Unshipped.md` or `Shipped.md`. |
 | `IncrementalTests` (generator tests) | Unrelated edits leave the generator's output cached. |
+| CI: the steps after the pack in `ci.yml` | The package's build files sit under `buildTransitive/net11.0/` (D61). The consumer sample, which never chose XML docs, builds with mistakes in its XML comments and publishes without an XML file, and with XML docs of its own choice it keeps CS1591 (D68). |
+| `release.yml`, for a tag | The tag sits on `main`, has its section in `CHANGELOG.md` and is the version MinVer packed, or nothing is published. |
 | CI: docs workflow | The Markdown matches its snippets, passes markdownlint and the docs rules (`docs/.vitepress/lint.mjs`), and the site has no dead links or anchors. |
 
 ## Layout
