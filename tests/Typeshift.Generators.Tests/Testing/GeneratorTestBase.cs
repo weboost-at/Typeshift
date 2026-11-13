@@ -60,8 +60,7 @@ public abstract class GeneratorTestBase
                 IncrementalGeneratorOutputKind.None,
                 trackIncrementalGeneratorSteps: true));
 
-    // The generator, then the analyzers over the subject and the generated code, as the IDE runs them. Every run
-    // asserts the header of the generated files, so no snapshot has to pin it
+    // The generator, then the analyzers over the subject and the generated code, as the IDE runs them
     protected GeneratorRun Run(
         Compilation compilation,
         CSharpParseOptions? parseOptions = null,
@@ -70,9 +69,7 @@ public abstract class GeneratorTestBase
         var driver = CreateDriver(parseOptions, properties)
             .RunGeneratorsAndUpdateCompilation(compilation, out var output, out _, Ct);
 
-        return new GeneratorRun(driver, output, Analyze(output, properties ?? BuildProperties.None))
-            .Assert
-            .StartsEveryFileWithTheHeader();
+        return Checked(new GeneratorRun(driver, output, Analyze(output, properties ?? BuildProperties.None)));
     }
 
     protected GeneratorRun Run(params string[] sources) => Run(Compile(sources));
@@ -81,10 +78,7 @@ public abstract class GeneratorTestBase
     protected GeneratorRun RunAgain(GeneratorRun previous, Compilation edited)
     {
         var driver = previous.Driver.RunGeneratorsAndUpdateCompilation(edited, out var output, out _, Ct);
-
-        return new GeneratorRun(driver, output, Analyze(output, BuildProperties.None))
-            .Assert
-            .StartsEveryFileWithTheHeader();
+        return Checked(new GeneratorRun(driver, output, Analyze(output, BuildProperties.None)));
     }
 
     protected static Compilation Edit(Compilation compilation, int tree, string source) =>
@@ -146,6 +140,12 @@ public abstract class GeneratorTestBase
             .GetAllDiagnosticsAsync(Ct)
             .GetAwaiter()
             .GetResult();
+
+    // What every run asserts, whatever its test goes on to. It reached its end: a failed generator leaves no file to
+    // hold an error and an analyzer that threw reports nothing, so every other assertion on such a run would pass.
+    // And its files start with the header, so no snapshot has to pin it
+    private static GeneratorRun Checked(GeneratorRun run) =>
+        run.Assert.RunsToTheEnd().Assert.StartsEveryFileWithTheHeader();
 
     private MetadataReference Emit(Compilation compilation)
     {

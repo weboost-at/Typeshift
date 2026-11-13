@@ -146,7 +146,7 @@ public class ToolsetGenerationTests : GeneratorTestBase
         var run = Run(ToolsetSources.DocumentedTwice);
 
         // Assert
-        run.Result.Diagnostics.Should().BeEmpty();
+        run.Assert.RunsToTheEnd();
     }
 
     [Fact]

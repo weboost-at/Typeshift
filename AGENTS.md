@@ -182,6 +182,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `Diagnostics/DiagnosticCatalogTests` (generator tests) | Every diagnostic has a docs row, a docs section and a test; every number up to the highest is a diagnostic or a retired row of the docs, and no retired number is a diagnostic again (D49). |
 | `DiagnosticTests.Given_Any_Mistake_The_Generated_Code_Holds_No_Error`, `..._Given_Any_Shape_The_Generated_Code_Holds_No_Error` | No mistake (`DiagnosticSources`) and no accepted shape (`ShapeSources`) ends in a compiler error inside generated code, in a failed generator or in an analyzer that threw. |
 | `HalfTypedCodeTests.Given_A_Declaration_Being_Typed_The_Generator_And_The_Analyzer_Do_Not_Throw` | The generator and the analyzer do not throw on half-typed code (`HalfTypedSources`). |
+| `Testing/GeneratorTestBase.Run` (generator tests) | Every run of a generator test fails when the generator failed (CS8785) or an analyzer threw (AD0001), whatever the test goes on to assert. |
 | RS2000 (analyzer) | Every descriptor has a row in `AnalyzerReleases.Unshipped.md` or `Shipped.md`. |
 | CA1305, CA1309, CA1310 as errors (`.editorconfig`, generator project) | No comparison or format call in the generator follows the build machine's culture. |
 | `IncrementalTests` (generator tests) | Unrelated edits leave the generator's output cached. |
