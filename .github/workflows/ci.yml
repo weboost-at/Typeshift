@@ -3,13 +3,15 @@ name: ci
 on:
   push:
     branches: [main]
-    # Docs-only changes skip CI, except the pages the repository tests read. A later pattern overrides an earlier one
+    # Docs-only changes skip CI, except the pages the repository tests read and the icon the package packs. A later
+    # pattern overrides an earlier one
     paths: &code
       - '**'
       - '!docs/**'
       - '!*.md'
       - 'docs/contributing/decisions.md'
       - 'docs/guide/diagnostics.md'
+      - 'docs/public/brand/icon-128.png'
   pull_request:
     paths: *code
   # The release workflow runs these steps on the tagged commit and publishes the packages they pack
