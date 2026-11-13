@@ -11,7 +11,7 @@ public sealed class MinusSignCulture : IDisposable
     public MinusSignCulture()
     {
         var culture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
-        culture.NumberFormat.NegativeSign = "−";
+        culture.NumberFormat.NegativeSign = "\u2212";
 
         CultureInfo.CurrentCulture = culture;
     }
