@@ -43,7 +43,10 @@ internal static class Tokens
         {
             null => "",
             string text => text,
+            JsonElement { ValueKind: JsonValueKind.String } text => text.GetString()!,
             JsonElement element => element.GetRawText(),
+            IDictionary<string, object?> arguments =>
+                string.Join(", ", arguments.Select(argument => $"{argument.Key}: {Text(argument.Value)}")),
             _ => value.ToString() ?? ""
         };
 

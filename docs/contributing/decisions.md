@@ -498,7 +498,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   without a maximum or of an earlier version, calibrates nothing: the stored history keeps the results a run cleared,
   so an estimate of it is not what the provider counted, and a calibration by it let the next run's first call exceed
   the maximum up to four times. Only results the model already
-  answered after are cleared. What compaction did holds for the rest of the run: the tool loop keeps the whole
+  answered after are cleared. The summary model reads the turns it summarizes as a transcript: each call with its
+  arguments, and each result as its tool returned it, cut to 2,000 characters, also where clearing took it from the
+  run's model. What compaction did holds for the rest of the run: the tool loop keeps the whole
   history, so each later call gets the same cleared results and summary. The summary entry holds the summary, the
   kept todo list and copies of the kept messages, with the run's mode, its standing approvals and the background calls
   still working, so a later run loads only that entry and the ones after it (`LoadConversationSinceCompactionAsync`,

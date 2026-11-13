@@ -40,12 +40,13 @@ internal sealed class Compaction(ReportedCall? last)
         int max,
         CancellationToken ct)
     {
-        var call = Apply(messages);
+        var history = Apply(messages);
+        List<ChatMessage> call = [.. history.Select(Clear)];
         SentEstimate = Tokens.Estimate(call, options);
         if (SentEstimate * _calibration < max) return call;
 
         var target = options.RunOptions.TargetInputTokens ?? max / 2;
-        call = await CompactAsync(call, SentEstimate, options, target / _calibration, ct);
+        call = await CompactAsync(history, SentEstimate, options, target / _calibration, ct);
         SentEstimate = Tokens.Estimate(call, options);
         return call;
     }
@@ -56,8 +57,8 @@ internal sealed class Compaction(ReportedCall? last)
             _calibration = new ReportedCall(SentEstimate, reported).Calibration;
     }
 
-    // The call as the model saw it last: the summary in place of what it stands for, the cleared results cleared, in
-    // each pass of the run. A call without the message the summary kept from is compacted afresh
+    // The history with the summary in place of what it stands for, in each pass of the run, and every result as its
+    // tool returned it. A call without the message the summary kept from is compacted afresh
     private List<ChatMessage> Apply(IEnumerable<ChatMessage> messages)
     {
         var call = messages.ToList();
@@ -77,21 +78,21 @@ internal sealed class Compaction(ReportedCall? last)
             }
         }
 
-        return [.. call.Select(Clear)];
+        return call;
     }
 
     private async Task<List<ChatMessage>> CompactAsync(
-        List<ChatMessage> call,
+        List<ChatMessage> history,
         double total,
         ResolvedChatOptions options,
         double limit,
         CancellationToken ct)
     {
         // First the results of the oldest calls, keeping the calls; the model has not seen those after its last answer
-        var seen = call.FindLastIndex(message => message.Role == ChatRole.Assistant);
-        var todos = LatestTodos(call)?.CallId;
+        var seen = history.FindLastIndex(message => message.Role == ChatRole.Assistant);
+        var todos = LatestTodos(history)?.CallId;
 
-        foreach (var result in call.Take(Math.Max(seen, 0)).SelectMany(message => message.Contents)
+        foreach (var result in history.Take(Math.Max(seen, 0)).SelectMany(message => message.Contents)
                      .OfType<FunctionResultContent>())
         {
             if (total <= limit) break;
@@ -100,7 +101,7 @@ internal sealed class Compaction(ReportedCall? last)
             total -= Tokens.Estimate(result) - (ClearedResult.Length / 4);
         }
 
-        call = [.. call.Select(Clear)];
+        List<ChatMessage> call = [.. history.Select(Clear)];
         if (total <= limit) return call;
 
         // Then the oldest turns, summarized, up to where the rest fits with room for the summary
@@ -108,10 +109,11 @@ internal sealed class Compaction(ReportedCall? last)
 
         var region = call.Take(cut).ToList();
 
-        // D77: the run's provider and model unless the settings or the agent name others; D63: none for a run on the
-        // client registered for every agent
+        // The summary model reads the turns with the results clearing took from the run's model. D77: the run's
+        // provider and model unless the settings or the agent name others; D63: none for a run on the client
+        // registered for every agent
         var summary = await SummarizeAsync(
-            region,
+            [.. history.Take(cut)],
             options.SummaryProvider ?? options.Provider,
             options.RunOptions.SummaryModel ?? options.ModelId,
             options.AgentRun!,

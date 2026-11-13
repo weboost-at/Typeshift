@@ -95,6 +95,9 @@ All notable changes to this project are documented here. The format follows
   model response of a run with a maximum now stores what its call was estimated at, in the new optional
   `ConversationEntry.EstimatedInputTokens`, and the next run corrects its estimate by that. Entries stored before
   load as they are, and a run after them starts with the plain estimate.
+- The summary model reads what the tools were called with and what they returned. It read a .NET type name in place
+  of each call's arguments, and the placeholder of a cleared result in place of almost every result. It now reads
+  each call's arguments and the first 2,000 characters of each result, as text where the result is text.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

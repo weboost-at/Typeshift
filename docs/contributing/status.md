@@ -146,6 +146,7 @@ rewrite.
 | new | Compaction clears the oldest read results, then summarizes the oldest turns, by calibrated estimate (D32) | `CompactionTests` |
 | new | The summary runs on the run's provider and model unless the agent or the settings name others (D77) | `CompactionTests.Given_No_Summary_Model_The_Runs_Model_Summarizes`, `..._Given_Clearing_Is_Not_Enough_The_Oldest_Turns_Are_Summarized`, `..._Given_A_Summary_Provider_It_Serves_The_Summary_Model` |
 | new | A summary is stored, and later runs start from it (D32) | `CompactionTests.Given_A_Summary_Later_Runs_Start_From_It` |
+| new | The summary model reads each call's arguments and the start of its result, cut to 2,000 characters, also of a result the run cleared (D32) | `SummaryTranscriptTests` |
 | new | A run loads its conversation from the last summary on, which keeps the mode, the standing approvals and the background calls still working (D24, D32, D33, D52) | `ConversationStoreTests.Given_A_Summary_The_Next_Run_Never_Loads_The_Whole_Conversation`, `..._Given_A_Summary_The_Store_Loads_It_And_The_Entries_After_It`, `ToolApprovalTests.Given_An_Approval_For_The_Conversation_The_Summary_Keeps_It_For_Later_Runs`, `ModeTests.Given_A_Compaction_In_Plan_Mode_Its_Summary_Keeps_The_Mode`, `SubAgentTests.Given_A_Compaction_While_A_Background_Sub_Agent_Works_Its_Summary_Keeps_The_Call`, `..._Given_A_Summary_That_Left_A_Background_Sub_Agent_Working_The_Next_Run_Hears_It_Was_Lost` |
 | new | A steered run's later pass starts from the summary its first pass made (D32, D51) | `CompactionTests.Given_A_Steered_Streaming_Run_Its_Later_Pass_Starts_From_The_Summary` |
 | new | A model response of a run with a maximum is stored with the estimate of its call, and a run's first estimate is calibrated by the conversation's last entry that holds an estimate and a report, so a run after one that cleared results stays under the maximum; a report without an estimate calibrates nothing (D32) | `CompactionTests.Given_A_Report_Of_The_Last_Run_The_Next_Runs_First_Call_Compacts_By_It`, `..._Given_A_Run_That_Cleared_Results_The_Next_Runs_First_Call_Stays_Under_The_Maximum`, `..._Given_A_Maximum_Each_Response_Is_Stored_With_The_Estimate_Of_Its_Call`, `..._Given_A_Report_Stored_Without_An_Estimate_The_Next_Runs_First_Call_Goes_By_The_Estimate_Alone`, `ConversationEntryJsonTests.Given_A_Model_Response_Stored_Before_Entries_Kept_An_Estimate_It_Reads_With_Its_Usage_And_None`, `..._Given_An_Entry_Without_An_Estimate_Its_Json_Has_No_Member_For_It` |
@@ -176,7 +177,9 @@ rewrite.
 - **Compaction's estimate.** About four characters make a token, corrected by the provider's report of the run's
   last call against the estimate sent with it, or of the conversation's last call that stored both. A conversation's
   first call trusts the estimate alone, and so does the first call after runs without a maximum, or after entries
-  stored before a model response kept its estimate. The summary model reads results cut to 2,000 characters.
+  stored before a model response kept its estimate. The summary model reads results cut to 2,000 characters. A
+  result a run cleared among the turns its summary kept is stored cleared with that summary, so a later run's
+  summary reads the placeholder in its place.
 - **Uses inside a referenced project.** TSH007 follows the handoffs and sub-agents of your project's agents into a
   referenced project's agent, but not that agent's own uses, which no stamp lists. An own tool of yours and one of an
   agent the referenced agent hands off to are not compared, in either project.

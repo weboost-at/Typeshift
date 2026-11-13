@@ -291,7 +291,8 @@ reaches the maximum, Typeshift shrinks the history to `WithTargetInputTokens`, h
 1. It clears the results of the oldest tool calls the model has already read. It keeps the calls, so the model knows
    what it did and can call again.
 2. If that is not enough, it summarizes the oldest turns with the [summary model](./models.md#the-summary-model), the
-   run's own unless you name another.
+   run's own unless you name another. The summary model reads those turns as text: each tool call with its arguments,
+   and the first 2,000 characters of each result, including the results the first step cleared.
 
 The instructions and the latest call of a tool named `write_todos`, if the agent offers one, always stay, and a cut
 never separates a tool call from its result.
