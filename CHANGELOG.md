@@ -132,6 +132,11 @@ All notable changes to this project are documented here. The format follows
   `"00:00:30"`, `"2026-01-02"` and `"13:45:30.0000000"`. Any other form now counts as missing, so the layer below
   applies. In a settings file edited by hand, `"30"` was read as thirty days and `"01/02/2026"` as the second of
   January. "The stored JSON" in the guide's page on settings and stores lists the formats.
+- When two declarations in different files clash, TSH007 and TSH022 are reported on the one in the file that comes
+  later by the ordinal order of the file names, on every build machine. The order followed the culture of the
+  machine that builds, so the same code could be reported in another file there. In a project whose file names mix
+  upper and lower case, such as `agents.cs` and `Billing.cs`, the diagnostic may now sit on the other declaration:
+  ordinal order puts upper case first.
 
 ### Fixed
 

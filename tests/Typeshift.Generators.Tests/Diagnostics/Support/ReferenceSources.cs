@@ -356,6 +356,33 @@ public static class ReferenceSources
         }
         """;
 
+    // One toolset in two files, each with a constructor that declares the same tool
+    public const string SplitToolsetFirst =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class SplitToolset : Toolset
+        {
+            public SplitToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string SplitToolsetSecond =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class SplitToolset
+        {
+            public SplitToolset(int times) => AddTool(Echo).WithDescription("Echoes again.");
+        }
+        """;
+
     public const string TwoToolsetsHost =
         """
         using Microsoft.Extensions.DependencyInjection;

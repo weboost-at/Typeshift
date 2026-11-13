@@ -39,6 +39,10 @@ public abstract class GeneratorTestBase
                 nullableContextOptions: NullableContextOptions.Enable,
                 warningLevel: 9999));
 
+    // As a project whose files have these names
+    protected static CSharpCompilation CompileFiles(params (string Path, string Source)[] files) =>
+        Compile().AddSyntaxTrees(files.Select(file => Parse(file.Source, file.Path)));
+
     // As a project with AllowUnsafeBlocks
     protected static CSharpCompilation CompileUnsafe(params string[] sources)
     {

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -133,9 +134,9 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             }
 
             // Constructors come in no particular order; the source order decides which of two clashing
-            // declarations is reported
+            // declarations is reported, the files by their names in ordinal order, as on every build machine
             var ordered = constructors
-                .OrderBy(operation => operation.Syntax.SyntaxTree.FilePath)
+                .OrderBy(operation => operation.Syntax.SyntaxTree.FilePath, StringComparer.Ordinal)
                 .ThenBy(operation => operation.Syntax.SpanStart)
                 .ToList();
 
@@ -322,7 +323,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         }
 
         var ordered = tools
-            .OrderBy(tool => tool.Location.SourceTree?.FilePath)
+            .OrderBy(tool => tool.Location.SourceTree?.FilePath, StringComparer.Ordinal)
             .ThenBy(tool => tool.Location.SourceSpan.Start);
 
         foreach (var group in ordered.GroupBy(tool => Names.ToPascalCase(tool.Name)))
@@ -393,7 +394,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
         var own = kinds
             .Select(kind => (kind.Kind, Agent: kind.Agent.ToDisplayString(), Location: kind.Agent.Locations.First()))
-            .OrderBy(kind => kind.Location.SourceTree?.FilePath)
+            .OrderBy(kind => kind.Location.SourceTree?.FilePath, StringComparer.Ordinal)
             .ThenBy(kind => kind.Location.SourceSpan.Start);
 
         var taken = new Dictionary<string, string>();
@@ -507,7 +508,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
     private static void ReportClashesAcrossHandoffs(
         CompilationAnalysisContext context,
         Dictionary<INamedTypeSymbol, FoundAgent> agents,
-        System.Func<INamedTypeSymbol, ModuleAgent?> resolve,
+        Func<INamedTypeSymbol, ModuleAgent?> resolve,
         IReadOnlyList<(INamedTypeSymbol Agent, string Name, Location Location)> ownTools)
     {
         var reported = new HashSet<(Location, string)>();
@@ -643,7 +644,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         new[] { "build_property.PublishAot", "build_property.IsAotCompatible" }
             .Any(name => options.TryGetValue(name, out var value) && IsTrue(value));
 
-    private static bool IsTrue(string value) => value.Equals("true", System.StringComparison.OrdinalIgnoreCase);
+    private static bool IsTrue(string value) => value.Equals("true", StringComparison.OrdinalIgnoreCase);
 
     private static void CollectJsonTypes(SymbolAnalysisContext context, Found found)
     {

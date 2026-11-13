@@ -276,6 +276,60 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_File_Names_In_Mixed_Case_TSH007_Across_Toolsets_Is_Reported_In_Their_Ordinal_Order()
+    {
+        // Arrange
+        var compilation = CompileFiles(
+            ("/Subject/a.cs", ReferenceSources.EchoToolset("First", "FirstTools", "Echo")),
+            ("/Subject/B.cs", ReferenceSources.EchoToolset("Second", "SecondTools", "Echo")));
+
+        // Act
+        var run = Run(compilation);
+
+        // Assert
+        run.Assert.Reports("TSH007", DiagnosticSeverity.Error, "AddTool(Echo)")
+            .Location.SourceTree!.FilePath
+            .Should()
+            .Be("/Subject/a.cs");
+    }
+
+    [Fact]
+    public void Given_File_Names_In_Mixed_Case_TSH007_Across_Constructors_Is_Reported_In_Their_Ordinal_Order()
+    {
+        // Arrange
+        var compilation = CompileFiles(
+            ("/Subject/a.cs", ReferenceSources.SplitToolsetFirst),
+            ("/Subject/B.cs", ReferenceSources.SplitToolsetSecond));
+
+        // Act
+        var run = Run(compilation);
+
+        // Assert
+        run.Assert.Reports("TSH007", DiagnosticSeverity.Error, "AddTool(Echo)")
+            .Location.SourceTree!.FilePath
+            .Should()
+            .Be("/Subject/a.cs");
+    }
+
+    [Fact]
+    public void Given_File_Names_In_Mixed_Case_TSH022_Is_Reported_In_Their_Ordinal_Order()
+    {
+        // Arrange
+        var compilation = CompileFiles(
+            ("/Subject/a.cs", ReferenceSources.SupportHelpAgent),
+            ("/Subject/B.cs", ReferenceSources.BillingHelpAgent));
+
+        // Act
+        var run = Run(compilation);
+
+        // Assert
+        run.Assert.Reports("TSH022", DiagnosticSeverity.Error, "HelpAgent")
+            .Location.SourceTree!.FilePath
+            .Should()
+            .Be("/Subject/a.cs");
+    }
+
+    [Fact]
     public void Given_A_Tool_Name_In_Pascal_Case_TSH008_Is_Reported_On_The_Name()
     {
         // Act
