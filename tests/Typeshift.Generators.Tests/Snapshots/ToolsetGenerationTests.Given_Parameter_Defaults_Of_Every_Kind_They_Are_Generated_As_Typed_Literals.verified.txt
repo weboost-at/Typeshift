@@ -83,25 +83,65 @@ partial class GreetingToolset
                 HasDefaultValue = true,
                 DefaultValue = (byte)2
             },
+            new("offset", typeof(sbyte))
+            {
+                HasDefaultValue = true,
+                DefaultValue = (sbyte)-5
+            },
             new("pause", typeof(short))
             {
                 HasDefaultValue = true,
                 DefaultValue = (short)-1
+            },
+            new("port", typeof(ushort))
+            {
+                HasDefaultValue = true,
+                DefaultValue = (ushort)6
+            },
+            new("count", typeof(uint))
+            {
+                HasDefaultValue = true,
+                DefaultValue = 3U
             },
             new("budget", typeof(long))
             {
                 HasDefaultValue = true,
                 DefaultValue = 9000000000L
             },
+            new("total", typeof(ulong))
+            {
+                HasDefaultValue = true,
+                DefaultValue = 4UL
+            },
             new("ratio", typeof(float))
             {
                 HasDefaultValue = true,
                 DefaultValue = 0.5f
             },
+            new("endless", typeof(float))
+            {
+                HasDefaultValue = true,
+                DefaultValue = float.PositiveInfinity
+            },
             new("nan", typeof(double))
             {
                 HasDefaultValue = true,
                 DefaultValue = double.NaN
+            },
+            new("rate", typeof(double))
+            {
+                HasDefaultValue = true,
+                DefaultValue = 0.25d
+            },
+            new("big", typeof(double))
+            {
+                HasDefaultValue = true,
+                DefaultValue = 1E+300d
+            },
+            new("never", typeof(double))
+            {
+                HasDefaultValue = true,
+                DefaultValue = double.NegativeInfinity
             },
             new("price", typeof(decimal))
             {
@@ -159,10 +199,18 @@ partial class GreetingToolset
                 GetArgument<bool>(arguments, "loud", true),
                 GetArgument<char>(arguments, "mark", '!'),
                 GetArgument<byte>(arguments, "times", (byte)2),
+                GetArgument<sbyte>(arguments, "offset", (sbyte)-5),
                 GetArgument<short>(arguments, "pause", (short)-1),
+                GetArgument<ushort>(arguments, "port", (ushort)6),
+                GetArgument<uint>(arguments, "count", 3U),
                 GetArgument<long>(arguments, "budget", 9000000000L),
+                GetArgument<ulong>(arguments, "total", 4UL),
                 GetArgument<float>(arguments, "ratio", 0.5f),
+                GetArgument<float>(arguments, "endless", float.PositiveInfinity),
                 GetArgument<double>(arguments, "nan", double.NaN),
+                GetArgument<double>(arguments, "rate", 0.25d),
+                GetArgument<double>(arguments, "big", 1E+300d),
+                GetArgument<double>(arguments, "never", double.NegativeInfinity),
                 GetArgument<decimal>(arguments, "price", 1.25m),
                 GetArgument<global::Demo.Level>(arguments, "level", global::Demo.Level.High),
                 GetArgument<global::Demo.Level>(arguments, "unnamed", (global::Demo.Level)(7)),
