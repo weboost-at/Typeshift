@@ -69,7 +69,7 @@ public class AgentGenerationTests : GeneratorTestBase
         using var machine = new BuildCulture(culture);
 
         // Act
-        var run = Run(AgentSources.NegativeSchemaVersion);
+        var run = Run(ShapeSources.NegativeSchemaVersion);
 
         // Assert
         run.Assert.CompilesCleanly();
