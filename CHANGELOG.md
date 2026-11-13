@@ -170,6 +170,8 @@ All notable changes to this project are documented here. The format follows
     longer share one module name, which gave CS0433.
   - A settings member named like a parameter or a local of the generated code, such as `settings`, `writer` or
     `value`, compiles. It gave CS0019 and CS0165.
+  - Two tools that met in an agent's `Settings` through the `Tool` suffix, such as `kind` and `kind_tool`, compile:
+    beside `kind_tool`, the tool `kind` is `KindToolTool` there. They gave CS0102.
 - A toolset with a tool that returns `IAsyncEnumerable<T>` builds in a project whose packages bring System.Linq.Async
   before 7.0. The generated code named `System.Linq.AsyncEnumerable`, which exists twice there, and failed with
   CS0433.

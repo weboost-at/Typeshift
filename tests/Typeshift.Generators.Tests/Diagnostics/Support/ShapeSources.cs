@@ -1218,4 +1218,39 @@ public static class ShapeSources
             }
         }
         """;
+
+    // kind gets a suffix in the agent's Settings, which have a Kind of their own, and would then meet kind_tool
+    public const string ToolsThatMeetInSettingsThroughTheSuffix =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record Limits
+        {
+            public int Max { get; init; } = 10;
+        }
+
+        internal partial class KindToolset : Toolset
+        {
+            public KindToolset()
+            {
+                AddTool(One).WithName("kind").WithDescription("One.").WithConfigurableSettings<Limits>();
+                AddTool(Two).WithName("kind_tool").WithDescription("Two.").WithConfigurableSettings<Limits>();
+            }
+
+            public static string One(string text, Limits limits) => text;
+
+            public static string Two(string text, Limits limits) => text;
+        }
+
+        internal partial class KindAgent : Agent
+        {
+            public KindAgent()
+            {
+                WithDescription("Kinds.");
+                UseToolset<KindToolset>();
+            }
+        }
+        """;
 }

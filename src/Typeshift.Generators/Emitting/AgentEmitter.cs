@@ -135,17 +135,30 @@ internal static class AgentEmitter
     private static string Local(string member) =>
         Names.Identifier(char.ToLowerInvariant(member[0]) + member.Substring(1));
 
-    // D6: a tool member named like an option or one of the record's own gets a suffix instead of clashing with it
-    private static string SettingsMember(AgentModel agent, ToolSummary tool)
+    // D6: a tool member named like an option or one of the record's own gets a suffix instead of clashing with it,
+    // and one more while the name is that of another tool's member, as kind's KindTool is beside kind_tool
+    private static string SettingsMember(AgentOutput output, ToolSummary tool)
     {
-        string[] reserved =
+        var agent = output.Agent;
+
+        HashSet<string> taken =
         [
             .. RecordMembers,
             .. Picked(agent.ChatOptions, OptionMembers.Chat).SelectMany(Members),
-            .. Picked(agent.RunOptions, OptionMembers.Run).SelectMany(Members)
+            .. Picked(agent.RunOptions, OptionMembers.Run).SelectMany(Members),
+            .. output.Tools
+                .Where(offered => offered.Tool.Overrides is not null && offered.Tool.Name != tool.Name)
+                .Select(offered => Names.ToPascalCase(offered.Tool.Name))
         ];
 
-        return Names.Identifier(Names.Unreserved(Names.ToPascalCase(tool.Name), "Tool", reserved));
+        var name = Names.ToPascalCase(tool.Name);
+
+        while (taken.Contains(name))
+        {
+            name += "Tool";
+        }
+
+        return Names.Identifier(name);
     }
 
     private static void WriteSettings(SourceWriter writer, AgentOutput output)
@@ -215,7 +228,7 @@ internal static class AgentEmitter
             {
                 members.Add((
                     $"The configurable settings of the <c>{tool.Name}</c> tool; its null values keep the layer below.",
-                    $"public {tool.Overrides} {SettingsMember(agent, tool)} {{ get; init; }} = new();"));
+                    $"public {tool.Overrides} {SettingsMember(output, tool)} {{ get; init; }} = new();"));
             }
 
             foreach (var (summary, declaration) in members)
@@ -252,10 +265,10 @@ internal static class AgentEmitter
                 "Settings",
                 versioned: true,
                 stored,
-                tools.Count == 0 ? null : more => WriteTools(more, agent, tools),
+                tools.Count == 0 ? null : more => WriteTools(more, output, tools),
                 [
                     .. tools.Select((tool, index) =>
-                        $"{SettingsMember(agent, tool)} = {tool.Overrides}.TryReadJson("
+                        $"{SettingsMember(output, tool)} = {tool.Overrides}.TryReadJson("
                         + $"{Json}.Member({Json}.Member(element, \"tools\"), {Names.Literal(tool.Name)}), "
                         + $"out var tool{index}) ? tool{index} : new()")
                 ]);
@@ -266,14 +279,14 @@ internal static class AgentEmitter
     }
 
     // Tools are stored under "tools" by name, each left out while it overrides nothing
-    private static void WriteTools(SourceWriter writer, AgentModel agent, IReadOnlyList<ToolSummary> tools)
+    private static void WriteTools(SourceWriter writer, AgentOutput output, IReadOnlyList<ToolSummary> tools)
     {
         for (var index = 0; index < tools.Count; index++)
         {
             var tool = tools[index];
 
             writer.Line(
-                $"var tool{index} = {SettingsMember(agent, tool)} is {{ }} set{index} && set{index} != new "
+                $"var tool{index} = {SettingsMember(output, tool)} is {{ }} set{index} && set{index} != new "
                 + $"{tool.Overrides}() ? set{index} : null;");
         }
 
@@ -424,7 +437,7 @@ internal static class AgentEmitter
 
                 if (tool.Overrides is not null)
                 {
-                    var member = SettingsMember(agent, tool);
+                    var member = SettingsMember(output, tool);
 
                     writer.Line();
 

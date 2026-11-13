@@ -100,7 +100,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Agents:** besides those, the hidden `Declaration` override, one private nested class `TypeshiftGenerated` (the
   declaration, the builders and the per-agent store of `Configure{Tool}()` values) and one private field
   `_typeshift`, so an agent gains as few names as possible. A tool's member in `Settings` named like an option or a
-  record member gets a `Tool` suffix. A public agent's `Settings` cannot name the overrides of an internal toolset:
+  record member gets a `Tool` suffix, and one more while another offered tool has that name: beside `kind_tool`,
+  the tool `kind` is `KindToolTool`. A public agent's `Settings` cannot name the overrides of an internal toolset:
   TSH006, and the generator leaves the member out. Nor can it name a less accessible provider id type, the agent's
   own (D77), which a configurable model or summary model brings in: TSH006 on the pick, and the generator writes the
   provider members internal.
