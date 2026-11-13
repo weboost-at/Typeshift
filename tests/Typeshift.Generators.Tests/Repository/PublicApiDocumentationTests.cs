@@ -40,10 +40,9 @@ public class PublicApiDocumentationTests
         // Act
         var gaps = PublicApi.DocumentedMembers
             .Where(member => !Inherits(member))
-            .OfType<IMethodSymbol>()
-            .Where(HasResult)
-            .Where(method => PublicApi.Docs(method).Element("returns") is null)
-            .Select(method => method.ToDisplayString());
+            .Where(member => Signature(member) is { } signature && HasResult(signature))
+            .Where(member => PublicApi.Docs(member).Element("returns") is null)
+            .Select(member => member.ToDisplayString());
 
         // Assert
         gaps.Should().BeEmpty();
@@ -59,6 +58,7 @@ public class PublicApiDocumentationTests
         {
             IMethodSymbol method => method.Parameters.Skip(method.IsExtensionMethod ? 1 : 0).Select(p => p.Name),
             IPropertySymbol property => property.Parameters.Select(parameter => parameter.Name),
+            INamedTypeSymbol { DelegateInvokeMethod: { } invoke } => invoke.Parameters.Select(p => p.Name),
             _ => []
         };
 
@@ -70,9 +70,18 @@ public class PublicApiDocumentationTests
             _ => []
         };
 
+    // A delegate is documented as the method it stands for
+    private static IMethodSymbol? Signature(ISymbol member) =>
+        member switch
+        {
+            IMethodSymbol { MethodKind: MethodKind.Ordinary } method => method,
+            INamedTypeSymbol { DelegateInvokeMethod: { } invoke } => invoke,
+            _ => null
+        };
+
     // A Task or ValueTask without a value completes, it returns nothing a reader needs described
     private static bool HasResult(IMethodSymbol method) =>
-        method is { MethodKind: MethodKind.Ordinary, ReturnsVoid: false }
+        !method.ReturnsVoid
         && method.ReturnType.ToDisplayString()
             is not ("System.Threading.Tasks.Task" or "System.Threading.Tasks.ValueTask");
 }

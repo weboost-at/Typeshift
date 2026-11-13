@@ -171,7 +171,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | Test | Enforces |
 |---|---|
 | `tests/Typeshift.Tests/Testing/Conventions/TestConventionTests` | The test rules below, for every test project. |
-| `Repository/PublicApiDocumentationTests` (generator tests) | Every documented public member has its `param`, `typeparam` and `returns` tags. |
+| `Repository/PublicApiDocumentationTests` (generator tests) | Every documented public member, a delegate included, has its `param`, `typeparam` and `returns` tags. |
 | `Repository/PublicApiSurfaceTests.The_Public_Surface_Matches_Its_Snapshot` (generator tests) | Every change of the public API is a reviewed diff of `Snapshots/PublicApi.verified.txt`. |
 | `Repository/PublicApiSurfaceTests.The_Surface_Generated_Code_Binds_To_Changes_Only_With_The_Stamp_Version` (generator tests) | `Typeshift.Generated`, `IStorable<TSelf>` and `Agent.Declaration`, kept in `Snapshots/GeneratedContract.verified.txt`, change only together with `ReferenceReader.StampVersion` (D7). |
 | `Repository/DecisionCitationTests` (generator tests) | Every `// Dnn:` in code names a decision in force. |
