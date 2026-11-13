@@ -57,8 +57,9 @@ configuring a tool the agent does not offer need no diagnostic, because no gener
 6. **Changelog.** One line under `[Unreleased]` in `CHANGELOG.md`.
 
 `DiagnosticCatalogTests` fails when an ID has no docs row, no docs section or no `..._TSHxxx_Is_Reported_...` test,
-when a number below the highest is neither a diagnostic nor a retired row, and when a retired number is a diagnostic
-again.
+when its row states another severity or title than the descriptor, when its help link does not end in the section's
+anchor, when a number below the highest is neither a diagnostic nor a retired row, and when a retired number is a
+diagnostic again.
 
 ## Change or remove one
 
