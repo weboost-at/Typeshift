@@ -1417,6 +1417,21 @@ public class DiagnosticTests : GeneratorTestBase
         run.Assert.ReportsNothingOfTheAnalyzers();
     }
 
+    [Theory]
+    [InlineData(nameof(DiagnosticSources.ToolArgumentThatDoesNotBind))]
+    [InlineData(nameof(DiagnosticSources.ToolArgumentThatDoesNotExist))]
+    public void Given_A_Tool_Argument_That_Does_Not_Bind_Only_The_Compiler_Reports_It(string mistake)
+    {
+        // Arrange
+        var source = SourceCatalogs.Read(typeof(DiagnosticSources), mistake);
+
+        // Act
+        var run = Run(source);
+
+        // Assert
+        run.Assert.ReportsNothingOfTheAnalyzers();
+    }
+
     [Fact]
     public void Given_A_Static_Virtual_Member_Of_An_Interface_As_Tool_Only_The_Compiler_Reports_It()
     {

@@ -2277,6 +2277,32 @@ public static class DiagnosticSources
         }
         """;
 
+    // An instance property where a static method belongs, which the compiler rejects (CS0120)
+    public const string ToolArgumentThatDoesNotBind =
+        """
+        using System.Collections.Generic;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class CountToolset : Toolset
+        {
+            public CountToolset() => AddTool(List<int>.Capacity).WithDescription("Counts.");
+        }
+        """;
+
+    public const string ToolArgumentThatDoesNotExist =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class CountToolset : Toolset
+        {
+            public CountToolset() => AddTool(Missing).WithName("count").WithDescription("Counts.");
+        }
+        """;
+
     // No toolset, no agent and no AddTypeshift(): nothing the generator writes code for
     public const string NothingOfTypeshift =
         """

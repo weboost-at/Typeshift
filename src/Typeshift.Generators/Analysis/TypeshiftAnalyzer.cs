@@ -247,8 +247,11 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        // D4: a chain call on a variable goes on a chain the generator never sees
-        if (IsChainCall(target) && ConstructorChains.Unwrap(invocation.Instance!) is not IInvocationOperation)
+        // D4: a chain call on a variable goes on a chain the generator never sees. A receiver that does not bind, such
+        // as the AddTool of an argument the compiler rejects, is the compiler's to report
+        var receiver = ConstructorChains.Unwrap(invocation.Instance!);
+
+        if (IsChainCall(target) && receiver is not (IInvocationOperation or IInvalidOperation))
         {
             context.ReportDiagnostic(Diagnostic.Create(
                 Descriptors.UnreadableChain,

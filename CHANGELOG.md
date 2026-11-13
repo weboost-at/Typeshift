@@ -295,6 +295,9 @@ All notable changes to this project are documented here. The format follows
 - A tool method of a generic class named without its type argument, as `AddTool(Finder<>.Find)` while you type
   the argument, no longer overflows the stack of the generator and the analyzer, which ended the compiler and the
   editor's analysis with them. Only the compiler reports the missing argument, as CS0305.
+- An `AddTool` whose argument the compiler rejects, such as a name that does not exist or the instance property
+  in `AddTool(List<int>.Capacity)`, gets the compiler's error alone. TSH015 was reported on the chain beside it,
+  with advice about a chain that was fine.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 
