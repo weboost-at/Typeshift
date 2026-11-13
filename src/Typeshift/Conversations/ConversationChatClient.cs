@@ -114,6 +114,9 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
     private StoreAccess Store => services.GetRequiredService<StoreAccess>();
 
+    private ILogger Logger =>
+        (services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance).CreateLogger<ConversationChatClient>();
+
     private async Task<ChatResponse> RunAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options,
@@ -373,6 +376,16 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                 entries = await Store.LoadConversationAsync(conversation, ct);
             }
 
+            // D78: said once per load, since the run goes on without what the entries left out
+            if (entries.Sum(entry => entry.UnreadContents) is > 0 and var unread)
+            {
+                Logger.LogWarning(
+                    "Conversation {Conversation} holds {Count} contents this version of Microsoft.Extensions.AI "
+                    + "cannot read, and the run goes on without them.",
+                    conversation,
+                    unread);
+            }
+
             return (conversation, entries, claim, AnsweringAgent(entries));
         }
         catch
@@ -524,10 +537,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             LastCall = LastCall(entries)
         };
 
-        var logger = (services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance)
-            .CreateLogger<ConversationChatClient>();
-
-        var run = new ConversationRun(conversation, agentRun, runOptions.ModelId ?? "", Store, Time, logger);
+        var run = new ConversationRun(conversation, agentRun, runOptions.ModelId ?? "", Store, Time, Logger);
 
         runOptions.ConversationId = null;
         runOptions.AgentRun = agentRun;

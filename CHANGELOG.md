@@ -50,6 +50,11 @@ All notable changes to this project are documented here. The format follows
 - A type that does not resolve yet, as while you type its name, is left to the compiler. Generated code no longer
   names it, so its error is not repeated in a generated file, and TSH005, TSH012, TSH015, TSH025, TSH028 and TSH030
   are no longer reported beside it, some of them about a type named `''`.
+- A model response with a content of a type Microsoft.Extensions.AI's JSON contract does not know, such as one a
+  provider's client adds, is stored without that content, and a warning names the type. Before, the whole step was
+  missing from the conversation. A stored content that the installed version of Microsoft.Extensions.AI cannot read
+  is left out when its entry loads, where the whole conversation failed to load, and the next run logs how many
+  contents it went without.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

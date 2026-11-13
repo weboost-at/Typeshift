@@ -27,6 +27,9 @@ internal sealed class ConversationRun(
     // What context providers and run middleware added, which the conversation never stores
     private readonly HashSet<AIContent> _transient = new(ReferenceEqualityComparer.Instance);
 
+    // D78: the content types the run stored its steps without, each logged once
+    private readonly HashSet<Type> _unwritable = [];
+
     // D60: the approval requests this run left open, by what it stored, as the next run reads them
     private OpenRequests _requests = new();
 
@@ -301,7 +304,7 @@ internal sealed class ConversationRun(
 
         if (published && !endsRun && !summary) Publish(messages);
 
-        var entry = new ConversationEntry(answering ?? Agent, messages, time.GetUtcNow())
+        var entry = new ConversationEntry(answering ?? Agent, Writable(messages), time.GetUtcNow())
         {
             Model = model,
             Usage = usage,
@@ -321,6 +324,38 @@ internal sealed class ConversationRun(
             logger.LogError(exception, "Conversation {Conversation} could not store a step.", Conversation);
             run.Activity?.AddException(exception);
         }
+    }
+
+    // D78: a content Microsoft.Extensions.AI's contract cannot write would fail the append of its whole step, so the
+    // step is stored without it
+    private IReadOnlyList<ChatMessage> Writable(IReadOnlyList<ChatMessage> messages)
+    {
+        var left = messages
+            .SelectMany(message => message.Contents)
+            .Where(content => !ConversationEntry.CanWrite(content))
+            .ToList();
+
+        if (left.Count == 0) return messages;
+
+        foreach (var type in left.Select(content => content.GetType()).Where(_unwritable.Add))
+        {
+            logger.LogWarning(
+                "Conversation {Conversation} is stored without the {Content} contents of its steps: "
+                + "Microsoft.Extensions.AI's content contract cannot write that type.",
+                Conversation,
+                type.FullName);
+        }
+
+        return [.. messages.Select(Writable).OfType<ChatMessage>()];
+    }
+
+    private static ChatMessage? Writable(ChatMessage message)
+    {
+        if (message.Contents.All(ConversationEntry.CanWrite)) return message;
+
+        var step = message.Clone();
+        step.Contents = [.. message.Contents.Where(ConversationEntry.CanWrite)];
+        return step.Contents.Count > 0 ? step : null;
     }
 
     private void Publish(IEnumerable<ChatMessage> messages)

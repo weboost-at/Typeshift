@@ -158,6 +158,87 @@ public class ConversationStoreTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Content_Of_A_Type_The_Contract_Does_Not_Know_The_Rest_Of_The_Step_Is_Stored()
+    {
+        // Arrange
+        ChatClient.Reply(Answer(new TextContent(Data.Tool.Answer), new VendorContent()));
+
+        // Act
+        await Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        var entries = await EntriesAsync(Data.Agent.ConversationId);
+
+        // Assert
+        entries.SelectMany(entry => entry.Messages).Select(message => message.Text).Should().Contain(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_Two_Steps_With_A_Content_The_Contract_Does_Not_Know_The_Run_Warns_Once_Naming_Its_Type()
+    {
+        // Arrange
+        var logs = new WarningLog();
+        var services = new ServiceCollection();
+        services.AddTypeshift()
+            .WithStore<InMemoryTypeshiftStore<Guid>>()
+            .WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton<ILoggerFactory>(logs);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var call = Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query));
+
+        ChatClient
+            .Reply(Answer([.. call.Contents, new VendorContent()]))
+            .Reply(Answer(new TextContent(Data.Tool.Answer), new VendorContent()));
+
+        // Act
+        await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        logs.Warnings.Should().ContainSingle(warning => warning.Contains(typeof(VendorContent).FullName!));
+    }
+
+    [Fact]
+    public async Task Given_A_Conversation_With_Contents_It_Cannot_Read_The_Next_Run_Sends_The_Others()
+    {
+        // Arrange
+        var store = SeededWithContentsOfAnotherVersion();
+        await using var provider = Provider(store, new WarningLog());
+        await using var scope = provider.CreateAsyncScope();
+        ChatClient.Reply(Text(Data.Agent.Reason));
+
+        // Act
+        await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Assert
+        ChatClient.Requests[0].Select(message => message.Text)
+            .Should()
+            .Equal(Data.Tool.Question, Data.Tool.Answer, Data.Agent.FollowUp);
+    }
+
+    [Fact]
+    public async Task Given_A_Conversation_With_Contents_It_Cannot_Read_The_Next_Run_Warns_Once_With_Their_Count()
+    {
+        // Arrange
+        var logs = new WarningLog();
+        var store = SeededWithContentsOfAnotherVersion();
+        await using var provider = Provider(store, logs);
+        await using var scope = provider.CreateAsyncScope();
+        ChatClient.Reply(Text(Data.Agent.Reason));
+
+        // Act
+        await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Assert
+        logs.Warnings.Should().ContainSingle(warning => warning.Contains("holds 2 contents"));
+    }
+
+    [Fact]
     public async Task Given_No_Store_A_Conversation_Is_Kept_In_Memory_And_Its_Next_Run_Resumes_It()
     {
         // Arrange
@@ -321,5 +402,41 @@ public class ConversationStoreTests : AgentTestBase
         // Assert
         (await next).Should().BeTrue();
         watch.Current.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    private static ChatResponseUpdate Answer(params AIContent[] contents) => new(ChatRole.Assistant, contents);
+
+    // A run as an earlier version of Microsoft.Extensions.AI stored it: its answer holds two contents under type
+    // names this version does not know
+    private StoredJsonStore SeededWithContentsOfAnotherVersion()
+    {
+        var store = new StoredJsonStore();
+
+        string[] entries =
+        [
+            $$"""
+            {"agent":"probe_agent","at":"2026-10-11T08:00:00+00:00","messages":[{"role":"user","contents":[
+              {"$type":"text","text":"{{Data.Tool.Question}}"}]}]}
+            """,
+            $$"""
+            {"agent":"probe_agent","at":"2026-10-11T08:00:01+00:00","messages":[{"role":"assistant","contents":[
+              {"$type":"text","text":"{{Data.Tool.Answer}}"},
+              {"$type":"functionApprovalRequest","id":"r1","functionCall":{"callId":"c1","name":"probe"} },
+              {"$type":"vendorThought","text":"..."}]}]}
+            """,
+            """{"agent":"probe_agent","at":"2026-10-11T08:00:02+00:00","endsRun":true}"""
+        ];
+
+        foreach (var entry in entries) store.Add(Data.Agent.ConversationId, entry);
+        return store;
+    }
+
+    private ServiceProvider Provider(StoredJsonStore store, WarningLog logs)
+    {
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithStore(store).WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton<ILoggerFactory>(logs);
+
+        return services.BuildServiceProvider();
     }
 }

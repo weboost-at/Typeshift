@@ -71,4 +71,38 @@ public class ConversationEntryJsonTests : UnitTestBase
         // Assert
         read.Should().Throw<JsonException>().WithMessage("*newer*");
     }
+
+    [Fact]
+    public void Given_An_Entry_With_A_Content_It_Cannot_Read_The_Others_Load()
+    {
+        // Arrange
+        var json = $$"""
+            {"agent":"probe_agent","at":"2026-10-11T08:00:00+00:00","messages":[{"role":"assistant","contents":[
+              {"$type":"text","text":"{{Data.Tool.Answer}}"},
+              {"$type":"functionApprovalRequest","id":"r1","functionCall":{"callId":"c1","name":"probe"} }]}]}
+            """;
+
+        // Act
+        var read = ConversationEntry.Deserialize(json);
+
+        // Assert
+        read.Messages.Should().ContainSingle(message => message.Text == Data.Tool.Answer);
+    }
+
+    [Fact]
+    public void Given_A_Message_Whose_Every_Content_It_Cannot_Read_The_Entry_Loads_Without_The_Message()
+    {
+        // Arrange
+        var json = $$"""
+            {"agent":"probe_agent","at":"2026-10-11T08:00:00+00:00","messages":[
+              {"role":"assistant","contents":[{"$type":"text","text":"{{Data.Tool.Answer}}"}]},
+              {"role":"assistant","contents":[{"$type":"vendorThought","text":"{{Data.Tool.Query}}"}]}]}
+            """;
+
+        // Act
+        var read = ConversationEntry.Deserialize(json);
+
+        // Assert
+        read.Messages.Should().ContainSingle(message => message.Text == Data.Tool.Answer);
+    }
 }

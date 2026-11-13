@@ -20,6 +20,12 @@ namespace Typeshift;
 public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> Messages, DateTimeOffset At)
     : IStorable<ConversationEntry>, IJsonStorable<ConversationEntry>
 {
+    // D78: the content types Microsoft.Extensions.AI's contract writes; one of any other type fails the whole entry
+    private static readonly HashSet<Type>? WritableContents =
+        Contract<AIContent>().PolymorphismOptions is { } contents
+            ? [typeof(AIContent), .. contents.DerivedTypes.Select(content => content.DerivedType)]
+            : null;
+
     /// <summary>
     /// The model that wrote the messages, for a model response.
     /// </summary>
@@ -57,6 +63,9 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
     /// The background sub-agents still working, on a summary: each call's id with the agent it called.
     /// </summary>
     public IReadOnlyDictionary<string, string>? BackgroundCalls { get; init; }
+
+    // D78: how many stored contents this version of Microsoft.Extensions.AI could not read, which the entry leaves out
+    internal int UnreadContents { get; init; }
 
     /// <inheritdoc />
     public static string Kind => "conversation_entry";
@@ -134,9 +143,16 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
         if (root.ValueKind is not JsonValueKind.Object) return false;
 
         StorableJson.EnsureSchemaVersion(root, SchemaVersion, Kind);
-        var messages = StorableJson.Member(root, "messages") is { ValueKind: JsonValueKind.Array } array
-            ? array.EnumerateArray().Select(message => message.Deserialize(Contract<ChatMessage>())!).ToList()
-            : [];
+        var messages = new List<ChatMessage>();
+        var unread = 0;
+
+        if (StorableJson.Member(root, "messages") is { ValueKind: JsonValueKind.Array } array)
+        {
+            foreach (var stored in array.EnumerateArray())
+            {
+                if (ReadMessage(stored, ref unread) is { } message) messages.Add(message);
+            }
+        }
 
         var approvals = StorableJson.Member(root, "standingApprovals");
         var background = StorableJson.Member(root, "backgroundCalls");
@@ -158,11 +174,66 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
                 : null,
             BackgroundCalls = StorableJson.TryReadMap<string>(background, StorableJson.TryRead, out var calls)
                 ? calls
-                : null
+                : null,
+            UnreadContents = unread
         };
 
         return true;
     }
+
+    internal static bool CanWrite(AIContent content) =>
+        WritableContents is null || WritableContents.Contains(content.GetType());
+
+    // D78: a message whose contents do not all read is read content by content, and those this version of
+    // Microsoft.Extensions.AI cannot read are left out, so one of them never costs the whole conversation
+    private static ChatMessage? ReadMessage(JsonElement stored, ref int unread)
+    {
+        var contents = StorableJson.Member(stored, "contents");
+
+        try
+        {
+            return stored.Deserialize(Contract<ChatMessage>())!;
+        }
+        catch (Exception exception) when (IsUnread(exception) && contents.ValueKind is JsonValueKind.Array)
+        {
+            var message = JsonSerializer.Deserialize(WithoutContents(stored), Contract<ChatMessage>())!;
+
+            foreach (var content in contents.EnumerateArray())
+            {
+                if (TryReadContent(content) is { } read) message.Contents.Add(read);
+                else unread++;
+            }
+
+            return message.Contents.Count > 0 ? message : null;
+        }
+    }
+
+    private static AIContent? TryReadContent(JsonElement content)
+    {
+        try
+        {
+            return content.Deserialize(Contract<AIContent>());
+        }
+        catch (Exception exception) when (IsUnread(exception))
+        {
+            return null;
+        }
+    }
+
+    private static bool IsUnread(Exception exception) => exception is JsonException or NotSupportedException;
+
+    private static string WithoutContents(JsonElement message) =>
+        StorableJson.Write(writer =>
+        {
+            writer.WriteStartObject();
+
+            foreach (var member in message.EnumerateObject().Where(member => !member.NameEquals("contents")))
+            {
+                member.WriteTo(writer);
+            }
+
+            writer.WriteEndObject();
+        });
 
     // Microsoft.Extensions.AI's own contracts, which know every content type
     private static System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> Contract<T>() =>

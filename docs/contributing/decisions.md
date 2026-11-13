@@ -1031,6 +1031,30 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   null and keeps the layer below; a document that is no JSON object throws. Enums are stored by name, non-finite
   numbers as strings.
 
+### D78. Stored contents follow Microsoft.Extensions.AI's content contract
+
+- **Status:** from the audit of November 2026; in force until the owner decides otherwise.
+- **Context:** an entry's messages are written and read through `AIJsonUtilities.DefaultOptions`, a closed
+  polymorphic contract. A response with one content of a type outside it, such as a provider client's own, failed
+  the append of its whole step, which D46 logs and passes over, so the answer was missing from the conversation.
+  One stored `$type` the installed version cannot read, after a package upgrade or downgrade, made every load of
+  the conversation throw, for runs and for the app's own reads.
+- **Decision:** the JSON of an entry's messages is Microsoft.Extensions.AI's, and what that contract cannot carry is
+  left out, so it costs one content and neither the step nor the conversation. A run stores a step without the
+  contents whose type the contract does not write and logs a warning that names the type, once per type and run.
+  `ConversationEntry.Deserialize` reads a message whose contents do not all read content by content and leaves out
+  those that fail, and a message left without any. The entry counts them, and a run that loads the conversation logs
+  the count, once per load.
+- **Details:** the types the contract writes are read once from its `PolymorphismOptions`, so the check serializes
+  nothing twice. `Serialize()` still throws for such a content, so an app that builds entries of its own hears of
+  it. `$schemaVersion` cannot guard this (D40), since the content JSON is not Typeshift's.
+- **Where:** `Conversations/ConversationEntry.cs`, `Conversations/ConversationRun.cs`,
+  `Conversations/ConversationChatClient.cs`.
+- **Alternatives:** failing the load, as before, where one renamed experimental type leaves a conversation nobody can
+  open; keeping an unknown content as raw JSON, which needs a content type of Typeshift's own that providers would
+  then receive; dropping the whole message, which loses the text beside the content; serving an app's own content
+  types from its JSON contexts, a later step once an app needs it.
+
 ### D45. Tool JSON: contexts from the modules, reflection outside AOT
 
 - **Status:** approved.

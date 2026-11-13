@@ -316,6 +316,12 @@ of each round of calls, steering input and the entry that ends a run
 - **Keep the append cheap.** Runs append while they work, so `AppendConversationAsync` is the hot path, and a row per
   entry suits it.
 
+The messages in that JSON follow the content contract of Microsoft.Extensions.AI, which knows the content types of
+that library. A run stores a step without a content of any other type, such as one a provider's client adds, and logs
+a warning that names the type. When your app's version of Microsoft.Extensions.AI cannot read a stored content, for
+example after a package downgrade, `ConversationEntry.Deserialize` leaves that content out and reads the rest of the
+entry, and the next run of the conversation logs how many contents it went without.
+
 ### Start from the last summary
 
 When clearing old tool results does not shrink the history enough, [compaction](./conversations.md#compaction)
