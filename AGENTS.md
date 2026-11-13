@@ -84,6 +84,9 @@ npm run docs:snippets:check
 - Run the whole suite three times before you call a change done, all green every time. A test that depends on the
   order of concurrent work, as the conversation and background agent tests can, fails only in some runs. CI repeats
   the suite twice on `main` and for a release, where no pull request waits for it.
+- CI collects coverage in its Linux job and uploads the merged Cobertura file as the artifact `coverage`, without a
+  gate. For the same file on your machine, add
+  `--coverage --coverage-output-format cobertura --results-directory artifacts/coverage` to the test command.
 - The docs site: `npm ci`, then `npm run docs:check` (the snippets against their sources, markdownlint, the docs
   rules, a build that fails on dead links) or `npm run docs:dev`.
 - The demos in `demos/` stay outside the solution and outside the checks of a pull request, by the owner's choice.

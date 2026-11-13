@@ -66,7 +66,20 @@ jobs:
 
       - run: dotnet tool restore
       - run: dotnet build -c Release -warnaserror
-      - run: dotnet test -c Release --no-build
+
+      # No gate on the number: the artifact is what a later run compares itself with
+      - name: Run the tests, collecting coverage
+        run: >
+          dotnet test -c Release --no-build
+          --coverage --coverage-output-format cobertura
+          --results-directory artifacts/coverage
+
+      # dotnet test merges the files of the two test projects into one
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: artifacts/coverage/merged/*.cobertura.xml
+          if-no-files-found: error
 
       # A test that depends on the order of concurrent work fails only in some runs. No pull request waits for these
       - name: Run the tests two more times, on main and for a release
