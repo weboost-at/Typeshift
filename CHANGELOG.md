@@ -12,6 +12,11 @@ All notable changes to this project are documented here. The format follows
 - TSH020 is titled "Referenced assembly was built with another Typeshift version or without the generator", and its
   message names both causes. It read as if the reference had never run the generator, also when it was built with
   another Typeshift version.
+- Stored JSON keeps text outside ASCII as it is written, in settings, conversation entries and the file store's
+  files. Before, every such character was stored as `\uXXXX`, so Chinese, Japanese and Korean text took about twice
+  the bytes, a row could not be read in a database tool, and a `LIKE` search found nothing. Quotes, `<`, `>` and `&`
+  are still escaped, and JSON stored by earlier versions reads as before. Compaction now counts a tool result that
+  is a JSON string by its text, so its estimate no longer grows when a conversation is loaded from the store.
 
 ### Fixed
 

@@ -15,6 +15,9 @@ public class PersistenceTestData(Faker faker)
     // A kind nothing is stored under, for the checks of agents' own settings
     public string Kind { get; } = $"{faker.Hacker.Noun()}_{faker.Random.AlphaNumeric(8)}";
 
+    // Latin letters outside ASCII and Chinese and Japanese ones, which a default JSON writer escapes one by one
+    public string TextOutsideAscii { get; } = $"Größe: 中文の結果 {faker.Lorem.Word()}";
+
     // Every member set, none to a default
     public EveryKindAgent.Settings EveryKind { get; } = new()
     {

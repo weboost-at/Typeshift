@@ -1,5 +1,6 @@
 using System.Text.Json;
 using FluentAssertions;
+using Microsoft.Extensions.AI;
 using JsonConvert = Newtonsoft.Json.JsonConvert;
 
 namespace Typeshift.Tests.Persistence;
@@ -70,6 +71,50 @@ public class ConversationEntryJsonTests : UnitTestBase
 
         // Assert
         read.Should().Throw<JsonException>().WithMessage("*newer*");
+    }
+
+    [Fact]
+    public void Given_Text_Outside_Ascii_The_Entry_Stores_It_As_Written()
+    {
+        // Arrange
+        var message = new ChatMessage(ChatRole.User, Data.Persistence.TextOutsideAscii);
+        var entry = new ConversationEntry("probe_agent", [message], Time.GetUtcNow());
+
+        // Act
+        var json = entry.Serialize();
+
+        // Assert
+        json.Should().Contain(Data.Persistence.TextOutsideAscii);
+    }
+
+    [Fact]
+    public void Given_Markup_In_Text_The_Entry_Stores_It_Escaped()
+    {
+        // Arrange
+        var message = new ChatMessage(ChatRole.User, $"<script>{Data.Tool.Query}</script>");
+        var entry = new ConversationEntry("probe_agent", [message], Time.GetUtcNow());
+
+        // Act
+        var json = entry.Serialize();
+
+        // Assert
+        json.Should().Contain($@"\u003Cscript\u003E{Data.Tool.Query}\u003C/script\u003E");
+    }
+
+    [Fact]
+    public void Given_An_Entry_With_Every_Character_Outside_Ascii_Escaped_Its_Text_Reads_Back()
+    {
+        // Arrange
+        var json = """
+            {"agent":"probe_agent","at":"2026-10-11T08:00:00+00:00","messages":[{"role":"user","contents":[
+              {"$type":"text","text":"Gr\u00F6\u00DFe: \u4E2D\u6587 it\u0027s \u0022ok\u0022"}]}]}
+            """;
+
+        // Act
+        var read = ConversationEntry.Deserialize(json);
+
+        // Assert
+        read.Messages[0].Text.Should().Be("Größe: 中文 it's \"ok\"");
     }
 
     [Fact]

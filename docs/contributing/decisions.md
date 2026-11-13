@@ -1032,7 +1032,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   an enum keeps them. A value without a name, such as `[Flags]` with none set, a combination with a bit no member
   names, or a cast number, is stored as its number, in digits whatever the culture, and as those digits where it is
   a dictionary's key. A string of digits reads as the number too, which is how versions up to 0.1.0-alpha.6 wrote
-  such a value before reading it back as absent. Non-finite numbers are stored as strings.
+  such a value before reading it back as absent. Non-finite numbers are stored as strings. The writer keeps text
+  outside ASCII as it is (`JavaScriptEncoder.Create(UnicodeRanges.All)`), for settings, for conversation entries and
+  for the file store's files: a default writer escaped every such character as `\uXXXX`, which doubled the bytes of
+  Chinese, Japanese and Korean text and hid it from a database's search. Quotes, `<`, `>`, `&` and characters beyond
+  the Basic Multilingual Plane stay escaped, since an API may pass stored JSON on to a page as it is; the relaxed
+  encoder, which leaves them, lost for that reason. Readers take either form, so JSON stored before reads as it did.
 
 ### D78. Stored contents follow Microsoft.Extensions.AI's content contract
 

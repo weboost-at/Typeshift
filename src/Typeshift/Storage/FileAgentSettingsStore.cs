@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
+using Typeshift.Generated;
 
 namespace Typeshift;
 
@@ -179,7 +180,13 @@ internal sealed class FileAgentSettingsStore : IAgentSettingsStore
     {
         using var stream = new MemoryStream();
 
-        using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = true }))
+        var options = new JsonWriterOptions
+        {
+            Indented = true,
+            Encoder = StorableJson.Encoder
+        };
+
+        using (var writer = new Utf8JsonWriter(stream, options))
         {
             writer.WriteStartObject();
             writer.WriteString("kind", kind);

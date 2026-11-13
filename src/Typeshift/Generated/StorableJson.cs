@@ -3,7 +3,9 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Numerics;
 using System.Text;
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Unicode;
 using Microsoft.Extensions.AI;
 
 namespace Typeshift.Generated;
@@ -28,8 +30,12 @@ public static class StorableJson
 {
     private const string SchemaVersionMember = "$schemaVersion";
 
+    // D44: text outside ASCII is stored as written; quotes and the characters HTML reads stay escaped, since an API may
+    // pass stored JSON on as it is
+    internal static readonly JavaScriptEncoder Encoder = JavaScriptEncoder.Create(UnicodeRanges.All);
+
     /// <summary>
-    /// Writes a document.
+    /// Writes a document, with text outside ASCII as it is.
     /// </summary>
     /// <param name="write">Writes the document's value.</param>
     /// <returns>The JSON text.</returns>
@@ -37,7 +43,7 @@ public static class StorableJson
     {
         var buffer = new ArrayBufferWriter<byte>();
 
-        using (var writer = new Utf8JsonWriter(buffer))
+        using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Encoder = Encoder }))
         {
             write(writer);
         }

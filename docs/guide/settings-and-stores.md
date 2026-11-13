@@ -237,6 +237,10 @@ unknown, counts as missing, so the layer below applies. When a configurable memb
 stored value replaces the whole object, so members missing from its stored JSON take that type's defaults, not the
 values of the layer below.
 
+Text is stored as it is written, letters outside ASCII included, so you can read a row in a database tool and search
+it with `LIKE`. That holds for settings and for conversation entries. Quotes and the characters `<`, `>` and `&` are
+escaped as `\uXXXX`, because your app may pass the JSON on to a page as it is.
+
 ::: warning A renamed member loses its stored value
 A configurable member that is renamed or removed reads as missing, so its stored value no longer applies. When that
 matters, raise the agent's schema version with `WithSchemaVersion(2)` and migrate the documents of the older

@@ -262,6 +262,22 @@ public class CompactionTests : AgentTestBase
         Results(3)[0].Should().Be(Typeshift.Compaction.ClearedResult);
     }
 
+    [Fact]
+    public void Given_A_Result_Loaded_From_The_Store_Its_Estimate_Is_The_Runs()
+    {
+        // Arrange
+        var text = string.Concat(Enumerable.Repeat($"\"{Data.Persistence.TextOutsideAscii}\" ", 100));
+        var result = JsonSerializer.SerializeToElement(text, Json.GetTypeInfo<string>());
+        var message = new ChatMessage(ChatRole.Tool, [new FunctionResultContent(Data.Tool.CallId, result)]);
+        var entry = new ConversationEntry("compacting_agent", [message], Time.GetUtcNow());
+
+        // Act
+        var loaded = ConversationEntry.Deserialize(entry.Serialize());
+
+        // Assert
+        Tokens.Estimate(loaded.Messages, null).Should().Be(Tokens.Estimate([message], null));
+    }
+
     private Task<ChatResponse> RunAsync(string input, CompactingAgent.Settings? settings = null) =>
         Host<CompactingAgent>()
             .WithConversationId(Data.Agent.ConversationId)

@@ -41,6 +41,19 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Kind_With_Letters_Outside_Ascii_The_File_Holds_It_As_Written()
+    {
+        // Arrange
+        var store = new FileAgentSettingsStore(_folder);
+
+        // Act
+        await store.SaveAsync("ÜbersetzerAgent", "{}", 0, Ct);
+
+        // Assert
+        (await File.ReadAllTextAsync(OnlyFile(), Ct)).Should().Contain("\"kind\": \"ÜbersetzerAgent\"");
+    }
+
+    [Fact]
     public async Task Given_Two_Stores_Over_One_Folder_Saving_At_Once_Every_Save_Gets_A_Version_Of_Its_Own()
     {
         // Arrange

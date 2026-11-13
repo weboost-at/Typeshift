@@ -29,10 +29,14 @@ internal static class Tokens
             TextContent text => text.Text.Length,
             TextReasoningContent reasoning => reasoning.Text.Length,
             FunctionCallContent call => call.Name.Length + Json(call.Arguments),
-            FunctionResultContent result => Text(result.Result).Length,
+            FunctionResultContent result => Result(result.Result),
             DataContent or UriContent or HostedFileContent => PerAttachment * CharactersPerToken,
             _ => 0
         };
+
+    // A JSON string by the text it holds, so a result counts the same however the JSON it was loaded from escaped it
+    private static int Result(object? value) =>
+        value is JsonElement { ValueKind: JsonValueKind.String } text ? text.GetString()!.Length : Text(value).Length;
 
     public static string Text(object? value) =>
         value switch
