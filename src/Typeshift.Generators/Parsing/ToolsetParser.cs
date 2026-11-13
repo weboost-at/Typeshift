@@ -204,16 +204,21 @@ internal static class ToolsetParser
         var settings = chain.SettingsCall is null ? null : ParseSettings(chain, owner, reporter, ct);
         if (chain.SettingsCall is not null && settings is null) return null;
 
+        // WithDescription("") describes as little as no call
         var docs = XmlDocs.Read(method, ct);
-        var description = chain.Description ?? docs.Summary;
+        var stated = string.IsNullOrWhiteSpace(chain.Description) ? null : chain.Description;
+        var description = stated ?? docs.Summary;
 
         // Without generated docs a summary is lost unless WithDescription replaces it, a <param> always is
         var unread = documented ? "" : XmlDocs.ReadUnparsed(method, ct);
 
-        if (unread.Contains("<param ") || (chain.Description is null && unread.Length > 0))
+        if (unread.Contains("<param ") || (stated is null && unread.Length > 0))
             reporter.Report(Descriptors.DocumentationOff, addTool.Syntax, $"The tool '{name}'");
         else if (description is null)
-            reporter.Report(Descriptors.MissingDescription, addTool.Syntax, name);
+            reporter.Report(
+                Descriptors.MissingDescription,
+                chain.DescriptionCall?.Arguments[0].Syntax ?? addTool.Syntax,
+                name);
 
         // Generated code would name a type that does not resolve yet, or a file-local one in the signature of a class
         // that is not (CS9051), and repeat the compiler's error
@@ -300,6 +305,7 @@ internal static class ToolsetParser
 
                 case "WithDescription":
                     chain.Description = ReadConstant(call, "tool description", reporter);
+                    chain.DescriptionCall = call;
                     valid &= chain.Description is not null;
                     break;
 
@@ -540,6 +546,8 @@ internal static class ToolsetParser
         public IInvocationOperation? NameCall { get; set; }
 
         public string? Description { get; set; }
+
+        public IInvocationOperation? DescriptionCall { get; set; }
 
         public bool RequiresApproval { get; set; }
 

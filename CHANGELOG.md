@@ -285,6 +285,10 @@ All notable changes to this project are documented here. The format follows
   `[JsonSerializable]`, or one that declares `Default` itself. A context written by hand without one gave CS0117 in
   the generated module. TSH027 counts the same contexts, so a type that only such a context lists is reported under
   Native AOT.
+- An empty description counts as none. A tool with an empty `<summary></summary>`, which an editor writes when you
+  type `///`, with `WithDescription("")` or with a text of spaces is TSH009, and a sub-agent or handoff target
+  described that way is TSH023. Both passed, and the model was offered a tool or an agent described as `""`. An empty
+  `<param>` no longer gives its parameter an empty description either.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

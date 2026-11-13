@@ -84,9 +84,9 @@ internal static class AgentParser
         tools = ToolsetParser.ParseTools(agent, constructors, documented, reporter, ct);
 
         // D14: as a tool's, an agent's summary describes it unless WithDescription says otherwise; without generated
-        // docs it is lost
-        var summary = XmlDocs.Read(agent, ct).Summary;
-        var description = declarations.Description ?? (string.IsNullOrEmpty(summary) ? null : summary);
+        // docs it is lost. WithDescription("") describes as little as no call
+        var stated = string.IsNullOrWhiteSpace(declarations.Description) ? null : declarations.Description;
+        var description = stated ?? XmlDocs.Read(agent, ct).Summary;
 
         if (description is null && !documented && XmlDocs.ReadUnparsed(agent, ct).Length > 0)
         {

@@ -1243,6 +1243,64 @@ public static class DiagnosticSources
         }
         """;
 
+    // What an editor writes for ///, before anyone fills it in
+    public const string EmptySummary =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo);
+
+            /// <summary></summary>
+            /// <param name="text"></param>
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string EmptyDescription =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string BlankDescription =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("   ");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string SubAgentWithAnEmptyDescription =
+        """
+        using Typeshift;
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent() => WithDescription("");
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                WithDescription("Answers at the desk.");
+                UseAgent<HelpAgent>();
+            }
+        }
+        """;
+
     public const string PlainStructPick =
         """
         using Typeshift;

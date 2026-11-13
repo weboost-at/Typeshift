@@ -855,7 +855,8 @@ public class DiagnosticTests : GeneratorTestBase
             "TSH023",
             DiagnosticSeverity.Error,
             "UseAgent<HelpAgent>",
-            message: "'HelpAgent' cannot be a sub-agent: it has neither a WithDescription nor a <summary>");
+            message: "'HelpAgent' cannot be a sub-agent: it has no description, neither from WithDescription nor "
+            + "from a <summary>");
     }
 
     [Fact]
@@ -1072,6 +1073,56 @@ public class DiagnosticTests : GeneratorTestBase
 
         // Assert
         run.Assert.Reports("TSH012", DiagnosticSeverity.Error, "s => s.Places");
+    }
+
+    [Fact]
+    public void Given_An_Empty_Summary_TSH009_Is_Reported_On_AddTool()
+    {
+        // Act
+        var run = Run(DiagnosticSources.EmptySummary);
+
+        // Assert
+        run.Assert.Reports("TSH009", DiagnosticSeverity.Warning, "AddTool(Echo)");
+    }
+
+    [Fact]
+    public void Given_An_Empty_Summary_And_Param_The_Tool_Carries_No_Empty_Description()
+    {
+        // Act
+        var run = Run(DiagnosticSources.EmptySummary);
+
+        // Assert
+        run.Source("EchoToolset.g.cs").Should().NotContain("Description");
+    }
+
+    [Fact]
+    public void Given_An_Empty_Description_TSH009_Is_Reported_On_The_Argument()
+    {
+        // Act
+        var run = Run(DiagnosticSources.EmptyDescription);
+
+        // Assert
+        run.Assert.Reports("TSH009", DiagnosticSeverity.Warning, "\"\"");
+    }
+
+    [Fact]
+    public void Given_A_Description_Of_White_Space_TSH009_Is_Reported_On_The_Argument()
+    {
+        // Act
+        var run = Run(DiagnosticSources.BlankDescription);
+
+        // Assert
+        run.Assert.Reports("TSH009", DiagnosticSeverity.Warning, "\"   \"");
+    }
+
+    [Fact]
+    public void Given_A_Sub_Agent_With_An_Empty_Description_TSH023_Is_Reported_On_UseAgent()
+    {
+        // Act
+        var run = Run(DiagnosticSources.SubAgentWithAnEmptyDescription);
+
+        // Assert
+        run.Assert.Reports("TSH023", DiagnosticSeverity.Error, "UseAgent<HelpAgent>");
     }
 
     [Fact]

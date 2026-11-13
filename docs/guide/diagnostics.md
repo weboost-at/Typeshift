@@ -153,7 +153,8 @@ With `WithName`, the diagnostic is on the string you passed, so change it. Other
 ## TSH009
 
 **Tool has no description.** The model chooses tools by their descriptions. Add a `<summary>` to the method, or call
-`WithDescription`.
+`WithDescription`. An empty `<summary></summary>`, which an editor writes when you type `///`, describes nothing, and
+neither does `WithDescription("")` or a text of spaces. Such a call is reported on its argument.
 
 ## TSH010
 
@@ -256,7 +257,8 @@ project or across a project and the projects it references. Give one of them a `
 **Agent cannot be a tool or a handoff target.** The diagnostic sits on `UseAgent<T>()` or `UseHandoff<T>()` and is
 about the agent `T`. The model needs that agent's description to decide when to call it, and a lower_snake_case name
 to call it by: its class name in snake_case, unless `WithName(...)` sets another. Give that agent a `<summary>` or a
-`WithDescription(...)` in its constructor, or fix its name. An agent of a referenced project is checked too.
+`WithDescription(...)` in its constructor, or fix its name. An empty summary or description counts as none. An agent
+of a referenced project is checked too.
 
 ## TSH024
 

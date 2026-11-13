@@ -469,7 +469,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
     private static string? GetUnusableReason(ModuleAgent agent) =>
         agent switch
         {
-            { Described: false } => "it has neither a WithDescription nor a <summary>",
+            { Described: false } => "it has no description, neither from WithDescription nor from a <summary>",
             _ when !ToolNames.IsLowerSnakeCase(agent.Name) => $"its name '{agent.Name}' is not lower_snake_case",
             _ => null
         };

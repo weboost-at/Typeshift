@@ -36,12 +36,15 @@ internal sealed class XmlDocs
             // Kept, or the space between two elements, as in <paramref name="a"/> <paramref name="b"/>, is lost
             var root = XElement.Parse(xml, LoadOptions.PreserveWhitespace);
 
+            // An element without a text, such as the <summary></summary> an editor writes for ///, describes nothing
             return new XmlDocs(
-                root.Element("summary") is { } summary ? GetText(summary) : null,
+                root.Element("summary") is { } summary && GetText(summary) is { Length: > 0 } text ? text : null,
                 root.Elements("param")
                     .Where(param => param.Attribute("name") is not null)
                     .GroupBy(param => param.Attribute("name")!.Value)
-                    .ToDictionary(group => group.Key, group => GetText(group.First())));
+                    .Select(group => (group.Key, Text: GetText(group.First())))
+                    .Where(param => param.Text.Length > 0)
+                    .ToDictionary(param => param.Key, param => param.Text));
         }
         catch (XmlException)
         {
