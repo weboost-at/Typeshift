@@ -164,7 +164,11 @@ foreach (var provider in configuration.GetSection("Providers").GetChildren())
   environment variable `Providers__openai__ApiKey` in every environment.
 - A provider without a key fails at startup, so a missing secret never surfaces in the middle of a run.
 
+For development, set the key in the app's project folder. `init` writes a `UserSecretsId` into the project file, which
+`set` needs:
+
 ```bash
+dotnet user-secrets init
 dotnet user-secrets set "Providers:openai:ApiKey" "<your key>"
 ```
 

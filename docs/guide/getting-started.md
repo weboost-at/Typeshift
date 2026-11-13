@@ -1,6 +1,6 @@
 ---
 title: Getting started
-description: Build your first agent in four steps, from installing the package to running it and reading its answer, then see how the pieces fit and how to point a coding assistant at these docs.
+description: Build your first agent in four steps, from installing the package to running it and reading its answer, then see what your app implements and how to point a coding assistant at these docs.
 ---
 
 # Getting started

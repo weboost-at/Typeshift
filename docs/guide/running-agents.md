@@ -203,7 +203,9 @@ var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "Wh
 <!-- endSnippet -->
 
 The client is the run's whole pipeline, the tool loop and the agent's run options included. It serves concurrent
-calls, each with the limits of its own options. Disposing it does not dispose the client your provider returned.
+calls. Each call takes its iteration limit from the options it is called with, while the error limit and the
+concurrency of tool calls are those of the options the client was created with, so call a client with the options it
+was created for. Disposing it does not dispose the client your provider returned.
 
 To run in a conversation, resolve the options on a host with a conversation id, such as
 `support.WithConversationId(chat).ResolveOptionsAsync()`, and every call with those options continues and stores that

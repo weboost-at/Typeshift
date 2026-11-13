@@ -5,10 +5,10 @@ description: The steps every run passes through, in order, and what your middlew
 
 # How a run works
 
-A run is one call of `RunAsync`, `RunAsync<T>`, `RunStreamingAsync`, `ResumeAsync` or `ResumeStreamingAsync`, or of a
-client from the [raw path](./running-agents.md#the-raw-path). Streaming or not, every run passes through the same
-steps in the same order, and that order tells you what your middleware sees, when context is added, which calls ask
-for approval and what is stored when.
+A run is one call that starts or resumes an agent through its host, or one call of a client from the
+[raw path](./running-agents.md#the-raw-path); the [glossary](./glossary.md) names each member that starts one.
+Streaming or not, every run passes through the same steps in the same order, and that order tells you what your
+middleware sees, when context is added, which calls ask for approval and what is stored when.
 
 ```mermaid
 flowchart TD

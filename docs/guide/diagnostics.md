@@ -5,8 +5,9 @@ description: Every TSHnnn error and warning the Typeshift analyzer reports, what
 
 # Diagnostics
 
-The analyzer reports these errors and warnings while you type. Each one points at a mistake in your code or your build,
-so you fix it there instead of debugging a compiler error inside generated code.
+The analyzer reports these errors and warnings while you type, or when you build for those that compare several
+classes or projects. Each one points at a mistake in your code or your build, so you fix it there instead of debugging
+a compiler error inside generated code.
 
 | ID | Severity | Title |
 |---|---|---|
@@ -39,6 +40,8 @@ so you fix it there instead of debugging a compiler error inside generated code.
 | [TSH028](#tsh028) | Error | Type is no store |
 | [TSH029](#tsh029) | Error | Provider id type cannot be used |
 | [TSH030](#tsh030) | Error | Type is no chat client provider |
+
+TSH021 is retired: the diagnostic it named is gone, and ids are never reused.
 
 ## Severities and suppression
 
@@ -76,7 +79,8 @@ a ref struct such as `Span<T>`.
 ## TSH005
 
 **Settings type is not a record with a parameterless constructor.** That constructor sets the code defaults. Each
-layer of settings then changes a copy of them, made with `with`.
+layer of settings then changes a copy of them, made with `with`. A record without a parameterless constructor, such as
+a positional record, gets the compiler's CS0310 instead; give it one.
 
 ## TSH006
 

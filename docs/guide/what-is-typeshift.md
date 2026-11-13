@@ -7,8 +7,8 @@ description: What Typeshift is for, what it builds on, how it compares with writ
 
 Typeshift is a .NET library for AI agents that you define in code. You write each tool as a static method with XML
 docs and each agent as a small class that names its model, its instructions and its tools. A source generator turns
-them into what Microsoft.Extensions.AI runs, and an analyzer reports mistakes while you type, such as configuring a
-tool the agent doesn't offer.
+them into what Microsoft.Extensions.AI runs, so a mistake such as configuring a tool the agent doesn't offer fails
+the build, and an analyzer reports others while you type.
 
 ## Why agents in code
 

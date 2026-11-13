@@ -77,13 +77,17 @@ The analyzer reports, while you type, what the compiler cannot see, such as two 
 a description. Its diagnostics behave like those of any other analyzer, so `#pragma` and `.editorconfig` reach them
 ([Severities and suppression](./diagnostics.md#severities-and-suppression)).
 
-## No reflection over your types
+## Generated code that never reflects
 
 On Microsoft.Extensions.AI alone, a tool is usually an `AIFunctionFactory.Create` call, which reads the method through
 reflection when your app runs. Typeshift writes each tool's function when you build instead. The function binds the
 model's arguments to your method's parameters through JSON metadata, and the `Settings` and overrides records read and
 write themselves member by member. Generated code never reflects over your types, so your app can publish with
 [Native AOT](./native-aot.md).
+
+Outside Native AOT, System.Text.Json still reads the types your tools take and return through reflection. Under
+Native AOT they need JSON metadata of their own
+([Tool parameter and result types](./native-aot.md#tool-parameter-and-result-types)).
 
 ## Agents are defined when you build
 
