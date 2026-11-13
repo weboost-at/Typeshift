@@ -70,6 +70,34 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Kind_Of_Letters_Digits_Underscores_And_Hyphens_Its_File_Is_Named_After_It()
+    {
+        // Arrange
+        var store = new FileAgentSettingsStore(_folder);
+
+        // Act
+        await store.SaveAsync("Support-Agent_2", "{}", 0, Ct);
+
+        // Assert
+        Path.GetFileName(OnlyFile()).Should().Be("Support-Agent_2.json");
+    }
+
+    [Theory]
+    [InlineData("a/b", "a%2Fb.json")]
+    [InlineData("NUL", "%4EUL.json")]
+    public async Task Given_A_Kind_With_Other_Characters_Its_File_Name_Escapes_Their_Bytes(string kind, string name)
+    {
+        // Arrange
+        var store = new FileAgentSettingsStore(_folder);
+
+        // Act
+        await store.SaveAsync(kind, "{}", 0, Ct);
+
+        // Assert
+        Path.GetFileName(OnlyFile()).Should().Be(name);
+    }
+
+    [Fact]
     public async Task Given_A_Save_No_Unfinished_File_Is_Left_In_The_Folder()
     {
         // Arrange
@@ -95,6 +123,21 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
 
         // Assert
         await load.Should().ThrowAsync<InvalidDataException>().WithMessage($"{OnlyFile()}*\"version\": n*");
+    }
+
+    [Fact]
+    public async Task Given_A_File_That_Is_No_Json_Loading_Fails_Naming_The_File_And_Its_Shape()
+    {
+        // Arrange
+        var store = new FileAgentSettingsStore(_folder);
+        await store.SaveAsync(Data.Persistence.Kind, "{}", 0, Ct);
+        await File.WriteAllTextAsync(OnlyFile(), """{ "version": 1, }""", Ct);
+
+        // Act
+        var load = () => store.LoadAsync(Data.Persistence.Kind, Ct);
+
+        // Assert
+        await load.Should().ThrowAsync<InvalidDataException>().WithMessage($"{OnlyFile()} is no JSON*\"version\": n*");
     }
 
     [Fact]

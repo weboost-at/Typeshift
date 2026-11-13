@@ -1,7 +1,9 @@
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Persistence.Support;
+using Typeshift.Tests.Testing.Fakes;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Typeshift.Tests.Persistence;
 
@@ -153,6 +155,49 @@ public class AgentSettingsTests : AgentTestBase
 
         // Assert
         Models.Should().Equal(new ProvidedModel(Data.Agent.Provider, Data.Agent.Model));
+    }
+
+    [Fact]
+    public async Task Given_No_Store_An_Agents_Own_Settings_Are_Kept_In_Memory_And_A_Run_Applies_Them()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        await host.ConfigureAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
+
+        // Act
+        await host.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, Data.Agent.Model));
+    }
+
+    [Fact]
+    public async Task Given_No_Store_The_First_Save_Of_An_Agents_Own_Settings_Warns_That_It_Keeps_Them_In_Memory()
+    {
+        // Arrange
+        var logs = new WarningLog();
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton<ILoggerFactory>(logs);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+
+        // Act
+        await host.ConfigureAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
+        await host.ConfigureAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+
+        // Assert
+        logs.Warnings.Should().ContainSingle();
     }
 
     [Fact]

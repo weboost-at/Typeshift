@@ -1,9 +1,11 @@
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Conversations.Support;
 using Typeshift.Tests.Persistence.Support;
+using Typeshift.Tests.Testing.Fakes;
 using Typeshift.Tests.Tools.Support;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Typeshift.Tests.Persistence;
 
@@ -222,6 +224,28 @@ public class StoredSettingsTests : AgentTestBase
 
         // Assert
         Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, Data.Agent.Model));
+    }
+
+    [Fact]
+    public async Task Given_No_Store_The_First_Save_Under_A_Settings_Id_Warns_That_It_Keeps_Them_In_Memory()
+    {
+        // Arrange
+        var logs = new WarningLog();
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton<ILoggerFactory>(logs);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithSettingsId(Data.Persistence.SettingsId);
+
+        // Act
+        await host.ConfigureAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
+        await host.ConfigureAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+
+        // Assert
+        logs.Warnings.Should().ContainSingle();
     }
 
     [Fact]
