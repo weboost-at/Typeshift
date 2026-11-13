@@ -79,7 +79,7 @@ AddTool(CloseTicketAsync)
 | `Create{Tool}(settings, json)` (hidden) | A static factory that returns the tool's `AIFunction`. `json`, a `ToolJson`, sets how the tool binds its arguments and serializes its result. It takes `settings`, the tool's settings after layering, only when the tool has settings. |
 | `{Tool}Function` | A private nested class deriving from `GeneratedToolFunction`. It holds the name, the description, the schema of the parameters the model fills, and the binding that calls the method. |
 
-### `{Toolset}ToolList`
+### The tool list
 
 **Triggered by** every toolset the generated code can reach ([TSH016](./diagnostics.md#tsh016)). A static class, as
 accessible as the toolset, holds an extension block on `ToolList<TToolset>`. The block has one property per tool,
@@ -94,10 +94,15 @@ UseToolset<TicketToolset>()
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L13-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-exclude-tools' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`TicketToolsetToolList` gives `ToolList<TicketToolset>` the properties `SearchTickets`, `GetTicket` and
-`CloseTicket`. A tool named like a member of `object` gets a `Tool` suffix, so `to_string` becomes `ToStringTool`.
-The class of a nested toolset carries the names of the classes around it, so the toolset `Outer.Inner` gets
-`Outer_InnerToolList`.
+The block gives `ToolList<TicketToolset>` the properties `SearchTickets`, `GetTicket` and `CloseTicket`. A tool
+named like a member of `object` gets a `Tool` suffix, so `to_string` becomes `ToStringTool`.
+
+The class lives in the global namespace, so the properties are in scope in every file, whatever it imports: a pick
+compiles also where the file names the toolset in full, as in `UseToolset<Demo.TicketToolset>()`, or through an
+alias. Its name spells out the toolset's full name, each part after its length, such as
+`TypeshiftTools_4Demo13TicketToolset` for `Demo.TicketToolset`, so no two toolsets share one and no type of yours
+meets it. The class is [hidden](#names-and-hidden-members), since you pick from the properties and never need
+its name.
 
 ### Stamps
 

@@ -56,7 +56,8 @@ what does not parse (D2).
    within a toolset leaves its output cached.
 4. **Emitting** (`Emitting/ToolsetEmitter.cs`) writes, for each tool, an overrides record when it has configurable
    settings, a hidden `Create{Tool}` factory and a private `GeneratedToolFunction` subclass. For each toolset it
-   writes a `{Toolset}ToolList` extension block with a property per tool, plus a `[GeneratedTool]` stamp per tool
+   writes an extension block on `ToolList<T>` with a property per tool, in a file of its own and the global
+   namespace (D12), plus a `[GeneratedTool]` stamp per tool
    for agents in other assemblies (D7).
 5. **Agents** (`Parsing/AgentParser.cs`) read the chat and run option picks, the type of the provider `WithModel`
    names, which types the provider members of the agent's `Settings` (D77), the toolset uses and their picks, and

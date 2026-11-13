@@ -10,8 +10,7 @@ internal static class TypeEmitter
         TypeModel type,
         IEnumerable<string> experimentalIds,
         IEnumerable<string> attributes,
-        Action<SourceWriter> writeMembers,
-        Action<SourceWriter>? writeAfter = null)
+        Action<SourceWriter> writeMembers)
     {
         var writer = new SourceWriter();
         writer.Line(SourceWriter.GetHeader(experimentalIds));
@@ -40,7 +39,6 @@ internal static class TypeEmitter
             blocks.Pop().Dispose();
         }
 
-        writeAfter?.Invoke(writer);
         return writer.ToString();
     }
 }

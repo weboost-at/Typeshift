@@ -378,4 +378,21 @@ public static class ReferenceSources
             public static void Register(IServiceCollection services) => services.AddTypeshift();
         }
         """;
+
+    // Names the reference's toolset in full, with no using for its namespace
+    public const string CompanyAgentNamingTheToolsetInFull =
+        """
+        using Typeshift;
+
+        namespace Research;
+
+        internal partial class ResearchAgent : Agent
+        {
+            public ResearchAgent()
+            {
+                WithDescription("Researches companies.");
+                UseToolset<Companies.CompanyToolset>().Include(t => t.FindCompanies);
+            }
+        }
+        """;
 }

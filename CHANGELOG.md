@@ -57,6 +57,10 @@ All notable changes to this project are documented here. The format follows
   name, as `Acme_Tools_1a2b3c4dModule` for `Acme-Tools`. The generated registration names it for you.
 - Module stamps are at version 7, so a referenced project built with an earlier Typeshift is TSH020 until it is
   rebuilt.
+- The class that holds a toolset's picks for `Include` and `Exclude` lives in the global namespace, as the classes
+  of the host members do. It was `{Toolset}ToolList` in the toolset's namespace and is `TypeshiftTools_` followed by
+  the toolset's full name, each part after its length, hidden from code completion. Picks are written as before.
+  Code that named the class itself, which no docs showed, names the new one.
 
 ### Fixed
 
@@ -167,6 +171,11 @@ All notable changes to this project are documented here. The format follows
   CS0433.
 - A cancelled call stops reading a stream tool at its next item, also when the tool's method takes no
   `CancellationToken`. Such a stream was read to its end before the cancellation showed.
+- `UseToolset<T>().Include(t => t.X)` and `Exclude` compile in a file that does not import the toolset's namespace,
+  as when it names the toolset in full or through an alias. The pick was CS1061 there, with no hint at the missing
+  `using`.
+- A type named like a toolset's tool list class, such as `EchoToolList` beside a toolset `Echo`, or `Outer_Tools`
+  beside a nested toolset `Outer.Tools`, no longer gives CS0101.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

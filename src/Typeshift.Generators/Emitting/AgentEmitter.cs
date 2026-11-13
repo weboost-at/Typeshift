@@ -104,17 +104,6 @@ internal static class AgentEmitter
         return writer.ToString();
     }
 
-    // D12: each part of the agent's full name prefixed by its length, so no two agents share the global name
-    public static string HostClassName(TypeModel agent)
-    {
-        var parts = (agent.Namespace?.Split('.') ?? [])
-            .Concat(agent.ContainingTypes.Select(container => container.Substring(container.LastIndexOf(' ') + 1)))
-            .Append(agent.Name)
-            .Select(part => part.Replace("@", ""));
-
-        return "TypeshiftHost_" + string.Concat(parts.Select(part => $"{part.Length}{part}"));
-    }
-
     // The user's own Configure{Tool}() wins; a tool without settings, or with settings that have no settable member,
     // has nothing to configure
     private static bool HasConfigure(AgentModel agent, ToolSummary tool) =>
@@ -517,7 +506,8 @@ internal static class AgentEmitter
         // Hidden, so the class stays out of type completion in every file; the members stay in member completion
         writer.Line(Names.Hidden);
 
-        using (writer.Block($"{agent.Type.Accessibility} static class {HostClassName(agent.Type)}"))
+        using (writer.Block(
+            $"{agent.Type.Accessibility} static class {Names.GlobalClassName("TypeshiftHost_", agent.Type)}"))
         using (writer.Block($"extension({host} host)"))
         {
             const string Answer = "The response; its messages carry the agent's name as their author.";

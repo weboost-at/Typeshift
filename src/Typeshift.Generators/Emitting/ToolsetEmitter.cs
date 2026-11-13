@@ -27,11 +27,20 @@ internal static class ToolsetEmitter
             toolset.Type,
             toolset.ExperimentalIds.Concat(GetExperimentalIds(toolset.Tools)),
             toolset.Tools.Select(tool => Stamp(toolset, tool)),
-            writer => WriteTools(writer, toolset.Tools),
-            writer =>
-            {
-                if (toolset.IsReachable) WriteToolList(writer, toolset);
-            });
+            writer => WriteTools(writer, toolset.Tools));
+
+    // D4, D12: what agents pick in UseToolset<T>().Include(t => t.X), in the global namespace and a file of its own,
+    // so every file has the picks in scope, whatever it imports; null for a toolset the generated code cannot reach
+    public static string? EmitToolList(ToolsetModel toolset)
+    {
+        if (!toolset.IsReachable) return null;
+
+        var writer = new SourceWriter();
+        writer.Line(SourceWriter.GetHeader(toolset.ExperimentalIds));
+
+        WriteToolList(writer, toolset);
+        return writer.ToString();
+    }
 
     // The members of each tool, in the toolset or the agent that declares it
     public static void WriteTools(SourceWriter writer, EquatableArray<ToolModel> tools)
@@ -326,31 +335,31 @@ internal static class ToolsetEmitter
             _ => $"GetArgument<{parameter.Type}>(arguments, {Names.Literal(parameter.Name)})"
         };
 
-    // D4: what agents pick in UseToolset<T>().Include(t => t.X), next to the toolset in its namespace
     private static void WriteToolList(SourceWriter writer, ToolsetModel toolset)
     {
         var list = $"global::Typeshift.ToolList<{toolset.Type.FullName}>";
 
-        writer.Line();
         Docs.WriteSummary(
             writer,
             $"The tools of <see cref=\"{toolset.Type.FullName}\"/>, to include in or exclude from an agent.");
 
-        using (writer.Block($"{toolset.Type.Accessibility} static class {toolset.Type.FlatName}ToolList"))
+        // Hidden, so the class stays out of type completion in every file; the properties stay in member completion
+        writer.Line(Names.Hidden);
+
+        using (writer.Block(
+            $"{toolset.Type.Accessibility} static class {Names.GlobalClassName("TypeshiftTools_", toolset.Type)}"))
+        using (writer.Block($"extension({list} tools)"))
         {
-            using (writer.Block($"extension({list} tools)"))
+            foreach (var tool in toolset.Tools)
             {
-                foreach (var tool in toolset.Tools)
-                {
-                    if (tool != toolset.Tools[0]) writer.Line();
+                if (tool != toolset.Tools[0]) writer.Line();
 
-                    var description = tool.Description is { } text ? $": {Docs.Escape(text)}" : ".";
+                var description = tool.Description is { } text ? $": {Docs.Escape(text)}" : ".";
 
-                    Docs.WriteSummary(writer, $"The <c>{tool.Name}</c> tool{description}");
-                    writer.Line(
-                        $"public global::Typeshift.ToolName {Names.ToolProperty(tool.Name)} => "
-                        + $"new({Names.Literal(tool.Name)});");
-                }
+                Docs.WriteSummary(writer, $"The <c>{tool.Name}</c> tool{description}");
+                writer.Line(
+                    $"public global::Typeshift.ToolName {Names.ToolProperty(tool.Name)} => "
+                    + $"new({Names.Literal(tool.Name)});");
             }
         }
     }

@@ -105,6 +105,9 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
 
             var (toolset, clashes) = pair.Left;
             output.AddSource(Names.HintName(toolset.Type.FullName, clashes), ToolsetEmitter.Emit(toolset));
+
+            if (ToolsetEmitter.EmitToolList(toolset) is { } list)
+                output.AddSource(Names.HintName(toolset.Type.FullName, clashes, "+Tools"), list);
         });
 
         context.RegisterSourceOutput(outputs.Combine(caseClashes).Combine(supported), static (output, pair) =>

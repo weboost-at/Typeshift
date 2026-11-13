@@ -77,10 +77,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D6. The generated names
 
 - **Status:** carried (v0 D2), extended.
-- **Decision:** per toolset a `{Tool}Overrides` record per tool with configurable settings and a `{Toolset}ToolList`
-  extension block; per agent the nested `Settings` record, a private `Configure{Tool}()` per offered tool with settings
-  and a `TypeshiftHost_{full name}` extension block in the global namespace (D12); per assembly a module. Nested
-  classes join their containers' names with `_`; keywords get `@`. A clash with a user member is TSH018, and so is
+- **Decision:** per toolset a `{Tool}Overrides` record per tool with configurable settings and a
+  `TypeshiftTools_{full name}` extension block in the global namespace (D12); per agent the nested `Settings`
+  record, a private `Configure{Tool}()` per offered tool with settings and a `TypeshiftHost_{full name}` extension
+  block in the global namespace (D12); per assembly a module. Keywords get `@`. A clash with a user member is
+  TSH018, and so is
   a class named like a member written into it. Two tools of one class that would share a generated member are
   TSH007. A generated file is named after its class's full name. The compiler compares those file names without
   case, so where two full names differ only by case, each file's name also carries a hash of its class's spelling.
@@ -188,6 +189,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   the owner asked why `RunAsync` was missing at times; the `Typeshift` namespace would have hidden them from a file
   that names `AgentHost` in full. Each class spells out the agent's full name, every part after its length, so two
   agents never share one, whatever their namespaces hold.
+- **Tool lists:** the extension block on `ToolList<TToolset>`, which `Include(t => t.X)` picks from (D4), follows the
+  same rule: the global namespace, a file of its own per toolset, a hidden class `TypeshiftTools_{full name}` with
+  every part after its length. It lived in the toolset's namespace as `{Toolset}ToolList` first. There a pick was
+  CS1061 in a file that named the toolset in full or through an alias, as the host members had been, and the class
+  shared its name with any type of the namespace called `{Toolset}ToolList`, and with the list of a nested toolset
+  of that flat name.
 
 ## Declarations
 

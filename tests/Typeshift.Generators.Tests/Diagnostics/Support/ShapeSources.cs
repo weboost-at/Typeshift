@@ -218,14 +218,12 @@ public static class ShapeSources
 
             namespace Agents
             {
-                using Demo.Tools;
-
                 internal partial class EchoAgent : Agent
                 {
                     public EchoAgent()
                     {
                         WithDescription("Echoes.");
-                        UseToolset<Outer.Inner.EchoToolset>().Include(t => t.Echo);
+                        UseToolset<Tools.Outer.Inner.EchoToolset>().Include(t => t.Echo);
                     }
                 }
             }
@@ -450,9 +448,6 @@ public static class ShapeSources
 
         namespace Demo
         {
-            using Demo.Billing;
-            using Demo.Shipping;
-
             internal partial class DeskAgent : Agent
             {
                 public DeskAgent()
@@ -1130,6 +1125,96 @@ public static class ShapeSources
             {
                 WithDescription("Reports.");
                 UseToolset<ReportToolset>().Include(t => t.Report).Include(t => t.CreateReport);
+            }
+        }
+        """;
+
+    // The picks are in scope in every file, whatever it imports: the agents' file has no using for the toolset's
+    // namespace
+    public const string ToolsetNamedInFullOrByAnAlias =
+        """
+        using Typeshift;
+        using Tickets = Tools.TicketToolset;
+
+        namespace Tools
+        {
+            internal partial class TicketToolset : Toolset
+            {
+                public TicketToolset()
+                {
+                    AddTool(Search).WithDescription("Searches.");
+                    AddTool(Close).WithDescription("Closes.");
+                }
+
+                public static string Search(string text) => text;
+
+                public static string Close(int number) => "";
+            }
+        }
+
+        namespace Agents
+        {
+            internal partial class AliasAgent : Agent
+            {
+                public AliasAgent()
+                {
+                    WithDescription("Names the toolset through an alias.");
+                    UseToolset<Tickets>().Include(t => t.Search);
+                }
+            }
+
+            internal partial class QualifiedAgent : Agent
+            {
+                public QualifiedAgent()
+                {
+                    WithDescription("Names the toolset in full.");
+                    UseToolset<Tools.TicketToolset>().Exclude(t => t.Close);
+                }
+            }
+        }
+        """;
+
+    // The tool lists live in the global namespace under names of their own, so no type beside a toolset meets one
+    public const string TypesNamedLikeAToolsetsToolList =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class Echo : Toolset
+        {
+            public Echo() => AddTool(Say).WithDescription("Echoes.");
+
+            public static string Say(string text) => text;
+        }
+
+        internal class EchoToolList;
+
+        internal partial class Outer
+        {
+            internal partial class Tools : Toolset
+            {
+                public Tools() => AddTool(Repeat).WithDescription("Repeats.");
+
+                public static string Repeat(string text) => text;
+            }
+        }
+
+        internal partial class Outer_Tools : Toolset
+        {
+            public Outer_Tools() => AddTool(Shout).WithDescription("Shouts.");
+
+            public static string Shout(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent()
+            {
+                WithDescription("Echoes.");
+                UseToolset<Echo>().Include(t => t.Say);
+                UseToolset<Outer.Tools>().Include(t => t.Repeat);
+                UseToolset<Outer_Tools>().Include(t => t.Shout);
             }
         }
         """;

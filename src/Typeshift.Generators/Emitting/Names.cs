@@ -32,6 +32,18 @@ internal static class Names
     // D6: a tool's property on its ToolList; a name the list already has from object gets a suffix
     public static string ToolProperty(string tool) => Unreserved(ToPascalCase(tool), "Tool", ObjectMembers);
 
+    // D12: the name of a generated class in the global namespace: each part of the full name of the toolset or the
+    // agent it belongs to, prefixed by its length, so no two classes share the global name
+    public static string GlobalClassName(string prefix, TypeModel type)
+    {
+        var parts = (type.Namespace?.Split('.') ?? [])
+            .Concat(type.ContainingTypes.Select(container => container.Substring(container.LastIndexOf(' ') + 1)))
+            .Append(type.Name)
+            .Select(part => part.Replace("@", ""));
+
+        return prefix + string.Concat(parts.Select(part => $"{part.Length}{part}"));
+    }
+
     public static string OverridesName(string tool) => $"{ToPascalCase(tool)}Overrides";
 
     public static string FactoryName(string tool) => $"Create{ToPascalCase(tool)}";

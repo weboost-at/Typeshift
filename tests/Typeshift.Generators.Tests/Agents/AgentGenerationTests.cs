@@ -429,4 +429,33 @@ public class AgentGenerationTests : GeneratorTestBase
         // Assert
         name.Should().MatchRegex($"^{start}[0-9a-f]{{8}}Module$");
     }
+
+    [Theory]
+    [InlineData(nameof(ShapeSources.ToolsetNamedInFullOrByAnAlias))]
+    [InlineData(nameof(ShapeSources.NestedNamespacesAndClasses))]
+    [InlineData(nameof(ShapeSources.SameNamesInTwoNamespaces))]
+    public void Given_A_Toolset_Of_A_Namespace_The_Agents_File_Does_Not_Import_Its_Picks_Compile(string shape)
+    {
+        // Arrange
+        var source = SourceCatalogs.Read(typeof(ShapeSources), shape);
+
+        // Act
+        var run = Run(source);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
+    public void Given_A_Toolset_Of_A_Reference_Named_In_Full_Its_Picks_Compile()
+    {
+        // Arrange
+        var reference = CompileReference("Companies", ReferenceSources.CompanyToolset);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.CompanyAgentNamingTheToolsetInFull));
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
 }

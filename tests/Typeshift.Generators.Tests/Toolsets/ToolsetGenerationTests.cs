@@ -298,4 +298,28 @@ public class ToolsetGenerationTests : GeneratorTestBase
         // Assert
         run.Source("Demo.WordToolset.g.cs").Should().NotContain("System.Linq");
     }
+
+    [Fact]
+    public void Given_A_Toolset_Its_Tool_List_Is_A_Hidden_Class_In_The_Global_Namespace_Named_After_Its_Full_Name()
+    {
+        // Act
+        var run = Run(ToolsetSources.Tickets);
+
+        // Assert
+        run.Output.GetTypeByMetadataName("TypeshiftTools_4Demo13TicketToolset")!
+            .GetAttributes()
+            .Select(attribute => attribute.AttributeClass!.Name)
+            .Should()
+            .Contain("EditorBrowsableAttribute");
+    }
+
+    [Fact]
+    public void Given_Types_Named_Like_A_Toolsets_Tool_List_Everything_Compiles()
+    {
+        // Act
+        var run = Run(ShapeSources.TypesNamedLikeAToolsetsToolList);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
 }
