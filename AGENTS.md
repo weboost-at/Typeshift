@@ -174,7 +174,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `Repository/PublicApiDocumentationTests` (generator tests) | Every documented public member, a delegate included, has its `param`, `typeparam` and `returns` tags. |
 | `Repository/PublicApiSurfaceTests.The_Public_Surface_Matches_Its_Snapshot` (generator tests) | Every change of the public API is a reviewed diff of `Snapshots/PublicApi.verified.txt`. |
 | `Repository/PublicApiSurfaceTests.The_Surface_Generated_Code_Binds_To_Changes_Only_With_The_Stamp_Version` (generator tests) | `Typeshift.Generated`, `IStorable<TSelf>` and `Agent.Declaration`, kept in `Snapshots/GeneratedContract.verified.txt`, change only together with `ReferenceReader.StampVersion` (D7). |
-| `Repository/DecisionCitationTests` (generator tests) | Every `// Dnn:` in code names a decision in force. |
+| `Repository/DecisionCitationTests` (generator tests) | Every decision a comment cites, wherever it stands in the comment, is in force: in the code, the project and build files, the workflows and the hooks. Markdown cites in prose, which this test does not read. |
 | `Repository/SourceConventionTests` (generator tests) | The code style rules a pattern can check: no clock, no `== null`, no `this` parameters, no TODOs. |
 | `Repository/BuildFileTests` (generator tests) | Workflows and hooks install the SDK `global.json` asks for and name no version of their own. |
 | `Repository/SnapshotFileTests` (generator tests) | Every verified snapshot belongs to a test. |
