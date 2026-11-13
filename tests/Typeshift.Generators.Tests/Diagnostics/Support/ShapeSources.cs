@@ -744,4 +744,31 @@ public static class ShapeSources
             }
         }
         """;
+
+    public const string NullDefaultsWithoutAnnotation =
+        """
+        using System;
+        using System.Collections.Generic;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class NullToolset : Toolset
+        {
+            public NullToolset()
+            {
+                AddTool(Search).WithDescription("Searches.");
+                AddTool(Oblivious).WithDescription("Searches, in a file without nullable annotations.");
+                AddTool(Open).WithDescription("Opens.");
+            }
+
+            public static string Search(string query = null!) => query;
+
+        #nullable disable
+            public static string Oblivious(string query = null, List<string> tags = null) => query;
+        #nullable enable
+
+            public static string Open(Uri uri = default!) => "";
+        }
+        """;
 }

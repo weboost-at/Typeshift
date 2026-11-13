@@ -229,7 +229,9 @@ internal static class ToolsetEmitter
                     {
                         parameter.Description is { } description ? $"Description = {Names.Literal(description)}" : null,
                         parameter.DefaultValue is null ? null : "HasDefaultValue = true",
-                        parameter.DefaultValue is { } value and not "null" ? $"DefaultValue = {value}" : null,
+                        parameter.DefaultValue is { } value && !parameter.DefaultsToNull
+                            ? $"DefaultValue = {value}"
+                            : null,
                         parameter.IsNullable ? "IsNullable = true" : null
                     }
                     .OfType<string>()

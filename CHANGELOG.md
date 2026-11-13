@@ -116,6 +116,9 @@ All notable changes to this project are documented here. The format follows
   `[Experimental]`. The generated files named them without a `#pragma`, so CS0612, CS0618 or the experimental id was
   reported once more in files your own `#pragma` does not reach. That failed a build that treats warnings as errors
   and, for `[Experimental]`, every build.
+- A tool parameter of a reference type that defaults to null without a `?`, as `string query = null!` or as
+  `string query = null` in a project without nullable annotations, no longer gives CS8625 in the generated file. Its
+  schema allows null, as that of a `string?` parameter does.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

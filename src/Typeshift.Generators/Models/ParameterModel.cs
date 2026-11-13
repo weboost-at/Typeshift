@@ -18,4 +18,11 @@ internal sealed record ParameterModel(
     string TypeOf,
     bool IsNullable,
     string? DefaultValue,
-    string? Description);
+    string? Description)
+{
+    // The default of a reference parameter that takes null without a ?: "= null!", or "= null" where nullable
+    // annotations are off
+    public const string ForgivenNull = "null!";
+
+    public bool DefaultsToNull => DefaultValue is "null" or ForgivenNull;
+}

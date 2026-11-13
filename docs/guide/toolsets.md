@@ -120,7 +120,8 @@ request, every tool of the run reaches that request's scoped services, such as t
 - A required argument the model leaves out fails the call with an `ArgumentException`. The tool loop reports it
   back to the model.
 - An optional argument the model leaves out takes its default. A nullable reference parameter accepts null in the
-  schema, but the model must still send it unless it has a default value.
+  schema, but the model must still send it unless it has a default value. A reference parameter that defaults to
+  null accepts null as well, also without the `?`, as in a project without nullable annotations.
 - The properties of a record or class parameter are described by their XML docs, a positional record's `<param>`
   docs included. Use them to tell the model how to fill a property, such as the format of a code.
   [Registration](./registration.md#xml-docs-of-parameter-types) shows how those docs are collected.

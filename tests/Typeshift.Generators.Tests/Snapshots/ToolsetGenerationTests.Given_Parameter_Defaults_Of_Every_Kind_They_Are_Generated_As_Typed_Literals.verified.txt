@@ -9,6 +9,10 @@ namespace Demo;
     "greet",
     "Greet",
     "CreateGreet")]
+[global::Typeshift.Generated.GeneratedTool(
+    "sign",
+    "Sign",
+    "CreateSign")]
 partial class GreetingToolset
 {
     /// <summary>
@@ -95,6 +99,16 @@ partial class GreetingToolset
             {
                 HasDefaultValue = true,
                 IsNullable = true
+            },
+            new("forgiven", typeof(string))
+            {
+                HasDefaultValue = true,
+                IsNullable = true
+            },
+            new("link", typeof(global::System.Uri))
+            {
+                HasDefaultValue = true,
+                IsNullable = true
             }
         ];
 
@@ -122,7 +136,52 @@ partial class GreetingToolset
                 GetArgument<global::Demo.Level>(arguments, "unnamed", (global::Demo.Level)(7)),
                 GetArgument<global::System.DateTime>(arguments, "when", default(global::System.DateTime)),
                 GetArgument<int?>(arguments, "optional", null),
-                GetArgument<string?>(arguments, "missing", null))));
+                GetArgument<string?>(arguments, "missing", null),
+                GetArgument<string>(arguments, "forgiven", null!),
+                GetArgument<global::System.Uri>(arguments, "link", null!))));
+    }
+
+    /// <summary>
+    /// Creates the <c>sign</c> tool; generated agents call it.
+    /// </summary>
+    /// <param name="json">How the tool binds its arguments and serializes its result.</param>
+    /// <returns>The tool.</returns>
+    [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+    public static global::Microsoft.Extensions.AI.AIFunction CreateSign(
+        global::Typeshift.Generated.ToolJson json) =>
+        new SignFunction(json);
+
+    private sealed class SignFunction(
+        global::Typeshift.Generated.ToolJson json)
+        : global::Typeshift.Generated.GeneratedToolFunction(json)
+    {
+        private static readonly global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> ModelParameters =
+        [
+            new("name", typeof(string))
+            {
+                HasDefaultValue = true,
+                IsNullable = true
+            },
+            new("titles", typeof(global::System.Collections.Generic.List<string>))
+            {
+                HasDefaultValue = true,
+                IsNullable = true
+            }
+        ];
+
+        public override string Name => "sign";
+
+        public override string Description => "Signs.";
+
+        protected override global::System.Collections.Generic.IReadOnlyList<global::Typeshift.Generated.ToolParameter> Parameters => ModelParameters;
+
+        protected override global::System.Threading.Tasks.ValueTask<object?> InvokeToolAsync(
+            global::Microsoft.Extensions.AI.AIFunctionArguments arguments,
+            global::System.IServiceProvider services,
+            global::System.Threading.CancellationToken ct) =>
+            new(GetResult(global::Demo.GreetingToolset.Sign(
+                GetArgument<string>(arguments, "name", null!),
+                GetArgument<global::System.Collections.Generic.List<string>>(arguments, "titles", null!))));
     }
 }
 
@@ -137,6 +196,11 @@ internal static class GreetingToolsetToolList
         /// The <c>greet</c> tool: Greets.
         /// </summary>
         public global::Typeshift.ToolName Greet => new("greet");
+
+        /// <summary>
+        /// The <c>sign</c> tool: Signs.
+        /// </summary>
+        public global::Typeshift.ToolName Sign => new("sign");
     }
 }
 

@@ -130,6 +130,7 @@ public static class ToolsetSources
     public const string Defaults =
         """
         using System;
+        using System.Collections.Generic;
         using Typeshift;
 
         namespace Demo;
@@ -142,7 +143,11 @@ public static class ToolsetSources
 
         internal partial class GreetingToolset : Toolset
         {
-            public GreetingToolset() => AddTool(Greet).WithDescription("Greets.");
+            public GreetingToolset()
+            {
+                AddTool(Greet).WithDescription("Greets.");
+                AddTool(Sign).WithDescription("Signs.");
+            }
 
             public static string Greet(
                 string greeting = "say \"hi\"",
@@ -158,8 +163,14 @@ public static class ToolsetSources
                 Level unnamed = (Level)7,
                 DateTime when = default,
                 int? optional = null,
-                string? missing = null) =>
+                string? missing = null,
+                string forgiven = null!,
+                Uri link = default!) =>
                 greeting;
+
+        #nullable disable
+            public static string Sign(string name = null, List<string> titles = null) => name;
+        #nullable enable
         }
         """;
 

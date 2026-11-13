@@ -370,13 +370,17 @@ internal static class ToolsetParser
             _ => ParameterKind.Argument
         };
 
+        var defaultValue = parameter.HasExplicitDefaultValue ? DefaultValues.Format(parameter) : null;
+
+        // The schema allows the null the method itself defaults to, with a ? or without
         return new ParameterModel(
             Name: parameter.Name,
             Kind: kind,
             Type: parameter.Type.ToFullyQualified(),
             TypeOf: parameter.Type.ToTypeOf(),
-            IsNullable: parameter.Type is { IsReferenceType: true, NullableAnnotation: NullableAnnotation.Annotated },
-            DefaultValue: parameter.HasExplicitDefaultValue ? DefaultValues.Format(parameter) : null,
+            IsNullable: parameter.Type is { IsReferenceType: true, NullableAnnotation: NullableAnnotation.Annotated }
+                || defaultValue == ParameterModel.ForgivenNull,
+            DefaultValue: defaultValue,
             Description: docs.Parameters.TryGetValue(parameter.Name, out var description) ? description : null);
     }
 

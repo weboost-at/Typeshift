@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Linq;
 using Typeshift.Generators.Emitting;
+using Typeshift.Generators.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
@@ -20,6 +21,8 @@ internal static class DefaultValues
         return parameter.ExplicitDefaultValue switch
         {
             null when type.IsValueType && !isNullable => $"default({type.ToTypeOf()})",
+            null when !type.IsValueType && type.NullableAnnotation != NullableAnnotation.Annotated =>
+                ParameterModel.ForgivenNull,
             null => "null",
             var value when underlying.TypeKind == TypeKind.Enum => FormatEnum((INamedTypeSymbol)underlying, value),
             var value => FormatPrimitive(value)
