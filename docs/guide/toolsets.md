@@ -192,7 +192,8 @@ internal partial class TicketLookupToolset : Toolset
 ## What a toolset cannot be
 
 A toolset derives from `Toolset` directly and has no type parameters ([TSH017](./diagnostics.md#tsh017)). Share code
-between toolsets through static methods rather than a base class.
+between toolsets through static methods rather than a base class. A toolset is no `file` class either, because
+[generated code sits in files of its own](./how-typeshift-reads-your-code.md#generated-code-sits-in-files-of-its-own).
 
 ## Related
 

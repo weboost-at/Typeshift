@@ -84,6 +84,9 @@ class it is nested in must be `partial`.
 static method that is not generic. A lambda, an instance method, a local function, a generic method or a delegate
 variable cannot be called that way. Pass a static method, of any accessibility: `AddTool(Find)`.
 
+A method of a `file` class cannot be called either. The generated code is written to files of its own, where a
+file-local class has no name, so move the method to a class that is not file-local.
+
 ## TSH004
 
 **Tool parameter cannot be bound.** The model's JSON arguments cannot fill a `ref` or `out` parameter, a pointer, or
@@ -101,7 +104,8 @@ a positional record, gets the compiler's CS0310 instead; give it one.
 accessible as what exposes it. There are three cases:
 
 - A settings record is less accessible than its toolset. The toolset's generated members name the record wherever
-  the toolset can be named.
+  the toolset can be named, in files of their own. So the record cannot be a `file` type either, nor be closed over
+  one, as `Paged<Scratch>` is over a file-local `Scratch`.
 - A toolset with configurable settings is less accessible than a public agent that offers it. The agent's `Settings`
   record names the toolset's overrides.
 - An agent makes its model or its summary model configurable, and its
@@ -177,7 +181,9 @@ member of the lambda's parameter, as `t => t.SearchTickets` in `Include` or `s =
 ## TSH016
 
 **Toolset or agent is out of the generated code's reach.** Generated code names the class and the module creates it,
-so it cannot be nested as `private` or `protected`, and needs a public or internal parameterless constructor.
+so it cannot be nested as `private` or `protected`, and needs a public or internal parameterless constructor. It
+cannot be a `file` class or be nested in one either: the generated code is written to files of its own, and only its
+own file can name a file-local class.
 
 ## TSH017
 

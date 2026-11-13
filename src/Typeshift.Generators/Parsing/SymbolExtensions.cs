@@ -51,11 +51,29 @@ internal static class SymbolExtensions
                 _ => true
             };
 
-        // Internal or wider along its containing types, so code outside the class but in its assembly can name it
+        // Internal or wider and in no file alone, along its containing types, its type arguments and an array's
+        // elements, so code outside the class but in its assembly, in any file, can name it
         public bool IsVisibleInAssembly() =>
-            type.DeclaredAccessibility
-                is Accessibility.Public or Accessibility.Internal or Accessibility.ProtectedOrInternal
-            && (type.ContainingType?.IsVisibleInAssembly() ?? true);
+            type switch
+            {
+                IArrayTypeSymbol array => array.ElementType.IsVisibleInAssembly(),
+                INamedTypeSymbol named => IsInternalOrWider(named)
+                    && !named.IsFileLocal
+                    && (named.ContainingType?.IsVisibleInAssembly() ?? true)
+                    && named.TypeArguments.All(argument => argument.IsVisibleInAssembly()),
+                _ => IsInternalOrWider(type)
+            };
+
+        // A file-local type, by itself, as a containing type, a type argument or an array's element: only its own
+        // file can name it
+        public bool ContainsFileLocalType() =>
+            type switch
+            {
+                IArrayTypeSymbol array => array.ElementType.ContainsFileLocalType(),
+                INamedTypeSymbol named => named.IsFileLocalOrNestedInOne()
+                    || named.TypeArguments.Any(argument => argument.ContainsFileLocalType()),
+                _ => false
+            };
 
         // The type of an override: null means "the layer below", so even a value type becomes nullable
         public string ToNullableFullyQualified() =>
@@ -124,9 +142,13 @@ internal static class SymbolExtensions
 
     extension(INamedTypeSymbol type)
     {
+        public bool IsFileLocalOrNestedInOne() =>
+            type.IsFileLocal || (type.ContainingType?.IsFileLocalOrNestedInOne() ?? false);
+
         // TSH016: the generated code outside the class names it, and the module creates it; null when it can
         public string? GetUnreachableReason() =>
-            !type.IsVisibleInAssembly() ? "it is nested as private or protected"
+            type.IsFileLocalOrNestedInOne() ? "it is file-local, and generated code is written to other files"
+            : !type.IsVisibleInAssembly() ? "it is nested as private or protected"
             : !type.InstanceConstructors.Any(constructor => constructor is
             {
                 Parameters.IsEmpty: true,
@@ -186,6 +208,10 @@ internal static class SymbolExtensions
                 .Select(argument => argument.Value)
                 .OfType<string>()
                 .Where(SyntaxFacts.IsValidIdentifier);
+
+    private static bool IsInternalOrWider(ITypeSymbol type) =>
+        type.DeclaredAccessibility
+            is Accessibility.Public or Accessibility.Internal or Accessibility.ProtectedOrInternal;
 
     private static string GetMetadataName(INamedTypeSymbol type) =>
         type.ContainingNamespace is { IsGlobalNamespace: false } ns

@@ -42,6 +42,8 @@ All notable changes to this project are documented here. The format follows
   with the oldest tool results cleared, and the provider decides. Each failed summary call is logged as a warning and
   recorded on the run's span. Before, a summary model that was down, or one the run's provider did not know after a
   user switched providers, failed every later run of the conversation before its own model was called.
+- TSH003's message says why the method cannot be a tool, as in "'Lookups.LookUp' cannot be a tool: its class
+  'Lookups' is file-local, and generated code is written to other files".
 
 ### Fixed
 
@@ -119,6 +121,10 @@ All notable changes to this project are documented here. The format follows
 - A tool parameter of a reference type that defaults to null without a `?`, as `string query = null!` or as
   `string query = null` in a project without nullable annotations, no longer gives CS8625 in the generated file. Its
   schema allows null, as that of a `string?` parameter does.
+- A `file` class is reported where generated code would have to name it: as a toolset or an agent, or nested in one,
+  by TSH016, as the class of a tool's method by TSH003, and as a settings record or its type argument by TSH006. Each
+  compiled into errors such as CS0115 and CS0234 inside generated files, and two file-local toolsets of one name
+  stopped the generator with CS8785.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

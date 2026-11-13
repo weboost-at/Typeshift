@@ -43,7 +43,8 @@ internal static class ToolsetParser
         declarations = ParseTools(toolset, constructors, documented, reporter, ct);
         var tools = declarations.Select(declaration => declaration.Tool).ToEquatableArray();
 
-        return notPartial is null
+        // A partial in another file would declare another class than a file-local one
+        return notPartial is null && !toolset.IsFileLocalOrNestedInOne()
             ? new ToolsetModel(TypeModels.From(toolset), isReachable, tools, toolset.GetExperimentalIds())
             : null;
     }
@@ -122,7 +123,25 @@ internal static class ToolsetParser
                 }
             })
         {
-            reporter.Report(Descriptors.NotStaticMethodGroup, argument.Syntax, argument.Syntax.ToString());
+            reporter.Report(
+                Descriptors.NotStaticMethodGroup,
+                argument.Syntax,
+                argument.Syntax.ToString(),
+                "pass a static method that is not generic, AddTool(Method)");
+
+            return null;
+        }
+
+        // A file-local owner is reported itself (TSH016), and generates nothing that would call the method
+        if (method.ContainingType.IsFileLocalOrNestedInOne() && !owner.IsFileLocalOrNestedInOne())
+        {
+            reporter.Report(
+                Descriptors.NotStaticMethodGroup,
+                argument.Syntax,
+                argument.Syntax.ToString(),
+                $"its class '{method.ContainingType.Name}' is file-local, and generated code is written to other "
+                + "files");
+
             return null;
         }
 
@@ -167,9 +186,9 @@ internal static class ToolsetParser
         else if (description is null)
             reporter.Report(Descriptors.MissingDescription, addTool.Syntax, name);
 
-        // Generated code would name a type that does not resolve yet, and repeat the compiler's error
-        if (method.ReturnType.ContainsErrorType()
-            || method.Parameters.Any(parameter => parameter.Type.ContainsErrorType()))
+        // Generated code would name a type that does not resolve yet, or a file-local one in the signature of a class
+        // that is not (CS9051), and repeat the compiler's error
+        if (IsCompilersToReport(method.ReturnType) || method.Parameters.Any(each => IsCompilersToReport(each.Type)))
             return null;
 
         var parameters = new List<ParameterModel>();
@@ -294,8 +313,10 @@ internal static class ToolsetParser
             return null;
         }
 
-        // The overrides, the factories and the agents name the settings wherever the toolset or the agent can be named
-        var reachable = owner.IsEffectivelyPublic() ? type.IsEffectivelyPublic() : type.IsVisibleInAssembly();
+        // The overrides, the factories and the agents name the settings wherever the toolset or the agent can be
+        // named; a file-local owner is named nowhere else (TSH016)
+        var reachable = owner.IsFileLocalOrNestedInOne()
+            || (owner.IsEffectivelyPublic() ? type.IsEffectivelyPublic() : type.IsVisibleInAssembly());
 
         if (!reachable)
         {
@@ -351,6 +372,9 @@ internal static class ToolsetParser
 
         return new SettingsModel(type.ToTypeOf(), properties.ToEquatableArray(), type.GetSettingsExperimentalIds());
     }
+
+    private static bool IsCompilersToReport(ITypeSymbol type) =>
+        type.ContainsErrorType() || type.ContainsFileLocalType();
 
     // The model's JSON fills a value; it cannot fill a reference, a pointer or a stack-only type
     private static bool IsBindable(IParameterSymbol parameter) =>

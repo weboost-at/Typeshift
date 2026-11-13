@@ -998,6 +998,86 @@ public class DiagnosticTests : GeneratorTestBase
         run.Assert.DoesNotReport("TSH029");
     }
 
+    [Fact]
+    public void Given_A_File_Local_Toolset_TSH016_Is_Reported_On_Its_Name()
+    {
+        // Act
+        var run = Run(DiagnosticSources.FileLocalToolset);
+
+        // Assert
+        run.Assert.Reports("TSH016", DiagnosticSeverity.Error, "ScratchTools");
+    }
+
+    [Fact]
+    public void Given_A_File_Local_Agent_TSH016_Is_Reported_On_Its_Name()
+    {
+        // Act
+        var run = Run(DiagnosticSources.FileLocalAgent);
+
+        // Assert
+        run.Assert.ReportsAmong("TSH016", DiagnosticSeverity.Error, "ScratchAgent");
+    }
+
+    [Fact]
+    public void Given_A_Toolset_Nested_In_A_File_Local_Class_TSH016_Is_Reported_On_Its_Name()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToolsetNestedInAFileLocalClass);
+
+        // Assert
+        run.Assert.Reports("TSH016", DiagnosticSeverity.Error, "EchoTools");
+    }
+
+    [Fact]
+    public void Given_Two_File_Local_Toolsets_Of_One_Name_The_Generator_Does_Not_Fail()
+    {
+        // Act
+        var run = Run(DiagnosticSources.FileLocalToolset, DiagnosticSources.FileLocalToolset);
+
+        // Assert
+        run.Assert.RunsToTheEnd();
+    }
+
+    [Fact]
+    public void Given_A_Tool_Method_Of_A_File_Local_Class_TSH003_Is_Reported_On_The_Argument()
+    {
+        // Act
+        var run = Run(DiagnosticSources.FileLocalToolMethod);
+
+        // Assert
+        run.Assert.Reports("TSH003", DiagnosticSeverity.Error, "Lookups.LookUp");
+    }
+
+    [Fact]
+    public void Given_File_Local_Settings_TSH006_Is_Reported_On_WithSettings()
+    {
+        // Act
+        var run = Run(DiagnosticSources.FileLocalSettings);
+
+        // Assert
+        run.Assert.Reports("TSH006", DiagnosticSeverity.Error, "WithSettings<ScratchSettings>");
+    }
+
+    [Fact]
+    public void Given_Settings_Closed_Over_A_File_Local_Type_TSH006_Is_Reported_On_WithSettings()
+    {
+        // Act
+        var run = Run(DiagnosticSources.SettingsOfAFileLocalTypeArgument);
+
+        // Assert
+        run.Assert.Reports("TSH006", DiagnosticSeverity.Error, "WithSettings<Paged<Scratch>>");
+    }
+
+    [Fact]
+    public void Given_A_File_Local_Parameter_Type_Only_The_Compiler_Reports_It()
+    {
+        // Act
+        var run = Run(DiagnosticSources.FileLocalParameterType);
+
+        // Assert
+        run.Assert.ReportsNothingOfTheAnalyzers();
+    }
+
     [Theory]
     [MemberData(nameof(Mistakes))]
     public void Given_Any_Mistake_The_Generated_Code_Holds_No_Error(string mistake)

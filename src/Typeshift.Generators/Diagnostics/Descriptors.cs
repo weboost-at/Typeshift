@@ -22,7 +22,7 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor NotStaticMethodGroup = Error(
         "TSH003",
         "Tool is not a static method group",
-        "'{0}' is not a static method group: pass a static method, AddTool(Method)");
+        "'{0}' cannot be a tool: {1}");
 
     public static readonly DiagnosticDescriptor UnboundParameter = Error(
         "TSH004",

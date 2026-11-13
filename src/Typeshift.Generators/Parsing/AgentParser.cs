@@ -89,7 +89,8 @@ internal static class AgentParser
 
         var providerId = ReadProviderId(agent, constructors, declarations, reporter);
 
-        if (notPartial is not null || clash is not null) return null;
+        // A partial in another file would declare another class than a file-local one
+        if (notPartial is not null || clash is not null || agent.IsFileLocalOrNestedInOne()) return null;
 
         // The user's own Configure{Tool}() wins over the one the generator would write
         var configures = agent.GetMembers()
@@ -375,11 +376,9 @@ internal static class AgentParser
         agent.InstanceConstructors.FirstOrDefault(constructor => constructor.DeclaringSyntaxReferences.Any(reference =>
             reference.SyntaxTree == syntax.SyntaxTree && reference.Span.Contains(syntax.Span)));
 
-    // The generated Settings, in a file of their own, can name it: visible in the assembly and not file-local
+    // The generated Settings, in a file of their own, can name it
     private static bool IsNameable(ITypeSymbol type) =>
-        type is not INamedTypeSymbol named
-        || (!named.IsFileLocal && named.IsVisibleInAssembly() && (named.ContainingType is null
-            || IsNameable(named.ContainingType)));
+        type is not INamedTypeSymbol named || named.IsVisibleInAssembly();
 
     // A string, a number, a Guid or an enum; a nullable value type would type the code's provider and the stored
     // one apart

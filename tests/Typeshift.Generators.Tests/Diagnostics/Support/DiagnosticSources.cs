@@ -1631,4 +1631,134 @@ public static class DiagnosticSources
                 services.AddTypeshift().WithChatClientProvider<NumberedClients>();
         }
         """;
+
+    // Only its own file can name a file-local type, and the generated code is in others
+    public const string FileLocalToolset =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        file partial class ScratchTools : Toolset
+        {
+            public ScratchTools() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string FileLocalAgent =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        file partial class ScratchTools : Toolset
+        {
+            public ScratchTools() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        file partial class ScratchAgent : Agent
+        {
+            public ScratchAgent()
+            {
+                WithDescription("Scratch.");
+                UseToolset<ScratchTools>();
+            }
+        }
+        """;
+
+    public const string ToolsetNestedInAFileLocalClass =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        file static partial class Scratch
+        {
+            internal partial class EchoTools : Toolset
+            {
+                public EchoTools() => AddTool(Echo).WithDescription("Echoes.");
+
+                public static string Echo(string text) => text;
+            }
+        }
+        """;
+
+    public const string FileLocalToolMethod =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class DictionaryTools : Toolset
+        {
+            public DictionaryTools() => AddTool(Lookups.LookUp).WithDescription("Looks a word up.");
+        }
+
+        file static class Lookups
+        {
+            public static string LookUp(string word) => word;
+        }
+        """;
+
+    // The compiler reports the settings in the method's signature too, as CS9051
+    public const string FileLocalSettings =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        file record ScratchSettings
+        {
+            public int Limit { get; init; } = 3;
+        }
+
+        internal partial class ScratchTools : Toolset
+        {
+            public ScratchTools() => AddTool(Echo).WithDescription("Echoes.").WithSettings<ScratchSettings>();
+
+            public static string Echo(string text, ScratchSettings settings) => text;
+        }
+        """;
+
+    public const string SettingsOfAFileLocalTypeArgument =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record Paged<T>
+        {
+            public int Size { get; init; } = 20;
+        }
+
+        file record Scratch;
+
+        internal partial class PageTools : Toolset
+        {
+            public PageTools() => AddTool(Page).WithDescription("Pages.").WithSettings<Paged<Scratch>>();
+
+            public static string Page(string query) => query;
+        }
+        """;
+
+    // The compiler reports the type in the method's signature, as CS9051; the analyzer adds nothing
+    public const string FileLocalParameterType =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        file record Scratch(string Text);
+
+        internal partial class ScratchTools : Toolset
+        {
+            public ScratchTools() => AddTool(Take).WithDescription("Takes.");
+
+            public static string Take(Scratch scratch) => scratch.Text;
+        }
+        """;
 }
