@@ -1,11 +1,10 @@
 <Project>
 
-  <!-- D68: tools take their descriptions from XML docs, so a project that does not choose gets them, without a warning
-       for each member it leaves undocumented. This file is imported before the project's own properties. -->
+  <!-- D68: tools take their descriptions from XML docs, so a project that does not choose gets them. This file is
+       imported before the project's own properties, so the capital T marks the value as the package's: a project
+       that chooses for itself writes over it, and Typeshift.targets acts only while it stands. -->
   <PropertyGroup Condition="'$(GenerateDocumentationFile)' == ''">
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- slopwatch-ignore: SW005 D68: only a project that never chose XML docs, which the package turned on for it -->
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>
 
   <PropertyGroup>

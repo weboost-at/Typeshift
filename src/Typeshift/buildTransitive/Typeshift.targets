@@ -1,0 +1,22 @@
+<Project>
+
+  <!-- D68: imported after the project's own properties. Only the props write 'True' with a capital T, so these
+       groups hold for a project that never chose XML docs and leave every other project as it is. -->
+  <PropertyGroup Condition="$(GenerateDocumentationFile.Equals('True'))">
+    <!-- slopwatch-ignore: SW005 D68: only a project that never chose XML docs, which the package turned on for it -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- The compiler checks XML comments only with docs on, so what it finds in comments written before stays a
+         warning, under TreatWarningsAsErrors and under the -warnaserror switch -->
+    <_TypeshiftXmlCommentWarnings>CS0419;CS1570;CS1571;CS1572;CS1573;CS1574;CS1580;CS1581;CS1584;CS1587;CS1589;CS1590;CS1592;CS1658;CS1710;CS1711;CS1712;CS1723;CS1734;CS1735</_TypeshiftXmlCommentWarnings>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);$(_TypeshiftXmlCommentWarnings)</WarningsNotAsErrors>
+    <MSBuildWarningsNotAsErrors>$(MSBuildWarningsNotAsErrors);$(_TypeshiftXmlCommentWarnings)</MSBuildWarningsNotAsErrors>
+    <!-- The docs are read when the project compiles, so its XML file stays in obj: out of the output folder, of a
+         publish and, with the group below, of the project's own package -->
+    <CopyDocumentationFileToOutputDirectory>false</CopyDocumentationFileToOutputDirectory>
+  </PropertyGroup>
+
+  <ItemGroup Condition="$(GenerateDocumentationFile.Equals('True'))">
+    <DocumentationProjectOutputGroupOutput Remove="@(DocumentationProjectOutputGroupOutput)" />
+  </ItemGroup>
+
+</Project>

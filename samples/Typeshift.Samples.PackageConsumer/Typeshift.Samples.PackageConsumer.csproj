@@ -5,7 +5,9 @@
     <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <!-- No GenerateDocumentationFile: the package turns XML docs on (D68), which this build proves -->
+    <!-- No GenerateDocumentationFile: the package turns XML docs on (D68), which this build proves. CI builds once
+         more with ChooseDocs, where the project turns them on itself and must keep CS1591 for Visitor -->
+    <GenerateDocumentationFile Condition="'$(ChooseDocs)' == 'true'">true</GenerateDocumentationFile>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
 

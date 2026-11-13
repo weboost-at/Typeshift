@@ -114,7 +114,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** the library, its tests, the samples and the demos target `net11.0`, and the repository builds with
   the .NET 11 SDK. There is no build for .NET 10: the next LTS release, .NET 12, is where the package moves next. The
   generator stays on Roslyn 5.0 (D8), which every .NET 11 SDK exceeds. A project on another framework fails at
-  restore with NU1202, which names `net11.0`, because the package's build file sits under that framework's folder.
+  restore with NU1202, which names `net11.0`, because the package's build files sit under that framework's folder.
 - **Where:** `global.json`, the project files.
 - **Alternatives:** a build for `net10.0` next to `net11.0` from the same source, which the owner declined, since .NET
   12 brings an LTS release again; `net10.0` only, referencing System.Text.Json 11 from NuGet, which moves every .NET 10
@@ -708,14 +708,27 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Context:** the owner asked for less ceremony and sane defaults, and a project without
   `GenerateDocumentationFile` got tools without descriptions (TSH011), a step every tutorial reader had to take.
-- **Decision:** the package's props set `GenerateDocumentationFile` to `true` when the project leaves it empty, and
-  add CS1591 to `NoWarn` only then, so a project that never documented its public members gets no warning for each.
-  The props run before the project's own properties, so a project that sets the property, either way, keeps its
-  choice. The package consumer sample sets no `GenerateDocumentationFile`, checks a tool's description and the docs of
-  a type it takes, and carries an undocumented public type.
-- **Where:** `buildTransitive/Typeshift.props`, `samples/Typeshift.Samples.PackageConsumer`.
+- **Decision:** the package's props turn `GenerateDocumentationFile` on when the project leaves it empty. NuGet
+  imports the props before the project's own properties, so they cannot see what the project file is about to
+  choose. They write `True` with a capital T, and the package's targets, imported after the project's properties,
+  act only while that value stands. A project that sets the property, either way, keeps its choice and every
+  warning that comes with it.
+- **For a project that never chose,** the targets do three things, so that the docs the package turned on change
+  nothing else. They add CS1591 to `NoWarn`, so the project gets no warning for each undocumented public member.
+  They keep the compiler's other warnings about XML comments, such as a missing `<param>` or a stale `cref`, from
+  becoming errors under `TreatWarningsAsErrors` or `-warnaserror`, because the compiler checks comments only with
+  docs on and the project's comments were written without that check. And they leave the XML file in `obj`: it is
+  not copied to the output folder, so no app publishes it, and it is taken out of the documentation output group,
+  so the project's own package does not carry it.
+- **As built:** the package consumer sample sets no `GenerateDocumentationFile`, checks a tool's description and the
+  docs of a type it takes, and carries an undocumented public type and comments with two mistakes. CI publishes it
+  and fails on an XML file, then builds it with docs of its own choice and expects CS1591.
+- **Where:** `buildTransitive/Typeshift.props`, `buildTransitive/Typeshift.targets`,
+  `samples/Typeshift.Samples.PackageConsumer`, `.github/workflows/ci.yml`.
 - **Alternatives:** the tutorial's `Directory.Build.props`, a step of ceremony; docs on without hiding CS1591, which
-  fails every build that treats warnings as errors.
+  fails every build that treats warnings as errors; the `NoWarn` in the props, which hid CS1591 in every project
+  that turned docs on in its project file; a test for an empty property in the targets, where the SDK has already
+  set it to `false`; the XML file in the output folder, which every app that references the project would publish.
 
 ### D70. Instructions that never change are one call
 
@@ -1208,9 +1221,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - Sealing (v0 D19), CS1591 off in tests only (v0 D20), samples use a scripted client (v0 D21), package metadata
   (v0 D22), releases by tag through trusted publishing (v0 D37), the Typeshift name (v0 D38), the package README
   (v0 D39), nullable parameters widened at the schema root (v0 D12).
-- NuGet imports a package's build file only under the package's ID, from the folder of the project's framework, so
-  the props are packed as `buildTransitive/net11.0/Typeshift.props`. Outside a framework folder they would count as
-  an asset for every framework, and a project on .NET 10 would restore the package (D61).
+- NuGet imports a package's build files only under the package's ID, from the folder of the project's framework, so
+  the props and the targets are packed as `buildTransitive/net11.0/Typeshift.props` and `Typeshift.targets`. Outside
+  a framework folder they would count as an asset for every framework, and a project on .NET 10 would restore the
+  package (D61).
 
 ### D49. Diagnostics are numbered afresh
 

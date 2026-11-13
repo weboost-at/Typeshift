@@ -63,3 +63,26 @@ jobs:
 
       - name: Build and run a consumer of the package, not of the projects
         run: dotnet run --project samples/Typeshift.Samples.PackageConsumer -c Release
+
+      # D68: the consumer never chose XML docs, so the package keeps its XML file in obj
+      - name: Publish the consumer and run it, failing when its XML docs are published
+        run: |
+          dotnet publish samples/Typeshift.Samples.PackageConsumer -c Release -o artifacts/consumer
+          dotnet artifacts/consumer/Typeshift.Samples.PackageConsumer.dll
+          if ls artifacts/consumer/*.xml 2> /dev/null; then
+            echo "::error::The package published the XML docs of a project that never chose them"
+            exit 1
+          fi
+
+      # D68: a project that turns XML docs on itself keeps CS1591, here for the consumer's undocumented Visitor.
+      # The compiler's inputs are the same as in the build before, so only --no-incremental compiles again
+      - name: Build the consumer with XML docs of its own choice, expecting CS1591
+        run: |
+          if dotnet build samples/Typeshift.Samples.PackageConsumer -c Release --no-incremental -p:ChooseDocs=true > artifacts/chose-docs.log; then
+            echo "::error::The package hid CS1591 in a project that chose XML docs itself"
+            exit 1
+          fi
+          if ! grep -q "error CS1591.*'Visitor'" artifacts/chose-docs.log; then
+            cat artifacts/chose-docs.log
+            exit 1
+          fi

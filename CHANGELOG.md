@@ -26,6 +26,12 @@ All notable changes to this project are documented here. The format follows
 - A project on another framework than .NET 11 fails at restore with NU1202, which names `net11.0`. The restore
   passed before, and the build then failed with CS0246 on `Agent` and `Toolset` and with CS0400 in a generated file,
   none of which named the framework.
+- The package hid CS1591, the warning for undocumented public members, in every project that turned XML docs on in
+  its project file. It hides it only in a project that leaves `GenerateDocumentationFile` unset, as the docs said.
+- In a project that leaves `GenerateDocumentationFile` unset, the compiler's warnings about XML comments, such as
+  CS1573 for a missing `<param>`, no longer fail a build that treats warnings as errors. They show as warnings.
+- The XML file of a project that leaves `GenerateDocumentationFile` unset stays in `obj`. It was copied to the output
+  folder, published with the app and packed with the project.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

@@ -62,10 +62,9 @@ dotnet mdsnippets && git diff --exit-code
 - Cloud sessions run `.claude/hooks/session-start.sh`: the .NET SDK from Ubuntu's feed (dot.net is unreachable), the
   tools, the packages, and the skills pinned to reviewed commits: the owner's, ponytail's and `humanizer`.
 - `global.json` pins the .NET 11 SDK, and every project targets `net11.0` (D61).
-- The build is warning-free with `TreatWarningsAsErrors`. Two kinds of warning are suppressed. CS1591 is off outside
-  `src/`: `tests/.editorconfig` and `demos/.editorconfig` turn it off, and the samples lose it through the package's
-  props (D68). Three test files disable, with a `#pragma`, the Typeshift diagnostic they provoke on purpose: TSH024
-  (`MultiAgentTestBase`), TSH028 (`AgentSettingsTests`) and TSH030 (`ChatClientResolutionTests`).
+- The build is warning-free with `TreatWarningsAsErrors`. CS1591 is switched off in `tests/.editorconfig` and
+  `demos/.editorconfig`, and by the package for a consumer that never chose XML docs (D68). Three test files disable
+  TSH024, TSH028 and TSH030 by pragma, each with its reason beside it.
 - Generator snapshots live in `tests/Typeshift.Generators.Tests/Snapshots`. A mismatch writes `.received.txt`; review
   it, then rerun with `ACCEPT_SNAPSHOTS=1` to accept.
 - Run the whole suite three times before you call a change done. All green every time.

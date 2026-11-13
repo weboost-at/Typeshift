@@ -1,7 +1,9 @@
 <Project>
 
   <!-- Projects in this repository that declare toolsets or agents, or call AddTypeshift(), import this file. It does
-       what the package does for a consumer: the generator as an analyzer plus the package's buildTransitive props. -->
+       what the package does for a consumer: the generator as an analyzer plus the package's buildTransitive props.
+       The package's targets stay out: they hide CS1591 and keep the XML file in obj for a project that never chose
+       XML docs (D68), and the projects here document their public members or switch CS1591 off themselves. -->
   <Import Project="$(MSBuildThisFileDirectory)../src/Typeshift/buildTransitive/Typeshift.props" />
 
   <ItemGroup>
