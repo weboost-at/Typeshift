@@ -612,6 +612,28 @@ public class CompactionTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Stored_Estimate_Of_Zero_The_Next_Runs_First_Call_Goes_By_The_Estimate_Alone()
+    {
+        // Arrange
+        var store = Services.GetRequiredService<ITypeshiftStore<Guid>>();
+        var nothing = new UsageDetails { InputTokenCount = 0 };
+
+        foreach (var entry in StoredRuns.ReportedWithoutEstimate(new string('x', Page / 2)))
+        {
+            var stored = entry.Usage is null ? entry : entry with { Usage = nothing, EstimatedInputTokens = 0 };
+            await store.AppendConversationAsync(Data.Agent.ConversationId, stored, Ct);
+        }
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Agent.FollowUp, new() { MaxInputTokens = 1_500, TargetInputTokens = 1_000 });
+
+        // Assert
+        Results(0)[0].Should().Be(new string('x', Page / 2));
+    }
+
+    [Fact]
     public async Task Given_A_Streaming_Run_Reported_Input_Tokens_Over_The_Estimate_Compaction_Goes_By_The_Report()
     {
         // Arrange
