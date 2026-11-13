@@ -1,6 +1,20 @@
-/* The snippets are C# at up to 120 columns; give them room on wide screens */
+/* The snippets are C# at up to 120 columns, which take a column of 1060px. From 1440px on the layout grows with the
+   window instead of stopping there, up to the width that leaves the column its 1060px beside the sidebar and the
+   outline. Below the window's width the sidebar would lose what the column gains. */
+:root {
+  --vp-layout-max-width: clamp(1440px, 100vw, 1716px);
+}
+
+/* VitePress scopes its own rule (.content-container[data-v-...]), so the class is doubled to outrank it */
 @media (min-width: 1440px) {
-  .VPDoc.has-aside .content-container {
-    max-width: 860px;
+  .VPDoc.has-aside .content-container.content-container {
+    max-width: 1060px;
   }
+}
+
+/* Code and tables use the wide column; a line of prose stays as long as it was */
+.vp-doc > div > p,
+.vp-doc > div > ul,
+.vp-doc > div > ol {
+  max-width: 688px;
 }
