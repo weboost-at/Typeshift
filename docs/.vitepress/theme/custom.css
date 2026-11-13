@@ -20,6 +20,18 @@
   color: var(--vp-c-text-2);
 }
 
+/* A wide diagram scaled to a phone's width has labels 5px tall. There it gets two and a half screens, or its own
+   width when that is less, and scrolls sideways. */
+.mermaid {
+  overflow-x: auto;
+}
+
+@media (max-width: 767px) {
+  .mermaid svg {
+    width: 250%;
+  }
+}
+
 /* Code and tables use the wide column; a line of prose stays as long as it was */
 .vp-doc > div > p,
 .vp-doc > div > ul,
