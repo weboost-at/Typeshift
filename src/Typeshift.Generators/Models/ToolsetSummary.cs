@@ -4,7 +4,7 @@ namespace Typeshift.Generators.Models;
 internal sealed record ToolsetSummary(string Type, bool IsPublic, EquatableArray<ToolSummary> Tools);
 
 // Settings and Overrides are global::-qualified type names; Members the settings' settable members, which
-// Configure{Tool}() sets
+// Configure{Tool}() sets; ExperimentalIds are those of the settings
 internal sealed record ToolSummary(
     string Name,
     string Property,
@@ -12,7 +12,8 @@ internal sealed record ToolSummary(
     string? Settings,
     string? Overrides,
     EquatableArray<SettingMember> Members,
-    bool RequiresApproval = false);
+    bool RequiresApproval,
+    EquatableArray<string> ExperimentalIds);
 
 internal sealed record SettingMember(string Name, string Type);
 

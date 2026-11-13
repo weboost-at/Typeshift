@@ -23,7 +23,7 @@ internal static class ModuleEmitter
         var writer = new SourceWriter();
         var module = $"global::{Names.GeneratedNamespace}.{model.Name}";
 
-        writer.Line(SourceWriter.Header);
+        writer.Line(SourceWriter.GetHeader(model.ExperimentalIds));
         writer.Lines(
             $"""
             [assembly: global::Typeshift.Generated.GeneratedModule(typeof({module}), {ReferenceReader.StampVersion})]

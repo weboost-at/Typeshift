@@ -14,5 +14,10 @@ public partial class GreeterAgent : Agent
             .WithModel("any-provider", "any-model");
 
         UseToolset<GreetingToolset>();
+
+        // The compiler reports the deprecated toolset here, once, where this code names it
+#pragma warning disable CS0618
+        UseToolset<FarewellToolset>();
+#pragma warning restore CS0618
     }
 }

@@ -89,7 +89,8 @@ internal static class Catalog
             Members: tool.Settings?.Properties
                 .Select(property => new SettingMember(property.Name, property.Type))
                 .ToEquatableArray() ?? default,
-            RequiresApproval: tool.RequiresApproval);
+            RequiresApproval: tool.RequiresApproval,
+            ExperimentalIds: tool.Settings?.ExperimentalIds ?? default);
 
     private static bool Clashes(ToolSummary offered, ToolSummary tool) =>
         offered.Name == tool.Name || Names.ToPascalCase(offered.Name) == Names.ToPascalCase(tool.Name);

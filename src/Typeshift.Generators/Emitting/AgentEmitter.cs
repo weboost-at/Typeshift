@@ -40,8 +40,16 @@ internal static class AgentEmitter
         var agent = output.Agent;
         var configured = output.Tools.Where(tool => HasConfigure(agent, tool.Tool)).ToList();
 
+        IEnumerable<string> experimentalIds =
+        [
+            .. agent.ExperimentalIds,
+            .. ToolsetEmitter.GetExperimentalIds(agent.Tools),
+            .. output.Tools.SelectMany(offered => offered.Tool.ExperimentalIds)
+        ];
+
         return TypeEmitter.EmitPartial(
             agent.Type,
+            experimentalIds,
             [],
             writer =>
             {
@@ -89,7 +97,7 @@ internal static class AgentEmitter
         if (!agent.IsReachable) return null;
 
         var writer = new SourceWriter();
-        writer.Line(SourceWriter.Header);
+        writer.Line(SourceWriter.GetHeader(agent.ExperimentalIds));
 
         WriteHostMembers(writer, agent);
         return writer.ToString();

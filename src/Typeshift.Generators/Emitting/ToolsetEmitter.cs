@@ -27,6 +27,7 @@ internal static class ToolsetEmitter
     public static string Emit(ToolsetModel toolset) =>
         TypeEmitter.EmitPartial(
             toolset.Type,
+            toolset.ExperimentalIds.Concat(GetExperimentalIds(toolset.Tools)),
             toolset.Tools.Select(tool => Stamp(toolset, tool)),
             writer => WriteTools(writer, toolset.Tools),
             writer =>
@@ -52,6 +53,10 @@ internal static class ToolsetEmitter
             WriteFunction(writer, tool);
         }
     }
+
+    // The ids of every [Experimental] the members of the tools name
+    public static IEnumerable<string> GetExperimentalIds(EquatableArray<ToolModel> tools) =>
+        tools.SelectMany(tool => tool.ExperimentalIds.Concat(tool.Settings?.ExperimentalIds ?? default));
 
     private static bool HasOverrides(ToolModel tool) => tool.Settings?.HasConfigurable is true;
 

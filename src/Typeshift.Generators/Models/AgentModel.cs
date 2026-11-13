@@ -3,7 +3,8 @@ namespace Typeshift.Generators.Models;
 // IsReachable: code outside the class can name and create it, so the host members and the module reach it.
 // ChatOptions and RunOptions hold the configurable options' member names, Tools those it declares itself (D57),
 // Configures the Configure{Tool} names the user declared, which the generator leaves to them; Kind and SchemaVersion
-// are those of the stored Settings, ProviderId the type of the providers they store (D77)
+// are those of the stored Settings, ProviderId the type of the providers they store (D77). ExperimentalIds are the ids
+// of every [Experimental] a name of the agent, of a toolset it uses or of a provider type reports
 internal sealed record AgentModel(
     TypeModel Type,
     bool IsReachable,
@@ -16,7 +17,8 @@ internal sealed record AgentModel(
     EquatableArray<string> RunOptions,
     EquatableArray<ToolsetUseModel> Toolsets,
     EquatableArray<ToolModel> Tools,
-    EquatableArray<string> Configures);
+    EquatableArray<string> Configures,
+    EquatableArray<string> ExperimentalIds);
 
 // Picks are tool list property names, in source order; with none, the use offers every tool
 internal sealed record ToolsetUseModel(string Toolset, bool Excludes, EquatableArray<string> Picks);

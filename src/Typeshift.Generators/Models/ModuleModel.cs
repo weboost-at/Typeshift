@@ -1,13 +1,15 @@
 namespace Typeshift.Generators.Models;
 
-// The registrations of one assembly; type names are global::-qualified
+// The registrations of one assembly; type names are global::-qualified. ExperimentalIds are those of its toolsets and
+// agents
 internal sealed record ModuleModel(
     string Name,
     string AssemblyName,
     EquatableArray<string> Toolsets,
     EquatableArray<ModuleAgent> Agents,
     EquatableArray<string> JsonContexts,
-    EquatableArray<string> SchemaAnnotations);
+    EquatableArray<string> SchemaAnnotations,
+    EquatableArray<string> ExperimentalIds);
 
 // D33, D34, D39: an agent, the kind of its stored Settings, and what the agents of other assemblies check
 internal sealed record ModuleAgent(

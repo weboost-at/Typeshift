@@ -1,7 +1,8 @@
 namespace Typeshift.Generators.Models;
 
 // One AddTool chain; Method is the method's escaped name, Target the global::-qualified type that declares it, Result
-// the typeof() name of the value it returns, awaited, or null when it returns none
+// the typeof() name of the value it returns, awaited, or null when it returns none; ExperimentalIds are those of the
+// method, its class, its parameters' types and its result's
 internal sealed record ToolModel(
     string Name,
     string Method,
@@ -12,4 +13,5 @@ internal sealed record ToolModel(
     SettingsModel? Settings,
     EquatableArray<ParameterModel> Parameters,
     ReturnKind Return,
-    string? Result);
+    string? Result,
+    EquatableArray<string> ExperimentalIds);

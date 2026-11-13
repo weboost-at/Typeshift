@@ -576,4 +576,172 @@ public static class ShapeSources
             }
         }
         """;
+
+    // The compiler reports each use of an obsolete symbol where the user wrote it; the generated files name the same
+    // symbols and must not report them again
+    public const string DeprecatedToolsetAndAgent =
+        """
+        using System;
+        using Typeshift;
+
+        namespace Demo;
+
+        [Obsolete("Use NewTools")]
+        internal partial class OldTools : Toolset
+        {
+            public OldTools() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        [Obsolete("Use NewAgent")]
+        internal partial class OldAgent : Agent
+        {
+            public OldAgent()
+            {
+                WithDescription("Echoes.");
+                UseToolset<OldTools>();
+            }
+        }
+        """;
+
+    public const string ObsoleteToolMethodAndParameterType =
+        """
+        using System;
+        using Typeshift;
+
+        namespace Demo;
+
+        [Obsolete("Use New")]
+        internal record Old(string Text);
+
+        [Obsolete]
+        internal record Older(string Text);
+
+        internal partial class LegacyTools : Toolset
+        {
+            public LegacyTools()
+            {
+        #pragma warning disable CS0612, CS0618
+                AddTool(Legacy).WithDescription("Kept for old conversations.");
+                AddTool(TakeOld).WithDescription("Takes the old shape.");
+                AddTool(GiveOlder).WithDescription("Gives the oldest shape.");
+        #pragma warning restore CS0612, CS0618
+            }
+
+            [Obsolete("Old tool")]
+            public static string Legacy(string text) => text;
+
+        #pragma warning disable CS0612, CS0618
+            public static string TakeOld(Old old) => old.Text;
+
+            public static Older GiveOlder(string text) => new(text);
+        #pragma warning restore CS0612, CS0618
+        }
+        """;
+
+    // An [Experimental] symbol is an error under an id of its own, wherever it is named
+    public const string ExperimentalToolTypesAndAgent =
+        """
+        using System.Collections.Generic;
+        using System.Diagnostics.CodeAnalysis;
+        using Typeshift;
+
+        namespace Demo;
+
+        [Experimental("DEMO001")]
+        internal record Preview(string Text);
+
+        internal partial class PreviewTools : Toolset
+        {
+            public PreviewTools()
+            {
+        #pragma warning disable DEMO001
+                AddTool(Take).WithDescription("Takes a preview.");
+                AddTool(Give).WithDescription("Gives a preview.");
+                AddTool(List).WithDescription("Lists the previews.");
+        #pragma warning restore DEMO001
+            }
+
+        #pragma warning disable DEMO001
+            public static string Take(Preview preview) => preview.Text;
+
+            public static Preview Give(string text) => new(text);
+
+            public static Dictionary<string, Preview[]> List() => [];
+        #pragma warning restore DEMO001
+        }
+
+        [Experimental("DEMO002")]
+        internal partial class PreviewAgent : Agent
+        {
+            public PreviewAgent() => WithDescription("Previews.");
+        }
+        """;
+
+    public const string ExperimentalToolsetSettingsAndProviderId =
+        """
+        using System.Diagnostics.CodeAnalysis;
+        using Typeshift;
+
+        namespace Demo;
+
+        [Experimental("DEMO003")]
+        internal enum Depth
+        {
+            Shallow,
+            Deep
+        }
+
+        [Experimental("DEMO004")]
+        internal enum Lab
+        {
+            Small,
+            Large
+        }
+
+        [Experimental("DEMO005")]
+        internal record TrialSettings
+        {
+        #pragma warning disable DEMO003
+            public Depth Depth { get; init; }
+        #pragma warning restore DEMO003
+
+            [Experimental("DEMO006")]
+            public int Limit { get; init; } = 3;
+        }
+
+        [Experimental("DEMO007")]
+        internal partial class TrialTools : Toolset
+        {
+            public TrialTools()
+            {
+        #pragma warning disable DEMO005, DEMO008
+                AddTool(Try).WithDescription("Tries.").WithConfigurableSettings<TrialSettings>();
+        #pragma warning restore DEMO005, DEMO008
+            }
+
+        #pragma warning disable DEMO005
+            [Experimental("DEMO008")]
+            public static string Try(string text, TrialSettings settings) => text;
+        #pragma warning restore DEMO005
+        }
+
+        internal partial class TrialAgent : Agent
+        {
+            public TrialAgent()
+            {
+                WithDescription("Tries.");
+
+        #pragma warning disable DEMO004, DEMO006, DEMO007
+                WithChatOptions()
+                    .WithModel(Lab.Small, "trial-model")
+                    .Configurable(o => o.ModelId);
+
+                UseToolset<TrialTools>();
+                ConfigureTry().WithLimit(5);
+        #pragma warning restore DEMO004, DEMO006, DEMO007
+            }
+        }
+        """;
 }

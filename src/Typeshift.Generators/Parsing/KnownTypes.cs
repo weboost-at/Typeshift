@@ -77,4 +77,6 @@ internal static class KnownTypes
     public const string AsyncEnumerableOfT = "System.Collections.Generic.IAsyncEnumerable`1";
 
     public const string Obsolete = "System.ObsoleteAttribute";
+
+    public const string Experimental = "System.Diagnostics.CodeAnalysis.ExperimentalAttribute";
 }

@@ -139,7 +139,14 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             Toolsets: reachableToolsets,
             Agents: reachableAgents,
             JsonContexts: contexts.Distinct().ToEquatableArray(),
-            SchemaAnnotations: annotations.ToEquatableArray());
+            SchemaAnnotations: annotations.ToEquatableArray(),
+            ExperimentalIds: toolsets
+                .Where(toolset => toolset.IsReachable)
+                .SelectMany(toolset => toolset.ExperimentalIds)
+                .Concat(outputs
+                    .Where(output => output.Agent.IsReachable)
+                    .SelectMany(output => output.Agent.ExperimentalIds))
+                .ToEquatableArray());
     }
 
     private static void EmitInterceptor(

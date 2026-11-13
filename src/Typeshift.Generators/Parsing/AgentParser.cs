@@ -97,6 +97,8 @@ internal static class AgentParser
             .Select(member => member.Name)
             .Distinct();
 
+        ISymbol[] named = [agent, .. declarations.Used, .. declarations.Models.Select(model => model.Type)];
+
         return new AgentModel(
             TypeModels.From(agent),
             unreachable is null,
@@ -109,7 +111,8 @@ internal static class AgentParser
             declarations.RunOptions.ToEquatableArray(),
             declarations.Toolsets.ToEquatableArray(),
             tools.Select(declaration => declaration.Tool).ToEquatableArray(),
-            configures.ToEquatableArray());
+            configures.ToEquatableArray(),
+            named.GetExperimentalIds());
     }
 
     // AddTool declares a tool, which ToolsetParser reads in an agent as in a toolset
@@ -161,7 +164,10 @@ internal static class AgentParser
                 break;
 
             case "UseToolset":
-                if (ReadUse(agent, call, declarations.Toolsets, reporter) is { } use) declarations.Toolsets.Add(use);
+                if (ReadUse(agent, call, declarations.Toolsets, reporter) is not { } use) break;
+
+                declarations.Toolsets.Add(use);
+                declarations.Used.Add(call.TargetMethod.TypeArguments[0]);
                 break;
 
             // D33, D34
@@ -427,6 +433,9 @@ internal static class AgentParser
         public List<(ITypeSymbol Type, SyntaxNode Argument)> Models { get; } = [];
 
         public List<ToolsetUseModel> Toolsets { get; } = [];
+
+        // The toolsets the uses name, which the generated code names too
+        public List<ITypeSymbol> Used { get; } = [];
 
         public List<AgentUseDeclaration> Agents { get; } = [];
     }

@@ -112,6 +112,10 @@ All notable changes to this project are documented here. The format follows
   target, and no summary reads or stores it.
 - Clearing skips a tool result that is no longer than the note that replaces it. Clearing such a result made the call
   longer and took a value, such as an id or a count, that the model was still using.
+- A toolset, an agent, a tool method and a type a tool takes or returns may be marked `[Obsolete]` or
+  `[Experimental]`. The generated files named them without a `#pragma`, so CS0612, CS0618 or the experimental id was
+  reported once more in files your own `#pragma` does not reach. That failed a build that treats warnings as errors
+  and, for `[Experimental]`, every build.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

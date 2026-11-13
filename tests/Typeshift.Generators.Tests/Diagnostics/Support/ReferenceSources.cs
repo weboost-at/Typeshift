@@ -251,4 +251,65 @@ public static class ReferenceSources
             public LeadAgent() => UseAgent<HelpAgent>();
         }
         """;
+
+    public const string ExperimentalToolset =
+        """
+        using System.Diagnostics.CodeAnalysis;
+        using Typeshift;
+
+        namespace Trials;
+
+        [Experimental("TRIAL001")]
+        public enum Depth
+        {
+            Shallow,
+            Deep
+        }
+
+        [Experimental("TRIAL002")]
+        public record TrialSettings
+        {
+        #pragma warning disable TRIAL001
+            public Depth Depth { get; init; }
+        #pragma warning restore TRIAL001
+
+            public int Limit { get; init; } = 3;
+        }
+
+        [Experimental("TRIAL003")]
+        public partial class TrialToolset : Toolset
+        {
+            public TrialToolset()
+            {
+        #pragma warning disable TRIAL002
+                AddTool(Try).WithDescription("Tries.").WithConfigurableSettings<TrialSettings>();
+        #pragma warning restore TRIAL002
+            }
+
+        #pragma warning disable TRIAL002
+            public static string Try(string text, TrialSettings settings) => text;
+        #pragma warning restore TRIAL002
+        }
+        """;
+
+    public const string ExperimentalToolsetAgent =
+        """
+        using Typeshift;
+        using Trials;
+
+        namespace Research;
+
+        internal partial class TrialAgent : Agent
+        {
+            public TrialAgent()
+            {
+                WithDescription("Tries.");
+
+        #pragma warning disable TRIAL001, TRIAL003
+                UseToolset<TrialToolset>();
+                ConfigureTry().WithDepth(Depth.Deep);
+        #pragma warning restore TRIAL001, TRIAL003
+            }
+        }
+        """;
 }

@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Typeshift.Generators.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -16,6 +18,22 @@ internal static class SymbolExtensions
     {
         public bool Is(string metadataName) =>
             type is INamedTypeSymbol named && GetMetadataName(named.OriginalDefinition) == metadataName;
+    }
+
+    extension(IEnumerable<ISymbol?> symbols)
+    {
+        // The ids of every [Experimental] that code naming the symbols reports, sorted, so a model holds them
+        public EquatableArray<string> GetExperimentalIds() =>
+            symbols
+                .SelectMany(ReadExperimentalIds)
+                .Distinct()
+                .OrderBy(id => id, StringComparer.Ordinal)
+                .ToEquatableArray();
+    }
+
+    extension(ISymbol symbol)
+    {
+        public EquatableArray<string> GetExperimentalIds() => new[] { symbol }.GetExperimentalIds();
     }
 
     extension(ITypeSymbol type)
@@ -63,6 +81,14 @@ internal static class SymbolExtensions
                     || named.TypeArguments.Any(argument => argument.ContainsErrorType()),
                 _ => false
             };
+
+        // What generated code names of a settings type: the type, its settable members and their types
+        public EquatableArray<string> GetSettingsExperimentalIds() =>
+            type.GetPublicProperties()
+                .Where(property => property.IsSettable)
+                .SelectMany(property => new ISymbol[] { property, property.Type })
+                .Prepend(type)
+                .GetExperimentalIds();
 
         // Base records first; a redeclared property counts once, as its most derived declaration
         public IEnumerable<IPropertySymbol> GetPublicProperties()
@@ -128,6 +154,38 @@ internal static class SymbolExtensions
                 ? type.ContainingType?.GetNotPartial(ct)
                 : type;
     }
+
+    // A symbol's own ids, those of what contains it, and for a type those of its type arguments and of an array's
+    // elements
+    private static IEnumerable<string> ReadExperimentalIds(ISymbol? symbol) =>
+        symbol switch
+        {
+            null => [],
+            IArrayTypeSymbol array => ReadExperimentalIds(array.ElementType),
+            INamedTypeSymbol named => ReadOwnExperimentalIds(named)
+                .Concat(named.TypeArguments.SelectMany(ReadExperimentalIds))
+                .Concat(ReadContainerExperimentalIds(named)),
+            _ => ReadOwnExperimentalIds(symbol).Concat(ReadContainerExperimentalIds(symbol))
+        };
+
+    private static IEnumerable<string> ReadContainerExperimentalIds(ISymbol symbol) =>
+        symbol.ContainingType is { } type
+            ? ReadExperimentalIds(type)
+            : ReadOwnExperimentalIds(symbol.ContainingModule)
+                .Concat(ReadOwnExperimentalIds(symbol.ContainingAssembly));
+
+    // An id is an identifier, which the compiler checks; one read from metadata goes into a #pragma, so it is checked
+    private static IEnumerable<string> ReadOwnExperimentalIds(ISymbol? symbol) =>
+        symbol is null
+            ? []
+            : symbol.GetAttributes()
+                .Where(attribute => attribute.AttributeClass.Is(KnownTypes.Experimental))
+                .Where(attribute => attribute.ConstructorArguments.Length > 0)
+                .Select(attribute => attribute.ConstructorArguments[0])
+                .Where(argument => argument.Kind == TypedConstantKind.Primitive)
+                .Select(argument => argument.Value)
+                .OfType<string>()
+                .Where(SyntaxFacts.IsValidIdentifier);
 
     private static string GetMetadataName(INamedTypeSymbol type) =>
         type.ContainingNamespace is { IsGlobalNamespace: false } ns

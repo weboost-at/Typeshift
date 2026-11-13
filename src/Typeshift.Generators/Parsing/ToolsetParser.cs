@@ -44,7 +44,7 @@ internal static class ToolsetParser
         var tools = declarations.Select(declaration => declaration.Tool).ToEquatableArray();
 
         return notPartial is null
-            ? new ToolsetModel(TypeModels.From(toolset), isReachable, tools)
+            ? new ToolsetModel(TypeModels.From(toolset), isReachable, tools, toolset.GetExperimentalIds())
             : null;
     }
 
@@ -199,6 +199,7 @@ internal static class ToolsetParser
         }
 
         var returns = ParseReturn(method.ReturnType);
+        ISymbol[] named = [method, method.ReturnType, .. method.Parameters.Select(parameter => parameter.Type)];
 
         return new ToolModel(
             Name: name,
@@ -210,7 +211,8 @@ internal static class ToolsetParser
             Settings: settings,
             Parameters: parameters.ToEquatableArray(),
             Return: returns,
-            Result: GetResultType(method.ReturnType, returns));
+            Result: GetResultType(method.ReturnType, returns),
+            ExperimentalIds: named.GetExperimentalIds());
     }
 
     private static ToolChain? ReadChain(IInvocationOperation addTool, Reporter reporter)
@@ -347,7 +349,7 @@ internal static class ToolsetParser
                 Summary: XmlDocs.Read(property, ct).Summary));
         }
 
-        return new SettingsModel(type.ToTypeOf(), properties.ToEquatableArray());
+        return new SettingsModel(type.ToTypeOf(), properties.ToEquatableArray(), type.GetSettingsExperimentalIds());
     }
 
     // The model's JSON fills a value; it cannot fill a reference, a pointer or a stack-only type

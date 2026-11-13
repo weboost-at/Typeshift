@@ -218,8 +218,9 @@ rewrite.
   Weboost.SchemaAnnotations name every documented type of the project in a generated file (D55). A documented type
   marked `[Obsolete]` is CS0618 there, an error where warnings are errors, and one marked `[Experimental]` an error
   in any build. `TypeshiftSchemaAnnotations=false` or removing the type's docs is the way out today. The fix is a
-  version of Weboost.SchemaAnnotations whose generated file suppresses both; the package consumer sample gets such
-  types once this repository references it. The same collection compiles the docs of every documented type into the
+  version of Weboost.SchemaAnnotations whose generated file suppresses both. Typeshift's own generated files suppress
+  both already, so the package consumer sample holds an obsolete toolset, without docs until this repository
+  references that version. The same collection compiles the docs of every documented type into the
   assembly, where only the types that tools and typed runs reach are needed.
 - **One conversation through unrelated hosts.** An app that runs one conversation id through the hosts of two agents
   that never hand off to each other shares their standing approvals, and no diagnostic sees it.

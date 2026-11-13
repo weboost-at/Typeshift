@@ -321,4 +321,29 @@ public class AgentGenerationTests : GeneratorTestBase
             .Should()
             .Be(provider);
     }
+
+    [Fact]
+    public void Given_An_Experimental_Toolset_Settings_And_Provider_Type_The_Agents_File_Disables_Their_Ids()
+    {
+        // Act
+        var run = Run(ShapeSources.ExperimentalToolsetSettingsAndProviderId);
+
+        // Assert
+        run.Source("Demo.TrialAgent.g.cs")
+            .Should()
+            .Contain("#pragma warning disable DEMO003, DEMO004, DEMO005, DEMO006, DEMO007\n");
+    }
+
+    [Fact]
+    public void Given_A_Referenced_Toolset_With_Experimental_Settings_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Arrange
+        var reference = CompileReference("Trials", ReferenceSources.ExperimentalToolset);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.ExperimentalToolsetAgent));
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
 }

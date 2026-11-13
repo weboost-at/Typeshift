@@ -117,7 +117,8 @@ internal static class ReferenceReader
             Settings: settings?.ToTypeOf(),
             Overrides: overrides?.ToTypeOf(),
             Members: settings is null ? default : GetMembers(settings),
-            RequiresApproval: named.TryGetValue("RequiresApproval", out var asks) && asks is true);
+            RequiresApproval: named.TryGetValue("RequiresApproval", out var asks) && asks is true,
+            ExperimentalIds: settings?.GetSettingsExperimentalIds() ?? default);
     }
 
     // The tool list properties of the tools with overrides, from the stamps the generated code puts on a toolset
