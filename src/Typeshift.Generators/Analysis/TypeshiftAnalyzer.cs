@@ -8,6 +8,7 @@ using Typeshift.Generators.Emitting;
 using Typeshift.Generators.Models;
 using Typeshift.Generators.Parsing;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
 
@@ -47,7 +48,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.NoJsonMetadata,
         Descriptors.NoStore,
         Descriptors.UnusableProviderIdType,
-        Descriptors.NoChatClientProvider
+        Descriptors.NoChatClientProvider,
+        Descriptors.LanguageVersionTooLow
     ];
 
     public override void Initialize(AnalysisContext context)
@@ -72,10 +74,11 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         var aot = IsAot(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
         // The library's own builders make the calls a user may not
         if (context.Compilation.AssemblyName != KnownTypes.LibraryAssembly)
-            context.RegisterOperationAction(AnalyzeCall, OperationKind.Invocation);
+            context.RegisterOperationAction(call => AnalyzeCall(call, found), OperationKind.Invocation);
 
         context.RegisterCompilationEndAction(end =>
         {
+            ReportLanguageVersion(end, found);
             ReportClashesAcrossToolsets(end, tools);
             ReportUnstampedReferences(end);
             ReportSharedKinds(end, kinds);
@@ -98,6 +101,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             : null;
 
         if (baseType is null) return;
+
+        found.NeedsGeneratedCode = true;
 
         var constructors = new ConcurrentBag<IOperation>();
 
@@ -193,10 +198,12 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             _ => null
         };
 
-    private static void AnalyzeCall(OperationAnalysisContext context)
+    private static void AnalyzeCall(OperationAnalysisContext context, Found found)
     {
         var invocation = (IInvocationOperation)context.Operation;
         var target = invocation.TargetMethod;
+
+        if (InterceptParser.IsIntercepted(target)) found.NeedsGeneratedCode = true;
 
         // D77: a chat client provider may serve providers of any type, but it must serve some. A type parameter is
         // its caller's to check, since its interfaces are unknown here, and a type that does not resolve the compiler's
@@ -328,6 +335,22 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
                     Diagnostic.Create(Descriptors.DuplicateToolName, clash.Location, clash.Name, group.Key));
             }
         }
+    }
+
+    // D12: the generator writes nothing for a project below C# 14, where its code would be an error per generated
+    // member; one diagnostic says what to change, in a project that has something to generate for
+    private static void ReportLanguageVersion(CompilationAnalysisContext context, Found found)
+    {
+        if (!found.NeedsGeneratedCode) return;
+
+        if (context.Compilation is not CSharpCompilation
+            {
+                LanguageVersion: < TypeshiftGenerator.MinimumLanguageVersion and var version
+            })
+            return;
+
+        context.ReportDiagnostic(
+            Diagnostic.Create(Descriptors.LanguageVersionTooLow, Location.None, version.ToDisplayString()));
     }
 
     // D9: a reference whose toolsets and agents AddTypeshift() cannot register
@@ -660,6 +683,10 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
     // What the classes of the compilation declare, for the checks at its end
     private sealed class Found
     {
+        // A toolset, an agent, or a call the generator intercepts; set from any thread, and only ever to true
+        public bool NeedsGeneratedCode { get; set; }
+
+
         public ConcurrentBag<(ToolModel Tool, Location Location)> Tools { get; } = [];
 
         public ConcurrentDictionary<string, bool> JsonTypes { get; } = [];

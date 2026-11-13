@@ -157,13 +157,27 @@ internal static class Descriptors
         "Type is no chat client provider",
         "'{0}' is no chat client provider: implement IChatClientProvider<TProviderId>");
 
+    public static readonly DiagnosticDescriptor LanguageVersionTooLow = Create(
+        "TSH031",
+        "C# language version is below 14",
+        "Typeshift's generated code needs C# 14 or later, and this project compiles as C# {0}: remove <LangVersion> "
+        + "from the project, or raise it",
+        DiagnosticSeverity.Error,
+        WellKnownDiagnosticTags.CompilationEnd);
+
     private static DiagnosticDescriptor Error(string id, string title, string message) =>
         Create(id, title, message, DiagnosticSeverity.Error);
 
     private static DiagnosticDescriptor Warning(string id, string title, string message) =>
         Create(id, title, message, DiagnosticSeverity.Warning);
 
-    private static DiagnosticDescriptor Create(string id, string title, string message, DiagnosticSeverity severity) =>
+    // A tag such as CompilationEnd tells an IDE that the diagnostic is reported for the compilation as a whole
+    private static DiagnosticDescriptor Create(
+        string id,
+        string title,
+        string message,
+        DiagnosticSeverity severity,
+        params string[] tags) =>
         new(
             id,
             title,
@@ -171,5 +185,6 @@ internal static class Descriptors
             Category,
             severity,
             isEnabledByDefault: true,
-            helpLinkUri: HelpUrl + id.ToLowerInvariant());
+            helpLinkUri: HelpUrl + id.ToLowerInvariant(),
+            customTags: tags);
 }

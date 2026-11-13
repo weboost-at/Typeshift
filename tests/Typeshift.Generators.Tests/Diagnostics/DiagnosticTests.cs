@@ -2,6 +2,7 @@ using Typeshift.Generators.Tests.Agents.Support;
 using Typeshift.Generators.Tests.Diagnostics.Support;
 using FluentAssertions;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 
 namespace Typeshift.Generators.Tests.Diagnostics;
 
@@ -1302,6 +1303,68 @@ public class DiagnosticTests : GeneratorTestBase
 
         // Assert
         run.Assert.Reports("TSH018", DiagnosticSeverity.Error, "CreateTicket");
+    }
+
+    [Fact]
+    public void Given_A_Language_Version_Below_14_TSH031_Is_Reported_On_The_Compilation()
+    {
+        // Act
+        var run = RunAs(LanguageVersion.CSharp13, AgentSources.Tickets, AgentSources.Support);
+
+        // Assert
+        run.Assert.ReportsOnTheCompilation("TSH031", DiagnosticSeverity.Error).GetMessage().Should().Contain("C# 13.0");
+    }
+
+    [Fact]
+    public void Given_A_Language_Version_Below_14_No_Other_Diagnostic_Of_The_Analyzer_Is_Reported()
+    {
+        // Act
+        var run = RunAs(LanguageVersion.CSharp13, AgentSources.Tickets, AgentSources.Support);
+
+        // Assert
+        run.Reported.Where(diagnostic => diagnostic.Id.StartsWith("TSH", StringComparison.Ordinal))
+            .Should()
+            .ContainSingle();
+    }
+
+    [Fact]
+    public void Given_A_Language_Version_Below_14_Nothing_Is_Generated()
+    {
+        // Act
+        var run = RunAs(LanguageVersion.CSharp13, AgentSources.Tickets, AgentSources.Support);
+
+        // Assert
+        run.Result.GeneratedTrees.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Given_A_Language_Version_Below_14_In_A_Project_Without_Toolsets_Or_Agents_TSH031_Is_Not_Reported()
+    {
+        // Act
+        var run = RunAs(LanguageVersion.CSharp13, DiagnosticSources.NothingOfTypeshift);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH031");
+    }
+
+    [Fact]
+    public void Given_A_Language_Version_Below_14_In_A_Project_That_Only_Calls_AddTypeshift_TSH031_Is_Reported()
+    {
+        // Act
+        var run = RunAs(LanguageVersion.CSharp13, ReferenceSources.EmptyHost);
+
+        // Assert
+        run.Assert.ReportsOnTheCompilation("TSH031", DiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public void Given_Language_Version_14_TSH031_Is_Not_Reported()
+    {
+        // Act
+        var run = RunAs(LanguageVersion.CSharp14, AgentSources.Tickets, AgentSources.Support);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH031");
     }
 
     [Theory]

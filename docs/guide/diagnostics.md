@@ -40,6 +40,7 @@ a compiler error inside generated code.
 | [TSH028](#tsh028) | Error | Type is no store |
 | [TSH029](#tsh029) | Error | Provider id type cannot be used |
 | [TSH030](#tsh030) | Error | Type is no chat client provider |
+| [TSH031](#tsh031) | Error | C# language version is below 14 |
 
 TSH021 is retired: the diagnostic it named is gone, and ids are never reused.
 
@@ -51,8 +52,8 @@ settings that reach no parameter ([TSH010](#tsh010)). Each diagnostic's help lin
 Most diagnostics are reported on the declaration they are about, so the usual
 [suppression](https://learn.microsoft.com/dotnet/fundamentals/code-analysis/suppress-warnings) reaches them:
 `#pragma warning disable TSH009` around one declaration, or a `dotnet_diagnostic.TSH009.severity` entry in
-`.editorconfig`. [TSH020](#tsh020) concerns the whole build and has no source location, so no `#pragma` reaches it:
-to silence it, add it to `<NoWarn>` in the project file. [TSH007](#tsh007) and [TSH022](#tsh022) have no location
+`.editorconfig`. [TSH020](#tsh020) and [TSH031](#tsh031) concern the whole build and have no source location, so no
+`#pragma` reaches them: to silence one, add it to `<NoWarn>` in the project file. [TSH007](#tsh007) and [TSH022](#tsh022) have no location
 either when the clash lies between two referenced projects.
 
 ## Retired IDs
@@ -306,6 +307,19 @@ Name providers by a string, a number, a `Guid` or an enum, or keep the model out
 `IChatClientProvider<T>` it implements, and this class implements none, so it would serve no run. Implement
 `IChatClientProvider<T>` for the [provider id type](./models.md#the-provider-id-type) of your agents, such as
 `IChatClientProvider<string>`, or pass the class you meant.
+
+## TSH031
+
+**C# language version is below 14.** The code Typeshift generates for your toolsets and agents is C# 14, so the
+generator writes nothing for a project that compiles as an earlier version, and this error says so once for the
+project. A project on .NET 11 compiles as a later version unless something pins it, usually a `<LangVersion>` in
+the project file or in a `Directory.Build.props` above it. Remove that setting or raise it to 14 or later. The
+error is reported when you build, for a project that declares a toolset or an agent, or calls `AddTypeshift()` or
+`TypeshiftRuntime.Create(...)`.
+
+A project below C# 14 that does none of this gets no error. It still goes without its
+[registration module](./registration.md#what-addtypeshift-registers), so the XML docs of its types describe nothing
+in the schemas of the tools that take them.
 
 ## Related
 

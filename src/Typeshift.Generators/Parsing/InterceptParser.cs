@@ -33,8 +33,7 @@ internal static class InterceptParser
         var symbol = info.Symbol ?? (info.CandidateSymbols.Length == 1 ? info.CandidateSymbols[0] : null);
         if (symbol is not IMethodSymbol method) return null;
 
-        var isRuntime = method is { Name: KnownTypes.RuntimeMethod, IsStatic: true }
-            && method.ContainingType.Is(KnownTypes.Runtime);
+        var isRuntime = IsRuntimeMethod(method);
         if (!isRuntime && !IsLibraryMethod(method)) return null;
 
         return context.SemanticModel.GetInterceptableLocation(invocation, ct) is { } location
@@ -46,6 +45,12 @@ internal static class InterceptParser
     private static bool NamesRuntime(ExpressionSyntax receiver) =>
         receiver is IdentifierNameSyntax { Identifier.ValueText: KnownTypes.RuntimeName }
             or MemberAccessExpressionSyntax { Name.Identifier.ValueText: KnownTypes.RuntimeName };
+
+    // The calls the generator writes a replacement for
+    public static bool IsIntercepted(IMethodSymbol method) => IsRuntimeMethod(method) || IsLibraryMethod(method);
+
+    private static bool IsRuntimeMethod(IMethodSymbol method) =>
+        method is { Name: KnownTypes.RuntimeMethod, IsStatic: true } && method.ContainingType.Is(KnownTypes.Runtime);
 
     // A call of a C# 14 extension member binds to a method of the extension block nested in the declaring class
     private static bool IsLibraryMethod(IMethodSymbol method)

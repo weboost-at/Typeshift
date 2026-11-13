@@ -14,4 +14,6 @@ internal static class TrackingNames
     public const string Module = nameof(Module);
 
     public const string CaseClashes = nameof(CaseClashes);
+
+    public const string LanguageVersion = nameof(LanguageVersion);
 }

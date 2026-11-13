@@ -2014,4 +2014,12 @@ public static class DiagnosticSources
             public static string Ticket(string text) => text;
         }
         """;
+
+    // No toolset, no agent and no AddTypeshift(): nothing the generator writes code for
+    public const string NothingOfTypeshift =
+        """
+        namespace Demo;
+
+        internal record Address(string Street, string City);
+        """;
 }

@@ -5,6 +5,7 @@ using Typeshift.Generators.Emitting;
 using Typeshift.Generators.Models;
 using Typeshift.Generators.Parsing;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Typeshift.Generators;
@@ -13,6 +14,9 @@ namespace Typeshift.Generators;
 [Generator(LanguageNames.CSharp)]
 public sealed class TypeshiftGenerator : IIncrementalGenerator
 {
+    // The language version of the generated code, which the analyzer reports a project below (TSH031)
+    internal const LanguageVersion MinimumLanguageVersion = LanguageVersion.CSharp14;
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var toolsets = context.SyntaxProvider
@@ -89,28 +93,48 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             .Select(static (names, _) => Names.GetCaseClashes(names.Left.Concat(names.Right)))
             .WithTrackingName(TrackingNames.CaseClashes);
 
-        context.RegisterSourceOutput(toolsets.Combine(caseClashes), static (output, pair) =>
-            output.AddSource(Names.HintName(pair.Left.Type.FullName, pair.Right), ToolsetEmitter.Emit(pair.Left)));
+        // D12: the generated code is C# 14, extension blocks among it. A project that pins an earlier version gets
+        // none of it and one diagnostic of the analyzer (TSH031), where it would get an error per generated member
+        var supported = context.ParseOptionsProvider
+            .Select(static (options, _) => options is CSharpParseOptions { LanguageVersion: >= MinimumLanguageVersion })
+            .WithTrackingName(TrackingNames.LanguageVersion);
 
-        context.RegisterSourceOutput(outputs.Combine(caseClashes), static (output, pair) =>
+        context.RegisterSourceOutput(toolsets.Combine(caseClashes).Combine(supported), static (output, pair) =>
         {
-            var agent = pair.Left.Agent;
-            output.AddSource(Names.HintName(agent.Type.FullName, pair.Right), AgentEmitter.Emit(pair.Left));
+            if (!pair.Right) return;
 
-            if (AgentEmitter.EmitHost(agent) is { } host)
-                output.AddSource(Names.HintName(agent.Type.FullName, pair.Right, "+Host"), host);
+            var (toolset, clashes) = pair.Left;
+            output.AddSource(Names.HintName(toolset.Type.FullName, clashes), ToolsetEmitter.Emit(toolset));
         });
 
-        context.RegisterSourceOutput(module, static (output, model) =>
+        context.RegisterSourceOutput(outputs.Combine(caseClashes).Combine(supported), static (output, pair) =>
         {
-            if (model is null) return;
+            if (!pair.Right) return;
+
+            var (agentOutput, clashes) = pair.Left;
+            var agent = agentOutput.Agent;
+            output.AddSource(Names.HintName(agent.Type.FullName, clashes), AgentEmitter.Emit(agentOutput));
+
+            if (AgentEmitter.EmitHost(agent) is { } host)
+                output.AddSource(Names.HintName(agent.Type.FullName, clashes, "+Host"), host);
+        });
+
+        context.RegisterSourceOutput(module.Combine(supported), static (output, pair) =>
+        {
+            if (pair.Left is not { } model || !pair.Right) return;
 
             output.AddSource(Names.HintName($"{Names.GeneratedNamespace}.{model.Name}"), ModuleEmitter.Emit(model));
         });
 
-        context.RegisterSourceOutput(
-            calls.Combine(module).Combine(references),
-            static (output, pair) => EmitInterceptor(output, pair.Left.Left, pair.Left.Right, pair.Right));
+        var intercepts = calls.Combine(module).Combine(references).Combine(supported);
+
+        context.RegisterSourceOutput(intercepts, static (output, pair) =>
+        {
+            if (!pair.Right) return;
+
+            var ((intercepted, model), referenced) = pair.Left;
+            EmitInterceptor(output, intercepted, model, referenced);
+        });
     }
 
     // D55: an assembly that only documents types still gets a module, so the tools of its referrers describe them

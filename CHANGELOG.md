@@ -7,6 +7,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- TSH031 reports a project that compiles below C# 14, for example through a `<LangVersion>` pinned in a shared
+  `Directory.Build.props`, and declares a toolset or an agent or calls `AddTypeshift()`. The generator writes nothing
+  for such a project. It got an error for every generated member, such as CS9260, CS0708 and CS0710, in files it did
+  not write.
 - `store.VerifyAsync(settingsId, otherSettingsId, conversationId, otherConversationId)` checks a store whose settings
   ids and conversation ids have different types, such as settings per tenant under a `string` and conversations
   under a `Guid`, in one call. A call with the ids of one type checks only the interfaces of that id type.

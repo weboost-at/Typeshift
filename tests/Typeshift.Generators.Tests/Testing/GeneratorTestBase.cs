@@ -92,6 +92,18 @@ public abstract class GeneratorTestBase
             compilation.SyntaxTrees.ElementAt(tree),
             Parse(source, compilation.SyntaxTrees.ElementAt(tree).FilePath));
 
+    // As a project that pins <LangVersion>
+    protected GeneratorRun RunAs(LanguageVersion version, params string[] sources)
+    {
+        var parseOptions = ParseOptions.WithLanguageVersion(version);
+        var compilation = Compile(sources);
+
+        // All at once: a compilation takes no trees of two language versions
+        var pinned = compilation.SyntaxTrees.Select(tree => tree.WithRootAndOptions(tree.GetRoot(), parseOptions));
+
+        return Run(compilation.RemoveAllSyntaxTrees().AddSyntaxTrees(pinned), parseOptions);
+    }
+
     // As a project without GenerateDocumentationFile: the compiler keeps /// comments as plain comments
     protected GeneratorRun RunWithoutDocumentation(params string[] sources)
     {
