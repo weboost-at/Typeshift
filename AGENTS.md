@@ -94,6 +94,8 @@ npm run docs:snippets:check
   required check. A change to public API builds them before you push:
   `dotnet build demos/Typeshift.Demos.slnx -c Release`. When it breaks one, fix it in the same PR, or say so under a
   **Demos** heading in the PR's description.
+- Dependabot (`.github/dependabot.yml`) proposes new versions of the packages, the docs toolchain and the workflows'
+  actions once a week. It skips Roslyn (D8) and FluentAssertions 8, whose license changed.
 
 ## Docs
 

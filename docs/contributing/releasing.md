@@ -30,6 +30,9 @@ nuget.org keeps later packages under the name.
    deploy the site.
 4. **Turn on private vulnerability reporting** in the repository's security settings. `SECURITY.md` sends a reporter
    to the form this adds to the *Security* tab, and without the setting the form does not exist.
+5. **Turn on Dependabot alerts** on the same settings page. `.github/dependabot.yml` needs no setting to propose new
+   versions of the packages and the workflows' actions once a week. The alerts add what a schedule cannot: word of
+   an advisory against a version in use.
 
 ## Cutting a release
 

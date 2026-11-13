@@ -1,0 +1,41 @@
+# Dependabot proposes new versions once a week: one pull request per ecosystem for the minor and patch versions,
+# and one for each new major version, which needs reading before it is taken
+version: 2
+updates:
+  # The central versions of Directory.Packages.props and the tools of .config/dotnet-tools.json. The demos have a
+  # solution of their own, and with it the packages only they reference
+  - package-ecosystem: nuget
+    directories:
+      - /
+      - /demos
+    schedule:
+      interval: weekly
+    groups:
+      nuget:
+        patterns: ['*']
+        update-types: [minor, patch]
+    ignore:
+      # D8: the generator stays on Roslyn 5, which the RoslynVersion property pins
+      - dependency-name: Microsoft.CodeAnalysis.CSharp
+      # Version 8 changed its license
+      - dependency-name: FluentAssertions
+        update-types: ['version-update:semver-major']
+
+  # The docs site's toolchain
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      npm:
+        patterns: ['*']
+        update-types: [minor, patch]
+
+  # The workflows name each action by its commit, with the version in a comment. Both move together
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
