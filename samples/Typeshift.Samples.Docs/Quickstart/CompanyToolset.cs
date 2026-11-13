@@ -28,6 +28,7 @@ internal partial class CompanyToolset : Toolset
     [
         new("Danube Robotics", "Vienna", Active: true),
         new("Prater Motion", "Vienna", Active: true),
+        new("Belvedere Optics", "Vienna", Active: true),
         new("Graz Gearworks", "Graz", Active: false)
     ];
 }

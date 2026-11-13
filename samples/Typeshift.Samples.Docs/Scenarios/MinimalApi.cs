@@ -38,7 +38,7 @@ internal static class MinimalApi
             using var http = new HttpClient { BaseAddress = new Uri(address) };
 
             var answer = await http.GetStringAsync("/research/Vienna");
-            if (answer != "Found Danube Robotics and Prater Motion.")
+            if (answer != "Found Danube Robotics, Prater Motion and Belvedere Optics.")
                 throw new InvalidOperationException($"Unexpected answer: {answer}");
 
             await app.StopAsync();

@@ -70,13 +70,14 @@ internal partial class CompanyToolset : Toolset
     [
         new("Danube Robotics", "Vienna", Active: true),
         new("Prater Motion", "Vienna", Active: true),
+        new("Belvedere Optics", "Vienna", Active: true),
         new("Graz Gearworks", "Graz", Active: false)
     ];
 }
 
 internal sealed record Company(string Name, string City, bool Active);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/CompanyToolset.cs#L3-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-toolset' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/CompanyToolset.cs#L3-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-toolset' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 <details>

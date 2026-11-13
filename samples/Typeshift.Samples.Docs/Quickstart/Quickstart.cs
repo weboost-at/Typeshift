@@ -1,27 +1,21 @@
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.DependencyInjection;
-using Typeshift.Samples.Hosting;
 
 namespace Typeshift.Samples.Quickstart;
 
 internal static class Quickstart
 {
-    public static async Task RunAsync()
+    public static async Task RunAsync(IChatClient client)
     {
-        // begin-snippet: quickstart-clients
-        var services = new ServiceCollection();
+        // begin-snippet: quickstart-runtime
+        await using var runtime = TypeshiftRuntime.Create(client);
+        await using var research = runtime.Agent<ResearchAgent>();
 
-        services.AddTypeshift()
-            .WithStore<InMemoryTypeshiftStore<int>>();
+        var first = await research.RunAsync("Vienna");
 
-        services.AddKeyedChatClient("openai", new CannedChatClient());
-
-        await using var provider = services.BuildServiceProvider(validateScopes: true);
+        Console.WriteLine($"{research.Agent.Name}: {first.Text}");
         // end-snippet
 
         // begin-snippet: quickstart-settings
-        await using var scope = provider.CreateAsyncScope();
-        var research = scope.ServiceProvider.GetRequiredService<AgentHost<ResearchAgent>>();
         var settingsId = 42;
 
         await research.WithSettingsId(settingsId).ConfigureAsync(settings => settings with
@@ -48,6 +42,18 @@ internal static class Quickstart
         // end-snippet
 
         Console.WriteLine();
+
+        // Getting started prints these three answers, one for each layer that sets the limit
+        var limited = await research.WithSettingsId(settingsId).RunAsync("Vienna", settings: run);
+
+        if (first.Text != "Found Danube Robotics, Prater Motion and Belvedere Optics.")
+            throw new InvalidOperationException($"Expected the agent's limit of 3: {first.Text}");
+
+        if (answer.Text != "Found Danube Robotics and Prater Motion.")
+            throw new InvalidOperationException($"Expected the stored limit of 2: {answer.Text}");
+
+        if (limited.Text != "Found Danube Robotics.")
+            throw new InvalidOperationException($"Expected the run's limit of 1: {limited.Text}");
 
         // begin-snippet: own-settings
         await research.ConfigureAsync(settings => settings with { Temperature = 0.3f });

@@ -71,9 +71,14 @@ internal sealed class CannedChatClient : IChatClient
             .Where(found => found.ValueKind == JsonValueKind.Array)
             .SelectMany(found => found.EnumerateArray())
             .Select(company => company.GetProperty("name").GetString())
-            .ToList();
+            .ToArray();
 
-        return names.Count == 0 ? "Found no companies." : $"Found {string.Join(" and ", names)}.";
+        return names switch
+        {
+            [] => "Found no companies.",
+            [var only] => $"Found {only}.",
+            [.. var others, var last] => $"Found {string.Join(", ", others)} and {last}."
+        };
     }
 
     private static FunctionCallContent Call(string name, params (string Name, object Value)[] arguments) =>

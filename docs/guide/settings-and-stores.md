@@ -128,7 +128,7 @@ await research.ConfigureAsync(settings => settings with { Temperature = 0.3f });
 
 var everyRun = await research.RunAsync("Graz");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L52-L56' title='Snippet source file'>snippet source</a> | <a href='#snippet-own-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L58-L62' title='Snippet source file'>snippet source</a> | <a href='#snippet-own-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)` load and save them, and
