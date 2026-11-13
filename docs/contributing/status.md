@@ -99,7 +99,7 @@ rewrite.
 | new | Ids given in code pick the stores of their types: settings under an `int` id apply and save there, the host they came from keeps the agent's own, a conversation under a `string` id resumes, equal values of two types are two conversations, the `Guid` tracker leaves out the runs of `int` ids and the `int` tracker lists and steers them, an id no store keeps fails naming the interface, the raw path's `ChatOptions.ConversationId` names a `string` id, and a resume needs the host's conversation; without a store any id type is kept in memory, and a store added to the container without `WithStore<T>()` turns the memory off, so what it does not keep fails naming the store it needs (D69, D72) | `IdScopeTests` |
 | new | The container has one tracker per id type, a singleton, and `WithConversationTracker<TId>()` registers one closed, which Native AOT needs for a value type (D72) | `AddTypeshiftTests.Given_AddTypeshift_The_Tracker_Of_An_Id_Type_Is_One_Singleton`, `..._Given_WithConversationTracker_Its_Tracker_Is_Registered_Closed_So_Native_Aot_Needs_No_Generic_Type`, `samples/Typeshift.Samples.Console`, run by CI |
 | new | A streaming raw call that fails, here on a conversation no store keeps, fails its span (D36) | `TelemetryTests.Given_A_Streaming_Raw_Call_Whose_Conversation_No_Store_Keeps_Its_Span_Carries_The_Error` |
-| 19 | Settings of every storable kind read back equivalent; nulls left out; mistyped members read as null | `SettingsJsonTests` |
+| 19 | Settings of every storable kind read back equivalent; nulls left out; mistyped members read as null; an enum value without a name, a `[Flags]` zero or a dictionary key among them, is stored as its number and reads back, also from the string of digits earlier versions wrote | `SettingsJsonTests` |
 | new | A record struct stores like a record; another struct is TSH012 (D19) | `SettingsJsonTests.Given_Settings_Of_Every_Kind_They_Read_Back_Equivalent`, `DiagnosticTests.Given_A_Configurable_Struct_That_Is_Not_A_Record_TSH012_Is_Reported_On_The_Pick` |
 | new | `System.Text.Json` writes and reads the stored shape (D44) | `SettingsJsonTests.Given_Settings_System_Text_Json_Writes_What_The_Store_Keeps`, `..._Given_Stored_Json_System_Text_Json_Reads_The_Settings` |
 | new | A conversation entry serializes as it is: `System.Text.Json` in its stored shape, Newtonsoft.Json as that JSON in a string (D44) | `ConversationEntryJsonTests` |
@@ -178,6 +178,9 @@ rewrite.
   one message, and `Result` reads the first of them, where `RunAsync<T>` reads the last.
 - **Unions in settings.** A configurable member cannot be a union (TSH012), since the generator writes no stored
   form for one.
+- **A negative enum key without a name.** The generated code writes a dictionary's enum key with `ToString()`, which
+  puts the current culture's sign before a negative number. Such a key stored under a culture whose minus sign is
+  not `-`, Swedish for example, does not read back. Enum values are stored in digits whatever the culture.
 - **The empty union as a default.** A union parameter that defaults to `default` states `"default": null` in its
   schema, which none of its cases accepts, although the tool binds JSON null to that default.
 - **Trackers of value-type ids under Native AOT.** The container closes the tracker's open generic over reference

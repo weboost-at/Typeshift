@@ -55,6 +55,10 @@ All notable changes to this project are documented here. The format follows
   missing from the conversation. A stored content that the installed version of Microsoft.Extensions.AI cannot read
   is left out when its entry loads, where the whole conversation failed to load, and the next run logs how many
   contents it went without.
+- A stored enum value without a name reads back: a `[Flags]` value with no flag set where the enum has no member for
+  zero, a combination with a bit no member names, a number cast to the enum, or such a value as a dictionary's key.
+  It is stored as its number. Before, it was saved without an error and read back as missing, so the layer below
+  applied instead, and settings saved that way take effect once you upgrade.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

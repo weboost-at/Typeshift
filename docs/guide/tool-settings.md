@@ -82,8 +82,8 @@ as missing, so the layer below applies. When that matters, raise the schema vers
 
 A configurable member needs a type settings can store ([TSH012](./diagnostics.md#tsh012)):
 
-- strings, Booleans, enums (stored by name), `Guid`, `DateTime`, `DateTimeOffset`, `TimeSpan`, `DateOnly`,
-  `TimeOnly`, `Uri` and `ReasoningOptions`;
+- strings, Booleans, enums (stored by name, or by number for a value without a name, such as `[Flags]` with none
+  set), `Guid`, `DateTime`, `DateTimeOffset`, `TimeSpan`, `DateOnly`, `TimeOnly`, `Uri` and `ReasoningOptions`;
 - the numbers `byte`, `short`, `int`, `long`, `float`, `double` and `decimal`;
 - non-generic classes and records with a public parameterless constructor, no `required` members and storable
   settable members, replaced as a whole and never merged, and record structs that meet the same rules;

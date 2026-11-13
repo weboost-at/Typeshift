@@ -135,13 +135,19 @@ public static class StorableJson
     }
 
     /// <summary>
-    /// Writes an enum value by its name, so reordering the enum keeps stored values.
+    /// Writes an enum value by its name, so reordering the enum keeps stored values, and a value without a name, such
+    /// as flags with none set or with a bit no member names, as its number.
     /// </summary>
     /// <typeparam name="TEnum">The enum's type.</typeparam>
     /// <param name="writer">The writer.</param>
     /// <param name="value">The value.</param>
-    public static void WriteEnum<TEnum>(Utf8JsonWriter writer, TEnum value) where TEnum : struct, Enum =>
-        writer.WriteStringValue(value.ToString());
+    public static void WriteEnum<TEnum>(Utf8JsonWriter writer, TEnum value) where TEnum : struct, Enum
+    {
+        var text = value.ToString();
+
+        if (IsNamed<TEnum>(text)) writer.WriteStringValue(text);
+        else writer.WriteRawValue(GetNumber(value));
+    }
 
     /// <summary>
     /// Writes a <see cref="Guid"/>.
@@ -253,19 +259,24 @@ public static class StorableJson
     }
 
     /// <summary>
-    /// Reads an enum value by its name, or a combination of flags as <see cref="WriteEnum{TEnum}"/> writes it.
+    /// Reads an enum value by its name, a combination of flags, or the number of a value without a name, as
+    /// <see cref="WriteEnum{TEnum}"/> writes them. The number reads from a string of digits too, which is how
+    /// versions up to 0.1.0-alpha.6 wrote it.
     /// </summary>
     /// <typeparam name="TEnum">The enum's type.</typeparam>
     /// <param name="element">The JSON.</param>
     /// <param name="value">The value.</param>
-    /// <returns>False unless the JSON names members of the enum.</returns>
+    /// <returns>False unless the JSON names members of the enum or is a whole number of its range.</returns>
     public static bool TryReadEnum<TEnum>(JsonElement element, out TEnum value) where TEnum : struct, Enum
     {
         value = default;
 
-        return TryRead(element, out string text)
-            && text.Split(", ").All(part => Enum.IsDefined(typeof(TEnum), part))
-            && Enum.TryParse(text, out value);
+        return element.ValueKind switch
+        {
+            JsonValueKind.String => TryParseEnum(element.GetString()!, out value),
+            JsonValueKind.Number => TryParseEnum(element.GetRawText(), out value),
+            _ => false
+        };
     }
 
     /// <summary>
@@ -419,7 +430,8 @@ public static class StorableJson
     }
 
     /// <summary>
-    /// Reads an object as a dictionary keyed by enum names, leaving out the entries that do not read.
+    /// Reads an object as a dictionary keyed by enum names, or by the number of a value without a name, leaving out
+    /// the entries that do not read.
     /// </summary>
     /// <typeparam name="TKey">The keys' enum type.</typeparam>
     /// <typeparam name="T">The values' type.</typeparam>
@@ -440,11 +452,33 @@ public static class StorableJson
 
         foreach (var (name, value) in named)
         {
-            if (Enum.IsDefined(typeof(TKey), name) && Enum.TryParse(name, out TKey key)) values[key] = value;
+            if (TryParseEnum(name, out TKey key)) values[key] = value;
         }
 
         return true;
     }
+
+    // Names, each a member's, or a whole number, so text that is neither reads as absent
+    private static bool TryParseEnum<TEnum>(string text, out TEnum value) where TEnum : struct, Enum
+    {
+        value = default;
+        return (IsNamed<TEnum>(text) || IsWholeNumber(text)) && Enum.TryParse(text, out value);
+    }
+
+    private static bool IsNamed<TEnum>(string text) where TEnum : struct, Enum =>
+        text.Split(", ").All(part => Enum.IsDefined(typeof(TEnum), part));
+
+    private static bool IsWholeNumber(string text)
+    {
+        var digits = text.AsSpan(text.StartsWith('-') ? 1 : 0);
+        return digits.Length > 0 && !digits.ContainsAnyExceptInRange('0', '9');
+    }
+
+    // ToString puts the current culture's sign before a negative value, which no reader parses back
+    private static string GetNumber<TEnum>(TEnum value) where TEnum : struct, Enum =>
+        value.GetTypeCode() is TypeCode.UInt64
+            ? Convert.ToUInt64(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture)
+            : Convert.ToInt64(value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
 
     private static bool Parse<TNumber>(string text, out TNumber value) where TNumber : struct, INumber<TNumber> =>
         TNumber.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);

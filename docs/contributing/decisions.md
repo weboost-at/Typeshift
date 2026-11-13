@@ -1028,8 +1028,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   entries to either library as they are.
 - **Details:** each overrides record writes and reads itself (`IJsonStorable<T>`), so an agent's `Settings` in
   another assembly than the toolset delegates to it. A member that does not read, missing or mistyped, reads as
-  null and keeps the layer below; a document that is no JSON object throws. Enums are stored by name, non-finite
-  numbers as strings.
+  null and keeps the layer below; a document that is no JSON object throws. Enums are stored by name, so reordering
+  an enum keeps them. A value without a name, such as `[Flags]` with none set, a combination with a bit no member
+  names, or a cast number, is stored as its number, in digits whatever the culture, and as those digits where it is
+  a dictionary's key. A string of digits reads as the number too, which is how versions up to 0.1.0-alpha.6 wrote
+  such a value before reading it back as absent. Non-finite numbers are stored as strings.
 
 ### D78. Stored contents follow Microsoft.Extensions.AI's content contract
 

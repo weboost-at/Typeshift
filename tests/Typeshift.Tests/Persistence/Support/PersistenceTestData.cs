@@ -40,6 +40,7 @@ public class PersistenceTestData(Faker faker)
             Link = new Uri(faker.Internet.Url()),
             Shade = Shade.Dark,
             Days = Days.Monday | Days.Tuesday,
+            Channels = Channels.Sms,
             Address = new Address { Street = faker.Address.StreetAddress(), City = faker.Address.City() },
             Home = new GeoPoint(faker.Address.Latitude(), faker.Address.Longitude()),
             Tags = [faker.Lorem.Word(), faker.Lorem.Word()],

@@ -122,6 +122,100 @@ public class SettingsJsonTests : UnitTestBase
     }
 
     [Fact]
+    public void Given_A_Flags_Enum_Without_A_Zero_Member_Its_Zero_Reads_Back()
+    {
+        // Arrange
+        var settings = new EveryKindAgent.Settings { Inspect = new() { Channels = 0 } };
+
+        // Act
+        var read = EveryKindAgent.Settings.Deserialize(settings.Serialize());
+
+        // Assert
+        read.Inspect.Channels.Should().Be((Channels)0);
+    }
+
+    [Theory]
+    [InlineData((Channels)4)]
+    [InlineData(Channels.Email | (Channels)4)]
+    [InlineData((Channels)(-4))]
+    public void Given_An_Enum_Value_Without_A_Name_It_Reads_Back(Channels channels)
+    {
+        // Arrange
+        var settings = new EveryKindAgent.Settings { Inspect = new() { Channels = channels } };
+
+        // Act
+        var read = EveryKindAgent.Settings.Deserialize(settings.Serialize());
+
+        // Assert
+        read.Inspect.Channels.Should().Be(channels);
+    }
+
+    [Fact]
+    public void Given_An_Enum_Value_Without_A_Name_It_Is_Stored_As_Its_Number()
+    {
+        // Arrange
+        var settings = new EveryKindAgent.Settings { Inspect = new() { Channels = (Channels)4 } };
+
+        // Act
+        var json = settings.Serialize();
+
+        // Assert
+        json.Should().Be("""{"$schemaVersion":2,"tools":{"inspect":{"channels":4}}}""");
+    }
+
+    [Fact]
+    public void Given_A_Negative_Enum_Value_Without_A_Name_Its_Number_Is_The_Same_In_Every_Culture()
+    {
+        // Arrange
+        using var culture = new MinusSignCulture();
+        var settings = new EveryKindAgent.Settings { Inspect = new() { Channels = (Channels)(-4) } };
+
+        // Act
+        var json = settings.Serialize();
+
+        // Assert
+        json.Should().Be("""{"$schemaVersion":2,"tools":{"inspect":{"channels":-4}}}""");
+    }
+
+    [Fact]
+    public void Given_A_Dictionary_Key_Without_A_Name_Its_Entry_Reads_Back()
+    {
+        // Arrange
+        var places = new Dictionary<Shade, Address> { [(Shade)5] = new() { Street = "Ring 1" } };
+        var settings = new EveryKindAgent.Settings { Inspect = new() { Places = places } };
+
+        // Act
+        var read = EveryKindAgent.Settings.Deserialize(settings.Serialize());
+
+        // Assert
+        read.Inspect.Places.Should().BeEquivalentTo(places);
+    }
+
+    [Fact]
+    public void Given_An_Enum_Value_Stored_As_A_String_Of_Digits_It_Reads_Back()
+    {
+        // Act
+        var read = EveryKindAgent.Settings.Deserialize("""{"tools":{"inspect":{"channels":"0"}}}""");
+
+        // Assert
+        read.Inspect.Channels.Should().Be((Channels)0);
+    }
+
+    [Theory]
+    [InlineData("\"Fax\"")]
+    [InlineData("\"Email, 4\"")]
+    [InlineData("1.5")]
+    [InlineData("true")]
+    public void Given_Enum_Json_That_Is_Neither_Names_Nor_A_Whole_Number_It_Reads_As_Null(string channels)
+    {
+        // Act
+        var read = EveryKindAgent.Settings.Deserialize("""{"tools":{"inspect":{"channels":""" + channels + "}}}");
+
+        // Assert
+        read.Inspect.Channels.Should().BeNull();
+    }
+
+    [Fact]
     public void Given_A_Stored_Object_Its_Missing_Members_Take_Their_Defaults()
     {
         // Act
