@@ -10,6 +10,14 @@ docs and each agent as a small class that names its model, its instructions and 
 them into what Microsoft.Extensions.AI runs, so a mistake such as configuring a tool the agent doesn't offer fails
 the build, and an analyzer reports others while you type.
 
+::: warning Typeshift is in alpha
+The API may change between releases. The [changelog](https://github.com/weboost-at/Typeshift/blob/main/CHANGELOG.md)
+lists what changed in each release, and [Known gaps](../contributing/status.md#known-gaps) lists what is open.
+
+These pages describe the `main` branch, so they can be ahead of the package you installed. The version beside the
+Typeshift logo is the newest package.
+:::
+
 ## Why agents in code
 
 An agent is code you review, version and test like the rest of your app. Its tools are methods the compiler checks,

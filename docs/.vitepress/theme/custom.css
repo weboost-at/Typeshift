@@ -12,6 +12,14 @@
   }
 }
 
+/* The newest package's version beside the site's name (config.mts) */
+.VPNavBarTitle .version {
+  margin-left: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--vp-c-text-2);
+}
+
 /* Code and tables use the wide column; a line of prose stays as long as it was */
 .vp-doc > div > p,
 .vp-doc > div > ul,

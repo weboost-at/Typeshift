@@ -33,7 +33,9 @@ nuget.org keeps later packages under the name.
 
 1. On `main`, with CI green: in `CHANGELOG.md`, rename `[Unreleased]` to the version and date, and open a new empty
    `[Unreleased]` above it. The release workflow fails without a section for the tag's version, and that section
-   becomes the notes of the GitHub release.
+   becomes the notes of the GitHub release. The docs site, which is built from `main`, shows the version of the
+   newest section beside its name and in `llms.txt` as the newest package, so it names the release from this commit
+   on.
 2. Move the rows of `src/Typeshift.Generators/AnalyzerReleases.Unshipped.md` to `AnalyzerReleases.Shipped.md` under a
    `## Release <version>` heading. From then on, a shipped diagnostic ID is never reused or renumbered. A prerelease
    skips this step, because the heading takes only a plain version (RS2007), so the rules ship with the next stable

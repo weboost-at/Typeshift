@@ -1,12 +1,21 @@
 import { defineConfig } from 'vitepress'
 import { withMermaid } from 'vitepress-plugin-mermaid'
 import llmstxt from 'vitepress-plugin-llms'
+import { readFileSync } from 'node:fs'
 import { readdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 const repository = 'https://github.com/weboost-at/Typeshift'
 const site = 'https://weboost-at.github.io'
 const description = 'Code-defined agents and toolsets for .NET on Microsoft.Extensions.AI'
+
+// The site is built from main, which can be ahead of the newest package, so the nav bar and the LLM files name that
+// package. Its version is the newest section of the changelog, which a release has before its tag (release.yml
+// checks), so a build needs neither the tags nor the history
+const version = readFileSync(new URL('../../CHANGELOG.md', import.meta.url), 'utf8').match(/^## \[(\d[^\]]*)\]/m)?.[1]
+const describes = version
+  ? `These docs describe the main branch, which can be ahead of the newest package, ${version}.`
+  : 'These docs describe the main branch.'
 
 // GitHub Pages serves a project site under the repository's name; the Pages workflow passes the real base
 const base = process.env.DOCS_BASE ?? '/Typeshift/'
@@ -125,7 +134,7 @@ export default withMermaid(
         let text = (await readFile(path, 'utf8'))
           .replaceAll('\n\nsnippet source | anchor\n', '\n')
           .replace(/\]\(\.\.\/([^)#\s]*?)(?:index)?\.md(#[^)\s]*)?\)/g, `](${site}${base}$1$2)`)
-        if (file === 'llms-full.txt') text = text.replaceAll('](./', `](${site}${base}guide/`)
+        if (file === 'llms-full.txt') text = `> ${describes}\n\n${text.replaceAll('](./', `](${site}${base}guide/`)}`
 
         if (text.includes('](../')) throw new Error(`${file} still links out of the guide by a relative path`)
 
@@ -141,6 +150,8 @@ export default withMermaid(
     },
     themeConfig: {
       logo: { light: '/brand/mark.svg', dark: '/brand/mark-dark.svg', alt: 'Typeshift' },
+      // Beside the name rather than in the menu, which has no room left below 1100px and is folded away on a phone
+      siteTitle: version ? `Typeshift <span class="version">v${version}</span>` : 'Typeshift',
       nav: [
         { text: 'Guide', link: '/guide/getting-started', activeMatch: '/guide/' },
         { text: 'Diagnostics', link: '/guide/diagnostics' },
@@ -183,7 +194,7 @@ export default withMermaid(
       plugins: [
         llmstxt({
           domain: site,
-          description,
+          description: `${description}. ${describes}`,
           sidebar: { '/guide/': sidebar['/guide/'] },
           ignoreFiles: ['contributing/**']
         })
