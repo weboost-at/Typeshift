@@ -1231,6 +1231,101 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string AgentUsesBeingTyped =
+        """
+        using Typeshift;
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent()
+            {
+                UseAgent<>();
+                UseAgent<>();
+            }
+        }
+        """;
+
+    public const string SettingsBeingTyped =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.").WithSettings<>();
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    // The pick is written before its record is
+    public const string SettingsPickOfAnUnresolvedType =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Limit);
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string SettingOfAnUnresolvedType =
+        """
+        using Typeshift;
+
+        internal record EchoSettings
+        {
+            public Missing Home { get; init; }
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Home);
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string UnresolvedSignature =
+        """
+        using System.Collections.Generic;
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static Unknown1 Echo(Unknown2 text, List<Unknown3> more) => default;
+        }
+        """;
+
+    public const string StoreBeingTyped =
+        """
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithStore<>();
+        }
+        """;
+
+    public const string ChatClientProviderBeingTyped =
+        """
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithChatClientProvider<>();
+        }
+        """;
+
     public const string NoStore =
         """
         using Typeshift;

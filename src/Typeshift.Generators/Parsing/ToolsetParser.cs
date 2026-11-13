@@ -167,6 +167,11 @@ internal static class ToolsetParser
         else if (description is null)
             reporter.Report(Descriptors.MissingDescription, addTool.Syntax, name);
 
+        // Generated code would name a type that does not resolve yet, and repeat the compiler's error
+        if (method.ReturnType.ContainsErrorType()
+            || method.Parameters.Any(parameter => parameter.Type.ContainsErrorType()))
+            return null;
+
         var parameters = new List<ParameterModel>();
 
         foreach (var parameter in method.Parameters)
@@ -249,7 +254,10 @@ internal static class ToolsetParser
                         break;
                     }
 
-                    reporter.Report(Descriptors.UnreadableChain, call.Arguments[0].Syntax, "settings pick");
+                    // No pick binds while the settings type does not resolve, which the compiler reports
+                    if (chain.SettingsType?.ContainsErrorType() is not true)
+                        reporter.Report(Descriptors.UnreadableChain, call.Arguments[0].Syntax, "settings pick");
+
                     valid = false;
                     break;
             }
@@ -274,6 +282,9 @@ internal static class ToolsetParser
     {
         var type = chain.SettingsType!;
         var settingsName = ConstructorChains.GetCalledName(chain.SettingsCall!);
+
+        // A type that does not resolve yet is the compiler's to report, here and for a member below
+        if (type.ContainsErrorType()) return null;
 
         if (!type.IsRecord)
         {
@@ -319,6 +330,8 @@ internal static class ToolsetParser
 
             if (configurable && storage is null)
             {
+                if (property.Type.ContainsErrorType()) return null;
+
                 var pick = picked.FirstOrDefault(candidate => candidate.Property.Name == property.Name).Call;
                 var location = pick?.Arguments[0].Syntax ?? settingsName;
 

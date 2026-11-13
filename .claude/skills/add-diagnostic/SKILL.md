@@ -24,6 +24,8 @@ configuring a tool the agent does not offer need no diagnostic, because no gener
    - a rule about one call goes into `TypeshiftAnalyzer.AnalyzeCall`;
    - a rule across declarations goes into a compilation-end action of `TypeshiftAnalyzer`.
    - Report on the narrowest syntax the developer has to change (the argument, the `WithSettings<T>` name).
+   - Say nothing about a type that does not resolve yet (`ContainsErrorType()`): the compiler reports it, its name
+     may be empty, and the generator skips what names it.
 4. **Test.** Add a source constant to `tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs` and a
    test to `DiagnosticTests.cs`, named `Given_<state>_TSHxxx_Is_Reported_On_<where>`:
 

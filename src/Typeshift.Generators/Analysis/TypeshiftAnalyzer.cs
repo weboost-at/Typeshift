@@ -199,10 +199,10 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         var target = invocation.TargetMethod;
 
         // D77: a chat client provider may serve providers of any type, but it must serve some. A type parameter is
-        // its caller's to check, since its interfaces are unknown here
+        // its caller's to check, since its interfaces are unknown here, and a type that does not resolve the compiler's
         if (target is { Name: "WithChatClientProvider", TypeArguments.Length: 1 }
             && target.ContainingType.Is(KnownTypes.TypeshiftBuilder)
-            && target.TypeArguments[0] is { TypeKind: not TypeKind.TypeParameter } clients
+            && target.TypeArguments[0] is { TypeKind: not (TypeKind.TypeParameter or TypeKind.Error) } clients
             && !clients.AllInterfaces.Any(contract => contract.Is(KnownTypes.ChatClientProvider)))
         {
             context.ReportDiagnostic(Diagnostic.Create(
@@ -213,10 +213,11 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        // D72: a store of any id type serves the ids of its type; a type parameter is its caller's to check
+        // D72: a store of any id type serves the ids of its type; a type parameter is its caller's to check, and a
+        // type that does not resolve the compiler's
         if (target is { Name: "WithStore", TypeArguments.Length: 1 }
             && target.ContainingType.Is(KnownTypes.TypeshiftBuilder)
-            && target.TypeArguments[0] is { TypeKind: not TypeKind.TypeParameter } store
+            && target.TypeArguments[0] is { TypeKind: not (TypeKind.TypeParameter or TypeKind.Error) } store
             && !IsStore(store))
         {
             context.ReportDiagnostic(Diagnostic.Create(

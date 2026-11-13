@@ -47,6 +47,9 @@ All notable changes to this project are documented here. The format follows
   and Finnish.
 - Two toolsets or agents whose full names differ only by case, such as `TicketTools` and `Tickettools` in one
   namespace, no longer stop the generator with CS8785.
+- A type that does not resolve yet, as while you type its name, is left to the compiler. Generated code no longer
+  names it, so its error is not repeated in a generated file, and TSH005, TSH012, TSH015, TSH025, TSH028 and TSH030
+  are no longer reported beside it, some of them about a type named `''`.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

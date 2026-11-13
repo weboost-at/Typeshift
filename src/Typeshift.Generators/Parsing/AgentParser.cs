@@ -166,7 +166,9 @@ internal static class AgentParser
 
             // D33, D34
             case "UseAgent" or "UseHandoff":
-                var target = (INamedTypeSymbol)call.TargetMethod.TypeArguments[0];
+                if (call.TargetMethod.TypeArguments[0] is not INamedTypeSymbol { TypeKind: not TypeKind.Error } target)
+                    break;
+
                 var subAgent = call.TargetMethod.Name == "UseAgent";
                 var syntax = ConstructorChains.GetCalledName(call);
 

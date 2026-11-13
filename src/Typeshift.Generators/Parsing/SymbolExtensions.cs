@@ -53,6 +53,17 @@ internal static class SymbolExtensions
             type.WithNullableAnnotation(NullableAnnotation.NotAnnotated)
                 .ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
+        // A type that does not resolve, by itself or as a type argument or an array's element: the compiler reports
+        // it where it is written
+        public bool ContainsErrorType() =>
+            type switch
+            {
+                IArrayTypeSymbol array => array.ElementType.ContainsErrorType(),
+                INamedTypeSymbol named => named.TypeKind == TypeKind.Error
+                    || named.TypeArguments.Any(argument => argument.ContainsErrorType()),
+                _ => false
+            };
+
         // Base records first; a redeclared property counts once, as its most derived declaration
         public IEnumerable<IPropertySymbol> GetPublicProperties()
         {

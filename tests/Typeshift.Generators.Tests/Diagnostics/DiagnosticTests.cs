@@ -918,6 +918,29 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Theory]
+    [InlineData(nameof(DiagnosticSources.ToolsetUseBeingTyped))]
+    [InlineData(nameof(DiagnosticSources.ToolsetUseUnresolvedGlobal))]
+    [InlineData(nameof(DiagnosticSources.ToolsetUseUnresolvedShared))]
+    [InlineData(nameof(DiagnosticSources.AgentUsesBeingTyped))]
+    [InlineData(nameof(DiagnosticSources.SettingsBeingTyped))]
+    [InlineData(nameof(DiagnosticSources.SettingsPickOfAnUnresolvedType))]
+    [InlineData(nameof(DiagnosticSources.SettingOfAnUnresolvedType))]
+    [InlineData(nameof(DiagnosticSources.UnresolvedSignature))]
+    [InlineData(nameof(DiagnosticSources.StoreBeingTyped))]
+    [InlineData(nameof(DiagnosticSources.ChatClientProviderBeingTyped))]
+    public void Given_A_Type_That_Does_Not_Resolve_Yet_Only_The_Compiler_Reports_It(string mistake)
+    {
+        // Arrange
+        var source = SourceCatalogs.Read(typeof(DiagnosticSources), mistake);
+
+        // Act
+        var run = Run(source);
+
+        // Assert
+        run.Assert.ReportsNothingOfTheAnalyzers();
+    }
+
+    [Theory]
     [InlineData("TypeshiftIdType", "TenantId")]
     [InlineData("TypeshiftProviderIdType", "ProviderKey")]
     public void Given_A_Leftover_Id_Type_Property_Naming_An_Unknown_Type_TSH029_Is_Not_Reported(

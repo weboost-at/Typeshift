@@ -60,6 +60,18 @@ public sealed class GeneratorRunAssertions(GeneratorRun run)
         return run;
     }
 
+    // What the compiler reports stands alone, without a diagnostic of the analyzer's beside it
+    public GeneratorRun ReportsNothingOfTheAnalyzers()
+    {
+        run.Reported
+            .Where(diagnostic => diagnostic.Id.StartsWith("TSH", StringComparison.Ordinal))
+            .Select(diagnostic => diagnostic.ToString())
+            .Should()
+            .BeEmpty();
+
+        return run;
+    }
+
     public GeneratorRun Suppresses(string id)
     {
         run.Diagnostics
