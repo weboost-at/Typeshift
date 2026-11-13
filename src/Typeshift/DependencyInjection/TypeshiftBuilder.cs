@@ -15,13 +15,14 @@ public sealed class TypeshiftBuilder
 
     /// <summary>
     /// Registers a store, a singleton, and turns persistence on for what it keeps: agents' own settings, stored
-    /// settings, conversations or several of them. Call it once per class, for example for a store of settings and
-    /// another of conversations; for each store interface, the last call wins. Without any store, Typeshift keeps
-    /// everything in memory until the app stops.
+    /// settings, conversations, their decisions or several of them. Call it once per class, for example for a store of
+    /// settings and another of conversations; for each store interface, the last call wins. Without any store,
+    /// Typeshift keeps everything in memory until the app stops.
     /// </summary>
     /// <typeparam name="TStore">
-    /// An <c>IAgentSettingsStore</c>, an <c>ISettingsStore&lt;TId&gt;</c>, an <c>IConversationStore&lt;TId&gt;</c>, or
-    /// several of them, of any id types (TSH028). A run's ids pick the store of their type.
+    /// An <c>IAgentSettingsStore</c>, an <c>ISettingsStore&lt;TId&gt;</c>, an <c>IConversationStore&lt;TId&gt;</c>, an
+    /// <c>IDecisionStore&lt;TId&gt;</c>, or several of them, of any id types (TSH028). A run's ids pick the store of
+    /// their type.
     /// </typeparam>
     /// <returns>The same chain.</returns>
     public TypeshiftBuilder WithStore<
@@ -41,7 +42,8 @@ public sealed class TypeshiftBuilder
     /// <param name="store">The store, a singleton.</param>
     /// <typeparam name="TStore">
     /// The store's type as your code declares it: an <c>IAgentSettingsStore</c>, an <c>ISettingsStore&lt;TId&gt;</c>,
-    /// an <c>IConversationStore&lt;TId&gt;</c>, or several of them, of any id types (TSH028).
+    /// an <c>IConversationStore&lt;TId&gt;</c>, an <c>IDecisionStore&lt;TId&gt;</c>, or several of them, of any id
+    /// types (TSH028).
     /// </typeparam>
     /// <returns>The same chain.</returns>
     public TypeshiftBuilder WithStore<
@@ -76,8 +78,8 @@ public sealed class TypeshiftBuilder
 
         if (contracts.Length == 0)
             throw new InvalidOperationException(
-                $"{type.Name} is no store: implement ISettingsStore<TId>, IConversationStore<TId> or "
-                + "IAgentSettingsStore (TSH028).");
+                $"{type.Name} is no store: implement ISettingsStore<TId>, IConversationStore<TId>, "
+                + "IDecisionStore<TId> or IAgentSettingsStore (TSH028).");
 
         foreach (var contract in contracts)
         {

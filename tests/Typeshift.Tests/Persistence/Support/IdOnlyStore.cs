@@ -21,4 +21,10 @@ public sealed class IdOnlyStore : ITypeshiftStore<Guid>
 
     public Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct) =>
         _store.AppendConversationAsync(conversation, entry, ct);
+
+    public Task<StoredDocument?> LoadDecisionsAsync(Guid conversation, CancellationToken ct) =>
+        _store.LoadDecisionsAsync(conversation, ct);
+
+    public Task<long> SaveDecisionsAsync(Guid conversation, string json, long loadedVersion, CancellationToken ct) =>
+        _store.SaveDecisionsAsync(conversation, json, loadedVersion, ct);
 }

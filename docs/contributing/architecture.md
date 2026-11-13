@@ -123,8 +123,9 @@ unless it is an object of properties.
 ## Storage
 
 `ISettingsStore<TId>` keeps documents by id and kind, as JSON with a version (D38, D41), `IAgentSettingsStore` keeps
-the agents' own by kind alone (D66), and `IConversationStore<TId>` keeps conversation entries. `ITypeshiftStore<TId>`
-is the first and the last in one. A host without a settings id reaches `IAgentSettingsStore`, and a run loads from it
+the agents' own by kind alone (D66), `IConversationStore<TId>` keeps conversation entries, and `IDecisionStore<TId>`
+keeps one decisions document per conversation, as JSON with a version (D79). `ITypeshiftStore<TId>` is the first and
+the last two in one. A host without a settings id reaches `IAgentSettingsStore`, and a run loads from it
 only when one is registered. `WithStore<T>()` registers each of them the store implements, of any id type, so a host
 may keep settings and conversations in two stores, under ids of two types. A run carries each id as a `StoreId<TId>`,
 from `WithSettingsId` and `WithConversationId`, and the id reaches the store of its type through a generic call
@@ -135,7 +136,8 @@ from `WithSettingsId` and `WithConversationId`, and the id reaches the store of 
 `WithFileStore` registers the internal `FileAgentSettingsStore`, which keeps agents' own settings in the `settings`
 folder of the file store's folder, a file per kind (D67). When the service collection, which `StoreAccess` reads at its
 first store call, holds no store, `StoreAccess` keeps everything in an `InMemoryTypeshiftStore` of its own per id type
-and warns on the first write (D69).
+and warns on the first write (D69). Decisions alone have no store that must exist: without an `IDecisionStore<TId>`
+of the id's type a load answers "none" and only a write throws (D79).
 
 The generator writes each agent's `Settings` as an `IStorable<Settings>`, with a kind, a schema version, `Serialize` and
 `Deserialize`. It is an `IJsonStorable<Settings>` too, whose `WriteJson` and `TryReadJson` serve `Serialize` and the

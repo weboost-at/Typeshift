@@ -270,6 +270,9 @@ public interface Typeshift.IConversationStore<TId> where TId : notnull
 abstract System.Threading.Tasks.Task Typeshift.IConversationStore<TId>.AppendConversationAsync(TId conversation, Typeshift.ConversationEntry entry, System.Threading.CancellationToken ct)
 abstract System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry>> Typeshift.IConversationStore<TId>.LoadConversationAsync(TId conversation, System.Threading.CancellationToken ct)
 abstract System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry>> Typeshift.IConversationStore<TId>.LoadConversationSinceCompactionAsync(TId conversation, System.Threading.CancellationToken ct)
+public interface Typeshift.IDecisionStore<TId> where TId : notnull
+abstract System.Threading.Tasks.Task<Typeshift.StoredDocument?> Typeshift.IDecisionStore<TId>.LoadDecisionsAsync(TId conversation, System.Threading.CancellationToken ct)
+abstract System.Threading.Tasks.Task<long> Typeshift.IDecisionStore<TId>.SaveDecisionsAsync(TId conversation, string json, long loadedVersion, System.Threading.CancellationToken ct)
 public interface Typeshift.IMcpToolProvider
 abstract System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Microsoft.Extensions.AI.AITool>> Typeshift.IMcpToolProvider.GetToolsAsync(string server, System.Threading.CancellationToken ct)
 public interface Typeshift.IRunMiddleware
@@ -286,16 +289,18 @@ public interface Typeshift.IToolApprovalRule
 abstract System.Threading.Tasks.ValueTask<Typeshift.RuleVerdict> Typeshift.IToolApprovalRule.DecideAsync(Microsoft.Extensions.AI.FunctionCallContent call, Typeshift.AgentRun run, System.Threading.CancellationToken ct)
 public interface Typeshift.IToolMiddleware
 abstract System.Threading.Tasks.ValueTask<object?> Typeshift.IToolMiddleware.InvokeAsync(Microsoft.Extensions.AI.FunctionInvocationContext call, System.Func<System.Threading.Tasks.ValueTask<object?>> next, System.Threading.CancellationToken ct)
-public interface Typeshift.ITypeshiftStore<TId> : Typeshift.ISettingsStore<TId>, Typeshift.IConversationStore<TId> where TId : notnull
-public sealed class Typeshift.InMemoryTypeshiftStore<TId> : Typeshift.ITypeshiftStore<TId>, Typeshift.ISettingsStore<TId>, Typeshift.IConversationStore<TId>, Typeshift.IAgentSettingsStore where TId : notnull
+public interface Typeshift.ITypeshiftStore<TId> : Typeshift.ISettingsStore<TId>, Typeshift.IConversationStore<TId>, Typeshift.IDecisionStore<TId> where TId : notnull
+public sealed class Typeshift.InMemoryTypeshiftStore<TId> : Typeshift.ITypeshiftStore<TId>, Typeshift.ISettingsStore<TId>, Typeshift.IConversationStore<TId>, Typeshift.IDecisionStore<TId>, Typeshift.IAgentSettingsStore where TId : notnull
 public System.Threading.Tasks.Task Typeshift.InMemoryTypeshiftStore<TId>.AppendConversationAsync(TId conversation, Typeshift.ConversationEntry entry, System.Threading.CancellationToken ct)
 public Typeshift.InMemoryTypeshiftStore<TId>.InMemoryTypeshiftStore()
 public System.Threading.Tasks.Task<Typeshift.StoredDocument?> Typeshift.InMemoryTypeshiftStore<TId>.LoadAsync(TId id, string kind, System.Threading.CancellationToken ct)
 public System.Threading.Tasks.Task<Typeshift.StoredDocument?> Typeshift.InMemoryTypeshiftStore<TId>.LoadAsync(string kind, System.Threading.CancellationToken ct)
 public System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry>> Typeshift.InMemoryTypeshiftStore<TId>.LoadConversationAsync(TId conversation, System.Threading.CancellationToken ct)
 public System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry>> Typeshift.InMemoryTypeshiftStore<TId>.LoadConversationSinceCompactionAsync(TId conversation, System.Threading.CancellationToken ct)
+public System.Threading.Tasks.Task<Typeshift.StoredDocument?> Typeshift.InMemoryTypeshiftStore<TId>.LoadDecisionsAsync(TId conversation, System.Threading.CancellationToken ct)
 public System.Threading.Tasks.Task<long> Typeshift.InMemoryTypeshiftStore<TId>.SaveAsync(TId id, string kind, string json, long loadedVersion, System.Threading.CancellationToken ct)
 public System.Threading.Tasks.Task<long> Typeshift.InMemoryTypeshiftStore<TId>.SaveAsync(string kind, string json, long loadedVersion, System.Threading.CancellationToken ct)
+public System.Threading.Tasks.Task<long> Typeshift.InMemoryTypeshiftStore<TId>.SaveDecisionsAsync(TId conversation, string json, long loadedVersion, System.Threading.CancellationToken ct)
 public sealed record Typeshift.LiveRun<TId> : System.IEquatable<Typeshift.LiveRun<TId>>
 public string Typeshift.LiveRun<TId>.Agent { get; init; }
 public TId Typeshift.LiveRun<TId>.Conversation { get; init; }
@@ -365,12 +370,15 @@ public static class Typeshift.StoreExtensions
 public static System.Threading.Tasks.Task Typeshift.StoreExtensions.VerifyAgentSettingsAsync(Typeshift.IAgentSettingsStore store, string kind, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public static System.Threading.Tasks.Task Typeshift.StoreExtensions.VerifyAsync<TId, TConversationId>(Typeshift.ISettingsStore<TId> store, TId settingsId, TId otherSettingsId, TConversationId conversationId, TConversationId otherConversationId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) where TId : notnull where TConversationId : notnull
 public static System.Threading.Tasks.Task Typeshift.StoreExtensions.VerifyAsync<TId>(Typeshift.IConversationStore<TId> store, TId id, TId otherId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) where TId : notnull
+public static System.Threading.Tasks.Task Typeshift.StoreExtensions.VerifyAsync<TId>(Typeshift.IDecisionStore<TId> store, TId id, TId otherId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) where TId : notnull
 public static System.Threading.Tasks.Task Typeshift.StoreExtensions.VerifyAsync<TId>(Typeshift.ISettingsStore<TId> store, TId id, TId otherId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) where TId : notnull
 public static System.Threading.Tasks.Task Typeshift.StoreExtensions.VerifyAsync<TId>(Typeshift.ITypeshiftStore<TId> store, TId id, TId otherId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) where TId : notnull
 public static Typeshift.StoreExtensions.extension(Typeshift.IAgentSettingsStore)
 public System.Threading.Tasks.Task Typeshift.StoreExtensions.extension(Typeshift.IAgentSettingsStore).VerifyAgentSettingsAsync(string kind, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public static Typeshift.StoreExtensions.extension<TId>(Typeshift.IConversationStore<TId>) where TId : notnull
 public System.Threading.Tasks.Task Typeshift.StoreExtensions.extension<TId>(Typeshift.IConversationStore<TId>).VerifyAsync(TId id, TId otherId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public static Typeshift.StoreExtensions.extension<TId>(Typeshift.IDecisionStore<TId>) where TId : notnull
+public System.Threading.Tasks.Task Typeshift.StoreExtensions.extension<TId>(Typeshift.IDecisionStore<TId>).VerifyAsync(TId id, TId otherId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public static Typeshift.StoreExtensions.extension<TId>(Typeshift.ISettingsStore<TId>) where TId : notnull
 public System.Threading.Tasks.Task Typeshift.StoreExtensions.extension<TId>(Typeshift.ISettingsStore<TId>).VerifyAsync(TId id, TId otherId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public System.Threading.Tasks.Task Typeshift.StoreExtensions.extension<TId>(Typeshift.ISettingsStore<TId>).VerifyAsync<TConversationId>(TId settingsId, TId otherSettingsId, TConversationId conversationId, TConversationId otherConversationId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) where TConversationId : notnull

@@ -25,6 +25,14 @@ internal abstract record StoreId
 
     public abstract Task AppendConversationAsync(StoreAccess stores, ConversationEntry entry, CancellationToken ct);
 
+    public abstract Task<StoredDocument?> LoadDecisionsAsync(StoreAccess stores, CancellationToken ct);
+
+    public abstract Task<long> SaveDecisionsAsync(
+        StoreAccess stores,
+        string json,
+        long loadedVersion,
+        CancellationToken ct);
+
     public sealed override string ToString() => Value.ToString() ?? "";
 }
 
@@ -55,4 +63,18 @@ internal sealed record StoreId<TId>(TId Id) : StoreId where TId : notnull
 
     public override Task AppendConversationAsync(StoreAccess stores, ConversationEntry entry, CancellationToken ct) =>
         stores.Written(stores.ConversationStore<TId>()).AppendConversationAsync(Id, entry, ct);
+
+    // D79: a load without a store of decisions answers "none" without a store call; only a write needs one
+    public override Task<StoredDocument?> LoadDecisionsAsync(StoreAccess stores, CancellationToken ct) =>
+        stores.DecisionStore<TId>() is { } store
+            ? store.LoadDecisionsAsync(Id, ct)
+            : Task.FromResult<StoredDocument?>(null);
+
+    public override Task<long> SaveDecisionsAsync(
+        StoreAccess stores,
+        string json,
+        long loadedVersion,
+        CancellationToken ct) =>
+        stores.Written(stores.DecisionStore<TId>() ?? throw StoreAccess.NoDecisionStore<TId>())
+            .SaveDecisionsAsync(Id, json, loadedVersion, ct);
 }

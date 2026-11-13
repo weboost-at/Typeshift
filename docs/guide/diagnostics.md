@@ -288,8 +288,8 @@ A context nested as `private` or `protected` does not count.
 ## TSH028
 
 **Type is no store.** `WithStore<T>()` and `WithStore(store)` take a store: a type that implements
-`ISettingsStore<TId>`, `IConversationStore<TId>` or `IAgentSettingsStore`, of any id type. Implement one of them, or
-pass the store you meant. A store's id type picks the ids it serves, as
+`ISettingsStore<TId>`, `IConversationStore<TId>`, `IDecisionStore<TId>` or `IAgentSettingsStore`, of any id type.
+Implement one of them, or pass the store you meant. A store's id type picks the ids it serves, as
 [Ids of your own types](./settings-and-stores.md#ids-of-your-own-types) shows.
 
 ## TSH029

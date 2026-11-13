@@ -51,6 +51,12 @@ internal sealed class StoreAccess(IServiceProvider services, IServiceCollection 
     public Task AppendConversationAsync(StoreId conversation, ConversationEntry entry, CancellationToken ct) =>
         conversation.AppendConversationAsync(this, entry, ct);
 
+    public Task<StoredDocument?> LoadDecisionsAsync(StoreId conversation, CancellationToken ct) =>
+        conversation.LoadDecisionsAsync(this, ct);
+
+    public Task<long> SaveDecisionsAsync(StoreId conversation, string json, long loadedVersion, CancellationToken ct) =>
+        conversation.SaveDecisionsAsync(this, json, loadedVersion, ct);
+
     // The store a write goes to; a load of nothing loses nothing, so the first write to the memory says where it goes
     public T Written<T>(T store) where T : class
     {
@@ -59,9 +65,9 @@ internal sealed class StoreAccess(IServiceProvider services, IServiceCollection 
             && Interlocked.Exchange(ref _warned, 1) == 0)
         {
             services.GetService<ILoggerFactory>()?.CreateLogger("Typeshift").LogWarning(
-                "No store is registered, so Typeshift keeps settings and conversations in memory and loses them when "
-                + "the app stops: call WithStore<T>() after AddTypeshift() to keep them, or WithFileStore() to keep "
-                + "agents' own settings in files.");
+                "No store is registered, so Typeshift keeps settings, conversations and decisions in memory and loses "
+                + "them when the app stops: call WithStore<T>() after AddTypeshift() to keep them, or WithFileStore() "
+                + "to keep agents' own settings in files.");
         }
 
         return store;
@@ -87,6 +93,18 @@ internal sealed class StoreAccess(IServiceProvider services, IServiceCollection 
             + "type, to WithConversationId and, for the conversations PersistAllConversations starts, with "
             + "NewConversationIds.");
 
+    // D79: null when stores are registered and none keeps decisions for the id type. Nothing is kept in memory
+    // beside a real store, so what a run asked would not vanish with the process while its conversation stays
+    public IDecisionStore<TId>? DecisionStore<TId>() where TId : notnull =>
+        Memory<TId>() ?? services.GetService<IDecisionStore<TId>>();
+
+    public static InvalidOperationException NoDecisionStore<TId>() =>
+        new(
+            $"No IDecisionStore<{TypeNames.Of<TId>()}> is registered for a conversation id of that type, so nothing "
+            + "can keep what a run asks your app or what your app approves for the conversation: call WithStore<T>() "
+            + "after AddTypeshift() with a store that implements it beside your conversation store, such as an "
+            + $"ITypeshiftStore<{TypeNames.Of<TId>()}>.");
+
     private IAgentSettingsStore AgentSettingsStore =>
         (_inMemory.Value ? _agentSettingsMemory : _agentSettingsStore.Value)
         ?? throw new InvalidOperationException(
@@ -106,6 +124,7 @@ internal sealed class StoreAccess(IServiceProvider services, IServiceCollection 
             && type.GetGenericTypeDefinition() is var definition
             && (definition == typeof(ISettingsStore<>)
                 || definition == typeof(IConversationStore<>)
+                || definition == typeof(IDecisionStore<>)
                 || definition == typeof(ITypeshiftStore<>)));
 
     private static Stored<TData>? Read<TData>(StoredDocument? document) where TData : class, IStorable<TData> =>

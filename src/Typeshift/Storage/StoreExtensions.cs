@@ -17,10 +17,10 @@ public static class StoreExtensions
     extension<TId>(ISettingsStore<TId> store) where TId : notnull
     {
         /// <summary>
-        /// Runs the rules for settings against this store, and the rules for conversations and agents' own settings
-        /// too when it keeps those as well. It writes under both ids, so give it two that nothing else uses, in a
-        /// database for tests. Conversations under ids of another type are left out: check those with the overload
-        /// that takes the ids of both types.
+        /// Runs the rules for settings against this store, and the rules for conversations, decisions and agents' own
+        /// settings too when it keeps those as well. It writes under both ids, so give it two that nothing else uses,
+        /// in a database for tests. Conversations under ids of another type are left out: check those with the
+        /// overload that takes the ids of both types.
         /// </summary>
         /// <param name="id">An id nothing is stored under yet, as a settings id and as a conversation id.</param>
         /// <param name="otherId">
@@ -38,8 +38,8 @@ public static class StoreExtensions
 
         /// <summary>
         /// Runs the rules for settings and for conversations against a store whose conversation ids are of another
-        /// type than its settings ids, and the rules for agents' own settings when it keeps those too. It writes
-        /// under all four ids, so give it ids that nothing else uses, in a database for tests.
+        /// type than its settings ids, and the rules for decisions and agents' own settings when it keeps those too.
+        /// It writes under all four ids, so give it ids that nothing else uses, in a database for tests.
         /// </summary>
         /// <typeparam name="TConversationId">The type of the store's conversation ids.</typeparam>
         /// <param name="settingsId">A settings id nothing is stored under yet.</param>
@@ -75,9 +75,9 @@ public static class StoreExtensions
     extension<TId>(IConversationStore<TId> store) where TId : notnull
     {
         /// <summary>
-        /// Runs the rules for conversations against this store, and the rules for settings and agents' own settings
-        /// too when it keeps those as well. It writes under both ids, so give it two that nothing else uses, in a
-        /// database for tests.
+        /// Runs the rules for conversations against this store, and the rules for settings, decisions and agents' own
+        /// settings too when it keeps those as well. It writes under both ids, so give it two that nothing else uses,
+        /// in a database for tests.
         /// </summary>
         /// <param name="id">An id nothing is stored under yet, as a conversation id and as a settings id.</param>
         /// <param name="otherId">
@@ -94,12 +94,41 @@ public static class StoreExtensions
             VerifyEveryInterfaceAsync(store, store as ISettingsStore<TId>, (id, otherId), store, (id, otherId), ct);
     }
 
-    // A store that is both would match both blocks above; this one is more specific, so the call compiles
+    extension<TId>(IDecisionStore<TId> store) where TId : notnull
+    {
+        /// <summary>
+        /// Runs the rules for decisions against this store, and the rules for settings, conversations and agents' own
+        /// settings too when it keeps those as well. It writes under both ids, so give it two that nothing else uses,
+        /// in a database for tests.
+        /// </summary>
+        /// <param name="id">An id nothing is stored under yet, as a conversation id and as a settings id.</param>
+        /// <param name="otherId">
+        /// A second such id. What the check stores under it must stay as it is while the check writes under the first,
+        /// which tells a store that forgets the id.
+        /// </param>
+        /// <param name="ct">Cancels the check.</param>
+        /// <returns>A task that completes once the store passed.</returns>
+        /// <exception cref="InvalidOperationException">
+        /// The store broke a rule, or something is stored under one of the ids already; the message says which.
+        /// </exception>
+        /// <exception cref="ArgumentException">The two ids are equal.</exception>
+        public Task VerifyAsync(TId id, TId otherId, CancellationToken ct = default) =>
+            VerifyEveryInterfaceAsync(
+                store,
+                store as ISettingsStore<TId>,
+                (id, otherId),
+                store as IConversationStore<TId>,
+                (id, otherId),
+                ct);
+    }
+
+    // A store that is all three would match every block above; this one is more specific, so the call compiles
     extension<TId>(ITypeshiftStore<TId> store) where TId : notnull
     {
         /// <summary>
-        /// Runs the rules for settings and for conversations against this store, and for agents' own settings when it
-        /// keeps those too. It writes under both ids, so give it two that nothing else uses, in a database for tests.
+        /// Runs the rules for settings, for conversations and for decisions against this store, and for agents' own
+        /// settings when it keeps those too. It writes under both ids, so give it two that nothing else uses, in a
+        /// database for tests.
         /// </summary>
         /// <param name="id">An id nothing is stored under yet, as a settings id and as a conversation id.</param>
         /// <param name="otherId">
@@ -159,6 +188,10 @@ public static class StoreExtensions
 
         if (conversations is not null)
             await VerifyConversationsAsync(conversations, conversationIds.Id, conversationIds.Other, ct);
+
+        // D79: a conversation's decisions are under its id, so a store of them is checked with the conversation ids
+        if (store is IDecisionStore<TConversationId> decisions)
+            await VerifyDecisionsAsync(decisions, conversationIds.Id, conversationIds.Other, ct);
 
         if (store is not IAgentSettingsStore agents) return;
 
@@ -253,6 +286,55 @@ public static class StoreExtensions
 
     private static string Taken<TId>(TId id) => $"LoadAsync returned a document for {id}: give VerifyAsync a new id.";
 
+    // D79: a conversation's decisions, one document keyed by the conversation alone and versioned as settings are,
+    // beside another conversation's, which the saves must leave alone
+    private static async Task VerifyDecisionsAsync<TId>(
+        IDecisionStore<TId> store,
+        TId conversation,
+        TId other,
+        CancellationToken ct)
+        where TId : notnull
+    {
+        const string otherJson = """{"of":"another conversation"}""";
+        const string byConversation = "key decisions by the conversation id.";
+
+        foreach (var taken in (TId[])[conversation, other])
+        {
+            if (await store.LoadDecisionsAsync(taken, ct) is not null)
+                throw new InvalidOperationException(TakenDecisions(taken));
+        }
+
+        long elsewhere;
+
+        try
+        {
+            elsewhere = await store.SaveDecisionsAsync(other, otherJson, 0, ct);
+        }
+        catch (StoreConflictException exception)
+        {
+            throw Broken("A first save of decisions at version 0 threw a StoreConflictException.", exception);
+        }
+
+        if (await store.LoadDecisionsAsync(conversation, ct) is not null)
+            throw Broken($"LoadDecisionsAsync returned a document saved under another conversation: {byConversation}");
+
+        await VerifyDocumentsAsync(
+            _ => store.LoadDecisionsAsync(conversation, ct),
+            (_, json, loadedVersion) => store.SaveDecisionsAsync(conversation, json, loadedVersion, ct),
+            new(Kind, TakenDecisions(conversation), "", "the conversation id")
+            {
+                IsOnlyKind = true,
+                Load = "LoadDecisionsAsync",
+                Save = "SaveDecisionsAsync"
+            });
+
+        if (await store.LoadDecisionsAsync(other, ct) != new StoredDocument(otherJson, elsewhere))
+            throw Broken($"Saving decisions under one conversation changed those under another: {byConversation}");
+    }
+
+    private static string TakenDecisions<TId>(TId conversation) =>
+        $"LoadDecisionsAsync returned a document for {conversation}: give VerifyAsync a new id.";
+
     // D66: an agent's own settings, keyed by the kind alone
     private static Task VerifyAgentDocumentsAsync(IAgentSettingsStore store, string kind, CancellationToken ct) =>
         VerifyDocumentsAsync(
@@ -277,6 +359,13 @@ public static class StoreExtensions
 
         if (await load(keys.Kind) is not null) throw new InvalidOperationException(keys.Taken);
 
+        const string missing =
+            "A save at a version other than 0 of a document that is not stored did not throw a "
+            + "StoreConflictException: update only a row that holds the version.";
+
+        // A document its key holds alone has no kind to leave unstored, so the rule runs before its first save
+        if (keys.IsOnlyKind) await EnsureConflictAsync(keys.Kind, 1, null, missing);
+
         var first = await SaveAsync(
             keys.Kind,
             firstJson,
@@ -286,23 +375,26 @@ public static class StoreExtensions
         await EnsureStoredAsync(
             keys.Kind,
             new(firstJson, first),
-            "LoadAsync did not return the last save and version.");
+            $"{keys.Load} did not return the last save and version.");
 
-        var other = await SaveAsync(
-            keys.OtherKind,
-            otherJson,
-            0,
-            $"Saving a document of another kind{keys.Scope} conflicted: key documents by {keys.Key}.");
+        if (!keys.IsOnlyKind)
+        {
+            var other = await SaveAsync(
+                keys.OtherKind,
+                otherJson,
+                0,
+                $"Saving a document of another kind{keys.Scope} conflicted: key documents by {keys.Key}.");
 
-        await EnsureStoredAsync(
-            keys.Kind,
-            new(firstJson, first),
-            $"Saving a document of another kind{keys.Scope} replaced this one: key documents by {keys.Key}.");
+            await EnsureStoredAsync(
+                keys.Kind,
+                new(firstJson, first),
+                $"Saving a document of another kind{keys.Scope} replaced this one: key documents by {keys.Key}.");
 
-        await EnsureStoredAsync(
-            keys.OtherKind,
-            new(otherJson, other),
-            $"LoadAsync returned another kind's document: load by {keys.Key}.");
+            await EnsureStoredAsync(
+                keys.OtherKind,
+                new(otherJson, other),
+                $"{keys.Load} returned another kind's document: load by {keys.Key}.");
+        }
 
         await EnsureConflictAsync(
             keys.Kind,
@@ -316,7 +408,7 @@ public static class StoreExtensions
             first,
             "A save with the version the last save returned threw a StoreConflictException.");
 
-        if (second == first) throw Broken("SaveAsync returned the version the document had before the save.");
+        if (second == first) throw Broken($"{keys.Save} returned the version the document had before the save.");
 
         await EnsureConflictAsync(
             keys.Kind,
@@ -325,19 +417,15 @@ public static class StoreExtensions
             "A save with a version another save replaced did not throw a StoreConflictException.");
 
         // A document deleted since the caller loaded it: an update that inserts the missing row brings it back
-        await EnsureConflictAsync(
-            keys.MissingKind,
-            second,
-            null,
-            "A save at a version other than 0 of a document that is not stored did not throw a "
-            + "StoreConflictException: update only a row that holds the version.");
+        if (!keys.IsOnlyKind) await EnsureConflictAsync(keys.MissingKind, second, null, missing);
 
         async Task<long> SaveAsync(string kind, string json, long loadedVersion, string conflictRule)
         {
             try
             {
                 var saved = await save(kind, json, loadedVersion);
-                if (saved == 0) throw Broken("SaveAsync returned version 0, which tells Typeshift nothing is stored.");
+                if (saved == 0)
+                    throw Broken($"{keys.Save} returned version 0, which tells Typeshift nothing is stored.");
 
                 return saved;
             }
@@ -486,6 +574,14 @@ public static class StoreExtensions
     // The kinds a check writes, what it says when the first is taken, and how documents are keyed
     private sealed record DocumentKeys(string Kind, string Taken, string Scope, string Key)
     {
+        // A document its key holds alone, as a conversation's decisions, has no other kind beside it
+        public bool IsOnlyKind { get; init; }
+
+        // The store's methods, as a broken rule names them
+        public string Load { get; init; } = "LoadAsync";
+
+        public string Save { get; init; } = "SaveAsync";
+
         public string OtherKind => $"{Kind}_other";
 
         // Never stored by a store that keeps the rules

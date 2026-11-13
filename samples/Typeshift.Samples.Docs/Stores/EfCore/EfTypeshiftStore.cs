@@ -101,5 +101,43 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
 
         await db.SaveChangesAsync(ct);
     }
+    // end-snippet
+
+    // begin-snippet: ef-core-decisions
+    public async Task<StoredDocument?> LoadDecisionsAsync(int conversation, CancellationToken ct)
+    {
+        await using var db = await contexts.CreateDbContextAsync(ct);
+
+        return await db.Decisions.FindAsync([conversation], ct) is { } row
+            ? new StoredDocument(row.Json, row.Version)
+            : null;
+    }
+
+    public async Task<long> SaveDecisionsAsync(int conversation, string json, long loadedVersion, CancellationToken ct)
+    {
+        await using var db = await contexts.CreateDbContextAsync(ct);
+
+        var rows = loadedVersion == 0
+            ? await db.Database.ExecuteSqlAsync(
+                $"""
+                INSERT INTO "Decisions" ("Conversation", "Version", "Json")
+                VALUES ({conversation}, 1, {json})
+                ON CONFLICT ("Conversation") DO NOTHING
+                """,
+                ct)
+            : await db.Decisions
+                .Where(row => row.Conversation == conversation && row.Version == loadedVersion)
+                .ExecuteUpdateAsync(
+                    set => set
+                        .SetProperty(row => row.Json, json)
+                        .SetProperty(row => row.Version, loadedVersion + 1),
+                    ct);
+
+        // One statement checks the version and writes, which is what lets an approved call start only once
+        return rows == 1
+            ? loadedVersion + 1
+            : throw new StoreConflictException(
+                $"The decisions of conversation {conversation} were saved after version {loadedVersion}.");
+    }
 }
 // end-snippet

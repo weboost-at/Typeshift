@@ -655,6 +655,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Store_Of_Decisions_Alone_TSH028_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(DiagnosticSources.DecisionStoreAlone);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH028");
+    }
+
+    [Fact]
     public void Given_A_Store_Of_Agent_Settings_And_Of_Settings_Of_Another_Id_Type_TSH028_Is_Not_Reported()
     {
         // Act

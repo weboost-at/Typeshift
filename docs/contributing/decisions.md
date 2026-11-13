@@ -697,8 +697,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** `ISettingsStore<TId>`: `LoadAsync` and `SaveAsync` of documents as JSON, keyed by id and kind, with a
   version. `IConversationStore<TId>`: `LoadConversationAsync` and `AppendConversationAsync` of `ConversationEntry`s
   keyed by the conversation id; `LoadConversationSinceCompactionAsync`, which runs call and every store implements
-  (D71). `ITypeshiftStore<TId>` is both in one. The library serializes the documents (each agent's `Settings`), so a
-  store implements no generic method and handles strings and numbers only.
+  (D71). `IDecisionStore<TId>` keeps a conversation's decisions (D79), and `ITypeshiftStore<TId>` is all three in
+  one. The library serializes the documents (each agent's `Settings`), so a store implements no generic method and
+  handles strings and numbers only.
 - **Details:** `WithStore<T>()` registers each interface `T` implements, so settings and conversations may live in
   two stores, each registered by its own call. Settings and conversations differ in shape and load: a few documents
   read once per run and saved with a version, against an append-only log written at every step. TSH028 reports a
@@ -931,7 +932,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - **Status:** carried (v0 D26), changed by D69. Once a store is registered, everything that loads or saves through a
   store interface none of the registered stores implements throws, naming `WithStore<T>()` and the interface (D38).
-  Without any store, D69 keeps everything in memory.
+  Without any store, D69 keeps everything in memory. A load of decisions is the exception: without a store of them it
+  answers "none", and only a write throws (D79).
 
 ### D69. Without a store, everything is kept in memory
 
@@ -940,8 +942,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   get-go". Without `WithStore<T>()`, every settings save, every run with an id and every approval threw.
 - **Decision:** when the container holds no store, the store access keeps everything in an `InMemoryTypeshiftStore`
   of its own per id type (D72), a singleton like the host's other services. A store is any registration, without a
-  key, of `IAgentSettingsStore` or of an `ISettingsStore<>`, `IConversationStore<>` or `ITypeshiftStore<>` of any id
-  type, whether `WithStore<T>()` made it or your app did. `AddCoreServices` hands the store access the service
+  key, of `IAgentSettingsStore` or of an `ISettingsStore<>`, `IConversationStore<>`, `IDecisionStore<>` or
+  `ITypeshiftStore<>` of any id type, whether `WithStore<T>()` made it or your app did. `AddCoreServices` hands the store access the service
   collection, which it reads once, at the first store call, comparing each service type by its generic definition so
   no type is made at run time. The first save or append logs a warning, once, that names `WithStore<T>()`, and
   `WithFileStore()` for agents' own settings, and says the data is gone when the app stops; loads stay quiet, since
@@ -960,6 +962,29 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   type (D72); `WithStore<T>()` alone as the switch, which kept the settings of an app that registered its store of
   conversations itself in memory, under a warning that no store was registered; resolving a scoped store from the
   run's scope, which gives up the one instance that D25 and the store guide plan for, a second way to write a store.
+
+### D79. Decisions have a store of their own, and a setup that would lose them throws
+
+- **Status:** owner.
+- **Context:** what a run asks your app (an approval, a plan) becomes a record with a state, in one document per
+  conversation, which answering and carrying out change by compare-and-set. The document needs a home with a
+  version check, and losing it loses the answer to "did this approved call start".
+- **Decision:** `IDecisionStore<TId>`: `LoadDecisionsAsync(conversation)` and
+  `SaveDecisionsAsync(conversation, json, loadedVersion)`, one JSON document per conversation, versioned exactly as a
+  settings document (D41). `ITypeshiftStore<TId>` includes it, `WithStore<T>()` registers it like every other store
+  interface a class implements, `InMemoryTypeshiftStore<TId>` implements it, and `VerifyAsync` runs the version rules
+  against it (D58). With no store at all, the memory of D69 keeps decisions too. With stores registered and none of
+  decisions for the conversation's id type, a load answers "none" without a store call, so an agent that never asks
+  pays nothing, and the first write throws, naming `IDecisionStore<TId>` and `WithStore<T>()`. Nothing is kept in
+  memory beside a real store.
+- **Where:** `Storage/IDecisionStore.cs`, `Storage/StoreAccess.cs`, `Storage/StoreId.cs`,
+  `Storage/StoreExtensions.cs`.
+- **Alternatives:** a kind of their own on `ISettingsStore<TId>`, which needs nothing new from a full store but
+  shares the settings' id space: settings ids and conversation ids are separate, often of different types, so
+  conversation 7's decisions would sit among customer 7's settings, where a delete or a tenant filter meant for
+  settings reaches them; both, through an adapter the app opts into, a second way to do one thing; memory for
+  decisions beside a registered conversation store, which loses what a run asked on every restart while the
+  conversation stays.
 
 ### D72. Ids are given in code, and their types pick the stores
 

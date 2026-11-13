@@ -15,6 +15,8 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId>, IAgentSe
 
     private readonly ConcurrentDictionary<TId, List<string>> _conversations = [];
 
+    private readonly ConcurrentDictionary<TId, StoredDocument> _decisions = [];
+
     /// <inheritdoc />
     public Task<StoredDocument?> LoadAsync(TId id, string kind, CancellationToken ct) =>
         Task.FromResult(_documents.GetValueOrDefault((id, kind)));
@@ -62,6 +64,14 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId>, IAgentSe
 
         return Task.CompletedTask;
     }
+
+    /// <inheritdoc />
+    public Task<StoredDocument?> LoadDecisionsAsync(TId conversation, CancellationToken ct) =>
+        Task.FromResult(_decisions.GetValueOrDefault(conversation));
+
+    /// <inheritdoc />
+    public Task<long> SaveDecisionsAsync(TId conversation, string json, long loadedVersion, CancellationToken ct) =>
+        Save(_decisions, conversation, json, loadedVersion, $"The decisions of {conversation}");
 
     private static Task<long> Save<TKey>(
         ConcurrentDictionary<TKey, StoredDocument> documents,

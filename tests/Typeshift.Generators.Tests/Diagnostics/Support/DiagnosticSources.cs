@@ -1379,6 +1379,34 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string DecisionStoreAlone =
+        """
+        using System;
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal sealed class WaitingStore : IDecisionStore<int>
+        {
+            public Task<StoredDocument?> LoadDecisionsAsync(int conversation, CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task<long> SaveDecisionsAsync(
+                int conversation,
+                string json,
+                long loadedVersion,
+                CancellationToken ct) =>
+                throw new NotSupportedException();
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithStore<WaitingStore>();
+        }
+        """;
+
     public const string AgentSettingsStore =
         """
         using System;

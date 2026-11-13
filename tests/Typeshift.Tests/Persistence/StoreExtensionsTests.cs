@@ -53,6 +53,67 @@ public class StoreExtensionsTests : UnitTestBase
     }
 
     [Fact]
+    public async Task Given_The_Store_In_Memory_Typed_As_A_Decision_Store_It_Passes()
+    {
+        // Arrange
+        IDecisionStore<Guid> store = new InMemoryTypeshiftStore<Guid>();
+
+        // Act
+        var verify = () => store.VerifyAsync(Id, OtherId, Ct);
+
+        // Assert
+        await verify.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task Given_A_Store_With_Decisions_Under_The_Id_It_Fails_Asking_For_A_New_Id()
+    {
+        // Arrange
+        IDecisionStore<Guid> store = new NoConflictDecisionStore();
+        await store.SaveDecisionsAsync(Id, "{}", 0, Ct);
+
+        // Act
+        var verify = () => store.VerifyAsync(Id, OtherId, Ct);
+
+        // Assert
+        await verify.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage("LoadDecisionsAsync returned a document*give VerifyAsync a new id*");
+    }
+
+    [Fact]
+    public async Task Given_A_Decision_Store_That_Never_Conflicts_It_Fails_Naming_StoreConflictException()
+    {
+        // Act
+        var verify = () => new NoConflictDecisionStore().VerifyAsync(Id, OtherId, Ct);
+
+        // Assert
+        await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*StoreConflictException*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_That_Forgets_The_Conversation_Of_Its_Decisions_It_Fails_Naming_The_Conversation_Id()
+    {
+        // Act
+        var verify = () => new OneDecisionsDocumentStore().VerifyAsync(Id, OtherId, Ct);
+
+        // Assert
+        await verify.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage("*saved under another conversation: key decisions by the conversation id*");
+    }
+
+    [Fact]
+    public async Task Given_A_Decision_Store_That_Upserts_A_Missing_Row_It_Fails_Naming_A_Document_That_Is_Not_Stored()
+    {
+        // Act
+        var verify = () => new UpsertMissingDecisionStore().VerifyAsync(Id, OtherId, Ct);
+
+        // Assert
+        await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*a document that is not stored*");
+    }
+
+    [Fact]
     public async Task Given_The_Store_In_Memory_Typed_As_A_Store_Of_Agent_Settings_It_Passes()
     {
         // Arrange

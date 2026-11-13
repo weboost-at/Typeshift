@@ -9,6 +9,8 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
 
     public DbSet<EntryRow> Entries => Set<EntryRow>();
 
+    public DbSet<DecisionsRow> Decisions => Set<DecisionsRow>();
+
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.Entity<DocumentRow>()
@@ -19,6 +21,14 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
 
         model.Entity<EntryRow>()
             .HasIndex(entry => entry.Conversation);
+
+        model.Entity<DecisionsRow>()
+            .HasKey(decisions => decisions.Conversation);
+
+        // The application sets the key, the conversation's id, so the database must not generate it
+        model.Entity<DecisionsRow>()
+            .Property(decisions => decisions.Conversation)
+            .ValueGeneratedNever();
     }
 }
 
@@ -40,6 +50,15 @@ internal sealed class EntryRow
     public required int Conversation { get; init; }
 
     public required bool IsSummary { get; init; }
+
+    public required string Json { get; init; }
+}
+
+internal sealed class DecisionsRow
+{
+    public required int Conversation { get; init; }
+
+    public required long Version { get; init; }
 
     public required string Json { get; init; }
 }

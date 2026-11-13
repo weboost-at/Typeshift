@@ -91,10 +91,10 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 | `WithToolMiddleware<TMiddleware>()` | One more `IToolMiddleware`, which wraps every tool call | Scoped |
 | `WithMcpToolProvider<TProvider>()` | The `IMcpToolProvider` of agents with `UseMcpServer` | Scoped |
 
-- A store keeps agents' own settings, settings ids and conversations across restarts. Without any store, they are
-  kept in memory, and the first save logs a warning. `WithStore<TStore>()` registers your class as each of
-  `IAgentSettingsStore`, `ISettingsStore<TId>`, `IConversationStore<TId>` and `ITypeshiftStore<TId>` it implements,
-  of any id type, so call it once for each class. All of them resolve to one instance, a singleton, so a store takes
+- A store keeps agents' own settings, settings ids, conversations and their decisions across restarts. Without any
+  store, they are kept in memory, and the first save logs a warning. `WithStore<TStore>()` registers your class as
+  each of `IAgentSettingsStore`, `ISettingsStore<TId>`, `IConversationStore<TId>`, `IDecisionStore<TId>` and
+  `ITypeshiftStore<TId>` it implements, of any id type, so call it once for each class. All of them resolve to one instance, a singleton, so a store takes
   no scoped services ([Implementing a store](./implementing-a-store.md#register-your-store)). The container never
   disposes a store you pass to `WithStore(store)`.
 - The file store keeps agents' own settings in files

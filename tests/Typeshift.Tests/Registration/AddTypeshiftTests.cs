@@ -66,6 +66,16 @@ public class AddTypeshiftTests : AgentTestBase
     }
 
     [Fact]
+    public void Given_WithStore_A_Store_Of_All_Three_Is_Registered_As_Its_Decision_Store_Too()
+    {
+        // Act
+        var decisions = Services.GetRequiredService<IDecisionStore<Guid>>();
+
+        // Assert
+        decisions.Should().BeSameAs(Services.GetRequiredService<InMemoryTypeshiftStore<Guid>>());
+    }
+
+    [Fact]
     public void Given_AddTypeshift_The_Tracker_Of_An_Id_Type_Is_One_Singleton()
     {
         // Act

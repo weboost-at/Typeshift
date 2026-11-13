@@ -257,7 +257,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    // D38, D66, D72: a store keeps settings or conversations, of any id type, or agents' own settings
+    // D38, D66, D72, D79: a store keeps settings, conversations or decisions, of any id type, or agents' own settings
     private static bool IsStore(ITypeSymbol store)
     {
         // A store your code holds as one of the interfaces is that interface too
@@ -267,6 +267,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
         return implemented.Any(contract => contract.Is(KnownTypes.SettingsStore)
             || contract.Is(KnownTypes.ConversationStore)
+            || contract.Is(KnownTypes.DecisionStore)
             || contract.Is(KnownTypes.AgentSettingsStore));
     }
 

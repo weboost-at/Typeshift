@@ -144,7 +144,8 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor NoStore = Error(
         "TSH028",
         "Type is no store",
-        "'{0}' is no store: implement ISettingsStore<TId>, IConversationStore<TId> or IAgentSettingsStore");
+        "'{0}' is no store: implement ISettingsStore<TId>, IConversationStore<TId>, IDecisionStore<TId> or "
+        + "IAgentSettingsStore");
 
     public static readonly DiagnosticDescriptor UnusableProviderIdType = Error(
         "TSH029",

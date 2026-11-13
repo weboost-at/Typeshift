@@ -14,9 +14,15 @@ All notable changes to this project are documented here. The format follows
 - `store.VerifyAsync(settingsId, otherSettingsId, conversationId, otherConversationId)` checks a store whose settings
   ids and conversation ids have different types, such as settings per tenant under a `string` and conversations
   under a `Guid`, in one call. A call with the ids of one type checks only the interfaces of that id type.
+- `IDecisionStore<TId>` keeps one decisions document per conversation: JSON guarded by a version, saved like a
+  settings document. `WithStore<T>()` registers it with the other store interfaces of a class,
+  `InMemoryTypeshiftStore<TId>` implements it, and `VerifyAsync` checks it.
 
 ### Changed
 
+- `ITypeshiftStore<TId>` includes `IDecisionStore<TId>`, so a class that implements it needs two more methods,
+  `LoadDecisionsAsync` and `SaveDecisionsAsync`. "Keep decisions" in the guide's page on implementing a store shows
+  them over a table of their own.
 - TSH020 is titled "Referenced assembly was built with another Typeshift version or without the generator", and its
   message names both causes. It read as if the reference had never run the generator, also when it was built with
   another Typeshift version.
