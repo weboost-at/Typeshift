@@ -205,6 +205,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `AIJsonSchemaCreateOptions.Annotated`; deleting its own brings `Annotated` back from the added class. A project
   that declares no toolsets or agents but documents types gets a module that registers just those docs, which the
   `AddTypeshift()` of a project referencing it registers like any referenced module.
+- **Consequences:** Weboost.SchemaAnnotations collects every documented type and property of the project, internal
+  ones included, not only those a tool takes. Their docs are compiled into the assembly as text. And its generated
+  file names each documented type, so one marked `[Obsolete]` is CS0618 there, an error where warnings are errors,
+  and one marked `[Experimental]` an error in any build. `TypeshiftSchemaAnnotations=false` avoids both, and the fix
+  belongs to Weboost.SchemaAnnotations (see [Status](./status.md#known-gaps)).
 - **Where:** `buildTransitive/Typeshift.props`, `Parsing/Discovery.cs`, `Emitting/ModuleEmitter.cs`,
   `Generated/ToolJson.cs`.
 - **Alternatives:** a chain call taking `AIJsonSchemaCreateOptions`, which every host would have to make; the

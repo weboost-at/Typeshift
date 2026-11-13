@@ -190,6 +190,13 @@ rewrite.
   agent, while the module creates it with the parameterless one, which runs only the constructors it chains to with
   `this(...)`. Only the provider id type follows that chain (D77); a pick or a toolset use in another constructor
   still reaches the generated `Settings` and tools.
+- **Obsolete and experimental types in the collected docs.** The class the package adds to a project makes
+  Weboost.SchemaAnnotations name every documented type of the project in a generated file (D55). A documented type
+  marked `[Obsolete]` is CS0618 there, an error where warnings are errors, and one marked `[Experimental]` an error
+  in any build. `TypeshiftSchemaAnnotations=false` or removing the type's docs is the way out today. The fix is a
+  version of Weboost.SchemaAnnotations whose generated file suppresses both; the package consumer sample gets such
+  types once this repository references it. The same collection compiles the docs of every documented type into the
+  assembly, where only the types that tools and typed runs reach are needed.
 - **One conversation through unrelated hosts.** An app that runs one conversation id through the hosts of two agents
   that never hand off to each other shares their standing approvals, and no diagnostic sees it.
 - **No claim on a conversation across processes.** One run per conversation holds within a process only (D50), so two

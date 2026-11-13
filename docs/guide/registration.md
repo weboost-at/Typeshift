@@ -34,12 +34,23 @@ docs of your types into descriptions of their properties, in the schemas of a to
 `GenerateDocumentationFile` on, as it is unless the project turns it off. Weboost.SchemaAnnotations collects the
 project's XML docs in that class, and the project's [registration module](#what-addtypeshift-registers) registers them
 when `AddTypeshift()` runs. A project of contracts with no toolsets or agents gets a module too, so the tools of the
-projects that reference it describe its types; it needs the package like any other. To leave these
-descriptions out, set:
+projects that reference it describe its types; it needs the package like any other.
+
+Weboost.SchemaAnnotations collects the docs of every documented type and property of the project, internal ones
+included, whether a tool takes the type or not. Their text is compiled into the project's assembly, which grows by
+it, and whoever has the assembly can read it. To leave these descriptions out, set:
 
 ```xml
 <TypeshiftSchemaAnnotations>false</TypeshiftSchemaAnnotations>
 ```
+
+::: warning A documented `[Obsolete]` or `[Experimental]` type fails the build
+The collected docs name each documented type in a generated file under `obj`. For a type marked `[Obsolete]` that is
+the warning CS0618, an error in a build that treats warnings as errors. For a type marked `[Experimental]` it is an
+error under the type's own diagnostic ID, in any build. No `#pragma` of yours reaches the generated file. Until
+Weboost.SchemaAnnotations handles such types, set `TypeshiftSchemaAnnotations` to `false` in that project, or remove
+the type's XML docs. An obsolete member of a type that is not obsolete itself is fine.
+:::
 
 ::: warning Delete your own `[SchemaAnnotations]` class
 If your project already marks a class with `[SchemaAnnotations]`, adding the Typeshift package gives it a second one.
