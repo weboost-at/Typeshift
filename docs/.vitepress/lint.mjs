@@ -241,10 +241,11 @@ const frameworks = new Set(
     .flatMap(match => match[1].split(';')))
 
 // A path is written from the repository's root, from docs/ or the guide, or from a project's folder; a test class
-// goes by its file's name without the extension
+// goes by its file's name without the extension, with or without the test it names after a dot
 const bases = [root, docs, join(docs, 'guide'), ...projects.map(dirname)]
 const isFolder = path => existsSync(path) && statSync(path).isDirectory()
-const isInRepository = path => bases.some(base => existsSync(join(base, path)) || existsSync(join(base, `${path}.cs`)))
+const isInRepository = path =>
+  [path, `${path}.cs`, `${path.replace(/\.\w+$/, '')}.cs`].some(spelling => bases.some(base => existsSync(join(base, spelling))))
 
 for (const [file, content] of contributing) {
   for (const { text, line } of spans(content)) {
@@ -258,10 +259,12 @@ for (const [file, content] of contributing) {
       const framework = segments.find(segment => /^net(standard|coreapp)?\d/.test(segment))
       const known = !built.has(segments[0]) && bases.some(base => isFolder(join(base, segments[0])))
 
-      // A build's output is in no checkout, so of its path only the target framework can be checked
-      if (framework && !frameworks.has(framework))
-        fail(file, line, `\`${text}\` names the target framework ${framework}, which no project targets`)
-      else if (known && !isInRepository(path))
+      // What a build or a pack writes is in no checkout: of a path with a target framework only the framework can
+      // be checked, and a snapshot's received file exists only until it is accepted
+      if (framework)
+        frameworks.has(framework)
+          || fail(file, line, `\`${text}\` names the target framework ${framework}, which no project targets`)
+      else if (known && !path.includes('.received.') && !isInRepository(path))
         fail(file, line, `\`${text}\` names no file or folder of the repository`)
     }
 
