@@ -1,0 +1,49 @@
+name: demos
+
+# The demos stay outside the solution and outside every check a pull request waits for, by the owner's choice. This
+# workflow builds and runs them where nobody waits: on main, once a day and by hand. Never make it a required check
+on:
+  push:
+    branches: [main]
+    # What a demo's build reads
+    paths:
+      - 'src/**'
+      - 'demos/**'
+      - 'build/**'
+      - 'Directory.*.props'
+      - '.editorconfig'
+      - 'global.json'
+      - '.github/workflows/demos.yml'
+  schedule:
+    # Once a day: a new SDK or runner image can break a demo without a commit
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  demos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # MinVer reads the version from the tags
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - run: dotnet build demos/Typeshift.Demos.slnx -c Release -warnaserror
+
+      # The offline commands of the demos' READMEs, on canned models. A demo that throws fails its step
+      - name: Run the multi-provider demo
+        run: dotnet run --project demos/Typeshift.Demos.MultiProvider -c Release --no-build
+
+      - name: Run the coder demo, approving everything
+        run: dotnet run --project demos/Typeshift.Demos.Coder -c Release --no-build -- --yes --trace
+
+      - name: Run the support desk demo
+        run: dotnet run --project demos/Typeshift.Demos.Support -c Release --no-build -- --trace

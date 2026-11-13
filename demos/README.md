@@ -1,8 +1,9 @@
 # Demos
 
 Three apps that use the library as a host would, each runnable offline on canned models and against a real provider
-with one argument. They are not part of the package, the solution or CI: `dotnet build demos/Typeshift.Demos.slnx`
-builds them.
+with one argument. They are not part of the package or the solution: `dotnet build demos/Typeshift.Demos.slnx`
+builds them. No pull request waits for them. The `demos` workflow builds them and runs each one offline on `main`
+and once a day.
 
 | Demo | Shows |
 |---|---|

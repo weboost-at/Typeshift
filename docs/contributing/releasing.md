@@ -52,8 +52,10 @@ nuget.org keeps later packages under the name.
    `PackageValidationBaselineVersion` in `src/Typeshift/Typeshift.csproj` to the last released version, so the pack
    fails on a break nobody meant, and keep it on the latest release. It stays unset during the alpha.
 
-4. Check the demos, which CI never builds: `dotnet build demos/Typeshift.Demos.slnx`, then run each one offline as
-   `demos/README.md` shows. A demo that broke gets fixed before the tag, or the release notes say so.
+4. Check that the last run of the `demos` workflow on `main` is green. No pull request waits for that workflow, so
+   a broken demo shows only there. A demo that broke gets fixed before the tag, or the release notes say so. Without
+   access to the runs, do what the workflow does: `dotnet build demos/Typeshift.Demos.slnx -c Release -warnaserror`,
+   then run each demo offline as its README shows.
 5. Commit, then tag and push the tag:
 
    ```shell

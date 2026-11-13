@@ -84,10 +84,11 @@ npm run docs:snippets:check
 - Run the whole suite three times before you call a change done. All green every time.
 - The docs site: `npm ci`, then `npm run docs:check` (the snippets against their sources, markdownlint, the docs
   rules, a build that fails on dead links) or `npm run docs:dev`.
-- The demos in `demos/` stay outside the solution and CI, by the owner's choice. Until a scheduled workflow builds
-  them, build them at the start of each session: `dotnet build demos/Typeshift.Demos.slnx -c Release`. If the build
-  fails, give the owner a short note and go on with your task. A change to public API builds them again before you
-  push; when it breaks one, fix it in the same PR, or say so under a **Demos** heading in the PR's description.
+- The demos in `demos/` stay outside the solution and outside the checks of a pull request, by the owner's choice.
+  The `demos` workflow builds them and runs each one offline on `main`, once a day and by hand, and is never a
+  required check. A change to public API builds them before you push:
+  `dotnet build demos/Typeshift.Demos.slnx -c Release`. When it breaks one, fix it in the same PR, or say so under a
+  **Demos** heading in the PR's description.
 
 ## Docs
 
@@ -194,6 +195,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `release.yml`, for a tag | The tag sits on `main`, has its section in `CHANGELOG.md` and is the version MinVer packed, or nothing is published. |
 | CI: the Windows and macOS legs | The build and the tests pass where the file system ignores case, and on a Windows checkout with Git's default `core.autocrlf`. |
 | CI: docs workflow | The Markdown matches its snippets (`npm run docs:snippets:check`) and passes markdownlint and the docs rules (`docs/.vitepress/lint.mjs`): page anatomy, the words `writing.md` bans by name, the names mdsnippets skips, and links and anchors from the pages, the home page, the nav, README.md and PACKAGE.md. The site builds without a dead link. |
+| CI: the `demos` workflow, on `main`, once a day and by hand | The demos build without a warning, and each one runs offline to its end. No pull request waits for it. |
 
 ## Layout
 
@@ -209,7 +211,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `samples/Typeshift.Samples.PackageConsumer` | A consumer of the packed package rather than the projects, run by CI after the pack. |
 | `docs/` | The VitePress site: `guide/` for users, `contributing/` for this repository, `contributing/templates/` for new pages, `.vitepress/lint.mjs` for the docs rules, `.vitepress/snippets.mjs` for running mdsnippets. |
 | `.claude/skills/` | The playbooks of the table above. |
-| `demos/` | Three apps built on the library, in a solution of their own (`demos/Typeshift.Demos.slnx`), outside the package and CI. |
+| `demos/` | Three apps built on the library, in a solution of their own (`demos/Typeshift.Demos.slnx`), outside the package and the checks of a pull request. |
 | `src/Typeshift/buildTransitive/Typeshift.props` | What the package gives a consumer: XML docs on (D68), the interceptor opt-in, the schema annotations class (D55). Edit this one. |
 | `build/UseGenerator.props` | What a project of this repository imports in the package's place: the generator as an analyzer, and the props above. |
 
