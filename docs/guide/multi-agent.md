@@ -181,6 +181,10 @@ internal partial class ExploreAgent : Agent
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/ExploreAgent.cs#L5-L24' title='Snippet source file'>snippet source</a> | <a href='#snippet-sub-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+Typeshift ships no file or shell tools, so `WorkspaceToolset` is yours to write. The
+[Coder demo](https://github.com/weboost-at/Typeshift/tree/main/demos/Typeshift.Demos.Coder) has complete ones, and
+an explorer like this one that works in the background.
+
 ## Handoff
 
 `UseHandoff<T>()` gives the model a tool, `handoff_to_{name}`, that carries the other agent's description. For
