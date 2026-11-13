@@ -703,7 +703,7 @@ namespace Typeshift.Generated
 {
     file static class AddTypeshiftInterceptor
     {
-        [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "vHQksFKvdo7ePi/KWu+Yck0EAABTb3VyY2UxLmNz")]
+        [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "<location>")]
         public static global::Typeshift.TypeshiftBuilder AddTypeshift(this global::Microsoft.Extensions.DependencyInjection.IServiceCollection services)
         {
             var builder = global::Typeshift.Generated.ModuleRegistration.AddCoreServices(services);

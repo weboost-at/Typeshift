@@ -1,12 +1,13 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 
 namespace Typeshift.Generators.Tests.Testing;
 
 // Snapshots/{TestClass}.{TestName}.verified.txt; a mismatch writes .received.txt, ACCEPT_SNAPSHOTS=1 accepts it
-public static class Snapshot
+public static partial class Snapshot
 {
     private const string AcceptVariable = "ACCEPT_SNAPSHOTS";
 
@@ -84,9 +85,13 @@ public static class Snapshot
             builder.Append("// ").AppendLine(diagnostic.ToString());
         }
 
-        return Normalize(builder.ToString());
+        return Normalize(InterceptedLocation().Replace(builder.ToString(), "<location>"));
     }
 
     private static string Normalize(string text) =>
         text.Replace("\r\n", "\n", StringComparison.Ordinal).TrimEnd() + "\n";
+
+    // The data hashes the text of the intercepted call's file, so it differs with every edit and every line ending
+    [GeneratedRegex(@"(?<=InterceptsLocationAttribute\(\d+, "")[^""]+")]
+    private static partial Regex InterceptedLocation();
 }

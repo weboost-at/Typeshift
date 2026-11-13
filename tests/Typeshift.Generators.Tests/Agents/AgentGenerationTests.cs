@@ -29,6 +29,16 @@ public class AgentGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_An_AddTypeshift_Call_It_Is_Intercepted()
+    {
+        // Act
+        var run = Run(AgentSources.Tickets, AgentSources.Support);
+
+        // Assert
+        run.Assert.Intercepts("services.AddTypeshift()");
+    }
+
+    [Fact]
     public void Given_A_Caller_Outside_The_Agents_Namespace_Its_Host_Still_Offers_The_Typed_Members()
     {
         // Act
