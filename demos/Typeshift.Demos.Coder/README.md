@@ -1,8 +1,12 @@
 # Coder demo
 
-A coding agent over a workspace, with everything a long-running agent needs: plan mode and the host's approval of
-the plan, approval rules for the shell, tool middleware, a background explorer agent, a context provider, compaction,
-a conversation on disk that survives a restart, steering while it works, and the live list of runs.
+A coding agent over a workspace, with what a long-running agent needs: plan mode and the host's approval of the plan,
+approval rules for the shell, tool middleware, a background explorer agent, a context provider, a conversation on
+disk that survives a restart, steering while it works, and the live list of runs.
+
+`CoderAgent` also sets a limit of 24,000 input tokens, from which Typeshift compacts the history. The offline run
+below stays far under it and shows no compaction. To see one, give the agent a task long enough to reach the limit,
+on a real model.
 
 ```bash
 # offline, on the canned models, against the bundled sample workspace, approving everything

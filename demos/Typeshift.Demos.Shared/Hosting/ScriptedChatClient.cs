@@ -6,8 +6,8 @@ namespace Typeshift.Demos.Hosting;
 
 /// <summary>
 /// Stands in for a model when a demo runs without a network: a function decides each answer from the messages and
-/// the tools offered, and the client reports a usage estimated from the text, so compaction and the stored usage look
-/// as they would with a provider.
+/// the tools offered, and the client reports the usage a provider would, estimated at four characters a token, so the
+/// stored usage and the point where compaction starts look as they would with a provider.
 /// </summary>
 public sealed class ScriptedChatClient(Func<ScriptedCall, ChatMessage> respond) : IChatClient
 {
@@ -23,7 +23,7 @@ public sealed class ScriptedChatClient(Func<ScriptedCall, ChatMessage> respond) 
         return Task.FromResult(new ChatResponse(answer)
         {
             ModelId = options?.ModelId,
-            Usage = Usage(history, answer)
+            Usage = Usage(history, options, answer)
         });
     }
 
@@ -73,12 +73,35 @@ public sealed class ScriptedChatClient(Func<ScriptedCall, ChatMessage> respond) 
     {
     }
 
-    private static UsageDetails Usage(List<ChatMessage> history, ChatMessage answer)
+    // A provider counts the instructions and the tools offered as input, and tool calls and their results like text
+    private static UsageDetails Usage(List<ChatMessage> history, ChatOptions? options, ChatMessage answer)
     {
-        var input = history.Sum(message => message.Text.Length) / 4;
-        var output = answer.Text.Length / 4 + 10;
+        var characters = (options?.Instructions?.Length ?? 0)
+            + (options?.Tools ?? []).Sum(tool => Characters(tool))
+            + history.Sum(message => Characters(message));
+
+        var input = characters / 4;
+        var output = Characters(answer) / 4;
+
         return new UsageDetails { InputTokenCount = input, OutputTokenCount = output, TotalTokenCount = input + output };
     }
+
+    private static int Characters(AITool tool) =>
+        tool.Name.Length
+        + tool.Description.Length
+        + (tool is AIFunctionDeclaration function ? function.JsonSchema.GetRawText().Length : 0);
+
+    private static int Characters(ChatMessage message) =>
+        message.Contents.Sum(content => content switch
+        {
+            TextContent text => text.Text.Length,
+            FunctionCallContent call => call.Name.Length + (call.Arguments?.Sum(argument => Characters(argument)) ?? 0),
+            FunctionResultContent result => result.Result?.ToString()?.Length ?? 0,
+            _ => 0
+        });
+
+    private static int Characters(KeyValuePair<string, object?> argument) =>
+        argument.Key.Length + (argument.Value?.ToString()?.Length ?? 0);
 }
 
 /// <summary>
