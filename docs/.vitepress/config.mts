@@ -155,7 +155,17 @@ export default withMermaid(
         pattern: `${repository}/edit/main/docs/:path`,
         text: 'Edit this page on GitHub'
       },
-      search: { provider: 'local' },
+      // The contributing pages are for this repository: they stay searchable, ranked below the guide
+      search: {
+        provider: 'local',
+        options: {
+          miniSearch: {
+            searchOptions: {
+              boostDocument: id => (String(id).includes('/contributing/') ? 0.2 : 1)
+            }
+          }
+        }
+      },
       outline: { level: [2, 3], label: 'On this page' },
       footer: {
         message: 'Released under the MIT License.'
