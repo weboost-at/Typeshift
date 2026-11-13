@@ -238,7 +238,7 @@ internal static class AgentEmitter
                 writer.Line();
             }
 
-            // D39, D40, D44
+            // D39, D40, D44: the Settings record stores itself, under its kind and its schema version
             writer.Lines(
                 $$"""
                 /// <inheritdoc />

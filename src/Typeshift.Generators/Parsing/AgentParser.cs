@@ -154,7 +154,7 @@ internal static class AgentParser
                     ?? declarations.Description;
                 break;
 
-            // D39, D40
+            // D39, D40: what every stored document of the agent names, so both are read as constants
             case "WithStorageKind":
                 declarations.Kind = ReadConstant(call, "storage kind", reporter) ?? declarations.Kind;
                 break;
@@ -183,7 +183,7 @@ internal static class AgentParser
                 declarations.Used.Add(call.TargetMethod.TypeArguments[0]);
                 break;
 
-            // D33, D34
+            // D33, D34: another agent, called as a tool or handed the conversation
             case "UseAgent" or "UseHandoff":
                 if (call.TargetMethod.TypeArguments[0] is not INamedTypeSymbol { TypeKind: not TypeKind.Error } target)
                     break;

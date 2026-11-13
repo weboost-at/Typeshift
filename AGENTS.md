@@ -227,7 +227,7 @@ The code must read as if the owner wrote it: terse, intention-revealing, comment
   signature puts one parameter per line.
 - Fluent chains one call per line; blank lines around multi-line statements; a statement-level object initializer
   is multi-line; no trailing commas.
-- Comments only where they earn their place: one line, saying why, never what.
+- Comments only where they earn their place: one thought, a few lines at most, saying why, never what.
 - XML docs on every public member and none on private or internal ones: a `<summary>` of what it is or does, plus
   every `<typeparam>`, `<param>`, `<returns>` and the `<exception>`s a caller can act on, in plain sentences a reader
   takes in at a glance. Anything that needs more than a few sentences goes to the docs site.

@@ -27,7 +27,8 @@ internal sealed class Compaction(ReportedCall? last)
         plain text, without a preamble.
         """;
 
-    // shortcut: a result longer than this is cut in the transcript the summary model reads
+    // shortcut: a result longer than this is cut in the transcript the summary model reads, make it an option when
+    // a summary has to keep what a long result said
     private const int TranscriptResultLength = 2_000;
 
     // The placeholder of each cleared result, by its call
