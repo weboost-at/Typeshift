@@ -80,9 +80,22 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** per toolset a `{Tool}Overrides` record per tool with configurable settings and a `{Toolset}ToolList`
   extension block; per agent the nested `Settings` record, a private `Configure{Tool}()` per offered tool with settings
   and a `TypeshiftHost_{full name}` extension block in the global namespace (D12); per assembly a module. Nested
-  classes join their containers' names with `_`; keywords get `@`. A clash with a user member is TSH018. A
-  generated file is named after its class's full name. The compiler compares those file names without case, so
-  where two full names differ only by case, each file's name also carries a hash of its class's spelling.
+  classes join their containers' names with `_`; keywords get `@`. A clash with a user member is TSH018, and so is
+  a class named like a member written into it. Two tools of one class that would share a generated member are
+  TSH007. A generated file is named after its class's full name. The compiler compares those file names without
+  case, so where two full names differ only by case, each file's name also carries a hash of its class's spelling.
+- **Names a generated type already has:** a generated property never takes the name of a member its type has from
+  `object` (`Names.ObjectMembers`) or declares itself, and gets a suffix instead: `Tool` on the tool list and in an
+  agent's `Settings`, `Value` in an overrides record. Each type keeps a list of its own members beside the shared
+  one. The lists are not merged, because a suffix is part of the generated API: a tool `clone` is `CloneTool` in
+  `Settings`, which has a `Clone`, and plain `Clone` on the tool list, which has none. Inside a generated record,
+  its members are read through `this.`, so a settings member named like a parameter or a local of the generated
+  method, such as `settings` or `writer`, binds to the member.
+- **Module names:** `{Assembly}Module`, with every character of the assembly's name that is no letter or digit as
+  `_`. A name of letters, digits and dots maps to one identifier alone and stays as it is. Any other name carries a
+  hash of itself, `Acme_Tools_1a2b3c4dModule` for `Acme-Tools`, which would otherwise share `Acme_ToolsModule` with
+  `Acme.Tools`. The hash is FNV-1a, the same on every machine. The name travels in the `[GeneratedModule]` stamp
+  (D7), so no reader derives it.
 - **Agents:** besides those, the hidden `Declaration` override, one private nested class `TypeshiftGenerated` (the
   declaration, the builders and the per-agent store of `Configure{Tool}()` values) and one private field
   `_typeshift`, so an agent gains as few names as possible. A tool's member in `Settings` named like an option or a
@@ -90,7 +103,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   TSH006, and the generator leaves the member out. Nor can it name a less accessible provider id type, the agent's
   own (D77), which a configurable model or summary model brings in: TSH006 on the pick, and the generator writes the
   provider members internal.
-- **Where:** `Emitting/Names.cs`, `Emitting/AgentEmitter.cs`.
+- **Where:** `Emitting/Names.cs`, `Emitting/AgentEmitter.cs`, `Emitting/ToolsetEmitter.cs`,
+  `Emitting/ModuleEmitter.cs`, `Emitting/StorageEmitter.cs`.
 
 ### D7. Stamps carry the generated names and a version
 

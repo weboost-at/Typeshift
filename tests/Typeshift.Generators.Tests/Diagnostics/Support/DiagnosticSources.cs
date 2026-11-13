@@ -1931,4 +1931,87 @@ public static class DiagnosticSources
             public static string Echo(string text) => text;
         }
         """;
+
+    // create_report's function class and report_function's factory are both CreateReportFunction
+    public const string ToolsSharingAGeneratedMember =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class ReportToolset : Toolset
+        {
+            public ReportToolset()
+            {
+                AddTool(CreateReport).WithDescription("Creates.");
+                AddTool(ReportFunction).WithDescription("Reports.");
+            }
+
+            public static string CreateReport(string text) => text;
+
+            public static string ReportFunction(string text) => text;
+        }
+        """;
+
+    // Both are EqualsTool on the tool list: the first gets the suffix, since the list has an Equals from object
+    public const string ToolsSharingAToolListProperty =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class CompareToolset : Toolset
+        {
+            public CompareToolset()
+            {
+                AddTool(Compare).WithName("equals").WithDescription("Compares.");
+                AddTool(Check).WithName("equals_tool").WithDescription("Checks.");
+            }
+
+            public static bool Compare(string left, string right) => left == right;
+
+            public static bool Check(string left, string right) => left == right;
+        }
+        """;
+
+    // A class cannot hold a member of its own name
+    public const string AgentNamedLikeAGeneratedMember =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class Settings : Agent
+        {
+            public Settings() => WithDescription("Settings.");
+        }
+        """;
+
+    public const string ToolsetNamedLikeAToolsFunction =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class EchoFunction : Toolset
+        {
+            public EchoFunction() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string ToolsetNamedLikeAToolsFactory =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class CreateTicket : Toolset
+        {
+            public CreateTicket() => AddTool(Ticket).WithDescription("Creates.");
+
+            public static string Ticket(string text) => text;
+        }
+        """;
 }

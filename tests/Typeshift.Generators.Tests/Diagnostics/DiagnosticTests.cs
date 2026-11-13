@@ -1241,6 +1241,69 @@ public class DiagnosticTests : GeneratorTestBase
         run.Assert.CompilesCleanly();
     }
 
+    [Fact]
+    public void Given_Two_Tools_Sharing_A_Generated_Member_TSH007_Is_Reported_On_The_Second()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToolsSharingAGeneratedMember);
+
+        // Assert
+        run.Assert.Reports("TSH007", DiagnosticSeverity.Error, "AddTool(ReportFunction)");
+    }
+
+    [Fact]
+    public void Given_Two_Tools_Sharing_A_Generated_Member_TSH007_Names_The_Member()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToolsSharingAGeneratedMember);
+
+        // Assert
+        run.Reported.Single(diagnostic => diagnostic.Id == "TSH007")
+            .GetMessage()
+            .Should()
+            .Contain("'CreateReportFunction'");
+    }
+
+    [Fact]
+    public void Given_Two_Tools_Sharing_A_Tool_List_Property_TSH007_Is_Reported_On_The_Second()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToolsSharingAToolListProperty);
+
+        // Assert
+        run.Assert.Reports("TSH007", DiagnosticSeverity.Error, "AddTool(Check)");
+    }
+
+    [Fact]
+    public void Given_An_Agent_Named_Like_A_Generated_Member_TSH018_Is_Reported_On_Its_Name()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentNamedLikeAGeneratedMember);
+
+        // Assert
+        run.Assert.Reports("TSH018", DiagnosticSeverity.Error, "Settings");
+    }
+
+    [Fact]
+    public void Given_A_Toolset_Named_Like_A_Tools_Function_TSH018_Is_Reported_On_Its_Name()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToolsetNamedLikeAToolsFunction);
+
+        // Assert
+        run.Assert.Reports("TSH018", DiagnosticSeverity.Error, "EchoFunction");
+    }
+
+    [Fact]
+    public void Given_A_Toolset_Named_Like_A_Tools_Factory_TSH018_Is_Reported_On_Its_Name()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToolsetNamedLikeAToolsFactory);
+
+        // Assert
+        run.Assert.Reports("TSH018", DiagnosticSeverity.Error, "CreateTicket");
+    }
+
     [Theory]
     [MemberData(nameof(Mistakes))]
     public void Given_Any_Mistake_The_Generated_Code_Holds_No_Error(string mistake)

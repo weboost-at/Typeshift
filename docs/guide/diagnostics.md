@@ -132,6 +132,11 @@ accessible as what exposes it. There are three cases:
 references. Names that differ only in their underscores, such as `get_v2` and `get_v_2`, count as the same, because
 they map to the same generated property. Give one of the tools another name with `WithName("...")`.
 
+Within one toolset or agent, two tools also clash when the generator would write one member for both, and the
+message names that member. `create_report` and `report_function` do: the function class of the first and the
+factory of the second are both `CreateReportFunction`. So do `equals` and `equals_tool`, which are both
+`EqualsTool` in the tool list, where the first gets a suffix.
+
 An agent's own tool needs a unique name only among the tools of the agents its standing approvals reach, and of those
 whose approvals reach it: the agents it hands off to, directly or through other agents, the agents that hand off to it,
 its sub-agents and the agents that call it as one. A standing approval names its tool, so it would reach another tool
@@ -207,6 +212,10 @@ own file can name a file-local class.
 **Member clashes with a generated member.** A member of yours has a name the generator writes, such as `Settings` in an
 agent, or `CreateSearchTickets`, a tool's factory, in the toolset or the agent that declares the tool. Rename your
 member. [Generated members](./generated-members.md) lists the names.
+
+The class itself is reported when it has such a name, since a class cannot hold a member of its own name: an agent
+named `Settings`, or a toolset named `EchoFunction` with a tool `echo`. Rename the class, or give the tool another
+name with `WithName("...")`.
 
 ## TSH019
 

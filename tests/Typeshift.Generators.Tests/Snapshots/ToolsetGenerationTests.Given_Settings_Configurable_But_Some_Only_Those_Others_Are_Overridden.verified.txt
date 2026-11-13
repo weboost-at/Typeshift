@@ -39,8 +39,8 @@ partial class KnowledgeToolset
         public global::Demo.SearchArticlesSettings ApplyTo(global::Demo.SearchArticlesSettings settings) =>
             settings with
             {
-                Language = Language ?? settings.Language,
-                Fuzzy = Fuzzy ?? settings.Fuzzy
+                Language = this.Language ?? settings.Language,
+                Fuzzy = this.Fuzzy ?? settings.Fuzzy
             };
 
         /// <inheritdoc />
@@ -49,13 +49,13 @@ partial class KnowledgeToolset
         {
             writer.WriteStartObject();
 
-            if (Language is { } member0)
+            if (this.Language is { } member0)
             {
                 writer.WritePropertyName("language");
                 global::Typeshift.Generated.StorableJson.Write(writer, member0);
             }
 
-            if (Fuzzy is { } member1)
+            if (this.Fuzzy is { } member1)
             {
                 writer.WritePropertyName("fuzzy");
                 global::Typeshift.Generated.StorableJson.Write(writer, member1);

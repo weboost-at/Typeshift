@@ -46,6 +46,11 @@ All notable changes to this project are documented here. The format follows
   'Lookups' is file-local, and generated code is written to other files".
 - TSH004 is titled "Tool parameter or result cannot be bound". It covers a tool's result too, and its message names
   the reason, as in "The result of the tool 'chars' cannot be returned to the model: its type is a ref struct".
+- A tool named `get_type`, `memberwise_clone` or `reference_equals` is `GetTypeTool`, `MemberwiseCloneTool` or
+  `ReferenceEqualsTool` in an agent's `Settings`, as on the tool list. Without the suffix the member hid one that
+  every record has from `object`, which is CS0108. Settings stored under the tool's name are not affected.
+- The module of an assembly whose name holds other characters than letters, digits and dots carries a hash of the
+  name, as `Acme_Tools_1a2b3c4dModule` for `Acme-Tools`. The generated registration names it for you.
 
 ### Fixed
 
@@ -142,6 +147,15 @@ All notable changes to this project are documented here. The format follows
 - A reference under an `extern alias` alone is reported: TSH019 on a `UseToolset<T>()` of one of its toolsets, and
   TSH020 for the reference, whose toolsets and agents `AddTypeshift()` cannot register. Generated code named its
   types from `global::`, which gave CS0400 in the generated agent and CS0234 in the generated registration.
+- Names that met a generated one no longer end in errors inside generated files:
+  - Two tools of one toolset that would share a generated member, such as `create_report` and `report_function`,
+    are TSH007, which names the member. They gave CS0102.
+  - A class named like a member the generator writes into it, such as an agent named `Settings` or a toolset named
+    `EchoFunction` with a tool `echo`, is TSH018. It gave CS0542.
+  - Two referenced assemblies whose names differ only in punctuation, such as `Acme.Tools` and `Acme-Tools`, no
+    longer share one module name, which gave CS0433.
+  - A settings member named like a parameter or a local of the generated code, such as `settings`, `writer` or
+    `value`, compiles. It gave CS0019 and CS0165.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

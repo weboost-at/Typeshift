@@ -338,4 +338,44 @@ public static class ReferenceSources
             public static void Register(IServiceCollection services) => services.AddTypeshift();
         }
         """;
+
+    // A toolset for an assembly of any name: the namespace, the class and its one tool method
+    public static string EchoToolset(string ns, string toolset, string method) =>
+        $$"""
+        #pragma warning disable CS1591
+
+        using Typeshift;
+
+        namespace {{ns}};
+
+        public partial class {{toolset}} : Toolset
+        {
+            public {{toolset}}() => AddTool({{method}}).WithDescription("Echoes.");
+
+            public static string {{method}}(string text) => text;
+        }
+        """;
+
+    public const string TwoToolsetsHost =
+        """
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+
+        namespace Host;
+
+        internal partial class HostAgent : Agent
+        {
+            public HostAgent()
+            {
+                WithDescription("Hosts.");
+                UseToolset<First.FirstTools>();
+                UseToolset<Second.SecondTools>();
+            }
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) => services.AddTypeshift();
+        }
+        """;
 }

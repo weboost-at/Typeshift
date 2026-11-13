@@ -967,4 +967,170 @@ public static class ShapeSources
                 "";
         }
         """;
+
+    // An agent's Settings would hide what every record inherits from object, so these members get a suffix
+    public const string ToolsNamedLikeMembersOfObject =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record Limits
+        {
+            public int Max { get; init; } = 10;
+        }
+
+        internal partial class TypeToolset : Toolset
+        {
+            public TypeToolset()
+            {
+                AddTool(TypeOf).WithName("get_type").WithDescription("Gets.").WithConfigurableSettings<Limits>();
+                AddTool(Clone).WithName("memberwise_clone").WithDescription("Clones.").WithSettings<Limits>();
+                AddTool(Same).WithName("reference_equals").WithDescription("Is.").WithConfigurableSettings<Limits>();
+                AddTool(Hash).WithName("get_hash_code").WithDescription("Hashes.").WithConfigurableSettings<Limits>();
+                AddTool(Text).WithName("to_string").WithDescription("Writes.").WithConfigurableSettings<Limits>();
+            }
+
+            public static string TypeOf(string text, Limits limits) => text;
+
+            public static string Clone(string text, Limits limits) => text;
+
+            public static string Same(string text, Limits limits) => text;
+
+            public static string Hash(string text, Limits limits) => text;
+
+            public static string Text(string text, Limits limits) => text;
+        }
+
+        internal partial class TypeAgent : Agent
+        {
+            public TypeAgent()
+            {
+                WithDescription("Types.");
+
+                UseToolset<TypeToolset>()
+                    .Include(t => t.GetTypeTool)
+                    .Include(t => t.MemberwiseCloneTool)
+                    .Include(t => t.ReferenceEqualsTool)
+                    .Include(t => t.GetHashCodeTool)
+                    .Include(t => t.ToStringTool);
+            }
+        }
+        """;
+
+    // The generated ApplyTo and JSON members have parameters and locals of these names
+    public const string SettingsMembersNamedLikeGeneratedLocals =
+        """
+        #pragma warning disable CS8981
+
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record nested
+        {
+            public int writer { get; init; } = 1;
+
+            public int value { get; init; } = 1;
+
+            public int element { get; init; } = 1;
+
+            public int defaults { get; init; } = 1;
+
+            public int member0 { get; init; } = 1;
+        }
+
+        internal record Lower
+        {
+            public int settings { get; init; } = 1;
+
+            public int writer { get; init; } = 1;
+
+            public int element { get; init; } = 1;
+
+            public int value { get; init; } = 1;
+
+            public int member0 { get; init; } = 1;
+
+            public int member1 { get; init; } = 1;
+
+            public nested nested { get; init; } = new();
+        }
+
+        internal partial class LowerToolset : Toolset
+        {
+            public LowerToolset() => AddTool(Echo).WithDescription("Echoes.").WithConfigurableSettings<Lower>();
+
+            public static string Echo(string text, Lower lower) => text;
+        }
+
+        internal partial class LowerAgent : Agent
+        {
+            public LowerAgent()
+            {
+                WithDescription("Lower.");
+                UseToolset<LowerToolset>();
+                ConfigureEcho().Withvalue(2).Withsettings(3);
+            }
+        }
+        """;
+
+    // A class cannot hold a member of its own name, so this agent gets no Configure{Tool}() for the tool
+    public const string AgentNamedLikeAConfigureMethod =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record EchoSettings
+        {
+            public int Repeat { get; init; } = 1;
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.").WithConfigurableSettings<EchoSettings>();
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+
+        internal partial class ConfigureEcho : Agent
+        {
+            public ConfigureEcho()
+            {
+                WithDescription("Echoes.");
+                UseToolset<EchoToolset>();
+            }
+        }
+        """;
+
+    // The tool list's CreateReport property and the toolset's CreateReport factory live in two classes
+    public const string ToolsWhoseGeneratedNamesMeetAcrossClasses =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class ReportToolset : Toolset
+        {
+            public ReportToolset()
+            {
+                AddTool(Find).WithName("report").WithDescription("Finds a report.");
+                AddTool(Make).WithName("create_report").WithDescription("Creates a report.");
+            }
+
+            public static string Find(string title) => title;
+
+            public static string Make(string title) => title;
+        }
+
+        internal partial class ReportAgent : Agent
+        {
+            public ReportAgent()
+            {
+                WithDescription("Reports.");
+                UseToolset<ReportToolset>().Include(t => t.Report).Include(t => t.CreateReport);
+            }
+        }
+        """;
 }

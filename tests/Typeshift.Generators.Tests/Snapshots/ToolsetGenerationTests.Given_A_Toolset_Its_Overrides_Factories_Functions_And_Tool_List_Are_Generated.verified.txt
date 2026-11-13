@@ -48,8 +48,8 @@ partial class TicketToolset
         public global::Demo.SearchTicketsSettings ApplyTo(global::Demo.SearchTicketsSettings settings) =>
             settings with
             {
-                Limit = Limit ?? settings.Limit,
-                IncludeClosed = IncludeClosed ?? settings.IncludeClosed
+                Limit = this.Limit ?? settings.Limit,
+                IncludeClosed = this.IncludeClosed ?? settings.IncludeClosed
             };
 
         /// <inheritdoc />
@@ -58,13 +58,13 @@ partial class TicketToolset
         {
             writer.WriteStartObject();
 
-            if (Limit is { } member0)
+            if (this.Limit is { } member0)
             {
                 writer.WritePropertyName("limit");
                 global::Typeshift.Generated.StorableJson.WriteNumber(writer, member0);
             }
 
-            if (IncludeClosed is { } member1)
+            if (this.IncludeClosed is { } member1)
             {
                 writer.WritePropertyName("includeClosed");
                 global::Typeshift.Generated.StorableJson.Write(writer, member1);

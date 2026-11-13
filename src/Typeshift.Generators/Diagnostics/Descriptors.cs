@@ -97,7 +97,7 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor GeneratedNameClash = Error(
         "TSH018",
         "Member clashes with a generated member",
-        "The member '{0}' clashes with a member the generator writes for '{1}'");
+        "{0} clashes with a member the generator writes for '{1}'");
 
     public static readonly DiagnosticDescriptor NotGenerated = Error(
         "TSH019",

@@ -157,7 +157,7 @@ partial class DeskAgent
         public global::Demo.LookUpSettings ApplyTo(global::Demo.LookUpSettings settings) =>
             settings with
             {
-                Limit = Limit ?? settings.Limit
+                Limit = this.Limit ?? settings.Limit
             };
 
         /// <inheritdoc />
@@ -166,7 +166,7 @@ partial class DeskAgent
         {
             writer.WriteStartObject();
 
-            if (Limit is { } member0)
+            if (this.Limit is { } member0)
             {
                 writer.WritePropertyName("limit");
                 global::Typeshift.Generated.StorableJson.WriteNumber(writer, member0);

@@ -287,37 +287,37 @@ partial class SupportAgent
             writer.WriteStartObject();
             global::Typeshift.Generated.StorableJson.WriteSchemaVersion(writer, SchemaVersion);
 
-            if (Provider is { } member0)
+            if (this.Provider is { } member0)
             {
                 writer.WritePropertyName("provider");
                 global::Typeshift.Generated.StorableJson.Write(writer, member0);
             }
 
-            if (Model is { } member1)
+            if (this.Model is { } member1)
             {
                 writer.WritePropertyName("model");
                 global::Typeshift.Generated.StorableJson.Write(writer, member1);
             }
 
-            if (Temperature is { } member2)
+            if (this.Temperature is { } member2)
             {
                 writer.WritePropertyName("temperature");
                 global::Typeshift.Generated.StorableJson.WriteNumber(writer, member2);
             }
 
-            if (StopSequences is { } member3)
+            if (this.StopSequences is { } member3)
             {
                 writer.WritePropertyName("stopSequences");
                 WriteStored0(writer, member3);
             }
 
-            if (Reasoning is { } member4)
+            if (this.Reasoning is { } member4)
             {
                 writer.WritePropertyName("reasoning");
                 global::Typeshift.Generated.StorableJson.Write(writer, member4);
             }
 
-            if (MaxToolIterations is { } member5)
+            if (this.MaxToolIterations is { } member5)
             {
                 writer.WritePropertyName("maxToolIterations");
                 global::Typeshift.Generated.StorableJson.WriteNumber(writer, member5);

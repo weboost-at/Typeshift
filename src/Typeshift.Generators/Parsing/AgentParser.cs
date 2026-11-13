@@ -46,10 +46,19 @@ internal static class AgentParser
         if (unreachable is not null)
             reporter.Report(Descriptors.Unreachable, agent.Locations.FirstOrDefault(), agent.Name, unreachable);
 
-        var clash = Members.SelectMany(name => agent.GetMembers(name)).FirstOrDefault(IsUsers);
+        // A class cannot hold a member of its own name, so the agent's name is none of the generated ones either
+        ISymbol? clash = Members.Contains(agent.Name)
+            ? agent
+            : Members.SelectMany(name => agent.GetMembers(name)).FirstOrDefault(IsUsers);
 
         if (clash is not null)
-            reporter.Report(Descriptors.GeneratedNameClash, clash.Locations.FirstOrDefault(), clash.Name, agent.Name);
+        {
+            reporter.Report(
+                Descriptors.GeneratedNameClash,
+                clash.Locations.FirstOrDefault(),
+                clash is INamedTypeSymbol ? $"The class '{clash.Name}'" : $"The member '{clash.Name}'",
+                agent.Name);
+        }
 
         var declarations = new Declarations();
 
@@ -92,10 +101,13 @@ internal static class AgentParser
         // A partial in another file would declare another class than a file-local one
         if (notPartial is not null || clash is not null || agent.IsFileLocalOrNestedInOne()) return null;
 
-        // The user's own Configure{Tool}() wins over the one the generator would write
+        // The user's own Configure{Tool}() wins over the one the generator would write, and so does the agent's own
+        // name, which no member of it can have
         var configures = agent.GetMembers()
-            .Where(member => member.Name.StartsWith("Configure", StringComparison.Ordinal) && IsUsers(member))
+            .Where(IsUsers)
             .Select(member => member.Name)
+            .Append(agent.Name)
+            .Where(name => name.StartsWith("Configure", StringComparison.Ordinal))
             .Distinct();
 
         ISymbol[] named = [agent, .. declarations.Used, .. declarations.Models.Select(model => model.Type)];

@@ -31,8 +31,9 @@ internal static class AgentEmitter
     // The members of the record that its properties must not be named like
     private static readonly string[] RecordMembers =
     [
-        "Clone", "Deconstruct", "Deserialize", "EqualityContract", "Equals", "GetHashCode", "Kind", "PrintMembers",
-        "SchemaVersion", "Serialize", "Settings", "ToString", "TryReadJson", "WriteJson"
+        .. Names.ObjectMembers,
+        "Clone", "Deconstruct", "Deserialize", "EqualityContract", "Kind", "PrintMembers", "SchemaVersion",
+        "Serialize", "Settings", "TryReadJson", "WriteJson"
     ];
 
     public static string Emit(AgentOutput output)

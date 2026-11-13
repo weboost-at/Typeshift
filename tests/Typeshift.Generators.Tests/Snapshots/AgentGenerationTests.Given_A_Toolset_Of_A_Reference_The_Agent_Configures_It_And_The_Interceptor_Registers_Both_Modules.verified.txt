@@ -43,7 +43,7 @@ partial class ResearchAgent
             writer.WriteStartObject();
             global::Typeshift.Generated.StorableJson.WriteSchemaVersion(writer, SchemaVersion);
 
-            if (Temperature is { } member0)
+            if (this.Temperature is { } member0)
             {
                 writer.WritePropertyName("temperature");
                 global::Typeshift.Generated.StorableJson.WriteNumber(writer, member0);

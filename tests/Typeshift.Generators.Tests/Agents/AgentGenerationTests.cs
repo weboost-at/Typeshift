@@ -1,3 +1,4 @@
+using Typeshift.Generators.Emitting;
 using Typeshift.Generators.Tests.Agents.Support;
 using Typeshift.Generators.Tests.Diagnostics.Support;
 using Typeshift.Generators.Tests.Toolsets.Support;
@@ -368,5 +369,64 @@ public class AgentGenerationTests : GeneratorTestBase
 
         // Assert
         run.Source("Typeshift.Generated.AddTypeshiftInterceptor.g.cs").Should().NotContain("LibModule");
+    }
+
+    [Fact]
+    public void Given_Tools_Named_Like_Members_Of_Object_The_Agents_Settings_Name_Them_With_A_Suffix()
+    {
+        // Act
+        var run = Run(ShapeSources.ToolsNamedLikeMembersOfObject);
+
+        // Assert
+        run.Output.GetTypeByMetadataName("Demo.TypeAgent+Settings")!
+            .GetMembers()
+            .OfType<IPropertySymbol>()
+            .Select(property => property.Name)
+            .Should()
+            .Contain(["GetTypeTool", "ReferenceEqualsTool", "GetHashCodeTool", "ToStringTool"]);
+    }
+
+    [Fact]
+    public void Given_Two_References_Whose_Names_Differ_In_Punctuation_Their_Modules_Do_Not_Clash()
+    {
+        // Arrange
+        var first = CompileReference("Acme.Tools", ReferenceSources.EchoToolset("First", "FirstTools", "EchoOne"));
+        var second = CompileReference("Acme-Tools", ReferenceSources.EchoToolset("Second", "SecondTools", "EchoTwo"));
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [first, second], ReferenceSources.TwoToolsetsHost));
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Theory]
+    [InlineData("Acme.Tools", "Acme_ToolsModule")]
+    [InlineData("Subject", "SubjectModule")]
+    [InlineData("4Sales", "_4SalesModule")]
+    public void Given_An_Assembly_Name_Of_Letters_Digits_And_Dots_Its_Module_Is_Named_After_It(
+        string assembly,
+        string module)
+    {
+        // Act
+        var name = ModuleEmitter.GetName(assembly);
+
+        // Assert
+        name.Should().Be(module);
+    }
+
+    [Theory]
+    [InlineData("Acme-Tools", "Acme_Tools_")]
+    [InlineData("Acme_Tools", "Acme_Tools_")]
+    [InlineData("Acme Tools", "Acme_Tools_")]
+    public void Given_An_Assembly_Name_With_Other_Characters_Its_Module_Carries_A_Hash_Of_The_Name(
+        string assembly,
+        string start)
+    {
+        // Act
+        var name = ModuleEmitter.GetName(assembly);
+
+        // Assert
+        name.Should().MatchRegex($"^{start}[0-9a-f]{{8}}Module$");
     }
 }

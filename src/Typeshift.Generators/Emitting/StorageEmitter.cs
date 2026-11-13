@@ -39,7 +39,11 @@ internal sealed class StorageEmitter
             writer.Line("writer.WriteStartObject();");
             if (versioned) writer.Line($"{Json}.WriteSchemaVersion(writer, SchemaVersion);");
             writer.Line();
-            storage.WriteMembers(writer, list);
+
+            // this, since a member may be named like the parameter or a local
+            storage.WriteMembers(
+                writer,
+                list.Select(member => ($"this.{member.Property}", member.JsonName, member.Storage)));
 
             if (writeMore is not null)
             {

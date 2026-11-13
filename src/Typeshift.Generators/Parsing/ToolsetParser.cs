@@ -64,13 +64,24 @@ internal static class ToolsetParser
         {
             if (ParseTool(addTool, owner, documented, reporter, ct) is not { } tool) continue;
 
-            if (declared.Any(offered => Clashes(offered.Tool, tool)))
+            var shared = declared
+                .Select(offered => Names.SharedMember(offered.Tool.Name, tool.Name))
+                .FirstOrDefault(name => name is not null);
+
+            if (shared is not null)
+            {
+                reporter.Report(Descriptors.DuplicateToolName, addTool.Syntax, tool.Name, shared);
+                continue;
+            }
+
+            // A class cannot hold a member of its own name
+            if (GetGeneratedMembers(tool).Contains(owner.Name))
             {
                 reporter.Report(
-                    Descriptors.DuplicateToolName,
-                    addTool.Syntax,
-                    tool.Name,
-                    Names.ToPascalCase(tool.Name));
+                    Descriptors.GeneratedNameClash,
+                    owner.Locations.FirstOrDefault(),
+                    $"The class '{owner.Name}'",
+                    tool.Name);
                 continue;
             }
 
@@ -79,7 +90,7 @@ internal static class ToolsetParser
                 reporter.Report(
                     Descriptors.GeneratedNameClash,
                     member.Locations.FirstOrDefault(),
-                    member.Name,
+                    $"The member '{member.Name}'",
                     tool.Name);
                 continue;
             }
@@ -95,16 +106,15 @@ internal static class ToolsetParser
         && (invocation.TargetMethod.ContainingType.Is(KnownTypes.Toolset)
             || invocation.TargetMethod.ContainingType.Is(KnownTypes.Agent));
 
-    // get_v2 and get_v_2 differ, but both generate CreateGetV2
-    private static bool Clashes(ToolModel offered, ToolModel tool) =>
-        offered.Name == tool.Name || Names.ToPascalCase(offered.Name) == Names.ToPascalCase(tool.Name);
-
     // The analyzer sees the generated members too; only the user's own can clash
     private static ISymbol? ClashingMember(INamedTypeSymbol owner, ToolModel tool) =>
-        Names.ToolsetMembers(tool.Name, tool.Settings?.HasConfigurable is true)
+        GetGeneratedMembers(tool)
             .SelectMany(name => owner.GetMembers(name))
             .FirstOrDefault(member => member.DeclaringSyntaxReferences
                 .Any(reference => !Names.IsGenerated(reference.SyntaxTree)));
+
+    private static IEnumerable<string> GetGeneratedMembers(ToolModel tool) =>
+        Names.ToolsetMembers(tool.Name, tool.Settings?.HasConfigurable is true);
 
     private static ToolModel? ParseTool(
         IInvocationOperation addTool,

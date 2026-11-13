@@ -21,16 +21,16 @@ internal static class Names
     public const string Hidden =
         "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
 
+    // What every class has from object: a generated member of one of these names would hide it (D6)
+    public static readonly string[] ObjectMembers =
+        ["Equals", "GetHashCode", "GetType", "MemberwiseClone", "ReferenceEquals", "ToString"];
+
     // search_web reads as SearchWeb in generated member names
     public static string ToPascalCase(string snakeCase) =>
         string.Concat(snakeCase.Split('_').Select(part => char.ToUpperInvariant(part[0]) + part.Substring(1)));
 
     // D6: a tool's property on its ToolList; a name the list already has from object gets a suffix
-    public static string ToolProperty(string tool) =>
-        Unreserved(
-            ToPascalCase(tool),
-            "Tool",
-            ["Equals", "GetHashCode", "GetType", "MemberwiseClone", "ReferenceEquals", "ToString"]);
+    public static string ToolProperty(string tool) => Unreserved(ToPascalCase(tool), "Tool", ObjectMembers);
 
     public static string OverridesName(string tool) => $"{ToPascalCase(tool)}Overrides";
 
@@ -44,6 +44,17 @@ internal static class Names
         hasOverrides
             ? [OverridesName(tool), FactoryName(tool), FunctionName(tool)]
             : [FactoryName(tool), FunctionName(tool)];
+
+    // The name two tools of one toolset or agent would both generate, null when they share none: an equal name in
+    // PascalCase, as get_v2 and get_v_2 have, a property of the tool list, as equals and equals_tool are with the
+    // suffix, or a member of the class, as create_report's function and report_function's factory are
+    public static string? SharedMember(string tool, string other) =>
+        ToPascalCase(tool) == ToPascalCase(other) ? ToPascalCase(tool)
+        : ToolProperty(tool) == ToolProperty(other) ? ToolProperty(tool)
+        : ClassMembers(tool).Intersect(ClassMembers(other)).FirstOrDefault();
+
+    // With its overrides, which a tool has as soon as a setting of it becomes configurable
+    private static IEnumerable<string> ClassMembers(string tool) => ToolsetMembers(tool, hasOverrides: true);
 
     public static string Unreserved(string name, string suffix, ICollection<string> reserved) =>
         reserved.Contains(name) ? name + suffix : name;
@@ -77,7 +88,7 @@ internal static class Names
     public static bool IsGenerated(SyntaxTree tree) => tree.FilePath.Contains(Generator);
 
     // FNV-1a: string.GetHashCode differs from run to run
-    private static string GetStableHash(string text)
+    public static string GetStableHash(string text)
     {
         var hash = 2166136261;
 

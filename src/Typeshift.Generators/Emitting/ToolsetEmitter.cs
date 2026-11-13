@@ -20,8 +20,8 @@ internal static class ToolsetEmitter
     // The members of a record the overrides' properties must not be named like
     private static readonly string[] RecordMembers =
     [
-        "ApplyTo", "Clone", "Deconstruct", "EqualityContract", "Equals", "GetHashCode", "PrintMembers", "ToString",
-        "TryReadJson", "WriteJson"
+        .. Names.ObjectMembers,
+        "ApplyTo", "Clone", "Deconstruct", "EqualityContract", "PrintMembers", "TryReadJson", "WriteJson"
     ];
 
     public static string Emit(ToolsetModel toolset) =>
@@ -121,10 +121,11 @@ internal static class ToolsetEmitter
 
                 using (writer.Block(close: "};"))
                 {
+                    // this, since a member may be named like the parameter
                     writer.List(
                     [
                         .. configurable.Select(property =>
-                            $"{Names.Identifier(property.Name)} = {Member(property, reserved)} ?? "
+                            $"{Names.Identifier(property.Name)} = this.{Member(property, reserved)} ?? "
                             + $"settings.{Names.Identifier(property.Name)}")
                     ]);
                 }
