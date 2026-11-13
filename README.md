@@ -144,8 +144,10 @@ internal partial class ResearchAgent : Agent
 
 ### 3. Run it
 
-Every run needs an `IChatClient`. For OpenAI, with the `Microsoft.Extensions.AI.OpenAI` package and a key from your
-configuration:
+Every run needs an `IChatClient`. For OpenAI, add the `Microsoft.Extensions.AI.OpenAI` package and `using OpenAI;` and
+`using Microsoft.Extensions.AI;`, and read `apiKey` from your configuration, for example an environment variable. The
+agent's `WithModel` picks the model of each run, so the one you pass to `GetChatClient` serves only an agent that
+names none:
 
 <!-- snippet: openai-chat-client -->
 <a id='snippet-openai-chat-client'></a>
@@ -166,8 +168,10 @@ await using var runtime = TypeshiftRuntime.Create(client);
 await using var research = runtime.Agent<ResearchAgent>();
 
 var answer = await research.RunAsync("Vienna");
+
+Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/NoContainer.cs#L11-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-typeshift-runtime' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/NoContainer.cs#L11-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-typeshift-runtime' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 In an app with a container, such as ASP.NET Core, `AddTypeshift()` registers every toolset and agent, and you inject

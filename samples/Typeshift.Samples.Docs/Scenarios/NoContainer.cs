@@ -13,11 +13,11 @@ internal static class NoContainer
         await using var research = runtime.Agent<ResearchAgent>();
 
         var answer = await research.RunAsync("Vienna");
+
+        Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
         // end-snippet
 
         if (string.IsNullOrEmpty(answer.Text))
             throw new InvalidOperationException("The runtime's agent answered nothing.");
-
-        Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
     }
 }
