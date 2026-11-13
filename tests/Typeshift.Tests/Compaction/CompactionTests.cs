@@ -237,6 +237,48 @@ public class CompactionTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_Turns_To_Summarize_The_Kept_Turns_Fit_With_The_Instructions_And_The_Tools()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Text(new string('y', Page / 2)))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        await RunAsync(new string('x', Page / 2));
+
+        // Act
+        await RunAsync(Data.Agent.FollowUp, new() { MaxInputTokens = 1_000, TargetInputTokens = 600 });
+
+        // Assert
+        Texts(2)[1..].Should().Equal(Data.Agent.FollowUp);
+    }
+
+    [Fact]
+    public async Task Given_Turns_To_Summarize_The_Kept_Turns_Leave_Room_For_The_Summary()
+    {
+        // Arrange
+        var answer = new ChatMessage(ChatRole.Assistant, new string('y', Page / 2));
+        var followUp = new ChatMessage(ChatRole.User, Data.Agent.FollowUp);
+
+        ChatClient
+            .Reply(Text(answer.Text))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        await RunAsync(new string('x', Page));
+        var fitting = Tokens.Estimate([answer, followUp], ChatClient.Options[0]);
+
+        // Act
+        await RunAsync(
+            Data.Agent.FollowUp,
+            new() { MaxInputTokens = fitting + 500, TargetInputTokens = fitting + (fitting / 20) });
+
+        // Assert
+        Texts(2)[1..].Should().Equal(Data.Agent.FollowUp);
+    }
+
+    [Fact]
     public async Task Given_Summarized_Turns_The_Latest_Todo_List_Stays_With_Its_Result()
     {
         // Arrange
