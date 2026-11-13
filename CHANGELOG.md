@@ -81,6 +81,11 @@ All notable changes to this project are documented here. The format follows
   zero, a combination with a bit no member names, a number cast to the enum, or such a value as a dictionary's key.
   It is stored as its number. Before, it was saved without an error and read back as missing, so the layer below
   applied instead, and settings saved that way take effect once you upgrade.
+- The file store of `WithFileStore()` fails a load with an `InvalidDataException` that names the file and its shape
+  for every file of another shape, such as `[]`, a `version` in quotes or a `kind` that is a number. Those threw
+  System.Text.Json's `InvalidOperationException` without the file's name. A save that cannot take its lock file
+  within 30 seconds throws a `TimeoutException` that names the lock file, where it waited for ever without a word,
+  and a save removes the unfinished files that saves of its kind left when their process died.
 - A store of agents' own settings whose creation failed once, such as one whose database was not up at the first
   run, is created again on the next run. Before, every later run of every agent failed with that first exception
   until the app restarted.

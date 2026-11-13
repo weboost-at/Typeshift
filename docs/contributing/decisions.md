@@ -696,7 +696,13 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `-` and escapes every other byte as `%XX`, so any kind maps to a file of the folder, one to one; a name Windows
   reserves is escaped too. The file names its kind, so a file system that ignores case and gives two kinds one file
   fails the load instead of handing one agent the other's settings. A file of another shape throws an
-  `InvalidDataException` that names it and the shape. `WithFileStore(configure)` and `FileStoreOptions` are the only
+  `InvalidDataException` that names it and the shape: the read tests the JSON type of the root, the kind, the
+  version and the settings before it reads them, since a file edited by hand may hold any of them as something else.
+  A save waits for the lock at most 30 seconds on the app's clock and then throws a `TimeoutException` that names
+  the lock file, and it says at Debug that it waits, so a program that hangs with the lock held fails the save
+  instead of hanging it. The lock file stays between saves, since removing it would let a waiting save lock a file
+  that is no longer the one in the folder. Under the lock, a save removes the files that saves of its kind left
+  unfinished when their process died. `WithFileStore(configure)` and `FileStoreOptions` are the only
   public parts, and `Folder` the only option. It defaults to `typeshift` under `AppContext.BaseDirectory`, which a
   service finds whatever its current directory, resolves at registration, and a blank one throws there, naming the
   option. The settings get the fixed `settings` folder in it, so a store of other data can take a folder beside it. The

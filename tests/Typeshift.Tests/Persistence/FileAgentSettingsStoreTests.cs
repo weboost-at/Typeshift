@@ -153,6 +153,30 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
         await load.Should().ThrowAsync<InvalidDataException>().WithMessage($"{OnlyFile()} is no JSON*\"version\": n*");
     }
 
+    [Theory]
+    [InlineData("[]")]
+    [InlineData("5")]
+    [InlineData("null")]
+    [InlineData("\"text\"")]
+    [InlineData("{\"kind\":5,\"version\":1,\"settings\":{}}")]
+    [InlineData("{\"kind\":null,\"version\":1,\"settings\":{}}")]
+    [InlineData("{\"version\":\"3\",\"settings\":{}}")]
+    [InlineData("{\"version\":1,\"settings\":[]}")]
+    public async Task Given_A_File_Of_Another_Shape_Loading_Fails_Naming_The_File_And_The_Shape(string content)
+    {
+        // Arrange
+        var store = new FileAgentSettingsStore(_folder);
+        await store.SaveAsync(Data.Persistence.Kind, "{}", 0, Ct);
+        await File.WriteAllTextAsync(OnlyFile(), content, Ct);
+
+        // Act
+        var load = () => store.LoadAsync(Data.Persistence.Kind, Ct);
+
+        // Assert
+        await load.Should().ThrowAsync<InvalidDataException>()
+            .WithMessage($"{OnlyFile()} is no settings file*\"version\": n*");
+    }
+
     [Fact]
     public async Task Given_A_File_Of_Another_Kind_Loading_Fails_Naming_WithStorageKind()
     {
@@ -275,6 +299,76 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
             .WithMessage(RefusingClock.Refusal);
     }
 
+    [Fact]
+    public async Task Given_A_Lock_File_Held_Past_The_Bound_The_Save_Fails_Naming_It()
+    {
+        // Arrange
+        var store = new FileAgentSettingsStore(_folder, Time);
+        await store.SaveAsync(Data.Persistence.Kind, "{}", 0, Ct);
+
+        await using var held = Hold($"{OnlyFile()}.lock");
+        var save = store.SaveAsync(Data.Persistence.Kind, "{}", 1, Ct);
+
+        // Act
+        Time.Advance(TimeSpan.FromSeconds(30));
+
+        // Assert
+        await FluentActions.Awaiting(() => save).Should().ThrowAsync<TimeoutException>()
+            .WithMessage($"{OnlyFile()}.lock has been held*30 seconds*");
+    }
+
+    [Fact]
+    public async Task Given_A_Lock_File_Let_Go_Within_The_Bound_The_Save_Goes_Through()
+    {
+        // Arrange
+        var store = new FileAgentSettingsStore(_folder, Time);
+        await store.SaveAsync(Data.Persistence.Kind, "{}", 0, Ct);
+
+        var held = Hold($"{OnlyFile()}.lock");
+        var save = store.SaveAsync(Data.Persistence.Kind, "{}", 1, Ct);
+
+        // Act
+        await held.DisposeAsync();
+        Time.Advance(TimeSpan.FromSeconds(29));
+
+        // Assert
+        (await save).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Given_A_Kind_Locked_By_Another_Save_The_Store_Logs_Which_Lock_File_It_Waits_For()
+    {
+        // Arrange
+        var log = new DebugLog();
+        var store = new FileAgentSettingsStore(_folder, Time, log);
+        await store.SaveAsync(Data.Persistence.Kind, "{}", 0, Ct);
+        var held = Hold($"{OnlyFile()}.lock");
+
+        // Act
+        var save = store.SaveAsync(Data.Persistence.Kind, "{}", 1, Ct);
+        await held.DisposeAsync();
+        Time.Advance(TimeSpan.FromSeconds(1));
+        await save;
+
+        // Assert
+        log.Messages.Should().ContainSingle(message => message.Contains($"{OnlyFile()}.lock"));
+    }
+
+    [Fact]
+    public async Task Given_An_Unfinished_File_Of_A_Save_That_Died_The_Next_Save_Of_Its_Kind_Removes_It()
+    {
+        // Arrange
+        var store = new FileAgentSettingsStore(_folder);
+        await store.SaveAsync(Data.Persistence.Kind, "{}", 0, Ct);
+        await File.WriteAllTextAsync($"{OnlyFile()}.{Data.Persistence.OtherId:N}.saving", "half a file", Ct);
+
+        // Act
+        await store.SaveAsync(Data.Persistence.Kind, "{}", 1, Ct);
+
+        // Assert
+        Directory.GetFiles(_folder, "*.saving").Should().BeEmpty();
+    }
+
     protected override ValueTask DisposeCoreAsync()
     {
         if (Directory.Exists(_folder)) Directory.Delete(_folder, recursive: true);
@@ -300,6 +394,10 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
     }
 
     private string OnlyFile() => Directory.GetFiles(_folder, "*.json", SearchOption.AllDirectories).Single();
+
+    // The kind's lock file, held as a save of another store or process holds it
+    private static FileStream Hold(string lockFile) =>
+        new(path: lockFile, mode: FileMode.Open, access: FileAccess.ReadWrite, share: FileShare.None);
 
     private ServiceProvider Provider(IAgentSettingsStore store) => Provider(typeshift => typeshift.WithStore(store));
 

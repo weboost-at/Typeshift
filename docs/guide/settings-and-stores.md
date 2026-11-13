@@ -162,6 +162,11 @@ folder, since a save takes a lock file of its kind first.
   own.
 - On a file system that ignores case, as on Windows and macOS, two kinds that differ only in case share a file. The
   file names its kind, so a load of the other kind throws; give one of the agents a `WithStorageKind` of its own.
+- A save waits up to 30 seconds for the lock file, `settings/ResearchAgent.json.lock` here, and then throws a
+  `TimeoutException` that names it, so a program that hangs while it holds the lock cannot hang your saves. The lock
+  file stays in the folder between saves.
+- A file that is no JSON, or whose JSON has another shape than the store writes, fails the load with an
+  `InvalidDataException` that names the file and the shape.
 - Registering the file store, as registering any store does, ends the memory: settings under ids and conversations
   then need a store of their own ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call)).
 

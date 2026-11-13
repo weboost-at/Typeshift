@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Typeshift.Generated;
 
 namespace Typeshift;
@@ -18,17 +20,23 @@ internal sealed class FileAgentSettingsStore : IAgentSettingsStore
         "LPT0", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
     };
 
+    // How long a save waits for the kind's lock file before it fails
+    private static readonly TimeSpan LockWait = TimeSpan.FromSeconds(30);
+
     private readonly string _directory;
 
     private readonly TimeProvider _time;
 
+    private readonly ILogger _logger;
+
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _saves = [];
 
     // The folder is absolute, and the first save creates it when it is missing
-    public FileAgentSettingsStore(string directory, TimeProvider? time = null)
+    public FileAgentSettingsStore(string directory, TimeProvider? time = null, ILogger? logger = null)
     {
         _directory = directory;
         _time = time ?? TimeProvider.System;
+        _logger = logger ?? NullLogger.Instance;
     }
 
     public async Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct)
@@ -47,6 +55,7 @@ internal sealed class FileAgentSettingsStore : IAgentSettingsStore
         {
             Directory.CreateDirectory(_directory);
             await using var held = await LockAsync($"{path}.lock", ct);
+            DeleteUnfinished(path);
 
             var stored = await TryReadAsync(path, ct) is { } file ? Read(path, kind, file).Version : 0;
 
@@ -84,18 +93,43 @@ internal sealed class FileAgentSettingsStore : IAgentSettingsStore
         }
     }
 
+    // A save writes its file under the kind's lock and removes it before it lets go, so a file found under the lock is
+    // one of a save that died
+    private void DeleteUnfinished(string path)
+    {
+        foreach (var unfinished in Directory.EnumerateFiles(_directory, $"{Path.GetFileName(path)}.*.saving"))
+        {
+            File.Delete(unfinished);
+        }
+    }
+
     // FileShare.None is an exclusive lock on Unix and a sharing mode on Windows, so it keeps out other stores and
-    // processes as well
+    // processes as well. The wait ends, on the app's clock, so a lock that a hung program holds fails the save
+    // instead of hanging it
     private async Task<FileStream> LockAsync(string path, CancellationToken ct)
     {
+        var started = _time.GetTimestamp();
+        var waiting = false;
+
         while (true)
         {
             try
             {
                 return new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
             }
-            catch (IOException) when (File.Exists(path))
+            catch (IOException exception) when (File.Exists(path))
             {
+                if (_time.GetElapsedTime(started) >= LockWait)
+                {
+                    throw new TimeoutException(
+                        $"{path} has been held by another save or program for {LockWait.TotalSeconds:0} seconds, so "
+                        + "the settings were not saved.",
+                        exception);
+                }
+
+                if (!waiting) _logger.LogDebug("Waiting for {LockFile}, which another save holds.", path);
+                waiting = true;
+
                 await Task.Delay(TimeSpan.FromMilliseconds(5), _time, ct);
             }
         }
@@ -156,17 +190,21 @@ internal sealed class FileAgentSettingsStore : IAgentSettingsStore
             using var document = JsonDocument.Parse(file);
             var root = document.RootElement;
 
-            if (root.TryGetProperty("kind", out var stored)
-                && (stored.ValueKind != JsonValueKind.String || stored.GetString() != kind))
+            // A member of another JSON type than the shape's, in a file edited by hand, reads as missing
+            var stored = StorableJson.Member(root, "kind");
+            var version = StorableJson.Member(root, "version");
+            var settings = StorableJson.Member(root, "settings");
+
+            if (stored.ValueKind is JsonValueKind.String && stored.GetString() != kind)
                 throw new InvalidDataException(
                     $"{path} holds the settings of '{stored.GetString()}', not of '{kind}': the file system ignores "
                     + "case, so give one of the agents a WithStorageKind of its own.");
 
-            return root.TryGetProperty("version", out var version)
+            return stored.ValueKind is JsonValueKind.String or JsonValueKind.Undefined
+                && version.ValueKind is JsonValueKind.Number
                 && version.TryGetInt64(out var number)
                 && number > 0
-                && root.TryGetProperty("settings", out var settings)
-                && settings.ValueKind == JsonValueKind.Object
+                && settings.ValueKind is JsonValueKind.Object
                     ? new StoredDocument(settings.GetRawText(), number)
                     : throw new InvalidDataException($"{path} is no settings file: it holds {Shape}.");
         }

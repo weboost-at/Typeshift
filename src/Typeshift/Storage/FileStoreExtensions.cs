@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Typeshift;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -29,8 +30,10 @@ public static class FileStoreExtensions
             // Resolved at registration, not at the first resolve; each kind of data gets a folder of its own
             var settings = Path.GetFullPath(Path.Combine(options.Folder, "settings"));
 
-            return builder.WithStore(provider =>
-                new FileAgentSettingsStore(settings, provider.GetService<TimeProvider>()));
+            return builder.WithStore(provider => new FileAgentSettingsStore(
+                settings,
+                provider.GetService<TimeProvider>(),
+                provider.GetService<ILoggerFactory>()?.CreateLogger<FileAgentSettingsStore>()));
         }
     }
 }
