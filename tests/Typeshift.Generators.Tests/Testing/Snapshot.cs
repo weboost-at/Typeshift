@@ -16,11 +16,14 @@ public static partial class Snapshot
         .Single(attribute => attribute.Key == "SnapshotsDirectory")
         .Value!;
 
+    // The files of the hint names, or every generated file when none is named: a file one test pins is left out of
+    // the others, so a change of it is one snapshot's diff
     public static void Verify(
         GeneratorDriverRunResult result,
+        string[]? hintNames = null,
         [CallerMemberName] string testName = "",
         [CallerFilePath] string testFile = "") =>
-        Verify($"{Path.GetFileNameWithoutExtension(testFile)}.{testName}", Render(result));
+        Verify($"{Path.GetFileNameWithoutExtension(testFile)}.{testName}", Render(result, hintNames));
 
     // Snapshots/{name}.verified.txt, for text that belongs to the repository rather than to one test's source
     public static void Verify(string name, string text)
@@ -58,15 +61,19 @@ public static partial class Snapshot
             ? Normalize(File.ReadAllText(path))
             : null;
 
-    private static string Render(GeneratorDriverRunResult result)
+    private static string Render(GeneratorDriverRunResult result, string[]? hintNames)
     {
         var builder = new StringBuilder();
 
         var sources = result.Results
             .SelectMany(generator => generator.GeneratedSources)
-            .OrderBy(source => source.HintName, StringComparer.Ordinal);
+            .OrderBy(source => source.HintName, StringComparer.Ordinal)
+            .ToList();
 
-        foreach (var source in sources)
+        var missing = (hintNames ?? []).Except(sources.Select(source => source.HintName)).ToList();
+        if (missing.Count > 0) Assert.Fail($"The generator wrote no {string.Join(", ", missing)}.");
+
+        foreach (var source in sources.Where(source => hintNames?.Contains(source.HintName) ?? true))
         {
             builder.Append("// HintName: ").AppendLine(source.HintName);
             builder.AppendLine(source.SourceText.ToString().TrimEnd());

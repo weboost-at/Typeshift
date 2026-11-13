@@ -15,7 +15,14 @@ public class AgentGenerationTests : GeneratorTestBase
         var run = Run(AgentSources.Tickets, AgentSources.Support);
 
         // Assert
-        Snapshot.Verify(run.Result);
+        Snapshot.Verify(
+            run.Result,
+            [
+                "Demo.SupportAgent.g.cs",
+                "Demo.SupportAgent+Host.g.cs",
+                "Typeshift.Generated.SubjectModule.g.cs",
+                "Typeshift.Generated.AddTypeshiftInterceptor.g.cs"
+            ]);
     }
 
     [Fact]
@@ -102,7 +109,7 @@ public class AgentGenerationTests : GeneratorTestBase
         var run = Run(AgentSources.Tickets, AgentSources.OwnTools);
 
         // Assert
-        Snapshot.Verify(run.Result);
+        Snapshot.Verify(run.Result, ["Demo.DeskAgent.g.cs", "Typeshift.Generated.SubjectModule.g.cs"]);
     }
 
     [Fact]
@@ -125,7 +132,13 @@ public class AgentGenerationTests : GeneratorTestBase
         var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.CompanyAgent));
 
         // Assert
-        Snapshot.Verify(run.Result);
+        Snapshot.Verify(
+            run.Result,
+            [
+                "Research.ResearchAgent.g.cs",
+                "Typeshift.Generated.SubjectModule.g.cs",
+                "Typeshift.Generated.AddTypeshiftInterceptor.g.cs"
+            ]);
     }
 
     [Fact]

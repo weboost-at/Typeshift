@@ -70,7 +70,9 @@ dotnet mdsnippets && git diff --exit-code
   `demos/.editorconfig`, and by the package for a consumer that never chose XML docs (D68). Three test files disable
   TSH024, TSH028 and TSH030 by pragma, each with its reason beside it.
 - Generator snapshots live in `tests/Typeshift.Generators.Tests/Snapshots`. A mismatch writes `.received.txt`; review
-  it, then rerun with `ACCEPT_SNAPSHOTS=1` to accept.
+  it, then rerun with `ACCEPT_SNAPSHOTS=1` to accept. An accept run rewrites every snapshot, so read
+  `git diff tests/Typeshift.Generators.Tests/Snapshots` before you commit. A snapshot holds the generated files its
+  test names in `Snapshot.Verify`, so that one test pins a file and a change of it is one snapshot's diff.
 - The public API is a snapshot in the same folder: `PublicApi.verified.txt` holds every public type and member, one
   line each. A change of public API fails `PublicApiSurfaceTests` until you read the difference to
   `PublicApi.received.txt` and accept it with
