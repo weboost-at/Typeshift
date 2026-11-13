@@ -257,6 +257,10 @@ them for every test project, without exemptions.
 - Test data comes from the catalog (`Data`, seeded per test). No `new Faker(` outside it.
 - Time moves only through `FakeTimeProvider.Advance`. No `Task.Delay`, `Thread.Sleep` or real clocks; order
   concurrent work with `TaskCompletionSource` gates.
+- Take `Ct` from the test base and await every gate with it (`.WaitAsync(Ct)`). It cancels after 20 seconds of real
+  time, the one real clock the tests allow, so a gate nothing opens fails its test instead of hanging the suite.
+  When a run hangs all the same, start the test project's executable in `bin/Release/net11.0`: it names every test
+  that runs for 30 seconds or longer, which `dotnet test` does not show.
 - Bases, fakes, data and helpers go in `Testing/` or `<Area>/Support/`; other folders hold test classes only.
 - Never wrap a bug in a green test, never weaken an assertion, never skip a test.
 

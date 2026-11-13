@@ -265,7 +265,7 @@ public class SubAgentTests : MultiAgentTestBase
 
         // Act
         await cancel.CancelAsync();
-        await Task.WhenAny(running);
+        await Task.WhenAny(running).WaitAsync(Ct);
 
         // Assert
         running.IsCanceled.Should().BeTrue();

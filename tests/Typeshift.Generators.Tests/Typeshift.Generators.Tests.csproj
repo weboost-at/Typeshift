@@ -12,6 +12,8 @@
     <!-- Deterministic CI builds map [CallerFilePath] to /_/..., so the snapshot helper reads the directory from here. -->
     <AssemblyMetadata Include="SnapshotsDirectory" Value="$(MSBuildProjectDirectory)/Snapshots" />
     <AssemblyMetadata Include="RepositoryDirectory" Value="$(MSBuildProjectDirectory)/../.." />
+    <!-- Names a test that runs for 30 seconds, so a hang outside a gate is not silent. -->
+    <Content Include="../xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

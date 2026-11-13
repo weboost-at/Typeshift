@@ -16,6 +16,8 @@
     <Using Include="Typeshift.Tests.Testing.Data" />
     <!-- Deterministic CI builds map [CallerFilePath] to /_/..., so the convention tests read the directory from here. -->
     <AssemblyMetadata Include="TestsDirectory" Value="$(MSBuildProjectDirectory)/.." />
+    <!-- Names a test that runs for 30 seconds, so a hang outside a gate is not silent. -->
+    <Content Include="../xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

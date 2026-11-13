@@ -12,7 +12,9 @@ public class ChatClientResolutionTests : HostTestBase
 {
     private Action<IServiceCollection> _register = _ => { };
 
-    private ScriptedChatClient Other { get; } = new();
+    public ChatClientResolutionTests() => Other = new(Ct);
+
+    private ScriptedChatClient Other { get; }
 
     private ProvidedModels Models { get; } = [];
 

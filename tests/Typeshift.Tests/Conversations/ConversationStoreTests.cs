@@ -90,7 +90,7 @@ public class ConversationStoreTests : AgentTestBase
 
         store.HoldNextLoad();
         var first = host.RunAsync(Data.Tool.Question, ct: Ct);
-        await store.Loading.Task;
+        await store.Loading.Task.WaitAsync(Ct);
 
         // Act
         var second = host.RunAsync(Data.Agent.FollowUp, ct: Ct);
@@ -125,7 +125,7 @@ public class ConversationStoreTests : AgentTestBase
 
         store.HoldNextLoad();
         var resume = host.ResumeAsync(ct: Ct);
-        await store.Loading.Task;
+        await store.Loading.Task.WaitAsync(Ct);
 
         // Act
         var second = host.RunAsync(Data.Agent.FollowUp, ct: Ct);

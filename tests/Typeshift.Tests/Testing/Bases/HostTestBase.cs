@@ -16,6 +16,7 @@ public abstract class HostTestBase : UnitTestBase, IAsyncDisposable
     {
         _services = new(BuildServices);
         _scope = new(() => Services.CreateAsyncScope());
+        ChatClient = new(Ct);
     }
 
     protected ServiceProvider Services => _services.Value;
@@ -25,7 +26,7 @@ public abstract class HostTestBase : UnitTestBase, IAsyncDisposable
 
     protected ToolJson Json { get; } = new([], []);
 
-    protected ScriptedChatClient ChatClient { get; } = new();
+    protected ScriptedChatClient ChatClient { get; }
 
     public async ValueTask DisposeAsync()
     {
@@ -33,7 +34,7 @@ public abstract class HostTestBase : UnitTestBase, IAsyncDisposable
         if (_services.IsValueCreated) await _services.Value.DisposeAsync();
         await DisposeCoreAsync();
 
-        GC.SuppressFinalize(this);
+        Dispose();
     }
 
     // What a test class holds besides the container, such as files it wrote

@@ -68,7 +68,7 @@ public class HandoffTests : MultiAgentTestBase
             .Reply(answering, Text(Data.Tool.Answer));
 
         var first = front.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
-        await gate.Holding.Task;
+        await gate.Holding.Task.WaitAsync(Ct);
 
         // Act
         var second = front.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Agent.FollowUp, ct: Ct);
@@ -109,7 +109,7 @@ public class HandoffTests : MultiAgentTestBase
             .ToListAsync(Ct)
             .AsTask();
 
-        await gate.Holding.Task;
+        await gate.Holding.Task.WaitAsync(Ct);
 
         // Act
         var second = front.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Agent.FollowUp, ct: Ct);
@@ -144,7 +144,7 @@ public class HandoffTests : MultiAgentTestBase
             .Reply(Text(Data.Tool.Answer));
 
         var first = front.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
-        await gate.Holding.Task;
+        await gate.Holding.Task.WaitAsync(Ct);
 
         // Act
         var second = front.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Agent.FollowUp, ct: Ct);

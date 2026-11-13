@@ -21,13 +21,13 @@ public sealed class MiddlewareScript
 public sealed class FirstRunMiddleware(MiddlewareScript script) : IRunMiddleware
 {
     public Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken ct) =>
-        ScriptedRunMiddleware.InvokeAsync(script, 0, run, next);
+        ScriptedRunMiddleware.InvokeAsync(script, 0, run, next, ct);
 }
 
 public sealed class SecondRunMiddleware(MiddlewareScript script) : IRunMiddleware
 {
     public Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken ct) =>
-        ScriptedRunMiddleware.InvokeAsync(script, 1, run, next);
+        ScriptedRunMiddleware.InvokeAsync(script, 1, run, next, ct);
 }
 
 public sealed class FirstToolMiddleware(MiddlewareScript script) : IToolMiddleware
@@ -57,8 +57,15 @@ public sealed class ScriptedContext(MiddlewareScript script) : IContextProvider
 // Each middleware logs around what it does: calling next, or the script in its place
 internal static class ScriptedRunMiddleware
 {
-    public static async Task InvokeAsync(MiddlewareScript script, int position, AgentRun run, Func<Task> next)
+    public static async Task InvokeAsync(
+        MiddlewareScript script,
+        int position,
+        AgentRun run,
+        Func<Task> next,
+        CancellationToken ct)
     {
+        // A run that passes here without end stops with the test's time limit
+        ct.ThrowIfCancellationRequested();
         script.Log.Add($"run {position} before");
 
         await (script.Runs.TryGetValue(position, out var instead) ? instead(run, next) : next());
