@@ -571,9 +571,19 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   created the first time a run uses them and kept as long as the host (`InstrumentedClients`), which passes each call on
   to the client its run got. One per run, disposed with it, reset the metrics after every run, since the OpenTelemetry
   SDK ends the instruments of a disposed meter; one per client instance did the same for a provider that hands out a
-  client per run or per tenant. The tool loop writes `execute_tool` spans with its source. A store that fails records
-  the exception on the run's span.
-- **Where:** `Telemetry/Telemetry.cs`, `Telemetry/InstrumentedClients.cs`.
+  client per run or per tenant. The tool loop writes its `execute_tool` spans under the run's span, with that span's
+  source. A store that fails records the exception on the run's span.
+- **Streaming:** an async iterator resumes in its caller's context (dotnet/runtime#47802), so after a streaming run's
+  first update its span was no longer the current one, and the later chat and tool spans hung under the caller's span
+  or started traces of their own. The run makes its span current again before it asks for each update, as
+  Microsoft.Extensions.AI's tool loop does; the caller's current span stays its own.
+- **Tool arguments and results:** under an `invoke_agent` span the tool loop asks that span, not its client, whether
+  to write them: it looks for the custom property `__EnableSensitiveData__`. The run's span carries it when the run's
+  `OpenTelemetryChatClient` captures content (`EnableSensitiveData`, which the variable sets), so tool spans carry
+  content exactly when chat spans do. The key is internal to Microsoft.Extensions.AI;
+  `TelemetryTests.Given_Message_Capture_A_Run_Tags_The_Tool_Span_With_Arguments_And_Result` fails when it changes.
+- **Where:** `Telemetry/Telemetry.cs`, `Telemetry/InstrumentedClients.cs`,
+  `Conversations/ConversationChatClient.cs` (`GetStreamingResponseAsync`).
 
 ### D37. No built-in toolsets
 

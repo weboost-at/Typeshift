@@ -37,4 +37,8 @@ public sealed class RecordedActivities
 
     public IReadOnlyList<Activity> Inside(Activity run) =>
         [.. _stopped.Where(activity => activity.TraceId == run.TraceId && activity != run)];
+
+    // The run's children; under a request's span every span is in the request's trace, wherever it hangs
+    public IReadOnlyList<Activity> Under(Activity run) =>
+        [.. _stopped.Where(activity => activity.ParentSpanId == run.SpanId)];
 }

@@ -12,10 +12,15 @@ internal static class Telemetry
 
     private static readonly ActivitySource Source = new(SourceName);
 
-    public static Activity? StartRun(Agent agent, ChatOptions? options)
+    public static Activity? StartRun(Agent agent, ChatOptions? options, IChatClient client)
     {
         var activity = Source.StartActivity($"invoke_agent {agent.Name}", ActivityKind.Internal);
         if (activity is null) return null;
+
+        // Under a run's span the tool loop asks the span, not its client, whether to write arguments and results:
+        // Microsoft.Extensions.AI's marker says so when the run's chat spans carry their messages
+        if (client.GetService<OpenTelemetryChatClient>() is { EnableSensitiveData: true })
+            activity.SetCustomProperty("__EnableSensitiveData__", "true");
 
         activity.SetTag("gen_ai.operation.name", "invoke_agent");
         activity.SetTag("gen_ai.agent.name", agent.Name);

@@ -23,7 +23,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         CancellationToken cancellationToken = default)
     {
         options = WithNewConversation(messages, options);
-        using var activity = Telemetry.StartRun(agent, options);
+        using var activity = Telemetry.StartRun(agent, options, InnerClient);
 
         try
         {
@@ -45,7 +45,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         options = WithNewConversation(messages, options);
-        using var activity = Telemetry.StartRun(agent, options);
+        using var activity = Telemetry.StartRun(agent, options, InnerClient);
         var usage = new UsageDetails();
         var conversation = Named(options);
 
@@ -54,6 +54,9 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
         while (true)
         {
+            // D36: an iterator resumes in its caller's context, which would leave the run's later spans outside it
+            if (activity is not null) Activity.Current = activity;
+
             try
             {
                 if (!await updates.MoveNextAsync()) break;

@@ -32,6 +32,11 @@ services.AddOpenTelemetry()
 | `chat {model}` | Each model call, including the calls that write a compaction summary. |
 | `execute_tool {tool}` | Each tool call. |
 
+A run's `chat` and `execute_tool` spans are children of its `invoke_agent` span, whether the run streams or not. The
+`invoke_agent` span itself is a child of the span that is current where your app starts the run, which for a
+streaming run is where it reads the first update. A run inside a web request therefore shows up as one subtree of
+that request's trace, and a run in a background job is a trace of its own.
+
 The `invoke_agent` span carries these tags:
 
 | Tag | Holds |
@@ -55,16 +60,21 @@ with the model.
 
 ## Message content
 
-Spans leave out messages and tool arguments unless the environment variable
+Spans leave out messages and the arguments and results of tool calls unless the environment variable
 `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` is `true`:
 
 ```bash
 export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 ```
 
+The variable is read once per process, so set it before your app starts. The `chat` spans then carry the messages of
+their call, and each `execute_tool` span carries its call's arguments in `gen_ai.tool.call.arguments` and its result
+in `gen_ai.tool.call.result`.
+
 ::: warning Captured content is your customers' data
-With the variable set, your traces hold every run's messages and every tool call's arguments, including what your
-customers wrote. Turn it on only where your tracing backend may keep that data.
+With the variable set, your traces hold every run's messages and every tool call's arguments and results, including
+what your customers wrote and what your tools read for them. Turn it on only where your tracing backend may keep that
+data.
 :::
 
 ## Related

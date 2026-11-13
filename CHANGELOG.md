@@ -11,6 +11,13 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- A streaming run's spans form one tree: its `execute_tool` spans and its `chat` spans after the first update are
+  children of the run's `invoke_agent` span, as in a run that does not stream. They attached to the span of the
+  caller, such as the web request's, or started traces of their own.
+- With `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` set, every run's `execute_tool` spans carry the call's
+  arguments and result, in `gen_ai.tool.call.arguments` and `gen_ai.tool.call.result`. A run that does not stream
+  left them out.
+
 ## [0.1.0-alpha.6] - 2026-11-12
 
 ### Added

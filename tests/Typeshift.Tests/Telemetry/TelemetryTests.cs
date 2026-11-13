@@ -1,7 +1,9 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Conversations.Support;
 using Typeshift.Tests.Telemetry.Support;
+using Typeshift.Tests.Tools.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,6 +12,12 @@ namespace Typeshift.Tests.Telemetry;
 
 public sealed class TelemetryTests : AgentTestBase
 {
+    // The span of the request a run starts in, as ASP.NET Core opens one
+    private const string RequestSpan = "POST /chats";
+
+    // What a tool span carries only with message capture
+    private static readonly string[] ToolContent = ["gen_ai.tool.call.arguments", "gen_ai.tool.call.result"];
+
     // One listener for every test of the class, listening before the first test runs; each test finds its run by
     // its conversation
     private static readonly RecordedActivities Activities;
@@ -36,6 +44,107 @@ public sealed class TelemetryTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Streaming_Run_Every_Span_Hangs_Under_The_Run()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunStreamingAsync();
+
+        // Assert
+        var run = Activities.Run(Data.Agent.ConversationId);
+        Activities.Under(run).Select(activity => activity.DisplayName)
+            .Should()
+            .Equal($"chat {ProbeAgent.Model}", "execute_tool probe", $"chat {ProbeAgent.Model}");
+    }
+
+    [Fact]
+    public async Task Given_A_Streaming_Run_Inside_A_Request_Span_Every_Span_Hangs_Under_The_Run()
+    {
+        // Arrange
+        using var request = new Activity(RequestSpan).Start();
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunStreamingAsync();
+
+        // Assert
+        var run = Activities.Run(Data.Agent.ConversationId);
+        Activities.Under(run).Select(activity => activity.DisplayName)
+            .Should()
+            .Equal($"chat {ProbeAgent.Model}", "execute_tool probe", $"chat {ProbeAgent.Model}");
+    }
+
+    [Fact]
+    public async Task Given_A_Typed_Streaming_Run_Every_Span_Hangs_Under_The_Run()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(JsonSerializer.Serialize(new ProbeSettings(), Json.GetTypeInfo<ProbeSettings>())));
+
+        // Act
+        await RunTypedStreamingAsync();
+
+        // Assert
+        var run = Activities.Run(Data.Agent.ConversationId);
+        Activities.Under(run).Select(activity => activity.DisplayName)
+            .Should()
+            .Equal($"chat {ProbeAgent.Model}", "execute_tool probe", $"chat {ProbeAgent.Model}");
+    }
+
+    [Fact]
+    public async Task Given_A_Typed_Streaming_Run_Inside_A_Request_Span_Every_Span_Hangs_Under_The_Run()
+    {
+        // Arrange
+        using var request = new Activity(RequestSpan).Start();
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(JsonSerializer.Serialize(new ProbeSettings(), Json.GetTypeInfo<ProbeSettings>())));
+
+        // Act
+        await RunTypedStreamingAsync();
+
+        // Assert
+        var run = Activities.Run(Data.Agent.ConversationId);
+        Activities.Under(run).Select(activity => activity.DisplayName)
+            .Should()
+            .Equal($"chat {ProbeAgent.Model}", "execute_tool probe", $"chat {ProbeAgent.Model}");
+    }
+
+    [Fact]
+    public async Task Given_A_Streaming_Run_Inside_A_Request_Span_The_Request_Stays_Current_Between_Its_Updates()
+    {
+        // Arrange
+        using var request = new Activity(RequestSpan).Start();
+        var current = new List<Activity?>();
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var updates = Host<ProbeAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunStreamingAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await foreach (var _ in updates)
+        {
+            current.Add(Activity.Current);
+        }
+
+        // Assert
+        current.Distinct().Should().Equal(request);
+    }
+
+    [Fact]
     public async Task Given_A_Run_Its_Span_Carries_The_Token_Usage()
     {
         // Arrange
@@ -55,6 +164,79 @@ public sealed class TelemetryTests : AgentTestBase
         var run = Activities.Run(Data.Agent.ConversationId);
         run.GetTagItem("gen_ai.usage.input_tokens").Should().Be(Data.Agent.InputTokens);
         run.GetTagItem("gen_ai.usage.output_tokens").Should().Be(Data.Agent.OutputTokens);
+    }
+
+    [Fact]
+    public async Task Given_A_Streaming_Run_Its_Span_Carries_The_Token_Usage()
+    {
+        // Arrange
+        var usage = new UsageDetails
+        {
+            InputTokenCount = Data.Agent.InputTokens,
+            OutputTokenCount = Data.Agent.OutputTokens
+        };
+        ChatClient.Reply(
+            Text(Data.Tool.Answer),
+            new ChatResponseUpdate(ChatRole.Assistant, [new UsageContent(usage)]));
+
+        // Act
+        await RunStreamingAsync();
+
+        // Assert
+        var run = Activities.Run(Data.Agent.ConversationId);
+        run.GetTagItem("gen_ai.usage.input_tokens").Should().Be(Data.Agent.InputTokens);
+        run.GetTagItem("gen_ai.usage.output_tokens").Should().Be(Data.Agent.OutputTokens);
+    }
+
+    [Fact]
+    public async Task Given_Message_Capture_A_Run_Tags_The_Tool_Span_With_Arguments_And_Result()
+    {
+        // Arrange
+        await CaptureMessagesAsync(true);
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync();
+
+        // Assert
+        ToolSpan().TagObjects.Select(tag => tag.Key).Should().Contain(ToolContent);
+    }
+
+    [Fact]
+    public async Task Given_Message_Capture_A_Streaming_Run_Tags_The_Tool_Span_With_Arguments_And_Result()
+    {
+        // Arrange
+        await CaptureMessagesAsync(true);
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunStreamingAsync();
+
+        // Assert
+        ToolSpan().TagObjects.Select(tag => tag.Key).Should().Contain(ToolContent);
+    }
+
+    [Fact]
+    public async Task Given_No_Message_Capture_A_Run_Leaves_Arguments_And_Result_Off_The_Tool_Span()
+    {
+        // Arrange
+        await CaptureMessagesAsync(false);
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync();
+
+        // Assert
+        ToolSpan().TagObjects.Select(tag => tag.Key).Should().NotContain(ToolContent);
     }
 
     [Fact]
@@ -166,4 +348,30 @@ public sealed class TelemetryTests : AgentTestBase
 
     private Task<ChatResponse> RunAsync() =>
         Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+
+    private ValueTask<List<ChatResponseUpdate>> RunStreamingAsync() =>
+        Host<ProbeAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunStreamingAsync(Data.Tool.Question, ct: Ct)
+            .ToListAsync(Ct);
+
+    private ValueTask<List<ChatResponseUpdate>> RunTypedStreamingAsync() =>
+        Host<ProbeAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunStreamingAsync<ProbeSettings>(Data.Tool.Question, ct: Ct)
+            .ToListAsync(Ct);
+
+    // Capture as OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT sets it for a process, here for this test's host
+    private async Task CaptureMessagesAsync(bool capture)
+    {
+        var host = Host<ProbeAgent>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        client.GetService<OpenTelemetryChatClient>()!.EnableSensitiveData = capture;
+    }
+
+    private Activity ToolSpan() =>
+        Activities.Under(Activities.Run(Data.Agent.ConversationId))
+            .Single(activity => activity.DisplayName == "execute_tool probe");
 }
