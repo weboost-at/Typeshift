@@ -111,7 +111,7 @@ style; the essentials:
 
 | Fact | Canonical page | Also mentioned in |
 |---|---|---|
-| What Typeshift is for, what it builds on and leaves to you, how its pieces fit, that it is in alpha and that the site describes `main` | `guide/what-is-typeshift.md` | `index.md` (the pitch) |
+| What Typeshift is for, what it builds on and leaves to you, how its pieces fit, that it is in alpha and that the site describes `main` | `guide/what-is-typeshift.md` | `index.md`, `README.md` and `src/Typeshift/PACKAGE.md`, the package's README on nuget.org (the pitch) |
 | Package setup, requirements, ids | `guide/registration.md` | `getting-started.md` (the steps) |
 | The runtime: `TypeshiftRuntime.Create` without a container, injecting it, its hosts as units of work | `guide/registration.md#the-runtime` | `getting-started.md` (step 4), `using-an-agent.md#run-from-a-console-app` (the snippet), `using-an-agent.md#run-from-a-background-job` (the job's host), `generated-members.md` (`DisposeAsync`) |
 | `AddTypeshift()` chain calls and lifetimes | `guide/registration.md#the-chain` | each feature page shows its own `With...` call |
@@ -142,7 +142,7 @@ style; the essentials:
 
 | Change | Touch |
 |---|---|
-| New public API a user calls | Its feature's guide page (a sample region, then mdsnippets), its reference page, the glossary if it adds a term |
+| New public API a user calls | Its feature's guide page (a sample region, then mdsnippets), its reference page, the glossary if it adds a term. When it changes the first run: the quick start of `src/Typeshift/PACKAGE.md` and, as a proposal to the owner, of `README.md` |
 | New builder or `AddTypeshift()` chain call | `builders.md` or `registration.md#the-chain`, the guide page that teaches it |
 | New or changed diagnostic | `diagnostics.md` row and section (a guard test checks), the guide page that states the rule |
 | Changed default or limit | The reference table, then every page that states it: grep for the old value |

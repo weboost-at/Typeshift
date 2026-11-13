@@ -1,4 +1,5 @@
-// Markdown rules for the docs, the README, the changelog and the agents' playbooks. `npm run docs:lint` runs them.
+// Markdown rules for the docs, the README, the package's README, the changelog and the agents' playbooks.
+// `npm run docs:lint` runs them.
 {
   "config": {
     "default": true,
@@ -23,6 +24,6 @@
     "MD058": true,
     "MD060": false
   },
-  "globs": ["docs/**/*.md", "README.md", "AGENTS.md", "CHANGELOG.md", ".claude/skills/**/*.md"],
+  "globs": ["docs/**/*.md", "README.md", "src/Typeshift/PACKAGE.md", "AGENTS.md", "CHANGELOG.md", ".claude/skills/**/*.md"],
   "ignores": ["node_modules/**", "docs/.vitepress/dist/**", "docs/.vitepress/cache/**"]
 }

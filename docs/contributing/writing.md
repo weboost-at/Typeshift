@@ -62,6 +62,10 @@ slogan, rewrite it.
 The README and the home page sell Typeshift and get a reader running. The guide holds the details, so the README
 stays light: a short pitch, a quick start, and a table of links into the guide.
 
+`src/Typeshift/PACKAGE.md` is the README of the package, the first text a visitor of nuget.org reads. It follows the
+rules below, and its quick start takes the same steps as the README's. Its links are full addresses, because
+nuget.org has no repository to resolve a relative one against.
+
 - **Lead with what the reader does.** Name the task, such as "Create an agent" or "Design your toolsets", and say
   how little it takes. What the generator emits, such as functions, records, one registration call or Native AOT
   support, backs the pitch but never leads it.
