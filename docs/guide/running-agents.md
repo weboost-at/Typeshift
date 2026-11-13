@@ -143,7 +143,8 @@ from there. Under
 
 A member that System.Text.Json cannot read or write, such as an `Exception`, whose `TargetSite` is a `MethodBase`,
 fails the run before it calls the model, naming the member. Leave such a member out of `T`, or mark it
-`[JsonIgnore]`, since the model could not send one anyway. A tool's parameters fail the same way.
+`[JsonIgnore]`, since the model could not send one anyway. A tool's parameters fail the same way, and that message
+names the tool and the parameter too.
 
 `RunStreamingAsync<T>` streams that answer as the model writes it. Read its updates to the end, and its `Response`
 holds the result:

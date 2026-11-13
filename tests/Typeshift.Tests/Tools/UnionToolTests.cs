@@ -98,7 +98,7 @@ public class UnionToolTests : HostTestBase
         var failure = await Record.ExceptionAsync(() => redeem.InvokeAsync(Arguments(("code", code)), Ct).AsTask());
 
         // Assert
-        failure.Should().BeOfType<JsonException>();
+        failure!.InnerException.Should().BeOfType<JsonException>();
     }
 
     [Fact]
@@ -112,7 +112,34 @@ public class UnionToolTests : HostTestBase
         var failure = await Record.ExceptionAsync(() => find.InvokeAsync(Arguments(("key", key)), Ct).AsTask());
 
         // Assert
-        failure!.Message.Should().Be("A JSON true fits no single case of TicketKey: Int32, String.");
+        failure!.Message.Should().Contain("A JSON true fits no single case of TicketKey: Int32, String.");
+    }
+
+    [Fact]
+    public async Task Given_A_Json_Null_For_A_Union_Argument_It_Binds_The_Empty_Union()
+    {
+        // Arrange
+        var find = UnionToolset.CreateFindTicket(Json);
+
+        // Act
+        var result = await find.InvokeAsync(Arguments(("key", JsonElement.Parse("null"))), Ct);
+
+        // Assert
+        ReadResult<TicketLookup>(result).Should().Be(new TicketLookup(null, null));
+    }
+
+    [Fact]
+    public async Task Given_A_Text_That_Starts_Like_Json_A_Union_With_A_Text_Case_Binds_It()
+    {
+        // Arrange
+        var find = UnionToolset.CreateFindTicket(Json);
+        var title = $"[urgent] {Data.Tool.Query}";
+
+        // Act
+        var result = await find.InvokeAsync(Arguments(("key", title)), Ct);
+
+        // Assert
+        ReadResult<TicketLookup>(result).Title.Should().Be(title);
     }
 
     [Fact]

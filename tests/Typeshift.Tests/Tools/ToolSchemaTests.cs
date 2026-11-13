@@ -92,6 +92,36 @@ public class ToolSchemaTests : UnitTestBase
     }
 
     [Fact]
+    public void Given_A_Parameter_Type_Json_Cannot_Hold_The_Error_Names_The_Tool_And_The_Parameter()
+    {
+        // Arrange
+        var report = BindingToolset.CreateReport(Json);
+
+        // Act
+        var schema = () => report.JsonSchema;
+
+        // Assert
+        schema.Should()
+            .Throw<NotSupportedException>()
+            .WithMessage("The parameter 'lookup' of the tool 'report'*'exception.targetSite'*[JsonIgnore]*");
+    }
+
+    [Fact]
+    public void Given_A_Parameter_Json_Cannot_Hold_Itself_The_Error_Says_To_Use_Another_Type()
+    {
+        // Arrange
+        var wait = BindingToolset.CreateWait(Json);
+
+        // Act
+        var schema = () => wait.JsonSchema;
+
+        // Assert
+        schema.Should()
+            .Throw<NotSupportedException>()
+            .WithMessage("The parameter 'handle' of the tool 'wait'*IntPtr*use another type*");
+    }
+
+    [Fact]
     public void Given_Param_Docs_They_Become_The_Parameter_Descriptions()
     {
         // Act

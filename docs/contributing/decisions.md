@@ -714,7 +714,15 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   the model read only "Error: Function failed." and could not correct a missing argument or an unknown id.
 - **Decision:** the tool loop always passes the exception's message to the model. Tool authors write messages that
   say what to do instead, and keep secrets out of them, since the provider receives them.
-- **Where:** `Hosting/AgentHost.cs`.
+- **Arguments:** a call the model got wrong fails before the method runs, with a message that names the tool and
+  the argument. An argument holds what its schema requires: a required one may not be missing or, unless the
+  parameter is nullable or a union (D62), null, and a record's member may not be left out without a default or be
+  null where its type takes none. Arguments are therefore read with options of their own, the tool JSON options plus
+  `RespectNullableAnnotations` and `RespectRequiredConstructorParameters`; results keep the plain ones, since the
+  annotations also fail a null being written. A serializer failure is wrapped with the argument's and the tool's
+  name. An object sent as a JSON string is read as its JSON only after the string itself did not bind, so a text
+  that starts with `[` still binds a string, also as a case of a union.
+- **Where:** `Hosting/AgentHost.cs`, `Generated/GeneratedToolFunction.cs`, `Generated/ToolJson.cs`.
 - **Alternatives:** a run option, off by default, which every agent would have to turn on to recover from its errors;
   catching exceptions in tool middleware, which hides the failure from `MaxConsecutiveToolErrors`.
 
@@ -1243,6 +1251,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
     object picks the case whose properties it has, through System.Text.Json's structural classifier. A value that
     fits no single case fails with a message naming the cases, which the model reads (D53). A union's own
     `[JsonUnion]` classifier wins, and a union neither pass can tell apart keeps the serializer's classification.
+    A JSON null binds the empty union, also for a required parameter, where a null fails the call for every other
+    type that takes none (D53): `GeneratedToolFunction.GetArgument` asks `default(T) is IUnion`.
   - Every schema `ToolJson` builds copies a union's type onto each case that names none, and a nullable parameter
     widens each case as well (D48). Polymorphic types get the same.
   - A typed run builds its answer's schema as a tool's parameters are built, XML docs included, and holds anything

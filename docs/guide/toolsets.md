@@ -137,16 +137,33 @@ The `IServiceProvider` is the scope you resolved the agent's host from. So when 
 request, every tool of the run reaches that request's scoped services, such as the current customer. A nullable
 parameter of these types is filled the same way, so `CancellationToken? ct = null` receives the call's token.
 
-- A required argument the model leaves out fails the call with an `ArgumentException`. The tool loop reports it
-  back to the model.
-- An optional argument the model leaves out takes its default. A nullable reference parameter accepts null in the
-  schema, but the model must still send it unless it has a default value. A reference parameter that defaults to
-  null accepts null as well, also without the `?`, as in a project without nullable annotations.
+- An optional argument the model leaves out takes its default, and so does one it sends as null. A nullable
+  reference parameter accepts null in the schema, but the model must still send it unless it has a default value. A
+  reference parameter that defaults to null accepts null as well, also without the `?`, as in a project without
+  nullable annotations.
 - The properties of a record or class parameter are described by their XML docs, a positional record's `<param>`
   docs included. Use them to tell the model how to fill a property, such as the format of a code.
   [Registration](./registration.md#xml-docs-of-parameter-types) shows how those docs are collected.
 - The analyzer rejects what JSON cannot fill: `ref` and `out` parameters, pointers, ref structs such as `Span<T>`
   and `dynamic` ([TSH004](./diagnostics.md#tsh004)). Take a `JsonElement` where the JSON may have any shape.
+
+### Arguments that do not fit
+
+A model corrects a call only when it reads what was wrong with it. So a call whose arguments do not fit its
+parameters fails before your method runs, with an `ArgumentException` whose message the tool loop reports back to
+the model:
+
+- A required argument the model leaves out fails the call, naming the tool and the argument.
+- A null for a required argument fails the same way, so a tool never acts on `0` where the model knew no number.
+  A parameter that takes null receives it: a nullable type, such as `int?` or `string?`, or a
+  [union](#union-types). In a project without nullable annotations no reference parameter is nullable.
+- A value of the wrong type fails naming the argument, the tool and what the JSON reader made of the value, as in
+  "The argument 'number' of the tool 'close_ticket' does not fit its schema: The JSON value could not be converted
+  to System.Int32."
+- Inside a record or class argument, a member without a default that the model leaves out fails the call, and so
+  does a null for a member whose type takes none. The message names the member, as the schema names it as required.
+- Some clients send an object or a list as a JSON string. Typeshift reads such a string as the JSON it holds,
+  unless the parameter takes the string itself.
 
 ## Results
 

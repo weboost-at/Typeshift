@@ -21,6 +21,7 @@ public sealed class ToolJson
     private readonly ConcurrentDictionary<Type, JsonElement> _schemas = [];
     private readonly ConcurrentDictionary<Type, ResultFormat> _results = [];
     private readonly AIJsonSchemaCreateOptions _schemaOptions;
+    private readonly JsonSerializerOptions _argumentOptions;
 
     /// <summary>
     /// Creates the options from the resolvers that come first, and the schemas from the docs of the modules.
@@ -41,6 +42,16 @@ public sealed class ToolJson
         options.MakeReadOnly();
         SerializerOptions = options;
 
+        // An argument holds what its schema requires, so a member left out, or null where its type takes none, fails
+        // naming the member. Results keep the options above, since the annotations also fail a null being written
+        _argumentOptions = new JsonSerializerOptions(options)
+        {
+            RespectNullableAnnotations = true,
+            RespectRequiredConstructorParameters = true
+        };
+
+        _argumentOptions.MakeReadOnly();
+
         // D55: a <param> doc still describes the parameter itself, since the annotator keeps a description it finds
         var annotator = new SchemaAnnotator(annotations);
 
@@ -51,7 +62,8 @@ public sealed class ToolJson
     }
 
     /// <summary>
-    /// The options every tool argument and result is serialized with.
+    /// The options every tool result is serialized with. Arguments are read with a copy that also holds the members
+    /// of a record or class to their nullability, and to what its constructor requires.
     /// </summary>
     public JsonSerializerOptions SerializerOptions { get; }
 
@@ -65,26 +77,28 @@ public sealed class ToolJson
     /// </exception>
     public JsonTypeInfo<T> GetTypeInfo<T>() => (JsonTypeInfo<T>)SerializerOptions.GetTypeInfo(typeof(T));
 
+    internal JsonTypeInfo<T> GetArgumentInfo<T>() => (JsonTypeInfo<T>)_argumentOptions.GetTypeInfo(typeof(T));
+
     // D62: built once per type as a tool's parameters are, and held under data unless it is an object of properties,
     // since providers take nothing else as an answer's schema
     internal ResultFormat GetResultFormat<T>() =>
         _results.GetOrAdd(typeof(T), static (_, json) => json.CreateResultFormat<T>(), this);
 
     // Built once per function type from the STJ contracts, so naming policies and converters match the binding
-    internal JsonElement GetSchema(Type function, IReadOnlyList<ToolParameter> parameters) =>
+    internal JsonElement GetSchema(Type function, string tool, IReadOnlyList<ToolParameter> parameters) =>
         _schemas.GetOrAdd(
             function,
-            static (_, state) => state.Json.CreateSchema(state.Parameters),
-            (Json: this, Parameters: parameters));
+            static (_, state) => state.Json.CreateSchema(state.Tool, state.Parameters),
+            (Json: this, Tool: tool, Parameters: parameters));
 
-    private JsonElement CreateSchema(IReadOnlyList<ToolParameter> parameters)
+    private JsonElement CreateSchema(string tool, IReadOnlyList<ToolParameter> parameters)
     {
         var properties = new JsonObject();
         var required = new JsonArray();
 
         foreach (var parameter in parameters)
         {
-            properties[parameter.Name] = CreateParameterSchema(parameter);
+            properties[parameter.Name] = CreateParameterSchema(tool, parameter);
             if (!parameter.HasDefaultValue) required.Add((JsonNode?)JsonValue.Create(parameter.Name));
         }
 
@@ -100,15 +114,27 @@ public sealed class ToolJson
     }
 
     // System.Type carries no reference nullability, the generator passes it from the parameter's annotation
-    private JsonObject CreateParameterSchema(ToolParameter parameter)
+    private JsonObject CreateParameterSchema(string tool, ToolParameter parameter)
     {
-        var element = AIJsonUtilities.CreateJsonSchema(
-            parameter.Type,
-            parameter.Description,
-            parameter.HasDefaultValue,
-            parameter.DefaultValue,
-            SerializerOptions,
-            _schemaOptions);
+        JsonElement element;
+
+        try
+        {
+            element = AIJsonUtilities.CreateJsonSchema(
+                parameter.Type,
+                parameter.Description,
+                parameter.HasDefaultValue,
+                parameter.DefaultValue,
+                SerializerOptions,
+                _schemaOptions);
+        }
+        catch (NotSupportedException exception)
+        {
+            // The schema is built when a run first offers the tool, far from the method that declares the parameter
+            throw new NotSupportedException(
+                $"The parameter '{parameter.Name}' of the tool '{tool}' has no schema. {exception.Message}",
+                exception);
+        }
 
         // A type that takes any JSON gets the schema true, which {} matches
         var schema = element.ValueKind is JsonValueKind.Object ? JsonObject.Create(element)! : new JsonObject();
@@ -185,11 +211,14 @@ public sealed class ToolJson
             if (path[index] == "properties") names.Add(path[index + 1]);
         }
 
-        var member = names.Count == 0 ? context.TypeInfo.Type.Name : string.Join(".", names);
+        // [JsonIgnore] goes on a member, so a type the model is asked for directly has to change itself
+        var (held, advice) = names.Count == 0
+            ? ("", "use another type")
+            : ($"'{string.Join(".", names)}', ", "leave it out of the type the model sees, or mark it [JsonIgnore]");
 
         throw new NotSupportedException(
-            $"The model's schema cannot hold '{member}', a {context.TypeInfo.Type.Name}, which System.Text.Json "
-            + "cannot read or write: leave it out of the type the model sees, or mark it [JsonIgnore].");
+            $"The model's schema cannot hold {held}a {context.TypeInfo.Type.Name}, which System.Text.Json cannot read "
+            + $"or write: {advice}.");
     }
 
     // D62: the serializer names a type the cases of a union share once, on the union, and providers look for it on
