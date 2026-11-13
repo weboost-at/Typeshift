@@ -118,7 +118,7 @@ style; the essentials:
 | Builder calls of toolsets and agents | `guide/builders.md` | `toolsets.md`, `tool-settings.md`, `defining-agents.md` |
 | Why declarations are read at compile time: what the generator reads, the rules and limits that follow | `guide/how-typeshift-reads-your-code.md` | `builders.md#rules-for-every-chain` (the rules), `what-is-typeshift.md#why-agents-in-code` (agents in code) |
 | Parameters the call fills, tool results | `guide/toolsets.md` | `builders.md` (link) |
-| Storable types of configurable members | `guide/tool-settings.md#configurable-members` | `builders.md` (link) |
+| Storable types of configurable members | `guide/tool-settings.md#storable-types` | `builders.md` (link) |
 | Chat options and run options, their defaults | `guide/builders.md` | `defining-agents.md`, `conversations.md#compaction` |
 | Providers and models, clients from configuration, keys per customer, wrapping clients, provider failures, each agent's provider id type (from its `WithModel`), the summary model | `guide/models.md` | `running-agents.md#chat-clients`, `registration.md#ids`, `builders.md` (`WithModel`), `defining-agents.md` (link), `generated-members.md#per-agent` (`Provider`), `diagnostics.md#tsh029`, `conversations.md#compaction` |
 | Approval and modes | `guide/tool-approval.md` | `builders.md` (link) |

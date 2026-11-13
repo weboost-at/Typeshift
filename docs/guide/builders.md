@@ -59,7 +59,7 @@ parameter of that type ([TSH010](./diagnostics.md#tsh010)).
 
 Each of these lambdas names a member directly, as in `s => s.Member` ([TSH015](./diagnostics.md#tsh015)). A configurable
 member needs a public `set` or `init` accessor ([TSH013](./diagnostics.md#tsh013)) and a type that settings can store
-([TSH012](./diagnostics.md#tsh012)); [Tool settings](./tool-settings.md#configurable-members) lists those types.
+([TSH012](./diagnostics.md#tsh012)); [Tool settings](./tool-settings.md#storable-types) lists those types.
 `WithConfigurableSettings` leaves members marked `[Obsolete]` out without a `NotConfigurable` call.
 
 ## Agent
@@ -68,6 +68,7 @@ member needs a public `set` or `init` accessor ([TSH013](./diagnostics.md#tsh013
 |---|---|
 | `WithName(string name)` | Names the agent, which is otherwise its class name in snake_case. Messages the agent writes carry the name as their author. |
 | `WithDescription(string description)` | Says what the agent does, in place of its `<summary>`. A sub-agent or a handoff target needs one of the two ([TSH023](./diagnostics.md#tsh023)). |
+| `WithInstructions(string instructions)` | Sets the instructions, the agent's system prompt, for every run. |
 | `WithStorageKind(string kind)` | Sets the kind a store keys the agent's `Settings` by, in place of its class name, so renaming the class keeps its stored settings. |
 | `WithSchemaVersion(int version)` | Sets the schema version of the stored `Settings`, 1 unless raised. Raise it after you rename or remove a configurable member, so you can [migrate older documents](./implementing-a-store.md#migrate-older-settings). |
 | `WithChatOptions()` | Returns the [`ChatOptionsBuilder`](#chatoptionsbuilder). |
@@ -79,9 +80,8 @@ member needs a public `set` or `init` accessor ([TSH013](./diagnostics.md#tsh013
 | `UseMcpServer(string server)` | Offers the tools of an MCP server that your app's `IMcpToolProvider` connects. `.RequiresApproval()` makes every call to its tools wait for approval, and `.ReadOnly()` lets plan mode offer them. |
 | `UseContext<TProvider>()` | Adds what an `IContextProvider` returns to every run. The run's services resolve the provider, or create it when none is registered. |
 
-The agent's instructions come from `WithInstructions(...)` in its constructor, or from `GetInstructions()`, a virtual
-method you override when your code builds them. Typeshift calls it each time it resolves a run's options, so it runs
-for every run.
+When your code builds the instructions, override the virtual method `GetInstructions()` instead of calling
+`WithInstructions`. Typeshift calls it each time it resolves a run's options, so it runs for every run.
 
 ## ChatOptionsBuilder
 
@@ -90,24 +90,27 @@ run change an option, even one the code never sets, and makes it a member of the
 [`Settings`](./generated-members.md#settings). An option with "No" in the last column cannot be configurable
 ([TSH012](./diagnostics.md#tsh012)): it belongs to the run, as the tools do, or settings cannot store its type.
 
-| Call | Sets | May be configurable |
-|---|---|---|
-| `WithModel(TProviderId provider, string model)` | `ModelId`, and the [provider](./models.md) that serves it, whose type is the agent's [provider id type](./models.md#the-provider-id-type) | Yes, as `Provider` and `Model` |
-| `WithInstructions(...)` in the agent, or `GetInstructions()` overridden | `Instructions` | Yes |
-| `WithTemperature(float temperature)` | `Temperature` | Yes |
-| `WithMaxOutputTokens(int tokens)` | `MaxOutputTokens` | Yes |
-| `WithTopP(float topP)` | `TopP` | Yes |
-| `WithTopK(int topK)` | `TopK` | Yes |
-| `WithFrequencyPenalty(float penalty)` | `FrequencyPenalty` | Yes |
-| `WithPresencePenalty(float penalty)` | `PresencePenalty` | Yes |
-| `WithSeed(long seed)` | `Seed` | Yes |
-| `WithStopSequences(params string[] sequences)` | `StopSequences` | Yes |
-| `WithAllowMultipleToolCalls(bool allow)` | `AllowMultipleToolCalls` | Yes |
-| `WithReasoning(ReasoningOptions reasoning)` | `Reasoning` | Yes |
-| `WithResponseFormat(ChatResponseFormat format)` | `ResponseFormat` | No |
-| `WithToolMode(ChatToolMode mode)` | `ToolMode` | No |
-| `WithTools(params AITool[] tools)` | Adds tools of no toolset to `Tools`, such as a `HostedWebSearchTool` or a function from `AIFunctionFactory` | No |
-| `WithAdditionalProperty<TValue>(string key, TValue value)` | A provider-specific option in `AdditionalProperties` | No |
+Typeshift has no defaults of its own for chat options. An option that no layer sets stays null in the `ChatOptions`
+the client receives, so the provider's default applies:
+
+| Call | Sets | Default | May be configurable |
+|---|---|---|---|
+| `WithModel(TProviderId provider, string model)` | `ModelId`, and the [provider](./models.md) that serves it, whose type is the agent's [provider id type](./models.md#the-provider-id-type) | The model of the client that serves the run | Yes, as `Provider` and `Model` |
+| [`WithInstructions`](#agent) in the agent, or `GetInstructions()` overridden | `Instructions` | None | Yes |
+| `WithTemperature(float temperature)` | `Temperature` | The provider's | Yes |
+| `WithMaxOutputTokens(int tokens)` | `MaxOutputTokens` | The provider's | Yes |
+| `WithTopP(float topP)` | `TopP` | The provider's | Yes |
+| `WithTopK(int topK)` | `TopK` | The provider's | Yes |
+| `WithFrequencyPenalty(float penalty)` | `FrequencyPenalty` | The provider's | Yes |
+| `WithPresencePenalty(float penalty)` | `PresencePenalty` | The provider's | Yes |
+| `WithSeed(long seed)` | `Seed` | The provider's | Yes |
+| `WithStopSequences(params string[] sequences)` | `StopSequences` | The provider's | Yes |
+| `WithAllowMultipleToolCalls(bool allow)` | `AllowMultipleToolCalls` | The provider's | Yes |
+| `WithReasoning(ReasoningOptions reasoning)` | `Reasoning` | The provider's | Yes |
+| `WithResponseFormat(ChatResponseFormat format)` | `ResponseFormat` | The provider's | No |
+| `WithToolMode(ChatToolMode mode)` | `ToolMode` | The provider's | No |
+| `WithTools(params AITool[] tools)` | Adds tools of no toolset to `Tools`, such as a `HostedWebSearchTool` or a function from `AIFunctionFactory` | None | No |
+| `WithAdditionalProperty<TValue>(string key, TValue value)` | A provider-specific option in `AdditionalProperties` | None | No |
 
 ## RunOptionsBuilder
 
@@ -130,5 +133,6 @@ run option may be configurable: `Configurable(r => r.X)` puts it into the agent'
 - [Tool settings](./tool-settings.md): settings records and their configurable members.
 - [Agents](./defining-agents.md): declaring an agent and choosing its tools.
 - [AgentHost and generated members](./generated-members.md): what the generator writes from these chains.
+- [Registration](./registration.md#the-chain): the calls of the `AddTypeshift()` chain.
 - [How Typeshift reads your code](./how-typeshift-reads-your-code.md): why the chains follow these rules.
 - [Diagnostics](./diagnostics.md): what the analyzer reports when a chain breaks a rule.
