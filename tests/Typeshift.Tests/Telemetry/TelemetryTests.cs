@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Typeshift.Tests.Agents.Support;
+using Typeshift.Tests.Compaction.Support;
 using Typeshift.Tests.Conversations.Support;
 using Typeshift.Tests.Telemetry.Support;
 using Typeshift.Tests.Tools.Support;
@@ -291,6 +292,29 @@ public sealed class TelemetryTests : AgentTestBase
 
         // Assert
         Activities.Run(Data.Agent.ConversationId).Events.Select(@event => @event.Name).Should().Contain("exception");
+    }
+
+    [Fact]
+    public async Task Given_A_Summary_Model_That_Fails_The_Runs_Span_Records_The_Exception_And_No_Error()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "read", ("length", Page)))
+            .Reply(new HttpRequestException(Data.Agent.Instructions))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<CompactingAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(
+                Data.Tool.Question,
+                settings: new() { MaxInputTokens = 1_000, SummaryModel = Data.Agent.Model },
+                ct: Ct);
+
+        // Assert
+        Activities.Run(Data.Agent.ConversationId).Events.Select(@event => @event.Name).Should().Contain("exception");
+        Activities.Run(Data.Agent.ConversationId).Status.Should().NotBe(ActivityStatusCode.Error);
     }
 
     [Fact]

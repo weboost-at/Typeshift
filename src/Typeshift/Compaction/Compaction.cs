@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Typeshift;
 
@@ -124,14 +125,9 @@ internal sealed class Compaction(ReportedCall? last)
         var region = call.Take(cut).ToList();
 
         // The summary model reads the turns with the results clearing took from the run's model, and none of what
-        // the pass added. D77: the run's provider and model unless the settings or the agent name others; D63: none
-        // for a run on the client registered for every agent
-        var summary = await SummarizeAsync(
-            [.. history.Take(cut).Where(message => !IsAdded(message, options))],
-            options.SummaryProvider ?? options.Provider,
-            options.RunOptions.SummaryModel ?? options.ModelId,
-            options.AgentRun!,
-            ct);
+        // the pass added. Without a summary the call goes out with its results cleared, and the provider decides
+        List<ChatMessage> turns = [.. history.Take(cut).Where(message => !IsAdded(message, options))];
+        if (await TrySummarizeAsync(turns, options, ct) is not { } summary) return call;
 
         _summary = [summary, .. TodosOf(region)];
         var keptContents = call[cut].Contents;
@@ -241,8 +237,46 @@ internal sealed class Compaction(ReportedCall? last)
             : [new ChatMessage(ChatRole.Assistant, [call]), new ChatMessage(ChatRole.Tool, [result])];
     }
 
+    // D77: a summary is best effort. The provider and model named for it write it, the run's own unless the settings
+    // or the agent name others, and when they fail the run's own; D63: none for a run on the client registered for
+    // every agent. Each failure is logged and recorded on the run's span, and null says that no model wrote one
+    private static async Task<ChatMessage?> TrySummarizeAsync(
+        List<ChatMessage> turns,
+        ResolvedChatOptions options,
+        CancellationToken ct)
+    {
+        var run = options.AgentRun!;
+        (ProviderId? Provider, string? Model) own = (options.Provider, options.ModelId);
+        var named = (options.SummaryProvider ?? own.Provider, options.RunOptions.SummaryModel ?? own.Model);
+
+        foreach (var (provider, model) in named == own ? [own] : new[] { named, own })
+        {
+            try
+            {
+                return await SummarizeAsync(turns, provider, model, run, ct);
+            }
+            catch (Exception exception) when (!ct.IsCancellationRequested)
+            {
+                run.Activity?.AddException(exception);
+
+                run.Services.GetService<ILoggerFactory>()?.CreateLogger<Compaction>().LogWarning(
+                    exception,
+                    "Agent {Agent} could not summarize its conversation with model {Model} of provider {Provider}: "
+                    + "{Next}.",
+                    run.Agent.Name,
+                    model,
+                    provider,
+                    (provider, model) == own
+                        ? "its call goes out without a summary, the oldest tool results cleared"
+                        : "its own model writes the summary instead");
+            }
+        }
+
+        return null;
+    }
+
     private static async Task<ChatMessage> SummarizeAsync(
-        List<ChatMessage> region,
+        List<ChatMessage> turns,
         ProviderId? provider,
         string? model,
         AgentRun run,
@@ -256,7 +290,7 @@ internal sealed class Compaction(ReportedCall? last)
         using var client = instrumented.Instrument(provided, model);
 
         var response = await client.GetResponseAsync(
-            [new ChatMessage(ChatRole.System, SummaryInstructions), new ChatMessage(ChatRole.User, Transcript(region))],
+            [new ChatMessage(ChatRole.System, SummaryInstructions), new ChatMessage(ChatRole.User, Transcript(turns))],
             new ChatOptions { ModelId = model },
             ct);
 

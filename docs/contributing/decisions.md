@@ -394,7 +394,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `string` for an agent without one. The generator reads it, so that agent's `Settings.Provider` and
   `SummaryProvider` are of it, and the agent's runs ask the `IChatClientProvider<T>` of that type. The summary model
   is the run's model unless named, and its provider the run's provider: the agent's code names a summary model only,
-  and only settings (`SummaryProvider`) name another provider for it.
+  and only settings (`SummaryProvider`) name another provider for it. A summary model the run's provider cannot
+  serve, as after a user switched the agent to another provider, costs a failed call and a warning, and the run's own
+  model writes the summary (D32).
 - **As built:** a provider goes down the run as a `ProviderId<TProviderId>`, made where its type is known: in
   `WithModel`, and in the generated `ApplySettings`, through `SetProvider<TProviderId>` and `SetSummaryProvider`. It
   reaches the provider of its type through a generic call, as a `StoreId<TId>` reaches its store (D72), so no type is
@@ -506,7 +508,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   run's model. What a context provider added (D31), and what run middleware added to the messages it received (D30),
   is the pass's own, like the instructions: it stays in every call and counts toward the target, the summary model
   never reads it, and no summary stores it. A message middleware put in place of another is summarized like the
-  message it stands for, since compaction sees no other; pinning it would leave that turn in no summary. What compaction did holds for the rest of the run: the tool loop keeps the whole
+  message it stands for, since compaction sees no other; pinning it would leave that turn in no summary. A summary is
+  best effort (owner): a summary call that fails is logged as a warning and recorded on the run's span, the run's own
+  provider and model write the summary when another was named (D77), and when that fails too the call goes out with
+  its results cleared and no summary, for the provider to answer or reject. Before, the failure ended the run ahead of
+  its own model call, and every later run of the conversation, since each summarizes first. The run's cancellation
+  still ends it. What compaction did holds for the rest of the run: the tool loop keeps the whole
   history, so each later call gets the same cleared results and summary. The summary entry holds the summary, the
   kept todo list and copies of the kept messages, with the run's mode, its standing approvals and the background calls
   still working, so a later run loads only that entry and the ones after it (`LoadConversationSinceCompactionAsync`,

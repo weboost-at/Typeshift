@@ -294,7 +294,9 @@ reaches the maximum, Typeshift shrinks the history to `WithTargetInputTokens`, h
    only that the result was cleared, because a second call would send, pay or delete a second time.
 2. If that is not enough, it summarizes the oldest turns with the [summary model](./models.md#the-summary-model), the
    run's own unless you name another. The summary model reads those turns as text: each tool call with its arguments,
-   and the first 2,000 characters of each result, including the results the first step cleared.
+   and the first 2,000 characters of each result, including the results the first step cleared. When the summary
+   call fails, the run goes on: its own model writes the summary, or the call goes out without one
+   ([The summary model](./models.md#the-summary-model)).
 
 The instructions and the latest call of a tool named `write_todos`, if the agent offers one, always stay, and a cut
 never separates a tool call from its result.

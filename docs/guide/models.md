@@ -421,9 +421,20 @@ var settings = new CodingAgent.Settings
 
 ::: warning The summary model follows the run's provider
 The run's provider is whichever provider the layers resolved for that run, so it changes when a user switches the
-agent to another provider. The summary model named in code then goes to that provider too, and if that provider
-cannot serve the model, the run fails. Make the summary model configurable wherever users switch providers.
+agent to another provider. The summary model named in code then goes to that provider too, which may not know it.
+Make the summary model configurable wherever users switch providers.
 :::
+
+A summary call that fails does not end the run, whether the model is down, its provider throws for it, or the run's
+provider does not know it:
+
+1. When the summary named a model or a provider of its own, the run's own provider and model write the summary
+   instead.
+2. When that call fails too, or the run's own model was the one asked, the run's call goes out without a summary and
+   with the oldest tool results cleared. The provider answers it, or rejects it for its length.
+
+Typeshift logs each failed summary call as a warning and records its exception on the run's span. Watch for them,
+because every compaction asks a failing summary model again before it falls back.
 
 ## When a provider fails
 
@@ -433,7 +444,7 @@ What your code sees depends on whether the run fails before or after it touches 
 |---|---|---|
 | No client serves the run's provider and model, or the agent names no model and no client serves every agent | An `InvalidOperationException` that names the agent and what to register | Unchanged |
 | Your provider throws for the run's model, such as for a provider it does not know | Your provider's exception | Unchanged |
-| Your provider throws for the summary model, when compaction asks for it during the run | Your provider's exception | Ends with an entry that holds an `ErrorContent` |
+| The summary call fails, or your provider throws for the summary model, when compaction asks for it during the run | Nothing: the run goes on ([The summary model](#the-summary-model)) | Goes on, with a summary by the run's own model or without one |
 | The model call fails, such as on a wrong key, an unknown model or a rate limit that outlasts the retries | The client library's exception | Ends with an entry that holds an `ErrorContent` |
 
 - Typeshift finds the run's client before it touches the conversation, so the first two fail before anything is

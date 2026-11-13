@@ -53,6 +53,9 @@ When the store fails to save an entry, the run goes on. Typeshift logs the failu
 exception on the run's span, so watch your logs or spans for it.
 :::
 
+A compaction summary that fails does not fail the run either: Typeshift logs a warning, records the exception on the
+run's span, and goes on as [The summary model](./models.md#the-summary-model) describes.
+
 A `chat` span names the backend that answered its call. Its `gen_ai.provider.name`, `server.address` and
 `server.port` come from the `ChatClientMetadata` of the client the run got, which each provider's client library
 fills in. When [your own provider](./models.md#your-own-provider) returns a client per customer, each customer's

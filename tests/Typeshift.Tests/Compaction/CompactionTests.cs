@@ -1,9 +1,11 @@
 using System.Text.Json;
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Compaction.Support;
+using Typeshift.Tests.Testing.Fakes;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Typeshift.Tests.Compaction;
 
@@ -213,6 +215,134 @@ public class CompactionTests : AgentTestBase
 
         // Assert
         Models.Should().Contain(new ProvidedModel(Data.Agent.Provider, SummaryModel));
+    }
+
+    [Fact]
+    public async Task Given_A_Summary_Model_That_Fails_The_Runs_Own_Model_Summarizes()
+    {
+        // Arrange
+        var settings = new CompactingAgent.Settings { MaxInputTokens = 1_000, SummaryModel = SummaryModel };
+
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(new HttpRequestException(Data.Agent.Instructions))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        await RunAsync(new string('x', Page), settings);
+
+        // Act
+        await RunAsync(Data.Agent.FollowUp, settings);
+
+        // Assert
+        Models.Select(asked => asked.Model).Should().EndWith([SummaryModel, CompactingAgent.Model]);
+        Texts(3)[0].Should().EndWith(Data.Agent.Reason);
+    }
+
+    [Fact]
+    public async Task Given_A_Summary_That_Fails_On_Every_Model_The_Call_Goes_Out_Cleared()
+    {
+        // Arrange
+        var settings = new CompactingAgent.Settings
+        {
+            MaxInputTokens = 1_500,
+            TargetInputTokens = 1_000,
+            SummaryModel = SummaryModel
+        };
+
+        ChatClient
+            .Reply(Read(Data.Tool.CallId, Page))
+            .Reply(Read(Data.Tool.SecondCallId, Page))
+            .Reply(new HttpRequestException(Data.Agent.Instructions))
+            .Reply(new HttpRequestException(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await RunAsync(Data.Tool.Question, settings);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
+        Texts(4)[0].Should().Be(Data.Tool.Question);
+        Results(4).Should().Equal(Cleared, new string('x', Page));
+    }
+
+    [Fact]
+    public async Task Given_No_Summary_Model_A_Summary_That_Fails_Is_Asked_For_Once()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Read(Data.Tool.CallId, Page))
+            .Reply(Read(Data.Tool.SecondCallId, Page))
+            .Reply(new HttpRequestException(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 1_500, TargetInputTokens = 1_000 });
+
+        // Assert
+        ChatClient.Requests.Should().HaveCount(4);
+        Results(3).Should().Equal(Cleared, new string('x', Page));
+    }
+
+    [Fact]
+    public async Task Given_A_Run_Cancelled_While_Its_Summary_Is_Written_The_Run_Ends_Cancelled()
+    {
+        // Arrange
+        using var stopping = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        var settings = new CompactingAgent.Settings { MaxInputTokens = 1_000, SummaryModel = SummaryModel };
+
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(new TaskCompletionSource())
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        await RunAsync(new string('x', Page), settings);
+
+        var run = Host<CompactingAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Agent.FollowUp, settings: settings, ct: stopping.Token);
+
+        await ChatClient.RequestedAsync(2);
+
+        // Act
+        await stopping.CancelAsync();
+        var ending = () => run;
+
+        // Assert
+        await ending.Should().ThrowAsync<OperationCanceledException>();
+        ChatClient.Requests.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task Given_A_Summary_Model_That_Fails_A_Warning_Names_It_And_What_Happens_Instead()
+    {
+        // Arrange
+        var logs = new WarningLog();
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton<ILoggerFactory>(logs);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<CompactingAgent>>();
+
+        ChatClient
+            .Reply(Read(Data.Tool.CallId, Page))
+            .Reply(new HttpRequestException(Data.Agent.Instructions))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await host.RunAsync(
+            Data.Tool.Question,
+            settings: new() { MaxInputTokens = 1_000, SummaryModel = SummaryModel },
+            ct: Ct);
+
+        // Assert
+        logs.Warnings.Should().ContainSingle();
+        logs.Warnings[0].Should().Contain(SummaryModel);
+        logs.Warnings[0].Should().EndWith("its own model writes the summary instead.");
     }
 
     [Fact]

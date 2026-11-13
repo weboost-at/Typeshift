@@ -37,6 +37,11 @@ All notable changes to this project are documented here. The format follows
 - A tool result that compaction cleared asks the model to call the tool again only when the tool is marked
   `ReadOnly()`. Every other cleared result now reads `[Cleared to save context.]`, so the model is not invited to
   send, pay or delete a second time. Mark the tools that only read.
+- A compaction summary that fails no longer ends the run. When the summary named a model or a provider of its own,
+  the run's own provider and model write it instead. When that fails too, the run's call goes out without a summary,
+  with the oldest tool results cleared, and the provider decides. Each failed summary call is logged as a warning and
+  recorded on the run's span. Before, a summary model that was down, or one the run's provider did not know after a
+  user switched providers, failed every later run of the conversation before its own model was called.
 
 ### Fixed
 
