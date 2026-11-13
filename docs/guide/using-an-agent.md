@@ -1,6 +1,6 @@
 ---
 title: Using an agent
-description: Get an agent's host from dependency injection and run the agent from a web request, a console app or a background job.
+description: Get an agent's host and run the agent from a web request, a console app or a background job.
 ---
 
 # Using an agent
@@ -12,8 +12,26 @@ the services of that request or job. [Running agents](./running-agents.md) cover
 
 ## Inject the host in a web app
 
-In a web app, add the host to the constructor of the class that runs the agent, such as a controller or a service of
-your own, or to the parameters of a minimal API endpoint:
+A web app registers Typeshift and its chat client once, and a minimal API endpoint takes the agent's host as a
+parameter:
+
+<!-- snippet: minimal-api -->
+<a id='snippet-minimal-api'></a>
+```cs
+builder.Services.AddTypeshift();
+builder.Services.AddChatClient(client);
+
+var app = builder.Build();
+
+app.MapGet("/research/{city}", async (string city, AgentHost<ResearchAgent> research) =>
+    (await research.RunAsync(city)).Text);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/MinimalApi.cs#L21-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-minimal-api' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+`AddChatClient(client)` registers one client for every agent
+([Registering clients](./models.md#registering-clients)). In a class that runs the agent, such as a controller or a
+service of your own, add the host to the constructor:
 
 <!-- snippet: inject-host -->
 <a id='snippet-inject-host'></a>
@@ -37,7 +55,25 @@ request's customer. Controllers and endpoint parameters need no registration of 
 
 ## Run from a console app
 
-Outside a request, such as in a console app, nothing creates a scope for you. Create one from your app's service
+A console app or a script without a container creates the runtime with its chat client and takes the host from it:
+
+<!-- snippet: typeshift-runtime -->
+<a id='snippet-typeshift-runtime'></a>
+```cs
+await using var runtime = TypeshiftRuntime.Create(client);
+await using var research = runtime.Agent<ResearchAgent>();
+
+var answer = await research.RunAsync("Vienna");
+
+Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/NoContainer.cs#L11-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-typeshift-runtime' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+`await using` disposes the host and the runtime when the app is done, and
+[The runtime](./registration.md#the-runtime) says what each of them owns.
+
+With a container of your own, nothing creates a scope for you outside a request. Create one from your app's service
 provider and resolve the host from it:
 
 <!-- snippet: run -->
@@ -98,8 +134,8 @@ internal sealed class TicketDigest(TypeshiftRuntime runtime, TimeProvider time) 
 
 `runtime.Agent<SupportAgent>()` gives the job's host a scope of its own, as a request has, and `await using`
 disposes that scope when the job is done ([The runtime](./registration.md#the-runtime)). Register the job with
-`services.AddHostedService<TicketDigest>()`, and the clock its timer waits on with
-`services.AddSingleton(TimeProvider.System)`. A test can register a fake `TimeProvider` instead.
+`services.AddHostedService<TicketDigest>()`. Its timer waits on the `TimeProvider` your app registers, for example
+with `services.AddSingleton(TimeProvider.System)`.
 
 ## Related
 

@@ -23,7 +23,7 @@ features:
     link: /guide/defining-agents
     linkText: Write an agent
   - title: Use an agent in your app
-    details: Inject the agent's host into a controller or an endpoint, or resolve it in a background job, and its tools use that request's or job's services.
+    details: Inject the agent's host into a controller or an endpoint, or take one from the runtime in a background job, and its tools use that request's or job's services.
     link: /guide/using-an-agent
     linkText: Use an agent
   - title: Catch mistakes at compile time
