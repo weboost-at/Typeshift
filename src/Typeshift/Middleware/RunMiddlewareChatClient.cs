@@ -19,13 +19,13 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
             || run.Services.GetServices<IRunMiddleware>().ToList() is not { Count: > 0 } middleware)
             return await base.GetResponseAsync(messages, options, cancellationToken);
 
-        Begin(run, messages);
+        var received = Begin(run, messages);
         var called = false;
 
         await InvokeAsync(middleware, 0, run, async () =>
         {
             called = true;
-            Keep(run, resolved);
+            Keep(run, resolved, received);
             run.Response = await InnerClient.GetResponseAsync(run.Messages, resolved, cancellationToken);
         }, cancellationToken);
 
@@ -48,7 +48,7 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
             yield break;
         }
 
-        Begin(run, messages);
+        var received = Begin(run, messages);
 
         // The middleware awaits next while the updates stream on to the caller
         var updates = Channel.CreateUnbounded<ChatResponseUpdate>();
@@ -58,7 +58,7 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
         var chain = RunChainAsync(middleware, run, updates.Writer, async () =>
         {
             called = true;
-            Keep(run, resolved);
+            Keep(run, resolved, received);
             var arrived = new List<ChatResponseUpdate>();
 
             await foreach (var update in InnerClient.GetStreamingResponseAsync(run.Messages, resolved, stop.Token))
@@ -98,15 +98,26 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
         }
     }
 
-    private static void Begin(AgentRun run, IEnumerable<ChatMessage> messages)
+    private static List<ChatMessage> Begin(AgentRun run, IEnumerable<ChatMessage> messages)
     {
-        run.Messages = [.. messages];
+        List<ChatMessage> received = [.. messages];
+
+        run.Messages = [.. received];
         run.Response = null;
+        return received;
     }
 
-    // What middleware changed in the messages holds for this pass only: the conversation keeps what the host sent
-    private static void Keep(AgentRun run, ResolvedChatOptions options) =>
-        options.ConversationRun?.MarkTransient(run.Messages);
+    // What middleware changed in the messages holds for this pass only: the conversation keeps what the host sent.
+    // D32: a message it added to those it received stands for none of them, unlike one it put in place of another
+    private static void Keep(AgentRun run, ResolvedChatOptions options, List<ChatMessage> received)
+    {
+        if (options.ConversationRun is not { } conversation) return;
+
+        var passed = run.Messages.ToHashSet();
+
+        conversation.MarkTransient(passed);
+        if (received.All(passed.Contains)) conversation.MarkTransient(passed.Except(received), added: true);
+    }
 
     private static async Task RunChainAsync(
         List<IRunMiddleware> middleware,

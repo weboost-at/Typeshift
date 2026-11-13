@@ -40,7 +40,7 @@ internal sealed class Compaction(ReportedCall? last)
         int max,
         CancellationToken ct)
     {
-        var history = Apply(messages);
+        var history = Apply(messages, options);
         List<ChatMessage> call = [.. history.Select(Clear)];
         SentEstimate = Tokens.Estimate(call, options);
         if (SentEstimate * _calibration < max) return call;
@@ -58,8 +58,9 @@ internal sealed class Compaction(ReportedCall? last)
     }
 
     // The history with the summary in place of what it stands for, in each pass of the run, and every result as its
-    // tool returned it. A call without the message the summary kept from is compacted afresh
-    private List<ChatMessage> Apply(IEnumerable<ChatMessage> messages)
+    // tool returned it. What the pass added ahead of the kept message stays, as the pass has it now. A call without
+    // the message the summary kept from is compacted afresh
+    private List<ChatMessage> Apply(IEnumerable<ChatMessage> messages, ResolvedChatOptions options)
     {
         var call = messages.ToList();
 
@@ -69,7 +70,8 @@ internal sealed class Compaction(ReportedCall? last)
 
             if (index >= 0)
             {
-                call = [.. _summary, .. call.Skip(index)];
+                var added = call.Take(index).Where(message => IsAdded(message, options));
+                call = [.. _summary, .. added, .. call.Skip(index)];
             }
             else
             {
@@ -109,11 +111,11 @@ internal sealed class Compaction(ReportedCall? last)
 
         var region = call.Take(cut).ToList();
 
-        // The summary model reads the turns with the results clearing took from the run's model. D77: the run's
-        // provider and model unless the settings or the agent name others; D63: none for a run on the client
-        // registered for every agent
+        // The summary model reads the turns with the results clearing took from the run's model, and none of what
+        // the pass added. D77: the run's provider and model unless the settings or the agent name others; D63: none
+        // for a run on the client registered for every agent
         var summary = await SummarizeAsync(
-            [.. history.Take(cut)],
+            [.. history.Take(cut).Where(message => !IsAdded(message, options))],
             options.SummaryProvider ?? options.Provider,
             options.RunOptions.SummaryModel ?? options.ModelId,
             options.AgentRun!,
@@ -133,14 +135,20 @@ internal sealed class Compaction(ReportedCall? last)
                 [.. _summary, .. kept.Where(message => !conversation.IsTransient(message))]);
         }
 
-        return [.. _summary, .. kept];
+        return [.. _summary, .. region.Where(message => IsAdded(message, options)), .. kept];
     }
 
+    // D31, D30: what a context provider added, or run middleware to the messages it received, is the pass's own, like
+    // the instructions: it stays in every call, and no summary reads or stores it
+    private static bool IsAdded(ChatMessage message, ResolvedChatOptions options) =>
+        options.ConversationRun?.IsAdded(message) is true;
+
     // The earliest place to cut after which the rest fits, or else the latest: never inside the summary of an
-    // earlier compaction, never between a call and its result, never at a message without contents
+    // earlier compaction, never between a call and its result, never at a message without contents or one the pass
+    // added, and only with a turn to summarize ahead. What the pass added ahead stays, so it counts as the tools do
     private int? Cut(List<ChatMessage> call, ResolvedChatOptions options, double limit)
     {
-        var overhead = Tokens.Estimate([], options);
+        var stays = (double)Tokens.Estimate([], options);
         var tail = new double[call.Count + 1];
 
         for (var i = call.Count - 1; i >= 0; i--)
@@ -149,18 +157,25 @@ internal sealed class Compaction(ReportedCall? last)
         }
 
         var open = new HashSet<string>();
+        var summarized = false;
         int? latest = null;
 
         for (var i = 0; i < call.Count; i++)
         {
-            var allowed = i > 0
+            var added = IsAdded(call[i], options);
+
+            var allowed = summarized
+                && !added
                 && i >= _summary.Count
                 && open.Count == 0
                 && call[i].Role != ChatRole.Tool
                 && call[i].Contents.Count > 0;
 
-            if (allowed && overhead + tail[i] <= limit) return i;
+            if (allowed && stays + tail[i] <= limit) return i;
             if (allowed) latest = i;
+
+            if (added) stays += tail[i] - tail[i + 1];
+            else summarized = true;
 
             foreach (var content in call[i].Contents)
             {

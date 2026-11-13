@@ -155,6 +155,7 @@ rewrite.
 | new | A cut never parts a tool call from its result, and never falls inside the summary of an earlier compaction (D32) | `CompactionTests.Given_A_Turn_Of_Several_Calls_The_Cut_Never_Parts_A_Call_From_Its_Result`, `..._Given_A_Second_Compaction_Of_A_Run_The_First_Summary_Stays_Whole` |
 | new | The turns kept after a summary fit the target together with the instructions and the tools, with room for the summary (D32) | `CompactionTests.Given_Turns_To_Summarize_The_Kept_Turns_Fit_With_The_Instructions_And_The_Tools`, `..._Given_Turns_To_Summarize_The_Kept_Turns_Leave_Room_For_The_Summary` |
 | new | A stored summary holds none of a context provider's messages (D31, D32) | `ContextProviderTests.Given_A_Compaction_In_A_Run_With_Context_Its_Summary_Leaves_The_Context_Out` |
+| new | What a context provider added, or run middleware to the messages it received, stays in every call of a compacted run and counts toward the target; the summary model never reads it, context alone is no turn to summarize, and a later pass has its new context after the summary; a message middleware put in place of another is summarized (D30, D31, D32) | `ContextProviderTests.Given_Context_Among_The_Summarized_Turns_The_Summary_Model_Does_Not_Read_It`, `..._Given_Context_Among_The_Summarized_Turns_The_Runs_Later_Calls_Keep_It`, `..._Given_Context_Among_The_Summarized_Turns_The_Kept_Turns_Fit_With_It`, `..._Given_Only_Context_Ahead_Of_The_Input_Nothing_Is_Summarized`, `..._Given_A_Steered_Run_With_Context_Its_Later_Pass_Starts_From_The_Summary_With_The_New_Context`, `RunMiddlewareTests.Given_Run_Middleware_That_Adds_A_Message_A_Summary_Of_Its_Turns_Leaves_It_In_The_Later_Calls`, `..._Given_Run_Middleware_That_Adds_A_Message_The_Summary_Model_Does_Not_Read_It`, `..._Given_Run_Middleware_That_Replaces_A_Message_The_Summary_Model_Reads_The_Replacement` |
 | new | A sub-agent is a tool of its description and one input, answering in a fresh context in its caller's mode (D33) | `SubAgentTests` |
 | new | Plan mode offers the sub-agents, which plan with their read-only tools and no `exit_plan_mode` (D33, D52) | `SubAgentTests.Given_A_Caller_In_Plan_Mode_Its_Sub_Agents_Are_Offered`, `..._Given_A_Caller_In_Plan_Mode_Its_Sub_Agent_Is_Offered_Only_Its_Read_Only_Tools` |
 | new | A sub-agent's calls that need approval are rejected unless something approves them (D33) | `SubAgentTests.Given_A_Sub_Agent_In_The_Default_Mode_A_Call_That_Needs_Approval_Is_Rejected` |
@@ -180,6 +181,10 @@ rewrite.
   stored before a model response kept its estimate. The summary model reads results cut to 2,000 characters. A
   result a run cleared among the turns its summary kept is stored cleared with that summary, so a later run's
   summary reads the placeholder in its place.
+- **Messages run middleware replaces, under compaction.** Compaction sees the message middleware put in place of
+  another, never the stored one. Among the summarized turns it is summarized as it reads, so the stored summary
+  follows the replacement. Among the turns a summary keeps it is left out of the stored summary, as every message the
+  conversation never stores is, so later runs see neither the message your app sent nor its replacement.
 - **Uses inside a referenced project.** TSH007 follows the handoffs and sub-agents of your project's agents into a
   referenced project's agent, but not that agent's own uses, which no stamp lists. An own tool of yours and one of an
   agent the referenced agent hands off to are not compared, in either project.

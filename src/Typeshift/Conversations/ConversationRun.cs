@@ -27,6 +27,9 @@ internal sealed class ConversationRun(
     // What context providers and run middleware added, which the conversation never stores
     private readonly HashSet<AIContent> _transient = new(ReferenceEqualityComparer.Instance);
 
+    // D32: of those, the messages that stand for none of the conversation's, which compaction leaves in every call
+    private readonly HashSet<AIContent> _added = new(ReferenceEqualityComparer.Instance);
+
     // D78: the content types the run stored its steps without, each logged once
     private readonly HashSet<Type> _unwritable = [];
 
@@ -184,17 +187,20 @@ internal sealed class ConversationRun(
         }
     }
 
-    public void MarkTransient(IEnumerable<ChatMessage> messages)
+    public void MarkTransient(IEnumerable<ChatMessage> messages, bool added = false)
     {
-        var added = messages.SelectMany(message => message.Contents).Where(content => !_stored.Contains(content));
+        var contents = messages.SelectMany(message => message.Contents).Where(content => !_stored.Contains(content));
 
-        foreach (var content in added)
+        foreach (var content in contents)
         {
             _transient.Add(content);
+            if (added) _added.Add(content);
         }
     }
 
     public bool IsTransient(ChatMessage message) => message.Contents.Any(_transient.Contains);
+
+    public bool IsAdded(ChatMessage message) => message.Contents.Any(_added.Contains);
 
     public bool IsOpen(string request) => _requests.Contains(request);
 

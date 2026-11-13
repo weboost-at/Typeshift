@@ -46,7 +46,9 @@ public partial class ContextAgent : Agent
     {
         WithChatOptions().WithModel("scripted", "context-model");
 
-        WithRunOptions().Configurable(r => r.MaxInputTokens);
+        WithRunOptions()
+            .Configurable(r => r.MaxInputTokens)
+            .Configurable(r => r.TargetInputTokens);
 
         UseToolset<GuardedToolset>();
 

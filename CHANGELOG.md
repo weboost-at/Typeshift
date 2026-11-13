@@ -98,6 +98,10 @@ All notable changes to this project are documented here. The format follows
 - The summary model reads what the tools were called with and what they returned. It read a .NET type name in place
   of each call's arguments, and the placeholder of a cleared result in place of almost every result. It now reads
   each call's arguments and the first 2,000 characters of each result, as text where the result is text.
+- Compaction leaves alone what a context provider added to a run, and what run middleware added to the messages it
+  received. Such a message among the summarized turns went to the summary model, could come back in the stored
+  summary, and was missing from the run's later calls. It now stays in every call of the run and counts toward the
+  target, and no summary reads or stores it.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

@@ -500,7 +500,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   the maximum up to four times. Only results the model already
   answered after are cleared. The summary model reads the turns it summarizes as a transcript: each call with its
   arguments, and each result as its tool returned it, cut to 2,000 characters, also where clearing took it from the
-  run's model. What compaction did holds for the rest of the run: the tool loop keeps the whole
+  run's model. What a context provider added (D31), and what run middleware added to the messages it received (D30),
+  is the pass's own, like the instructions: it stays in every call and counts toward the target, the summary model
+  never reads it, and no summary stores it. A message middleware put in place of another is summarized like the
+  message it stands for, since compaction sees no other; pinning it would leave that turn in no summary. What compaction did holds for the rest of the run: the tool loop keeps the whole
   history, so each later call gets the same cleared results and summary. The summary entry holds the summary, the
   kept todo list and copies of the kept messages, with the run's mode, its standing approvals and the background calls
   still working, so a later run loads only that entry and the ones after it (`LoadConversationSinceCompactionAsync`,

@@ -299,6 +299,11 @@ never separates a tool call from its result.
 Every later model call of the same run starts from the history as compaction left it, with the same results cleared
 and the same summary.
 
+The messages a [context provider](./middleware.md#context-providers) added stay as they are too, and so does a message
+that [run middleware](./middleware.md#wrap-every-run) added to the ones it received. The summary model never reads
+them, the stored summary holds none of them, and every later call of the run still has them. A message that run
+middleware put in place of another is summarized like the message it stands for.
+
 The stored conversation keeps everything. Compaction appends an entry of its own, with `IsSummary` set to true, that
 holds the summary and the messages it kept after it. Later runs start from that entry instead of summarizing again, and
 read nothing before it: the entry also keeps the conversation's mode, its [approvals for the

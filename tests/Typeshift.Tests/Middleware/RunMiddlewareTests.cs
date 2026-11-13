@@ -66,6 +66,72 @@ public class RunMiddlewareTests : MiddlewareTestBase
     }
 
     [Fact]
+    public async Task Given_Run_Middleware_That_Adds_A_Message_A_Summary_Of_Its_Turns_Leaves_It_In_The_Later_Calls()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "note", ("text", new string('x', Page))))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        Script.Runs[0] = (run, next) =>
+        {
+            run.Messages.Add(new ChatMessage(ChatRole.User, Data.Agent.FollowUp));
+            return next();
+        };
+
+        // Act
+        await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 1_000 });
+
+        // Assert
+        ChatClient.Requests[2][1].Text.Should().Be(Data.Agent.FollowUp);
+    }
+
+    [Fact]
+    public async Task Given_Run_Middleware_That_Adds_A_Message_The_Summary_Model_Does_Not_Read_It()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "note", ("text", new string('x', Page))))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        Script.Runs[0] = (run, next) =>
+        {
+            run.Messages.Add(new ChatMessage(ChatRole.User, Data.Agent.FollowUp));
+            return next();
+        };
+
+        // Act
+        await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 1_000 });
+
+        // Assert
+        ChatClient.Requests[1][1].Text.Should().Be($"user: {Data.Tool.Question}{Environment.NewLine}");
+    }
+
+    [Fact]
+    public async Task Given_Run_Middleware_That_Replaces_A_Message_The_Summary_Model_Reads_The_Replacement()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "note", ("text", new string('x', Page))))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        Script.Runs[0] = (run, next) =>
+        {
+            run.Messages[^1] = new ChatMessage(ChatRole.User, Data.Agent.FollowUp);
+            return next();
+        };
+
+        // Act
+        await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 1_000 });
+
+        // Assert
+        ChatClient.Requests[1][1].Text.Should().Be($"user: {Data.Agent.FollowUp}{Environment.NewLine}");
+    }
+
+    [Fact]
     public async Task Given_Run_Middleware_That_Answers_The_Model_Is_Not_Called_And_The_Conversation_Stores_It()
     {
         // Arrange
