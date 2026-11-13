@@ -7,6 +7,14 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+### Changed
+
+### Fixed
+
+## [0.1.0-alpha.6] - 2026-11-12
+
+### Added
+
 - `TypeshiftRuntime.Create(client)` runs the agents of an app without a container of its own, with one chat client
   for every run: `await using var research = runtime.Agent<ResearchAgent>()`, then `research.RunAsync("Vienna")`.
   `AddTypeshift()` registers the runtime as a singleton too, so a background service injects it and takes a host for
@@ -171,11 +179,11 @@ All notable changes to this project are documented here. The format follows
 - The typed members of an agent's host, such as `RunAsync`, are in scope in every file. They lived in the agent's
   namespace, so a file that named the agent in full, without importing its namespace, found no `RunAsync` on
   `AgentHost<TAgent>`.
-
-## [0.1.0-alpha.5] - 2026-10-30
 - A tool parameter or a `RunAsync<T>` type with a member System.Text.Json cannot handle, such as an `Exception`, sent
   the provider a schema it rejected, with a message about a missing type. It now fails before the model is called,
   naming the member.
+
+## [0.1.0-alpha.5] - 2026-10-30
 
 ### Added
 
