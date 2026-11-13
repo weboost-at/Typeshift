@@ -14,7 +14,7 @@ the playbook. That is meant to be enough; if you had to dig for something, add i
 | Runtime behavior or public API | `docs/contributing/architecture.md`; the subject's decisions | `.claude/skills/add-runtime-feature` |
 | Docs, README, the code they show | `docs/contributing/writing.md`; "Docs" below | `.claude/skills/update-docs` |
 | Audit the docs for drift and rule breaks | "Docs" below | `.claude/skills/review-docs` |
-| A release | `docs/contributing/releasing.md` | none: a person pushes the tag |
+| A release | `docs/contributing/releasing.md` | none: prepare its steps 1 to 4 (the changelog section, the demos), a person pushes the tag |
 
 - **What is built, what is open.** `docs/contributing/status.md` lists the slices of the rewrite, the test of each
   behavior and the known gaps.

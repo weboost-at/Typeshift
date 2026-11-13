@@ -1,7 +1,7 @@
 name: release
 
-# A version tag (v1.2.3, v0.2.0-alpha.1) builds, tests and packs that commit, then publishes the package to nuget.org
-# and creates the GitHub release. Run it by hand to get the packages as an artifact without publishing.
+# A version tag (v1.2.3, v0.2.0-alpha.1) runs everything CI runs on that commit, then publishes the package to
+# nuget.org and creates the GitHub release. Run it by hand to get the packages as an artifact without publishing.
 on:
   push:
     tags: ['v*']
@@ -11,36 +11,36 @@ permissions:
   contents: read
 
 jobs:
-  pack:
+  # nuget.org never deletes a version, so a tag publishes only what main and the changelog agree on
+  tag:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          # MinVer reads the version from the tags
+          # The check against main needs its history
           fetch-depth: 0
 
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '11.x'
+      - name: Check that the tag sits on main and has its section in the changelog
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$GITHUB_REF_NAME is not on main"
+            exit 1
+          fi
+          if ! grep -qF "## [${GITHUB_REF_NAME#v}]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no section for $GITHUB_REF_NAME"
+            exit 1
+          fi
 
-      - run: dotnet tool restore
-      - run: dotnet build -c Release -warnaserror
-      - run: dotnet test -c Release --no-build
-
-      - name: Pack, validating the package against its rules
-        run: dotnet pack src/Typeshift -c Release --no-build -o artifacts/packages
-
-      - name: Build and run a consumer of the package
-        run: dotnet run --project samples/Typeshift.Samples.PackageConsumer -c Release
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: packages
-          path: artifacts/packages/*
+  build:
+    needs: tag
+    uses: ./.github/workflows/ci.yml
+    with:
+      upload-packages: true
 
   publish:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: pack
+    needs: build
     runs-on: ubuntu-latest
     # Protection rules on this environment (required reviewers, say) gate every publish
     environment: release
@@ -48,10 +48,25 @@ jobs:
       contents: write
       id-token: write
     steps:
+      # Only CHANGELOG.md, for the release's notes: global.json would pin an SDK this job does not install
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: /CHANGELOG.md
+          sparse-checkout-cone-mode: false
+
       - uses: actions/download-artifact@v4
         with:
           name: packages
           path: artifacts/packages
+
+      # MinVer reads v1.2.3 with an optional -prerelease only: v0.2 or vNext would pack the version of the tag before
+      - name: Check that the package has the tag's version
+        run: |
+          if ! test -f "artifacts/packages/Typeshift.${GITHUB_REF_NAME#v}.nupkg"; then
+            echo "::error::MinVer packed another version than $GITHUB_REF_NAME"
+            ls artifacts/packages
+            exit 1
+          fi
 
       # Trusted publishing: nuget.org trusts this workflow and hands out a key valid for one hour
       - id: nuget
@@ -66,13 +81,17 @@ jobs:
           --source https://api.nuget.org/v3/index.json
           --skip-duplicate
 
-      - name: Create the GitHub release
+      - name: Create the GitHub release, with the tag's section of the changelog as its notes
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
-        run: >
-          gh release create "$TAG" artifacts/packages/*
-          --repo "${{ github.repository }}"
-          --title "$TAG"
-          --generate-notes
-          $([[ "$TAG" == *-* ]] && echo --prerelease)
+        run: |
+          awk -v heading="## [${TAG#v}]" '
+            index($0, heading) == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found' CHANGELOG.md > artifacts/notes.md
+          gh release create "$TAG" artifacts/packages/* \
+            --repo "${{ github.repository }}" \
+            --title "$TAG" \
+            --notes-file artifacts/notes.md \
+            $([[ "$TAG" == *-* ]] && echo --prerelease)

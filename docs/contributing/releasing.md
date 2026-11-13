@@ -5,8 +5,8 @@ description: How a version tag becomes a NuGet package and a GitHub release, and
 
 # Releasing
 
-A release is a version tag. Pushing one runs the `release` workflow, which tests the tagged commit, checks the package
-with the consumer sample, and publishes it with its symbols to nuget.org and GitHub.
+A release is a version tag. Pushing one runs the `release` workflow, which checks the tag, runs everything CI runs on
+the tagged commit, and publishes the package with its symbols to nuget.org and GitHub.
 
 ## Versions
 
@@ -32,13 +32,15 @@ nuget.org keeps later packages under the name.
 ## Cutting a release
 
 1. On `main`, with CI green: in `CHANGELOG.md`, rename `[Unreleased]` to the version and date, and open a new empty
-   `[Unreleased]` above it.
+   `[Unreleased]` above it. The release workflow fails without a section for the tag's version, and that section
+   becomes the notes of the GitHub release.
 2. Move the rows of `src/Typeshift.Generators/AnalyzerReleases.Unshipped.md` to `AnalyzerReleases.Shipped.md` under a
    `## Release <version>` heading. From then on, a shipped diagnostic ID is never reused or renumbered. A prerelease
    skips this step, because the heading takes only a plain version (RS2007), so the rules ship with the next stable
    release.
-3. Set `PackageValidationBaselineVersion` in `src/Typeshift/Typeshift.csproj` to the last released version, so the
-   next pack fails on a breaking change nobody meant. It is not set yet; once it is, keep it on the latest release.
+3. From 0.1.0 on, set `PackageValidationBaselineVersion` in `src/Typeshift/Typeshift.csproj` to the last released
+   version, so the next pack fails on a breaking change nobody meant, and keep it on the latest release. It stays
+   unset during the alpha, where a release may break.
 4. Check the demos, which CI never builds: `dotnet build demos/Typeshift.Demos.slnx`, then run each one offline as
    `demos/README.md` shows. A demo that broke gets fixed before the tag, or the release notes say so.
 5. Commit, then tag and push the tag:
@@ -48,6 +50,10 @@ nuget.org keeps later packages under the name.
    git push origin v0.2.0
    ```
 
+   The tag sits on a commit of `main` and reads `vMAJOR.MINOR.PATCH`, with an optional prerelease part such as
+   `-alpha.1`. The workflow fails for a tag on any other commit. It also fails for any other `v` tag, such as `v0.2`:
+   MinVer cannot read one, and would pack the version that follows the last tag it can read.
+
 6. Approve the `release` environment if it asks, then check the package on nuget.org and the GitHub release. If the
    GitHub release fails, rerun the failed job. The push skips packages nuget.org already has.
 
@@ -56,8 +62,9 @@ from its version.
 
 ## A dry run
 
-Run the `release` workflow by hand, under *Actions > release > Run workflow*. It builds, tests and packs the branch
-and uploads the packages as an artifact, but publishes nothing.
+Run the `release` workflow by hand, under *Actions > release > Run workflow*. It runs everything CI runs on the
+branch and uploads the packages as an artifact, but publishes nothing. The checks of the tag are skipped, since a run
+by hand has none.
 
 ## Related
 

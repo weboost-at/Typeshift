@@ -13,13 +13,20 @@ on:
       - 'docs/**/agents.md'
   pull_request:
     paths: *code
+  # The release workflow runs these steps on the tagged commit and publishes the packages they pack
+  workflow_call:
+    inputs:
+      upload-packages:
+        description: Upload the packed packages as the artifact 'packages'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 # A new push to a pull request cancels its running check; every commit on main keeps its own
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -86,3 +93,9 @@ jobs:
             cat artifacts/chose-docs.log
             exit 1
           fi
+
+      - if: inputs.upload-packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages
+          path: artifacts/packages/*
