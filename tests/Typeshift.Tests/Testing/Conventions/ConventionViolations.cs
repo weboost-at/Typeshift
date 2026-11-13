@@ -7,16 +7,14 @@ public static partial class ConventionViolations
 {
     private const string NamingHint = "name it Given_<state>_<outcome>, declared public void, Task or ValueTask";
 
-    // What a test never writes, each with what it writes instead
+    // What a test never writes, each with what it writes instead. The real clock is banned by symbol in the build
+    // (BannedSymbols.txt), and the 120 columns hold for every line of the repository (SourceConventionTests)
     public static IReadOnlyDictionary<string, (Regex Pattern, string Hint)> BannedCalls { get; } =
         new Dictionary<string, (Regex, string)>
         {
             ["Task.Delay"] = (
                 new(@"\bTask\.Delay\("),
                 "order the work with a TaskCompletionSource gate and move time with Time.Advance"),
-            ["Thread.Sleep"] = (
-                new(@"\bThread\.Sleep\("),
-                "order the work with a TaskCompletionSource gate"),
             ["#region"] = (
                 new(@"^\s*#(end)?region\b"),
                 "order the members instead of folding them"),
@@ -32,12 +30,6 @@ public static partial class ConventionViolations
             ["numeric wait timeout"] = (
                 new(@"\b(WaitAsync|Timeout)\([^;]*(TimeSpan\.From\w+\(|\d+\.(Seconds|Minutes)\(\))"),
                 "await the gate with Ct, which ends a hang after 20 seconds"),
-            ["wall clock"] = (
-                new(@"\bDateTime(Offset)?\.(Now|UtcNow|Today)\b"),
-                "read Time, the FakeTimeProvider of the test base"),
-            ["real time"] = (
-                new(@"\b(Stop[w]atch|Environment\.TickCount|TimeProvider\.System)\b"),
-                "read Time, the FakeTimeProvider of the test base"),
             ["chained assertion"] = (
                 new(@"\.(And|Which|Subject)\b(?!\s*\()"),
                 "one assertion per statement, a recurring check becomes an .Assert helper")
@@ -48,12 +40,6 @@ public static partial class ConventionViolations
         TestSources.TestMethods
             .Where(method => !IsWellNamed(method))
             .Select(method => $"{method.File}:{method.Line}: {method.Name}: {NamingHint}");
-
-    // Every test declaration line past 120 columns
-    public static IEnumerable<string> LongDeclarations() =>
-        TestSources.Files.SelectMany(file => Numbered(TestSources.Lines(file))
-            .Where(line => line.Text.Length > 120 && TestSources.TestDeclaration().IsMatch(line.Text))
-            .Select(line => $"{file}:{line.Number}: {TestSources.NameOf(line.Text)}: shorten the name"));
 
     // Every test class that does not live in <Project>/<Namespace folder>/<Class>.cs
     public static IEnumerable<string> Misplaced() =>

@@ -17,16 +17,6 @@ public class TestConventionTests
     }
 
     [Fact]
-    public void Every_Test_Declaration_Fits_120_Columns()
-    {
-        // Act
-        var violations = ConventionViolations.LongDeclarations().ToList();
-
-        // Assert
-        violations.Should().BeEmpty(Listing(violations));
-    }
-
-    [Fact]
     public void Every_Test_Class_Lives_In_A_File_Named_After_It_In_Its_Namespace_Folder()
     {
         // Act
