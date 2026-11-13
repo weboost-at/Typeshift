@@ -7,6 +7,9 @@
 //   - every fence has a language; C# only between the markers mdsnippets writes
 //   - every callout has a title
 //   - every link into the docs reaches a page and, with a #fragment, a heading or anchor on it
+//   - in AGENTS.md, the playbooks and the contributing pages: every repository path in backticks exists, and every
+//     `page.md#anchor` reaches a heading or anchor of that page
+//   - every test docs/contributing/status.md names is a test under tests/
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { basename, dirname, join, relative, resolve } from 'node:path'
@@ -205,6 +208,104 @@ for (const [route, file] of routes)
 
 for (const link of sidebar)
   if (!routes.has(link)) errors.push(`docs/.vitepress/config.mts: the link '${link}' has no page`)
+
+// AGENTS.md, the playbooks and the contributing pages name paths, anchors and tests that move with the code. ci.yml
+// skips a change that touches only docs/ or the root's Markdown, so a repository test would miss the edits that break
+// them; the docs workflow runs this file on every pull request
+const built = new Set(['bin', 'obj', 'node_modules'])
+
+const find = (dir, wanted) =>
+  readdirSync(dir).flatMap(name => {
+    const path = join(dir, name)
+    if (statSync(path).isDirectory()) return built.has(name) ? [] : find(path, wanted)
+    return wanted(name) ? [path] : []
+  })
+
+const playbooks = find(join(root, '.claude/skills'), name => name === 'SKILL.md')
+const contributing = new Map([
+  ...[join(root, 'AGENTS.md'), ...playbooks].map(file => [file, read(file)]),
+  ...pages.filter(file => dirname(file) === join(docs, 'contributing')).map(file => [file, parsed.get(file)])
+])
+
+// The inline code of a file outside its fences, each span with its line
+const spans = ({ lines, fenced, offset }) =>
+  lines.flatMap((line, index) =>
+    fenced[index] ? [] : [...line.matchAll(/`([^`]+)`/g)].map(match => ({ text: match[1], line: index + offset + 1 })))
+
+const projects = ['src', 'tests', 'samples', 'demos']
+  .flatMap(folder => find(join(root, folder), name => name.endsWith('.csproj')))
+
+const frameworks = new Set(
+  projects
+    .flatMap(project => [...readFileSync(project, 'utf8').matchAll(/<TargetFrameworks?>([^<]+)</g)])
+    .flatMap(match => match[1].split(';')))
+
+// A path is written from the repository's root, from docs/ or the guide, or from a project's folder; a test class
+// goes by its file's name without the extension
+const bases = [root, docs, join(docs, 'guide'), ...projects.map(dirname)]
+const isFolder = path => existsSync(path) && statSync(path).isDirectory()
+const isInRepository = path => bases.some(base => existsSync(join(base, path)) || existsSync(join(base, `${path}.cs`)))
+
+for (const [file, content] of contributing) {
+  for (const { text, line } of spans(content)) {
+    const [path, fragment] = text.split('#')
+    const segments = path.replace(/\/$/, '').split('/')
+
+    // Commands, placeholders, globs and the ./ links writing.md shows are no paths of the repository
+    if (!/^[\w.-]+(\/[\w.-]+)*\/?$/.test(path) || segments[0] === '.' || segments[0] === '..') continue
+
+    if (segments.length > 1) {
+      const framework = segments.find(segment => /^net(standard|coreapp)?\d/.test(segment))
+      const known = !built.has(segments[0]) && bases.some(base => isFolder(join(base, segments[0])))
+
+      // A build's output is in no checkout, so of its path only the target framework can be checked
+      if (framework && !frameworks.has(framework))
+        fail(file, line, `\`${text}\` names the target framework ${framework}, which no project targets`)
+      else if (known && !isInRepository(path))
+        fail(file, line, `\`${text}\` names no file or folder of the repository`)
+    }
+
+    if (!fragment || !path.endsWith('.md')) continue
+
+    const page = [join(docs, path), join(docs, 'guide', path)].find(candidate => anchors.has(candidate))
+
+    if (page && !anchors.get(page).has(fragment))
+      fail(file, line, `\`${text}\` reaches no heading or anchor on ${relative(docs, page)}`)
+    else if (!page && segments.length === 1 && !existsSync(join(root, path)))
+      fail(file, line, `\`${text}\` names no page of the docs`)
+  }
+}
+
+// status.md names a test as `Class.Method`, as `..._Method` for another test of the class before it, or by its class
+const tests = new Map()
+
+for (const file of find(join(root, 'tests'), name => name.endsWith('.cs'))) {
+  const code = readFileSync(file, 'utf8')
+  const methods = [...code.matchAll(/\bpublic\s+(?:async\s+)?[\w<>[\],.? ]+\s(\w+)\(/g)].map(match => match[1])
+
+  for (const [, type] of code.matchAll(/\bclass\s+(\w+)/g))
+    tests.set(type, new Set([...(tests.get(type) ?? []), ...methods]))
+}
+
+const status = join(docs, 'contributing/status.md')
+const coverage = parsed.get(status) ?? { lines: [], fenced: [], offset: 0 }
+
+coverage.lines.forEach((row, index) => {
+  if (coverage.fenced[index] || !row.startsWith('|')) return
+  let type = null
+
+  for (const [, text] of row.matchAll(/`([^`]+)`/g)) {
+    const named = text.match(/^(\w+Tests)(?:\.(\w+))?$/)
+    const method = named ? named[2] : text.match(/^\.\.\._(\w+)$/)?.[1]
+    if (named) type = named[1]
+    if (!named && !method) continue
+
+    if (!tests.has(type))
+      fail(status, index + coverage.offset + 1, `\`${text}\` names no test class under tests/`)
+    else if (method && !tests.get(type).has(method))
+      fail(status, index + coverage.offset + 1, `\`${text}\` names no test: ${type} has no ${method}`)
+  }
+})
 
 for (const error of errors) console.error(`  ${error}`)
 

@@ -229,7 +229,10 @@ The docs rules check what a machine can:
 - every page is in the sidebar, and every sidebar link has a page;
 - every code block has a language, and C# appears only where mdsnippets wrote it;
 - every callout has a title;
-- every link into the docs reaches its page and its anchor.
+- every link into the docs reaches its page and its anchor;
+- every repository path and every anchor of a docs page that `AGENTS.md`, the playbooks and the contributing pages
+  name in backticks exists;
+- every test that [Status](./status.md) names exists.
 
 The `docs` workflow runs mdsnippets, `docs:lint` and the build on every pull request, and deploys the site from
 `main`. Everything else on this page is for the reviewer.
