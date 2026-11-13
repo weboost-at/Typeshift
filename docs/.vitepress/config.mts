@@ -114,15 +114,20 @@ export default withMermaid(
       ['link', { rel: 'apple-touch-icon', href: `${base}brand/apple-touch-icon.png` }]
     ],
     cleanUrls: true,
-    // The Markdown copies keep the text of mdsnippets' source links, and llms-full.txt sits above the guide that its
-    // pages' relative links point into
+    // The Markdown copies keep the text of mdsnippets' source links. A page outside the guide has no copy, so a link
+    // to one goes to its page of the site, and llms-full.txt sits above the guide that its pages' relative links
+    // point into
     async buildEnd({ outDir }) {
       for (const file of await readdir(outDir, { recursive: true })) {
         if (!/\.(md|txt)$/.test(file)) continue
 
         const path = join(outDir, file)
-        let text = (await readFile(path, 'utf8')).replaceAll('\n\nsnippet source | anchor\n', '\n')
+        let text = (await readFile(path, 'utf8'))
+          .replaceAll('\n\nsnippet source | anchor\n', '\n')
+          .replace(/\]\(\.\.\/([^)#\s]*?)(?:index)?\.md(#[^)\s]*)?\)/g, `](${site}${base}$1$2)`)
         if (file === 'llms-full.txt') text = text.replaceAll('](./', `](${site}${base}guide/`)
+
+        if (text.includes('](../')) throw new Error(`${file} still links out of the guide by a relative path`)
 
         await writeFile(path, text)
       }
