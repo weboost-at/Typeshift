@@ -106,6 +106,7 @@ public static Typeshift.ConversationEntry Typeshift.ConversationEntry.Deserializ
 public bool Typeshift.ConversationEntry.EndsRun { get; init; }
 public bool Typeshift.ConversationEntry.Equals(Typeshift.ConversationEntry? other)
 public override bool Typeshift.ConversationEntry.Equals(object? obj)
+public long? Typeshift.ConversationEntry.EstimatedInputTokens { get; init; }
 public override int Typeshift.ConversationEntry.GetHashCode()
 public bool Typeshift.ConversationEntry.IsSummary { get; init; }
 public static string Typeshift.ConversationEntry.Kind { get; }

@@ -61,6 +61,39 @@ public class ConversationEntryJsonTests : UnitTestBase
     }
 
     [Fact]
+    public void Given_A_Model_Response_Stored_Before_Entries_Kept_An_Estimate_It_Reads_With_Its_Usage_And_None()
+    {
+        // Arrange
+        const string json =
+            """
+            {"agent":"compacting_agent","at":"2026-10-11T08:00:00+00:00","model":"compacting-model",
+            "usage":{"inputTokenCount":2000,"outputTokenCount":12},
+            "messages":[{"authorName":"compacting_agent","role":"assistant",
+            "contents":[{"$type":"text","text":"Done."}]}]}
+            """;
+
+        // Act
+        var entry = ConversationEntry.Deserialize(json);
+
+        // Assert
+        entry.Usage!.InputTokenCount.Should().Be(2_000);
+        entry.EstimatedInputTokens.Should().BeNull();
+    }
+
+    [Fact]
+    public void Given_An_Entry_Without_An_Estimate_Its_Json_Has_No_Member_For_It()
+    {
+        // Arrange
+        var entry = Data.Persistence.Entry with { EstimatedInputTokens = null };
+
+        // Act
+        var json = entry.Serialize();
+
+        // Assert
+        json.Should().NotContain("estimatedInputTokens");
+    }
+
+    [Fact]
     public void Given_An_Entry_Of_A_Newer_Schema_Version_Reading_Throws_A_JsonException()
     {
         // Arrange

@@ -64,7 +64,8 @@ public sealed class AgentRun
     // What compaction did so far in this run, once it did anything (D32)
     internal Compaction? Compaction { get; set; }
 
-    // The conversation's last model call before the run and what its provider reported, for compaction's estimate
+    // The conversation's last model call before the run that holds an estimate and its provider's report, which
+    // calibrate compaction's first estimate (D32)
     internal ReportedCall? LastCall { get; init; }
 
     // The model calls the run made so far, which the tool loop's rounds share (D32)

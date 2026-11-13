@@ -89,6 +89,12 @@ All notable changes to this project are documented here. The format follows
 - A store of agents' own settings whose creation failed once, such as one whose database was not up at the first
   run, is created again on the next run. Before, every later run of every agent failed with that first exception
   until the app restarted.
+- Compaction keeps a conversation under `MaxInputTokens` in the runs after one that cleared tool results. A run
+  corrected its first estimate against the stored history, which keeps the full results, so its first call could
+  exceed the maximum up to four times, and a provider with a smaller context window refused every later run. Each
+  model response of a run with a maximum now stores what its call was estimated at, in the new optional
+  `ConversationEntry.EstimatedInputTokens`, and the next run corrects its estimate by that. Entries stored before
+  load as they are, and a run after them starts with the plain estimate.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

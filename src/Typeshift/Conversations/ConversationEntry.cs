@@ -37,6 +37,12 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
     public UsageDetails? Usage { get; init; }
 
     /// <summary>
+    /// What compaction estimated the model call's input at, in tokens, for a model response of a run with a maximum
+    /// of input tokens. With the input tokens of <see cref="Usage"/>, it corrects the estimate of the next run.
+    /// </summary>
+    public long? EstimatedInputTokens { get; init; }
+
+    /// <summary>
     /// Whether the run ended with this entry: answered, failed, cancelled or waiting for approval.
     /// </summary>
     public bool EndsRun { get; init; }
@@ -98,6 +104,7 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
             JsonSerializer.Serialize(writer, Usage, Contract<UsageDetails>());
         }
 
+        if (EstimatedInputTokens is { } estimated) writer.WriteNumber("estimatedInputTokens", estimated);
         if (EndsRun) writer.WriteBoolean("endsRun", true);
         if (Mode is { } mode) writer.WriteString("mode", mode.ToString());
         if (IsSummary) writer.WriteBoolean("isSummary", true);
@@ -154,6 +161,7 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
             }
         }
 
+        var estimate = StorableJson.Member(root, "estimatedInputTokens");
         var approvals = StorableJson.Member(root, "standingApprovals");
         var background = StorableJson.Member(root, "backgroundCalls");
 
@@ -166,6 +174,7 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
             Usage = StorableJson.Member(root, "usage") is { ValueKind: JsonValueKind.Object } usage
                 ? usage.Deserialize(Contract<UsageDetails>())
                 : null,
+            EstimatedInputTokens = StorableJson.TryReadNumber(estimate, out long estimated) ? estimated : null,
             EndsRun = StorableJson.TryRead(StorableJson.Member(root, "endsRun"), out bool ends) && ends,
             Mode = StorableJson.TryReadEnum(StorableJson.Member(root, "mode"), out AgentMode mode) ? mode : null,
             IsSummary = StorableJson.TryRead(StorableJson.Member(root, "isSummary"), out bool summary) && summary,

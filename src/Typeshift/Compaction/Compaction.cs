@@ -6,8 +6,9 @@ namespace Typeshift;
 
 // D32: what compaction did in one run, applied again to each later call, since the tool loop keeps the whole
 // history: the results it cleared, and the summary that stands in for the turns before the first message it kept.
-// The estimate is calibrated by the tokens the provider reported for the run's last call
-internal sealed class Compaction
+// The estimate is calibrated by the tokens the provider reported for the run's last call, and before the run's first
+// call by the last call of the conversation that holds both an estimate and a report
+internal sealed class Compaction(ReportedCall? last)
 {
     public const string ClearedResult = "[Cleared to save context; call the tool again if you need this result.]";
 
@@ -27,7 +28,11 @@ internal sealed class Compaction
     private readonly HashSet<string> _cleared = [];
     private List<ChatMessage> _summary = [];
     private AIContent? _keptFrom;
-    private double _calibration = 1;
+    private double _calibration = last?.Calibration ?? 1;
+
+    // The estimate of the run's last call as it went to the model, with the results cleared and the summary in
+    // place: what the provider's report is compared with, and what the response's entry keeps for the next run
+    public int SentEstimate { get; private set; }
 
     public async Task<List<ChatMessage>> PrepareAsync(
         IEnumerable<ChatMessage> messages,
@@ -36,18 +41,19 @@ internal sealed class Compaction
         CancellationToken ct)
     {
         var call = Apply(messages);
-        if (Tokens.Estimate(call, options) * _calibration < max) return call;
+        SentEstimate = Tokens.Estimate(call, options);
+        if (SentEstimate * _calibration < max) return call;
 
         var target = options.RunOptions.TargetInputTokens ?? max / 2;
-        return await CompactAsync(call, options, target / _calibration, ct);
+        call = await CompactAsync(call, SentEstimate, options, target / _calibration, ct);
+        SentEstimate = Tokens.Estimate(call, options);
+        return call;
     }
 
-    public void Calibrate(IReadOnlyList<ChatMessage> call, ChatOptions options, UsageDetails? usage)
+    public void Calibrate(UsageDetails? usage)
     {
-        var estimate = Tokens.Estimate(call, options);
-
-        if (usage?.InputTokenCount is { } reported && estimate > 0)
-            _calibration = Math.Clamp(reported / (double)estimate, 0.25, 4);
+        if (usage?.InputTokenCount is { } reported && SentEstimate > 0)
+            _calibration = new ReportedCall(SentEstimate, reported).Calibration;
     }
 
     // The call as the model saw it last: the summary in place of what it stands for, the cleared results cleared, in
@@ -76,12 +82,11 @@ internal sealed class Compaction
 
     private async Task<List<ChatMessage>> CompactAsync(
         List<ChatMessage> call,
+        double total,
         ResolvedChatOptions options,
         double limit,
         CancellationToken ct)
     {
-        var total = (double)Tokens.Estimate(call, options);
-
         // First the results of the oldest calls, keeping the calls; the model has not seen those after its last answer
         var seen = call.FindLastIndex(message => message.Role == ChatRole.Assistant);
         var todos = LatestTodos(call)?.CallId;

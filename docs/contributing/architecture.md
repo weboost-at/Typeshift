@@ -182,8 +182,8 @@ writes its tool spans under the run's span, which a streaming run makes current 
 (D36).
 
 `CompactingChatClient` sits below the checkpoints, so every step is stored before it shrinks the call. `Compaction`
-holds one run's state: the cleared results, the summary and the message it kept from, and the estimate's
-calibration (D32, D36).
+holds one run's state: the cleared results, the summary and the message it kept from, the estimate of the call it
+sent last and the estimate's calibration (D32, D36).
 
 ## Sub-agents and handoff
 

@@ -315,7 +315,9 @@ of each round of calls, steering input and the entry that ends a run
   first. Let the database number the rows, as an identity column does; a timestamp can tie.
 - **Store each entry as its JSON**, `entry.Serialize()`, and read it back with `ConversationEntry.Deserialize(json)`.
   A database client that serializes with `System.Text.Json` or Newtonsoft.Json may take the entry as it is
-  ([What is stored](./conversations.md#what-is-stored)).
+  ([What is stored](./conversations.md#what-is-stored)). Keep that JSON whole: later runs read members from it that
+  your store never looks at, such as `EstimatedInputTokens`, which
+  [compaction](./conversations.md#compaction) keeps on a model response.
 - **Keep the append cheap.** Runs append while they work, so `AppendConversationAsync` is the hot path, and a row per
   entry suits it.
 

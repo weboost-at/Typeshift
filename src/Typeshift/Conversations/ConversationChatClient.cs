@@ -564,15 +564,15 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         return (run, call, runOptions);
     }
 
-    // D32: the messages of the last model call whose provider reported its input tokens, and that report
-    private static ReportedCall? LastCall(IReadOnlyList<ConversationEntry> entries)
-    {
-        var last = entries.ToList().FindLastIndex(entry => entry.Usage?.InputTokenCount is not null);
+    // D32: the last model call the conversation holds both compaction's estimate and the provider's report of. A
+    // report alone, of a run without a maximum or stored by an earlier version, says nothing about what was sent
+    private static ReportedCall? LastCall(IReadOnlyList<ConversationEntry> entries) =>
+        entries.Select(Reported).LastOrDefault(call => call is not null);
 
-        return last < 0
-            ? null
-            : new ReportedCall(ConversationHistory.From([.. entries.Take(last)]), entries[last].Usage!);
-    }
+    private static ReportedCall? Reported(ConversationEntry entry) =>
+        entry is { EstimatedInputTokens: { } estimated and > 0, Usage.InputTokenCount: { } reported }
+            ? new ReportedCall(estimated, reported)
+            : null;
 
     private static ChatMessage? Without(ChatMessage message, Func<AIContent, bool> dropped)
     {

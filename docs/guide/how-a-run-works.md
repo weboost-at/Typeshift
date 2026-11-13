@@ -64,9 +64,9 @@ app [steered](./conversations.md#steering) into the run, and the answers of sub-
 [in the background](./multi-agent.md#in-the-background). Each model response is stored as it arrives, so a crash
 loses at most the calls in flight.
 
-When compaction is on and a call would exceed the token limit, the run compacts what the model sees, while the stored
-conversation keeps everything ([compaction](./conversations.md#compaction)). Typeshift traces every call to the
-provider's client ([Observability](./observability.md)).
+When compaction is on and the estimate of a call reaches the maximum of input tokens, the run compacts what the model
+sees, while the stored conversation keeps everything ([compaction](./conversations.md#compaction)). Typeshift traces
+every call to the provider's client ([Observability](./observability.md)).
 
 ## What each step can change
 

@@ -275,7 +275,13 @@ internal sealed class ConversationRun(
 
     public async Task AppendResponseAsync(ChatResponse response, ChatOptions? options, bool streamed)
     {
-        await AppendAsync([.. response.Messages], response.ModelId ?? options?.ModelId, response.Usage);
+        // D32: with what compaction estimated the call at, the provider's report calibrates the next run
+        await AppendAsync(
+            [.. response.Messages],
+            response.ModelId ?? options?.ModelId,
+            response.Usage,
+            run.Compaction?.SentEstimate);
+
         if (streamed) _streamedUnmatched = response.Messages.Count;
     }
 
@@ -284,6 +290,7 @@ internal sealed class ConversationRun(
         IReadOnlyList<ChatMessage> messages,
         string? model = null,
         UsageDetails? usage = null,
+        long? estimated = null,
         bool endsRun = false,
         bool summary = false,
         string? answering = null,
@@ -308,6 +315,7 @@ internal sealed class ConversationRun(
         {
             Model = model,
             Usage = usage,
+            EstimatedInputTokens = estimated,
             EndsRun = endsRun,
             Mode = endsRun || summary ? run.Mode : null,
             IsSummary = summary,

@@ -84,7 +84,8 @@ receives each entry through `AppendConversationAsync`
 Each entry is a `ConversationEntry`: the name of its agent in `Agent`, its `Messages` and the time it was stored in
 `At`, plus the `Model` and `Usage` of a model response, and `EndsRun` on the entry that ends a run. `IsSummary` is true
 on the entry [compaction](#compaction) appends when it summarizes, which is how your code and your store tell a summary
-apart ([Start from the last summary](./implementing-a-store.md#start-from-the-last-summary)).
+apart ([Start from the last summary](./implementing-a-store.md#start-from-the-last-summary)). A model response of a run
+with a maximum of input tokens also has `EstimatedInputTokens`, what compaction estimated its call at.
 
 An entry serializes itself with `Serialize()` and `ConversationEntry.Deserialize(json)`, and JSON libraries handle it as
 it is. `System.Text.Json` writes and reads that same JSON, and Newtonsoft.Json writes it as a string, so a store or an
@@ -281,9 +282,11 @@ WithRunOptions()
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L20-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-long-running-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Before every model call, Typeshift estimates the call's input tokens at about four characters per token, corrected by
-what the provider reported for the run's last call, or for the conversation's last call before the run. When the
-estimate reaches the maximum, it shrinks the history to `WithTargetInputTokens`, half the maximum unless set:
+Before every model call, Typeshift estimates the call's input tokens at about four characters per token. It corrects
+that estimate by the last call: the tokens the provider reported for it, against what Typeshift had estimated for the
+call as it was sent. A run's first call takes the correction from the conversation, where each model response of a
+run with a maximum is stored with its estimate in `EstimatedInputTokens`, next to its `Usage`. When the estimate
+reaches the maximum, Typeshift shrinks the history to `WithTargetInputTokens`, half the maximum unless set:
 
 1. It clears the results of the oldest tool calls the model has already read. It keeps the calls, so the model knows
    what it did and can call again.

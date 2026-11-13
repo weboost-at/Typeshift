@@ -3,6 +3,7 @@ using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Compaction.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift.Tests.Compaction;
 
@@ -68,7 +69,7 @@ public class CompactionTests : AgentTestBase
     {
         // Arrange
         await ReadTwoPagesAsync();
-        var estimate = Tokens.Estimate(ChatClient.Requests[2], ChatClient.Options[2]);
+        var estimate = Estimate(2);
 
         // Act
         await ReadTwoPagesAsync(new() { MaxInputTokens = estimate, TargetInputTokens = estimate - 500 });
@@ -82,7 +83,7 @@ public class CompactionTests : AgentTestBase
     {
         // Arrange
         await ReadTwoPagesAsync();
-        var estimate = Tokens.Estimate(ChatClient.Requests[2], ChatClient.Options[2]);
+        var estimate = Estimate(2);
 
         // Act
         await ReadTwoPagesAsync(new() { MaxInputTokens = estimate + 1, TargetInputTokens = estimate - 500 });
@@ -369,6 +370,7 @@ public class CompactionTests : AgentTestBase
     public async Task Given_A_Report_Of_The_Last_Run_The_Next_Runs_First_Call_Compacts_By_It()
     {
         // Arrange
+        var settings = new CompactingAgent.Settings { MaxInputTokens = 1_500, TargetInputTokens = 1_000 };
         var reported = new UsageDetails { InputTokenCount = 2_000 };
 
         ChatClient
@@ -376,13 +378,73 @@ public class CompactionTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer), new ChatResponseUpdate(ChatRole.Assistant, [new UsageContent(reported)]))
             .Reply(Text(Data.Tool.Answer));
 
-        await RunAsync(Data.Tool.Question);
+        await RunAsync(Data.Tool.Question, settings);
+
+        // Act
+        await RunAsync(Data.Agent.FollowUp, settings);
+
+        // Assert
+        Results(2)[0].Should().Be(Cleared);
+    }
+
+    [Fact]
+    public async Task Given_A_Run_That_Cleared_Results_The_Next_Runs_First_Call_Stays_Under_The_Maximum()
+    {
+        // Arrange
+        var settings = new CompactingAgent.Settings { MaxInputTokens = 2_000, TargetInputTokens = 1_500 };
+        var reported = new UsageDetails { InputTokenCount = 1_200 };
+
+        ChatClient
+            .Reply(Read(Data.Tool.CallId, Page))
+            .Reply(Read(Data.Tool.SecondCallId, Page))
+            .Reply(Read($"{Data.Tool.CallId}_3", Page))
+            .Reply(Text(Data.Tool.Answer), new ChatResponseUpdate(ChatRole.Assistant, [new UsageContent(reported)]))
+            .Reply(Text(Data.Agent.Reason));
+
+        await RunAsync(Data.Tool.Question, settings);
+
+        // Act
+        await RunAsync(Data.Agent.FollowUp, settings);
+
+        // Assert
+        Estimate(4).Should().BeLessThan(2_000);
+    }
+
+    [Fact]
+    public async Task Given_A_Maximum_Each_Response_Is_Stored_With_The_Estimate_Of_Its_Call()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Read(Data.Tool.CallId, Page))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 2_000 });
+
+        // Assert
+        (await EntriesAsync(Data.Agent.ConversationId)).Select(entry => entry.EstimatedInputTokens)
+            .Should()
+            .Equal(null, Estimate(0), null, Estimate(1), null);
+    }
+
+    [Fact]
+    public async Task Given_A_Report_Stored_Without_An_Estimate_The_Next_Runs_First_Call_Goes_By_The_Estimate_Alone()
+    {
+        // Arrange
+        var store = Services.GetRequiredService<ITypeshiftStore<Guid>>();
+
+        foreach (var entry in StoredRuns.ReportedWithoutEstimate(new string('x', Page / 2)))
+        {
+            await store.AppendConversationAsync(Data.Agent.ConversationId, entry, Ct);
+        }
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
         await RunAsync(Data.Agent.FollowUp, new() { MaxInputTokens = 1_500, TargetInputTokens = 1_000 });
 
         // Assert
-        Results(2)[0].Should().Be(Cleared);
+        Results(0)[0].Should().Be(new string('x', Page / 2));
     }
 
     [Fact]
@@ -445,6 +507,9 @@ public class CompactionTests : AgentTestBase
     }
 
     private ChatResponseUpdate Read(string callId, int length) => Call(callId, "read", ("length", length));
+
+    // What compaction estimates a request at, before any report corrects it
+    private int Estimate(int request) => Tokens.Estimate(ChatClient.Requests[request], ChatClient.Options[request]);
 
     private List<string> Roles(int request) =>
         [.. ChatClient.Requests[request].Select(message => message.Role.Value)];

@@ -492,8 +492,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   Instructions, the latest `write_todos` call and call/result pairs stay; the summary is stored as an entry later
   runs start from. Without reported usage, tokens are estimated from the text.
 - **As built:** the estimate counts characters (four to a token) over the messages, the instructions and the tool
-  schemas, calibrated by the tokens the provider reported for the run's last call, and before the run's first call
-  for the conversation's last. Only results the model already
+  schemas, calibrated by the tokens the provider reported for the run's last call against the estimate of that call
+  as it was sent. A model response's entry keeps that estimate (`EstimatedInputTokens`) beside its usage, and a run's
+  first call is calibrated by the conversation's last entry that holds both. A report without an estimate, of a run
+  without a maximum or of an earlier version, calibrates nothing: the stored history keeps the results a run cleared,
+  so an estimate of it is not what the provider counted, and a calibration by it let the next run's first call exceed
+  the maximum up to four times. Only results the model already
   answered after are cleared. What compaction did holds for the rest of the run: the tool loop keeps the whole
   history, so each later call gets the same cleared results and summary. The summary entry holds the summary, the
   kept todo list and copies of the kept messages, with the run's mode, its standing approvals and the background calls
@@ -502,7 +506,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   and its runs load the whole conversation. Rounds the approval layer continues share `MaxToolIterations`, and so do the
   passes steering input or background answers start. Calls the host approves run in the conversation's next run, which
   counts its own rounds.
-- **Where:** `Compaction/`, `Approval/ApprovalChatClient.cs` for the shared limit.
+- **Where:** `Compaction/`, `Conversations/ConversationEntry.cs` for the stored estimate,
+  `Approval/ApprovalChatClient.cs` for the shared limit.
 - **Alternatives:** MAF's strategy pipeline and trigger combinators, more concepts for the same two steps; a
   tokenizer dependency; message-count triggers, which ignore that one tool result may outweigh a hundred messages; a
   separate `WithCompaction()` chain next to the limits.
