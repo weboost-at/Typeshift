@@ -151,15 +151,22 @@ internal static class ToolsetParser
             return null;
         }
 
+        // A static member of a C# 14 extension block is called on the class that declares the block
+        var target = method.ContainingType;
+
+        while (target.IsExtension)
+        {
+            target = target.ContainingType;
+        }
+
         // A file-local owner is reported itself (TSH016), and generates nothing that would call the method
-        if (method.ContainingType.IsFileLocalOrNestedInOne() && !owner.IsFileLocalOrNestedInOne())
+        if (target.IsFileLocalOrNestedInOne() && !owner.IsFileLocalOrNestedInOne())
         {
             reporter.Report(
                 Descriptors.NotStaticMethodGroup,
                 argument.Syntax,
                 argument.Syntax.ToString(),
-                $"its class '{method.ContainingType.Name}' is file-local, and generated code is written to other "
-                + "files");
+                $"its class '{target.Name}' is file-local, and generated code is written to other files");
 
             return null;
         }
@@ -261,15 +268,7 @@ internal static class ToolsetParser
         var returns = ParseReturn(method.ReturnType);
         ISymbol[] named = [method, method.ReturnType, .. method.Parameters.Select(parameter => parameter.Type)];
 
-        // A static member of a C# 14 extension block is called on the class that declares the block
-        var target = method.ContainingType;
-
-        while (target.IsExtension)
-        {
-            target = target.ContainingType;
-        }
-
-        // The type arguments keep their nullable annotations, as the method's parameters expect them
+        // The target's type arguments keep their nullable annotations, as the method's parameters expect them
         return new ToolModel(
             Name: name,
             Method: Names.Identifier(method.Name),
