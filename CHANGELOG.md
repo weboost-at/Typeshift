@@ -7,6 +7,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `store.VerifyAsync(settingsId, otherSettingsId, conversationId, otherConversationId)` checks a store whose settings
+  ids and conversation ids have different types, such as settings per tenant under a `string` and conversations
+  under a `Guid`, in one call. A call with the ids of one type checks only the interfaces of that id type.
+
 ### Changed
 
 - TSH020 is titled "Referenced assembly was built with another Typeshift version or without the generator", and its

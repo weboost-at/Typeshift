@@ -9,6 +9,10 @@ public class StoreExtensionsTests : UnitTestBase
 
     private Guid OtherId => Data.Persistence.OtherId;
 
+    private string Tenant => Data.Persistence.TenantId;
+
+    private string OtherTenant => Data.Persistence.OtherTenantId;
+
     [Fact]
     public async Task Given_The_Store_In_Memory_It_Passes()
     {
@@ -394,5 +398,57 @@ public class StoreExtensionsTests : UnitTestBase
 
         // Assert
         (await store.LoadAsync($"typeshift_check_{Id}", Ct)).Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Given_A_Store_Of_Two_Id_Types_Verify_With_Both_Ids_Passes()
+    {
+        // Arrange
+        var store = new TwoIdTypesStore();
+
+        // Act
+        var verify = () => store.VerifyAsync(Tenant, OtherTenant, Id, OtherId, Ct);
+
+        // Assert
+        await verify.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task Given_A_Store_Of_Two_Id_Types_With_Conversations_Out_Of_Order_Verify_With_Both_Ids_Throws()
+    {
+        // Arrange
+        var store = new TwoIdTypesStore(newestFirst: true);
+
+        // Act
+        var verify = () => store.VerifyAsync(Tenant, OtherTenant, Id, OtherId, Ct);
+
+        // Assert
+        await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*oldest first*");
+    }
+
+    [Fact]
+    public async Task Given_Conversation_Ids_Of_A_Type_The_Store_Does_Not_Keep_Verify_Fails_Naming_Its_Store()
+    {
+        // Arrange
+        var store = new TwoIdTypesStore();
+
+        // Act
+        var verify = () => store.VerifyAsync(Tenant, OtherTenant, Data.Persistence.NumberId, 0, Ct);
+
+        // Assert
+        await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*is no IConversationStore<int>*");
+    }
+
+    [Fact]
+    public async Task Given_The_Same_Conversation_Id_Twice_Verify_With_Both_Id_Types_Asks_For_Two_Different_Ids()
+    {
+        // Arrange
+        var store = new TwoIdTypesStore();
+
+        // Act
+        var verify = () => store.VerifyAsync(Tenant, OtherTenant, Id, Id, Ct);
+
+        // Assert
+        await verify.Should().ThrowAsync<ArgumentException>().WithMessage("*two different ids*");
     }
 }

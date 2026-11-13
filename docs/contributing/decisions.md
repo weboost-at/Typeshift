@@ -827,7 +827,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   a store that forgets the id in a load, in an update or in its search for the last summary fails; with one id such a
   store passed and went on to serve one customer's settings or conversation to another. A store that is also an
   `IAgentSettingsStore` is checked under kinds named after the id, from `typeshift_check_<id>` on, and for keeping
-  its own documents apart from an id's; `VerifyAgentSettingsAsync(kind)` checks a store of them alone (D66).
+  its own documents apart from an id's; `VerifyAgentSettingsAsync(kind)` checks a store of them alone (D66). A call
+  covers the interfaces of one id type, since the check casts the store with the type of the ids it is given and
+  reads no interfaces by reflection, which trimming rules out. A store whose settings ids and conversation ids have
+  two types (D72) takes `VerifyAsync(settingsId, otherSettingsId, conversationId, otherConversationId)`, which
+  throws when the store keeps no conversations under ids of that type, or one call per id type.
 - **Details:** the steps are on [Implementing a store](../guide/implementing-a-store.md#check-your-store). The summary
   entries have `StandingApprovals` set, as compaction writes them. Entries carry fixed times, so the check reads no
   clock, and the times tie and run backwards, as real ones can after a clock step or between machines, so a store

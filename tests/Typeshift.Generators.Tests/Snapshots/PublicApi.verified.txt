@@ -349,6 +349,7 @@ public sealed class Typeshift.StoreConflictException : System.Exception
 public Typeshift.StoreConflictException.StoreConflictException(string message, System.Exception? inner = null)
 public static class Typeshift.StoreExtensions
 public static System.Threading.Tasks.Task Typeshift.StoreExtensions.VerifyAgentSettingsAsync(Typeshift.IAgentSettingsStore store, string kind, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public static System.Threading.Tasks.Task Typeshift.StoreExtensions.VerifyAsync<TId, TConversationId>(Typeshift.ISettingsStore<TId> store, TId settingsId, TId otherSettingsId, TConversationId conversationId, TConversationId otherConversationId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) where TId : notnull where TConversationId : notnull
 public static System.Threading.Tasks.Task Typeshift.StoreExtensions.VerifyAsync<TId>(Typeshift.IConversationStore<TId> store, TId id, TId otherId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) where TId : notnull
 public static System.Threading.Tasks.Task Typeshift.StoreExtensions.VerifyAsync<TId>(Typeshift.ISettingsStore<TId> store, TId id, TId otherId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) where TId : notnull
 public static System.Threading.Tasks.Task Typeshift.StoreExtensions.VerifyAsync<TId>(Typeshift.ITypeshiftStore<TId> store, TId id, TId otherId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) where TId : notnull
@@ -358,6 +359,7 @@ public static Typeshift.StoreExtensions.extension<TId>(Typeshift.IConversationSt
 public System.Threading.Tasks.Task Typeshift.StoreExtensions.extension<TId>(Typeshift.IConversationStore<TId>).VerifyAsync(TId id, TId otherId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public static Typeshift.StoreExtensions.extension<TId>(Typeshift.ISettingsStore<TId>) where TId : notnull
 public System.Threading.Tasks.Task Typeshift.StoreExtensions.extension<TId>(Typeshift.ISettingsStore<TId>).VerifyAsync(TId id, TId otherId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public System.Threading.Tasks.Task Typeshift.StoreExtensions.extension<TId>(Typeshift.ISettingsStore<TId>).VerifyAsync<TConversationId>(TId settingsId, TId otherSettingsId, TConversationId conversationId, TConversationId otherConversationId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) where TConversationId : notnull
 public static Typeshift.StoreExtensions.extension<TId>(Typeshift.ITypeshiftStore<TId>) where TId : notnull
 public System.Threading.Tasks.Task Typeshift.StoreExtensions.extension<TId>(Typeshift.ITypeshiftStore<TId>).VerifyAsync(TId id, TId otherId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public sealed record Typeshift.Stored<TData> : System.IEquatable<Typeshift.Stored<TData>>

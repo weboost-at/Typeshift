@@ -19,7 +19,8 @@ public static class StoreExtensions
         /// <summary>
         /// Runs the rules for settings against this store, and the rules for conversations and agents' own settings
         /// too when it keeps those as well. It writes under both ids, so give it two that nothing else uses, in a
-        /// database for tests.
+        /// database for tests. Conversations under ids of another type are left out: check those with the overload
+        /// that takes the ids of both types.
         /// </summary>
         /// <param name="id">An id nothing is stored under yet, as a settings id and as a conversation id.</param>
         /// <param name="otherId">
@@ -33,7 +34,42 @@ public static class StoreExtensions
         /// </exception>
         /// <exception cref="ArgumentException">The two ids are equal.</exception>
         public Task VerifyAsync(TId id, TId otherId, CancellationToken ct = default) =>
-            VerifyEveryInterfaceAsync(store, store, store as IConversationStore<TId>, id, otherId, ct);
+            VerifyEveryInterfaceAsync(store, store, (id, otherId), store as IConversationStore<TId>, (id, otherId), ct);
+
+        /// <summary>
+        /// Runs the rules for settings and for conversations against a store whose conversation ids are of another
+        /// type than its settings ids, and the rules for agents' own settings when it keeps those too. It writes
+        /// under all four ids, so give it ids that nothing else uses, in a database for tests.
+        /// </summary>
+        /// <typeparam name="TConversationId">The type of the store's conversation ids.</typeparam>
+        /// <param name="settingsId">A settings id nothing is stored under yet.</param>
+        /// <param name="otherSettingsId">
+        /// A second such settings id. What the check stores under it must stay as it is while the check writes under
+        /// the first, which tells a store that forgets the id.
+        /// </param>
+        /// <param name="conversationId">A conversation id nothing is stored under yet.</param>
+        /// <param name="otherConversationId">A second such conversation id, as for the settings ids.</param>
+        /// <param name="ct">Cancels the check.</param>
+        /// <returns>A task that completes once the store passed.</returns>
+        /// <exception cref="InvalidOperationException">
+        /// The store broke a rule, something is stored under one of the ids already, or the store keeps no
+        /// conversations under ids of <typeparamref name="TConversationId"/>; the message says which.
+        /// </exception>
+        /// <exception cref="ArgumentException">The two settings ids or the two conversation ids are equal.</exception>
+        public Task VerifyAsync<TConversationId>(
+            TId settingsId,
+            TId otherSettingsId,
+            TConversationId conversationId,
+            TConversationId otherConversationId,
+            CancellationToken ct = default)
+            where TConversationId : notnull =>
+            VerifyEveryInterfaceAsync(
+                store,
+                store,
+                (settingsId, otherSettingsId),
+                store as IConversationStore<TConversationId> ?? throw NoConversations<TConversationId>(store),
+                (conversationId, otherConversationId),
+                ct);
     }
 
     extension<TId>(IConversationStore<TId> store) where TId : notnull
@@ -55,7 +91,7 @@ public static class StoreExtensions
         /// </exception>
         /// <exception cref="ArgumentException">The two ids are equal.</exception>
         public Task VerifyAsync(TId id, TId otherId, CancellationToken ct = default) =>
-            VerifyEveryInterfaceAsync(store, store as ISettingsStore<TId>, store, id, otherId, ct);
+            VerifyEveryInterfaceAsync(store, store as ISettingsStore<TId>, (id, otherId), store, (id, otherId), ct);
     }
 
     // A store that is both would match both blocks above; this one is more specific, so the call compiles
@@ -77,7 +113,7 @@ public static class StoreExtensions
         /// </exception>
         /// <exception cref="ArgumentException">The two ids are equal.</exception>
         public Task VerifyAsync(TId id, TId otherId, CancellationToken ct = default) =>
-            VerifyEveryInterfaceAsync(store, store, store, id, otherId, ct);
+            VerifyEveryInterfaceAsync(store, store, (id, otherId), store, (id, otherId), ct);
     }
 
     extension(IAgentSettingsStore store)
@@ -98,32 +134,44 @@ public static class StoreExtensions
             VerifyAgentDocumentsAsync(store, kind, ct);
     }
 
+    // D72: settings and conversations may have ids of two types, each with a second id of its type
     // D66: a store that keeps agents' own settings too is checked under kinds named after the id, since they take no
     // id, and its agents' own documents must stay apart from an id's of the same kind
-    private static async Task VerifyEveryInterfaceAsync<TId>(
+    private static async Task VerifyEveryInterfaceAsync<TSettingsId, TConversationId>(
         object store,
-        ISettingsStore<TId>? settings,
-        IConversationStore<TId>? conversations,
-        TId id,
-        TId otherId,
+        ISettingsStore<TSettingsId>? settings,
+        (TSettingsId Id, TSettingsId Other) settingsIds,
+        IConversationStore<TConversationId>? conversations,
+        (TConversationId Id, TConversationId Other) conversationIds,
         CancellationToken ct)
-        where TId : notnull
+        where TSettingsId : notnull
+        where TConversationId : notnull
     {
-        if (EqualityComparer<TId>.Default.Equals(id, otherId))
+        if (EqualityComparer<TSettingsId>.Default.Equals(settingsIds.Id, settingsIds.Other)
+            || EqualityComparer<TConversationId>.Default.Equals(conversationIds.Id, conversationIds.Other))
         {
             throw new ArgumentException(
                 "VerifyAsync needs two different ids: what it stores under the second shows whether the store tells "
-                + "ids apart.",
-                nameof(otherId));
+                + "ids apart.");
         }
 
-        if (settings is not null) await VerifySettingsAsync(settings, id, otherId, ct);
-        if (conversations is not null) await VerifyConversationsAsync(conversations, id, otherId, ct);
+        if (settings is not null) await VerifySettingsAsync(settings, settingsIds.Id, settingsIds.Other, ct);
+
+        if (conversations is not null)
+            await VerifyConversationsAsync(conversations, conversationIds.Id, conversationIds.Other, ct);
+
         if (store is not IAgentSettingsStore agents) return;
 
-        await VerifyAgentDocumentsAsync(agents, $"{Kind}_{id}", ct);
-        if (settings is not null) await VerifyApartAsync(settings, agents, id, $"{Kind}_{id}_apart", ct);
+        var kind = settings is null ? $"{Kind}_{conversationIds.Id}" : $"{Kind}_{settingsIds.Id}";
+
+        await VerifyAgentDocumentsAsync(agents, kind, ct);
+        if (settings is not null) await VerifyApartAsync(settings, agents, settingsIds.Id, $"{kind}_apart", ct);
     }
+
+    private static InvalidOperationException NoConversations<TConversationId>(object store) =>
+        new(
+            $"{store.GetType().Name} is no IConversationStore<{TypeNames.Of<TConversationId>()}>: pass conversation "
+            + "ids of the type the store keeps, or only its settings ids.");
 
     // A store that keeps both in one table and forgets the id in a load of an agent's own document would hand every
     // id's settings to all of them

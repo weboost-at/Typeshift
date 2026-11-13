@@ -15,6 +15,11 @@ public class PersistenceTestData(Faker faker)
 
     public Guid LaterOtherId { get; } = faker.Random.Guid();
 
+    // Settings ids of another type than the conversations', as an app with settings per tenant has
+    public string TenantId { get; } = $"tenant-{faker.Random.AlphaNumeric(10)}";
+
+    public string OtherTenantId { get; } = $"tenant-{faker.Random.AlphaNumeric(10)}";
+
     // D72: ids of other types than the build's, which pick the stores of their types
     public int NumberId { get; } = faker.Random.Int(1, int.MaxValue);
 
