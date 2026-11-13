@@ -419,11 +419,14 @@ await store.VerifyAsync(9001);
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/StoreVerification.cs#L13-L17' title='Snippet source file'>snippet source</a> | <a href='#snippet-store-check' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-- It runs the rules of every interface your store implements: the settings rules for an `ISettingsStore`, the
-  conversation rules for an `IConversationStore`, and both for a store that is both, even when you call it through
-  one of the interfaces. A store that is also an `IAgentSettingsStore` gets the settings rules for agents' own
-  settings, under kinds named after the id. For a store of agents' own settings alone, call
-  `VerifyAgentSettingsAsync(kind)` with a kind nothing is stored under.
+- It runs the rules of every interface your store implements for the id type you pass: the settings rules for an
+  `ISettingsStore`, the conversation rules for an `IConversationStore`, and both for a store that is both for that id
+  type, even when you call it through one of the interfaces. A store whose settings ids and conversation ids have
+  different types needs one call per id type, such as `VerifyAsync("check")` and `VerifyAsync(Guid.NewGuid())`.
+- A store that is also an `IAgentSettingsStore` gets the settings rules for agents' own settings, under new kinds
+  that start with `typeshift_check_`. These documents stay in the database, so run the check against a database for
+  tests. For a store of agents' own settings alone, call `VerifyAgentSettingsAsync(kind)` with a kind nothing is
+  stored under.
 - A broken rule throws an `InvalidOperationException` whose message names the rule and what to change, such as
   keying documents by id and kind together. An exception your store throws itself passes through as it is, except
   where a `StoreConflictException` belongs: there the message names the type your store threw instead.
