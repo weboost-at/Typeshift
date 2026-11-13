@@ -32,7 +32,7 @@ internal sealed class SourceWriter
         return this;
     }
 
-    // The lines of a raw string literal, each at the current indentation
+    // The lines of a text, a raw string literal for example, each at the current indentation
     public SourceWriter Lines(string text)
     {
         foreach (var line in text.Split('\n'))

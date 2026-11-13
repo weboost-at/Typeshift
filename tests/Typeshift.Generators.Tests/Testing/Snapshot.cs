@@ -92,7 +92,8 @@ public static partial class Snapshot
             builder.Append("// ").AppendLine(diagnostic.ToString());
         }
 
-        return Normalize(InterceptedLocation().Replace(builder.ToString(), "<location>"));
+        var text = InterceptedLocation().Replace(builder.ToString(), "<location>");
+        return Normalize(GeneratorVersion().Replace(text, "<version>"));
     }
 
     private static string Normalize(string text) =>
@@ -101,4 +102,8 @@ public static partial class Snapshot
     // The data hashes the text of the intercepted call's file, so it differs with every edit and every line ending
     [GeneratedRegex(@"(?<=InterceptsLocationAttribute\(\d+, "")[^""]+")]
     private static partial Regex InterceptedLocation();
+
+    // The version of the generator that wrote the code, which differs with every commit
+    [GeneratedRegex(@"(?<=GeneratedCode\(""Typeshift\.Generators"", "")[^""]*")]
+    private static partial Regex GeneratorVersion();
 }

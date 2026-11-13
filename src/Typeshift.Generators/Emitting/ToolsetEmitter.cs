@@ -99,6 +99,7 @@ internal static class ToolsetEmitter
             $"The configurable settings of the <c>{tool.Name}</c> tool, as an agent's stored settings or a run "
             + "override them. A null value keeps what the layer below sets.");
 
+        writer.Lines(Names.Generated);
         writer.Line(
             "[global::System.Text.Json.Serialization.JsonConverter("
             + $"typeof(global::Typeshift.Generated.StorableJsonConverter<{type}>))]");
@@ -159,6 +160,8 @@ internal static class ToolsetEmitter
         Docs.WriteParam(writer, "json", "How the tool binds its arguments and serializes its result.");
         Docs.WriteReturns(writer, "The tool.");
         writer.Line(Names.Hidden);
+        writer.Lines(Names.Generated);
+        writer.Line(Names.SteppedThrough);
         writer.Line($"public static {AIFunction} {Names.FactoryName(tool.Name)}(");
 
         using (writer.Indent())
@@ -180,6 +183,7 @@ internal static class ToolsetEmitter
 
     private static void WriteFunction(SourceWriter writer, ToolModel tool)
     {
+        writer.Lines(Names.Generated);
         writer.Line($"private sealed class {Names.FunctionName(tool.Name)}(");
 
         using (writer.Indent())
@@ -345,6 +349,7 @@ internal static class ToolsetEmitter
 
         // Hidden, so the class stays out of type completion in every file; the properties stay in member completion
         writer.Line(Names.Hidden);
+        writer.Lines(Names.Generated);
 
         using (writer.Block(
             $"{toolset.Type.Accessibility} static class {Names.GlobalClassName("TypeshiftTools_", toolset.Type)}"))

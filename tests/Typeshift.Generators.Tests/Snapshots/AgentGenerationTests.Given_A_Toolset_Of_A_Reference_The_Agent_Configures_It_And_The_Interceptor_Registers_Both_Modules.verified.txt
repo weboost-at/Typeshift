@@ -10,6 +10,8 @@ partial class ResearchAgent
     /// <summary>
     /// What may change at runtime: stored under a settings id, or passed for one run. Null keeps the layer below.
     /// </summary>
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     [global::System.Text.Json.Serialization.JsonConverter(typeof(global::Typeshift.Generated.StorableJsonConverter<Settings>))]
     public sealed record Settings
         : global::Typeshift.IStorable<Settings>, global::Typeshift.Generated.IJsonStorable<Settings>
@@ -87,16 +89,23 @@ partial class ResearchAgent
 
     /// <inheritdoc />
     [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     protected override global::Typeshift.Generated.AgentDeclaration Declaration => TypeshiftGenerated.Instance;
 
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
     private readonly TypeshiftGenerated.Configured _typeshift = new();
 
     /// <summary>
     /// Sets the settings <c>find_companies</c> runs with in this agent, over the code defaults of its settings record.
     /// </summary>
     /// <returns>The settings, one <c>With...</c> per member.</returns>
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     private TypeshiftGenerated.FindCompaniesBuilder ConfigureFindCompanies() => new(_typeshift);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     private sealed class TypeshiftGenerated
         : global::Typeshift.Generated.AgentDeclaration<global::Research.ResearchAgent, Settings>
     {
@@ -141,12 +150,22 @@ partial class ResearchAgent
 
         public sealed class FindCompaniesBuilder(Configured configured)
         {
+            /// <summary>
+            /// Sets <c>Limit</c>.
+            /// </summary>
+            /// <param name="value">The value the tool runs with in this agent.</param>
+            /// <returns>The settings, to set another member.</returns>
             public FindCompaniesBuilder WithLimit(int value)
             {
                 configured.findCompanies = (configured.findCompanies ?? new()) with { Limit = value };
                 return this;
             }
 
+            /// <summary>
+            /// Sets <c>Country</c>.
+            /// </summary>
+            /// <param name="value">The value the tool runs with in this agent.</param>
+            /// <returns>The settings, to set another member.</returns>
             public FindCompaniesBuilder WithCountry(string value)
             {
                 configured.findCompanies = (configured.findCompanies ?? new()) with { Country = value };
@@ -163,6 +182,8 @@ partial class ResearchAgent
 
 namespace Typeshift.Generated
 {
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     file static class AddTypeshiftInterceptor
     {
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "<location>")]
@@ -181,6 +202,8 @@ namespace Typeshift.Generated
 namespace System.Runtime.CompilerServices
 {
     [global::System.AttributeUsage(global::System.AttributeTargets.Method, AllowMultiple = true)]
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     file sealed class InterceptsLocationAttribute : global::System.Attribute
     {
         public InterceptsLocationAttribute(int version, string data)
@@ -202,6 +225,8 @@ namespace Typeshift.Generated;
 /// Registers the toolsets and agents of Subject.
 /// </summary>
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+[global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [global::Typeshift.Generated.ModuleAgent(typeof(global::Research.ResearchAgent), "ResearchAgent", "research_agent", Tools = new string[] { "find_companies" })]
 public static class SubjectModule
 {

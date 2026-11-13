@@ -12,6 +12,9 @@ public static class AgentSources
 
         public record SearchTicketsSettings
         {
+            /// <summary>
+            /// The most tickets a search returns.
+            /// </summary>
             public int Limit { get; init; } = 10;
 
             public bool IncludeClosed { get; init; }

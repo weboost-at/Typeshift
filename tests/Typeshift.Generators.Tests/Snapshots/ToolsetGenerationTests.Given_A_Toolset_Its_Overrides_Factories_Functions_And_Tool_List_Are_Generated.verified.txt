@@ -7,6 +7,8 @@
 /// The tools of <see cref="global::Demo.TicketToolset"/>, to include in or exclude from an agent.
 /// </summary>
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+[global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 public static class TypeshiftTools_4Demo13TicketToolset
 {
     extension(global::Typeshift.ToolList<global::Demo.TicketToolset> tools)
@@ -56,6 +58,8 @@ partial class TicketToolset
     /// The configurable settings of the <c>search_tickets</c> tool, as an agent's stored settings or a run override
     /// them. A null value keeps what the layer below sets.
     /// </summary>
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     [global::System.Text.Json.Serialization.JsonConverter(typeof(global::Typeshift.Generated.StorableJsonConverter<SearchTicketsOverrides>))]
     public sealed record SearchTicketsOverrides : global::Typeshift.Generated.IJsonStorable<SearchTicketsOverrides>
     {
@@ -127,11 +131,16 @@ partial class TicketToolset
     /// <param name="json">How the tool binds its arguments and serializes its result.</param>
     /// <returns>The tool.</returns>
     [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    [global::System.Diagnostics.DebuggerStepThrough]
     public static global::Microsoft.Extensions.AI.AIFunction CreateSearchTickets(
         global::Demo.SearchTicketsSettings settings,
         global::Typeshift.Generated.ToolJson json) =>
         new SearchTicketsFunction(settings, json);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     private sealed class SearchTicketsFunction(
         global::Demo.SearchTicketsSettings settings,
         global::Typeshift.Generated.ToolJson json)
@@ -176,10 +185,15 @@ partial class TicketToolset
     /// <param name="json">How the tool binds its arguments and serializes its result.</param>
     /// <returns>The tool.</returns>
     [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    [global::System.Diagnostics.DebuggerStepThrough]
     public static global::Microsoft.Extensions.AI.AIFunction CreateCloseTicket(
         global::Typeshift.Generated.ToolJson json) =>
         new global::Microsoft.Extensions.AI.ApprovalRequiredAIFunction(new CloseTicketFunction(json));
 
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     private sealed class CloseTicketFunction(
         global::Typeshift.Generated.ToolJson json)
         : global::Typeshift.Generated.GeneratedToolFunction(json)
@@ -228,10 +242,15 @@ partial class TicketToolset
     /// <param name="json">How the tool binds its arguments and serializes its result.</param>
     /// <returns>The tool.</returns>
     [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    [global::System.Diagnostics.DebuggerStepThrough]
     public static global::Microsoft.Extensions.AI.AIFunction CreateForgetTicket(
         global::Typeshift.Generated.ToolJson json) =>
         new ForgetTicketFunction(json);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     private sealed class ForgetTicketFunction(
         global::Typeshift.Generated.ToolJson json)
         : global::Typeshift.Generated.GeneratedToolFunction(json)
@@ -268,6 +287,8 @@ namespace Typeshift.Generated;
 /// Registers the toolsets and agents of Subject.
 /// </summary>
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+[global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [global::Typeshift.Generated.ModuleToolset(typeof(global::Demo.TicketToolset))]
 public static class SubjectModule
 {

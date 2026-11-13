@@ -3,11 +3,13 @@
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-
 /// <summary>
 /// The runs and stored settings of <see cref="global::Demo.SupportAgent"/>.
 /// </summary>
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+[global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+[global::System.Diagnostics.DebuggerStepThrough]
 public static class TypeshiftHost_4Demo12SupportAgent
 {
     extension(global::Typeshift.AgentHost<global::Demo.SupportAgent> host)
@@ -229,6 +231,8 @@ partial class SupportAgent
     /// <summary>
     /// What may change at runtime: stored under a settings id, or passed for one run. Null keeps the layer below.
     /// </summary>
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     [global::System.Text.Json.Serialization.JsonConverter(typeof(global::Typeshift.Generated.StorableJsonConverter<Settings>))]
     public sealed record Settings
         : global::Typeshift.IStorable<Settings>, global::Typeshift.Generated.IJsonStorable<Settings>
@@ -385,16 +389,23 @@ partial class SupportAgent
 
     /// <inheritdoc />
     [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     protected override global::Typeshift.Generated.AgentDeclaration Declaration => TypeshiftGenerated.Instance;
 
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
     private readonly TypeshiftGenerated.Configured _typeshift = new();
 
     /// <summary>
     /// Sets the settings <c>search_tickets</c> runs with in this agent, over the code defaults of its settings record.
     /// </summary>
     /// <returns>The settings, one <c>With...</c> per member.</returns>
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     private TypeshiftGenerated.SearchTicketsBuilder ConfigureSearchTickets() => new(_typeshift);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     private sealed class TypeshiftGenerated
         : global::Typeshift.Generated.AgentDeclaration<global::Demo.SupportAgent, Settings>
     {
@@ -447,12 +458,22 @@ partial class SupportAgent
 
         public sealed class SearchTicketsBuilder(Configured configured)
         {
+            /// <summary>
+            /// Sets <c>Limit</c>: The most tickets a search returns.
+            /// </summary>
+            /// <param name="value">The value the tool runs with in this agent.</param>
+            /// <returns>The settings, to set another member.</returns>
             public SearchTicketsBuilder WithLimit(int value)
             {
                 configured.searchTickets = (configured.searchTickets ?? new()) with { Limit = value };
                 return this;
             }
 
+            /// <summary>
+            /// Sets <c>IncludeClosed</c>.
+            /// </summary>
+            /// <param name="value">The value the tool runs with in this agent.</param>
+            /// <returns>The settings, to set another member.</returns>
             public SearchTicketsBuilder WithIncludeClosed(bool value)
             {
                 configured.searchTickets = (configured.searchTickets ?? new()) with { IncludeClosed = value };
@@ -469,6 +490,8 @@ partial class SupportAgent
 
 namespace Typeshift.Generated
 {
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     file static class AddTypeshiftInterceptor
     {
         [global::System.Runtime.CompilerServices.InterceptsLocationAttribute(1, "<location>")]
@@ -486,6 +509,8 @@ namespace Typeshift.Generated
 namespace System.Runtime.CompilerServices
 {
     [global::System.AttributeUsage(global::System.AttributeTargets.Method, AllowMultiple = true)]
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     file sealed class InterceptsLocationAttribute : global::System.Attribute
     {
         public InterceptsLocationAttribute(int version, string data)
@@ -507,6 +532,8 @@ namespace Typeshift.Generated;
 /// Registers the toolsets and agents of Subject.
 /// </summary>
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+[global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [global::Typeshift.Generated.ModuleToolset(typeof(global::Demo.TicketToolset))]
 [global::Typeshift.Generated.ModuleAgent(typeof(global::Demo.SupportAgent), "SupportAgent", "support_agent", Described = true, Tools = new string[] { "search_tickets", "close_ticket" })]
 public static class SubjectModule

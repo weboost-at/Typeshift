@@ -322,4 +322,30 @@ public class ToolsetGenerationTests : GeneratorTestBase
         // Assert
         run.Assert.CompilesCleanly();
     }
+
+    [Fact]
+    public void Given_A_Toolset_Its_Own_Class_Is_Not_Marked_As_Generated_Code()
+    {
+        // Act
+        var run = Run(ToolsetSources.Tickets);
+
+        // Assert
+        run.Output.GetTypeByMetadataName("Demo.TicketToolset")!
+            .GetAttributes()
+            .Select(attribute => attribute.AttributeClass!.Name)
+            .Should()
+            .NotContain("GeneratedCodeAttribute");
+    }
+
+    [Fact]
+    public void Given_A_Toolset_The_Generated_Code_Names_The_Generators_Version_Without_Its_Commit()
+    {
+        // Act
+        var run = Run(ToolsetSources.Tickets);
+
+        // Assert
+        run.Source("Demo.TicketToolset.g.cs")
+            .Should()
+            .MatchRegex(@"GeneratedCode\(""Typeshift\.Generators"", ""\d+\.\d+\.\d+[^+""]*""\)");
+    }
 }

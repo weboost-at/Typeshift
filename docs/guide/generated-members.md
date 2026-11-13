@@ -17,6 +17,11 @@ section names the declaration that adds a member.
   completion behind Visual Studio and VS Code, hides such members only when they come from a compiled reference.
 - The names of hidden members are taken all the same, so the analyzer reports [TSH018](./diagnostics.md#tsh018) for a
   member of yours with one of them.
+- Every generated class, and every member the generator adds to a class of yours, carries `[GeneratedCode]` and
+  `[ExcludeFromCodeCoverage]`, so coverage tools that honor them leave the generated code out of your numbers. Your
+  own toolset and agent classes are not marked, so analyzers and coverage still see the code you wrote in them.
+- The members of the host and the tools' factories carry `[DebuggerStepThrough]`, so a step into
+  `host.RunAsync(...)` does not stop in a generated forwarder.
 
 ## Per toolset
 
@@ -191,7 +196,8 @@ it has configurable members or not. A settings record without a settable member 
 gets none.
 
 `ConfigureSearchTickets()` in the `SupportAgent` above is a private method. It returns a builder with one
-`With{Member}(value)` per settable member of the settings record, configurable or not. `SearchTicketsSettings` has
+`With{Member}(value)` per settable member of the settings record, configurable or not. Each one shows the member's
+`<summary>` in code completion. `SearchTicketsSettings` has
 `Limit`, `IncludeClosed` and a `Timeout` that is not configurable, so the builder has `WithLimit(int)`,
 `WithIncludeClosed(bool)` and `WithTimeout(TimeSpan)`. The values apply over the record's code defaults, for every
 run of the agent.

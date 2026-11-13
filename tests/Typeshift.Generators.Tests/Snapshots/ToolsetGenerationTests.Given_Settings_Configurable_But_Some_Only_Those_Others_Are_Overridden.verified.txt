@@ -7,6 +7,8 @@
 /// The tools of <see cref="global::Demo.KnowledgeToolset"/>, to include in or exclude from an agent.
 /// </summary>
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+[global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal static class TypeshiftTools_4Demo16KnowledgeToolset
 {
     extension(global::Typeshift.ToolList<global::Demo.KnowledgeToolset> tools)
@@ -37,6 +39,8 @@ partial class KnowledgeToolset
     /// The configurable settings of the <c>search_articles</c> tool, as an agent's stored settings or a run override
     /// them. A null value keeps what the layer below sets.
     /// </summary>
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     [global::System.Text.Json.Serialization.JsonConverter(typeof(global::Typeshift.Generated.StorableJsonConverter<SearchArticlesOverrides>))]
     public sealed record SearchArticlesOverrides : global::Typeshift.Generated.IJsonStorable<SearchArticlesOverrides>
     {
@@ -108,11 +112,16 @@ partial class KnowledgeToolset
     /// <param name="json">How the tool binds its arguments and serializes its result.</param>
     /// <returns>The tool.</returns>
     [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    [global::System.Diagnostics.DebuggerStepThrough]
     public static global::Microsoft.Extensions.AI.AIFunction CreateSearchArticles(
         global::Demo.SearchArticlesSettings settings,
         global::Typeshift.Generated.ToolJson json) =>
         new SearchArticlesFunction(settings, json);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     private sealed class SearchArticlesFunction(
         global::Demo.SearchArticlesSettings settings,
         global::Typeshift.Generated.ToolJson json)
@@ -155,6 +164,8 @@ namespace Typeshift.Generated;
 /// Registers the toolsets and agents of Subject.
 /// </summary>
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+[global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [global::Typeshift.Generated.ModuleToolset(typeof(global::Demo.KnowledgeToolset))]
 public static class SubjectModule
 {

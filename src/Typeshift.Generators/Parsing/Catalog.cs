@@ -87,7 +87,7 @@ internal static class Catalog
                 ? $"{owner.FullName}.{Names.OverridesName(tool.Name)}"
                 : null,
             Members: tool.Settings?.Properties
-                .Select(property => new SettingMember(property.Name, property.Type))
+                .Select(property => new SettingMember(property.Name, property.Type, property.Summary))
                 .ToEquatableArray() ?? default,
             RequiresApproval: tool.RequiresApproval,
             ExperimentalIds: tool.Settings?.ExperimentalIds ?? default);

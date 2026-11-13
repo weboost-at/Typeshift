@@ -25,7 +25,7 @@ internal static class ReferenceReader
             if (GetModule(assembly) is not { } module) continue;
 
             modules.Add(module.ToTypeOf());
-            toolsets.AddRange(GetToolsets(module).Select(ReadToolset));
+            toolsets.AddRange(GetToolsets(module).Select(toolset => ReadToolset(toolset, ct)));
         }
 
         return new ReferenceModel(modules.ToEquatableArray(), toolsets.ToEquatableArray());
@@ -104,16 +104,16 @@ internal static class ReferenceReader
             .Select(attribute => attribute.ConstructorArguments[0].Value)
             .OfType<INamedTypeSymbol>();
 
-    private static ToolsetSummary ReadToolset(INamedTypeSymbol toolset) =>
+    private static ToolsetSummary ReadToolset(INamedTypeSymbol toolset, CancellationToken ct) =>
         new(
             toolset.ToTypeOf(),
             toolset.IsEffectivelyPublic(),
             toolset.GetAttributes()
                 .Where(attribute => attribute.AttributeClass.Is(KnownTypes.GeneratedToolAttribute))
-                .Select(ReadTool)
+                .Select(stamp => ReadTool(stamp, ct))
                 .ToEquatableArray());
 
-    private static ToolSummary ReadTool(AttributeData stamp)
+    private static ToolSummary ReadTool(AttributeData stamp, CancellationToken ct)
     {
         var arguments = stamp.ConstructorArguments;
         var named = stamp.NamedArguments.ToDictionary(argument => argument.Key, argument => argument.Value.Value);
@@ -126,7 +126,7 @@ internal static class ReferenceReader
             Factory: (string)arguments[2].Value!,
             Settings: settings?.ToTypeOf(),
             Overrides: overrides?.ToTypeOf(),
-            Members: settings is null ? default : GetMembers(settings),
+            Members: settings is null ? default : GetMembers(settings, ct),
             RequiresApproval: named.TryGetValue("RequiresApproval", out var asks) && asks is true,
             ExperimentalIds: settings?.GetSettingsExperimentalIds() ?? default);
     }
@@ -138,11 +138,15 @@ internal static class ReferenceReader
             .Where(attribute => attribute.NamedArguments.Any(argument => argument.Key == "Overrides"))
             .Select(attribute => (string)attribute.ConstructorArguments[1].Value!);
 
-    // What Configure{Tool}() sets: every settable member but the obsolete ones
-    public static EquatableArray<SettingMember> GetMembers(ITypeSymbol settings) =>
+    // What Configure{Tool}() sets: every settable member but the obsolete ones, each with its summary where the
+    // reference's XML docs lie beside its assembly
+    private static EquatableArray<SettingMember> GetMembers(ITypeSymbol settings, CancellationToken ct) =>
         settings.GetPublicProperties()
             .Where(property => property.IsSettable && !property.IsObsolete)
-            .Select(property => new SettingMember(property.Name, property.Type.ToFullyQualified()))
+            .Select(property => new SettingMember(
+                property.Name,
+                property.Type.ToFullyQualified(),
+                XmlDocs.Read(property, ct).Summary))
             .ToEquatableArray();
 
     private static IEnumerable<IAssemblySymbol> GetNameableLibraryUsers(Compilation compilation) =>

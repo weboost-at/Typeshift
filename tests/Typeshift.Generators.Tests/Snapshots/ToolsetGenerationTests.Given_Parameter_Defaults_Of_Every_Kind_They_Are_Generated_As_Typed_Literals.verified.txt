@@ -7,6 +7,8 @@
 /// The tools of <see cref="global::Demo.GreetingToolset"/>, to include in or exclude from an agent.
 /// </summary>
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+[global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 internal static class TypeshiftTools_4Demo15GreetingToolset
 {
     extension(global::Typeshift.ToolList<global::Demo.GreetingToolset> tools)
@@ -46,10 +48,15 @@ partial class GreetingToolset
     /// <param name="json">How the tool binds its arguments and serializes its result.</param>
     /// <returns>The tool.</returns>
     [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    [global::System.Diagnostics.DebuggerStepThrough]
     public static global::Microsoft.Extensions.AI.AIFunction CreateGreet(
         global::Typeshift.Generated.ToolJson json) =>
         new GreetFunction(json);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     private sealed class GreetFunction(
         global::Typeshift.Generated.ToolJson json)
         : global::Typeshift.Generated.GeneratedToolFunction(json)
@@ -172,10 +179,15 @@ partial class GreetingToolset
     /// <param name="json">How the tool binds its arguments and serializes its result.</param>
     /// <returns>The tool.</returns>
     [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    [global::System.Diagnostics.DebuggerStepThrough]
     public static global::Microsoft.Extensions.AI.AIFunction CreateSign(
         global::Typeshift.Generated.ToolJson json) =>
         new SignFunction(json);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     private sealed class SignFunction(
         global::Typeshift.Generated.ToolJson json)
         : global::Typeshift.Generated.GeneratedToolFunction(json)
@@ -223,6 +235,8 @@ namespace Typeshift.Generated;
 /// Registers the toolsets and agents of Subject.
 /// </summary>
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+[global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [global::Typeshift.Generated.ModuleToolset(typeof(global::Demo.GreetingToolset))]
 public static class SubjectModule
 {

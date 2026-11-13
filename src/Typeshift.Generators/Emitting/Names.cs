@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using Typeshift.Generators.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -20,6 +21,18 @@ internal static class Names
     // Generated plumbing that code completion leaves out, though only where the assembly is a compiled reference
     public const string Hidden =
         "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
+
+    // D10: every generated type, and every member generated into a class of the user's, says where it comes from.
+    // Analyzers then leave it alone, and coverage tools count none of it as the user's untested code. Two lines
+    public static readonly string Generated =
+        $"[global::System.CodeDom.Compiler.GeneratedCode(\"Typeshift.Generators\", \"{GetVersion()}\")]\n"
+        + "[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]";
+
+    // On a field, which coverage does not count
+    public static readonly string GeneratedField = Generated.Split('\n')[0];
+
+    // A forwarder nobody wants to step into on the way to their own code
+    public const string SteppedThrough = "[global::System.Diagnostics.DebuggerStepThrough]";
 
     // What every class has from object: a generated member of one of these names would hide it (D6)
     public static readonly string[] ObjectMembers =
@@ -98,6 +111,12 @@ internal static class Names
             .ToEquatableArray();
 
     public static bool IsGenerated(SyntaxTree tree) => tree.FilePath.Contains(Generator);
+
+    // The package's version, without the commit a build appends to it
+    private static string GetVersion() =>
+        typeof(Names).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>() is { } version
+            ? version.InformationalVersion.Split('+')[0]
+            : "";
 
     // FNV-1a: string.GetHashCode differs from run to run
     public static string GetStableHash(string text)

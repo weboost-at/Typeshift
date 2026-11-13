@@ -20,7 +20,7 @@ internal static class InterceptorEmitter
         writer.Line(SourceWriter.Header);
 
         using (writer.Block($"namespace {Names.GeneratedNamespace}"))
-        using (writer.Block($"file static class {KnownTypes.RegistrationMethod}Interceptor"))
+        using (writer.Lines(Names.Generated).Block($"file static class {KnownTypes.RegistrationMethod}Interceptor"))
         {
             foreach (var call in calls.Where(call => !call.IsRuntime))
             {
@@ -47,23 +47,22 @@ internal static class InterceptorEmitter
             if (calls.Any(call => call.IsRuntime)) WriteRuntime(writer, calls);
         }
 
-        // Every generator that intercepts declares the attribute itself, file-local so the declarations never clash
-        return writer
-            .Lines(
-                """
+        writer.Line();
 
-                namespace System.Runtime.CompilerServices
-                {
-                    [global::System.AttributeUsage(global::System.AttributeTargets.Method, AllowMultiple = true)]
-                    file sealed class InterceptsLocationAttribute : global::System.Attribute
-                    {
-                        public InterceptsLocationAttribute(int version, string data)
-                        {
-                        }
-                    }
-                }
-                """)
-            .ToString();
+        // Every generator that intercepts declares the attribute itself, file-local so the declarations never clash
+        using (writer.Block("namespace System.Runtime.CompilerServices"))
+        {
+            writer.Line(
+                "[global::System.AttributeUsage(global::System.AttributeTargets.Method, AllowMultiple = true)]");
+            writer.Lines(Names.Generated);
+
+            using (writer.Block("file sealed class InterceptsLocationAttribute : global::System.Attribute"))
+            using (writer.Block("public InterceptsLocationAttribute(int version, string data)"))
+            {
+            }
+        }
+
+        return writer.ToString();
     }
 
     private static void WriteRuntime(SourceWriter writer, IReadOnlyList<InterceptModel> calls)

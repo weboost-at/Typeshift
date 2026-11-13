@@ -458,4 +458,16 @@ public class AgentGenerationTests : GeneratorTestBase
         // Assert
         run.Assert.CompilesCleanly();
     }
+
+    [Fact]
+    public void Given_A_Settings_Member_With_A_Summary_Its_With_Method_Carries_It()
+    {
+        // Act
+        var run = Run(AgentSources.Tickets, AgentSources.Support);
+
+        // Assert
+        run.Source("Demo.SupportAgent.g.cs")
+            .Should()
+            .Contain("/// Sets <c>Limit</c>: The most tickets a search returns.");
+    }
 }

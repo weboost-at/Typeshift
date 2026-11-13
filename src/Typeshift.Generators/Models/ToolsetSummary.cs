@@ -15,7 +15,8 @@ internal sealed record ToolSummary(
     bool RequiresApproval,
     EquatableArray<string> ExperimentalIds);
 
-internal sealed record SettingMember(string Name, string Type);
+// Summary is the member's <summary>, which its With{Member}() shows
+internal sealed record SettingMember(string Name, string Type, string? Summary);
 
 // An agent with its toolset uses resolved to the tools they offer
 internal sealed record AgentOutput(AgentModel Agent, EquatableArray<OfferedTool> Tools);

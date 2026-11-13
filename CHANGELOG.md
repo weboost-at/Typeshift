@@ -61,6 +61,10 @@ All notable changes to this project are documented here. The format follows
   of the host members do. It was `{Toolset}ToolList` in the toolset's namespace and is `TypeshiftTools_` followed by
   the toolset's full name, each part after its length, hidden from code completion. Picks are written as before.
   Code that named the class itself, which no docs showed, names the new one.
+- Generated classes and members carry `[GeneratedCode]` and `[ExcludeFromCodeCoverage]`, so coverage tools leave
+  them out of your numbers. The host's members and the tools' factories carry `[DebuggerStepThrough]`, so a step
+  into `host.RunAsync(...)` does not stop in a generated forwarder.
+- `Configure{Tool}().With{Member}(...)` shows the `<summary>` of the settings member it sets.
 
 ### Fixed
 

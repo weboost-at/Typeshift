@@ -163,6 +163,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - **Status:** carried (v0 D35).
 - **Decision:** what only generated code calls is public and `[EditorBrowsable(Never)]`, in `Typeshift.Generated`.
+- **Marked as generated:** every generated type, and every member generated into a class of the user's, carries
+  `[GeneratedCode]`, with the generator's version, and `[ExcludeFromCodeCoverage]` (`Names.Generated`). The user's
+  partial class never does: analyzers skip what the attribute marks, the Typeshift analyzer among them, and would
+  skip the user's own code in it. The host's members and the tools' factories also carry `[DebuggerStepThrough]`.
+  The version is the package's, without the commit a build appends, read once per process, so it keeps the
+  generator's outputs cached.
 
 ### D11. The id type is an MSBuild property
 

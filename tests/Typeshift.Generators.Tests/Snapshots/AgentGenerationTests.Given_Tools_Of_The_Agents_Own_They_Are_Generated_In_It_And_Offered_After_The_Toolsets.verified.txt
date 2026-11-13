@@ -10,6 +10,8 @@ partial class DeskAgent
     /// <summary>
     /// What may change at runtime: stored under a settings id, or passed for one run. Null keeps the layer below.
     /// </summary>
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     [global::System.Text.Json.Serialization.JsonConverter(typeof(global::Typeshift.Generated.StorableJsonConverter<Settings>))]
     public sealed record Settings
         : global::Typeshift.IStorable<Settings>, global::Typeshift.Generated.IJsonStorable<Settings>
@@ -75,8 +77,11 @@ partial class DeskAgent
 
     /// <inheritdoc />
     [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     protected override global::Typeshift.Generated.AgentDeclaration Declaration => TypeshiftGenerated.Instance;
 
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
     private readonly TypeshiftGenerated.Configured _typeshift = new();
 
     /// <summary>
@@ -84,8 +89,12 @@ partial class DeskAgent
     /// record.
     /// </summary>
     /// <returns>The settings, one <c>With...</c> per member.</returns>
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     private TypeshiftGenerated.LookUpCustomerBuilder ConfigureLookUpCustomer() => new(_typeshift);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     private sealed class TypeshiftGenerated
         : global::Typeshift.Generated.AgentDeclaration<global::Demo.DeskAgent, Settings>
     {
@@ -128,6 +137,11 @@ partial class DeskAgent
 
         public sealed class LookUpCustomerBuilder(Configured configured)
         {
+            /// <summary>
+            /// Sets <c>Limit</c>.
+            /// </summary>
+            /// <param name="value">The value the tool runs with in this agent.</param>
+            /// <returns>The settings, to set another member.</returns>
             public LookUpCustomerBuilder WithLimit(int value)
             {
                 configured.lookUpCustomer = (configured.lookUpCustomer ?? new()) with { Limit = value };
@@ -140,6 +154,8 @@ partial class DeskAgent
     /// The configurable settings of the <c>look_up_customer</c> tool, as an agent's stored settings or a run override
     /// them. A null value keeps what the layer below sets.
     /// </summary>
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     [global::System.Text.Json.Serialization.JsonConverter(typeof(global::Typeshift.Generated.StorableJsonConverter<LookUpCustomerOverrides>))]
     public sealed record LookUpCustomerOverrides : global::Typeshift.Generated.IJsonStorable<LookUpCustomerOverrides>
     {
@@ -198,11 +214,16 @@ partial class DeskAgent
     /// <param name="json">How the tool binds its arguments and serializes its result.</param>
     /// <returns>The tool.</returns>
     [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    [global::System.Diagnostics.DebuggerStepThrough]
     public static global::Microsoft.Extensions.AI.AIFunction CreateLookUpCustomer(
         global::Demo.LookUpSettings settings,
         global::Typeshift.Generated.ToolJson json) =>
         new LookUpCustomerFunction(settings, json);
 
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     private sealed class LookUpCustomerFunction(
         global::Demo.LookUpSettings settings,
         global::Typeshift.Generated.ToolJson json)
@@ -239,10 +260,15 @@ partial class DeskAgent
     /// <param name="json">How the tool binds its arguments and serializes its result.</param>
     /// <returns>The tool.</returns>
     [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    [global::System.Diagnostics.DebuggerStepThrough]
     public static global::Microsoft.Extensions.AI.AIFunction CreateRefundOrder(
         global::Typeshift.Generated.ToolJson json) =>
         new global::Microsoft.Extensions.AI.ApprovalRequiredAIFunction(new RefundOrderFunction(json));
 
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
     private sealed class RefundOrderFunction(
         global::Typeshift.Generated.ToolJson json)
         : global::Typeshift.Generated.GeneratedToolFunction(json)
@@ -282,6 +308,8 @@ namespace Typeshift.Generated;
 /// Registers the toolsets and agents of Subject.
 /// </summary>
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+[global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [global::Typeshift.Generated.ModuleToolset(typeof(global::Demo.TicketToolset))]
 [global::Typeshift.Generated.ModuleAgent(typeof(global::Demo.DeskAgent), "DeskAgent", "desk_agent", "refund_order", Tools = new string[] { "close_ticket", "look_up_customer", "refund_order" }, OwnTools = new string[] { "look_up_customer", "refund_order" })]
 public static class SubjectModule

@@ -39,6 +39,7 @@ internal static class ModuleEmitter
             /// Registers the toolsets and agents of {Docs.Escape(model.AssemblyName)}.
             /// </summary>
             {Names.Hidden}
+            {Names.Generated}
             """);
 
         foreach (var toolset in model.Toolsets)

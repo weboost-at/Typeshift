@@ -58,6 +58,7 @@ internal static class AgentEmitter
                 writer.Line();
                 writer.Line("/// <inheritdoc />");
                 writer.Line(Names.Hidden);
+                writer.Lines(Names.Generated);
                 writer.Line(
                     "protected override global::Typeshift.Generated.AgentDeclaration Declaration => "
                     + "TypeshiftGenerated.Instance;");
@@ -65,6 +66,7 @@ internal static class AgentEmitter
                 if (configured.Count > 0)
                 {
                     writer.Line();
+                    writer.Line(Names.GeneratedField);
                     writer.Line("private readonly TypeshiftGenerated.Configured _typeshift = new();");
                 }
 
@@ -76,6 +78,7 @@ internal static class AgentEmitter
                         $"Sets the settings <c>{tool.Tool.Name}</c> runs with in this agent, over the code defaults "
                         + "of its settings record.");
                     Docs.WriteReturns(writer, "The settings, one <c>With...</c> per member.");
+                    writer.Lines(Names.Generated);
                     writer.Line(
                         $"private TypeshiftGenerated.{Builder(tool.Tool)} {Configure(tool.Tool)}() => "
                         + "new(_typeshift);");
@@ -162,6 +165,7 @@ internal static class AgentEmitter
             writer,
             "What may change at runtime: stored under a settings id, or passed for one run. Null keeps the layer "
             + "below.");
+        writer.Lines(Names.Generated);
         writer.Line(
             "[global::System.Text.Json.Serialization.JsonConverter("
             + "typeof(global::Typeshift.Generated.StorableJsonConverter<Settings>))]");
@@ -300,6 +304,7 @@ internal static class AgentEmitter
         var agent = output.Agent;
         var declaration = $"global::Typeshift.Generated.AgentDeclaration<{agent.Type.FullName}, Settings>";
 
+        writer.Lines(Names.Generated);
         writer.Line("private sealed class TypeshiftGenerated");
 
         using (writer.Indent())
@@ -477,6 +482,12 @@ internal static class AgentEmitter
                 {
                     if (member != tool.Members[0]) writer.Line();
 
+                    var summary = member.Summary is { } text ? $": {Docs.Escape(text)}" : ".";
+
+                    Docs.WriteSummary(writer, $"Sets <c>{member.Name}</c>{summary}");
+                    Docs.WriteParam(writer, "value", "The value the tool runs with in this agent.");
+                    Docs.WriteReturns(writer, "The settings, to set another member.");
+
                     using (writer.Block($"public {builder} With{member.Name}({member.Type} value)"))
                     {
                         writer.Line(
@@ -500,11 +511,13 @@ internal static class AgentEmitter
         var types = $"{agent.Type.FullName}, {settings}";
         var run = new HostRun(settings);
 
-        writer.Line();
         Docs.WriteSummary(writer, $"The runs and stored settings of <see cref=\"{agent.Type.FullName}\"/>.");
 
-        // Hidden, so the class stays out of type completion in every file; the members stay in member completion
+        // Hidden, so the class stays out of type completion in every file; the members stay in member completion.
+        // Each member forwards to the library, where a step into a run should land
         writer.Line(Names.Hidden);
+        writer.Lines(Names.Generated);
+        writer.Line(Names.SteppedThrough);
 
         using (writer.Block(
             $"{agent.Type.Accessibility} static class {Names.GlobalClassName("TypeshiftHost_", agent.Type)}"))
