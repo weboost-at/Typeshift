@@ -8,7 +8,8 @@ namespace Typeshift;
 
 /// <summary>
 /// One step of a conversation, appended as it happens: the input of a run, a model response, tool results, or the end
-/// of a run. A conversation is its entries in order; a run whose entries have no ending one was interrupted.
+/// of a run. A conversation is its entries in order; a run whose entries have no ending one was interrupted, unless it
+/// is still going on, in this process or another.
 /// </summary>
 /// <param name="Agent">The name of the agent the step belongs to.</param>
 /// <param name="Messages">The step's messages; none for the end of a run that answered.</param>

@@ -131,9 +131,18 @@ var resumed = await support.WithSettingsId(settingsId).WithConversationId(interr
 <!-- endSnippet -->
 
 `ResumeAsync` throws an `InvalidOperationException` on a host without a conversation id, or when the conversation's last
-run ended. After a restart, the entries tell you which conversations to resume: when the last entry that
-`LoadConversationAsync` returns has `EndsRun` false, a crash cut that run off. A new run with input works on an
-interrupted conversation too: it starts from the interrupted run's steps and adds its own input.
+run ended. A new run with input works on an interrupted conversation too: it starts from the interrupted run's steps
+and adds its own input.
+
+After a restart, the entries tell you which conversations to resume. A run stores its ending entry only when it ends,
+so the last entry that `LoadConversationAsync` returns has `EndsRun` false for a run that a crash cut off and for one
+that is still going on.
+
+With one instance of your app, nothing else can be running the conversation after a restart, so such an entry means
+the run was interrupted. With several instances, or during a rolling deploy, another instance may be answering that
+chat at this moment, and resuming it would call the model and its tools a second time. There, resume only when the
+last entry's `At` is older than a limit your app chooses, or behind a lease of your own, because keeping to
+[one run at a time](#one-run-at-a-time) across processes is up to your app.
 
 ::: warning A tool can be called twice
 A call interrupted while its tool ran is left out on resume. The model decides again and may call the tool a second

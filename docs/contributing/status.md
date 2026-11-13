@@ -191,6 +191,10 @@ rewrite.
   still reaches the generated `Settings` and tools.
 - **One conversation through unrelated hosts.** An app that runs one conversation id through the hosts of two agents
   that never hand off to each other shares their standing approvals, and no diagnostic sees it.
+- **No claim on a conversation across processes.** One run per conversation holds within a process only (D50), so two
+  instances of an app can run or resume one conversation at once, and an entry without an ending one looks the same
+  for an interrupted run and for a run another instance is still on. A claim in the store, such as a lease or a
+  heartbeat, would change D50.
 
 ## Related
 

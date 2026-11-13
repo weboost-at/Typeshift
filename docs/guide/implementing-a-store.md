@@ -386,6 +386,10 @@ history. Runs call it too in one case: when the last summary has no `StandingApp
 version before 0.1.0-alpha.3, they read the whole conversation. Compaction always fills them in, even as an empty list,
 so set them on any summary you build for a test of your own, as [`VerifyAsync`](#check-your-store) does.
 
+Columns for `entry.EndsRun` and `entry.At` pay off in the same way. An app that looks for interrupted runs after a
+restart ([Resuming](./conversations.md#resuming)) then finds them with one query over each conversation's last row,
+instead of loading every conversation whole.
+
 ## Migrate older settings
 
 A settings document's JSON names the agent's schema version, the one `WithSchemaVersion(n)` sets, in
