@@ -281,11 +281,9 @@ could never end. Break the circle by removing one of these `UseAgent<T>()` calls
 
 **Tool type has no JSON metadata under Native AOT.** In a project that publishes with Native AOT or sets
 `IsAotCompatible`, the types of the parameters the model fills and the type the tool returns need source-generated
-metadata. List each type as `[JsonSerializable(typeof(T))]` on a `JsonSerializerContext` of the toolset's assembly
-([Native AOT](./native-aot.md)). A context nested as `private` or `protected` does not count. These types
-need none: `string`, `char`, `bool`, `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `float`, `double`, `decimal`,
-`DateTime`, `DateTimeOffset`, `TimeSpan`, `IEnumerable<string>`, `JsonElement`, `JsonDocument` and the
-`System.Text.Json.Nodes` types.
+metadata. List each type as `[JsonSerializable(typeof(T))]` on a `JsonSerializerContext` of the toolset's assembly.
+A context nested as `private` or `protected` does not count.
+[Native AOT](./native-aot.md#tool-parameter-and-result-types) shows a context and lists the types that need none.
 
 ## TSH028
 

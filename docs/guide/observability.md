@@ -11,8 +11,9 @@ follow a run from the user's message through every tool call to the answer.
 
 ## Listening
 
-Typeshift traces and measures with `System.Diagnostics`, following OpenTelemetry's semantic conventions for
-generative AI. Listen to the `Typeshift` source and meter:
+Typeshift traces and measures with `System.Diagnostics`, following OpenTelemetry's
+[semantic conventions for generative AI](https://github.com/open-telemetry/semantic-conventions-genai). Listen to the
+`Typeshift` source and meter:
 
 <!-- snippet: open-telemetry -->
 <a id='snippet-open-telemetry'></a>
@@ -63,8 +64,22 @@ calls therefore show that customer's endpoint, also when all of them run under o
 
 ## Metrics
 
-The metrics are Microsoft.Extensions.AI's `gen_ai.client.operation.duration` and `gen_ai.client.token.usage`, tagged
-with the model and with the same backend as the call's `chat` span.
+The meter records one measurement per model call and none per run, so a run that calls the model three times
+records three durations. Its four instruments are the histograms of Microsoft.Extensions.AI's OpenTelemetry client:
+
+| Instrument | Unit | Recorded for |
+|---|---|---|
+| `gen_ai.client.operation.duration` | `s` | Every model call |
+| `gen_ai.client.token.usage` | `{token}` | Every model call whose response reports its token usage, once for the input and once for the output tokens |
+| `gen_ai.client.operation.time_to_first_chunk` | `s` | Every model call that streams, as those of `RunStreamingAsync` do |
+| `gen_ai.client.operation.time_per_output_chunk` | `s` | Every model call that streams |
+
+Each measurement carries the tags `gen_ai.operation.name`, `gen_ai.request.model` and `gen_ai.response.model`, and
+the same backend as the call's `chat` span in `gen_ai.provider.name`, `server.address` and `server.port`. A token
+usage also carries `gen_ai.token.type`, which is `input` or `output`.
+
+The names are those of the Microsoft.Extensions.AI version Typeshift references. The conventions they follow are
+still in development, so a later version may rename an instrument or a tag.
 
 ## Message content
 

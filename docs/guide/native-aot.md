@@ -7,7 +7,7 @@ description: Publish your app with Native AOT, and give the types your tools tak
 
 You can publish your app with Native AOT. Typeshift writes the tool bindings and the settings serialization when you
 build, so its generated code never reflects over your types. What you add is JSON metadata for the types your tools
-take and return, and the analyzer reports each type that lacks it.
+take and return, and the analyzer reports each tool type that lacks it.
 
 ## The project
 
@@ -52,6 +52,17 @@ Strings, `char`, `bool`, `short`, `int`, `long` and their unsigned forms, `float
 In a project that publishes with Native AOT or sets `IsAotCompatible`, the analyzer reports
 [TSH027](./diagnostics.md#tsh027) for every other tool type that no context lists.
 
+Some of the types that need an entry look as plain as the ones above:
+
+- each nullable value type, such as `int?` or `bool?`, although `int` and `bool` need none. A nullable reference
+  type, such as `string?`, counts as its type;
+- each enum;
+- each array and list, such as `string[]` or `List<string>`;
+- `byte`, `Guid` and `DateOnly`.
+
+A tool that returns `IAsyncEnumerable<T>` needs an entry for `List<T>`, because Typeshift sends the stream's items as
+one array ([Results](./toolsets.md#results)).
+
 A [union](./toolsets.md#union-types) of two records gets warning SYSLIB1227 in a context, because the source
 generator finds no classifier that tells the records apart. Typeshift's tools and runs pick the case by its
 properties without one, as [Union types](./toolsets.md#union-types) describes, so you may suppress the warning for
@@ -89,6 +100,11 @@ The generated `Settings` and overrides records serialize member by member, and c
 Microsoft.Extensions.AI's own contracts, so none of them needs a context from you. `RunAsync<T>`,
 `RunStreamingAsync<T>` and a sub-agent's `WithResult<T>()` do need one: list `T` in a context too. In the sample,
 `AppJsonContext` above lists `CompanyCount` because the app calls `RunAsync<CompanyCount>`.
+
+::: warning The analyzer checks tool types only
+No diagnostic reports a `T` of these calls that no context lists. The build and the publish succeed, and the
+published app throws a `NotSupportedException` that names the type when it makes the run.
+:::
 
 ## Related
 

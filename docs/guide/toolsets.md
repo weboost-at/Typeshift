@@ -152,9 +152,9 @@ parameter of these types is filled the same way, so `CancellationToken? ct = nul
 
 A tool returns a value, nothing (`void`), `Task`, `Task<T>`, `ValueTask`, `ValueTask<T>` or `IAsyncEnumerable<T>`.
 The model receives the result as JSON, serialized through its type's `JsonTypeInfo`, so under
-[Native AOT](./native-aot.md) that type needs JSON metadata. The model takes one result per call, so
-Typeshift reads a stream to its end and sends its items as one array. Under Native AOT, list `List<T>` in your JSON
-context for it. A cancelled call stops reading the stream at its next item, also when the method takes no
+[Native AOT](./native-aot.md#tool-parameter-and-result-types) that type needs JSON metadata. The model takes one
+result per call, so Typeshift reads a stream to its end and sends its items as one array, and Native AOT needs the
+metadata of that list. A cancelled call stops reading the stream at its next item, also when the method takes no
 `CancellationToken`.
 
 The analyzer rejects a result JSON cannot carry: a pointer, a ref struct or `dynamic`

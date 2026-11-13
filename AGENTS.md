@@ -133,7 +133,7 @@ style; the essentials:
 | A chat UI's endpoints: posting, streaming as server-sent events, approvals by their ids | `guide/chat-endpoint.md` | |
 | Generated members, `AgentHost` members and signatures | `guide/generated-members.md` | `running-agents.md` |
 | Spans, metrics and message content | `guide/observability.md` | `models.md#wrapping-a-client` (a second `UseOpenTelemetry()`) |
-| Native AOT: the project, JSON metadata for tool and run types, trackers of value-type ids | `guide/native-aot.md` | `diagnostics.md#tsh027`, `conversations.md#live-updates` (the tracker tip) |
+| Native AOT: the project, JSON metadata for tool and run types, trackers of value-type ids | `guide/native-aot.md` | `diagnostics.md#tsh027`, `toolsets.md#results` (link), `conversations.md#live-updates` (the tracker tip) |
 | Docs for coding assistants: `llms.txt`, `llms-full.txt`, a page as Markdown | `guide/getting-started.md#docs-for-coding-assistants` | |
 | Diagnostics | `guide/diagnostics.md` | every page, linked by ID |
 | Terms | `guide/glossary.md` | |
