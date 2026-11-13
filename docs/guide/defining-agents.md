@@ -54,18 +54,19 @@ internal partial class SupportAgent : Agent
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L48' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The tools and their settings have sections of their own below. The other calls declare the rest:
+The tools and their settings have sections of their own below. The other calls of this agent declare the rest:
 
 | Call | Declares |
 |---|---|
-| `WithName(...)` | The agent's name. Messages the agent writes carry it as their author, and other agents call this one by it. Without `WithName`, `SupportAgent` is named `support_agent`. |
-| `WithDescription(...)` | What the agent does. The model of an agent that calls this one reads it. Without it, the `<summary>` of the agent's XML docs describes the agent, as a method's describes its tool. |
-| `WithChatOptions()` | The options every run starts from: `WithModel`, `WithTemperature`, `WithMaxOutputTokens` and a `With...` per other option. [Models and providers](./models.md) explains what `WithModel` names and which client serves it. `WithTools` adds tools that belong to no toolset, such as a hosted web search. |
+| `WithDescription(...)` | What the agent does, for the model of an agent that calls this one. |
+| `WithChatOptions()` | The chat options every run starts from, such as the model and the temperature. [Models and providers](./models.md) explains what `WithModel` names and which client serves it. |
 | `UseMcpServer(...)` | The tools of an [MCP server](./mcp.md). `ReadOnly()` lets plan mode offer them. |
 | `UseContext<T>()` | A [context provider](./middleware.md#context-providers), whose instructions, messages and tools join every run. |
-| `UseAgent<T>()`, `UseHandoff<T>()` | Another agent as a tool, or one the model can hand the conversation to. See [Sub-agents and handoffs](./multi-agent.md). |
-| `WithInstructions(...)` | The instructions, the agent's system prompt, when they are the same for every run. |
-| `GetInstructions()` | The instructions, as an override, when your code builds them. It runs whenever a run's options are resolved, so the text may be computed. |
+| `GetInstructions()` | The instructions, the agent's system prompt, as an override for text your code builds. `WithInstructions(...)` in the constructor suits instructions that are the same for every run. |
+
+[Builders](./builders.md#agent) lists every call an agent's constructor can make, with what each takes. Among them are
+`WithName`, for an agent that is not to be named after its class, and `UseAgent<T>()` and `UseHandoff<T>()`, which
+offer [other agents](./multi-agent.md).
 
 `WithName` and `WithDescription` take constants ([TSH002](./diagnostics.md#tsh002)), and every declaration sits directly
 in the constructor as one chain ([TSH014](./diagnostics.md#tsh014), [TSH015](./diagnostics.md#tsh015)). An agent derives
@@ -182,26 +183,17 @@ the calls of one response run at the same time, and when the history is [compact
 
 ## Tool settings
 
-`Configure{Tool}()` sets a tool's [settings](./tool-settings.md) for this agent, over the record's code defaults, as
-`ConfigureSearchTickets().WithLimit(5)` does above. It can set every settable member of the record, configurable or
-not, for every run of this agent. A tool the agent does not offer has none, so configuring it does not compile.
-[Generated members](./generated-members.md#configure-tool) lists what the builder offers.
+`Configure{Tool}()` sets a tool's [settings](./tool-settings.md) for every run of this agent, over the record's code
+defaults, as `ConfigureSearchTickets().WithLimit(5)` does above.
+[Generated members](./generated-members.md#configure-tool) lists what its builder offers and which tools have one.
 
 ## The generated settings
 
 Every agent gets a nested `Settings` record, here `SupportAgent.Settings`, holding exactly what may change at
-runtime:
-
-| Member | From |
-|---|---|
-| `Provider`, `Model` | Present when `Configurable(o => o.ModelId)` allows them. They override what `WithModel` sets. |
-| One per configurable chat option | `Instructions` and `Temperature` above. |
-| One per configurable run option | `Mode` and `MaxToolIterations` from the run options above. |
-| One per offered tool with configurable settings | `SearchTickets`, `SearchArticles`: their [overrides](./tool-settings.md#the-generated-overrides). |
-
-Option values are nullable, and so are the values in a tool's overrides. A null keeps the
-[layer below](./settings-and-stores.md#settings-layering). When a tool's member would be named like an option or like
-one of the record's own members, such as `Kind`, the generator adds a `Tool` suffix to it.
+runtime: the chat and run options you marked configurable, and the
+[overrides](./tool-settings.md#the-generated-overrides) of each offered tool that has configurable settings. A value
+you leave null keeps the [layer below](./settings-and-stores.md#settings-layering).
+[Generated members](./generated-members.md#settings) lists the record's members and the declaration each comes from.
 
 Store the record [under a settings id](./settings-and-stores.md#agent-settings), pass it
 [for one run](./running-agents.md#run-settings), or bind a settings form or an API to it. The record's `Serialize()`
@@ -213,6 +205,7 @@ or remove a configurable member ([Migrate older settings](./implementing-a-store
 
 - [Toolsets](./toolsets.md): declaring the tools an agent offers.
 - [Tool settings](./tool-settings.md): the record a `Configure{Tool}()` sets.
+- [Sub-agents and handoffs](./multi-agent.md): offering another agent as a tool, or handing a conversation to it.
 - [Models and providers](./models.md): the client that serves the model an agent names.
 - [Running an agent](./running-agents.md): what a run takes and returns.
 - [Builders](./builders.md#agent): every call an agent's constructor can make.

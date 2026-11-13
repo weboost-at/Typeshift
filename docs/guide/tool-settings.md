@@ -70,13 +70,8 @@ code change.
   [How Typeshift reads your code](./how-typeshift-reads-your-code.md) explains why.
 - Under `WithConfigurableSettings<T>()`, members marked `[Obsolete]` stay in code without a `NotConfigurable(...)`.
 - A configurable member needs a public `set` or `init` accessor ([TSH013](./diagnostics.md#tsh013)).
-
-::: warning A renamed member loses its stored values
-Stored settings keep each member under its name. Rename or remove a configurable member, and its stored value reads
-as missing, so the layer below applies. When that matters, raise the schema version the agent passes to
-`WithSchemaVersion` and migrate the stored documents, as
-[Migrate older settings](./implementing-a-store.md#migrate-older-settings) explains.
-:::
+- Stored settings keep each member under its name, so a configurable member you rename or remove no longer finds
+  its stored value. [The stored JSON](./settings-and-stores.md#the-stored-json) says what to do about it.
 
 ### Storable types
 

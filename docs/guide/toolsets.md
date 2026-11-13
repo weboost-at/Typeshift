@@ -76,7 +76,7 @@ The calls chained onto `AddTool` describe the tool:
 | Call | Means |
 |---|---|
 | `ReadOnly()` | The tool changes nothing. [Plan mode](./tool-approval.md#plan-mode) offers only these. |
-| `RequiresApproval()` | The tool's calls need approval. Unless a rule, a standing approval or auto mode decides a call, the run ends and your app approves or rejects it in the conversation's next run. See [Approval and modes](./tool-approval.md). |
+| `RequiresApproval()` | The tool's calls need approval before they run, as [Approval and modes](./tool-approval.md) describes. |
 | `WithSettings<T>()` | The tool gets [settings](./tool-settings.md) the model never sees, such as a search's limit. Put it last in the chain. `WithConfigurableSettings<T>()` does the same, but opens every settable member to stored settings and runs, except the ones `NotConfigurable` keeps in code. |
 
 `WithDisplayName("Tickets")` names the toolset for people, for example in a tool picker. `AddTool` takes a static method
