@@ -118,6 +118,8 @@ A few things follow the host's ids:
 
 ## Agent settings
 
+### An agent's own settings
+
 An app whose agents need one set of settings each stores them as the agent's own, under no id. Every run of the agent
 applies them:
 
@@ -132,11 +134,13 @@ var everyRun = await research.RunAsync("Graz");
 <!-- endSnippet -->
 
 `LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)` load and save them, and
-`ConfigureAsync(configure)` retries on a conflict, as the rest of this section shows. On a host from
+`ConfigureAsync(configure)` retries on a conflict, as the sections below show. On a host from
 `WithSettingsId(id)`, the same three members load and save the settings under the id instead.
 
-Kept in memory, they are gone when the app stops. To keep them without a database, for example in a local tool or a
-single-agent service, register the file store with `WithFileStore`:
+### Keep them in a file
+
+Kept in memory, an agent's own settings are gone when the app stops. To keep them without a database, for example in
+a local tool or a single-agent service, register the file store with `WithFileStore`:
 
 <!-- snippet: file-agent-settings -->
 <a id='snippet-file-agent-settings'></a>
@@ -170,6 +174,8 @@ folder, since a save takes a lock file of its kind first.
 - Registering the file store, as registering any store does, ends the memory: settings under ids and conversations
   then need a store of their own ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call)).
 
+### Settings under an id, such as per customer
+
 A settings id stands for whatever you decide: a customer, a team, a user, or a settings profile of your own. Under one
 settings id, each agent has its own document, because each agent's `Settings` is its own kind, so a store keys
 documents by id and kind together.
@@ -192,7 +198,9 @@ await support.WithSettingsId(42).ConfigureAsync(settings => settings with
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L13-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-configure-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-A settings form does it in two steps: it loads the settings with their version and saves them back with it. The
+### A settings form: load, save and conflicts
+
+A settings form changes settings in two steps: it loads them with their version and saves them back with it. The
 version tells the store which state the form loaded, so the save throws a `StoreConflictException` when someone saved
 in between ([Save with a version](./implementing-a-store.md#save-with-a-version) explains the number):
 
@@ -217,6 +225,20 @@ catch (StoreConflictException)
 Saving `Instructions = null` removes the stored instructions, so runs with this settings id use the agent's own
 again. After a conflict, the sample loads the settings again, so you can show the user the current
 values before they save.
+
+## The stores
+
+Each kind of stored data goes through an interface of its own. Until you write a store over your database, one of
+these serves it:
+
+| Stored | Without a store | `InMemoryTypeshiftStore<TId>` | `WithFileStore` |
+|---|---|---|---|
+| An agent's own settings, through `IAgentSettingsStore` | In memory | In memory | In files |
+| Settings under an id, through `ISettingsStore<TId>` | In memory, under ids of every type | In memory, under ids of `TId` | Needs another store |
+| Conversations, through `IConversationStore<TId>` | In memory, under ids of every type | In memory, under ids of `TId` | Needs another store |
+
+[Which store serves a call](./implementing-a-store.md#which-store-serves-a-call) says which of them answers once you
+register one, and [Implementing a store](./implementing-a-store.md) shows a store of your own.
 
 ## The stored JSON
 

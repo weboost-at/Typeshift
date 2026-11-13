@@ -195,7 +195,7 @@ runtime: the chat and run options you marked configurable, and the
 you leave null keeps the [layer below](./settings-and-stores.md#settings-layering).
 [Generated members](./generated-members.md#settings) lists the record's members and the declaration each comes from.
 
-Store the record [under a settings id](./settings-and-stores.md#agent-settings), pass it
+Store the record [under a settings id](./settings-and-stores.md#settings-under-an-id-such-as-per-customer), pass it
 [for one run](./running-agents.md#run-settings), or bind a settings form or an API to it. The record's `Serialize()`
 and `System.Text.Json` write the same JSON, so either works for an API. In a store, `WithStorageKind` sets the name
 the record is kept under in place of the class name, and `WithSchemaVersion` raises its schema version after you rename

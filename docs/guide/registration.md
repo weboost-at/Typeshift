@@ -97,10 +97,10 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
   of any id type, so call it once for each class. All of them resolve to one instance, a singleton, so a store takes
   no scoped services ([Implementing a store](./implementing-a-store.md#register-your-store)). The container never
   disposes a store you pass to `WithStore(store)`.
-- The file store keeps agents' own settings in files ([Agent settings](./settings-and-stores.md#agent-settings)).
-  `WithFileStore` takes an optional `Action<FileStoreOptions>`, and the container builds the store with your app's
-  `TimeProvider`. By default, `Folder` is `typeshift` under `AppContext.BaseDirectory`, and the settings files lie
-  in its `settings` folder.
+- The file store keeps agents' own settings in files
+  ([Keep them in a file](./settings-and-stores.md#keep-them-in-a-file)). `WithFileStore` takes an optional
+  `Action<FileStoreOptions>`, and the container builds the store with your app's `TimeProvider`. By default,
+  `Folder` is `typeshift` under `AppContext.BaseDirectory`, and the settings files lie in its `settings` folder.
 - A chat client provider serves every run with a provider and a model of its type, before any `IChatClient` you
   registered ([Registering clients](./models.md#registering-clients)). One class may implement
   `IChatClientProvider<T>` for several provider types, and for each type the last call wins.
