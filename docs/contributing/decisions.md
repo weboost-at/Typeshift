@@ -522,10 +522,14 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   passes steering input or background answers start. Calls the host approves run in the conversation's next run, which
   counts its own rounds.
 - **Where:** `Compaction/`, `Conversations/ConversationEntry.cs` for the stored estimate,
-  `Approval/ApprovalChatClient.cs` for the shared limit.
+  `Conversations/ConversationRun.cs` for what a pass added, `Approval/ApprovalChatClient.cs` for the shared limit.
 - **Alternatives:** MAF's strategy pipeline and trigger combinators, more concepts for the same two steps; a
   tokenizer dependency; message-count triggers, which ignore that one tool result may outweigh a hundred messages; a
-  separate `WithCompaction()` chain next to the limits.
+  separate `WithCompaction()` chain next to the limits. For a summary call that fails: ending the run, as it did,
+  which let a summary model that was down fail every later run of a conversation; refusing only a summary model the
+  code named on a provider the user switched to, which covers one of the two causes and needs the generator to say
+  which layer named the model. For what a pass added: leaving every message the conversation never stores out of the
+  summary, which loses the turns whose messages run middleware replaced.
 
 ### D33. Sub-agents, in the foreground or the background
 
