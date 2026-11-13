@@ -19,8 +19,8 @@ sub-agent that must change nothing. A tool that only one agent needs can also
 
 ## Declaring tools
 
-A toolset is a `partial` class deriving from `Toolset`. This one searches tickets, reads one and closes one, which
-cannot be undone:
+A toolset is a `partial` class ([TSH001](./diagnostics.md#tsh001)) deriving from `Toolset`. This one searches
+tickets, reads one and closes one, which cannot be undone:
 
 <!-- snippet: toolset -->
 <a id='snippet-toolset'></a>
@@ -104,8 +104,27 @@ Stored settings are keyed by the tool's name. Rename `SearchTickets`, and what y
 
 ## Parameters
 
-Parameters become the tool's JSON schema, with their `<param>` docs and default values. Typeshift fills four kinds of
-parameters itself when it calls the tool. The model never sees them, so they need no doc:
+Parameters become the tool's JSON schema, with their `<param>` docs and default values. For `search_tickets` above,
+the model receives this schema next to the tool's name and description:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "query": {
+      "description": "Words the ticket's title contains.",
+      "type": "string"
+    }
+  },
+  "required": [
+    "query"
+  ]
+}
+```
+
+The description of `query` is its `<param>` text. `settings` and `services` are missing from the schema, because
+Typeshift fills four kinds of parameters itself when it calls the tool. The model never sees them, so they need no
+doc:
 
 | Type | Receives |
 |---|---|
@@ -145,6 +164,9 @@ The analyzer rejects a result JSON cannot carry: a pointer, a ref struct or `dyn
 When a tool throws, the model reads the exception's message. Write it as a hint, such as "No ticket 4711 exists.
 Search for it first.", and the model can correct its call. Keep secrets out of it, because the message goes to the
 model provider.
+
+Three rounds of tool calls in a row may fail this way. A fourth failing round ends the run, and the tool's exception
+reaches your code. [`WithMaxConsecutiveToolErrors`](./builders.md#runoptionsbuilder) sets another limit.
 
 ## Union types
 
@@ -201,6 +223,10 @@ internal partial class TicketLookupToolset : Toolset
 A toolset derives from `Toolset` directly and has no type parameters ([TSH017](./diagnostics.md#tsh017)). Share code
 between toolsets through static methods rather than a base class. A toolset is no `file` class either, because
 [generated code sits in files of its own](./how-typeshift-reads-your-code.md#generated-code-sits-in-files-of-its-own).
+
+Typeshift creates each toolset once, with `new`, so the class needs a public or internal parameterless constructor
+and cannot be nested as `private` or `protected` ([TSH016](./diagnostics.md#tsh016)). Its constructor therefore takes
+no services. A tool reaches them through its [`IServiceProvider` parameter](#parameters).
 
 ## Related
 

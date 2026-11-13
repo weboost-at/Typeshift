@@ -120,7 +120,7 @@ style; the essentials:
 | Parameters the call fills, tool results | `guide/toolsets.md` | `builders.md` (link) |
 | Storable types of configurable members | `guide/tool-settings.md#configurable-members` | `builders.md` (link) |
 | Chat options and run options, their defaults | `guide/builders.md` | `defining-agents.md`, `conversations.md#compaction` |
-| Providers and models, clients from configuration, keys per customer, wrapping clients, provider failures, each agent's provider id type (from its `WithModel`), the summary model | `guide/models.md` | `running-agents.md#chat-clients`, `registration.md#ids`, `builders.md` (`WithModel`), `generated-members.md#per-agent` (`Provider`), `diagnostics.md#tsh029`, `conversations.md#compaction` |
+| Providers and models, clients from configuration, keys per customer, wrapping clients, provider failures, each agent's provider id type (from its `WithModel`), the summary model | `guide/models.md` | `running-agents.md#chat-clients`, `registration.md#ids`, `builders.md` (`WithModel`), `defining-agents.md` (link), `generated-members.md#per-agent` (`Provider`), `diagnostics.md#tsh029`, `conversations.md#compaction` |
 | Approval and modes | `guide/tool-approval.md` | `builders.md` (link) |
 | Settings layers and precedence | `guide/settings-and-stores.md#settings-layering` | `tool-settings.md`, `defining-agents.md`, `running-agents.md` |
 | Getting an agent's host: injecting it, resolving it from a scope, or taking it from the runtime in a console app or a job | `guide/using-an-agent.md` | `getting-started.md` (step 4), `registration.md` (the lifetime), `running-agents.md` (lead) |

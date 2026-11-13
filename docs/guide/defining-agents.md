@@ -10,8 +10,8 @@ constructor, and the generator gives it a `Settings` record of what may change a
 
 ## Declaring an agent
 
-An agent is a `partial` class deriving from `Agent`. This one answers customers from their tickets and the help
-center:
+An agent is a `partial` class ([TSH001](./diagnostics.md#tsh001)) deriving from `Agent`. This one answers customers
+from their tickets and the help center:
 
 <!-- snippet: agent -->
 <a id='snippet-agent'></a>
@@ -60,10 +60,10 @@ The tools and their settings have sections of their own below. The other calls d
 |---|---|
 | `WithName(...)` | The agent's name. Messages the agent writes carry it as their author, and other agents call this one by it. Without `WithName`, `SupportAgent` is named `support_agent`. |
 | `WithDescription(...)` | What the agent does. The model of an agent that calls this one reads it. Without it, the `<summary>` of the agent's XML docs describes the agent, as a method's describes its tool. |
-| `WithChatOptions()` | The options every run starts from: `WithModel`, `WithTemperature`, `WithMaxOutputTokens` and a `With...` per other option. `WithTools` adds tools that belong to no toolset, such as a hosted web search. |
+| `WithChatOptions()` | The options every run starts from: `WithModel`, `WithTemperature`, `WithMaxOutputTokens` and a `With...` per other option. [Models and providers](./models.md) explains what `WithModel` names and which client serves it. `WithTools` adds tools that belong to no toolset, such as a hosted web search. |
 | `UseMcpServer(...)` | The tools of an [MCP server](./mcp.md). `ReadOnly()` lets plan mode offer them. |
 | `UseContext<T>()` | A [context provider](./middleware.md#context-providers), whose instructions, messages and tools join every run. |
-| `UseAgent<T>()`, `UseHandoff<T>()` | Another agent as a tool, or one the model can hand the conversation to. See [Multiple agents](./multi-agent.md). |
+| `UseAgent<T>()`, `UseHandoff<T>()` | Another agent as a tool, or one the model can hand the conversation to. See [Sub-agents and handoffs](./multi-agent.md). |
 | `WithInstructions(...)` | The instructions, the agent's system prompt, when they are the same for every run. |
 | `GetInstructions()` | The instructions, as an override, when your code builds them. It runs whenever a run's options are resolved, so the text may be computed. |
 
@@ -73,6 +73,10 @@ from `Agent` directly, never from a base agent of yours ([TSH017](./diagnostics.
 put values in constants and code in static methods, and keep every declaration in each agent's constructor.
 [How Typeshift reads your code](./how-typeshift-reads-your-code.md) explains these rules, and why you cannot define an
 agent at runtime.
+
+Typeshift creates each agent once, with `new`, so the class needs a public or internal parameterless constructor and
+cannot be nested as `private` or `protected` ([TSH016](./diagnostics.md#tsh016)). Its constructor therefore takes no
+services. The agent's tools reach them through their [`IServiceProvider` parameter](./toolsets.md#parameters).
 
 ## Selecting tools
 
@@ -209,6 +213,7 @@ or remove a configurable member ([Migrate older settings](./implementing-a-store
 
 - [Toolsets](./toolsets.md): declaring the tools an agent offers.
 - [Tool settings](./tool-settings.md): the record a `Configure{Tool}()` sets.
+- [Models and providers](./models.md): the client that serves the model an agent names.
 - [Running an agent](./running-agents.md): what a run takes and returns.
 - [Builders](./builders.md#agent): every call an agent's constructor can make.
 - [Generated members](./generated-members.md#per-agent): what the generator writes for each agent.

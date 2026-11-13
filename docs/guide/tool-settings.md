@@ -82,15 +82,26 @@ as missing, so the layer below applies. When that matters, raise the schema vers
 
 A configurable member needs a type settings can store ([TSH012](./diagnostics.md#tsh012)):
 
-- strings, Booleans, enums (stored by name, or by number for a value without a name, such as `[Flags]` with none
-  set), `Guid`, `DateTime`, `DateTimeOffset`, `TimeSpan`, `DateOnly`, `TimeOnly`, `Uri` and `ReasoningOptions`;
-- the numbers `byte`, `short`, `int`, `long`, `float`, `double` and `decimal`;
-- non-generic classes and records with a public parameterless constructor, no `required` members and storable
-  settable members, replaced as a whole and never merged, and record structs that meet the same rules;
-- arrays, lists and sets of storable values, and dictionaries keyed by `string` or an enum.
+| Kind | Types | Stored as |
+|---|---|---|
+| Text and Booleans | `string`, `bool` | A JSON string or Boolean |
+| Numbers | `byte`, `short`, `int`, `long`, `float`, `double`, `decimal` | A JSON number |
+| Enums | Every enum | Its name, or its number for a value without a name, such as `[Flags]` with none set |
+| Ids, addresses, dates and times | `Guid`, `Uri`, `DateTime`, `DateTimeOffset`, `DateOnly`, `TimeOnly`, `TimeSpan` | A string |
+| Reasoning | `ReasoningOptions` | An object |
+| Objects | Non-generic classes and records with a public parameterless constructor, no `required` members and storable settable members, and record structs that meet the same rules | An object, replaced as a whole and never merged |
+| Collections | `T[]`, `List<T>`, `IList<T>`, `IReadOnlyList<T>`, `ICollection<T>`, `IReadOnlyCollection<T>`, `IEnumerable<T>`, `HashSet<T>`, `ISet<T>` and `IReadOnlySet<T>` of storable values | An array |
+| Dictionaries | `Dictionary<TKey, TValue>`, `IDictionary<TKey, TValue>` and `IReadOnlyDictionary<TKey, TValue>` of storable values, keyed by `string` or an enum | An object |
 
-Items and dictionary values cannot be nullable value types, and a type that contains itself is not storable. Other
-structs, unions among them, are not storable, because most keep their state in fields that no public setter writes.
+The analyzer reports every other type, including these:
+
+- Other collections are not storable, immutable ones such as `ImmutableList<T>` among them.
+- The numbers `sbyte`, `ushort`, `uint` and `ulong` are not storable, and neither is `char`.
+- An abstract class and an interface are not storable, because Typeshift creates a stored object with its
+  parameterless constructor.
+- Items and dictionary values cannot be nullable value types, and a type that contains itself is not storable.
+- Other structs, unions among them, are not storable, because most keep their state in fields that no public setter
+  writes.
 
 ## Receiving settings in the tool
 

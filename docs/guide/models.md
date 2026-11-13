@@ -56,7 +56,8 @@ Write an `IChatClientProvider<TProviderId>` when a client depends on more than i
 customer. `TProviderId` is the type your agents name providers by, `string` for `WithModel("openai", ...)`
 ([The provider id type](#the-provider-id-type)). Its one method gets the provider and the model of every run that
 names both, and again when [compaction](./conversations.md#compaction) needs the summary model. Register your class
-with `WithChatClientProvider<TProvider>()`, and [A key per customer](#a-key-per-customer) shows one.
+with `WithChatClientProvider<TProvider>()`, and [A key per customer](#a-key-per-customer) shows one. For a class that
+implements no `IChatClientProvider<T>`, the analyzer reports [TSH030](./diagnostics.md#tsh030).
 
 ::: info The provider is scoped
 Typeshift resolves your provider from each run's scope, so it can use that request's services, such as the current
