@@ -66,6 +66,15 @@ jobs:
       - run: dotnet tool restore
       - run: dotnet build -c Release -warnaserror
       - run: dotnet test -c Release --no-build
+
+      # The runner's culture is the invariant one, which hides a number that follows the machine's culture into
+      # generated code or stored JSON. Danish has the decimal comma and is among the cultures that compare text
+      # their own way
+      - name: Run the tests once more under a culture with a decimal comma
+        run: |
+          dotnet test --project tests/Typeshift.Generators.Tests -c Release --no-build -- -culture da-DK
+          dotnet test --project tests/Typeshift.Tests -c Release --no-build -- -culture da-DK
+
       - run: dotnet slopwatch analyze --fail-on warning
 
       # TreatWarningsAsErrors turns every IL2xxx and IL3xxx warning into an error that fails the publish
