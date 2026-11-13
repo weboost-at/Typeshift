@@ -194,6 +194,31 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_Two_Kinds_That_Differ_By_Case_Each_Reads_Its_Own_Or_Fails_Naming_WithStorageKind()
+    {
+        // Arrange
+        var store = new FileAgentSettingsStore(_folder);
+        string[] kinds = [Data.Persistence.Kind.ToLowerInvariant(), Data.Persistence.Kind.ToUpperInvariant()];
+        string[] settings = ["""{"temperature":0.4}""", """{"temperature":0.9}"""];
+
+        Directory.CreateDirectory(_folder);
+        var ignoresCase = Directory.Exists(_folder.ToUpperInvariant());
+
+        // Act
+        var stored = async () =>
+        {
+            await store.SaveAsync(kinds[0], settings[0], 0, Ct);
+            await store.SaveAsync(kinds[1], settings[1], 0, Ct);
+
+            return new[] { await store.LoadAsync(kinds[0], Ct), await store.LoadAsync(kinds[1], Ct) };
+        };
+
+        // Assert
+        if (ignoresCase) await stored.Should().ThrowAsync<InvalidDataException>().WithMessage("*WithStorageKind*");
+        else (await stored()).Select(document => document!.Json).Should().Equal(settings);
+    }
+
+    [Fact]
     public async Task Given_A_Store_Held_As_Its_Interface_It_Serves_Runs_And_The_Container_Leaves_It_Undisposed()
     {
         // Arrange
