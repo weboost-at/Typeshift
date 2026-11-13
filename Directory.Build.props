@@ -30,4 +30,17 @@
     <PackageReference Include="MinVer" PrivateAssets="all" />
   </ItemGroup>
 
+  <!-- "Never read the clock" by symbol (RS0030, an error with TreatWarningsAsErrors), for the code the style of
+       AGENTS.md covers: the demos are apps of their own. A sample is an app as well, so it may name the system
+       clock where it composes its services. The package is used at build time alone and adds nothing to Typeshift. -->
+  <PropertyGroup>
+    <PathFromRepository>$([MSBuild]::MakeRelative('$(MSBuildThisFileDirectory)', '$(MSBuildProjectDirectory)').Replace('\', '/'))</PathFromRepository>
+  </PropertyGroup>
+
+  <ItemGroup Condition="!$(PathFromRepository.StartsWith('demos/'))">
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.Library.txt" Condition="!$(PathFromRepository.StartsWith('samples/'))" />
+  </ItemGroup>
+
 </Project>

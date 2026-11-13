@@ -11,6 +11,8 @@
     <!-- Pinned: version 8 changed its license. -->
     <PackageVersion Include="FluentAssertions" Version="[7.2.0]" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
+    <!-- Build-time only, for the clock rule (BannedSymbols.txt). Runs in every compiler the generator runs in. -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="$(RoslynVersion)" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynVersion)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.AI" Version="10.10.0" />

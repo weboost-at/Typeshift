@@ -111,7 +111,9 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
     private LiveRuns Runs => services.GetRequiredService<LiveRuns>();
 
+#pragma warning disable RS0030 // the fallback for a host that registered no TimeProvider
     private TimeProvider Time => services.GetService<TimeProvider>() ?? TimeProvider.System;
+#pragma warning restore RS0030
 
     private StoreAccess Store => services.GetRequiredService<StoreAccess>();
 

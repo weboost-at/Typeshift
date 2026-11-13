@@ -1,0 +1,2 @@
+// For src and tests, on top of BannedSymbols.txt: a sample is an app and names the system clock where it composes.
+P:System.TimeProvider.System;The library and its tests take the clock they are given: inject TimeProvider, an app alone names the system clock

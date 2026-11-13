@@ -35,7 +35,9 @@ internal sealed class FileAgentSettingsStore : IAgentSettingsStore
     public FileAgentSettingsStore(string directory, TimeProvider? time = null, ILogger? logger = null)
     {
         _directory = directory;
+#pragma warning disable RS0030 // the default for an app that passes no TimeProvider
         _time = time ?? TimeProvider.System;
+#pragma warning restore RS0030
         _logger = logger ?? NullLogger.Instance;
     }
 

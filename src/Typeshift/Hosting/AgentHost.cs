@@ -102,7 +102,9 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         ?? throw new InvalidOperationException(
             "Decisions belong to a conversation: call this on a host from WithConversationId(id).");
 
+#pragma warning disable RS0030 // the fallback for a host that registered no TimeProvider
     private DecisionLedger Ledger => new(Store, _services.GetService<TimeProvider>() ?? TimeProvider.System);
+#pragma warning restore RS0030
 
     /// <summary>
     /// Loads what the host's conversation, from <c>WithConversationId</c>, waits for: the decisions your app has not

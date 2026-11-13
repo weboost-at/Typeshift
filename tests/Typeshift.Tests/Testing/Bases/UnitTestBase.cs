@@ -5,7 +5,9 @@ namespace Typeshift.Tests.Testing.Bases;
 public abstract class UnitTestBase : IDisposable
 {
     // The one real clock of the tests: a gate nothing opens fails its test after 20 s instead of hanging the suite
+#pragma warning disable RS0030
     private readonly CancellationTokenSource _limit = new(TimeSpan.FromSeconds(20), TimeProvider.System);
+#pragma warning restore RS0030
     private readonly CancellationTokenSource _linked;
 
     protected UnitTestBase() =>

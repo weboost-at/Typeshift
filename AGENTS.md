@@ -183,6 +183,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `DiagnosticTests.Given_Any_Mistake_The_Generated_Code_Holds_No_Error`, `..._Given_Any_Shape_The_Generated_Code_Holds_No_Error` | No mistake (`DiagnosticSources`) and no accepted shape (`ShapeSources`) ends in a compiler error inside generated code, in a failed generator or in an analyzer that threw. |
 | `HalfTypedCodeTests.Given_A_Declaration_Being_Typed_The_Generator_And_The_Analyzer_Do_Not_Throw` | The generator and the analyzer do not throw on half-typed code (`HalfTypedSources`). |
 | `Testing/GeneratorRunAssertions`: `Reports`, `ReportsAmong`, `ReportsOnTheCompilation`, `DoesNotReport` (generator tests) | A fixture holds the one mistake its test names: the run reports no other diagnostic of the analyzer and no compiler error in the fixture, unless the test lists it (`also:`). |
+| RS0030 as an error (`BannedSymbols.txt`, `Directory.Build.props`) | No code of `src`, `samples` and `tests` reads or waits on the real clock, whatever its spelling, generated code included. `BannedSymbols.Library.txt` adds `TimeProvider.System` for `src` and `tests`. |
 | RS2000 (analyzer) | Every descriptor has a row in `AnalyzerReleases.Unshipped.md` or `Shipped.md`. |
 | CA1305, CA1309, CA1310 as errors (`.editorconfig`, generator project) | No comparison or format call in the generator follows the build machine's culture. |
 | `IncrementalTests` (generator tests) | Unrelated edits leave the generator's output cached. |
@@ -231,7 +232,9 @@ The code must read as if the owner wrote it: terse, intention-revealing, comment
 - No guard for a state that cannot occur, no duplicated helper, no dead code, no TODOs (open items go to
   `docs/contributing/status.md`).
 - Never read the clock: inject `TimeProvider` (`GetTimestamp`, `GetElapsedTime`, `Task.Delay(span, time)`,
-  `new CancellationTokenSource(span, time)`).
+  `new CancellationTokenSource(span, time)`). The build reports a real clock as RS0030, with what to write instead;
+  the few intended uses carry `#pragma warning disable RS0030` and their reason. Only an app names
+  `TimeProvider.System`, which here means a sample.
 - `shortcut: <the limit>, <when to upgrade>` comments mark a known limit; list them with `ponytail-debt` and carry
   them into `status.md` by hand.
 - No reflection over user types on generated paths, no static mutable state, JSON through `JsonTypeInfo` only.

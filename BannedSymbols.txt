@@ -1,0 +1,25 @@
+// What reads or waits on the real clock, for src, samples and tests (Directory.Build.props). An intended use carries
+// #pragma warning disable RS0030 with its reason.
+P:System.DateTime.Now;Never read the clock: inject TimeProvider and call GetLocalNow()
+P:System.DateTime.UtcNow;Never read the clock: inject TimeProvider and call GetUtcNow()
+P:System.DateTime.Today;Never read the clock: inject TimeProvider and call GetLocalNow()
+P:System.DateTimeOffset.Now;Never read the clock: inject TimeProvider and call GetLocalNow()
+P:System.DateTimeOffset.UtcNow;Never read the clock: inject TimeProvider and call GetUtcNow()
+T:System.Diagnostics.Stopwatch;Never read the clock: inject TimeProvider and call GetTimestamp() and GetElapsedTime()
+P:System.Environment.TickCount;Never read the clock: inject TimeProvider and call GetTimestamp()
+P:System.Environment.TickCount64;Never read the clock: inject TimeProvider and call GetTimestamp()
+M:System.Threading.Thread.Sleep(System.Int32);Never wait on the real clock: await Task.Delay(span, time, ct) with the injected TimeProvider
+M:System.Threading.Thread.Sleep(System.TimeSpan);Never wait on the real clock: await Task.Delay(span, time, ct) with the injected TimeProvider
+M:System.Threading.Tasks.Task.Delay(System.Int32);Never wait on the real clock: Task.Delay(span, time, ct) with the injected TimeProvider
+M:System.Threading.Tasks.Task.Delay(System.Int32,System.Threading.CancellationToken);Never wait on the real clock: Task.Delay(span, time, ct) with the injected TimeProvider
+M:System.Threading.Tasks.Task.Delay(System.TimeSpan);Never wait on the real clock: Task.Delay(span, time, ct) with the injected TimeProvider
+M:System.Threading.Tasks.Task.Delay(System.TimeSpan,System.Threading.CancellationToken);Never wait on the real clock: Task.Delay(span, time, ct) with the injected TimeProvider
+M:System.Threading.Tasks.Task.WaitAsync(System.TimeSpan);Never wait on the real clock: WaitAsync(span, time, ct) with the injected TimeProvider
+M:System.Threading.Tasks.Task.WaitAsync(System.TimeSpan,System.Threading.CancellationToken);Never wait on the real clock: WaitAsync(span, time, ct) with the injected TimeProvider
+M:System.Threading.Tasks.Task`1.WaitAsync(System.TimeSpan);Never wait on the real clock: WaitAsync(span, time, ct) with the injected TimeProvider
+M:System.Threading.Tasks.Task`1.WaitAsync(System.TimeSpan,System.Threading.CancellationToken);Never wait on the real clock: WaitAsync(span, time, ct) with the injected TimeProvider
+M:System.Threading.CancellationTokenSource.#ctor(System.Int32);Never wait on the real clock: new CancellationTokenSource(span, time) with the injected TimeProvider
+M:System.Threading.CancellationTokenSource.#ctor(System.TimeSpan);Never wait on the real clock: new CancellationTokenSource(span, time) with the injected TimeProvider
+M:System.Threading.CancellationTokenSource.CancelAfter(System.Int32);Waits on the real clock unless the source was built with a TimeProvider: build it as new CancellationTokenSource(span, time)
+M:System.Threading.CancellationTokenSource.CancelAfter(System.TimeSpan);Waits on the real clock unless the source was built with a TimeProvider: build it as new CancellationTokenSource(span, time)
+M:System.Threading.PeriodicTimer.#ctor(System.TimeSpan);Never wait on the real clock: new PeriodicTimer(period, time) with the injected TimeProvider
