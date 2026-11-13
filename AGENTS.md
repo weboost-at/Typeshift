@@ -61,8 +61,10 @@ dotnet slopwatch analyze --fail-on warning
 dotnet mdsnippets && git diff --exit-code
 ```
 
-- Cloud sessions run `.claude/hooks/session-start.sh`: the .NET SDK from Ubuntu's feed (dot.net is unreachable), the
-  tools, the packages, and the skills pinned to reviewed commits: the owner's, ponytail's and `humanizer`.
+- Cloud sessions run `.claude/hooks/session-start.sh`: the skills pinned to reviewed commits (the owner's, ponytail's
+  and `humanizer`), the .NET SDK `global.json` asks for (from dot.net; a limited network has to allow dot.net and
+  builds.dotnet.microsoft.com), the tools and the packages. A step that fails is named in the hook's last line and
+  does not stop the others. An environment's own setup script has to install the same SDK.
 - `global.json` pins the .NET 11 SDK, and every project targets `net11.0` (D61).
 - The build is warning-free with `TreatWarningsAsErrors`. CS1591 is switched off in `tests/.editorconfig` and
   `demos/.editorconfig`, and by the package for a consumer that never chose XML docs (D68). Three test files disable
@@ -168,6 +170,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `Repository/PublicApiSurfaceTests.The_Surface_Generated_Code_Binds_To_Changes_Only_With_The_Stamp_Version` (generator tests) | `Typeshift.Generated`, `IStorable<TSelf>` and `Agent.Declaration`, kept in `Snapshots/GeneratedContract.verified.txt`, change only together with `ReferenceReader.StampVersion` (D7). |
 | `Repository/DecisionCitationTests` (generator tests) | Every `// Dnn:` in code names a decision in force. |
 | `Repository/SourceConventionTests` (generator tests) | The code style rules a pattern can check: no clock, no `== null`, no `this` parameters, no TODOs. |
+| `Repository/BuildFileTests` (generator tests) | Workflows and hooks install the SDK `global.json` asks for and name no version of their own. |
 | `Diagnostics/DiagnosticCatalogTests` (generator tests) | Every diagnostic has a docs row, a docs section and a test; every number up to the highest is a diagnostic or a retired row of the docs, and no retired number is a diagnostic again (D49). |
 | `DiagnosticTests.Given_Any_Mistake_The_Generated_Code_Holds_No_Error`, `..._Given_Any_Shape_The_Generated_Code_Holds_No_Error` | No mistake (`DiagnosticSources`) and no accepted shape (`ShapeSources`) ends in a compiler error inside generated code, in a failed generator or in an analyzer that threw. |
 | `HalfTypedCodeTests.Given_A_Declaration_Being_Typed_The_Generator_And_The_Analyzer_Do_Not_Throw` | The generator and the analyzer do not throw on half-typed code (`HalfTypedSources`). |
