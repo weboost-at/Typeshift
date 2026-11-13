@@ -109,11 +109,11 @@ The model provider then connects to the server itself, and your `IMcpToolProvide
 carries no `ReadOnly()` mark, so plan mode hides it.
 
 ::: warning Only some clients send a hosted server
-The `IChatClient` that serves the run has to pass the server on to the provider, and only a client of an API with
-hosted MCP does. With Microsoft.Extensions.AI.OpenAI 10.10.0 and Anthropic 12.55.0, two clients send it: OpenAI's
-Responses client, shown below, and Anthropic's beta client, `client.Beta.AsIChatClient(model)`. OpenAI's Chat
-Completions client, `GetChatClient(model).AsIChatClient()`, and Anthropic's default `client.AsIChatClient(model)`
-drop the tool without an error, so the model never sees the server's tools.
+The `IChatClient` that serves the run has to send the server to the provider, and only a client of an API that
+connects MCP servers itself does. With Microsoft.Extensions.AI.OpenAI 10.10.0 and Anthropic 12.55.0, two clients
+send it: OpenAI's Responses client, shown below, and Anthropic's beta client, `client.Beta.AsIChatClient(model)`.
+OpenAI's Chat Completions client, `GetChatClient(model).AsIChatClient()`, and Anthropic's default
+`client.AsIChatClient(model)` drop the tool without an error, so the model never sees the server's tools.
 :::
 
 <!-- snippet: openai-responses-client -->
