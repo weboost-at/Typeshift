@@ -47,7 +47,7 @@ internal static class AgentParser
             reporter.Report(Descriptors.Unreachable, agent.Locations.FirstOrDefault(), agent.Name, unreachable);
 
         // A class cannot hold a member of its own name, so the agent's name is none of the generated ones either
-        ISymbol? clash = Members.Contains(agent.Name)
+        var clash = Members.Contains(agent.Name)
             ? agent
             : Members.SelectMany(name => agent.GetMembers(name)).FirstOrDefault(IsUsers);
 

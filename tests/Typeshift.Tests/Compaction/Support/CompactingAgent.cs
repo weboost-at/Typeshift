@@ -27,10 +27,7 @@ public partial class ReadingToolset : Toolset
 // A to-do tool of the app's own, whose latest call compaction keeps by its name
 public partial class PlanningToolset : Toolset
 {
-    public PlanningToolset()
-    {
-        AddTool(WriteTodos);
-    }
+    public PlanningToolset() => AddTool(WriteTodos);
 
     /// <summary>
     /// Replaces the to-do list.

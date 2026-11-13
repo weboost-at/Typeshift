@@ -108,7 +108,7 @@ public class DecisionDocumentJsonTests : UnitTestBase
     {
         // Arrange
         var call = Data.Decisions.Document.Batch!.Calls[0];
-        Decision decision = call.ToDecision(Data.Decisions.Document.Batch)!;
+        var decision = call.ToDecision(Data.Decisions.Document.Batch)!;
 
         // Act
         var json = JsonDocument.Parse(JsonSerializer.Serialize(decision)).RootElement;
@@ -124,7 +124,7 @@ public class DecisionDocumentJsonTests : UnitTestBase
     public void Given_The_Json_Of_A_Decision_System_Text_Json_Reads_It_Back_As_Its_Kind()
     {
         // Arrange
-        Decision decision = Data.Decisions.Document.Batch!.Calls[1].ToDecision(Data.Decisions.Document.Batch)!;
+        var decision = Data.Decisions.Document.Batch!.Calls[1].ToDecision(Data.Decisions.Document.Batch)!;
         var json = JsonSerializer.Serialize(decision);
 
         // Act

@@ -17,22 +17,39 @@ trim_trailing_whitespace = false
 [*.cs]
 max_line_length = 120
 
+# The build runs these rules (EnforceCodeStyleInBuild): a warning fails it, a suggestion is for the editor and review
 csharp_style_namespace_declarations = file_scoped:warning
-csharp_style_var_for_built_in_types = true:suggestion
-csharp_style_var_when_type_is_apparent = true:suggestion
-csharp_style_var_elsewhere = true:suggestion
-csharp_style_expression_bodied_methods = when_on_single_line:suggestion
-csharp_style_expression_bodied_properties = true:suggestion
-csharp_style_pattern_matching_over_as_with_null_check = true:suggestion
-csharp_style_prefer_switch_expression = true:suggestion
+csharp_style_var_for_built_in_types = true:warning
+csharp_style_var_when_type_is_apparent = true:warning
+csharp_style_var_elsewhere = true:warning
+csharp_style_expression_bodied_methods = when_on_single_line:warning
+csharp_style_expression_bodied_properties = true:warning
+csharp_style_expression_bodied_constructors = when_on_single_line:warning
+csharp_style_expression_bodied_operators = when_on_single_line:warning
+csharp_style_expression_bodied_indexers = true:warning
+csharp_style_expression_bodied_accessors = true:warning
+csharp_style_pattern_matching_over_as_with_null_check = true:warning
+csharp_style_prefer_switch_expression = true:warning
 csharp_style_prefer_primary_constructors = true:suggestion
 csharp_prefer_braces = when_multiline:suggestion
 csharp_new_line_before_open_brace = all
 dotnet_style_collection_initializer = true:suggestion
-dotnet_style_prefer_collection_expression = when_types_loosely_match:suggestion
+dotnet_style_prefer_collection_expression = when_types_loosely_match:warning
 dotnet_style_qualification_for_field = false:suggestion
 dotnet_style_qualification_for_property = false:suggestion
 dotnet_style_qualification_for_method = false:suggestion
+
+# Formatting as `dotnet format whitespace` writes it
+dotnet_diagnostic.IDE0055.severity = warning
+
+# Its fix writes [with(comparer)] for a set with a comparer and [] for an object that happens to be a collection
+dotnet_diagnostic.IDE0028.severity = suggestion
+
+# A docs sample is laid out for the page that shows it: the markers of a snippet need a block around one statement,
+# and a #pragma inside a snippet keeps the snippet's indentation
+[samples/**.cs]
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+dotnet_diagnostic.IDE0055.severity = suggestion
 
 # The generator's output must not depend on the build machine's culture
 [src/Typeshift.Generators/**.cs]

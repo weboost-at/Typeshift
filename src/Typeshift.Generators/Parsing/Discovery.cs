@@ -46,11 +46,8 @@ internal static class Discovery
     // D55: the module registers the docs Weboost.SchemaAnnotations collects for a marked class, which gets a Source
     // only when it is partial and not generic
     public static string? ClassifySchemaAnnotations(GeneratorAttributeSyntaxContext context, CancellationToken ct) =>
-        context is
-            {
-                TargetNode: ClassDeclarationSyntax declaration,
-                TargetSymbol: INamedTypeSymbol { IsGenericType: false } type
-            }
+        context.TargetNode is ClassDeclarationSyntax declaration
+        && context.TargetSymbol is INamedTypeSymbol { IsGenericType: false } type
         && declaration.Modifiers.Any(SyntaxKind.PartialKeyword)
         && type.IsVisibleInAssembly()
             ? type.ToTypeOf()
@@ -65,13 +62,9 @@ internal static class Discovery
     private static INamedTypeSymbol? GetDeclared(GeneratorSyntaxContext context, string baseType, CancellationToken ct)
     {
         var declaration = (ClassDeclarationSyntax)context.Node;
+        var type = context.SemanticModel.GetDeclaredSymbol(declaration, ct);
 
-        return context.SemanticModel.GetDeclaredSymbol(declaration, ct) is
-            {
-                IsAbstract: false,
-                IsGenericType: false,
-                BaseType: var direct
-            } type
+        return type is { IsAbstract: false, IsGenericType: false, BaseType: var direct }
             && direct.Is(baseType)
             && IsFirstDeclarationWithBase(type, declaration, baseType.Substring(baseType.LastIndexOf('.') + 1), ct)
                 ? type

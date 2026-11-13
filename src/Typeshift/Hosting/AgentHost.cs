@@ -177,7 +177,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         var loggers = _services.GetService<ILoggerFactory>();
 
         var gate = new ToolGate(
-            _services.GetServices<IToolMiddleware>().ToList(),
+            [.. _services.GetServices<IToolMiddleware>()],
             (loggers ?? NullLoggerFactory.Instance).CreateLogger<ToolGate>());
 
         var mode = new ModeChatClient(Loop(run.MaxToolIterations), Loop);

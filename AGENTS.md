@@ -177,6 +177,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `Repository/DecisionCitationTests` (generator tests) | Every decision a comment cites, wherever it stands in the comment, is in force: in the code, the project and build files, the workflows and the hooks. Markdown cites in prose, which this test does not read. |
 | `Repository/SourceConventionTests` (generator tests) | The code style rules a check can decide, read from the syntax tree of `src`, `samples` and `tests`: no comparison with `null` by `==`, `!=` or `ReferenceEquals`, no `this` parameter, no `TODO`, `FIXME` or `HACK` in a comment and no `NotImplementedException`, no clock in the code the generator writes, every line within 120 columns, no decision number and no trailing "say" in XML docs. |
 | RS0030 as an error (`BannedSymbols.txt`, `Directory.Build.props`) | No code of `src`, `samples` and `tests` reads or waits on the real clock, whatever its spelling, generated code included. `BannedSymbols.Library.txt` adds `TimeProvider.System` for `src` and `tests`. |
+| The build: `EnforceCodeStyleInBuild` with the warnings of `.editorconfig` | In `src` and `tests`: file-scoped namespaces (IDE0161), `var` (IDE0007), expression bodies for members of one line (IDE0021 to IDE0027), a `switch` expression for a `switch` statement (IDE0066), a pattern for `as` with a null check (IDE0019), collection expressions (IDE0300 to IDE0306), and the layout `dotnet format whitespace` writes (IDE0055). A sample holds all but the last and the expression body of a method. |
 | CI: `dotnet slopwatch analyze --fail-on warning` | No test switched off (SW001), no empty catch (SW003), no delay in a test (SW004), no warning switched off in a project file (SW005), no package version beside the central file (SW006). `.slopwatch/baseline.json` stays empty, and a `slopwatch-ignore` comment carries its reason. |
 | `Repository/BuildFileTests` (generator tests) | Workflows and hooks install the SDK `global.json` asks for and name no version of their own. |
 | `Repository/SnapshotFileTests` (generator tests) | Every verified snapshot belongs to a test. |
@@ -241,9 +242,12 @@ The code must read as if the owner wrote it: terse, intention-revealing, comment
 - No reflection over user types on generated paths, no static mutable state, JSON through `JsonTypeInfo` only.
 - Every line of C# fits 120 columns.
 
-The guard table lists what a check enforces. The rest is review-only: sealing, expression bodies, braceless guards,
-switch expressions, naming (`On...`, `Get...`, `ct`), the layout of chains and initializers, trailing commas, docs
-on private and internal members, dead code and duplicated helpers, static mutable state, and the commit format.
+The guard table lists what a check enforces; the build names such a break by its rule, `IDE0055: Fix formatting`
+for example, and `dotnet format Typeshift.slnx --include <file>` writes most fixes. The rest is review-only: sealing,
+braceless guards, a switch expression for an `if`/`else` chain, named arguments, naming (`On...`, `Get...`, `ct`),
+the layout of chains and initializers, trailing commas, what a comment says and how long it is, docs on private and
+internal members, guards for what cannot occur, dead code and duplicated helpers, reflection and static mutable
+state, and the commit format.
 
 ## Generator rules
 
