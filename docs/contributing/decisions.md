@@ -967,7 +967,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - **Status:** owner.
 - **Context:** what a run asks your app (an approval, a plan) becomes a record with a state, in one document per
-  conversation, which answering and carrying out change by compare-and-set. The document needs a home with a
+  conversation, which answering and carrying out change by compare-and-set (D80). The document needs a home with a
   version check, and losing it loses the answer to "did this approved call start".
 - **Decision:** `IDecisionStore<TId>`: `LoadDecisionsAsync(conversation)` and
   `SaveDecisionsAsync(conversation, json, loadedVersion)`, one JSON document per conversation, versioned exactly as a
@@ -1379,6 +1379,39 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   would have to keep.
 
 ## Repository
+
+### D80. Decisions are records in a document per conversation
+
+- **Status:** owner.
+- **Context:** the owner asked for "a proper decision system ... like a proper user Q&A tool". What a run asked your
+  app was Microsoft.Extensions.AI's approval contents inside the conversation's history, and whether a request was
+  open, answered or carried out was worked out by scanning messages, in six files (D24, D60). Where two of those
+  scans disagreed, an approved call ran twice, and calls ran after the user had sent something else.
+- **Decision:** a decision is a stored record with an id and a state: an `ApprovalDecision` for a call of a tool that
+  requires approval, a `PlanDecision` for `exit_plan_mode`. A conversation has one decisions document (D79): at most
+  one batch, the tools approved for the conversation, and the ids of the last batch's decisions with why they
+  closed. A batch holds every call of one model response of which at least one waits for your app: with an ask for
+  a call that waits, with a rejection for a call a rule rejected, bare for a call that runs with the batch. It
+  repeats each call's name and arguments, so the decisions are listed and the calls replayed from the document
+  alone. An answer (`DecisionAnswer`) names its decision by id. The same answer again changes nothing; another
+  answer, or one to a decision that is not open, throws `DecisionClosedException` and records nothing of its call;
+  one that does not fit its decision throws `ArgumentException`.
+- **Details:** a batch is `open` until its last answer, then `answered`, then `started` once a run begins to carry
+  the answers out, then gone and remembered as answered. `started` is the commit point: from it on every call the
+  batch would run counts as started, so no later run starts one again. An open batch that new input passes by is
+  `expired`, then gone and remembered as expired. Standing approvals join the document when their batch starts,
+  never when they are recorded, so an answer that expires grants nothing. `DecisionLedger` is the only code that
+  loads and saves the document. Each change is a compare-and-set on the version it loaded; after a lost save it
+  loads again and checks its precondition on what the winner wrote, at most ten times. Ids are version 7 GUIDs made
+  when the run asks, never from the model's call ids, which a provider may reuse (D59). `Decision` reads and writes
+  its own JSON (D44), and `DecisionAnswer` binds from the JSON a page posts.
+- **Where:** `Decisions/Decision.cs`, `Decisions/DecisionDocument.cs`, `Decisions/DecisionLedger.cs`,
+  `Decisions/DecisionClosedException.cs`.
+- **Alternatives:** Microsoft.Extensions.AI's contents in the history with one function that decides which are live,
+  which leaves the state derived and the request ids made of call ids; `started` marked per call, a write before
+  each call and a lock around concurrent ones, which the document's shape still allows later; answers all at once
+  or an exception, which one button per prompt and two tabs cannot give; timeouts, which need a timer the library
+  does not run, where `AskedAt` lets your app withdraw what is old.
 
 ### D48. Carried as they were
 

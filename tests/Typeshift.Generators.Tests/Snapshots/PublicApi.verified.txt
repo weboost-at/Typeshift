@@ -64,6 +64,21 @@ public enum Typeshift.ApprovalClosedReason
 Typeshift.ApprovalClosedReason.Answered = 0
 Typeshift.ApprovalClosedReason.PassedBy = 1
 Typeshift.ApprovalClosedReason.Unknown = 2
+public sealed record Typeshift.ApprovalDecision : Typeshift.Decision, Typeshift.Generated.IJsonStorable<Typeshift.ApprovalDecision>, System.IEquatable<Typeshift.ApprovalDecision>
+public Typeshift.DecisionAnswer Typeshift.ApprovalDecision.Approve()
+public Typeshift.DecisionAnswer Typeshift.ApprovalDecision.ApproveForConversation()
+public System.Text.Json.JsonElement Typeshift.ApprovalDecision.Arguments { get; }
+protected override System.Type Typeshift.ApprovalDecision.EqualityContract { get; }
+public bool Typeshift.ApprovalDecision.Equals(Typeshift.ApprovalDecision? other)
+public override sealed bool Typeshift.ApprovalDecision.Equals(Typeshift.Decision? other)
+public override bool Typeshift.ApprovalDecision.Equals(object? obj)
+public override int Typeshift.ApprovalDecision.GetHashCode()
+protected override bool Typeshift.ApprovalDecision.PrintMembers(System.Text.StringBuilder builder)
+public string? Typeshift.ApprovalDecision.Server { get; }
+public override string Typeshift.ApprovalDecision.ToString()
+public string Typeshift.ApprovalDecision.Tool { get; }
+public static bool Typeshift.ApprovalDecision.operator !=(Typeshift.ApprovalDecision? left, Typeshift.ApprovalDecision? right)
+public static bool Typeshift.ApprovalDecision.operator ==(Typeshift.ApprovalDecision? left, Typeshift.ApprovalDecision? right)
 public sealed class Typeshift.ChatOptionsBuilder
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.Configurable<TOption>(System.Func<Microsoft.Extensions.AI.ChatOptions, TOption> option)
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithAdditionalProperty<TValue>(string key, TValue value)
@@ -92,6 +107,18 @@ public Microsoft.Extensions.AI.ToolApprovalResponseContent Typeshift.ChatRespons
 public static System.Collections.Generic.IReadOnlyList<Microsoft.Extensions.AI.ToolApprovalRequestContent> Typeshift.ChatResponseExtensions.get_ApprovalRequests(Microsoft.Extensions.AI.ChatResponse response)
 public sealed class Typeshift.ConfigurableSettingsBuilder<TSettings> where TSettings : class, new()
 public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ConfigurableSettingsBuilder<TSettings>.NotConfigurable<TMember>(System.Func<TSettings, TMember> member)
+public sealed record Typeshift.ConversationDecisions : System.IEquatable<Typeshift.ConversationDecisions>
+public bool Typeshift.ConversationDecisions.CanResume { get; init; }
+public Typeshift.ConversationDecisions.ConversationDecisions(System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Open, bool CanResume, System.Collections.Generic.IReadOnlyList<Typeshift.StandingApproval> Standing)
+public void Typeshift.ConversationDecisions.Deconstruct(out System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Open, out bool CanResume, out System.Collections.Generic.IReadOnlyList<Typeshift.StandingApproval> Standing)
+public bool Typeshift.ConversationDecisions.Equals(Typeshift.ConversationDecisions? other)
+public override bool Typeshift.ConversationDecisions.Equals(object? obj)
+public override int Typeshift.ConversationDecisions.GetHashCode()
+public System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ConversationDecisions.Open { get; init; }
+public System.Collections.Generic.IReadOnlyList<Typeshift.StandingApproval> Typeshift.ConversationDecisions.Standing { get; init; }
+public override string Typeshift.ConversationDecisions.ToString()
+public static bool Typeshift.ConversationDecisions.operator !=(Typeshift.ConversationDecisions? left, Typeshift.ConversationDecisions? right)
+public static bool Typeshift.ConversationDecisions.operator ==(Typeshift.ConversationDecisions? left, Typeshift.ConversationDecisions? right)
 public static class Typeshift.ConversationEntries
 public static System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry> Typeshift.ConversationEntries.SinceLastSummary(System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry> entries)
 public static Typeshift.ConversationEntries.extension(System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry>)
@@ -126,6 +153,48 @@ public System.Collections.Generic.IReadOnlyList<Typeshift.LiveRun<TId>> Typeshif
 public bool Typeshift.ConversationTracker<TId>.TrySteer(TId conversation, string input)
 public System.Collections.Generic.IAsyncEnumerable<Microsoft.Extensions.AI.ChatResponseUpdate> Typeshift.ConversationTracker<TId>.WatchAsync(TId conversation, System.Threading.CancellationToken ct)
 public System.Collections.Generic.IAsyncEnumerable<Typeshift.LiveRun<TId>> Typeshift.ConversationTracker<TId>.WatchRunsAsync(System.Threading.CancellationToken ct)
+public abstract record Typeshift.Decision : Typeshift.Generated.IJsonStorable<Typeshift.Decision>, System.IEquatable<Typeshift.Decision>
+public string Typeshift.Decision.Agent { get; }
+public System.DateTimeOffset Typeshift.Decision.AskedAt { get; }
+protected Typeshift.Decision.Decision(Typeshift.Decision original)
+protected virtual System.Type Typeshift.Decision.EqualityContract { get; }
+public virtual bool Typeshift.Decision.Equals(Typeshift.Decision? other)
+public override bool Typeshift.Decision.Equals(object? obj)
+public override int Typeshift.Decision.GetHashCode()
+public string Typeshift.Decision.Id { get; }
+protected virtual bool Typeshift.Decision.PrintMembers(System.Text.StringBuilder builder)
+public Typeshift.DecisionAnswer Typeshift.Decision.Reject(string? reason = null)
+public override string Typeshift.Decision.ToString()
+public static bool Typeshift.Decision.operator !=(Typeshift.Decision? left, Typeshift.Decision? right)
+public static bool Typeshift.Decision.operator ==(Typeshift.Decision? left, Typeshift.Decision? right)
+public sealed record Typeshift.DecisionAnswer : System.IEquatable<Typeshift.DecisionAnswer>
+public static Typeshift.DecisionAnswer Typeshift.DecisionAnswer.Approve(string decisionId)
+public static Typeshift.DecisionAnswer Typeshift.DecisionAnswer.ApproveForConversation(string decisionId)
+public static Typeshift.DecisionAnswer Typeshift.DecisionAnswer.ApprovePlan(string decisionId, Typeshift.AgentMode mode)
+public bool Typeshift.DecisionAnswer.Approved { get; init; }
+public Typeshift.DecisionAnswer.DecisionAnswer(string DecisionId)
+public string Typeshift.DecisionAnswer.DecisionId { get; init; }
+public void Typeshift.DecisionAnswer.Deconstruct(out string DecisionId)
+public bool Typeshift.DecisionAnswer.Equals(Typeshift.DecisionAnswer? other)
+public override bool Typeshift.DecisionAnswer.Equals(object? obj)
+public bool Typeshift.DecisionAnswer.ForConversation { get; init; }
+public override int Typeshift.DecisionAnswer.GetHashCode()
+public Typeshift.AgentMode? Typeshift.DecisionAnswer.Mode { get; init; }
+public string? Typeshift.DecisionAnswer.Reason { get; init; }
+public static Typeshift.DecisionAnswer Typeshift.DecisionAnswer.Reject(string decisionId, string? reason = null)
+public override string Typeshift.DecisionAnswer.ToString()
+public static bool Typeshift.DecisionAnswer.operator !=(Typeshift.DecisionAnswer? left, Typeshift.DecisionAnswer? right)
+public static bool Typeshift.DecisionAnswer.operator ==(Typeshift.DecisionAnswer? left, Typeshift.DecisionAnswer? right)
+public sealed class Typeshift.DecisionClosedException : System.InvalidOperationException
+public Typeshift.DecisionClosedException.DecisionClosedException(string message, System.Collections.Generic.IReadOnlyDictionary<string, Typeshift.DecisionClosedReason> decisions)
+public System.Collections.Generic.IReadOnlyDictionary<string, Typeshift.DecisionClosedReason> Typeshift.DecisionClosedException.Decisions { get; }
+public enum Typeshift.DecisionClosedReason
+Typeshift.DecisionClosedReason.Answered = 0
+Typeshift.DecisionClosedReason.Expired = 1
+Typeshift.DecisionClosedReason.Unknown = 2
+public sealed class Typeshift.DecisionUnavailableException : System.InvalidOperationException
+public Typeshift.DecisionUnavailableException.DecisionUnavailableException(string message, System.Collections.Generic.IReadOnlyList<string> tools)
+public System.Collections.Generic.IReadOnlyList<string> Typeshift.DecisionUnavailableException.Tools { get; }
 public sealed record Typeshift.FileStoreOptions : System.IEquatable<Typeshift.FileStoreOptions>
 public bool Typeshift.FileStoreOptions.Equals(Typeshift.FileStoreOptions? other)
 public override bool Typeshift.FileStoreOptions.Equals(object? obj)
@@ -318,6 +387,18 @@ public static bool Typeshift.LiveRun<TId>.operator ==(Typeshift.LiveRun<TId>? le
 public sealed class Typeshift.McpServerUse
 public Typeshift.McpServerUse Typeshift.McpServerUse.ReadOnly()
 public Typeshift.McpServerUse Typeshift.McpServerUse.RequiresApproval()
+public sealed record Typeshift.PlanDecision : Typeshift.Decision, Typeshift.Generated.IJsonStorable<Typeshift.PlanDecision>, System.IEquatable<Typeshift.PlanDecision>
+public Typeshift.DecisionAnswer Typeshift.PlanDecision.Approve(Typeshift.AgentMode mode)
+protected override System.Type Typeshift.PlanDecision.EqualityContract { get; }
+public override sealed bool Typeshift.PlanDecision.Equals(Typeshift.Decision? other)
+public bool Typeshift.PlanDecision.Equals(Typeshift.PlanDecision? other)
+public override bool Typeshift.PlanDecision.Equals(object? obj)
+public override int Typeshift.PlanDecision.GetHashCode()
+public string Typeshift.PlanDecision.Plan { get; }
+protected override bool Typeshift.PlanDecision.PrintMembers(System.Text.StringBuilder builder)
+public override string Typeshift.PlanDecision.ToString()
+public static bool Typeshift.PlanDecision.operator !=(Typeshift.PlanDecision? left, Typeshift.PlanDecision? right)
+public static bool Typeshift.PlanDecision.operator ==(Typeshift.PlanDecision? left, Typeshift.PlanDecision? right)
 public sealed record Typeshift.RealtimeTrackingOptions : System.IEquatable<Typeshift.RealtimeTrackingOptions>
 public bool Typeshift.RealtimeTrackingOptions.Equals(Typeshift.RealtimeTrackingOptions? other)
 public override bool Typeshift.RealtimeTrackingOptions.Equals(object? obj)
@@ -364,6 +445,18 @@ public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithMaxToolIterat
 public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithMode(Typeshift.AgentMode mode)
 public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithSummaryModel(string model)
 public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithTargetInputTokens(int tokens)
+public sealed record Typeshift.StandingApproval : System.IEquatable<Typeshift.StandingApproval>
+public void Typeshift.StandingApproval.Deconstruct(out string Tool, out string? Server, out System.DateTimeOffset GrantedAt)
+public bool Typeshift.StandingApproval.Equals(Typeshift.StandingApproval? other)
+public override bool Typeshift.StandingApproval.Equals(object? obj)
+public override int Typeshift.StandingApproval.GetHashCode()
+public System.DateTimeOffset Typeshift.StandingApproval.GrantedAt { get; init; }
+public string? Typeshift.StandingApproval.Server { get; init; }
+public Typeshift.StandingApproval.StandingApproval(string Tool, string? Server, System.DateTimeOffset GrantedAt)
+public override string Typeshift.StandingApproval.ToString()
+public string Typeshift.StandingApproval.Tool { get; init; }
+public static bool Typeshift.StandingApproval.operator !=(Typeshift.StandingApproval? left, Typeshift.StandingApproval? right)
+public static bool Typeshift.StandingApproval.operator ==(Typeshift.StandingApproval? left, Typeshift.StandingApproval? right)
 public sealed class Typeshift.StoreConflictException : System.Exception
 public Typeshift.StoreConflictException.StoreConflictException(string message, System.Exception? inner = null)
 public static class Typeshift.StoreExtensions
