@@ -5,8 +5,8 @@ description: Offer the tools of MCP servers to an agent, connected by your app's
 
 # MCP servers
 
-An agent can offer an MCP server's tools next to its toolsets. Typeshift takes no MCP dependency, so you pick the
-client.
+An agent can offer the tools of a [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server next to its
+toolsets. Typeshift takes no MCP dependency, so you pick the client.
 
 ## Servers your app connects
 
@@ -23,22 +23,33 @@ UseMcpServer("status_page")
 <!-- endSnippet -->
 
 Your app connects the server by implementing `IMcpToolProvider`. Its `GetToolsAsync` receives the name and returns
-that server's tools. This provider uses the official `ModelContextProtocol.Core` client and builds the server's URL
-from the name:
+that server's tools. The provider below uses the official client, so add its package first:
+
+```bash
+dotnet add package ModelContextProtocol.Core
+```
+
+`McpClient` and `HttpClientTransport` are in the namespace `ModelContextProtocol.Client`. The provider builds the
+server's URL from the name:
 
 <!-- snippet: mcp-tool-provider -->
 <a id='snippet-mcp-tool-provider'></a>
 ```cs
 internal sealed class McpToolProvider : IMcpToolProvider, IAsyncDisposable
 {
-    private readonly Dictionary<string, McpClient> _clients = [];
+    private readonly ConcurrentDictionary<string, McpClient> _clients = [];
 
     public async ValueTask<IReadOnlyList<AITool>> GetToolsAsync(string server, CancellationToken ct)
     {
         if (!_clients.TryGetValue(server, out var client))
         {
             var transport = new HttpClientTransport(new() { Endpoint = new Uri($"https://mcp.example.com/{server}") });
-            _clients[server] = client = await McpClient.CreateAsync(transport, cancellationToken: ct);
+            var connected = await McpClient.CreateAsync(transport, cancellationToken: ct);
+
+            // Two sub-agents may connect a server at the same time: the first connection stays, the other closes
+            client = _clients.GetOrAdd(server, connected);
+
+            if (client != connected) await connected.DisposeAsync();
         }
 
         return [.. await client.ListToolsAsync(cancellationToken: ct)];
@@ -54,7 +65,7 @@ internal sealed class McpToolProvider : IMcpToolProvider, IAsyncDisposable
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/McpToolProvider.cs#L6-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-mcp-tool-provider' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/McpToolProvider.cs#L7-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-mcp-tool-provider' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Registering the provider
@@ -73,6 +84,17 @@ services.AddTypeshift()
 The provider is scoped, and Typeshift resolves it from the run's services, so each scope, such as a web request, gets
 its own. That lets it connect each customer with their own credentials. When the scope ends, it disposes the provider
 along with its connections, so the provider above opens one connection per server for each scope.
+
+Typeshift calls `GetToolsAsync` for each server of an agent whenever it resolves that agent's options. That happens
+once for every run, which includes each call of the agent as a [sub-agent](./multi-agent.md#sub-agents) and each run
+it answers after a [handoff](./multi-agent.md#handoff), and once for every `ResolveOptionsAsync` of the
+[raw path](./running-agents.md#the-raw-path). With the provider above, a web request therefore connects the server
+and lists its tools before its first call to the model. For a server that every customer reaches with the same
+credentials, keep the connection or the tool list in a singleton service that your provider reads, so that only the
+first request pays for it.
+
+Sub-agents that work at the same time share their caller's scope, and with it the provider, so two calls of
+`GetToolsAsync` can overlap. The provider above keeps its clients in a `ConcurrentDictionary` for that reason.
 
 ## How the agent offers the tools
 
