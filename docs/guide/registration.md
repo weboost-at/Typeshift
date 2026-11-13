@@ -26,99 +26,6 @@ While the SDK passes the package on, a project that references yours gets the pa
 the generator. Its XML docs are turned on and CS1591 is hidden, unless it sets `GenerateDocumentationFile` itself, and
 with XML docs on it gets a [registration module](#what-addtypeshift-registers) of its own.
 
-## XML docs of parameter types
-
-The package brings [Weboost.SchemaAnnotations](https://github.com/weboost-at/SchemaAnnotations), which turns the XML
-docs of your types into descriptions of their properties, in the schemas of a tool's parameters and of the answer
-`RunAsync<T>` and `RunStreamingAsync<T>` ask for. Typeshift adds a hidden class to every project with
-`GenerateDocumentationFile` on, as it is unless the project turns it off. Weboost.SchemaAnnotations collects the
-project's XML docs in that class, and the project's [registration module](#what-addtypeshift-registers) registers them
-when `AddTypeshift()` runs. A project of contracts with no toolsets or agents gets a module too, so the tools of the
-projects that reference it describe its types; it needs the package like any other.
-
-Weboost.SchemaAnnotations collects the docs of every documented type and property of the project, internal ones
-included, whether a tool takes the type or not. Their text is compiled into the project's assembly, which grows by
-it, and whoever has the assembly can read it. To leave these descriptions out, set:
-
-```xml
-<TypeshiftSchemaAnnotations>false</TypeshiftSchemaAnnotations>
-```
-
-::: warning A documented `[Obsolete]` or `[Experimental]` type fails the build
-The collected docs name each documented type in a generated file under `obj`. For a type marked `[Obsolete]` that is
-the warning CS0618, an error in a build that treats warnings as errors. For a type marked `[Experimental]` it is an
-error under the type's own diagnostic ID, in any build. No `#pragma` of yours reaches the generated file. Until
-Weboost.SchemaAnnotations handles such types, set `TypeshiftSchemaAnnotations` to `false` in that project, or remove
-the type's XML docs. An obsolete member of a type that is not obsolete itself is fine.
-:::
-
-::: warning Delete your own `[SchemaAnnotations]` class
-If your project already marks a class with `[SchemaAnnotations]`, adding the Typeshift package gives it a second one.
-Weboost.SchemaAnnotations then generates no `AIJsonSchemaCreateOptions.Annotated`, and code that uses it stops
-compiling. Delete your own class, and the one the package adds brings `Annotated` back.
-:::
-
-## Ids
-
-Your app keeps settings and conversations under ids it already has, such as a customer's id or the key of a chat.
-You give them to a host in code, with `support.WithSettingsId(42)` and `support.WithConversationId(chat)`, and the
-id's type picks the store of that type, so one app can keep settings under `int` ids and conversations under `Guid`
-ids ([Ids of your own types](./settings-and-stores.md#ids-of-your-own-types)).
-Typeshift creates an id only when you keep every conversation, for a conversation a run starts without one
-([Keeping every conversation](./conversations.md#keeping-every-conversation)).
-
-Providers have an id type of their own, which each agent takes from the provider its `WithModel` names: `string`
-for `WithModel("openai", "gpt-5-mini")`, or an enum of yours. See
-[the provider id type](./models.md#the-provider-id-type).
-
-## The runtime
-
-`TypeshiftRuntime` is the root of Typeshift in your app. It gives you the host of every agent of your project and of
-the projects it references. Each host it gives you is one unit of work, such as a job, with scoped services of its
-own.
-
-A console tool or a script without a container of its own creates the runtime, and one chat client serves all its
-runs:
-
-<!-- snippet: typeshift-runtime -->
-<a id='snippet-typeshift-runtime'></a>
-```cs
-await using var runtime = TypeshiftRuntime.Create(client);
-await using var research = runtime.Agent<ResearchAgent>();
-
-var answer = await research.RunAsync("Vienna");
-
-Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/NoContainer.cs#L11-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-typeshift-runtime' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
-
-- `TypeshiftRuntime.Create(client, typeshift => typeshift.WithStore<MyStore>())` takes the rest of the chain, as
-  `AddTypeshift()` does. The generator intercepts the call, so write it as `TypeshiftRuntime.Create(...)`: a call
-  through `using static` or a method group is not intercepted and throws.
-- Create the runtime once and keep it while your app runs. Disposing it disposes its singletons, such as your
-  store, but not the client. A host's scoped services are disposed only with the host, so dispose each host as well.
-- An app whose tools or stores need services of its own calls `services.AddTypeshift()` instead, so it can register
-  them.
-
-An app with a container gets the runtime from `services.AddTypeshift()`, which registers it as a singleton. Inject it
-where no request's scope is at hand, such as in a background service, and take a host from it for each job, as
-[Run from a background job](./using-an-agent.md#run-from-a-background-job) shows. Your container owns that runtime,
-so disposing it does nothing. A request injects the host itself, from the request's scope
-([Using an agent](./using-an-agent.md)).
-
-`runtime.Services` holds the root services, for singletons such as a `ConversationTracker<TId>`. Scoped services are
-not among them, since each lives in a scope, such as the one a host has.
-
-::: warning Dispose every host the runtime gives you
-`runtime.Agent<TAgent>()` creates a scope for the host. The services the chain registers as scoped, such as the
-`WithChatClientProvider<T>()` provider, approval rules, middleware and the MCP tool provider, and the scoped services
-your tools resolve, are created in it. Every run of that host shares them, and no other host sees them. Disposing the
-host disposes the scope and its services, so write `await using`, and let every run and stream of the host finish
-first: a stream read after its host was disposed throws an `ObjectDisposedException`. A host injected from a
-request's scope owns nothing, and disposing it leaves the request's services alone.
-:::
-
 ## What `AddTypeshift()` registers
 
 A typical registration, with the chain:
@@ -186,6 +93,99 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 
 Scoped services resolve from the run's scope, so they can differ per request and use the current customer's
 credentials, folder or rules, for example.
+
+## Ids
+
+Your app keeps settings and conversations under ids it already has, such as a customer's id or the key of a chat.
+You give them to a host in code, with `support.WithSettingsId(42)` and `support.WithConversationId(chat)`, and the
+id's type picks the store of that type, so one app can keep settings under `int` ids and conversations under `Guid`
+ids ([Ids of your own types](./settings-and-stores.md#ids-of-your-own-types)).
+Typeshift creates an id only when you keep every conversation, for a conversation a run starts without one
+([Keeping every conversation](./conversations.md#keeping-every-conversation)).
+
+Providers have an id type of their own, which each agent takes from the provider its `WithModel` names: `string`
+for `WithModel("openai", "gpt-5-mini")`, or an enum of yours. See
+[the provider id type](./models.md#the-provider-id-type).
+
+## The runtime
+
+`TypeshiftRuntime` is the root of Typeshift in your app. It gives you the host of every agent of your project and of
+the projects it references. Each host it gives you is one unit of work, such as a job, with scoped services of its
+own.
+
+A console tool or a script without a container of its own creates the runtime, and one chat client serves all its
+runs:
+
+<!-- snippet: typeshift-runtime -->
+<a id='snippet-typeshift-runtime'></a>
+```cs
+await using var runtime = TypeshiftRuntime.Create(client);
+await using var research = runtime.Agent<ResearchAgent>();
+
+var answer = await research.RunAsync("Vienna");
+
+Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/NoContainer.cs#L11-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-typeshift-runtime' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- `TypeshiftRuntime.Create(client, typeshift => typeshift.WithStore<MyStore>())` takes the rest of the chain, as
+  `AddTypeshift()` does. The generator intercepts the call, so write it as `TypeshiftRuntime.Create(...)`: a call
+  through `using static` or a method group is not intercepted and throws.
+- Create the runtime once and keep it while your app runs. Disposing it disposes its singletons, such as your
+  store, but not the client. A host's scoped services are disposed only with the host, so dispose each host as well.
+- An app whose tools or stores need services of its own calls `services.AddTypeshift()` instead, so it can register
+  them.
+
+An app with a container gets the runtime from `services.AddTypeshift()`, which registers it as a singleton. Inject it
+where no request's scope is at hand, such as in a background service, and take a host from it for each job, as
+[Run from a background job](./using-an-agent.md#run-from-a-background-job) shows. Your container owns that runtime,
+so disposing it does nothing. A request injects the host itself, from the request's scope
+([Using an agent](./using-an-agent.md)).
+
+`runtime.Services` holds the root services, for singletons such as a `ConversationTracker<TId>`. Scoped services are
+not among them, since each lives in a scope, such as the one a host has.
+
+::: warning Dispose every host the runtime gives you
+`runtime.Agent<TAgent>()` creates a scope for the host. The services the chain registers as scoped, such as the
+`WithChatClientProvider<T>()` provider, approval rules, middleware and the MCP tool provider, and the scoped services
+your tools resolve, are created in it. Every run of that host shares them, and no other host sees them. Disposing the
+host disposes the scope and its services, so write `await using`, and let every run and stream of the host finish
+first: a stream read after its host was disposed throws an `ObjectDisposedException`. A host injected from a
+request's scope owns nothing, and disposing it leaves the request's services alone.
+:::
+
+## XML docs of parameter types
+
+The package brings [Weboost.SchemaAnnotations](https://github.com/weboost-at/SchemaAnnotations), which turns the XML
+docs of your types into descriptions of their properties, in the schemas of a tool's parameters and of the answer
+`RunAsync<T>` and `RunStreamingAsync<T>` ask for. Typeshift adds a hidden class to every project with
+`GenerateDocumentationFile` on, as it is unless the project turns it off. Weboost.SchemaAnnotations collects the
+project's XML docs in that class, and the project's [registration module](#what-addtypeshift-registers) registers them
+when `AddTypeshift()` runs. A project of contracts with no toolsets or agents gets a module too, so the tools of the
+projects that reference it describe its types; it needs the package like any other.
+
+Weboost.SchemaAnnotations collects the docs of every documented type and property of the project, internal ones
+included, whether a tool takes the type or not. Their text is compiled into the project's assembly, which grows by
+it, and whoever has the assembly can read it. To leave these descriptions out, set:
+
+```xml
+<TypeshiftSchemaAnnotations>false</TypeshiftSchemaAnnotations>
+```
+
+::: warning A documented `[Obsolete]` or `[Experimental]` type fails the build
+The collected docs name each documented type in a generated file under `obj`. For a type marked `[Obsolete]` that is
+the warning CS0618, an error in a build that treats warnings as errors. For a type marked `[Experimental]` it is an
+error under the type's own diagnostic ID, in any build. No `#pragma` of yours reaches the generated file. Until
+Weboost.SchemaAnnotations handles such types, set `TypeshiftSchemaAnnotations` to `false` in that project, or remove
+the type's XML docs. An obsolete member of a type that is not obsolete itself is fine.
+:::
+
+::: warning Delete your own `[SchemaAnnotations]` class
+If your project already marks a class with `[SchemaAnnotations]`, adding the Typeshift package gives it a second one.
+Weboost.SchemaAnnotations then generates no `AIJsonSchemaCreateOptions.Annotated`, and code that uses it stops
+compiling. Delete your own class, and the one the package adds brings `Annotated` back.
+:::
 
 ## Related
 

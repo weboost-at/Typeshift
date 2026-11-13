@@ -24,8 +24,8 @@ const sidebar = {
       items: [
         { text: 'What is Typeshift?', link: '/guide/what-is-typeshift' },
         { text: 'Getting started', link: '/guide/getting-started' },
-        { text: 'Registration', link: '/guide/registration' },
-        { text: 'Using an agent', link: '/guide/using-an-agent' }
+        { text: 'Using an agent', link: '/guide/using-an-agent' },
+        { text: 'Registration', link: '/guide/registration' }
       ]
     },
     {
@@ -80,6 +80,7 @@ const sidebar = {
       collapsed: true,
       items: [
         { text: 'Builders', link: '/guide/builders' },
+        { text: 'The AddTypeshift() chain', link: '/guide/registration#the-chain' },
         { text: 'AgentHost and generated members', link: '/guide/generated-members' },
         { text: 'Diagnostics', link: '/guide/diagnostics' },
         { text: 'Glossary', link: '/guide/glossary' }
