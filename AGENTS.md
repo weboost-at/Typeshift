@@ -32,6 +32,8 @@ Each of these cost a debugging session once.
 - Generator models must stay equatable: no `ISymbol`, `SyntaxNode` or `Location` in them, or caching breaks.
 - The generator never reports; the analyzer does, with the same parsers (D2). A shape the parser rejects must be
   skipped by the generator, or generated code fails with a compiler error the user cannot read.
+- An exception in the generator drops every generated file of the project (CS8785), and code being typed is full of
+  symbols that invite one: `UseToolset<>()` names an error type, with no containing assembly and an empty name.
 - The analyzer sees the generated code too: a check for user members excludes generated trees (`Names.IsGenerated`).
 - `UseToolset<T>().Include(t => t.X)` cannot bind inside the generator's own compilation, since the generator writes
   `t.X`; the parser reads picks from syntax and the analyzer reports every other shape (D4).
@@ -167,7 +169,8 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `Repository/DecisionCitationTests` (generator tests) | Every `// Dnn:` in code names a decision in force. |
 | `Repository/SourceConventionTests` (generator tests) | The code style rules a pattern can check: no clock, no `== null`, no `this` parameters, no TODOs. |
 | `Diagnostics/DiagnosticCatalogTests` (generator tests) | Every released diagnostic has a docs row, a docs section and a test. |
-| `DiagnosticTests.Given_Any_Mistake_The_Generated_Code_Holds_No_Error` | No mistake ends in a compiler error inside generated code. |
+| `DiagnosticTests.Given_Any_Mistake_The_Generated_Code_Holds_No_Error`, `..._Given_Any_Shape_The_Generated_Code_Holds_No_Error` | No mistake (`DiagnosticSources`) and no accepted shape (`ShapeSources`) ends in a compiler error inside generated code, in a failed generator or in an analyzer that threw. |
+| `HalfTypedCodeTests.Given_A_Declaration_Being_Typed_The_Generator_And_The_Analyzer_Do_Not_Throw` | The generator and the analyzer do not throw on half-typed code (`HalfTypedSources`). |
 | RS2000 (analyzer) | Every descriptor has a row in `AnalyzerReleases.Unshipped.md` or `Shipped.md`. |
 | CA1305, CA1309, CA1310 as errors (`.editorconfig`, generator project) | No comparison or format call in the generator follows the build machine's culture. |
 | `IncrementalTests` (generator tests) | Unrelated edits leave the generator's output cached. |
@@ -233,6 +236,9 @@ The code must read as if the owner wrote it: terse, intention-revealing, comment
   inherited member, and compiles warning-free in a consumer with documentation on.
 - A new diagnostic gets a descriptor, a release row, a docs row and section, and its own test; the
   `add-diagnostic` playbook lists the steps.
+- Every shape of user code a change touches gets one field in a catalog of
+  `tests/Typeshift.Generators.Tests/Diagnostics/Support`, which a theory runs: `ShapeSources` when the parser accepts
+  it, `DiagnosticSources` when it rejects it, `HalfTypedSources` when it made the generator or the analyzer throw.
 
 ## Tests
 

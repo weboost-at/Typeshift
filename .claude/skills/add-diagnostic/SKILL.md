@@ -32,7 +32,10 @@ configuring a tool the agent does not offer need no diagnostic, because no gener
    run.Assert.Reports("TSHxxx", DiagnosticSeverity.Error, "<the exact offending syntax text>");
    ```
 
-   The theory over every source in `DiagnosticSources` checks that the generated code holds no compiler error.
+   The theory over every source in `DiagnosticSources` checks that the generated code holds no compiler error, and
+   that neither the generator nor the analyzer throws. A shape the parser accepts after your change is a field of
+   `ShapeSources` instead, and a statement that made one of them throw is an entry of `HalfTypedSources`; both sit
+   beside `DiagnosticSources` and have a theory of their own.
 5. **Docs.** In `docs/guide/diagnostics.md`, add the table row `| [TSHxxx](#tshxxx) | Error | <title> |` and a
    `## TSHxxx` section: the bold title, why it is a mistake, how to fix it. Link it from the guide page of the
    feature it guards.

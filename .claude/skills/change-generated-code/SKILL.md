@@ -11,6 +11,9 @@ Read `docs/contributing/architecture.md`, "The generator and the analyzer", firs
 
 - The generator writes code only; the analyzer reports (D2). Both use the same parsers, the generator with
   `Reporter.None`. A shape the parser rejects is skipped by the generator, never half-emitted.
+- Neither may throw, whatever the code looks like while it is typed: an exception in the generator drops every
+  generated file of the project (CS8785), one in the analyzer is AD0001. A symbol of half-typed code can be an error
+  type, which has no containing assembly and an empty name.
 - Parsing and emitting stay apart. Models (`Models/`) hold only strings, bools, enums and `EquatableArray<T>`: no
   symbols, no syntax, no locations, or caching breaks.
 - Generated code is `global::`-qualified, escapes keyword names (`Names.Identifier`), starts with the header of
@@ -37,7 +40,18 @@ Read `docs/contributing/architecture.md`, "The generator and the analyzer", firs
 2. Run the generator tests; a snapshot mismatch writes `.received.txt` next to the `.verified.txt` in
    `tests/Typeshift.Generators.Tests/Snapshots`. Read the difference, then accept with
    `ACCEPT_SNAPSHOTS=1 dotnet test --project tests/Typeshift.Generators.Tests -c Release --no-build`.
-3. Add a `CompilesCleanly` test for every new shape of user code, a keyword name or a nested class say.
+3. Put every shape of user code the change touches into a catalog under
+   `tests/Typeshift.Generators.Tests/Diagnostics/Support`, one field or entry each. A theory runs every one of a
+   catalog, so a shape is fixed once and stays fixed:
+   - a shape the parser now accepts, a keyword name or a nested class for example, is a field of `ShapeSources`: the
+     code generated for it must hold no error or warning;
+   - a shape the parser rejects is a field of `DiagnosticSources`, with its diagnostic's test (the `add-diagnostic`
+     playbook);
+   - a statement that made the generator or the analyzer throw is an entry of `HalfTypedSources`, as it stands while
+     it is typed.
+
+   Add a `CompilesCleanly` test of its own where the user's code must compile too, a call to a generated member for
+   example.
 4. Keep `IncrementalTests` green: an edit outside a toolset or agent keeps every output cached, and an agent's output
    stays cached while what it offers is unchanged.
 5. Debug the output of a real project: no project keeps the generated files, so build it with

@@ -50,7 +50,7 @@ rewrite.
 | new | A tool name is unique across the host, two references' tools included (TSH007) | `DiagnosticTests.Given_A_Tool_Named_Like_One_Of_A_Reference_TSH007_Is_Reported_On_The_Own`, `..._Given_Two_References_With_A_Tool_Of_One_Name_TSH007_Is_Reported` |
 | new | Tool names derive from the method, without `Async` (D13) | `ToolSchemaTests.Given_An_Async_Method_Without_WithName_The_Tool_Is_Named_Without_The_Suffix`, `ToolNamesTests` |
 | new | A call without services fails, saying how to run the tool | `ToolInvocationTests.Given_No_Services_The_Call_Fails_Saying_How_To_Run_It` |
-| new | Every shape the generator cannot handle is a diagnostic, and the generated code holds no error | `DiagnosticTests`, `DiagnosticTests.Given_Any_Mistake_The_Generated_Code_Holds_No_Error` |
+| new | Every shape the generator cannot handle is a diagnostic, the generated code holds no error for a mistake or for a shape it accepts, and code being typed makes neither the generator nor the analyzer throw | `DiagnosticTests`, `DiagnosticTests.Given_Any_Mistake_The_Generated_Code_Holds_No_Error`, `..._Given_Any_Shape_The_Generated_Code_Holds_No_Error`, `HalfTypedCodeTests` |
 | new | Parameters the model never sees need no `<param>` | `ToolsetGenerationTests.Given_Parameters_The_Model_Never_Sees_Their_Missing_Docs_Are_Suppressed` |
 | 11 | `AddTypeshift()` registers the project's and the references' toolsets and agents, once | `AddTypeshiftTests` |
 | 12 | A call the generator did not intercept throws, saying what to check | `AddTypeshiftTests.Given_A_Call_The_Generator_Did_Not_Intercept_It_Fails_Saying_What_To_Check` |

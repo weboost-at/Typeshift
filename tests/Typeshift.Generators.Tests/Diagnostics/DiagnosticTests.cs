@@ -1,4 +1,3 @@
-using System.Reflection;
 using Typeshift.Generators.Tests.Diagnostics.Support;
 using FluentAssertions;
 using Microsoft.CodeAnalysis;
@@ -7,12 +6,9 @@ namespace Typeshift.Generators.Tests.Diagnostics;
 
 public class DiagnosticTests : GeneratorTestBase
 {
-    public static TheoryData<string> Mistakes { get; } =
-    [
-        .. typeof(DiagnosticSources)
-            .GetFields(BindingFlags.Public | BindingFlags.Static)
-            .Select(field => field.Name)
-    ];
+    public static TheoryData<string> Mistakes { get; } = [.. SourceCatalogs.NamesOf(typeof(DiagnosticSources))];
+
+    public static TheoryData<string> Shapes { get; } = [.. SourceCatalogs.NamesOf(typeof(ShapeSources))];
 
     [Fact]
     public void Given_A_Toolset_That_Is_Not_Partial_TSH001_Is_Reported_On_Its_Name()
@@ -911,14 +907,13 @@ public class DiagnosticTests : GeneratorTestBase
     public void Given_A_Toolset_Use_Being_Typed_The_Generator_Runs_On(string mistake)
     {
         // Arrange
-        var source = (string)typeof(DiagnosticSources).GetField(mistake)!.GetValue(null)!;
+        var source = SourceCatalogs.Read(typeof(DiagnosticSources), mistake);
 
         // Act
         var run = Run(source);
 
         // Assert
-        run.Result.Diagnostics.Should().BeEmpty();
-        run.Assert.DoesNotReport("AD0001");
+        run.Assert.RunsToTheEnd();
         run.Source("EchoToolset.g.cs").Should().Contain("partial class EchoToolset");
     }
 
@@ -985,7 +980,21 @@ public class DiagnosticTests : GeneratorTestBase
     public void Given_Any_Mistake_The_Generated_Code_Holds_No_Error(string mistake)
     {
         // Arrange
-        var source = (string)typeof(DiagnosticSources).GetField(mistake)!.GetValue(null)!;
+        var source = SourceCatalogs.Read(typeof(DiagnosticSources), mistake);
+
+        // Act
+        var run = Run(source);
+
+        // Assert
+        run.Assert.GeneratesValidCode();
+    }
+
+    [Theory]
+    [MemberData(nameof(Shapes))]
+    public void Given_Any_Shape_The_Generated_Code_Holds_No_Error(string shape)
+    {
+        // Arrange
+        var source = SourceCatalogs.Read(typeof(ShapeSources), shape);
 
         // Act
         var run = Run(source);
