@@ -180,8 +180,9 @@ research_agent: Found Danube Robotics, Prater Motion and Belvedere Optics.
 - The model called `find_companies` with `Vienna`, and the tool ran with the agent's limit of 3, so the answer lists
   the three active companies of Vienna.
 
-The answers on this page come from the canned client of the docs samples, which lists what the tool returned. A real
-model words its answer its own way.
+The answers on this page come from the canned client of the
+[docs samples](https://github.com/weboost-at/Typeshift/tree/main/samples/Typeshift.Samples.Docs), which lists what the
+tool returned. A real model words its answer its own way.
 
 Settings are stored under a settings id that you choose, for example one per customer.
 `research.WithSettingsId(settingsId)` returns a copy of the host whose runs and settings members use the settings
@@ -299,6 +300,8 @@ at hand. Add `llms-full.txt` to the context of one that cannot fetch. `llms.txt`
 
 ## Related
 
+- [The quickstart's code](https://github.com/weboost-at/Typeshift/tree/main/samples/Typeshift.Samples.Docs/Quickstart):
+  the toolset, the settings record, the agent and the runs of this page, as the docs samples build and run them.
 - [Toolsets](./toolsets.md): tools, their names, parameters and results in depth.
 - [Tool settings](./tool-settings.md): what a settings record may hold and what may change it.
 - [Agents](./defining-agents.md): everything an agent's constructor can declare.
