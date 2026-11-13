@@ -816,24 +816,36 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 ### D58. A store's own tests check it against the contract
 
-- **Status:** owner.
-- **Decision:** `store.VerifyAsync(id)`, an extension method on `ISettingsStore`, `IConversationStore` and
+- **Status:** owner; the second id, the entries' times and the save of a document that is not stored came with the
+  audit of November 2026.
+- **Decision:** `store.VerifyAsync(id, otherId)`, an extension method on `ISettingsStore`, `IConversationStore` and
   `ITypeshiftStore`, runs the rules Typeshift relies on against a store and throws an `InvalidOperationException` that
-  names the rule a store broke. It runs the rules of every interface the store implements, whichever one it is called
-  through, so a store that is both cannot pass on one alone. It needs no test framework, so a store's tests in any
-  framework can call it. It writes under the id it is given, as a settings id and as a conversation id, so tests pass
-  one that nothing else uses. A store that is also an `IAgentSettingsStore` is checked under new kinds, and for
-  keeping its own documents apart from an id's; `VerifyAgentSettingsAsync(kind)` checks a store of them alone (D66).
+  names the rule a store broke. It runs the rules of every interface the store implements for ids of that type,
+  whichever one it is called through, so a store that is both cannot pass on one alone. It needs no test framework,
+  so a store's tests in any framework can call it. It writes under both ids, as settings ids and as conversation ids,
+  so tests pass two that nothing else uses. What it stores under the second id first must be as it was at the end, so
+  a store that forgets the id in a load, in an update or in its search for the last summary fails; with one id such a
+  store passed and went on to serve one customer's settings or conversation to another. A store that is also an
+  `IAgentSettingsStore` is checked under kinds named after the id, from `typeshift_check_<id>` on, and for keeping
+  its own documents apart from an id's; `VerifyAgentSettingsAsync(kind)` checks a store of them alone (D66).
 - **Details:** the steps are on [Implementing a store](../guide/implementing-a-store.md#check-your-store). The summary
-  entries have `StandingApprovals` set, as compaction writes them, and entries carry fixed times, so the check reads
-  no clock. A store's own exception where a conflict belongs is named in the message. A conversation id with entries,
-  or a settings id that holds the check's own document, fails with a message that asks for a new id and names no rule.
+  entries have `StandingApprovals` set, as compaction writes them. Entries carry fixed times, so the check reads no
+  clock, and the times tie and run backwards, as real ones can after a clock step or between machines, so a store
+  that orders a conversation by them fails; the check tells entries apart by their JSON. A save at a version other
+  than 0 of a document that is not stored must conflict, as the save of a document deleted since it was loaded. A
+  store's own exception where a conflict belongs is named in the message. A conversation id with entries, or a
+  settings id that holds the check's own document, fails with a message that asks for a new id and names no rule,
+  and two equal ids throw an `ArgumentException`.
 - **Where:** `Storage/StoreExtensions.cs`.
 - **Alternatives:** `StoreCheck.CheckSettingsAsync` and `CheckConversationsAsync`, two static methods named for the
   interface rather than called on the store, which the owner found clunky and which let a store that is both pass on
   one; one named case per rule for a `[Theory]`, which adds API and leans on a test framework; an abstract xUnit test
   class in a package of its own, which ties stores to one test framework; a checking decorator around the registered
-  store, which finds a broken rule only when a run hits it.
+  store, which finds a broken rule only when a run hits it; `VerifyAsync(id)` alone (up to 0.1.0-alpha.6) or kept
+  beside the call with two ids, where the short call passes a store that mixes customers; a second id the check
+  makes itself, which no id type of the app's choosing offers; new kinds per call for agents' own documents (up to
+  0.1.0-alpha.6), which left documents behind under names nobody could predict; entries with rising times, which a
+  store that orders by time passes.
 
 ### D42. Settings ids and conversation ids are separate; conversations grow by appending
 

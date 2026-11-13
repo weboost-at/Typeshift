@@ -12,6 +12,14 @@ All notable changes to this project are documented here. The format follows
 - TSH020 is titled "Referenced assembly was built with another Typeshift version or without the generator", and its
   message names both causes. It read as if the reference had never run the generator, also when it was built with
   another Typeshift version.
+- **Breaking:** `store.VerifyAsync(id)` is now `store.VerifyAsync(id, otherId)`. The check stores a document and an
+  entry under the second id first and fails when they changed, or when they load under the first id, so a store that
+  forgets the id in a query no longer passes. Such a store served one customer's settings or conversation to another.
+  Pass two ids nothing is stored under; the same id twice throws an `ArgumentException`.
+- `VerifyAsync` also fails a store that orders a conversation by its entries' times, since the entries it appends
+  now carry times that tie and run backwards, and a store that writes a document which is not stored when a save
+  names a version other than 0, where a `StoreConflictException` belongs. Agents' own settings are checked under
+  kinds named after the id, from `typeshift_check_<id>` on, instead of new kinds on every call.
 - Stored JSON keeps text outside ASCII as it is written, in settings, conversation entries and the file store's
   files. Before, every such character was stored as `\uXXXX`, so Chinese, Japanese and Korean text took about twice
   the bytes, a row could not be read in a database tool, and a `LIKE` search found nothing. Quotes, `<`, `>` and `&`

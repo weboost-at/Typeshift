@@ -7,6 +7,14 @@ public class PersistenceTestData(Faker faker)
 {
     public Guid SettingsId { get; } = faker.Random.Guid();
 
+    // The second id a store check takes, which nothing else is stored under
+    public Guid OtherId { get; } = faker.Random.Guid();
+
+    // Two more ids nothing is stored under, for a second check of one store
+    public Guid LaterId { get; } = faker.Random.Guid();
+
+    public Guid LaterOtherId { get; } = faker.Random.Guid();
+
     // D72: ids of other types than the build's, which pick the stores of their types
     public int NumberId { get; } = faker.Random.Int(1, int.MaxValue);
 

@@ -13,7 +13,7 @@ internal static class StoreVerification
         // begin-snippet: store-check
         var store = new EfTypeshiftStore(contexts);
 
-        await store.VerifyAsync(9001);
+        await store.VerifyAsync(9001, 9002);
         // end-snippet
     }
 }
