@@ -120,8 +120,22 @@ export default withMermaid(
     head: [
       ['link', { rel: 'icon', type: 'image/svg+xml', href: `${base}brand/favicon.svg` }],
       ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: `${base}brand/favicon-32.png` }],
-      ['link', { rel: 'apple-touch-icon', href: `${base}brand/apple-touch-icon.png` }]
+      ['link', { rel: 'apple-touch-icon', href: `${base}brand/apple-touch-icon.png` }],
+      ['meta', { property: 'og:type', content: 'website' }],
+      ['meta', { property: 'og:site_name', content: 'Typeshift' }],
+      ['meta', { property: 'og:image', content: `${site}${base}brand/logo-4x.png` }],
+      ['meta', { name: 'twitter:card', content: 'summary' }]
     ],
+    // A shared link shows the page's own title and description, not the site's
+    transformPageData({ title, description: summary, relativePath, frontmatter }) {
+      frontmatter.head ??= []
+      frontmatter.head.push(
+        ['meta', { property: 'og:title', content: title ? `${title} | Typeshift` : 'Typeshift' }],
+        ['meta', { property: 'og:description', content: summary || description }],
+        ['meta', { property: 'og:url', content: `${site}${base}${relativePath.replace(/(index)?\.md$/, '')}` }]
+      )
+    },
+    sitemap: { hostname: `${site}${base}` },
     cleanUrls: true,
     // The Markdown copies keep the text of mdsnippets' source links. A page outside the guide has no copy, so a link
     // to one goes to its page of the site, and llms-full.txt sits above the guide that its pages' relative links
@@ -178,6 +192,8 @@ export default withMermaid(
         }
       },
       outline: { level: [2, 3], label: 'On this page' },
+      // Nov 13, 2026 reads the same everywhere, 11/13/26 does not
+      lastUpdated: { formatOptions: { dateStyle: 'medium' } },
       footer: {
         message: 'Released under the MIT License.'
       }
