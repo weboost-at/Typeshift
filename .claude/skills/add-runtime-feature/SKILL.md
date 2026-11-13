@@ -18,3 +18,10 @@ description: Add or change public behavior of the Typeshift runtime library (src
    `update-docs` playbook.
 5. **Status.** Add the behavior and its test to the table in `docs/contributing/status.md`; a known limit goes under
    "Known gaps", never into a TODO.
+6. **Public API.** Any added, removed or changed public member fails `PublicApiSurfaceTests` and writes
+   `tests/Typeshift.Generators.Tests/Snapshots/PublicApi.received.txt`. Read its difference to `PublicApi.verified.txt`:
+   every line must be a change you meant. Then accept it with
+   `ACCEPT_SNAPSHOTS=1 dotnet test --project tests/Typeshift.Generators.Tests -c Release --no-build`, commit the
+   snapshot with the change, add the `CHANGELOG.md` line (a removed or changed member under Changed or Removed, with
+   the call before and after), and build the demos. A member of `Typeshift.Generated`, of `IStorable<TSelf>` or
+   `Agent.Declaration` is accepted only after you raised `ReferenceReader.StampVersion` (D7).

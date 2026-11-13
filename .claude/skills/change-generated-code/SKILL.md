@@ -25,13 +25,18 @@ Read `docs/contributing/architecture.md`, "The generator and the analyzer", firs
 - What an agent needs of a toolset goes through `ToolsetSummary`, built from the model in the compilation and from the
   `[GeneratedTool]` stamps of a reference; a new field goes into both, and a stamp change raises
   `ReferenceReader.StampVersion` (D7).
+- `StampVersion` is the version of everything generated code binds to. Raise it too when a member of
+  `Typeshift.Generated`, of `IStorable<TSelf>` or `Agent.Declaration` is added, removed or changed:
+  `PublicApiSurfaceTests` fails until you do, even with `ACCEPT_SNAPSHOTS=1`. Then accept the snapshots, as in step 2:
+  the modules in the generator snapshots carry the version, and `GeneratedContract.verified.txt` lists the members.
 - The generator targets Roslyn 5 (D8) and netstandard2.0: no `Index`, `Range` or list patterns.
 
 ## Steps
 
 1. Change the parser and the model, then the emitter.
 2. Run the generator tests; a snapshot mismatch writes `.received.txt` next to the `.verified.txt` in
-   `tests/Typeshift.Generators.Tests/Snapshots`. Read the difference, then accept with `ACCEPT_SNAPSHOTS=1`.
+   `tests/Typeshift.Generators.Tests/Snapshots`. Read the difference, then accept with
+   `ACCEPT_SNAPSHOTS=1 dotnet test --project tests/Typeshift.Generators.Tests -c Release --no-build`.
 3. Add a `CompilesCleanly` test for every new shape of user code, a keyword name or a nested class say.
 4. Keep `IncrementalTests` green: an edit outside a toolset or agent keeps every output cached, and an agent's output
    stays cached while what it offers is unchanged.

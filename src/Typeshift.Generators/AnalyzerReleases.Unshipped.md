@@ -24,7 +24,7 @@ TSH016 | Typeshift | Error | Toolset or agent is out of the generated code's rea
 TSH017 | Typeshift | Error | Toolset or agent is generic or derives from another
 TSH018 | Typeshift | Error | Member clashes with a generated member
 TSH019 | Typeshift | Error | Toolset was not compiled with the generator
-TSH020 | Typeshift | Warning | Referenced assembly was not compiled with the generator
+TSH020 | Typeshift | Warning | Referenced assembly was built with another Typeshift version or without the generator
 TSH022 | Typeshift | Error | Two agents share a settings kind
 TSH023 | Typeshift | Error | Agent cannot be a tool or a handoff target
 TSH024 | Typeshift | Warning | Sub-agent offers tools that need approval

@@ -97,7 +97,14 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   generator version.
 - **Decision:** tool stamps name the overrides type and the list property, and every module stamp has a stamp
   version; an unknown version is TSH020.
-- **Where:** `Generated/Stamps.cs`, `Emitting/ModuleEmitter.cs`, `Parsing/ReferenceReader.cs`.
+- **What the version covers:** everything generated code binds to, since code generated under one version runs
+  against the library of another once a referenced project was built earlier. That is the shape of the stamps, every
+  member of `Typeshift.Generated`, `IStorable<TSelf>` and `Agent.Declaration`. A change to any of them raises
+  `ReferenceReader.StampVersion`, so the reference built before it gets TSH020 at build time, where it would fail
+  with a `MissingMethodException` when the app starts. `PublicApiSurfaceTests` keeps those members in
+  `Snapshots/GeneratedContract.verified.txt` under the version, and fails when they change while it stays.
+- **Where:** `Generated/Stamps.cs`, `Emitting/ModuleEmitter.cs`, `Parsing/ReferenceReader.cs`,
+  `Repository/PublicApiSurfaceTests` (generator tests).
 
 ### D8. The generator targets Roslyn 5
 

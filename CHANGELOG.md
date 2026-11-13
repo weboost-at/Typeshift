@@ -9,6 +9,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- TSH020 is titled "Referenced assembly was built with another Typeshift version or without the generator", and its
+  message names both causes. It read as if the reference had never run the generator, also when it was built with
+  another Typeshift version.
+
 ### Fixed
 
 - A streaming run's spans form one tree: its `execute_tool` spans and its `chat` spans after the first update are

@@ -38,9 +38,17 @@ nuget.org keeps later packages under the name.
    `## Release <version>` heading. From then on, a shipped diagnostic ID is never reused or renumbered. A prerelease
    skips this step, because the heading takes only a plain version (RS2007), so the rules ship with the next stable
    release.
-3. From 0.1.0 on, set `PackageValidationBaselineVersion` in `src/Typeshift/Typeshift.csproj` to the last released
-   version, so the next pack fails on a breaking change nobody meant, and keep it on the latest release. It stays
-   unset during the alpha, where a release may break.
+3. Compare the public API with the last release, with that release's tag in place of `v0.1.0`:
+
+   ```shell
+   git diff v0.1.0 -- tests/Typeshift.Generators.Tests/Snapshots/PublicApi.verified.txt
+   ```
+
+   Every line the diff removes or changes is a break. Each needs its entry under Changed or Removed in the
+   changelog's section, as [the alpha's rules](#breaking-changes-during-the-alpha) ask. From 0.1.0 on, also set
+   `PackageValidationBaselineVersion` in `src/Typeshift/Typeshift.csproj` to the last released version, so the pack
+   fails on a break nobody meant, and keep it on the latest release. It stays unset during the alpha.
+
 4. Check the demos, which CI never builds: `dotnet build demos/Typeshift.Demos.slnx`, then run each one offline as
    `demos/README.md` shows. A demo that broke gets fixed before the tag, or the release notes say so.
 5. Commit, then tag and push the tag:
@@ -59,6 +67,18 @@ nuget.org keeps later packages under the name.
 
 A tag with a hyphen, such as `v0.2.0-alpha.1`, creates a prerelease on GitHub, and nuget.org marks it prerelease
 from its version.
+
+## Breaking changes during the alpha
+
+A 0.x release may break its users, and a prerelease says so in its version. Three rules keep a break from being a
+surprise:
+
+- Every break is listed under Changed or Removed in the changelog, with the call before and the call after.
+- No break goes unseen: `PublicApiSurfaceTests` compares the public API with
+  `tests/Typeshift.Generators.Tests/Snapshots/PublicApi.verified.txt`, so each change is a line of a diff someone
+  accepted and a reviewer read.
+- A break in what generated code calls raises the stamp version (D7). A project built with the earlier version then
+  gets [TSH020](../guide/diagnostics.md#tsh020) when your app builds, where it would fail when your app starts.
 
 ## A dry run
 

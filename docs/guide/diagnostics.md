@@ -30,7 +30,7 @@ a compiler error inside generated code.
 | [TSH017](#tsh017) | Error | Toolset or agent is generic or derives from another |
 | [TSH018](#tsh018) | Error | Member clashes with a generated member |
 | [TSH019](#tsh019) | Error | Toolset was not compiled with the generator |
-| [TSH020](#tsh020) | Warning | Referenced assembly was not compiled with the generator |
+| [TSH020](#tsh020) | Warning | Referenced assembly was built with another Typeshift version or without the generator |
 | [TSH022](#tsh022) | Error | Two agents share a settings kind |
 | [TSH023](#tsh023) | Error | Agent cannot be a tool or a handoff target |
 | [TSH024](#tsh024) | Warning | Sub-agent offers tools that need approval |
@@ -186,10 +186,11 @@ reported too. Reference the package in the toolset's project, at the version the
 
 ## TSH020
 
-**Referenced assembly was not compiled with the generator.** It declares toolsets or agents but carries no module of
-this Typeshift version, so `AddTypeshift()` cannot register them. The causes are those of [TSH019](#tsh019): a
-compiled DLL, a reference that leaves out the package's analyzers, or a library built with another Typeshift version.
-Reference the package in its project, at the version the rest of the build uses.
+**Referenced assembly was built with another Typeshift version or without the generator.** It declares toolsets or
+agents, but the code generated for them does not fit this Typeshift version, or its build ran no generator at all,
+so `AddTypeshift()` cannot register them. The causes are those of [TSH019](#tsh019): a compiled DLL, a reference that
+leaves out the package's analyzers, or a library built with another Typeshift version. Reference the package in its
+project, at the version the rest of the build uses, and build it again.
 
 ## TSH022
 

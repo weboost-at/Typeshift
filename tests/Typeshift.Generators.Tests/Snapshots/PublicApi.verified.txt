@@ -1,0 +1,452 @@
+public static class Microsoft.Extensions.DependencyInjection.FileStoreExtensions
+public static Typeshift.TypeshiftBuilder Microsoft.Extensions.DependencyInjection.FileStoreExtensions.WithFileStore(Typeshift.TypeshiftBuilder builder, System.Action<Typeshift.FileStoreOptions>? configure = null)
+public static Microsoft.Extensions.DependencyInjection.FileStoreExtensions.extension(Typeshift.TypeshiftBuilder)
+public Typeshift.TypeshiftBuilder Microsoft.Extensions.DependencyInjection.FileStoreExtensions.extension(Typeshift.TypeshiftBuilder).WithFileStore(System.Action<Typeshift.FileStoreOptions>? configure = null)
+public static class Microsoft.Extensions.DependencyInjection.TypeshiftServiceCollectionExtensions
+public static Typeshift.TypeshiftBuilder Microsoft.Extensions.DependencyInjection.TypeshiftServiceCollectionExtensions.AddTypeshift(Microsoft.Extensions.DependencyInjection.IServiceCollection services)
+public static Microsoft.Extensions.DependencyInjection.TypeshiftServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection)
+public Typeshift.TypeshiftBuilder Microsoft.Extensions.DependencyInjection.TypeshiftServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection).AddTypeshift()
+public abstract class Typeshift.Agent
+protected Typeshift.ToolBuilder Typeshift.Agent.AddTool(System.Delegate method)
+protected Typeshift.Agent.Agent()
+protected virtual Typeshift.Generated.AgentDeclaration Typeshift.Agent.Declaration { get; }
+public string? Typeshift.Agent.Description { get; }
+protected virtual string? Typeshift.Agent.GetInstructions()
+public string Typeshift.Agent.Name { get; }
+protected Typeshift.AgentUse Typeshift.Agent.UseAgent<TAgent>() where TAgent : Typeshift.Agent
+protected void Typeshift.Agent.UseContext<TProvider>() where TProvider : class, Typeshift.IContextProvider
+protected void Typeshift.Agent.UseHandoff<TAgent>() where TAgent : Typeshift.Agent
+protected Typeshift.McpServerUse Typeshift.Agent.UseMcpServer(string server)
+protected Typeshift.ToolsetUse<TToolset> Typeshift.Agent.UseToolset<TToolset>() where TToolset : Typeshift.Toolset, new()
+protected Typeshift.ChatOptionsBuilder Typeshift.Agent.WithChatOptions()
+protected void Typeshift.Agent.WithDescription(string description)
+protected void Typeshift.Agent.WithInstructions(string instructions)
+protected void Typeshift.Agent.WithName(string name)
+protected Typeshift.RunOptionsBuilder Typeshift.Agent.WithRunOptions()
+protected void Typeshift.Agent.WithSchemaVersion(int version)
+protected void Typeshift.Agent.WithStorageKind(string kind)
+public sealed record Typeshift.AgentContext : System.IEquatable<Typeshift.AgentContext>
+public Typeshift.AgentContext.AgentContext()
+public bool Typeshift.AgentContext.Equals(Typeshift.AgentContext? other)
+public override bool Typeshift.AgentContext.Equals(object? obj)
+public override int Typeshift.AgentContext.GetHashCode()
+public string? Typeshift.AgentContext.Instructions { get; init; }
+public System.Collections.Generic.IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> Typeshift.AgentContext.Messages { get; init; }
+public override string Typeshift.AgentContext.ToString()
+public System.Collections.Generic.IReadOnlyList<Microsoft.Extensions.AI.AITool> Typeshift.AgentContext.Tools { get; init; }
+public static bool Typeshift.AgentContext.operator !=(Typeshift.AgentContext? left, Typeshift.AgentContext? right)
+public static bool Typeshift.AgentContext.operator ==(Typeshift.AgentContext? left, Typeshift.AgentContext? right)
+public sealed class Typeshift.AgentHost<TAgent> : System.IAsyncDisposable where TAgent : Typeshift.Agent
+public TAgent Typeshift.AgentHost<TAgent>.Agent { get; }
+public System.Threading.Tasks.Task<Microsoft.Extensions.AI.IChatClient> Typeshift.AgentHost<TAgent>.CreateChatClientAsync(Microsoft.Extensions.AI.ChatOptions options, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public void Typeshift.AgentHost<TAgent>.Dispose()
+public System.Threading.Tasks.ValueTask Typeshift.AgentHost<TAgent>.DisposeAsync()
+public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithConversationId<TId>(TId id) where TId : notnull
+public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithSettingsId<TId>(TId id) where TId : notnull
+public enum Typeshift.AgentMode
+Typeshift.AgentMode.Auto = 2
+Typeshift.AgentMode.Default = 0
+Typeshift.AgentMode.Plan = 1
+public sealed class Typeshift.AgentRun
+public Typeshift.Agent Typeshift.AgentRun.Agent { get; }
+public System.Collections.Generic.IList<Microsoft.Extensions.AI.ChatMessage> Typeshift.AgentRun.Messages { get; }
+public Typeshift.AgentMode Typeshift.AgentRun.Mode { get; }
+public Microsoft.Extensions.AI.ChatOptions Typeshift.AgentRun.Options { get; }
+public Microsoft.Extensions.AI.ChatResponse? Typeshift.AgentRun.Response { get; set; }
+public System.IServiceProvider Typeshift.AgentRun.Services { get; }
+public sealed class Typeshift.AgentUse
+public Typeshift.AgentUse Typeshift.AgentUse.InBackground()
+public Typeshift.AgentUse Typeshift.AgentUse.WithResult<TResult>()
+public sealed class Typeshift.ApprovalClosedException : System.InvalidOperationException
+public Typeshift.ApprovalClosedException.ApprovalClosedException(string message, System.Collections.Generic.IReadOnlyDictionary<string, Typeshift.ApprovalClosedReason> requests)
+public System.Collections.Generic.IReadOnlyDictionary<string, Typeshift.ApprovalClosedReason> Typeshift.ApprovalClosedException.Requests { get; }
+public enum Typeshift.ApprovalClosedReason
+Typeshift.ApprovalClosedReason.Answered = 0
+Typeshift.ApprovalClosedReason.PassedBy = 1
+Typeshift.ApprovalClosedReason.Unknown = 2
+public sealed class Typeshift.ChatOptionsBuilder
+public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.Configurable<TOption>(System.Func<Microsoft.Extensions.AI.ChatOptions, TOption> option)
+public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithAdditionalProperty<TValue>(string key, TValue value)
+public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithAllowMultipleToolCalls(bool allow)
+public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithFrequencyPenalty(float penalty)
+public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithMaxOutputTokens(int tokens)
+public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithModel<TProviderId>(TProviderId provider, string model) where TProviderId : notnull
+public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithPresencePenalty(float penalty)
+public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithReasoning(Microsoft.Extensions.AI.ReasoningOptions reasoning)
+public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithResponseFormat(Microsoft.Extensions.AI.ChatResponseFormat format)
+public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithSeed(long seed)
+public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithStopSequences(params string[] sequences)
+public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithTemperature(float temperature)
+public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithToolMode(Microsoft.Extensions.AI.ChatToolMode mode)
+public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithTools(params Microsoft.Extensions.AI.AITool[] tools)
+public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithTopK(int topK)
+public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithTopP(float topP)
+public static class Typeshift.ChatResponseExtensions
+public static Microsoft.Extensions.AI.ToolApprovalResponseContent Typeshift.ChatResponseExtensions.ApproveForConversation(Microsoft.Extensions.AI.ToolApprovalRequestContent request)
+public static Microsoft.Extensions.AI.ToolApprovalResponseContent Typeshift.ChatResponseExtensions.ApprovePlan(Microsoft.Extensions.AI.ToolApprovalRequestContent request, Typeshift.AgentMode mode)
+public static Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponse)
+public System.Collections.Generic.IReadOnlyList<Microsoft.Extensions.AI.ToolApprovalRequestContent> Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponse).ApprovalRequests { get; }
+public static Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ToolApprovalRequestContent)
+public Microsoft.Extensions.AI.ToolApprovalResponseContent Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ToolApprovalRequestContent).ApproveForConversation()
+public Microsoft.Extensions.AI.ToolApprovalResponseContent Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ToolApprovalRequestContent).ApprovePlan(Typeshift.AgentMode mode)
+public static System.Collections.Generic.IReadOnlyList<Microsoft.Extensions.AI.ToolApprovalRequestContent> Typeshift.ChatResponseExtensions.get_ApprovalRequests(Microsoft.Extensions.AI.ChatResponse response)
+public sealed class Typeshift.ConfigurableSettingsBuilder<TSettings> where TSettings : class, new()
+public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ConfigurableSettingsBuilder<TSettings>.NotConfigurable<TMember>(System.Func<TSettings, TMember> member)
+public static class Typeshift.ConversationEntries
+public static System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry> Typeshift.ConversationEntries.SinceLastSummary(System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry> entries)
+public static Typeshift.ConversationEntries.extension(System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry>)
+public System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry> Typeshift.ConversationEntries.extension(System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry>).SinceLastSummary()
+public sealed record Typeshift.ConversationEntry : Typeshift.IStorable<Typeshift.ConversationEntry>, Typeshift.Generated.IJsonStorable<Typeshift.ConversationEntry>, System.IEquatable<Typeshift.ConversationEntry>
+public string Typeshift.ConversationEntry.Agent { get; init; }
+public System.DateTimeOffset Typeshift.ConversationEntry.At { get; init; }
+public System.Collections.Generic.IReadOnlyDictionary<string, string>? Typeshift.ConversationEntry.BackgroundCalls { get; init; }
+public Typeshift.ConversationEntry.ConversationEntry(string Agent, System.Collections.Generic.IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> Messages, System.DateTimeOffset At)
+public void Typeshift.ConversationEntry.Deconstruct(out string Agent, out System.Collections.Generic.IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> Messages, out System.DateTimeOffset At)
+public static Typeshift.ConversationEntry Typeshift.ConversationEntry.Deserialize(string json)
+public bool Typeshift.ConversationEntry.EndsRun { get; init; }
+public bool Typeshift.ConversationEntry.Equals(Typeshift.ConversationEntry? other)
+public override bool Typeshift.ConversationEntry.Equals(object? obj)
+public override int Typeshift.ConversationEntry.GetHashCode()
+public bool Typeshift.ConversationEntry.IsSummary { get; init; }
+public static string Typeshift.ConversationEntry.Kind { get; }
+public System.Collections.Generic.IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> Typeshift.ConversationEntry.Messages { get; init; }
+public Typeshift.AgentMode? Typeshift.ConversationEntry.Mode { get; init; }
+public string? Typeshift.ConversationEntry.Model { get; init; }
+public static int Typeshift.ConversationEntry.SchemaVersion { get; }
+public string Typeshift.ConversationEntry.Serialize()
+public System.Collections.Generic.IReadOnlyList<string>? Typeshift.ConversationEntry.StandingApprovals { get; init; }
+public override string Typeshift.ConversationEntry.ToString()
+public Microsoft.Extensions.AI.UsageDetails? Typeshift.ConversationEntry.Usage { get; init; }
+public static bool Typeshift.ConversationEntry.operator !=(Typeshift.ConversationEntry? left, Typeshift.ConversationEntry? right)
+public static bool Typeshift.ConversationEntry.operator ==(Typeshift.ConversationEntry? left, Typeshift.ConversationEntry? right)
+public sealed class Typeshift.ConversationTracker<TId> where TId : notnull
+public Typeshift.ConversationTracker<TId>.ConversationTracker(Typeshift.TypeshiftRuntime runtime)
+public System.Collections.Generic.IReadOnlyList<Typeshift.LiveRun<TId>> Typeshift.ConversationTracker<TId>.Runs { get; }
+public bool Typeshift.ConversationTracker<TId>.TrySteer(TId conversation, string input)
+public System.Collections.Generic.IAsyncEnumerable<Microsoft.Extensions.AI.ChatResponseUpdate> Typeshift.ConversationTracker<TId>.WatchAsync(TId conversation, System.Threading.CancellationToken ct)
+public System.Collections.Generic.IAsyncEnumerable<Typeshift.LiveRun<TId>> Typeshift.ConversationTracker<TId>.WatchRunsAsync(System.Threading.CancellationToken ct)
+public sealed record Typeshift.FileStoreOptions : System.IEquatable<Typeshift.FileStoreOptions>
+public bool Typeshift.FileStoreOptions.Equals(Typeshift.FileStoreOptions? other)
+public override bool Typeshift.FileStoreOptions.Equals(object? obj)
+public Typeshift.FileStoreOptions.FileStoreOptions()
+public string Typeshift.FileStoreOptions.Folder { get; set; }
+public override int Typeshift.FileStoreOptions.GetHashCode()
+public override string Typeshift.FileStoreOptions.ToString()
+public static bool Typeshift.FileStoreOptions.operator !=(Typeshift.FileStoreOptions? left, Typeshift.FileStoreOptions? right)
+public static bool Typeshift.FileStoreOptions.operator ==(Typeshift.FileStoreOptions? left, Typeshift.FileStoreOptions? right)
+public abstract class Typeshift.Generated.AgentDeclaration
+public abstract string? Typeshift.Generated.AgentDeclaration.Description { get; }
+public abstract string Typeshift.Generated.AgentDeclaration.Name { get; }
+public abstract class Typeshift.Generated.AgentDeclaration<TAgent, TSettings> : Typeshift.Generated.AgentDeclaration where TAgent : Typeshift.Agent where TSettings : class, Typeshift.IStorable<TSettings>
+protected Typeshift.Generated.AgentDeclaration<TAgent, TSettings>.AgentDeclaration()
+protected abstract Typeshift.RunOptions Typeshift.Generated.AgentDeclaration<TAgent, TSettings>.ApplySettings(Microsoft.Extensions.AI.ChatOptions options, Typeshift.RunOptions run, TSettings settings)
+protected abstract System.Collections.Generic.IEnumerable<Microsoft.Extensions.AI.AITool> Typeshift.Generated.AgentDeclaration<TAgent, TSettings>.CreateTools(TAgent agent, System.Collections.Generic.IReadOnlyList<TSettings> layers, Typeshift.Generated.ToolJson json)
+protected static void Typeshift.Generated.AgentDeclaration<TAgent, TSettings>.SetProvider<TProviderId>(Microsoft.Extensions.AI.ChatOptions options, TProviderId provider) where TProviderId : notnull
+protected static void Typeshift.Generated.AgentDeclaration<TAgent, TSettings>.SetSummaryProvider<TProviderId>(Microsoft.Extensions.AI.ChatOptions options, TProviderId provider) where TProviderId : notnull
+public static class Typeshift.Generated.AgentRuns
+public static System.Threading.Tasks.Task<TSettings> Typeshift.Generated.AgentRuns.ConfigureAsync<TAgent, TSettings>(Typeshift.AgentHost<TAgent> host, System.Func<TSettings, TSettings> configure, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent where TSettings : class, Typeshift.IStorable<TSettings>, new()
+public static System.Threading.Tasks.Task<Typeshift.Stored<TSettings>> Typeshift.Generated.AgentRuns.LoadSettingsAsync<TAgent, TSettings>(Typeshift.AgentHost<TAgent> host, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent where TSettings : class, Typeshift.IStorable<TSettings>, new()
+public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatOptions> Typeshift.Generated.AgentRuns.ResolveOptionsAsync<TAgent>(Typeshift.AgentHost<TAgent> host, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
+public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> Typeshift.Generated.AgentRuns.ResumeAsync<TAgent>(Typeshift.AgentHost<TAgent> host, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
+public static System.Collections.Generic.IAsyncEnumerable<Microsoft.Extensions.AI.ChatResponseUpdate> Typeshift.Generated.AgentRuns.ResumeStreamingAsync<TAgent>(Typeshift.AgentHost<TAgent> host, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
+public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse<TResult>> Typeshift.Generated.AgentRuns.RunAsync<TAgent, TResult>(Typeshift.AgentHost<TAgent> host, Microsoft.Extensions.AI.ChatMessage input, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
+public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> Typeshift.Generated.AgentRuns.RunAsync<TAgent>(Typeshift.AgentHost<TAgent> host, Microsoft.Extensions.AI.ChatMessage input, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
+public static Typeshift.StreamingRun<TResult> Typeshift.Generated.AgentRuns.RunStreamingAsync<TAgent, TResult>(Typeshift.AgentHost<TAgent> host, Microsoft.Extensions.AI.ChatMessage input, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
+public static System.Collections.Generic.IAsyncEnumerable<Microsoft.Extensions.AI.ChatResponseUpdate> Typeshift.Generated.AgentRuns.RunStreamingAsync<TAgent>(Typeshift.AgentHost<TAgent> host, Microsoft.Extensions.AI.ChatMessage input, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
+public static System.Threading.Tasks.Task<long> Typeshift.Generated.AgentRuns.SaveSettingsAsync<TAgent, TSettings>(Typeshift.AgentHost<TAgent> host, TSettings settings, long loadedVersion, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent where TSettings : class, Typeshift.IStorable<TSettings>
+public sealed class Typeshift.Generated.GeneratedModuleAttribute : System.Attribute
+public Typeshift.Generated.GeneratedModuleAttribute.GeneratedModuleAttribute(System.Type module, int version)
+public System.Type Typeshift.Generated.GeneratedModuleAttribute.Module { get; }
+public int Typeshift.Generated.GeneratedModuleAttribute.Version { get; }
+public sealed class Typeshift.Generated.GeneratedToolAttribute : System.Attribute
+public string Typeshift.Generated.GeneratedToolAttribute.Factory { get; }
+public Typeshift.Generated.GeneratedToolAttribute.GeneratedToolAttribute(string name, string property, string factory)
+public string Typeshift.Generated.GeneratedToolAttribute.Name { get; }
+public System.Type? Typeshift.Generated.GeneratedToolAttribute.Overrides { get; init; }
+public string Typeshift.Generated.GeneratedToolAttribute.Property { get; }
+public bool Typeshift.Generated.GeneratedToolAttribute.RequiresApproval { get; init; }
+public System.Type? Typeshift.Generated.GeneratedToolAttribute.Settings { get; init; }
+public abstract class Typeshift.Generated.GeneratedToolFunction : Microsoft.Extensions.AI.AIFunction
+protected Typeshift.Generated.GeneratedToolFunction.GeneratedToolFunction(Typeshift.Generated.ToolJson json)
+protected T Typeshift.Generated.GeneratedToolFunction.GetArgument<T>(Microsoft.Extensions.AI.AIFunctionArguments arguments, string name)
+protected T Typeshift.Generated.GeneratedToolFunction.GetArgument<T>(Microsoft.Extensions.AI.AIFunctionArguments arguments, string name, T defaultValue)
+protected object Typeshift.Generated.GeneratedToolFunction.GetResult<T>(T result)
+protected override sealed System.Threading.Tasks.ValueTask<object?> Typeshift.Generated.GeneratedToolFunction.InvokeCoreAsync(Microsoft.Extensions.AI.AIFunctionArguments arguments, System.Threading.CancellationToken ct)
+protected abstract System.Threading.Tasks.ValueTask<object?> Typeshift.Generated.GeneratedToolFunction.InvokeToolAsync(Microsoft.Extensions.AI.AIFunctionArguments arguments, System.IServiceProvider services, System.Threading.CancellationToken ct)
+public virtual bool Typeshift.Generated.GeneratedToolFunction.IsReadOnly { get; }
+public override System.Text.Json.JsonElement Typeshift.Generated.GeneratedToolFunction.JsonSchema { get; }
+public override System.Text.Json.JsonSerializerOptions Typeshift.Generated.GeneratedToolFunction.JsonSerializerOptions { get; }
+protected abstract System.Collections.Generic.IReadOnlyList<Typeshift.Generated.ToolParameter> Typeshift.Generated.GeneratedToolFunction.Parameters { get; }
+public interface Typeshift.Generated.IJsonStorable<TSelf> where TSelf : class, Typeshift.Generated.IJsonStorable<TSelf>
+static abstract bool Typeshift.Generated.IJsonStorable<TSelf>.TryReadJson(System.Text.Json.JsonElement element, out TSelf value)
+abstract void Typeshift.Generated.IJsonStorable<TSelf>.WriteJson(System.Text.Json.Utf8JsonWriter writer)
+public sealed class Typeshift.Generated.ModuleAgentAttribute : System.Attribute
+public System.Type Typeshift.Generated.ModuleAgentAttribute.Agent { get; }
+public System.Collections.Generic.IReadOnlyList<string> Typeshift.Generated.ModuleAgentAttribute.ApprovalTools { get; }
+public bool Typeshift.Generated.ModuleAgentAttribute.Described { get; init; }
+public string Typeshift.Generated.ModuleAgentAttribute.Kind { get; }
+public Typeshift.Generated.ModuleAgentAttribute.ModuleAgentAttribute(System.Type agent, string kind, string name, params string[] approvalTools)
+public string Typeshift.Generated.ModuleAgentAttribute.Name { get; }
+public string[] Typeshift.Generated.ModuleAgentAttribute.OwnTools { get; init; }
+public string[] Typeshift.Generated.ModuleAgentAttribute.Tools { get; init; }
+public static class Typeshift.Generated.ModuleRegistration
+public static void Typeshift.Generated.ModuleRegistration.AddAgent<TAgent>(Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Func<TAgent> create) where TAgent : Typeshift.Agent
+public static Typeshift.TypeshiftBuilder Typeshift.Generated.ModuleRegistration.AddCoreServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services)
+public static void Typeshift.Generated.ModuleRegistration.AddJsonContext(Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver context)
+public static void Typeshift.Generated.ModuleRegistration.AddSchemaAnnotations(Microsoft.Extensions.DependencyInjection.IServiceCollection services, Weboost.SchemaAnnotations.ISchemaAnnotationSource source)
+public static void Typeshift.Generated.ModuleRegistration.AddToolset<TToolset>(Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Func<TToolset> create) where TToolset : Typeshift.Toolset
+public static Typeshift.TypeshiftRuntime Typeshift.Generated.ModuleRegistration.CreateRuntime(Microsoft.Extensions.DependencyInjection.IServiceCollection services, Typeshift.TypeshiftBuilder builder, Microsoft.Extensions.AI.IChatClient client, System.Action<Typeshift.TypeshiftBuilder>? configure)
+public static bool Typeshift.Generated.ModuleRegistration.TryAddModule(Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Type module)
+public sealed class Typeshift.Generated.ModuleToolsetAttribute : System.Attribute
+public Typeshift.Generated.ModuleToolsetAttribute.ModuleToolsetAttribute(System.Type toolset)
+public System.Type Typeshift.Generated.ModuleToolsetAttribute.Toolset { get; }
+public static class Typeshift.Generated.StorableJson
+public static void Typeshift.Generated.StorableJson.EnsureSchemaVersion(System.Text.Json.JsonElement element, int version, string kind)
+public static System.Text.Json.JsonElement Typeshift.Generated.StorableJson.Member(System.Text.Json.JsonElement element, string name)
+public static T Typeshift.Generated.StorableJson.Read<T>(string json, Typeshift.Generated.StorableReader<T> read)
+public static bool Typeshift.Generated.StorableJson.TryRead(System.Text.Json.JsonElement element, out Microsoft.Extensions.AI.ReasoningOptions value)
+public static bool Typeshift.Generated.StorableJson.TryRead(System.Text.Json.JsonElement element, out System.DateOnly value)
+public static bool Typeshift.Generated.StorableJson.TryRead(System.Text.Json.JsonElement element, out System.DateTime value)
+public static bool Typeshift.Generated.StorableJson.TryRead(System.Text.Json.JsonElement element, out System.DateTimeOffset value)
+public static bool Typeshift.Generated.StorableJson.TryRead(System.Text.Json.JsonElement element, out System.Guid value)
+public static bool Typeshift.Generated.StorableJson.TryRead(System.Text.Json.JsonElement element, out System.TimeOnly value)
+public static bool Typeshift.Generated.StorableJson.TryRead(System.Text.Json.JsonElement element, out System.TimeSpan value)
+public static bool Typeshift.Generated.StorableJson.TryRead(System.Text.Json.JsonElement element, out System.Uri value)
+public static bool Typeshift.Generated.StorableJson.TryRead(System.Text.Json.JsonElement element, out bool value)
+public static bool Typeshift.Generated.StorableJson.TryRead(System.Text.Json.JsonElement element, out string value)
+public static bool Typeshift.Generated.StorableJson.TryReadEnum<TEnum>(System.Text.Json.JsonElement element, out TEnum value) where TEnum : struct, System.Enum
+public static bool Typeshift.Generated.StorableJson.TryReadEnumMap<TKey, T>(System.Text.Json.JsonElement element, Typeshift.Generated.StorableReader<T> read, out System.Collections.Generic.Dictionary<TKey, T> values) where TKey : struct, System.Enum
+public static bool Typeshift.Generated.StorableJson.TryReadList<T>(System.Text.Json.JsonElement element, Typeshift.Generated.StorableReader<T> read, out System.Collections.Generic.List<T> values)
+public static bool Typeshift.Generated.StorableJson.TryReadMap<T>(System.Text.Json.JsonElement element, Typeshift.Generated.StorableReader<T> read, out System.Collections.Generic.Dictionary<string, T> values)
+public static bool Typeshift.Generated.StorableJson.TryReadNumber<TNumber>(System.Text.Json.JsonElement element, out TNumber value) where TNumber : struct, System.Numerics.INumber<TNumber>
+public static string Typeshift.Generated.StorableJson.Write(System.Action<System.Text.Json.Utf8JsonWriter> write)
+public static void Typeshift.Generated.StorableJson.Write(System.Text.Json.Utf8JsonWriter writer, Microsoft.Extensions.AI.ReasoningOptions value)
+public static void Typeshift.Generated.StorableJson.Write(System.Text.Json.Utf8JsonWriter writer, System.DateOnly value)
+public static void Typeshift.Generated.StorableJson.Write(System.Text.Json.Utf8JsonWriter writer, System.DateTime value)
+public static void Typeshift.Generated.StorableJson.Write(System.Text.Json.Utf8JsonWriter writer, System.DateTimeOffset value)
+public static void Typeshift.Generated.StorableJson.Write(System.Text.Json.Utf8JsonWriter writer, System.Guid value)
+public static void Typeshift.Generated.StorableJson.Write(System.Text.Json.Utf8JsonWriter writer, System.TimeOnly value)
+public static void Typeshift.Generated.StorableJson.Write(System.Text.Json.Utf8JsonWriter writer, System.TimeSpan value)
+public static void Typeshift.Generated.StorableJson.Write(System.Text.Json.Utf8JsonWriter writer, System.Uri value)
+public static void Typeshift.Generated.StorableJson.Write(System.Text.Json.Utf8JsonWriter writer, bool value)
+public static void Typeshift.Generated.StorableJson.Write(System.Text.Json.Utf8JsonWriter writer, string value)
+public static void Typeshift.Generated.StorableJson.WriteEnum<TEnum>(System.Text.Json.Utf8JsonWriter writer, TEnum value) where TEnum : struct, System.Enum
+public static void Typeshift.Generated.StorableJson.WriteNumber<TNumber>(System.Text.Json.Utf8JsonWriter writer, TNumber value) where TNumber : struct, System.Numerics.INumber<TNumber>
+public static void Typeshift.Generated.StorableJson.WriteSchemaVersion(System.Text.Json.Utf8JsonWriter writer, int version)
+public sealed class Typeshift.Generated.StorableJsonConverter<T> : System.Text.Json.Serialization.JsonConverter<T> where T : class, Typeshift.Generated.IJsonStorable<T>
+public override T Typeshift.Generated.StorableJsonConverter<T>.Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+public Typeshift.Generated.StorableJsonConverter<T>.StorableJsonConverter()
+public override void Typeshift.Generated.StorableJsonConverter<T>.Write(System.Text.Json.Utf8JsonWriter writer, T value, System.Text.Json.JsonSerializerOptions options)
+public delegate bool Typeshift.Generated.StorableReader<T>(System.Text.Json.JsonElement element, out T value)
+public sealed class Typeshift.Generated.ToolJson
+public System.Text.Json.Serialization.Metadata.JsonTypeInfo<T> Typeshift.Generated.ToolJson.GetTypeInfo<T>()
+public System.Text.Json.JsonSerializerOptions Typeshift.Generated.ToolJson.SerializerOptions { get; }
+public Typeshift.Generated.ToolJson.ToolJson(System.Collections.Generic.IEnumerable<System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver> resolvers, System.Collections.Generic.IEnumerable<Weboost.SchemaAnnotations.ISchemaAnnotationSource> annotations)
+public sealed record Typeshift.Generated.ToolParameter : System.IEquatable<Typeshift.Generated.ToolParameter>
+public void Typeshift.Generated.ToolParameter.Deconstruct(out string Name, out System.Type Type)
+public object? Typeshift.Generated.ToolParameter.DefaultValue { get; init; }
+public string? Typeshift.Generated.ToolParameter.Description { get; init; }
+public bool Typeshift.Generated.ToolParameter.Equals(Typeshift.Generated.ToolParameter? other)
+public override bool Typeshift.Generated.ToolParameter.Equals(object? obj)
+public override int Typeshift.Generated.ToolParameter.GetHashCode()
+public bool Typeshift.Generated.ToolParameter.HasDefaultValue { get; init; }
+public bool Typeshift.Generated.ToolParameter.IsNullable { get; init; }
+public string Typeshift.Generated.ToolParameter.Name { get; init; }
+public override string Typeshift.Generated.ToolParameter.ToString()
+public Typeshift.Generated.ToolParameter.ToolParameter(string Name, System.Type Type)
+public System.Type Typeshift.Generated.ToolParameter.Type { get; init; }
+public static bool Typeshift.Generated.ToolParameter.operator !=(Typeshift.Generated.ToolParameter? left, Typeshift.Generated.ToolParameter? right)
+public static bool Typeshift.Generated.ToolParameter.operator ==(Typeshift.Generated.ToolParameter? left, Typeshift.Generated.ToolParameter? right)
+public interface Typeshift.IAgentSettingsStore
+abstract System.Threading.Tasks.Task<Typeshift.StoredDocument?> Typeshift.IAgentSettingsStore.LoadAsync(string kind, System.Threading.CancellationToken ct)
+abstract System.Threading.Tasks.Task<long> Typeshift.IAgentSettingsStore.SaveAsync(string kind, string json, long loadedVersion, System.Threading.CancellationToken ct)
+public interface Typeshift.IChatClientProvider<TProviderId> where TProviderId : notnull
+abstract System.Threading.Tasks.ValueTask<Microsoft.Extensions.AI.IChatClient> Typeshift.IChatClientProvider<TProviderId>.GetChatClientAsync(TProviderId provider, string model, System.Threading.CancellationToken ct)
+public interface Typeshift.IContextProvider
+abstract System.Threading.Tasks.ValueTask<Typeshift.AgentContext> Typeshift.IContextProvider.GetContextAsync(Typeshift.AgentRun run, System.Threading.CancellationToken ct)
+public interface Typeshift.IConversationStore<TId> where TId : notnull
+abstract System.Threading.Tasks.Task Typeshift.IConversationStore<TId>.AppendConversationAsync(TId conversation, Typeshift.ConversationEntry entry, System.Threading.CancellationToken ct)
+abstract System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry>> Typeshift.IConversationStore<TId>.LoadConversationAsync(TId conversation, System.Threading.CancellationToken ct)
+abstract System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry>> Typeshift.IConversationStore<TId>.LoadConversationSinceCompactionAsync(TId conversation, System.Threading.CancellationToken ct)
+public interface Typeshift.IMcpToolProvider
+abstract System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Microsoft.Extensions.AI.AITool>> Typeshift.IMcpToolProvider.GetToolsAsync(string server, System.Threading.CancellationToken ct)
+public interface Typeshift.IRunMiddleware
+abstract System.Threading.Tasks.Task Typeshift.IRunMiddleware.InvokeAsync(Typeshift.AgentRun run, System.Func<System.Threading.Tasks.Task> next, System.Threading.CancellationToken ct)
+public interface Typeshift.ISettingsStore<TId> where TId : notnull
+abstract System.Threading.Tasks.Task<Typeshift.StoredDocument?> Typeshift.ISettingsStore<TId>.LoadAsync(TId id, string kind, System.Threading.CancellationToken ct)
+abstract System.Threading.Tasks.Task<long> Typeshift.ISettingsStore<TId>.SaveAsync(TId id, string kind, string json, long loadedVersion, System.Threading.CancellationToken ct)
+public interface Typeshift.IStorable<TSelf> where TSelf : class, Typeshift.IStorable<TSelf>
+static abstract TSelf Typeshift.IStorable<TSelf>.Deserialize(string json)
+static abstract string Typeshift.IStorable<TSelf>.Kind { get; }
+static abstract int Typeshift.IStorable<TSelf>.SchemaVersion { get; }
+abstract string Typeshift.IStorable<TSelf>.Serialize()
+public interface Typeshift.IToolApprovalRule
+abstract System.Threading.Tasks.ValueTask<Typeshift.ToolDecision> Typeshift.IToolApprovalRule.DecideAsync(Microsoft.Extensions.AI.FunctionCallContent call, Typeshift.AgentRun run, System.Threading.CancellationToken ct)
+public interface Typeshift.IToolMiddleware
+abstract System.Threading.Tasks.ValueTask<object?> Typeshift.IToolMiddleware.InvokeAsync(Microsoft.Extensions.AI.FunctionInvocationContext call, System.Func<System.Threading.Tasks.ValueTask<object?>> next, System.Threading.CancellationToken ct)
+public interface Typeshift.ITypeshiftStore<TId> : Typeshift.ISettingsStore<TId>, Typeshift.IConversationStore<TId> where TId : notnull
+public sealed class Typeshift.InMemoryTypeshiftStore<TId> : Typeshift.ITypeshiftStore<TId>, Typeshift.ISettingsStore<TId>, Typeshift.IConversationStore<TId>, Typeshift.IAgentSettingsStore where TId : notnull
+public System.Threading.Tasks.Task Typeshift.InMemoryTypeshiftStore<TId>.AppendConversationAsync(TId conversation, Typeshift.ConversationEntry entry, System.Threading.CancellationToken ct)
+public Typeshift.InMemoryTypeshiftStore<TId>.InMemoryTypeshiftStore()
+public System.Threading.Tasks.Task<Typeshift.StoredDocument?> Typeshift.InMemoryTypeshiftStore<TId>.LoadAsync(TId id, string kind, System.Threading.CancellationToken ct)
+public System.Threading.Tasks.Task<Typeshift.StoredDocument?> Typeshift.InMemoryTypeshiftStore<TId>.LoadAsync(string kind, System.Threading.CancellationToken ct)
+public System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry>> Typeshift.InMemoryTypeshiftStore<TId>.LoadConversationAsync(TId conversation, System.Threading.CancellationToken ct)
+public System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<Typeshift.ConversationEntry>> Typeshift.InMemoryTypeshiftStore<TId>.LoadConversationSinceCompactionAsync(TId conversation, System.Threading.CancellationToken ct)
+public System.Threading.Tasks.Task<long> Typeshift.InMemoryTypeshiftStore<TId>.SaveAsync(TId id, string kind, string json, long loadedVersion, System.Threading.CancellationToken ct)
+public System.Threading.Tasks.Task<long> Typeshift.InMemoryTypeshiftStore<TId>.SaveAsync(string kind, string json, long loadedVersion, System.Threading.CancellationToken ct)
+public sealed record Typeshift.LiveRun<TId> : System.IEquatable<Typeshift.LiveRun<TId>>
+public string Typeshift.LiveRun<TId>.Agent { get; init; }
+public TId Typeshift.LiveRun<TId>.Conversation { get; init; }
+public void Typeshift.LiveRun<TId>.Deconstruct(out TId Conversation, out string Agent, out string Model, out System.DateTimeOffset StartedAt)
+public bool Typeshift.LiveRun<TId>.Ended { get; init; }
+public bool Typeshift.LiveRun<TId>.Equals(Typeshift.LiveRun<TId>? other)
+public override bool Typeshift.LiveRun<TId>.Equals(object? obj)
+public override int Typeshift.LiveRun<TId>.GetHashCode()
+public Typeshift.LiveRun<TId>.LiveRun(TId Conversation, string Agent, string Model, System.DateTimeOffset StartedAt)
+public string Typeshift.LiveRun<TId>.Model { get; init; }
+public System.DateTimeOffset Typeshift.LiveRun<TId>.StartedAt { get; init; }
+public override string Typeshift.LiveRun<TId>.ToString()
+public static bool Typeshift.LiveRun<TId>.operator !=(Typeshift.LiveRun<TId>? left, Typeshift.LiveRun<TId>? right)
+public static bool Typeshift.LiveRun<TId>.operator ==(Typeshift.LiveRun<TId>? left, Typeshift.LiveRun<TId>? right)
+public sealed class Typeshift.McpServerUse
+public Typeshift.McpServerUse Typeshift.McpServerUse.ReadOnly()
+public Typeshift.McpServerUse Typeshift.McpServerUse.RequiresApproval()
+public sealed record Typeshift.RealtimeTrackingOptions : System.IEquatable<Typeshift.RealtimeTrackingOptions>
+public bool Typeshift.RealtimeTrackingOptions.Equals(Typeshift.RealtimeTrackingOptions? other)
+public override bool Typeshift.RealtimeTrackingOptions.Equals(object? obj)
+public override int Typeshift.RealtimeTrackingOptions.GetHashCode()
+public int Typeshift.RealtimeTrackingOptions.MaxPendingUpdates { get; init; }
+public System.TimeSpan Typeshift.RealtimeTrackingOptions.PublishInterval { get; init; }
+public Typeshift.RealtimeTrackingOptions.RealtimeTrackingOptions()
+public override string Typeshift.RealtimeTrackingOptions.ToString()
+public static bool Typeshift.RealtimeTrackingOptions.operator !=(Typeshift.RealtimeTrackingOptions? left, Typeshift.RealtimeTrackingOptions? right)
+public static bool Typeshift.RealtimeTrackingOptions.operator ==(Typeshift.RealtimeTrackingOptions? left, Typeshift.RealtimeTrackingOptions? right)
+public sealed record Typeshift.RunOptions : System.IEquatable<Typeshift.RunOptions>
+public bool Typeshift.RunOptions.ConcurrentToolCalls { get; init; }
+public bool Typeshift.RunOptions.Equals(Typeshift.RunOptions? other)
+public override bool Typeshift.RunOptions.Equals(object? obj)
+public override int Typeshift.RunOptions.GetHashCode()
+public int Typeshift.RunOptions.MaxConsecutiveToolErrors { get; init; }
+public int? Typeshift.RunOptions.MaxInputTokens { get; init; }
+public int Typeshift.RunOptions.MaxToolIterations { get; init; }
+public Typeshift.AgentMode Typeshift.RunOptions.Mode { get; init; }
+public Typeshift.RunOptions.RunOptions()
+public string? Typeshift.RunOptions.SummaryModel { get; init; }
+public int? Typeshift.RunOptions.TargetInputTokens { get; init; }
+public override string Typeshift.RunOptions.ToString()
+public static bool Typeshift.RunOptions.operator !=(Typeshift.RunOptions? left, Typeshift.RunOptions? right)
+public static bool Typeshift.RunOptions.operator ==(Typeshift.RunOptions? left, Typeshift.RunOptions? right)
+public sealed class Typeshift.RunOptionsBuilder
+public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.Configurable<TOption>(System.Func<Typeshift.RunOptions, TOption> option)
+public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithConcurrentToolCalls(bool concurrent)
+public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithMaxConsecutiveToolErrors(int errors)
+public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithMaxInputTokens(int tokens)
+public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithMaxToolIterations(int iterations)
+public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithMode(Typeshift.AgentMode mode)
+public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithSummaryModel(string model)
+public Typeshift.RunOptionsBuilder Typeshift.RunOptionsBuilder.WithTargetInputTokens(int tokens)
+public sealed class Typeshift.StoreConflictException : System.Exception
+public Typeshift.StoreConflictException.StoreConflictException(string message, System.Exception? inner = null)
+public static class Typeshift.StoreExtensions
+public static System.Threading.Tasks.Task Typeshift.StoreExtensions.VerifyAgentSettingsAsync(Typeshift.IAgentSettingsStore store, string kind, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public static System.Threading.Tasks.Task Typeshift.StoreExtensions.VerifyAsync<TId>(Typeshift.IConversationStore<TId> store, TId id, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) where TId : notnull
+public static System.Threading.Tasks.Task Typeshift.StoreExtensions.VerifyAsync<TId>(Typeshift.ISettingsStore<TId> store, TId id, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) where TId : notnull
+public static System.Threading.Tasks.Task Typeshift.StoreExtensions.VerifyAsync<TId>(Typeshift.ITypeshiftStore<TId> store, TId id, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) where TId : notnull
+public static Typeshift.StoreExtensions.extension(Typeshift.IAgentSettingsStore)
+public System.Threading.Tasks.Task Typeshift.StoreExtensions.extension(Typeshift.IAgentSettingsStore).VerifyAgentSettingsAsync(string kind, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public static Typeshift.StoreExtensions.extension<TId>(Typeshift.IConversationStore<TId>) where TId : notnull
+public System.Threading.Tasks.Task Typeshift.StoreExtensions.extension<TId>(Typeshift.IConversationStore<TId>).VerifyAsync(TId id, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public static Typeshift.StoreExtensions.extension<TId>(Typeshift.ISettingsStore<TId>) where TId : notnull
+public System.Threading.Tasks.Task Typeshift.StoreExtensions.extension<TId>(Typeshift.ISettingsStore<TId>).VerifyAsync(TId id, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public static Typeshift.StoreExtensions.extension<TId>(Typeshift.ITypeshiftStore<TId>) where TId : notnull
+public System.Threading.Tasks.Task Typeshift.StoreExtensions.extension<TId>(Typeshift.ITypeshiftStore<TId>).VerifyAsync(TId id, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public sealed record Typeshift.Stored<TData> : System.IEquatable<Typeshift.Stored<TData>>
+public TData Typeshift.Stored<TData>.Data { get; init; }
+public void Typeshift.Stored<TData>.Deconstruct(out TData Data, out long Version)
+public bool Typeshift.Stored<TData>.Equals(Typeshift.Stored<TData>? other)
+public override bool Typeshift.Stored<TData>.Equals(object? obj)
+public override int Typeshift.Stored<TData>.GetHashCode()
+public Typeshift.Stored<TData>.Stored(TData Data, long Version)
+public override string Typeshift.Stored<TData>.ToString()
+public long Typeshift.Stored<TData>.Version { get; init; }
+public static bool Typeshift.Stored<TData>.operator !=(Typeshift.Stored<TData>? left, Typeshift.Stored<TData>? right)
+public static bool Typeshift.Stored<TData>.operator ==(Typeshift.Stored<TData>? left, Typeshift.Stored<TData>? right)
+public sealed record Typeshift.StoredDocument : System.IEquatable<Typeshift.StoredDocument>
+public void Typeshift.StoredDocument.Deconstruct(out string Json, out long Version)
+public bool Typeshift.StoredDocument.Equals(Typeshift.StoredDocument? other)
+public override bool Typeshift.StoredDocument.Equals(object? obj)
+public override int Typeshift.StoredDocument.GetHashCode()
+public string Typeshift.StoredDocument.Json { get; init; }
+public Typeshift.StoredDocument.StoredDocument(string Json, long Version)
+public override string Typeshift.StoredDocument.ToString()
+public long Typeshift.StoredDocument.Version { get; init; }
+public static bool Typeshift.StoredDocument.operator !=(Typeshift.StoredDocument? left, Typeshift.StoredDocument? right)
+public static bool Typeshift.StoredDocument.operator ==(Typeshift.StoredDocument? left, Typeshift.StoredDocument? right)
+public sealed class Typeshift.StreamingRun<TResult> : System.Collections.Generic.IAsyncEnumerable<Microsoft.Extensions.AI.ChatResponseUpdate>
+public System.Collections.Generic.IAsyncEnumerator<Microsoft.Extensions.AI.ChatResponseUpdate> Typeshift.StreamingRun<TResult>.GetAsyncEnumerator(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken))
+public Microsoft.Extensions.AI.ChatResponse<TResult> Typeshift.StreamingRun<TResult>.Response { get; }
+public sealed class Typeshift.ToolBuilder
+public Typeshift.ToolBuilder Typeshift.ToolBuilder.ReadOnly()
+public Typeshift.ToolBuilder Typeshift.ToolBuilder.RequiresApproval()
+public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ToolBuilder.WithConfigurableSettings<TSettings>() where TSettings : class, new()
+public Typeshift.ToolBuilder Typeshift.ToolBuilder.WithDescription(string description)
+public Typeshift.ToolBuilder Typeshift.ToolBuilder.WithName(string name)
+public Typeshift.ToolBuilder<TSettings> Typeshift.ToolBuilder.WithSettings<TSettings>() where TSettings : class, new()
+public sealed class Typeshift.ToolBuilder<TSettings> where TSettings : class, new()
+public Typeshift.ToolBuilder<TSettings> Typeshift.ToolBuilder<TSettings>.Configurable<TMember>(System.Func<TSettings, TMember> member)
+public readonly struct Typeshift.ToolDecision : System.IEquatable<Typeshift.ToolDecision>
+public static Typeshift.ToolDecision Typeshift.ToolDecision.Abstain { get; }
+public static Typeshift.ToolDecision Typeshift.ToolDecision.Approve { get; }
+public bool Typeshift.ToolDecision.Approved { get; }
+public bool Typeshift.ToolDecision.Equals(Typeshift.ToolDecision other)
+public override bool Typeshift.ToolDecision.Equals(object obj)
+public override int Typeshift.ToolDecision.GetHashCode()
+public static Typeshift.ToolDecision Typeshift.ToolDecision.Reject(string reason)
+public string? Typeshift.ToolDecision.Rejection { get; }
+public override string Typeshift.ToolDecision.ToString()
+public static bool Typeshift.ToolDecision.operator !=(Typeshift.ToolDecision left, Typeshift.ToolDecision right)
+public static bool Typeshift.ToolDecision.operator ==(Typeshift.ToolDecision left, Typeshift.ToolDecision right)
+public sealed class Typeshift.ToolExclusion<TToolset> where TToolset : Typeshift.Toolset
+public Typeshift.ToolExclusion<TToolset> Typeshift.ToolExclusion<TToolset>.Exclude(System.Func<Typeshift.ToolList<TToolset>, Typeshift.ToolName> tool)
+public sealed class Typeshift.ToolInclusion<TToolset> where TToolset : Typeshift.Toolset
+public Typeshift.ToolInclusion<TToolset> Typeshift.ToolInclusion<TToolset>.Include(System.Func<Typeshift.ToolList<TToolset>, Typeshift.ToolName> tool)
+public sealed class Typeshift.ToolList<TToolset> where TToolset : Typeshift.Toolset
+public readonly struct Typeshift.ToolName : System.IEquatable<Typeshift.ToolName>
+public void Typeshift.ToolName.Deconstruct(out string Value)
+public bool Typeshift.ToolName.Equals(Typeshift.ToolName other)
+public override bool Typeshift.ToolName.Equals(object obj)
+public override int Typeshift.ToolName.GetHashCode()
+public override string Typeshift.ToolName.ToString()
+public Typeshift.ToolName.ToolName(string Value)
+public string Typeshift.ToolName.Value { get; init; }
+public static bool Typeshift.ToolName.operator !=(Typeshift.ToolName left, Typeshift.ToolName right)
+public static bool Typeshift.ToolName.operator ==(Typeshift.ToolName left, Typeshift.ToolName right)
+public abstract class Typeshift.Toolset
+protected Typeshift.ToolBuilder Typeshift.Toolset.AddTool(System.Delegate method)
+public string? Typeshift.Toolset.DisplayName { get; }
+protected Typeshift.Toolset.Toolset()
+protected void Typeshift.Toolset.WithDisplayName(string displayName)
+public sealed class Typeshift.ToolsetUse<TToolset> where TToolset : Typeshift.Toolset
+public Typeshift.ToolExclusion<TToolset> Typeshift.ToolsetUse<TToolset>.Exclude(System.Func<Typeshift.ToolList<TToolset>, Typeshift.ToolName> tool)
+public Typeshift.ToolInclusion<TToolset> Typeshift.ToolsetUse<TToolset>.Include(System.Func<Typeshift.ToolList<TToolset>, Typeshift.ToolName> tool)
+public sealed class Typeshift.TypeshiftBuilder
+public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithApprovalRule<TRule>() where TRule : class, Typeshift.IToolApprovalRule
+public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithChatClientProvider<TProvider>() where TProvider : class
+public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithConversationTracker<TId>() where TId : notnull
+public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithMcpToolProvider<TProvider>() where TProvider : class, Typeshift.IMcpToolProvider
+public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithOptions(System.Action<Typeshift.TypeshiftOptions> configure)
+public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithRealtimeTracking(Typeshift.RealtimeTrackingOptions? options = null)
+public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithRunMiddleware<TMiddleware>() where TMiddleware : class, Typeshift.IRunMiddleware
+public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithStore<TStore>() where TStore : class
+public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithStore<TStore>(TStore store) where TStore : class
+public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithToolMiddleware<TMiddleware>() where TMiddleware : class, Typeshift.IToolMiddleware
+public sealed class Typeshift.TypeshiftOptions
+public void Typeshift.TypeshiftOptions.NewConversationIds<TId>(System.Func<TId> create) where TId : notnull
+public bool Typeshift.TypeshiftOptions.PersistAllConversations { get; set; }
+public Typeshift.TypeshiftOptions.TypeshiftOptions()
+public sealed class Typeshift.TypeshiftRuntime : System.IAsyncDisposable
+public Typeshift.AgentHost<TAgent> Typeshift.TypeshiftRuntime.Agent<TAgent>() where TAgent : Typeshift.Agent
+public static Typeshift.TypeshiftRuntime Typeshift.TypeshiftRuntime.Create(Microsoft.Extensions.AI.IChatClient client, System.Action<Typeshift.TypeshiftBuilder>? configure = null)
+public void Typeshift.TypeshiftRuntime.Dispose()
+public System.Threading.Tasks.ValueTask Typeshift.TypeshiftRuntime.DisposeAsync()
+public System.IServiceProvider Typeshift.TypeshiftRuntime.Services { get; }

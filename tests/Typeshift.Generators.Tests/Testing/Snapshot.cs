@@ -18,10 +18,13 @@ public static class Snapshot
     public static void Verify(
         GeneratorDriverRunResult result,
         [CallerMemberName] string testName = "",
-        [CallerFilePath] string testFile = "")
+        [CallerFilePath] string testFile = "") =>
+        Verify($"{Path.GetFileNameWithoutExtension(testFile)}.{testName}", Render(result));
+
+    // Snapshots/{name}.verified.txt, for text that belongs to the repository rather than to one test's source
+    public static void Verify(string name, string text)
     {
-        var actual = Render(result);
-        var name = $"{Path.GetFileNameWithoutExtension(testFile)}.{testName}";
+        var actual = Normalize(text);
         var verifiedPath = Path.Combine(Directory, $"{name}.verified.txt");
         var receivedPath = Path.Combine(Directory, $"{name}.received.txt");
 
@@ -34,7 +37,7 @@ public static class Snapshot
             return;
         }
 
-        var expected = File.Exists(verifiedPath) ? Normalize(File.ReadAllText(verifiedPath)) : null;
+        var expected = Read(name);
 
         if (expected == actual)
         {
@@ -47,6 +50,12 @@ public static class Snapshot
             $"{(expected is null ? "No verified snapshot" : "Snapshot mismatch")} for {name}. Review {receivedPath} "
             + $"and rename it to .verified.txt, or rerun with {AcceptVariable}=1.");
     }
+
+    // The verified text under a name, or null before its first snapshot
+    public static string? Read(string name) =>
+        Path.Combine(Directory, $"{name}.verified.txt") is var path && File.Exists(path)
+            ? Normalize(File.ReadAllText(path))
+            : null;
 
     private static string Render(GeneratorDriverRunResult result)
     {

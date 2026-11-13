@@ -9,7 +9,8 @@ namespace Typeshift.Generators.Parsing;
 // D7: the modules of the referenced assemblies and the tools their toolsets stamp
 internal static class ReferenceReader
 {
-    // Raised whenever the stamps change shape; a reference with another version is TSH020
+    // D7: raised whenever the stamps change shape or a member generated code binds to changes; a reference with
+    // another version is TSH020
     public const int StampVersion = 6;
 
     public static ReferenceModel Read(Compilation compilation, CancellationToken ct)

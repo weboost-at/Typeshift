@@ -14,7 +14,7 @@ the playbook. That is meant to be enough; if you had to dig for something, add i
 | Runtime behavior or public API | `docs/contributing/architecture.md`; the subject's decisions | `.claude/skills/add-runtime-feature` |
 | Docs, README, the code they show | `docs/contributing/writing.md`; "Docs" below | `.claude/skills/update-docs` |
 | Audit the docs for drift and rule breaks | "Docs" below | `.claude/skills/review-docs` |
-| A release | `docs/contributing/releasing.md` | none: prepare its steps 1 to 4 (the changelog section, the demos), a person pushes the tag |
+| A release | `docs/contributing/releasing.md` | none: prepare its steps 1 to 4 (the changelog section, the API comparison, the demos), a person pushes the tag |
 
 - **What is built, what is open.** `docs/contributing/status.md` lists the slices of the rewrite, the test of each
   behavior and the known gaps.
@@ -67,6 +67,12 @@ dotnet mdsnippets && git diff --exit-code
   TSH024, TSH028 and TSH030 by pragma, each with its reason beside it.
 - Generator snapshots live in `tests/Typeshift.Generators.Tests/Snapshots`. A mismatch writes `.received.txt`; review
   it, then rerun with `ACCEPT_SNAPSHOTS=1` to accept.
+- The public API is a snapshot in the same folder: `PublicApi.verified.txt` holds every public type and member, one
+  line each. A change of public API fails `PublicApiSurfaceTests` until you read the difference to
+  `PublicApi.received.txt` and accept it with
+  `ACCEPT_SNAPSHOTS=1 dotnet test --project tests/Typeshift.Generators.Tests -c Release --no-build`. Commit the
+  snapshot with the change, so a reviewer reads the API change as its diff. `GeneratedContract.verified.txt` holds
+  what generated code binds to, and is accepted only after `ReferenceReader.StampVersion` was raised (D7).
 - Run the whole suite three times before you call a change done. All green every time.
 - The docs site: `npm ci`, then `npm run docs:check` (markdownlint, the docs rules, a build that fails on dead links)
   or `npm run docs:dev`.
@@ -156,6 +162,8 @@ These fail the build when the repository's own rules slip, so a rule never depen
 |---|---|
 | `tests/Typeshift.Tests/Testing/Conventions/TestConventionTests` | The test rules below, for every test project. |
 | `Repository/PublicApiDocumentationTests` (generator tests) | Every documented public member has its `param`, `typeparam` and `returns` tags. |
+| `Repository/PublicApiSurfaceTests.The_Public_Surface_Matches_Its_Snapshot` (generator tests) | Every change of the public API is a reviewed diff of `Snapshots/PublicApi.verified.txt`. |
+| `Repository/PublicApiSurfaceTests.The_Surface_Generated_Code_Binds_To_Changes_Only_With_The_Stamp_Version` (generator tests) | `Typeshift.Generated`, `IStorable<TSelf>` and `Agent.Declaration`, kept in `Snapshots/GeneratedContract.verified.txt`, change only together with `ReferenceReader.StampVersion` (D7). |
 | `Repository/DecisionCitationTests` (generator tests) | Every `// Dnn:` in code names a decision in force. |
 | `Repository/SourceConventionTests` (generator tests) | The code style rules a pattern can check: no clock, no `== null`, no `this` parameters, no TODOs. |
 | `Diagnostics/DiagnosticCatalogTests` (generator tests) | Every released diagnostic has a docs row, a docs section and a test. |
