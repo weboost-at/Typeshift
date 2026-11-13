@@ -23,9 +23,10 @@ on:
 permissions:
   contents: read
 
-# A new push to a pull request cancels its running check; every commit on main keeps its own
+# A new push to a pull request cancels its running check; every commit on main keeps its own. A group per branch
+# would not: it holds one waiting run, and a third push replaces it even without cancel-in-progress
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
