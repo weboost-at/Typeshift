@@ -29,7 +29,7 @@ public sealed class GeneratedModuleAttribute(Type module, int version) : Attribu
 /// <param name="agent">The agent.</param>
 /// <param name="kind">D39: the kind.</param>
 /// <param name="name">D22: the agent's name, which it goes by as a tool or a handoff target.</param>
-/// <param name="approvalTools">D33: the tools the agent offers that ask the host before they run.</param>
+/// <param name="approvalTools">D33: the tools the agent offers that ask your app before they run.</param>
 [EditorBrowsable(EditorBrowsableState.Never)]
 [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
 public sealed class ModuleAgentAttribute(
@@ -51,7 +51,7 @@ public sealed class ModuleAgentAttribute(
     public string Name { get; } = name;
 
     /// <summary>
-    /// The tools the agent offers that ask the host before they run.
+    /// The tools the agent offers that ask your app before they run.
     /// </summary>
     public IReadOnlyList<string> ApprovalTools { get; } = approvalTools;
 
@@ -122,7 +122,7 @@ public sealed class GeneratedToolAttribute(string name, string property, string 
     public Type? Overrides { get; init; }
 
     /// <summary>
-    /// Whether the tool asks the host before it runs.
+    /// Whether the tool asks your app before it runs.
     /// </summary>
     public bool RequiresApproval { get; init; }
 }

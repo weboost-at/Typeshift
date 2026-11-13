@@ -46,8 +46,8 @@ public sealed class ConversationTracker<TId> where TId : notnull
             .Select(change => Live(change.Run) with { Ended = change.Ended });
 
     /// <summary>
-    /// The updates of a conversation's streaming runs as they happen, until cancelled. A watcher that falls behind
-    /// loses its oldest updates.
+    /// The updates of a conversation's runs as they happen, until cancelled. A watcher that falls behind loses its
+    /// oldest updates.
     /// </summary>
     /// <param name="conversation">The conversation's id.</param>
     /// <param name="ct">Ends the watch.</param>

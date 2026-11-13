@@ -87,7 +87,7 @@ public abstract class Agent
     /// Names the kind a store keys the agent's <c>Settings</c> by, in place of its class name, so renaming the class
     /// keeps its stored settings.
     /// </summary>
-    /// <param name="kind">A constant, unique among the agents the host sees.</param>
+    /// <param name="kind">A constant, unique among the agents your app sees.</param>
     protected void WithStorageKind(string kind)
     {
     }
@@ -148,9 +148,9 @@ public abstract class Agent
         Handoffs.Add(AgentHost<TAgent>.In);
 
     /// <summary>
-    /// Offers the tools of an MCP server, which the host's <see cref="IMcpToolProvider"/> connects by name.
+    /// Offers the tools of an MCP server, which your app's <see cref="IMcpToolProvider"/> connects by name.
     /// </summary>
-    /// <param name="server">The server's name, as the host knows it.</param>
+    /// <param name="server">The server's name, as your app knows it.</param>
     /// <returns>The use, to require approval or mark its tools as reading only.</returns>
     protected McpServerUse UseMcpServer(string server)
     {

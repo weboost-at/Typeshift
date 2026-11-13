@@ -10,9 +10,9 @@ namespace Typeshift;
 /// Runs <typeparamref name="TAgent"/> with the services of its scope: its tools and its chat client provider resolve
 /// there. Registered as transient by <c>AddTypeshift()</c>: inject it, or resolve it from a scope, never from the root
 /// provider. <see cref="TypeshiftRuntime.Agent{TAgent}"/> creates one in a scope of its own, which disposing the host
-/// disposes. The generator adds the agent's typed members (D12): <c>RunAsync</c>, <c>RunAsync&lt;T&gt;</c>,
-/// <c>RunStreamingAsync</c>, <c>ResumeAsync</c>, <c>ResumeStreamingAsync</c>, <c>ResolveOptionsAsync</c>,
-/// <c>LoadSettingsAsync</c>, <c>SaveSettingsAsync</c> and <c>ConfigureAsync</c>.
+/// disposes. The generator adds the agent's typed members: <c>RunAsync</c>, <c>RunAsync&lt;T&gt;</c>,
+/// <c>RunStreamingAsync</c>, <c>RunStreamingAsync&lt;T&gt;</c>, <c>ResumeAsync</c>, <c>ResumeStreamingAsync</c>,
+/// <c>ResolveOptionsAsync</c>, <c>LoadSettingsAsync</c>, <c>SaveSettingsAsync</c> and <c>ConfigureAsync</c>.
 /// </summary>
 /// <typeparam name="TAgent">The agent.</typeparam>
 public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposable where TAgent : Agent

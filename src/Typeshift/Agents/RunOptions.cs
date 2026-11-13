@@ -19,15 +19,16 @@ public sealed class RunOptionsBuilder
     /// <summary>
     /// The most rounds of tool calls one run makes; 40 unless set.
     /// </summary>
-    /// <param name="iterations">The calls.</param>
+    /// <param name="iterations">The rounds.</param>
     /// <returns>The same chain.</returns>
     public RunOptionsBuilder WithMaxToolIterations(int iterations) =>
         Set(options => options with { MaxToolIterations = iterations });
 
     /// <summary>
-    /// The most tool calls in a row that may fail before the run ends; 3 unless set.
+    /// The most rounds of tool calls in a row that may fail before the failing tool's exception ends the run and
+    /// reaches your code; 3 unless set.
     /// </summary>
-    /// <param name="errors">The failed calls.</param>
+    /// <param name="errors">The failed rounds.</param>
     /// <returns>The same chain.</returns>
     public RunOptionsBuilder WithMaxConsecutiveToolErrors(int errors) =>
         Set(options => options with { MaxConsecutiveToolErrors = errors });
@@ -98,7 +99,7 @@ public sealed record RunOptions
     public int MaxToolIterations { get; init; } = 40;
 
     /// <summary>
-    /// The most tool calls in a row that may fail before the run ends.
+    /// The most rounds of tool calls in a row that may fail before the failing tool's exception ends the run.
     /// </summary>
     public int MaxConsecutiveToolErrors { get; init; } = 3;
 
@@ -130,13 +131,13 @@ public sealed record RunOptions
 public enum AgentMode
 {
     /// <summary>
-    /// Tools that require approval ask the host, unless a standing approval or a rule decides.
+    /// Tools that require approval ask your app, unless a standing approval or a rule decides.
     /// </summary>
     Default,
 
     /// <summary>
     /// Only tools marked read-only are offered. The model researches, then presents a plan with
-    /// <c>exit_plan_mode</c>, which asks the host; approving it continues in the mode the host chooses.
+    /// <c>exit_plan_mode</c>, which asks your app; approving it continues in the mode your app chooses.
     /// </summary>
     Plan,
 

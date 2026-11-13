@@ -181,7 +181,7 @@ public sealed class TypeshiftBuilder
     }
 
     /// <summary>
-    /// Adds a rule that decides tool calls before the host is asked, scoped; any rule that rejects a call wins, then
+    /// Adds a rule that decides tool calls before your app is asked, scoped; any rule that rejects a call wins, then
     /// any that approves it.
     /// </summary>
     /// <typeparam name="TRule">The rule.</typeparam>

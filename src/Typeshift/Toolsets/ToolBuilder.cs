@@ -15,7 +15,7 @@ public sealed class ToolBuilder
     /// Overrides the name derived from the method. The name keys the tool's stored settings, so pin it here before
     /// renaming a method whose settings are stored.
     /// </summary>
-    /// <param name="name">A lower_snake_case constant, unique across everything the host sees.</param>
+    /// <param name="name">A lower_snake_case constant, unique across everything your app sees.</param>
     /// <returns>The same chain.</returns>
     public ToolBuilder WithName(string name) => this;
 
@@ -27,7 +27,7 @@ public sealed class ToolBuilder
     public ToolBuilder WithDescription(string description) => this;
 
     /// <summary>
-    /// Pauses a run that calls the tool until the host approves or rejects the call.
+    /// Pauses a run that calls the tool until your app approves or rejects the call.
     /// </summary>
     /// <returns>The same chain.</returns>
     public ToolBuilder RequiresApproval() => this;

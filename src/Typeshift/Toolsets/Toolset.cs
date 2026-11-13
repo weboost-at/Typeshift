@@ -8,7 +8,7 @@ namespace Typeshift;
 public abstract class Toolset
 {
     /// <summary>
-    /// A name for people, a tool picker say; null unless <see cref="WithDisplayName"/> sets it.
+    /// A name for people, for example in a tool picker; null unless <see cref="WithDisplayName"/> sets it.
     /// </summary>
     public string? DisplayName { get; private set; }
 

@@ -10,6 +10,9 @@ public partial class SourceConventionTests
 {
     private static readonly string[] Code = ["src", "samples", "tests"];
 
+    // What only generated code calls is hidden from editors (D10), so its docs may name the decision behind a member
+    private const string HiddenFromEditors = "src/Typeshift/Generated/";
+
     [Fact]
     public void The_Code_Never_Reads_The_Clock()
     {
@@ -70,6 +73,26 @@ public partial class SourceConventionTests
         violations.Should().BeEmpty();
     }
 
+    [Fact]
+    public void Given_Xml_Docs_They_Cite_No_Decision()
+    {
+        // Act
+        var violations = Violations(DocumentedDecision()).Where(line => !line.StartsWith(HiddenFromEditors));
+
+        // Assert
+        violations.Should().BeEmpty("a user reads the docs in a tooltip, where a decision's number says nothing");
+    }
+
+    [Fact]
+    public void Given_Xml_Docs_They_Never_End_An_Example_With_Say()
+    {
+        // Act
+        var violations = Violations(TrailingSay());
+
+        // Assert
+        violations.Should().BeEmpty("an example says so with 'for example' or 'such as'");
+    }
+
     private static IEnumerable<string> Violations(Regex rule) =>
         RepositoryFiles.Find("*.cs", Code)
             .SelectMany(file => File.ReadLines(Path.Combine(RepositoryFiles.Root, file))
@@ -83,6 +106,10 @@ public partial class SourceConventionTests
         + @"|\bTask\.Delay\([^,]*\)\s*;|\.CancelAf[t]er\(")]
     private static partial Regex Clock();
 
+    // A citation in parentheses or as a prefix, in a doc comment or in one an emitter writes
+    [GeneratedRegex(@"///.*(\(D\d+(, D\d+)*\)|\bD\d+:)")]
+    private static partial Regex DocumentedDecision();
+
     [GeneratedRegex(@"^.{121}")]
     private static partial Regex LongLine();
 
@@ -95,4 +122,7 @@ public partial class SourceConventionTests
 
     [GeneratedRegex(@"(//|/\*).*\b(TO[D]O|FIX[M]E|HA[C]K)\b", RegexOptions.IgnoreCase)]
     private static partial Regex Todo();
+
+    [GeneratedRegex(@"///.*\bsay[,;.)]")]
+    private static partial Regex TrailingSay();
 }

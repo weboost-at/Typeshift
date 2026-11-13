@@ -12,7 +12,8 @@ namespace Typeshift;
 public interface IConversationStore<TId> where TId : notnull
 {
     /// <summary>
-    /// Loads every entry of a conversation, oldest first, summaries included, such as a chat UI shows. Runs start from
+    /// Loads every entry of a conversation, summaries included, such as a chat UI shows, in the order they were
+    /// appended (not by <see cref="ConversationEntry.At"/>, which can tie). Runs start from
     /// <see cref="LoadConversationSinceCompactionAsync"/> instead.
     /// </summary>
     /// <param name="conversation">The conversation's id.</param>
@@ -28,11 +29,13 @@ public interface IConversationStore<TId> where TId : notnull
     /// </summary>
     /// <param name="conversation">The conversation's id.</param>
     /// <param name="ct">Cancels the load.</param>
-    /// <returns>The entries, oldest first; none for a conversation never stored.</returns>
+    /// <returns>The entries, in the order they were appended; none for a conversation never stored.</returns>
     Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(TId conversation, CancellationToken ct);
 
     /// <summary>
     /// Appends an entry to a conversation, creating it on the first. Runs append as they go, so this is the hot path.
+    /// Store the entry as the JSON its <see cref="ConversationEntry.Serialize"/> writes. In one process, one run
+    /// appends to a conversation at a time; an append that throws is logged and not retried.
     /// </summary>
     /// <param name="conversation">The conversation's id.</param>
     /// <param name="entry">The entry.</param>

@@ -8,8 +8,8 @@ namespace Typeshift;
 /// <see cref="IChatClient"/> registered under its provider, or the one registered for every agent.
 /// </summary>
 /// <typeparam name="TProviderId">
-/// The type of the providers it serves, as the agents name them in <c>WithModel(provider, model)</c>: a string, a
-/// number, a <see cref="Guid"/> or an enum.
+/// The type of the providers it serves, as the agents name them in <c>WithModel(provider, model)</c>. When an agent's
+/// <c>Settings</c> store the provider, a string, a number, a <see cref="Guid"/> or an enum (TSH029).
 /// </typeparam>
 public interface IChatClientProvider<TProviderId> where TProviderId : notnull
 {

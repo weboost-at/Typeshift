@@ -31,7 +31,10 @@ public interface ISettingsStore<TId> where TId : notnull
     /// stored one must still equal, never the version to write.
     /// </param>
     /// <param name="ct">Cancels the save.</param>
-    /// <returns>The new version the store wrote, which the caller passes to its next save.</returns>
+    /// <returns>
+    /// The new version the store wrote, which the caller passes to its next save: never 0 and never a version this
+    /// document had before.
+    /// </returns>
     /// <exception cref="StoreConflictException">Another save came first.</exception>
     Task<long> SaveAsync(TId id, string kind, string json, long loadedVersion, CancellationToken ct);
 }

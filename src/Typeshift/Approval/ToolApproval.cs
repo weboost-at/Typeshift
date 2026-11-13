@@ -3,8 +3,8 @@ using Microsoft.Extensions.AI;
 namespace Typeshift;
 
 /// <summary>
-/// Decides tool calls before the host is asked: approves what the host trusts, rejects what it never allows (the guard
-/// of auto mode). Registered with <c>WithApprovalRule&lt;T&gt;()</c>, resolved from the run's services.
+/// Decides tool calls before your app is asked: approves what your app trusts, rejects what it never allows (the
+/// guard of auto mode). Registered with <c>WithApprovalRule&lt;T&gt;()</c>, resolved from the run's services.
 /// </summary>
 public interface IToolApprovalRule
 {
@@ -24,7 +24,7 @@ public interface IToolApprovalRule
 public readonly record struct ToolDecision
 {
     /// <summary>
-    /// No opinion: the mode decides, asking the host in <see cref="AgentMode.Default"/>, running the call in
+    /// No opinion: the mode decides, asking your app in <see cref="AgentMode.Default"/>, running the call in
     /// <see cref="AgentMode.Auto"/>.
     /// </summary>
     public static ToolDecision Abstain => default;
@@ -35,7 +35,7 @@ public readonly record struct ToolDecision
     public static ToolDecision Approve => new() { Approved = true };
 
     /// <summary>
-    /// Whether the call runs.
+    /// Whether the rule approves the call.
     /// </summary>
     public bool Approved { get; private init; }
 
@@ -65,7 +65,7 @@ public static class ChatResponseExtensions
     extension(ChatResponse response)
     {
         /// <summary>
-        /// The tool calls waiting for the host's approval; answer each with <c>CreateResponse(approved)</c> in the
+        /// The tool calls waiting for your app's approval; answer each with <c>CreateResponse(approved)</c> in the
         /// next run of the conversation.
         /// </summary>
         public IReadOnlyList<ToolApprovalRequestContent> ApprovalRequests =>
