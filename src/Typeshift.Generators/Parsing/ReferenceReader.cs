@@ -18,7 +18,7 @@ internal static class ReferenceReader
         var modules = new List<string>();
         var toolsets = new List<ToolsetSummary>();
 
-        foreach (var assembly in GetLibraryUsers(compilation))
+        foreach (var assembly in GetNameableLibraryUsers(compilation))
         {
             ct.ThrowIfCancellationRequested();
 
@@ -36,6 +36,16 @@ internal static class ReferenceReader
         GetLibraryUsers(compilation)
             .Where(assembly => GetModule(assembly) is null && DeclaresToolsetsOrAgents(assembly.GlobalNamespace, ct));
 
+    // TSH020: the references whose module generated code cannot name, so no interceptor registers it
+    public static IEnumerable<IAssemblySymbol> GetUnderAliasOnly(Compilation compilation) =>
+        GetLibraryUsers(compilation)
+            .Where(assembly => IsUnderAliasOnly(compilation, assembly) && GetModule(assembly) is not null);
+
+    // Generated code names every type from global::, which a reference under an extern alias alone is no part of
+    public static bool IsUnderAliasOnly(Compilation compilation, IAssemblySymbol assembly) =>
+        compilation.GetMetadataReference(assembly) is { Properties.Aliases: { IsDefaultOrEmpty: false } aliases }
+        && !aliases.Contains(MetadataReferenceProperties.GlobalAlias);
+
     // D39: the kinds of the referenced agents' stored settings
     public static IEnumerable<(string Kind, string Agent)> GetAgentKinds(Compilation compilation) =>
         GetAgentStamps(compilation)
@@ -49,7 +59,7 @@ internal static class ReferenceReader
             .Select(ReadAgent);
 
     private static IEnumerable<AttributeData> GetAgentStamps(Compilation compilation) =>
-        GetLibraryUsers(compilation)
+        GetNameableLibraryUsers(compilation)
             .Select(GetModule)
             .OfType<INamedTypeSymbol>()
             .SelectMany(module => module.GetAttributes())
@@ -134,6 +144,9 @@ internal static class ReferenceReader
             .Where(property => property.IsSettable && !property.IsObsolete)
             .Select(property => new SettingMember(property.Name, property.Type.ToFullyQualified()))
             .ToEquatableArray();
+
+    private static IEnumerable<IAssemblySymbol> GetNameableLibraryUsers(Compilation compilation) =>
+        GetLibraryUsers(compilation).Where(assembly => !IsUnderAliasOnly(compilation, assembly));
 
     private static IEnumerable<IAssemblySymbol> GetLibraryUsers(Compilation compilation) =>
         compilation.SourceModule.ReferencedAssemblySymbols.Where(assembly => assembly.Modules

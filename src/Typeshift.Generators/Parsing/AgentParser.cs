@@ -257,9 +257,9 @@ internal static class AgentParser
         var type = toolset.ToTypeOf();
         var name = ConstructorChains.GetCalledName(call);
 
-        if (!IsGenerated(toolset))
+        if (GetUnusableReason(agent, toolset) is var (reason, fix))
         {
-            reporter.Report(Descriptors.NotGenerated, name, toolset.Name);
+            reporter.Report(Descriptors.NotGenerated, name, toolset.Name, reason, fix);
             return null;
         }
 
@@ -406,10 +406,26 @@ internal static class AgentParser
             ? property
             : null;
 
-    // D7: a toolset of this compilation, or of an assembly that carries a module of this generator's stamps
-    private static bool IsGenerated(ITypeSymbol toolset) =>
-        toolset.Locations.Any(location => location.IsInSource)
-        || ReferenceReader.GetModule(toolset.ContainingAssembly) is not null;
+    // D7: null for a toolset of this compilation, or of an assembly that carries a module of this generator's stamps
+    // and that generated code can name
+    private static (string Reason, string Fix)? GetUnusableReason(INamedTypeSymbol agent, ITypeSymbol toolset)
+    {
+        if (toolset.Locations.Any(location => location.IsInSource)) return null;
+
+        var aliased = agent.ContainingAssembly is ISourceAssemblySymbol { Compilation: var compilation }
+            && ReferenceReader.IsUnderAliasOnly(compilation, toolset.ContainingAssembly);
+
+        if (aliased)
+        {
+            return (
+                "is in a reference under an extern alias, which generated code cannot name",
+                "reference its assembly without an alias");
+        }
+
+        return ReferenceReader.GetModule(toolset.ContainingAssembly) is null
+            ? ("was not compiled with the Typeshift generator", "reference the Typeshift package in its project")
+            : null;
+    }
 
     // What the declarations of one constructor say, before they are checked
     private sealed class Declarations

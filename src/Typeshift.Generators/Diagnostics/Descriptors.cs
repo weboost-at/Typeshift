@@ -102,14 +102,12 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor NotGenerated = Error(
         "TSH019",
         "Toolset was not compiled with the generator",
-        "'{0}' was not compiled with the Typeshift generator: reference the Typeshift package in its project");
+        "'{0}' {1}: {2}");
 
     public static readonly DiagnosticDescriptor UnstampedReference = Warning(
         "TSH020",
         "Referenced assembly was built with another Typeshift version or without the generator",
-        "'{0}' declares toolsets or agents but was built with another Typeshift version or without the Typeshift "
-        + "package, so AddTypeshift() cannot register them: reference the Typeshift package in its project, at "
-        + "this version, and build it again");
+        "'{0}' declares toolsets or agents but {1}, so AddTypeshift() cannot register them: {2}");
 
     public static readonly DiagnosticDescriptor SharedKind = Error(
         "TSH022",

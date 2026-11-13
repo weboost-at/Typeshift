@@ -215,6 +215,10 @@ without the generator when it reaches Typeshift through a compiled DLL, or throu
 package's analyzers, such as one with `PrivateAssets="all"`. A project built with another Typeshift version is
 reported too. Reference the package in the toolset's project, at the version the rest of the build uses.
 
+A toolset of a reference under an `extern alias` is reported as well. Generated code names every type from
+`global::`, which such a reference is no part of, so reference the assembly without an alias, or give it the
+`global` alias beside its own.
+
 ## TSH020
 
 **Referenced assembly was built with another Typeshift version or without the generator.** It declares toolsets or
@@ -222,6 +226,9 @@ agents, but the code generated for them does not fit this Typeshift version, or 
 so `AddTypeshift()` cannot register them. The causes are those of [TSH019](#tsh019): a compiled DLL, a reference that
 leaves out the package's analyzers, or a library built with another Typeshift version. Reference the package in its
 project, at the version the rest of the build uses, and build it again.
+
+A reference under an `extern alias` alone is reported too, although its build ran the generator: the generated
+registration cannot name its module. Reference it without an alias, or give it the `global` alias beside its own.
 
 ## TSH022
 

@@ -335,7 +335,22 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
     {
         foreach (var assembly in ReferenceReader.GetUnstamped(context.Compilation, context.CancellationToken))
         {
-            context.ReportDiagnostic(Diagnostic.Create(Descriptors.UnstampedReference, Location.None, assembly.Name));
+            context.ReportDiagnostic(Diagnostic.Create(
+                Descriptors.UnstampedReference,
+                Location.None,
+                assembly.Name,
+                "was built with another Typeshift version or without the Typeshift package",
+                "reference the Typeshift package in its project, at this version, and build it again"));
+        }
+
+        foreach (var assembly in ReferenceReader.GetUnderAliasOnly(context.Compilation))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                Descriptors.UnstampedReference,
+                Location.None,
+                assembly.Name,
+                "is referenced under an extern alias only, which generated code cannot name",
+                "reference it without an alias"));
         }
     }
 

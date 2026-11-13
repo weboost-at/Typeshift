@@ -1,3 +1,4 @@
+using Typeshift.Generators.Tests.Agents.Support;
 using Typeshift.Generators.Tests.Diagnostics.Support;
 using FluentAssertions;
 using Microsoft.CodeAnalysis;
@@ -1186,6 +1187,58 @@ public class DiagnosticTests : GeneratorTestBase
 
         // Assert
         run.Assert.Reports("TSH008", DiagnosticSeverity.Error, "\"echo\\n\"");
+    }
+
+    [Fact]
+    public void Given_A_Toolset_Of_A_Reference_Under_An_Extern_Alias_TSH019_Is_Reported_On_UseToolset()
+    {
+        // Arrange
+        var reference = CompileReference("Lib", AgentSources.Tickets).WithAliases(["lib"]);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.AliasedToolsetAgent));
+
+        // Assert
+        run.Assert.Reports("TSH019", DiagnosticSeverity.Error, "UseToolset<TicketToolset>");
+    }
+
+    [Fact]
+    public void Given_A_Toolset_Of_A_Reference_Under_An_Extern_Alias_The_Generated_Code_Holds_No_Error()
+    {
+        // Arrange
+        var reference = CompileReference("Lib", AgentSources.Tickets).WithAliases(["lib"]);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.AliasedToolsetAgent));
+
+        // Assert
+        run.Assert.GeneratesValidCode();
+    }
+
+    [Fact]
+    public void Given_A_Reference_Under_An_Extern_Alias_TSH020_Is_Reported()
+    {
+        // Arrange
+        var reference = CompileReference("Lib", AgentSources.Tickets).WithAliases(["lib"]);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.AliasedToolsetAgent));
+
+        // Assert
+        run.Assert.ReportsOnTheCompilation("TSH020", DiagnosticSeverity.Warning).GetMessage().Should().Contain("alias");
+    }
+
+    [Fact]
+    public void Given_A_Reference_Under_An_Alias_And_The_Global_One_TSH019_Is_Not_Reported()
+    {
+        // Arrange
+        var reference = CompileReference("Lib", AgentSources.Tickets).WithAliases(["global", "lib"]);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.AliasedToolsetAgent));
+
+        // Assert
+        run.Assert.CompilesCleanly();
     }
 
     [Theory]

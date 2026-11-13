@@ -356,4 +356,17 @@ public class AgentGenerationTests : GeneratorTestBase
         // Assert
         run.Source("Demo.NothingAgent.g.cs").Should().NotContain("ConfigureEcho");
     }
+
+    [Fact]
+    public void Given_A_Reference_Under_An_Extern_Alias_The_Interceptor_Leaves_Its_Module_Out()
+    {
+        // Arrange
+        var reference = CompileReference("Lib", AgentSources.Tickets).WithAliases(["lib"]);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.AliasedToolsetAgent));
+
+        // Assert
+        run.Source("Typeshift.Generated.AddTypeshiftInterceptor.g.cs").Should().NotContain("LibModule");
+    }
 }

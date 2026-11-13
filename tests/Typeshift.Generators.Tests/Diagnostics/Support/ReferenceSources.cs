@@ -312,4 +312,30 @@ public static class ReferenceSources
             }
         }
         """;
+
+    // Generated code names types from global::, which a reference under an extern alias alone is no part of
+    public const string AliasedToolsetAgent =
+        """
+        extern alias lib;
+
+        using lib::Demo;
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+
+        namespace App;
+
+        internal partial class AliasedAgent : Agent
+        {
+            public AliasedAgent()
+            {
+                WithDescription("Uses an aliased reference.");
+                UseToolset<TicketToolset>();
+            }
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) => services.AddTypeshift();
+        }
+        """;
 }

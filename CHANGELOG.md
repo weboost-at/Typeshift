@@ -139,6 +139,9 @@ All notable changes to this project are documented here. The format follows
   line break, as `WithName("echo\n")`, is TSH008. A tool whose settings record has no settable member gets no
   `Configure{Tool}()`, which was a builder with nothing to set and warned with CS9113. A control character in a
   description stays out of the generated doc comments. A default declared by `[DateTimeConstant]` compiles.
+- A reference under an `extern alias` alone is reported: TSH019 on a `UseToolset<T>()` of one of its toolsets, and
+  TSH020 for the reference, whose toolsets and agents `AddTypeshift()` cannot register. Generated code named its
+  types from `global::`, which gave CS0400 in the generated agent and CS0234 in the generated registration.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 
