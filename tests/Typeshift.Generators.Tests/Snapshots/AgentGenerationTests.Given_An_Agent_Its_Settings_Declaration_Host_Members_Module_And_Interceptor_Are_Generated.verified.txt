@@ -423,7 +423,7 @@ partial class SupportAgent
             if (this.StopSequences is { } member3)
             {
                 writer.WritePropertyName("stopSequences");
-                WriteStored0(writer, member3);
+                WriteStored0(writer, member3, "StopSequences");
             }
 
             if (this.Reasoning is { } member4)
@@ -478,11 +478,14 @@ partial class SupportAgent
             return true;
         }
 
-        private static void WriteStored0(global::System.Text.Json.Utf8JsonWriter writer, global::System.Collections.Generic.IReadOnlyList<string> value)
+        private static void WriteStored0(global::System.Text.Json.Utf8JsonWriter writer, global::System.Collections.Generic.IReadOnlyList<string> value, string member)
         {
             writer.WriteStartArray();
             foreach (var item in value)
             {
+                if (item is null)
+                    throw new global::System.InvalidOperationException($"'{member}' holds a null item, which settings cannot store.");
+
                 global::Typeshift.Generated.StorableJson.Write(writer, item);
             }
             writer.WriteEndArray();

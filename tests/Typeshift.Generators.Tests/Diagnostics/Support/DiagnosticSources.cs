@@ -1200,6 +1200,49 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string NullableStringItemsPick =
+        """
+        using System.Collections.Generic;
+        using Typeshift;
+
+        internal record EchoSettings
+        {
+            public List<string?> Tags { get; init; } = [];
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Tags);
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string NullableRecordValuesPick =
+        """
+        using System.Collections.Generic;
+        using Typeshift;
+
+        internal record Place
+        {
+            public string City { get; init; } = "";
+        }
+
+        internal record EchoSettings
+        {
+            public Dictionary<string, Place?> Places { get; init; } = [];
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Places);
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
     public const string PlainStructPick =
         """
         using Typeshift;

@@ -322,39 +322,48 @@ public static class StorableJson
     }
 
     /// <summary>
-    /// Reads a <see cref="TimeSpan"/>.
+    /// Reads a <see cref="TimeSpan"/> in the constant format, as it is written.
     /// </summary>
     /// <param name="element">The JSON.</param>
     /// <param name="value">The value.</param>
-    /// <returns>False unless the JSON is a time span string.</returns>
+    /// <returns>False unless the JSON is a time span string in the constant format.</returns>
+    // The constant format still parses "30" as thirty days and "1:30" as ninety minutes, which a hand edit hardly
+    // means, so a text reads only when it is what the value is written as
     public static bool TryRead(JsonElement element, out TimeSpan value)
     {
         value = default;
-        return TryRead(element, out string text) && TimeSpan.TryParse(text, CultureInfo.InvariantCulture, out value);
+
+        return TryRead(element, out string text)
+            && TimeSpan.TryParseExact(text, "c", CultureInfo.InvariantCulture, out value)
+            && value.ToString("c", CultureInfo.InvariantCulture) == text;
     }
 
     /// <summary>
-    /// Reads a <see cref="DateOnly"/>.
+    /// Reads a <see cref="DateOnly"/> in ISO 8601, as it is written.
     /// </summary>
     /// <param name="element">The JSON.</param>
     /// <param name="value">The value.</param>
-    /// <returns>False unless the JSON is an ISO 8601 date string.</returns>
+    /// <returns>False unless the JSON is an ISO 8601 date string, <c>2026-01-02</c>.</returns>
     public static bool TryRead(JsonElement element, out DateOnly value)
     {
         value = default;
-        return TryRead(element, out string text) && DateOnly.TryParse(text, CultureInfo.InvariantCulture, out value);
+
+        return TryRead(element, out string text)
+            && DateOnly.TryParseExact(text, "O", CultureInfo.InvariantCulture, DateTimeStyles.None, out value);
     }
 
     /// <summary>
-    /// Reads a <see cref="TimeOnly"/>.
+    /// Reads a <see cref="TimeOnly"/> in ISO 8601, as it is written.
     /// </summary>
     /// <param name="element">The JSON.</param>
     /// <param name="value">The value.</param>
-    /// <returns>False unless the JSON is an ISO 8601 time string.</returns>
+    /// <returns>False unless the JSON is an ISO 8601 time string, <c>13:45:30.0000000</c>.</returns>
     public static bool TryRead(JsonElement element, out TimeOnly value)
     {
         value = default;
-        return TryRead(element, out string text) && TimeOnly.TryParse(text, CultureInfo.InvariantCulture, out value);
+
+        return TryRead(element, out string text)
+            && TimeOnly.TryParseExact(text, "O", CultureInfo.InvariantCulture, DateTimeStyles.None, out value);
     }
 
     /// <summary>

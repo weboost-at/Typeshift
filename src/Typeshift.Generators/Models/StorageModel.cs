@@ -20,7 +20,11 @@ internal sealed record StorageModel(
     string Type,
     EquatableArray<StoredMember> Members = default,
     StorageModel? Element = null,
-    string? Key = null);
+    string? Key = null)
+{
+    // A class, an interface or an array: as an item it may be null where its type says it is not
+    public bool IsReference { get; init; }
+}
 
 // Property is the C# member, JsonName its camelCase name in the stored JSON
 internal sealed record StoredMember(string Property, string JsonName, StorageModel Storage);

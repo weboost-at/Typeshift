@@ -231,6 +231,105 @@ public class SettingsJsonTests : UnitTestBase
         read.Inspect.Channels.Should().BeNull();
     }
 
+    [Theory]
+    [InlineData("30")]
+    [InlineData("1:30")]
+    [InlineData("0:00:30")]
+    [InlineData("00:00:30.5")]
+    public void Given_A_Time_Span_In_Another_Form_Than_Settings_Write_It_Reads_As_Null(string span)
+    {
+        // Act
+        var read = EveryKindAgent.Settings.Deserialize("""{"tools":{"inspect":{"span":""" + $"\"{span}\"" + "}}}");
+
+        // Assert
+        read.Inspect.Span.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("00:00:30", 30)]
+    [InlineData("1.00:00:00", 86_400)]
+    [InlineData("-00:01:00", -60)]
+    public void Given_A_Time_Span_Written_By_Hand_As_Settings_Write_It_It_Reads(string span, int seconds)
+    {
+        // Act
+        var read = EveryKindAgent.Settings.Deserialize("""{"tools":{"inspect":{"span":""" + $"\"{span}\"" + "}}}");
+
+        // Assert
+        read.Inspect.Span.Should().Be(TimeSpan.FromSeconds(seconds));
+    }
+
+    [Theory]
+    [InlineData("01/02/2026")]
+    [InlineData("2 Jan 2026")]
+    [InlineData("2026-1-2")]
+    public void Given_A_Date_In_Another_Form_Than_Settings_Write_It_Reads_As_Null(string day)
+    {
+        // Act
+        var read = EveryKindAgent.Settings.Deserialize("""{"tools":{"inspect":{"day":""" + $"\"{day}\"" + "}}}");
+
+        // Assert
+        read.Inspect.Day.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData("13:45")]
+    [InlineData("13:45:30")]
+    [InlineData("1:45 PM")]
+    public void Given_A_Time_Of_Day_In_Another_Form_Than_Settings_Write_It_Reads_As_Null(string time)
+    {
+        // Act
+        var read = EveryKindAgent.Settings.Deserialize("""{"tools":{"inspect":{"time":""" + $"\"{time}\"" + "}}}");
+
+        // Assert
+        read.Inspect.Time.Should().BeNull();
+    }
+
+    [Fact]
+    public void Given_A_Null_Item_In_A_List_Of_Records_Saving_Fails_Naming_The_Member()
+    {
+        // Arrange
+        var settings = new EveryKindAgent.Settings { Inspect = new() { History = [null!] } };
+
+        // Act
+        var save = () => settings.Serialize();
+
+        // Assert
+        save.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("'History' holds a null item, which settings cannot store.");
+    }
+
+    [Fact]
+    public void Given_A_Null_Item_In_A_List_Of_Strings_Saving_Fails_Naming_The_Member()
+    {
+        // Arrange
+        var settings = new EveryKindAgent.Settings { StopSequences = [Data.Persistence.TextOutsideAscii, null!] };
+
+        // Act
+        var save = () => settings.Serialize();
+
+        // Assert
+        save.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("'StopSequences' holds a null item, which settings cannot store.");
+    }
+
+    [Fact]
+    public void Given_A_Null_Value_In_A_Dictionary_Saving_Fails_Naming_The_Member()
+    {
+        // Arrange
+        var places = new Dictionary<Shade, Address> { [Shade.Dark] = null! };
+        var settings = new EveryKindAgent.Settings { Inspect = new() { Places = places } };
+
+        // Act
+        var save = () => settings.Serialize();
+
+        // Assert
+        save.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("'Places' holds a null value, which settings cannot store.");
+    }
+
     [Fact]
     public void Given_A_Stored_Object_Its_Missing_Members_Take_Their_Defaults()
     {

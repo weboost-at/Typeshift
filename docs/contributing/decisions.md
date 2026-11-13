@@ -280,13 +280,22 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   for the records themselves; anything else is TSH012. Recursive types are TSH012.
 - **Details:** a stored record or class needs a public parameterless constructor; its members without a setter are
   computed and not stored, its obsolete ones no longer stored. A missing member reads as the constructor's value.
-  Collection items and dictionary values are values: a nullable value type item has no stored form. A record struct
+  Collection items and dictionary values are values: a nullable item has no stored form, `int?` and `string?`
+  alike (a `List<string?>` member gave CS8619 and CS8620 inside generated code). A class may still be null where its
+  type says it is not, so the generated writers check each item of a reference type and throw an
+  `InvalidOperationException` that names the settings member; such a null failed the save with a
+  `NullReferenceException`, or was written as a JSON null that reads back as no item. A record struct
   stores like a record. Other structs than the scalars are not storable, since most keep their state where no setter
   reaches and would store as an empty object. A class without a stored member is refused for that reason too:
   `object`, a marker class, a class whose only members have no setter, each also as an item or a dictionary value.
   Such a member compiled once, was stored as `{}` and read back as an empty object. A class of another library
   that has settable members still passes and stores what its setters reach, `StringBuilder` its capacity and
   length; no rule tells such a class from a settings class of a library.
+- **One format each:** a `TimeSpan`, a `DateOnly` and a `TimeOnly` read only in the format their writers write, the
+  constant format and ISO 8601. The lenient parsers read `"30"` as thirty days and `"01/02/2026"` as the second of
+  January, in a file a person edits by hand. `TimeSpan.TryParseExact` with the constant format still takes `"30"`
+  and `"1:30"`, so a time span reads only when it is written back as the same text. Any other form counts as missing,
+  as a member of the wrong type does (D44).
 - **Where:** `Parsing/Storage.cs`, `Emitting/StorageEmitter.cs`, `Generated/StorableJson.cs`.
 
 ### D20. `Configure{Tool}()` stays

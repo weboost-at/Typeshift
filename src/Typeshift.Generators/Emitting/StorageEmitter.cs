@@ -41,9 +41,7 @@ internal sealed class StorageEmitter
             writer.Line();
 
             // this, since a member may be named like the parameter or a local
-            storage.WriteMembers(
-                writer,
-                list.Select(member => ($"this.{member.Property}", member.JsonName, member.Storage)));
+            storage.WriteMembers(writer, "this", list);
 
             if (writeMore is not null)
             {
@@ -91,14 +89,16 @@ internal sealed class StorageEmitter
     }
 
 
-    // A statement that writes value
-    public string Write(StorageModel model, string writer, string value) =>
+    // A statement that writes value; member is an expression for the name of the settings member it belongs to,
+    // which a collection names when it holds a null
+    public string Write(StorageModel model, string writer, string value, string member) =>
         model.Kind switch
         {
             StorageKind.Scalar => $"{Json}.Write({writer}, {value});",
             StorageKind.Number => $"{Json}.WriteNumber({writer}, {value});",
             StorageKind.Enum => $"{Json}.WriteEnum({writer}, {value});",
-            _ => $"WriteStored{Helper(model)}({writer}, {value});"
+            StorageKind.Object => $"WriteStored{Helper(model)}({writer}, {value});",
+            _ => $"WriteStored{Helper(model)}({writer}, {value}, {member});"
         };
 
     // A Boolean expression that reads element into a new variable target
@@ -108,6 +108,7 @@ internal sealed class StorageEmitter
     // The members a record writes as a JSON object, each left out when null; the caller opens and closes the object
     public void WriteMembers(
         SourceWriter writer,
+        string owner,
         IEnumerable<(string Property, string JsonName, StorageModel Storage)> members)
     {
         var index = 0;
@@ -118,10 +119,10 @@ internal sealed class StorageEmitter
 
             if (index > 1) writer.Line();
 
-            using (writer.Block($"if ({property} is {{ }} {local})"))
+            using (writer.Block($"if ({owner}.{property} is {{ }} {local})"))
             {
                 writer.Line($"writer.WritePropertyName({Names.Literal(jsonName)});");
-                writer.Line(Write(storage, "writer", local));
+                writer.Line(Write(storage, "writer", local, Names.Literal(property.TrimStart('@'))));
             }
         }
     }
@@ -145,10 +146,11 @@ internal sealed class StorageEmitter
         for (var index = 0; index < _helpers.Count; index++)
         {
             var model = _helpers[index];
+            var member = model.Kind == StorageKind.Object ? "" : ", string member";
 
             writer.Line();
 
-            using (writer.Block($"private static void WriteStored{index}({Writer} writer, {model.Type} value)"))
+            using (writer.Block($"private static void WriteStored{index}({Writer} writer, {model.Type} value{member})"))
             {
                 WriteValue(writer, model);
             }
@@ -186,8 +188,8 @@ internal sealed class StorageEmitter
         {
             case StorageKind.Object:
                 writer.Line("writer.WriteStartObject();");
-                WriteMembers(writer, model.Members.Select(member =>
-                    ($"value.{Names.Identifier(member.Property)}", member.JsonName, member.Storage)));
+                WriteMembers(writer, "value", model.Members.Select(member =>
+                    (Names.Identifier(member.Property), member.JsonName, member.Storage)));
                 writer.Line("writer.WriteEndObject();");
                 break;
 
@@ -198,8 +200,9 @@ internal sealed class StorageEmitter
 
                 using (writer.Block("foreach (var entry in value)"))
                 {
+                    WriteNullCheck(writer, model.Element!, "entry.Value", "value");
                     writer.Line($"writer.WritePropertyName({key});");
-                    writer.Line(Write(model.Element!, "writer", "entry.Value"));
+                    writer.Line(Write(model.Element!, "writer", "entry.Value", "member"));
                 }
 
                 writer.Line("writer.WriteEndObject();");
@@ -210,12 +213,31 @@ internal sealed class StorageEmitter
 
                 using (writer.Block("foreach (var item in value)"))
                 {
-                    writer.Line(Write(model.Element!, "writer", "item"));
+                    WriteNullCheck(writer, model.Element!, "item", "item");
+                    writer.Line(Write(model.Element!, "writer", "item", "member"));
                 }
 
                 writer.Line("writer.WriteEndArray();");
                 break;
         }
+    }
+
+    // D19: an item is a value, yet a class may be null where its type says it is not. Written on, it would be a JSON
+    // null no reader takes, or an exception that names nothing
+    private static void WriteNullCheck(SourceWriter writer, StorageModel element, string value, string what)
+    {
+        if (!element.IsReference) return;
+
+        writer.Line($"if ({value} is null)");
+
+        using (writer.Indent())
+        {
+            writer.Line(
+                "throw new global::System.InvalidOperationException("
+                + $"$\"'{{member}}' holds a null {what}, which settings cannot store.\");");
+        }
+
+        writer.Line();
     }
 
     private void ReadValue(SourceWriter writer, StorageModel model)

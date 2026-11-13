@@ -94,7 +94,10 @@ The analyzer reports every other type, including these:
 - The numbers `sbyte`, `ushort`, `uint` and `ulong` are not storable, and neither is `char`.
 - An abstract class and an interface are not storable, because Typeshift creates a stored object with its
   parameterless constructor.
-- Items and dictionary values cannot be nullable value types, and a type that contains itself is not storable.
+- Items and dictionary values cannot be nullable, neither a value type such as `int?` nor a reference type such as
+  `string?`. A list or a dictionary that holds a null all the same fails the save with an
+  `InvalidOperationException` that names the member.
+- A type that contains itself is not storable.
 - Other structs, unions among them, are not storable, because most keep their state in fields that no public setter
   writes.
 - `object` and a class without a settable member are not storable, also as an item or a dictionary value such as

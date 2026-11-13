@@ -264,6 +264,19 @@ unknown, counts as missing, so the layer below applies. When a configurable memb
 stored value replaces the whole object, so members missing from its stored JSON take that type's defaults, not the
 values of the layer below.
 
+Dates and times are strings of one format each. Keep to it when you edit stored JSON by hand, because a value in
+another format counts as missing too:
+
+| Type | Format | Example |
+|---|---|---|
+| `TimeSpan` | `[-][d.]hh:mm:ss[.fffffff]`, .NET's constant format | `"00:00:30"`, `"1.02:03:04"` |
+| `DateOnly` | `yyyy-MM-dd` | `"2026-01-02"` |
+| `TimeOnly` | `HH:mm:ss.fffffff` | `"13:45:30.0000000"` |
+| `DateTime`, `DateTimeOffset` | ISO 8601 | `"2026-01-02T13:45:30Z"` |
+
+A time span needs its hours, minutes and seconds in two digits each, and a fraction of a second in seven. `"30"` and
+`"1:30"` are not read: .NET would take them for thirty days and for ninety minutes.
+
 Text is stored as it is written, letters outside ASCII included, so you can read a row in a database tool and search
 it with `LIKE`. That holds for settings and for conversation entries. Quotes and the characters `<`, `>` and `&` are
 escaped as `\uXXXX`, because your app may pass the JSON on to a page as it is.

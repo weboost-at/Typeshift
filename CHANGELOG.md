@@ -122,6 +122,16 @@ All notable changes to this project are documented here. The format follows
   `{}` and read back as an empty object, so its value was lost with the first save. Leave the member out with
   `NotConfigurable(...)` so that it stays in code, or give it a type settings can store, such as a record with
   settable members or a `Dictionary<string, string>`.
+- **Breaking:** a configurable list of nullable items or dictionary of nullable values, such as `List<string?>`
+  or `Dictionary<string, Place?>`, is TSH012. Such a member gave CS8619 and CS8620 in a generated file, and a null in
+  it was dropped when the settings were read. Make the items non-nullable.
+- A null in a stored list or dictionary fails the save with an `InvalidOperationException` that names the member,
+  as in "'History' holds a null item, which settings cannot store". A null record failed the save with a
+  `NullReferenceException` that named nothing, and a null string was stored and then missing when read.
+- Stored `TimeSpan`, `DateOnly` and `TimeOnly` values read only in the format settings write them in:
+  `"00:00:30"`, `"2026-01-02"` and `"13:45:30.0000000"`. Any other form now counts as missing, so the layer below
+  applies. In a settings file edited by hand, `"30"` was read as thirty days and `"01/02/2026"` as the second of
+  January. "The stored JSON" in the guide's page on settings and stores lists the formats.
 
 ### Fixed
 

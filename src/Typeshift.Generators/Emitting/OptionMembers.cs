@@ -14,7 +14,7 @@ internal sealed record OptionMember(
 
 internal static class OptionMembers
 {
-    private static readonly StorageModel Text = new(StorageKind.Scalar, "string");
+    private static readonly StorageModel Text = new(StorageKind.Scalar, "string") { IsReference = true };
 
     private static readonly StorageModel Flag = new(StorageKind.Scalar, "bool");
 
@@ -42,14 +42,17 @@ internal static class OptionMembers
             "StopSequences",
             "global::System.Collections.Generic.IReadOnlyList<string>?",
             "[.. {0}]",
-            new(StorageKind.List, "global::System.Collections.Generic.IReadOnlyList<string>", Element: Text)),
+            new(StorageKind.List, "global::System.Collections.Generic.IReadOnlyList<string>", Element: Text)
+            {
+                IsReference = true
+            }),
         new("AllowMultipleToolCalls", "AllowMultipleToolCalls", "bool?", "{0}", Flag),
         new(
             "Reasoning",
             "Reasoning",
             "global::Microsoft.Extensions.AI.ReasoningOptions?",
             "{0}",
-            new(StorageKind.Scalar, "global::Microsoft.Extensions.AI.ReasoningOptions"))
+            new(StorageKind.Scalar, "global::Microsoft.Extensions.AI.ReasoningOptions") { IsReference = true })
     ];
 
     public static readonly OptionMember[] Run =

@@ -1055,6 +1055,26 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Configurable_List_Of_Nullable_Strings_TSH012_Is_Reported_On_The_Pick()
+    {
+        // Act
+        var run = Run(DiagnosticSources.NullableStringItemsPick);
+
+        // Assert
+        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, "s => s.Tags");
+    }
+
+    [Fact]
+    public void Given_A_Configurable_Dictionary_Of_Nullable_Records_TSH012_Is_Reported_On_The_Pick()
+    {
+        // Act
+        var run = Run(DiagnosticSources.NullableRecordValuesPick);
+
+        // Assert
+        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, "s => s.Places");
+    }
+
+    [Fact]
     public void Given_A_Tool_Type_Only_A_Private_Context_Lists_Under_Native_Aot_TSH027_Is_Reported()
     {
         // Arrange

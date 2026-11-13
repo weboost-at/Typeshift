@@ -47,6 +47,13 @@ internal static class Storage
             ? nullable.TypeArguments[0]
             : type;
 
+        return Read(underlying, visiting) is { } model
+            ? model with { IsReference = underlying.IsReferenceType }
+            : null;
+    }
+
+    private static StorageModel? Read(ITypeSymbol underlying, HashSet<ITypeSymbol> visiting)
+    {
         var name = underlying.ToTypeOf();
 
         if (underlying.SpecialType is SpecialType.System_String or SpecialType.System_Boolean
@@ -76,13 +83,13 @@ internal static class Storage
         return Object(name, named, visiting);
     }
 
-    // Items are values: a nullable value type item has no stored form
+    // Items are values: a nullable item has no stored form
     private static StorageModel? Collection(
         StorageKind kind,
         string name,
         ITypeSymbol item,
         HashSet<ITypeSymbol> visiting) =>
-        item.OriginalDefinition.SpecialType is not SpecialType.System_Nullable_T && Of(item, visiting) is { } element
+        !IsNullable(item) && Of(item, visiting) is { } element
             ? new StorageModel(kind, name, Element: element)
             : null;
 
@@ -91,8 +98,7 @@ internal static class Storage
         var key = map.TypeArguments[0];
         var value = map.TypeArguments[1];
 
-        if (value.OriginalDefinition.SpecialType is SpecialType.System_Nullable_T
-            || Of(value, visiting) is not { } element) return null;
+        if (IsNullable(value) || Of(value, visiting) is not { } element) return null;
 
         if (key.SpecialType is SpecialType.System_String)
             return new StorageModel(StorageKind.Map, name, Element: element);
@@ -135,6 +141,11 @@ internal static class Storage
         // object, a marker class or one whose state no setter reaches would store as {} and read back empty
         return members.Count == 0 ? null : new StorageModel(StorageKind.Object, name, members.ToEquatableArray());
     }
+
+    // int? or string?; a class without the annotation may still hold null, which the generated writer refuses
+    private static bool IsNullable(ITypeSymbol type) =>
+        type.OriginalDefinition.SpecialType is SpecialType.System_Nullable_T
+        || type is { IsReferenceType: true, NullableAnnotation: NullableAnnotation.Annotated };
 
     // D44: camelCase
     public static string JsonName(string property) =>
