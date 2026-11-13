@@ -14,6 +14,8 @@ internal sealed class XmlDocs
 {
     private static readonly XmlDocs None = new(null, new Dictionary<string, string>());
 
+    private static readonly string[] Blocks = ["para", "list", "item", "term", "description", "code", "br"];
+
     private XmlDocs(string? summary, IReadOnlyDictionary<string, string> parameters)
     {
         Summary = summary;
@@ -31,7 +33,8 @@ internal sealed class XmlDocs
 
         try
         {
-            var root = XElement.Parse(xml);
+            // Kept, or the space between two elements, as in <paramref name="a"/> <paramref name="b"/>, is lost
+            var root = XElement.Parse(xml, LoadOptions.PreserveWhitespace);
 
             return new XmlDocs(
                 root.Element("summary") is { } summary ? GetText(summary) : null,
@@ -65,7 +68,8 @@ internal sealed class XmlDocs
         return string.Join(" ", text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
     }
 
-    // <see cref="..."/>, <see langword="..."/> and <paramref name="..."/> read as the name they point at
+    // <see cref="..."/>, <see langword="..."/> and <paramref name="..."/> read as the name they point at, a link
+    // without a text as its address; the text of a block stands apart from what is next to it
     private static string GetText(XNode node) =>
         node switch
         {
@@ -73,6 +77,8 @@ internal sealed class XmlDocs
             XElement element when element.Attribute("cref") is { } cref => GetShortName(cref.Value),
             XElement element when element.Attribute("langword") is { } langword => langword.Value,
             XElement element when element.Attribute("name") is { } name => name.Value,
+            XElement { IsEmpty: true } element when element.Attribute("href") is { } href => href.Value,
+            XElement element when Blocks.Contains(element.Name.LocalName) => $" {GetText(element)} ",
             XElement element => GetText(element),
             _ => ""
         };

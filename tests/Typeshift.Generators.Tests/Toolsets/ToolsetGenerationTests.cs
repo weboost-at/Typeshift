@@ -139,6 +139,21 @@ public class ToolsetGenerationTests : GeneratorTestBase
         run.Assert.CompilesCleanly();
     }
 
+    [Theory]
+    [InlineData("\"Converts amount from into EUR DocToolset units.\"")]
+    [InlineData("\"The decimal String amount.\"")]
+    [InlineData("\"Searches tickets. Returns at most ten.\"")]
+    [InlineData("\"One of fast slow\"")]
+    [InlineData("\"Reads a page, see https://example.com/pages. Or a file.\"")]
+    public void Given_Adjacent_Elements_In_A_Doc_Comment_Their_Texts_Stay_Apart(string description)
+    {
+        // Act
+        var run = Run(ToolsetSources.AdjacentDocElements);
+
+        // Assert
+        run.Source("Demo.DocToolset.g.cs").Should().Contain(description);
+    }
+
     [Fact]
     public void Given_A_Parameter_Documented_Twice_The_Generator_Does_Not_Fail()
     {

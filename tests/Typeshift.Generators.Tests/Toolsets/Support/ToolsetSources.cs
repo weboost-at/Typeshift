@@ -328,6 +328,38 @@ public static class ToolsetSources
         }
         """;
 
+    public const string AdjacentDocElements =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class DocToolset : Toolset
+        {
+            public DocToolset()
+            {
+                AddTool(Convert);
+                AddTool(Search);
+                AddTool(Read);
+            }
+
+            /// <summary>Converts <paramref name="amount"/> <paramref name="from"/> into <c>EUR</c>
+            /// <see cref="DocToolset"/> units.</summary>
+            /// <param name="amount">The <c>decimal</c> <see cref="string"/> amount.</param>
+            /// <param name="from">The currency.</param>
+            public static string Convert(string amount, string from) => amount;
+
+            /// <summary><para>Searches tickets.</para><para>Returns at most ten.</para></summary>
+            /// <param name="mode">One of <list type="bullet"><item>fast</item><item>slow</item></list></param>
+            public static string Search(string mode) => mode;
+
+            /// <summary>Reads a page, see <see href="https://example.com/pages"/>.<br/>Or a
+            /// <see href="https://example.com/files">file</see>.</summary>
+            /// <param name="page">The page.</param>
+            public static string Read(string page) => page;
+        }
+        """;
+
     public const string DocumentedTwice =
         """
         using Typeshift;

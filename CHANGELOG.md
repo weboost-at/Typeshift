@@ -258,6 +258,10 @@ All notable changes to this project are documented here. The format follows
   `using`.
 - A type named like a toolset's tool list class, such as `EchoToolList` beside a toolset `Echo`, or `Outer_Tools`
   beside a nested toolset `Outer.Tools`, no longer gives CS0101.
+- A description read from XML docs keeps the space between two elements that stand next to each other, as in
+  `<paramref name="amount"/> <paramref name="from"/>`, and sets `<para>`, `<list>` items, `<code>` and `<br/>` apart
+  from the text around them. A `<see href="..."/>` without a text reads as its address. Before, the model read
+  `Converts amountfrom`, and a list of allowed values as one word, such as `One of fastslow`.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 
