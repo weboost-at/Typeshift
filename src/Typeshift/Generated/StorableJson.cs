@@ -156,6 +156,20 @@ public static class StorableJson
     }
 
     /// <summary>
+    /// Writes a dictionary's enum key as a member name: the value's name, or the number of a value without one, as
+    /// <see cref="WriteEnum{TEnum}"/> writes a value.
+    /// </summary>
+    /// <typeparam name="TEnum">The enum's type.</typeparam>
+    /// <param name="writer">The writer, inside the dictionary's object.</param>
+    /// <param name="key">The key.</param>
+    public static void WriteEnumKey<TEnum>(Utf8JsonWriter writer, TEnum key) where TEnum : struct, Enum
+    {
+        var text = key.ToString();
+
+        writer.WritePropertyName(IsNamed<TEnum>(text) ? text : GetNumber(key));
+    }
+
+    /// <summary>
     /// Writes a <see cref="Guid"/>.
     /// </summary>
     /// <param name="writer">The writer.</param>

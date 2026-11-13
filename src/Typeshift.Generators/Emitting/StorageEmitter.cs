@@ -194,14 +194,17 @@ internal sealed class StorageEmitter
                 break;
 
             case StorageKind.Map or StorageKind.EnumMap:
-                var key = model.Kind == StorageKind.Map ? "entry.Key" : "entry.Key.ToString()";
+                // ToString would put the build machine's minus sign before a negative key without a name
+                var key = model.Kind == StorageKind.Map
+                    ? "writer.WritePropertyName(entry.Key);"
+                    : $"{Json}.WriteEnumKey(writer, entry.Key);";
 
                 writer.Line("writer.WriteStartObject();");
 
                 using (writer.Block("foreach (var entry in value)"))
                 {
                     WriteNullCheck(writer, model.Element!, "entry.Value", "value");
-                    writer.Line($"writer.WritePropertyName({key});");
+                    writer.Line(key);
                     writer.Line(Write(model.Element!, "writer", "entry.Value", "member"));
                 }
 

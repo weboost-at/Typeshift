@@ -208,6 +208,36 @@ public class SettingsJsonTests : UnitTestBase
     }
 
     [Fact]
+    public void Given_A_Negative_Dictionary_Key_Without_A_Name_Its_Entry_Reads_Back_In_Every_Culture()
+    {
+        // Arrange
+        using var culture = NumberCulture.WithMinusSign();
+        var places = new Dictionary<Shade, Address> { [(Shade)(-5)] = new() { Street = "Ring 1" } };
+        var settings = new EveryKindAgent.Settings { Inspect = new() { Places = places } };
+
+        // Act
+        var read = EveryKindAgent.Settings.Deserialize(settings.Serialize());
+
+        // Assert
+        read.Inspect.Places.Should().BeEquivalentTo(places);
+    }
+
+    [Fact]
+    public void Given_A_Negative_Dictionary_Key_Without_A_Name_It_Is_Stored_As_Its_Number_In_Every_Culture()
+    {
+        // Arrange
+        using var culture = NumberCulture.WithMinusSign();
+        var places = new Dictionary<Shade, Address> { [(Shade)(-5)] = new() { Street = "Ring 1" } };
+        var settings = new EveryKindAgent.Settings { Inspect = new() { Places = places } };
+
+        // Act
+        var json = settings.Serialize();
+
+        // Assert
+        json.Should().Contain("""{"places":{"-5":{"street":"Ring 1","city":"Vienna"}}}""");
+    }
+
+    [Fact]
     public void Given_An_Enum_Value_Stored_As_A_String_Of_Digits_It_Reads_Back()
     {
         // Act

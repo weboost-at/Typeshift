@@ -74,7 +74,7 @@ All notable changes to this project are documented here. The format follows
   every record has from `object`, which is CS0108. Settings stored under the tool's name are not affected.
 - The module of an assembly whose name holds other characters than letters, digits and dots carries a hash of the
   name, as `Acme_Tools_1a2b3c4dModule` for `Acme-Tools`. The generated registration names it for you.
-- Module stamps are at version 8, so a referenced project built with an earlier Typeshift is TSH020 until it is
+- Module stamps are at version 9, so a referenced project built with an earlier Typeshift is TSH020 until it is
   rebuilt.
 - The class that holds a toolset's picks for `Include` and `Exclude` lives in the global namespace, as the classes
   of the host members do. It was `{Toolset}ToolList` in the toolset's namespace and is `TypeshiftTools_` followed by
@@ -289,6 +289,9 @@ All notable changes to this project are documented here. The format follows
   type `///`, with `WithDescription("")` or with a text of spaces is TSH009, and a sub-agent or handoff target
   described that way is TSH023. Both passed, and the model was offered a tool or an agent described as `""`. An empty
   `<param>` no longer gives its parameter an empty description either.
+- A dictionary's enum key that is a negative value without a name is stored in digits with `-`, whatever the
+  culture of the machine that saves. Under a culture that writes another minus sign, such as Swedish, the key was
+  stored with that sign and its entry was missing when the settings were read.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

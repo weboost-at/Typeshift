@@ -301,6 +301,7 @@ public static void Typeshift.Generated.StorableJson.Write(System.Text.Json.Utf8J
 public static void Typeshift.Generated.StorableJson.Write(System.Text.Json.Utf8JsonWriter writer, bool value)
 public static void Typeshift.Generated.StorableJson.Write(System.Text.Json.Utf8JsonWriter writer, string value)
 public static void Typeshift.Generated.StorableJson.WriteEnum<TEnum>(System.Text.Json.Utf8JsonWriter writer, TEnum value) where TEnum : struct, System.Enum
+public static void Typeshift.Generated.StorableJson.WriteEnumKey<TEnum>(System.Text.Json.Utf8JsonWriter writer, TEnum key) where TEnum : struct, System.Enum
 public static void Typeshift.Generated.StorableJson.WriteNumber<TNumber>(System.Text.Json.Utf8JsonWriter writer, TNumber value) where TNumber : struct, System.Numerics.INumber<TNumber>
 public static void Typeshift.Generated.StorableJson.WriteSchemaVersion(System.Text.Json.Utf8JsonWriter writer, int version)
 public sealed class Typeshift.Generated.StorableJsonConverter<T> : System.Text.Json.Serialization.JsonConverter<T> where T : class, Typeshift.Generated.IJsonStorable<T>
