@@ -28,6 +28,8 @@ nuget.org keeps later packages under the name.
    `v*` tags may deploy.
 3. **Turn on GitHub Pages** under *Settings > Pages*, with *GitHub Actions* as the source, so the docs workflow can
    deploy the site.
+4. **Turn on private vulnerability reporting** in the repository's security settings. `SECURITY.md` sends a reporter
+   to the form this adds to the *Security* tab, and without the setting the form does not exist.
 
 ## Cutting a release
 

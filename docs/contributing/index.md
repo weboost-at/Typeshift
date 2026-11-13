@@ -40,6 +40,12 @@ The playbooks live in `.claude/skills/`. Claude Code loads them as skills, and o
 A comment such as `// D29: ...` cites the [decision](./decisions.md) behind the code next to it, and a test fails
 once that decision is withdrawn.
 
+## Reporting a vulnerability
+
+A vulnerability is reported in private, never in a public issue.
+[`SECURITY.md`](https://github.com/weboost-at/Typeshift/blob/main/SECURITY.md) says how, and which versions get a
+fix.
+
 ## Where to read on
 
 | Page | Read it when |
