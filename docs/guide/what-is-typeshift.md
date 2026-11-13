@@ -92,6 +92,34 @@ The [glossary](./glossary.md) defines every other term.
 - **Search over your documents.** A [context provider](./middleware.md#context-providers) adds what your own search
   returns to a run.
 
+## Before you ship
+
+Typeshift's defaults get a first run going, and some of them suit a demo better than an app with customers. Before
+you ship, your app has to do these things itself:
+
+- Register a store for everything that must survive a restart
+  ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call)).
+- Check the caller before you run, watch or steer a conversation by an id from a request
+  ([Conversation ids](./conversations.md#conversation-ids)).
+- Filter the tracker's `Runs` and `WatchRunsAsync` by the caller before you return them
+  ([Live runs](./conversations.md#live-runs)).
+- Mark as configurable only what a customer may change ([Precedence](./settings-and-stores.md#precedence)).
+- Decide which tool calls wait for a person, and write your rules before a run goes in auto mode
+  ([Approval and modes](./tool-approval.md)).
+- Treat the tools of an MCP server you do not control as untrusted, and mark a server `ReadOnly()` only when its
+  tools change nothing ([How the agent offers the tools](./mcp.md#how-the-agent-offers-the-tools)).
+- Keep secrets out of the messages of the exceptions your tools throw ([Results](./toolsets.md#results)).
+- Make tools with side effects safe to repeat ([Resuming](./conversations.md#resuming)).
+- Turn compaction on for agents whose conversations grow long ([Compaction](./conversations.md#compaction)).
+- With several processes, keep each conversation to one run at a time yourself
+  ([One run at a time](./conversations.md#one-run-at-a-time)).
+- Read API keys from your app's configuration, never from code ([A real client](./models.md#a-real-client)).
+- Watch your logs or spans for saves that failed ([Spans](./observability.md#spans)).
+- Capture message content in traces only where your tracing backend may keep it
+  ([Message content](./observability.md#message-content)).
+- Resolve each host from a scope or take it from the runtime, never from the root provider
+  ([Run from a console app](./using-an-agent.md#run-from-a-console-app)).
+
 ## Related
 
 - [Getting started](./getting-started.md): a first toolset, agent and run, in four steps.

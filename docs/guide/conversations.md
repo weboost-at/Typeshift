@@ -192,6 +192,11 @@ await foreach (var run in tracker.WatchRunsAsync(ct))
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L91-L94' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-runs' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+::: warning The tracker lists every customer's runs
+`Runs` and `WatchRunsAsync` hold every run under ids of the tracker's type, whoever started it. Keep only the
+conversations the caller may see before you return them from an endpoint.
+:::
+
 ## Steering
 
 `TrySteer` hands new input to a conversation's run while it works, for example when a user adds a request halfway

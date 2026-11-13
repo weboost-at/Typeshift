@@ -112,6 +112,7 @@ style; the essentials:
 | Fact | Canonical page | Also mentioned in |
 |---|---|---|
 | What Typeshift is for, what it builds on and leaves to you, how its pieces fit, that it is in alpha and that the site describes `main` | `guide/what-is-typeshift.md` | `index.md`, `README.md` and `src/Typeshift/PACKAGE.md`, the package's README on nuget.org (the pitch) |
+| What an app must do itself before it ships | `guide/what-is-typeshift.md#before-you-ship` | each duty's own page, which the checklist links |
 | Package setup, requirements, ids | `guide/registration.md` | `getting-started.md` (the steps) |
 | The runtime: `TypeshiftRuntime.Create` without a container, injecting it, its hosts as units of work | `guide/registration.md#the-runtime` | `getting-started.md` (step 4), `using-an-agent.md#run-from-a-console-app` (the snippet), `using-an-agent.md#run-from-a-background-job` (the job's host), `generated-members.md` (`DisposeAsync`) |
 | `AddTypeshift()` chain calls and lifetimes | `guide/registration.md#the-chain` | each feature page shows its own `With...` call |
@@ -146,6 +147,7 @@ style; the essentials:
 | New builder or `AddTypeshift()` chain call | `builders.md` or `registration.md#the-chain`, the guide page that teaches it |
 | New or changed diagnostic | `diagnostics.md` row and section (a guard test checks), the guide page that states the rule |
 | Changed default or limit | The reference table, then every page that states it: grep for the old value |
+| New duty for the app: a default that is open, a check the app must make | A line of `what-is-typeshift.md#before-you-ship` that links the section, and a callout on the feature's page |
 | Change in the run pipeline | `how-a-run-works.md` and its diagram, `contributing/architecture.md#a-run`, D29 |
 | New page | First a section of an existing page; otherwise a template from `docs/contributing/templates/`, the sidebar, the neighbours' `## Related` |
 

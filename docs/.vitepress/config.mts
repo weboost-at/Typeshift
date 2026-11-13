@@ -72,6 +72,7 @@ const sidebar = {
       text: 'Production',
       collapsed: true,
       items: [
+        { text: 'Before you ship', link: '/guide/what-is-typeshift#before-you-ship' },
         { text: 'Observability', link: '/guide/observability' },
         { text: 'Native AOT', link: '/guide/native-aot' }
       ]
