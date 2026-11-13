@@ -135,9 +135,12 @@ and `anthropic`, and a run takes the client registered under its provider
 | The JSON contexts of each assembly, which tools ask before the defaults | Singleton |
 | `ConversationTracker<TId>` of each id type your app asks for ([Live runs](./conversations.md#live-runs)), and the core services runs need | Singleton |
 
-The generator writes a registration module for each project that declares toolsets or agents. `AddTypeshift()` runs the
-modules of the project that calls it and of every project it references that declares toolsets or agents. Each module
-registers once per service collection, so a second call to `AddTypeshift()` only returns another chain.
+The generator writes a registration module for each project that declares toolsets or agents, and for each project
+whose XML docs the package collects, which is every project that leaves them on
+([XML docs of parameter types](#xml-docs-of-parameter-types)). A module registers its project's toolsets, agents,
+JSON contexts and XML docs. `AddTypeshift()` runs the module of the project that calls it and the modules of the
+projects it references. Each module registers once per service collection, so a second call to `AddTypeshift()` only
+returns another chain.
 
 Because the generator intercepts the call, it works only in a project that references the package, and only when you
 call it on the service collection, such as `services.AddTypeshift()` or `builder.Services.AddTypeshift()`. A call the

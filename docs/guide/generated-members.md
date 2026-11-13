@@ -51,7 +51,7 @@ AddTool(SearchArticlesAsync)
 
 | Member | Is |
 |---|---|
-| One `init` property per configurable member | The member's type, nullable. Null keeps the layer below. |
+| One `init` property per configurable member | The member's type, nullable. Null keeps the layer below. A member named like the record or one of its own members, such as `ApplyTo`, gets a `Value` suffix, so its property is `ApplyToValue`; the JSON keeps the member's own name. |
 | `ApplyTo(TSettings)` (hidden) | Returns the settings of the layer below, with every value this layer sets applied over them. |
 | `WriteJson`, `TryReadJson` (hidden) | Write and read the record's JSON, in camelCase with nulls left out. A `JsonConverter` on the record makes `System.Text.Json` read and write the same shape. |
 
@@ -78,9 +78,9 @@ AddTool(CloseTicketAsync)
 
 ### `{Toolset}ToolList`
 
-**Triggered by** every toolset. A static class, as accessible as the toolset, holds an extension block on
-`ToolList<TToolset>`. The block has one property per tool, named after the tool and of type `ToolName`, and `Include`
-and `Exclude` pick from these properties:
+**Triggered by** every toolset the generated code can reach ([TSH016](./diagnostics.md#tsh016)). A static class, as
+accessible as the toolset, holds an extension block on `ToolList<TToolset>`. The block has one property per tool,
+named after the tool and of type `ToolName`, and `Include` and `Exclude` pick from these properties:
 
 <!-- snippet: exclude-tools -->
 <a id='snippet-exclude-tools'></a>
@@ -93,6 +93,8 @@ UseToolset<TicketToolset>()
 
 `TicketToolsetToolList` gives `ToolList<TicketToolset>` the properties `SearchTickets`, `GetTicket` and
 `CloseTicket`. A tool named like a member of `object` gets a `Tool` suffix, so `to_string` becomes `ToStringTool`.
+The class of a nested toolset carries the names of the classes around it, so the toolset `Outer.Inner` gets
+`Outer_InnerToolList`.
 
 ### Stamps
 
@@ -218,10 +220,10 @@ Every agent also gets:
 
 | Member | Triggered by | Is |
 |---|---|---|
-| `{Assembly}Module` (hidden) | A toolset or an agent in the assembly | Registers the assembly's toolsets, agents, hosts, JSON contexts and XML docs; see [Registration](./registration.md#what-addtypeshift-registers). |
+| `{Assembly}Module` (hidden) | A toolset or an agent in the assembly, or its `TypeshiftSchemaAnnotations_{Assembly}` class (below), which every project with XML docs on gets | Registers the assembly's toolsets, agents, hosts, JSON contexts and XML docs; see [Registration](./registration.md#what-addtypeshift-registers). |
 | `[GeneratedModule]` (hidden) | The same | Stamps the module and its version for the projects that reference the assembly. |
 | `TypeshiftSchemaAnnotations_{Assembly}` (hidden) | `GenerateDocumentationFile`, on unless the project turns it off, and `TypeshiftSchemaAnnotations`, unless `false` | Added by the package's build, not the generator. It carries the `[SchemaAnnotations]` attribute that makes Weboost.SchemaAnnotations collect the XML docs of your types; see [Registration](./registration.md#xml-docs-of-parameter-types). |
-| The `AddTypeshift()` interceptor | A call of `services.AddTypeshift()` | See [Registration](./registration.md). |
+| The interceptor | A call of `services.AddTypeshift()` or `TypeshiftRuntime.Create(...)` | See [Registration](./registration.md). |
 
 ## The agent host
 
@@ -339,8 +341,9 @@ conversation id or the conversation has no interrupted run.
 `ResolveOptionsAsync` layers the agent's code, the stored settings, then `settings`
 ([Settings layering](./settings-and-stores.md#settings-layering)), and returns the run's `ChatOptions` without
 storing anything. The options hold the model, the instructions, the configurable
-options and the tools. The tools come in this order: the toolsets' tools with their layered settings, the
-sub-agents, the tools of `WithTools`, then the MCP servers' tools.
+options and the tools. The tools come in this order: the toolsets' tools with their layered settings, the agent's own
+tools, the sub-agents, the tools of `WithTools`, then the MCP servers' tools. A run with a conversation adds the
+handoff tools last.
 
 ### `LoadSettingsAsync`
 
