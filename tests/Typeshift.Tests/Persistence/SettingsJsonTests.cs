@@ -167,7 +167,7 @@ public class SettingsJsonTests : UnitTestBase
     public void Given_A_Negative_Enum_Value_Without_A_Name_Its_Number_Is_The_Same_In_Every_Culture()
     {
         // Arrange
-        using var culture = new MinusSignCulture();
+        using var culture = NumberCulture.WithMinusSign();
         var settings = new EveryKindAgent.Settings { Inspect = new() { Channels = (Channels)(-4) } };
 
         // Act
@@ -175,6 +175,22 @@ public class SettingsJsonTests : UnitTestBase
 
         // Assert
         json.Should().Be("""{"$schemaVersion":2,"tools":{"inspect":{"channels":-4}}}""");
+    }
+
+    [Fact]
+    public void Given_A_Culture_With_A_Decimal_Comma_Numbers_Are_Stored_And_Read_The_Same()
+    {
+        // Arrange
+        using var culture = NumberCulture.WithDecimalComma();
+        var settings = new EveryKindAgent.Settings { Inspect = new() { Ratio = 0.5f, Precise = 1.25, Money = 9.75m } };
+
+        // Act
+        var json = settings.Serialize();
+        var read = EveryKindAgent.Settings.Deserialize(json);
+
+        // Assert
+        json.Should().Be("""{"$schemaVersion":2,"tools":{"inspect":{"ratio":0.5,"precise":1.25,"money":9.75}}}""");
+        read.Should().BeEquivalentTo(settings);
     }
 
     [Fact]
