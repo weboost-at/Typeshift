@@ -37,6 +37,16 @@ public class ToolsetGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_Settings_Configurable_But_Some_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(ToolsetSources.DeniedSettings);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
     public void Given_Parameter_Defaults_Of_Every_Kind_They_Are_Generated_As_Typed_Literals()
     {
         // Act
