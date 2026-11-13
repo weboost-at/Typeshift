@@ -131,7 +131,9 @@ internal static class Storage
         }
 
         visiting.Remove(type);
-        return new StorageModel(StorageKind.Object, name, members.ToEquatableArray());
+
+        // object, a marker class or one whose state no setter reaches would store as {} and read back empty
+        return members.Count == 0 ? null : new StorageModel(StorageKind.Object, name, members.ToEquatableArray());
     }
 
     // D44: camelCase

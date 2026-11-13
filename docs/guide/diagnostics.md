@@ -175,6 +175,9 @@ chat option that belongs to a single run. Remove the pick, or change the member'
 `NotConfigurable(...)`.
 
 - [Tool settings](./tool-settings.md#configurable-members) lists the types a configurable settings member may have.
+- `object`, a class without a settable member, and a list or a dictionary of those, such as
+  `Dictionary<string, object>`, would be stored as `{}`. Give the member a record with settable members or a
+  `Dictionary<string, string>`.
 - Of the chat options, the model, the instructions, the sampling options, the stop sequences, multiple tool calls and
   reasoning may be configurable. `Tools`, `ConversationId`, `ResponseFormat`, `ToolMode` and the additional
   properties may not, as [Builders](./builders.md#chatoptionsbuilder) shows.

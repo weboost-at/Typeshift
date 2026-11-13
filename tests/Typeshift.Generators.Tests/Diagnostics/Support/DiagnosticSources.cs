@@ -1117,6 +1117,89 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string ObjectPick =
+        """
+        using Typeshift;
+
+        internal record EchoSettings
+        {
+            public object? Payload { get; init; }
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Payload);
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string MemberlessClassPick =
+        """
+        using Typeshift;
+
+        internal sealed class Marker
+        {
+            public string Name => "marker";
+        }
+
+        internal record EchoSettings
+        {
+            public Marker? Marker { get; init; }
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Marker);
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string ObjectListUnderADenyList =
+        """
+        using System.Collections.Generic;
+        using Typeshift;
+
+        internal record EchoSettings
+        {
+            public List<object>? Payloads { get; init; }
+
+            public int Limit { get; init; } = 5;
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithConfigurableSettings<EchoSettings>();
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string ObjectDictionaryUnderADenyList =
+        """
+        using System.Collections.Generic;
+        using Typeshift;
+
+        internal record EchoSettings
+        {
+            public Dictionary<string, object>? Metadata { get; init; }
+
+            public int Limit { get; init; } = 5;
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithConfigurableSettings<EchoSettings>();
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
     public const string PlainStructPick =
         """
         using Typeshift;

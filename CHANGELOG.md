@@ -117,6 +117,11 @@ All notable changes to this project are documented here. The format follows
   nothing to the store. A run with such calls keeps to `WithMaxToolIterations`, which it could exceed by a round.
 - A provider's client wrapped in `UseFunctionInvocation()`, which the guide advises against, runs no tool that
   requires approval: the model reads that the call was not approved.
+- **Breaking:** a configurable settings member of type `object`, of a class without a settable member, or of a
+  list or a dictionary of those, such as `Dictionary<string, object>`, is TSH012. It compiled before, was stored as
+  `{}` and read back as an empty object, so its value was lost with the first save. Leave the member out with
+  `NotConfigurable(...)` so that it stays in code, or give it a type settings can store, such as a record with
+  settable members or a `Dictionary<string, string>`.
 
 ### Fixed
 

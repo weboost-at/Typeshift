@@ -84,7 +84,7 @@ A configurable member needs a type settings can store ([TSH012](./diagnostics.md
 | Enums | Every enum | Its name, or its number for a value without a name, such as `[Flags]` with none set |
 | Ids, addresses, dates and times | `Guid`, `Uri`, `DateTime`, `DateTimeOffset`, `DateOnly`, `TimeOnly`, `TimeSpan` | A string |
 | Reasoning | `ReasoningOptions` | An object |
-| Objects | Non-generic classes and records with a public parameterless constructor, no `required` members and storable settable members, and record structs that meet the same rules | An object, replaced as a whole and never merged |
+| Objects | Non-generic classes and records with a public parameterless constructor, no `required` members and at least one settable member, each of a storable type, and record structs that meet the same rules | An object, replaced as a whole and never merged |
 | Collections | `T[]`, `List<T>`, `IList<T>`, `IReadOnlyList<T>`, `ICollection<T>`, `IReadOnlyCollection<T>`, `IEnumerable<T>`, `HashSet<T>`, `ISet<T>` and `IReadOnlySet<T>` of storable values | An array |
 | Dictionaries | `Dictionary<TKey, TValue>`, `IDictionary<TKey, TValue>` and `IReadOnlyDictionary<TKey, TValue>` of storable values, keyed by `string` or an enum | An object |
 
@@ -97,6 +97,8 @@ The analyzer reports every other type, including these:
 - Items and dictionary values cannot be nullable value types, and a type that contains itself is not storable.
 - Other structs, unions among them, are not storable, because most keep their state in fields that no public setter
   writes.
+- `object` and a class without a settable member are not storable, also as an item or a dictionary value such as
+  `Dictionary<string, object>`: settings would store `{}` and read back an empty object.
 
 ## Receiving settings in the tool
 

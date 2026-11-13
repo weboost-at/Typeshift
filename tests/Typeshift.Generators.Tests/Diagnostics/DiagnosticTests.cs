@@ -1015,6 +1015,46 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Configurable_Member_Of_Type_Object_TSH012_Is_Reported_On_The_Pick()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ObjectPick);
+
+        // Assert
+        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, "s => s.Payload");
+    }
+
+    [Fact]
+    public void Given_A_Configurable_Class_Without_A_Settable_Member_TSH012_Is_Reported_On_The_Pick()
+    {
+        // Act
+        var run = Run(DiagnosticSources.MemberlessClassPick);
+
+        // Assert
+        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, "s => s.Marker");
+    }
+
+    [Fact]
+    public void Given_A_List_Of_Objects_Under_A_Deny_List_TSH012_Is_Reported_On_The_Settings_Call()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ObjectListUnderADenyList);
+
+        // Assert
+        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, "WithConfigurableSettings<EchoSettings>");
+    }
+
+    [Fact]
+    public void Given_A_Dictionary_Of_Objects_Under_A_Deny_List_TSH012_Is_Reported_On_The_Settings_Call()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ObjectDictionaryUnderADenyList);
+
+        // Assert
+        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, "WithConfigurableSettings<EchoSettings>");
+    }
+
+    [Fact]
     public void Given_A_Tool_Type_Only_A_Private_Context_Lists_Under_Native_Aot_TSH027_Is_Reported()
     {
         // Arrange

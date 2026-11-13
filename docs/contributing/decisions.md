@@ -282,7 +282,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   computed and not stored, its obsolete ones no longer stored. A missing member reads as the constructor's value.
   Collection items and dictionary values are values: a nullable value type item has no stored form. A record struct
   stores like a record. Other structs than the scalars are not storable, since most keep their state where no setter
-  reaches and would store as an empty object.
+  reaches and would store as an empty object. A class without a stored member is refused for that reason too:
+  `object`, a marker class, a class whose only members have no setter, each also as an item or a dictionary value.
+  Such a member compiled once, was stored as `{}` and read back as an empty object. A class of another library
+  that has settable members still passes and stores what its setters reach, `StringBuilder` its capacity and
+  length; no rule tells such a class from a settings class of a library.
 - **Where:** `Parsing/Storage.cs`, `Emitting/StorageEmitter.cs`, `Generated/StorableJson.cs`.
 
 ### D20. `Configure{Tool}()` stays
