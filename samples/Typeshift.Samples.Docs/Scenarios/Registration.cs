@@ -21,8 +21,8 @@ internal static class Registration
             .WithRunMiddleware<BlockedTopics>()
             .WithToolMiddleware<AuditToolCalls>();
 
-        services.AddKeyedSingleton("openai", fast);
-        services.AddKeyedSingleton("anthropic", reasoning);
+        services.AddKeyedChatClient("openai", fast);
+        services.AddKeyedChatClient("anthropic", reasoning);
         // end-snippet
 
         services.AddTypeshift()

@@ -1,4 +1,3 @@
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Typeshift.Samples.Hosting;
 
@@ -31,11 +30,10 @@ internal static class FileSettings
         var services = new ServiceCollection();
 
         services.AddTypeshift()
-            .WithFileStore(store => store.Folder = folder)
-            .WithChatClientProvider<KeyedChatClientProvider>();
+            .WithFileStore(store => store.Folder = folder);
         // end-snippet
 
-        services.AddKeyedSingleton<IChatClient>("openai", new CannedChatClient());
+        services.AddKeyedChatClient("openai", new CannedChatClient());
 
         return services.BuildServiceProvider(validateScopes: true);
     }

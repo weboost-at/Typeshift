@@ -144,10 +144,9 @@ single-agent service, register the file store with `WithFileStore`:
 var services = new ServiceCollection();
 
 services.AddTypeshift()
-    .WithFileStore(store => store.Folder = folder)
-    .WithChatClientProvider<KeyedChatClientProvider>();
+    .WithFileStore(store => store.Folder = folder);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/FileSettings.cs#L30-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-file-agent-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/FileSettings.cs#L29-L34' title='Snippet source file'>snippet source</a> | <a href='#snippet-file-agent-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The file store keeps agents' settings in its `settings` folder, a file named after each agent's kind:
