@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -92,7 +93,7 @@ internal static class AgentParser
 
         // The user's own Configure{Tool}() wins over the one the generator would write
         var configures = agent.GetMembers()
-            .Where(member => member.Name.StartsWith("Configure") && IsUsers(member))
+            .Where(member => member.Name.StartsWith("Configure", StringComparison.Ordinal) && IsUsers(member))
             .Select(member => member.Name)
             .Distinct();
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Typeshift.Generators.Models;
 
@@ -228,7 +229,7 @@ internal static class AgentEmitter
                 public static string Kind => {{Names.Literal(agent.Kind)}};
 
                 /// <inheritdoc />
-                public static int SchemaVersion => {{agent.SchemaVersion}};
+                public static int SchemaVersion => {{agent.SchemaVersion.ToString(CultureInfo.InvariantCulture)}};
 
                 /// <inheritdoc />
                 public string Serialize() => {{Json}}.Write(WriteJson);
@@ -354,7 +355,7 @@ internal static class AgentEmitter
                 if (option.Provider is { } provider) WriteSetProvider(writer, provider);
 
                 var value = Local(option.Setting);
-                var applied = string.Format(option.Apply, value);
+                var applied = string.Format(CultureInfo.InvariantCulture, option.Apply, value);
 
                 writer.Line($"if (settings.{option.Setting} is {{ }} {value}) options.{option.Option} = {applied};");
             }

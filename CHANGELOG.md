@@ -38,6 +38,13 @@ All notable changes to this project are documented here. The format follows
   folder, published with the app and packed with the project.
 - A `UseToolset<T>()` whose type does not resolve yet, such as `UseToolset<>()` while you type, no longer stops the
   generator: it failed with CS8785 and every generated member of the project disappeared until the name resolved.
+- Tool names no longer depend on the culture of the machine that builds. Under Danish, Norwegian and Faroese
+  cultures (`da`, `nb`, `nn`, `no`, `fo`), a method whose name ends in an upper-case `A` before `Async`, such as
+  `EnableMFAAsync`, kept the suffix and became `enable_mfa_async`, while every other machine built `enable_mfa`. A
+  project built only under one of those cultures now gets the name without the suffix. Stored settings and standing
+  approvals are kept under the tool's name, so pin the old one with `WithName("enable_mfa_async")` or let it change.
+- A negative `WithSchemaVersion` compiles under cultures that write another minus sign, such as Swedish, Norwegian
+  and Finnish.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

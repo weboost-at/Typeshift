@@ -1,3 +1,4 @@
+using System;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -11,7 +12,10 @@ internal static class ToolNames
 
     // D13: SearchTickets is search_tickets, CloseTicketAsync is close_ticket, ParseHTMLPage is parse_html_page
     public static string FromMethod(string method) =>
-        ToSnakeCase(method.EndsWith("Async") && method.Length > 5 ? method.Substring(0, method.Length - 5) : method);
+        ToSnakeCase(
+            method.EndsWith("Async", StringComparison.Ordinal) && method.Length > 5
+                ? method.Substring(0, method.Length - 5)
+                : method);
 
     // D22: SupportAgent is support_agent
     public static string ToSnakeCase(string name)

@@ -58,6 +58,23 @@ public class AgentGenerationTests : GeneratorTestBase
         run.Assert.CompilesCleanly();
     }
 
+    [Theory]
+    [InlineData("sv-SE")]
+    [InlineData("nb-NO")]
+    [InlineData("fi-FI")]
+    public void Given_A_Build_Machine_Whose_Culture_Writes_Another_Minus_Sign_A_Negative_Version_Compiles(
+        string culture)
+    {
+        // Arrange
+        using var machine = new BuildCulture(culture);
+
+        // Act
+        var run = Run(AgentSources.NegativeSchemaVersion);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
     [Fact]
     public void Given_Two_Agents_Whose_Namespaces_Join_Alike_Each_Gets_Host_Members_Of_Its_Own()
     {

@@ -241,6 +241,22 @@ public static class AgentSources
         }
         """;
 
+    public const string NegativeSchemaVersion =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class VersionedAgent : Agent
+        {
+            public VersionedAgent()
+            {
+                WithDescription("Has a version.");
+                WithSchemaVersion(-2);
+            }
+        }
+        """;
+
     public const string Support =
         """
         #pragma warning disable CS1591

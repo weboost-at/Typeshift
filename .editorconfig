@@ -34,3 +34,8 @@ dotnet_style_qualification_for_field = false:suggestion
 dotnet_style_qualification_for_property = false:suggestion
 dotnet_style_qualification_for_method = false:suggestion
 
+# The generator's output must not depend on the build machine's culture
+[src/Typeshift.Generators/**.cs]
+dotnet_diagnostic.CA1305.severity = error
+dotnet_diagnostic.CA1309.severity = error
+dotnet_diagnostic.CA1310.severity = error
