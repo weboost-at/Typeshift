@@ -22,8 +22,8 @@ internal static class Names
     public const string Hidden =
         "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
 
-    // D10: every generated type, and every member generated into a class of the user's, says where it comes from.
-    // Analyzers then leave it alone, and coverage tools count none of it as the user's untested code. Two lines
+    // D10: every generated type, and every member generated into a class of the user's, says where it comes from,
+    // on two lines. Analyzers then leave it alone, and coverage tools count none of it as the user's untested code
     public static readonly string Generated =
         $"[global::System.CodeDom.Compiler.GeneratedCode(\"Typeshift.Generators\", \"{GetVersion()}\")]\n"
         + "[global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]";

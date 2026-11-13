@@ -222,6 +222,9 @@ rewrite.
   both already, so the package consumer sample holds an obsolete toolset, without docs until this repository
   references that version. The same collection compiles the docs of every documented type into the
   assembly, where only the types that tools and typed runs reach are needed.
+- **A project below C# 14 that only documents types.** The generator writes nothing below C# 14 (TSH031), also not
+  the module of a project without toolsets and agents, which gets no diagnostic. The XML docs of its types then
+  describe nothing in the schemas of the tools that take them.
 - **One conversation through unrelated hosts.** An app that runs one conversation id through the hosts of two agents
   that never hand off to each other shares their standing approvals, and no diagnostic sees it.
 - **No claim on a conversation across processes.** One run per conversation holds within a process only (D50), so two

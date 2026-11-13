@@ -247,6 +247,9 @@ The code must read as if the owner wrote it: terse, intention-revealing, comment
   `#nullable enable` and `#pragma warning disable CS0612, CS0618`, plus the ids of the `[Experimental]` symbols the
   file names. A generated file never carries a bare `#pragma warning disable`, which would hide what the guard tests
   look for.
+- A generated type, and a member generated into a class of the user's, carries `Names.Generated`: `[GeneratedCode]`
+  and `[ExcludeFromCodeCoverage]`. The user's partial class never does, since analyzers skip what the attribute
+  marks.
 - A new diagnostic gets a descriptor, a release row, a docs row and section, and its own test; the
   `add-diagnostic` playbook lists the steps. Its ID is the number after the highest ever used, the retired ones in
   `docs/guide/diagnostics.md` included, and a gap is never filled (D49).

@@ -19,6 +19,12 @@ Read `docs/contributing/architecture.md`, "The generator and the analyzer", firs
 - Generated code is `global::`-qualified, escapes keyword names (`Names.Identifier`), starts with the header of
   `SourceWriter`, documents every public member, and hides what only generated code calls with
   `EditorBrowsable(Never)` (D10).
+- Every generated type, and every member generated into a class of the user's, is written after `Names.Generated`,
+  which marks it `[GeneratedCode]` and `[ExcludeFromCodeCoverage]`. Never mark the user's partial class: analyzers
+  skip what the attribute marks, the user's own code in the class included.
+- A generated class that other files must see without importing anything, such as a host or a tool list, lives in
+  the global namespace under `Names.GlobalClassName` (D12). A generated record reads its own members through
+  `this.`, since a settings member may be named like a parameter or a local of the generated method.
 - Generated code is not held to 120 columns. A signature stays on its first line, a long parameter list breaks after
   `(` with one parameter per line, and a `where` clause takes its own line after the `)`.
 - A generated member a user member could share a name with is checked in the parser (TSH018), with
