@@ -24,8 +24,10 @@ for you to review, and rerunning with `ACCEPT_SNAPSHOTS=1` accepts it. The publi
 `PublicApi.verified.txt`, so a change to it shows as a diff in your pull request. Open work goes into
 [Status](./status.md), never into a TODO in code, and a change people can see changes the docs in the same commit.
 
-Every text file checks out with LF line endings on every platform, Windows included: `.gitattributes` overrides
-Git's `core.autocrlf`, because tests and the docs rules read the files.
+CI builds and tests on Linux, Windows and macOS. Every text file checks out with LF line endings on all three:
+`.gitattributes` overrides Git's `core.autocrlf`, because tests and the docs rules read the files. The two commands
+in `AGENTS.md` that publish the console sample as Native AOT and run it are the Linux form. On another system, pass
+its runtime identifier in place of `linux-x64`, for example `win-x64` or `osx-arm64`.
 
 ## Working with coding agents
 

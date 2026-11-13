@@ -30,6 +30,28 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # The build and the tests where the file system ignores case and Windows shares files its own way. Windows checks
+  # out with the runner's core.autocrlf, which .gitattributes overrides. The other steps stay on Linux, in build
+  test-os:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # MinVer reads the version from the tags
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - run: dotnet build Typeshift.slnx -c Release -warnaserror
+      - run: dotnet test --solution Typeshift.slnx -c Release --no-build
+
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 15

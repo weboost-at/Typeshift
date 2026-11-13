@@ -179,6 +179,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `IncrementalTests` (generator tests) | Unrelated edits leave the generator's output cached. |
 | CI: the steps after the pack in `ci.yml` | The package's build files sit under `buildTransitive/net11.0/` (D61). The consumer sample, which never chose XML docs, builds with mistakes in its XML comments and publishes without an XML file, and with XML docs of its own choice it keeps CS1591 (D68). |
 | `release.yml`, for a tag | The tag sits on `main`, has its section in `CHANGELOG.md` and is the version MinVer packed, or nothing is published. |
+| CI: the Windows and macOS legs | The build and the tests pass where the file system ignores case, and on a Windows checkout with Git's default `core.autocrlf`. |
 | CI: docs workflow | The Markdown matches its snippets, passes markdownlint and the docs rules (`docs/.vitepress/lint.mjs`), and the site has no dead links or anchors. |
 
 ## Layout
