@@ -77,19 +77,41 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 
 ## The chain
 
-| Call | Registers | Lifetime | Needed by |
-|---|---|---|---|
-| `WithStore<TStore>()` | `TStore`, and each of `IAgentSettingsStore`, `ISettingsStore<TId>`, `IConversationStore<TId>` and `ITypeshiftStore<TId>` it implements, of any id type, resolving to it. Call it once for each class. | Singleton, so it takes no scoped services ([Implementing a store](./implementing-a-store.md#register-your-store)) | Keeping agents' own settings, settings ids and conversations across restarts. Without any store, they are kept in memory, and the first save logs a warning. |
-| `WithStore(store)` | The store you created yourself, as each store interface its declared type implements. The container never disposes it. | Singleton, your app's | The same. |
-| `WithFileStore(Action<FileStoreOptions>? configure = null)` | The file store as `IAgentSettingsStore`, built by the container with your app's `TimeProvider`. By default, `Folder` is `typeshift` under `AppContext.BaseDirectory`; the settings files lie in its `settings` folder. | Singleton | Agents' own settings, kept in files ([Agent settings](./settings-and-stores.md#agent-settings)). |
-| `WithChatClientProvider<TProvider>()` | `TProvider`, and each `IChatClientProvider<T>` it implements, of any provider type, resolving to it. For each provider type, the last call wins. | Scoped | Every run with a provider and a model of that type, before any `IChatClient` you registered ([Registering clients](./models.md#registering-clients)). |
-| `WithOptions(options => ...)` | `TypeshiftOptions`, which each call changes further, such as `PersistAllConversations` | Singleton | Keeping the runs without a conversation id ([Keeping every conversation](./conversations.md#keeping-every-conversation)). |
-| `WithRealtimeTracking(RealtimeTrackingOptions? options = null)` | The options of live updates, in place of the defaults: `PublishInterval` of 100 ms and `MaxPendingUpdates` of 256. Live updates are on without it. | Singleton | Tuning `ConversationTracker<TId>.WatchAsync`. |
-| `WithConversationTracker<TId>()` | The `ConversationTracker<TId>` of one id type, closed, as a singleton of its own | Singleton | An app published with Native AOT that injects the tracker of a value type, such as `Guid` or `int` ([Native AOT](./native-aot.md#trackers-of-value-type-ids)). |
-| `WithApprovalRule<TRule>()` | One more `IToolApprovalRule` | Scoped | Deciding calls before your app is asked. |
-| `WithRunMiddleware<TMiddleware>()` | One more `IRunMiddleware`. The first registered is the outermost. | Scoped | Wrapping every run. |
-| `WithToolMiddleware<TMiddleware>()` | One more `IToolMiddleware`. The first registered is the outermost. | Scoped | Wrapping every tool call. |
-| `WithMcpToolProvider<TProvider>()` | `IMcpToolProvider` | Scoped | Agents with `UseMcpServer`. |
+| Call | Registers | Lifetime |
+|---|---|---|
+| `WithStore<TStore>()` | `TStore`, as each store interface it implements | Singleton |
+| `WithStore(store)` | A store you created yourself, as each store interface its declared type implements | Singleton, your app's |
+| `WithFileStore(configure)` | The file store, as `IAgentSettingsStore` | Singleton |
+| `WithChatClientProvider<TProvider>()` | `TProvider`, as each `IChatClientProvider<T>` it implements | Scoped |
+| `WithOptions(options => ...)` | `TypeshiftOptions`, such as `PersistAllConversations` | Singleton |
+| `WithRealtimeTracking(options)` | `RealtimeTrackingOptions`, the limits of live updates | Singleton |
+| `WithConversationTracker<TId>()` | The `ConversationTracker<TId>` of one id type | Singleton |
+| `WithApprovalRule<TRule>()` | One more `IToolApprovalRule`, which decides calls before your app is asked | Scoped |
+| `WithRunMiddleware<TMiddleware>()` | One more `IRunMiddleware`, which wraps every run | Scoped |
+| `WithToolMiddleware<TMiddleware>()` | One more `IToolMiddleware`, which wraps every tool call | Scoped |
+| `WithMcpToolProvider<TProvider>()` | The `IMcpToolProvider` of agents with `UseMcpServer` | Scoped |
+
+- A store keeps agents' own settings, settings ids and conversations across restarts. Without any store, they are
+  kept in memory, and the first save logs a warning. `WithStore<TStore>()` registers your class as each of
+  `IAgentSettingsStore`, `ISettingsStore<TId>`, `IConversationStore<TId>` and `ITypeshiftStore<TId>` it implements,
+  of any id type, so call it once for each class. All of them resolve to one instance, a singleton, so a store takes
+  no scoped services ([Implementing a store](./implementing-a-store.md#register-your-store)). The container never
+  disposes a store you pass to `WithStore(store)`.
+- The file store keeps agents' own settings in files ([Agent settings](./settings-and-stores.md#agent-settings)).
+  `WithFileStore` takes an optional `Action<FileStoreOptions>`, and the container builds the store with your app's
+  `TimeProvider`. By default, `Folder` is `typeshift` under `AppContext.BaseDirectory`, and the settings files lie
+  in its `settings` folder.
+- A chat client provider serves every run with a provider and a model of its type, before any `IChatClient` you
+  registered ([Registering clients](./models.md#registering-clients)). One class may implement
+  `IChatClientProvider<T>` for several provider types, and for each type the last call wins.
+- Each `WithOptions` call changes the same `TypeshiftOptions` further. `PersistAllConversations` keeps the runs
+  without a conversation id ([Keeping every conversation](./conversations.md#keeping-every-conversation)).
+- Live updates are on without `WithRealtimeTracking`. Its optional `RealtimeTrackingOptions` replace the defaults
+  that `ConversationTracker<TId>.WatchAsync` follows: a `PublishInterval` of 100 ms and `MaxPendingUpdates` of 256.
+- `WithConversationTracker<TId>()` registers the closed tracker as a singleton of its own. An app published with
+  Native AOT needs it to inject the tracker of a value type, such as `Guid` or `int`
+  ([Native AOT](./native-aot.md#trackers-of-value-type-ids)).
+- Run middleware and tool middleware wrap in the order you register them, so the first registered is the outermost.
 
 Scoped services resolve from the run's scope, so they can differ per request and use the current customer's
 credentials, folder or rules, for example.
