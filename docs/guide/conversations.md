@@ -288,8 +288,10 @@ call as it was sent. A run's first call takes the correction from the conversati
 run with a maximum is stored with its estimate in `EstimatedInputTokens`, next to its `Usage`. When the estimate
 reaches the maximum, Typeshift shrinks the history to `WithTargetInputTokens`, half the maximum unless set:
 
-1. It clears the results of the oldest tool calls the model has already read. It keeps the calls, so the model knows
-   what it did and can call again.
+1. It clears the results of the oldest tool calls the model has already read, and leaves a result alone that is no
+   longer than the note that would replace it. It keeps the calls, so the model knows what it did. For a tool marked
+   `ReadOnly()` the note tells the model to call the tool again if it needs the result. For any other tool it says
+   only that the result was cleared, because a second call would send, pay or delete a second time.
 2. If that is not enough, it summarizes the oldest turns with the [summary model](./models.md#the-summary-model), the
    run's own unless you name another. The summary model reads those turns as text: each tool call with its arguments,
    and the first 2,000 characters of each result, including the results the first step cleared.

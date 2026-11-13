@@ -34,6 +34,9 @@ All notable changes to this project are documented here. The format follows
   the bytes, a row could not be read in a database tool, and a `LIKE` search found nothing. Quotes, `<`, `>` and `&`
   are still escaped, and JSON stored by earlier versions reads as before. Compaction now counts a tool result that
   is a JSON string by its text, so its estimate no longer grows when a conversation is loaded from the store.
+- A tool result that compaction cleared asks the model to call the tool again only when the tool is marked
+  `ReadOnly()`. Every other cleared result now reads `[Cleared to save context.]`, so the model is not invited to
+  send, pay or delete a second time. Mark the tools that only read.
 
 ### Fixed
 
@@ -102,6 +105,8 @@ All notable changes to this project are documented here. The format follows
   received. Such a message among the summarized turns went to the summary model, could come back in the stored
   summary, and was missing from the run's later calls. It now stays in every call of the run and counts toward the
   target, and no summary reads or stores it.
+- Clearing skips a tool result that is no longer than the note that replaces it. Clearing such a result made the call
+  longer and took a value, such as an id or a count, that the model was still using.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

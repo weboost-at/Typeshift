@@ -1,11 +1,14 @@
 namespace Typeshift.Tests.Compaction.Support;
 
-// A tool whose results are as long as the model asks, to fill a run's context
+// Tools whose results are as long as the model asks, to fill a run's context: one that only reads, one that does not
 public partial class ReadingToolset : Toolset
 {
     public ReadingToolset()
     {
-        AddTool(Read);
+        AddTool(Read)
+            .ReadOnly();
+
+        AddTool(Send);
     }
 
     /// <summary>
@@ -13,6 +16,12 @@ public partial class ReadingToolset : Toolset
     /// </summary>
     /// <param name="length">How many characters it has.</param>
     public static string Read(int length) => new('x', length);
+
+    /// <summary>
+    /// Sends a page and returns what went out.
+    /// </summary>
+    /// <param name="length">How many characters it has.</param>
+    public static string Send(int length) => new('y', length);
 }
 
 // A to-do tool of the app's own, whose latest call compaction keeps by its name

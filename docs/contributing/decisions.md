@@ -498,7 +498,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   without a maximum or of an earlier version, calibrates nothing: the stored history keeps the results a run cleared,
   so an estimate of it is not what the provider counted, and a calibration by it let the next run's first call exceed
   the maximum up to four times. Only results the model already
-  answered after are cleared. The summary model reads the turns it summarizes as a transcript: each call with its
+  answered after are cleared, and none that is no longer than its placeholder, which would make the call longer and
+  cost a value the model still uses. The placeholder asks the model to call the tool again only for a tool marked
+  read-only (D52); for any other it says that the result was cleared and no more, since a repeated call would repeat
+  what the tool did. The summary model reads the turns it summarizes as a transcript: each call with its
   arguments, and each result as its tool returned it, cut to 2,000 characters, also where clearing took it from the
   run's model. What a context provider added (D31), and what run middleware added to the messages it received (D30),
   is the pass's own, like the instructions: it stays in every call and counts toward the target, the summary model

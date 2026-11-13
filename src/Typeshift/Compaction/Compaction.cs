@@ -10,7 +10,11 @@ namespace Typeshift;
 // call by the last call of the conversation that holds both an estimate and a report
 internal sealed class Compaction(ReportedCall? last)
 {
-    public const string ClearedResult = "[Cleared to save context; call the tool again if you need this result.]";
+    public const string ClearedResult = "[Cleared to save context.]";
+
+    // D52: only a tool marked read-only is safe to call again; any other would send, pay or delete a second time
+    public const string ClearedReadOnlyResult =
+        "[Cleared to save context; call the tool again if you need this result.]";
 
     // D32: the latest call of a tool named write_todos and its result stay, whatever goes
     public const string WriteTodos = "write_todos";
@@ -25,7 +29,8 @@ internal sealed class Compaction(ReportedCall? last)
     // shortcut: a result longer than this is cut in the transcript the summary model reads
     private const int TranscriptResultLength = 2_000;
 
-    private readonly HashSet<string> _cleared = [];
+    // The placeholder of each cleared result, by its call
+    private readonly Dictionary<string, string> _cleared = [];
     private List<ChatMessage> _summary = [];
     private AIContent? _keptFrom;
     private double _calibration = last?.Calibration ?? 1;
@@ -93,14 +98,21 @@ internal sealed class Compaction(ReportedCall? last)
         // First the results of the oldest calls, keeping the calls; the model has not seen those after its last answer
         var seen = history.FindLastIndex(message => message.Role == ChatRole.Assistant);
         var todos = LatestTodos(history)?.CallId;
+        var read = history.Take(Math.Max(seen, 0)).SelectMany(message => message.Contents).ToList();
+        var tools = read.OfType<FunctionCallContent>().ToLookup(called => called.CallId, called => called.Name);
 
-        foreach (var result in history.Take(Math.Max(seen, 0)).SelectMany(message => message.Contents)
-                     .OfType<FunctionResultContent>())
+        foreach (var result in read.OfType<FunctionResultContent>())
         {
             if (total <= limit) break;
-            if (result.CallId == todos || !_cleared.Add(result.CallId)) continue;
+            if (result.CallId == todos || _cleared.ContainsKey(result.CallId)) continue;
 
-            total -= Tokens.Estimate(result) - (ClearedResult.Length / 4);
+            // A result no longer than its placeholder stays: clearing it would save nothing and cost its value
+            var placeholder = Placeholder(tools[result.CallId].FirstOrDefault(), options);
+            var saved = Tokens.Estimate(result) - (placeholder.Length / 4);
+            if (saved <= 0) continue;
+
+            _cleared[result.CallId] = placeholder;
+            total -= saved;
         }
 
         List<ChatMessage> call = [.. history.Select(Clear)];
@@ -192,19 +204,23 @@ internal sealed class Compaction(ReportedCall? last)
         if (!message.Contents.Any(IsCleared)) return message;
 
         var cleared = message.Clone();
-
-        cleared.Contents =
-        [
-            .. message.Contents.Select(content => IsCleared(content)
-                ? new FunctionResultContent(((FunctionResultContent)content).CallId, ClearedResult)
-                : content)
-        ];
-
+        cleared.Contents = [.. message.Contents.Select(Cleared)];
         return cleared;
     }
 
     private bool IsCleared(AIContent content) =>
-        content is FunctionResultContent result && _cleared.Contains(result.CallId);
+        content is FunctionResultContent result && _cleared.ContainsKey(result.CallId);
+
+    private AIContent Cleared(AIContent content) =>
+        content is FunctionResultContent result && _cleared.TryGetValue(result.CallId, out var placeholder)
+            ? new FunctionResultContent(result.CallId, placeholder)
+            : content;
+
+    private static string Placeholder(string? tool, ChatOptions options) =>
+        options.Tools?.FirstOrDefault(offered => offered.Name == tool) is { } called
+        && ReadOnlyFunction.IsReadOnly(called)
+            ? ClearedReadOnlyResult
+            : ClearedResult;
 
     private static FunctionCallContent? LatestTodos(IEnumerable<ChatMessage> messages) =>
         messages.SelectMany(message => message.Contents)

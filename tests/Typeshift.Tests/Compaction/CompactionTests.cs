@@ -11,7 +11,7 @@ public class CompactionTests : AgentTestBase
 {
     private const string SummaryModel = "summary-model";
 
-    private const string Cleared = Typeshift.Compaction.ClearedResult;
+    private const string Cleared = Typeshift.Compaction.ClearedReadOnlyResult;
 
     [Fact]
     public async Task Given_Input_Over_The_Maximum_The_Oldest_Tool_Results_Are_Cleared_And_Their_Calls_Kept()
@@ -45,6 +45,40 @@ public class CompactionTests : AgentTestBase
 
         // Assert
         Results(3).Should().StartWith(Cleared);
+    }
+
+    [Fact]
+    public async Task Given_Results_Shorter_Than_The_Placeholder_They_Stay()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Read(Data.Tool.CallId, 2))
+            .Reply(Read(Data.Tool.SecondCallId, 2))
+            .Reply(Read($"{Data.Tool.CallId}_3", Page))
+            .Reply(Read($"{Data.Tool.CallId}_4", Page))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 2_000, TargetInputTokens = 1_500 });
+
+        // Assert
+        Results(4).Should().Equal("xx", "xx", Cleared, new string('x', Page));
+    }
+
+    [Fact]
+    public async Task Given_A_Cleared_Result_Of_A_Tool_Not_Read_Only_The_Placeholder_Does_Not_Ask_To_Call_Again()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "send", ("length", Page)))
+            .Reply(Call(Data.Tool.SecondCallId, "send", ("length", Page)))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 2_000, TargetInputTokens = 1_500 });
+
+        // Assert
+        Results(2).Should().Equal("[Cleared to save context.]", new string('y', Page));
     }
 
     [Fact]
