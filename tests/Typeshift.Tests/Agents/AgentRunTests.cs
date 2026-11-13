@@ -463,6 +463,23 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_The_Tool_Loop_Taken_Out_Of_The_Created_Client_A_Call_On_It_Fails_Naming_The_Created_Client()
+    {
+        // Arrange
+        var host = Host<ProbeAgent>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+        var loop = client.GetService<FunctionInvokingChatClient>()!;
+
+        // Act
+        var call = () => loop.GetResponseAsync([new(ChatRole.User, Data.Tool.Question)], new(), Ct);
+
+        // Assert
+        await call.Should().ThrowAsync<InvalidOperationException>().WithMessage("*call the created client*");
+        ChatClient.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Given_Two_Calls_On_One_Created_Client_Each_Keeps_Its_Own_Limit()
     {
         // Arrange

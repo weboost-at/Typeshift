@@ -13,11 +13,7 @@ internal sealed class CheckpointChatClient(IChatClient inner) : DelegatingChatCl
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        Count(options);
-
-        if (options is not ResolvedChatOptions { ConversationRun: { } run })
-            return await base.GetResponseAsync(messages, options, cancellationToken);
-
+        var run = Begin(options);
         var call = await run.PrepareCallAsync(messages);
         var response = await base.GetResponseAsync(call, options, cancellationToken);
 
@@ -30,18 +26,7 @@ internal sealed class CheckpointChatClient(IChatClient inner) : DelegatingChatCl
         ChatOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        Count(options);
-
-        if (options is not ResolvedChatOptions { ConversationRun: { } run })
-        {
-            await foreach (var update in base.GetStreamingResponseAsync(messages, options, cancellationToken))
-            {
-                yield return update;
-            }
-
-            yield break;
-        }
-
+        var run = Begin(options);
         var call = await run.PrepareCallAsync(messages);
         var updates = new List<ChatResponseUpdate>();
 
@@ -64,8 +49,18 @@ internal sealed class CheckpointChatClient(IChatClient inner) : DelegatingChatCl
         }
     }
 
-    private static void Count(ChatOptions? options)
+    // D29: the conversation's client gives every call its run. A call without one came from a layer taken out of the
+    // created client, and passing it on would store nothing and count no model call
+    private static ConversationRun Begin(ChatOptions? options)
     {
-        if (options is ResolvedChatOptions { AgentRun: { } run }) run.ModelCalls++;
+        if (options is not ResolvedChatOptions { AgentRun: { } agentRun, ConversationRun: { } run })
+        {
+            throw new InvalidOperationException(
+                "A client taken out of the one CreateChatClientAsync created was called on its own: call the created "
+                + "client, which begins the run its tool loop and checkpoints belong to.");
+        }
+
+        agentRun.ModelCalls++;
+        return run;
     }
 }

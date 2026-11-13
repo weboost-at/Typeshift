@@ -11,9 +11,6 @@ public sealed class BuildProperties(IReadOnlyDictionary<string, string> global) 
 
     public override AnalyzerConfigOptions GlobalOptions { get; } = new Options(global);
 
-    public static BuildProperties With(string property, string value) =>
-        new(new Dictionary<string, string> { [$"build_property.{property}"] = value });
-
     public static BuildProperties PublishingAot() =>
         new(new Dictionary<string, string> { ["build_property.PublishAot"] = "true" });
 

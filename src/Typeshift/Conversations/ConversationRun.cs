@@ -63,17 +63,6 @@ internal sealed class ConversationRun(
     // D47: a run that does not stream publishes each response and tool result as it stores them
     public LivePublisher? Publisher { get; set; }
 
-    public bool IsSteered
-    {
-        get
-        {
-            lock (_steering)
-            {
-                return _steering.Count > 0;
-            }
-        }
-    }
-
     // False once the run is ending: the input then reaches no model and the host starts a run with it instead
     public bool Steer(ChatMessage input)
     {
@@ -276,7 +265,7 @@ internal sealed class ConversationRun(
         IReadOnlyList<ToolApprovalRequestContent> left)
     {
         await AppendAsync([new ChatMessage(ChatRole.Assistant, [.. requests])], published: false);
-        if (Conversation is not null) Publish([new ChatMessage(ChatRole.Assistant, [.. left]) { AuthorName = Agent }]);
+        Publish([new ChatMessage(ChatRole.Assistant, [.. left]) { AuthorName = Agent }]);
     }
 
     public async Task AppendResponseAsync(ChatResponse response, ChatOptions? options, bool streamed)

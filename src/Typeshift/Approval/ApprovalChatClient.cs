@@ -15,8 +15,8 @@ internal sealed class ApprovalChatClient(IChatClient inner, Func<int, IChatClien
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        if (options is not ResolvedChatOptions { AgentRun: { } run } resolved)
-            return await base.GetResponseAsync(messages, options, cancellationToken);
+        var resolved = (ResolvedChatOptions)options!;
+        var run = resolved.AgentRun!;
 
         var call = Prepare(messages, resolved, out var standing);
         var decided = new HashSet<string>();
@@ -43,15 +43,8 @@ internal sealed class ApprovalChatClient(IChatClient inner, Func<int, IChatClien
         ChatOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        if (options is not ResolvedChatOptions { AgentRun: { } run } resolved)
-        {
-            await foreach (var update in base.GetStreamingResponseAsync(messages, options, cancellationToken))
-            {
-                yield return update;
-            }
-
-            yield break;
-        }
+        var resolved = (ResolvedChatOptions)options!;
+        var run = resolved.AgentRun!;
 
         var call = Prepare(messages, resolved, out var standing);
 

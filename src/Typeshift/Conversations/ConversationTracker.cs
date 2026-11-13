@@ -13,7 +13,6 @@ namespace Typeshift;
 public sealed class ConversationTracker<TId> where TId : notnull
 {
     private readonly LiveRuns _runs;
-    private readonly RealtimeTrackingOptions _realtime;
 
     // D72: public, so the container makes the tracker of any id type it is asked for
     /// <summary>
@@ -26,7 +25,6 @@ public sealed class ConversationTracker<TId> where TId : notnull
         ArgumentNullException.ThrowIfNull(runtime);
 
         _runs = runtime.Services.GetRequiredService<LiveRuns>();
-        _realtime = runtime.Services.GetRequiredService<RealtimeTrackingOptions>();
     }
 
     /// <summary>
@@ -41,7 +39,7 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// <param name="ct">Ends the watch.</param>
     /// <returns>The runs; one that ended has <see cref="LiveRun{TId}.Ended"/> set.</returns>
     public IAsyncEnumerable<LiveRun<TId>> WatchRunsAsync(CancellationToken ct) =>
-        _runs.WatchRunsAsync(_realtime.MaxPendingUpdates, ct)
+        _runs.WatchRunsAsync(ct)
             .Where(change => IsOfIdType(change.Run))
             .Select(change => Live(change.Run) with { Ended = change.Ended });
 
@@ -53,7 +51,7 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// <param name="ct">Ends the watch.</param>
     /// <returns>The updates.</returns>
     public IAsyncEnumerable<ChatResponseUpdate> WatchAsync(TId conversation, CancellationToken ct) =>
-        _runs.WatchAsync(new StoreId<TId>(conversation), _realtime.MaxPendingUpdates, ct);
+        _runs.WatchAsync(new StoreId<TId>(conversation), ct);
 
     /// <summary>
     /// Steers a run going on in this process: the input reaches the model before its next call, and the run does not

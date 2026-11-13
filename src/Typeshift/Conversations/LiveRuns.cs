@@ -6,7 +6,7 @@ using Microsoft.Extensions.AI;
 namespace Typeshift;
 
 // The conversations running in this process, their steering input and their watchers, by id and its type (D72)
-internal sealed class LiveRuns
+internal sealed class LiveRuns(RealtimeTrackingOptions realtime)
 {
     private readonly ConcurrentDictionary<StoreId, RunClaim> _runs = new();
     private readonly ConcurrentDictionary<StoreId, ImmutableList<Channel<ChatResponseUpdate>>> _watchers = new();
@@ -18,10 +18,8 @@ internal sealed class LiveRuns
     // D50: one run per conversation at a time in a process. A run claims its conversation before it loads it, so no
     // run reads a conversation whose last run is still storing its end. A claim still loading is waited for, as a run
     // that began is refused, so the host's fallback for steering a run that ended keeps working (D51)
-    public async Task<RunClaim?> ClaimAsync(StoreId? conversation, CancellationToken ct)
+    public async Task<RunClaim> ClaimAsync(StoreId conversation, CancellationToken ct)
     {
-        if (conversation is null) return null;
-
         var claim = new RunClaim(conversation);
 
         while (!_runs.TryAdd(conversation, claim))
@@ -88,10 +86,9 @@ internal sealed class LiveRuns
 
     public async IAsyncEnumerable<ChatResponseUpdate> WatchAsync(
         StoreId conversation,
-        int capacity,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
     {
-        var feed = CreateFeed<ChatResponseUpdate>(capacity);
+        var feed = CreateFeed<ChatResponseUpdate>();
 
         _watchers.AddOrUpdate(conversation, [feed], (_, feeds) => feeds.Add(feed));
 
@@ -123,10 +120,9 @@ internal sealed class LiveRuns
 
     // D54: the runs going on when the watch begins, then each start and end
     public async IAsyncEnumerable<(ConversationRun Run, bool Ended)> WatchRunsAsync(
-        int capacity,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
     {
-        var feed = CreateFeed<(ConversationRun Run, bool Ended)>(capacity);
+        var feed = CreateFeed<(ConversationRun Run, bool Ended)>();
         ImmutableInterlocked.Update(ref _runWatchers, feeds => feeds.Add(feed));
 
         try
@@ -159,8 +155,8 @@ internal sealed class LiveRuns
     }
 
     // D47: a bounded feed per watcher that drops its oldest items, so a run never waits
-    private static Channel<T> CreateFeed<T>(int capacity) =>
-        Channel.CreateBounded<T>(new BoundedChannelOptions(capacity)
+    private Channel<T> CreateFeed<T>() =>
+        Channel.CreateBounded<T>(new BoundedChannelOptions(realtime.MaxPendingUpdates)
         {
             FullMode = BoundedChannelFullMode.DropOldest,
             SingleReader = true

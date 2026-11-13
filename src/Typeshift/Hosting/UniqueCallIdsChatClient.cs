@@ -66,7 +66,7 @@ internal sealed class UniqueCallIdsChatClient(IChatClient inner) : DelegatingCha
     private static HashSet<string> Used(IEnumerable<ChatMessage> messages, ChatOptions? options)
     {
         HashSet<string> used = [.. Ids(messages)];
-        if (options is ResolvedChatOptions { ConversationRun: { } run }) run.AddCallIdsTo(used);
+        ((ResolvedChatOptions)options!).ConversationRun!.AddCallIdsTo(used);
         return used;
     }
 

@@ -65,6 +65,9 @@ All notable changes to this project are documented here. The format follows
   them out of your numbers. The host's members and the tools' factories carry `[DebuggerStepThrough]`, so a step
   into `host.RunAsync(...)` does not stop in a generated forwarder.
 - `Configure{Tool}().With{Member}(...)` shows the `<summary>` of the settings member it sets.
+- A layer taken out of the client `CreateChatClientAsync` created, such as its `FunctionInvokingChatClient` through
+  `GetService`, throws when it is called on its own. Such a call ran the tools, stored nothing in the conversation
+  and counted no model call. Call the created client itself.
 
 ### Fixed
 

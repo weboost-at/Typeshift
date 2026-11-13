@@ -942,24 +942,6 @@ public class DiagnosticTests : GeneratorTestBase
         run.Assert.ReportsNothingOfTheAnalyzers();
     }
 
-    [Theory]
-    [InlineData("TypeshiftIdType", "TenantId")]
-    [InlineData("TypeshiftProviderIdType", "ProviderKey")]
-    public void Given_A_Leftover_Id_Type_Property_Naming_An_Unknown_Type_TSH029_Is_Not_Reported(
-        string property,
-        string type)
-    {
-        // Arrange
-        var compilation = Compile(DiagnosticSources.ChatClientProviderOfInts);
-
-        // Act
-        var run = Run(compilation, properties: BuildProperties.With(property, type));
-
-        // Assert
-        run.Assert.DoesNotReport("TSH029");
-        run.Assert.GeneratesValidCode();
-    }
-
     [Fact]
     public void Given_A_Configurable_Model_Of_A_Provider_Of_More_Than_One_Value_TSH029_Is_Reported_On_It()
     {

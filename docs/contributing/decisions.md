@@ -483,6 +483,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   Checkpoints and compaction sit inside the tool loop, so they act before every model call. The approval layer builds
   a `FunctionInvokingChatClient` per round, whose iteration limit is that round's, so calls on one client never share
   a limit.
+  The layers below the conversation's run only inside a run it began: the tool loop taken out of the created client
+  with `GetService` and called on its own throws at the checkpoint layer, where it would store nothing and count no
+  model call.
 - **Where:** `AgentHost.cs`.
 
 ### D30. Middleware: one interface around runs, one around tool calls

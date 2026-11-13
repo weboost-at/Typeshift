@@ -27,7 +27,7 @@ public static class AgentRuns
         object? settings,
         CancellationToken ct)
         where TAgent : Agent =>
-        host.RunCoreAsync(input, host.SettingsId, host.ConversationId, settings, ct);
+        host.RunCoreAsync(input, settings, ct);
 
     /// <summary>
     /// Runs the agent on one message, asking for JSON of <typeparamref name="TResult"/>'s schema.
@@ -45,7 +45,7 @@ public static class AgentRuns
         object? settings,
         CancellationToken ct)
         where TAgent : Agent =>
-        host.RunCoreAsync<TResult>(input, host.SettingsId, host.ConversationId, settings, ct);
+        host.RunCoreAsync<TResult>(input, settings, ct);
 
     /// <summary>
     /// Runs the agent on one message, streaming the updates and asking for JSON of <typeparamref name="TResult"/>'s
@@ -64,7 +64,7 @@ public static class AgentRuns
         object? settings,
         CancellationToken ct)
         where TAgent : Agent =>
-        host.RunStreamingCoreAsync<TResult>(input, host.SettingsId, host.ConversationId, settings, ct);
+        host.RunStreamingCoreAsync<TResult>(input, settings, ct);
 
     /// <summary>
     /// Runs the agent on one message, streaming the updates.
@@ -81,7 +81,7 @@ public static class AgentRuns
         object? settings,
         CancellationToken ct)
         where TAgent : Agent =>
-        host.RunStreamingCoreAsync(input, host.SettingsId, host.ConversationId, settings, ct);
+        host.RunStreamingCoreAsync(input, settings, ct);
 
     /// <summary>
     /// Continues the interrupted run of the host's conversation from its last stored step, without new input.
@@ -97,7 +97,7 @@ public static class AgentRuns
         object? settings,
         CancellationToken ct)
         where TAgent : Agent =>
-        host.RunCoreAsync(null, host.SettingsId, host.ResumedConversation, settings, ct);
+        host.RunCoreAsync(null, settings, ct);
 
     /// <summary>
     /// Continues the interrupted run of the host's conversation from its last stored step, without new input,
@@ -114,7 +114,7 @@ public static class AgentRuns
         object? settings,
         CancellationToken ct)
         where TAgent : Agent =>
-        host.RunStreamingCoreAsync(null, host.SettingsId, host.ResumedConversation, settings, ct);
+        host.RunStreamingCoreAsync(null, settings, ct);
 
     /// <summary>
     /// Resolves the options of a run: the agent's code, its stored settings, the run's settings, then its tools.

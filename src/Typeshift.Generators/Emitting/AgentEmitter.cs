@@ -574,9 +574,9 @@ internal static class AgentEmitter
                 Once);
             writer.Line();
 
-            WriteResume(writer, "ResumeAsync", $"{Task}<{response}>", settings, "ResumeAsync");
+            WriteResume(writer, "ResumeAsync", $"{Task}<{response}>", settings);
             writer.Line();
-            WriteResume(writer, "ResumeStreamingAsync", Updates, settings, "ResumeStreamingAsync");
+            WriteResume(writer, "ResumeStreamingAsync", Updates, settings);
             writer.Line();
 
             Docs.WriteSummary(
@@ -659,7 +659,7 @@ internal static class AgentEmitter
     }
 
     // D50: the host's conversation's interrupted run, continued without input
-    private static void WriteResume(SourceWriter writer, string name, string returns, string settings, string run)
+    private static void WriteResume(SourceWriter writer, string name, string returns, string settings)
     {
         Docs.WriteSummary(
             writer,
@@ -677,7 +677,7 @@ internal static class AgentEmitter
         writer.Lines(
             $"""
             public {returns} {name}({settings}? settings = null, {CancellationToken} ct = default) =>
-                {Runs}.{run}(host, settings, ct);
+                {Runs}.{name}(host, settings, ct);
             """);
     }
 

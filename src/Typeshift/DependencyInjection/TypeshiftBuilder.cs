@@ -30,7 +30,7 @@ public sealed class TypeshiftBuilder
         where TStore : class
     {
         _services.AddSingleton<TStore>();
-        AddStore(typeof(TStore), null, provider => provider.GetRequiredService<TStore>());
+        AddStore(typeof(TStore), contract => _services.AddSingleton(contract, Resolve<TStore>));
         return this;
     }
 
@@ -50,7 +50,7 @@ public sealed class TypeshiftBuilder
     {
         ArgumentNullException.ThrowIfNull(store);
         if (!typeof(TStore).IsInterface) _services.AddSingleton(store);
-        AddStore(typeof(TStore), store, _ => store);
+        AddStore(typeof(TStore), contract => _services.AddSingleton(contract, store));
         return this;
     }
 
@@ -61,17 +61,16 @@ public sealed class TypeshiftBuilder
         where TStore : class
     {
         _services.AddSingleton(create);
-        AddStore(typeof(TStore), null, provider => provider.GetRequiredService<TStore>());
+        AddStore(typeof(TStore), contract => _services.AddSingleton(contract, Resolve<TStore>));
         return this;
     }
 
     // D38, D72: a store is registered as each store interface its declared type implements, of any id type; the type
     // check reads no members. A store your app created is registered as that instance, which the container never
     // disposes
-    private void AddStore(
+    private static void AddStore(
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type type,
-        object? instance,
-        Func<IServiceProvider, object> store)
+        Action<Type> register)
     {
         var contracts = Contracts(type);
 
@@ -82,10 +81,13 @@ public sealed class TypeshiftBuilder
 
         foreach (var contract in contracts)
         {
-            if (instance is null) _services.AddSingleton(contract, provider => store(provider));
-            else _services.AddSingleton(contract, instance);
+            register(contract);
         }
     }
+
+    // The store the container built, behind each interface it is registered as
+    private static object Resolve<TStore>(IServiceProvider provider) where TStore : class =>
+        provider.GetRequiredService<TStore>();
 
     // D72: the store interfaces a type implements, of whatever id types, the type itself when it is one
     private static Type[] Contracts(

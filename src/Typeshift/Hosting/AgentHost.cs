@@ -88,10 +88,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     // The settings id WithSettingsId gave, which the settings members use in place of the agent's own settings
     internal StoreId? SettingsId => _settingsId;
 
-    internal StoreId? ConversationId => _conversationId;
-
-    // A resume needs a conversation
-    internal StoreId ResumedConversation =>
+    private StoreId ResumedConversation =>
         _conversationId
         ?? throw new InvalidOperationException(
             "A resume needs a conversation: resume on a host from WithConversationId(id).");
@@ -220,23 +217,19 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     }
 
     // A run without input resumes the conversation's interrupted run (D50)
-    internal Task<ChatResponse> RunCoreAsync(
-        ChatMessage? input,
-        StoreId? settingsId,
-        StoreId? conversationId,
-        object? settings,
-        CancellationToken ct) =>
-        RunAsync(input is null ? [] : [input], settingsId, conversationId, settings, null, null, null, ct);
+    internal Task<ChatResponse> RunCoreAsync(ChatMessage? input, object? settings, CancellationToken ct) =>
+        RunAsync(input is null ? [] : [input], _settingsId, Conversation(input), settings, null, null, null, ct);
+
+    // A resume needs a conversation
+    private StoreId? Conversation(ChatMessage? input) => input is null ? ResumedConversation : _conversationId;
 
     internal async Task<ChatResponse<TResult>> RunCoreAsync<TResult>(
         ChatMessage input,
-        StoreId? settingsId,
-        StoreId? conversationId,
         object? settings,
         CancellationToken ct)
     {
         var result = _services.GetRequiredService<ToolJson>().GetResultFormat<TResult>();
-        var response = await RunAsync([input], settingsId, conversationId, settings, null, null, result.Format, ct);
+        var response = await RunAsync([input], _settingsId, _conversationId, settings, null, null, result.Format, ct);
 
         return new ChatResponse<TResult>(response, result.SerializerOptions);
     }
@@ -244,24 +237,20 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     // D64: the typed answer's format, as RunCoreAsync<TResult> asks for it, over a streaming run
     internal StreamingRun<TResult> RunStreamingCoreAsync<TResult>(
         ChatMessage input,
-        StoreId? settingsId,
-        StoreId? conversationId,
         object? settings,
         CancellationToken ct)
     {
         var result = _services.GetRequiredService<ToolJson>().GetResultFormat<TResult>();
         return new StreamingRun<TResult>(
-            RunStreamingAsync([input], settingsId, conversationId, settings, null, result.Format, ct),
+            RunStreamingAsync([input], _settingsId, _conversationId, settings, null, result.Format, ct),
             result.SerializerOptions);
     }
 
     internal IAsyncEnumerable<ChatResponseUpdate> RunStreamingCoreAsync(
         ChatMessage? input,
-        StoreId? settingsId,
-        StoreId? conversationId,
         object? settings,
         CancellationToken ct) =>
-        RunStreamingAsync(input is null ? [] : [input], settingsId, conversationId, settings, null, null, ct);
+        RunStreamingAsync(input is null ? [] : [input], _settingsId, Conversation(input), settings, null, null, ct);
 
     internal StoreAccess Store => _services.GetRequiredService<StoreAccess>();
 
