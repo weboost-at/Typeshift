@@ -771,4 +771,122 @@ public static class ShapeSources
             public static string Open(Uri uri = default!) => "";
         }
         """;
+
+    public const string MemberOfAnExtensionBlock =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class TextExtensions
+        {
+            extension(string)
+            {
+                public static string Shout(string text) => text.ToUpperInvariant();
+            }
+        }
+
+        internal partial class ShoutTools : Toolset
+        {
+            public ShoutTools() => AddTool(string.Shout).WithDescription("Shouts.");
+        }
+        """;
+
+    public const string ToolOfAClassClosedOverANullableType =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class Finder<T>
+        {
+            public static string Find(T value) => "";
+        }
+
+        internal partial class FindTools : Toolset
+        {
+            public FindTools() => AddTool(Finder<string?>.Find).WithDescription("Finds.");
+        }
+        """;
+
+    // The call fills a parameter by its type, nullable or not; the model never sees it
+    public const string NullableParametersTheCallFills =
+        """
+        using System;
+        using System.Threading;
+        using Microsoft.Extensions.AI;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record WaitSettings
+        {
+            public int Seconds { get; init; } = 1;
+        }
+
+        internal partial class WaitTools : Toolset
+        {
+            public WaitTools() => AddTool(Wait).WithDescription("Waits.").WithSettings<WaitSettings>();
+
+            public static string Wait(
+                string text,
+                WaitSettings? settings,
+                IServiceProvider? services,
+                AIFunctionArguments? arguments,
+                CancellationToken? ct = null) =>
+                text;
+        }
+        """;
+
+    public const string ResultByReference =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class CounterTools : Toolset
+        {
+            private static int _count;
+
+            public CounterTools()
+            {
+                AddTool(Count).WithDescription("Counts.");
+                AddTool(Peek).WithDescription("Reads the count.");
+            }
+
+            public static ref int Count() => ref _count;
+
+            public static ref readonly int Peek() => ref _count;
+        }
+        """;
+
+    // dynamic inside another type is object, which the JSON reads and writes
+    public const string DynamicInsideAType =
+        """
+        using System.Collections.Generic;
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class InspectTools : Toolset
+        {
+            public InspectTools()
+            {
+                AddTool(Inspect).WithDescription("Inspects.");
+                AddTool(ListAsync).WithDescription("Lists.");
+                AddTool(Stream).WithDescription("Streams.");
+            }
+
+            public static string Inspect(List<dynamic> values, dynamic[] more, Dictionary<string, dynamic> named) => "";
+
+            public static Task<List<dynamic>> ListAsync() => Task.FromResult(new List<dynamic>());
+
+            public static async IAsyncEnumerable<dynamic> Stream()
+            {
+                await Task.Yield();
+                yield return 1;
+            }
+        }
+        """;
 }

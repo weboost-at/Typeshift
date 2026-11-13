@@ -44,6 +44,8 @@ All notable changes to this project are documented here. The format follows
   user switched providers, failed every later run of the conversation before its own model was called.
 - TSH003's message says why the method cannot be a tool, as in "'Lookups.LookUp' cannot be a tool: its class
   'Lookups' is file-local, and generated code is written to other files".
+- TSH004 is titled "Tool parameter or result cannot be bound". It covers a tool's result too, and its message names
+  the reason, as in "The result of the tool 'chars' cannot be returned to the model: its type is a ref struct".
 
 ### Fixed
 
@@ -125,6 +127,14 @@ All notable changes to this project are documented here. The format follows
   by TSH016, as the class of a tool's method by TSH003, and as a settings record or its type argument by TSH006. Each
   compiled into errors such as CS0115 and CS0234 inside generated files, and two file-local toolsets of one name
   stopped the generator with CS8785.
+- TSH004 reports the tool signatures that generated code cannot compile: a `dynamic` parameter, a parameter of an
+  array of pointers, a result that is a pointer, a ref struct or `dynamic`, and a task or a stream that may itself
+  be null, such as `Task<string>?`. Each ended in errors or warnings inside a generated file, such as CS1962 and
+  CS8602.
+- A static member of a C# 14 extension block can be a tool, as in `AddTool(string.Shout)`. The generated code
+  called it by a name that does not compile. A tool method of a class closed over a nullable type, such as
+  `Finder<string?>.Find`, no longer gives a nullability warning in the generated file.
+- A `CancellationToken?` parameter receives the call's token. It was offered to the model as an argument.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

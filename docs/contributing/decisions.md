@@ -229,7 +229,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D16. A tool receives its settings as a parameter
 
 - **Status:** carried (v0 D40). The settings, `IServiceProvider`, `CancellationToken` and `AIFunctionArguments` are
-  bound by type and left out of the schema; `ref` and `out` are TSH004.
+  bound by type, nullable or not, and left out of the schema; a parameter JSON cannot fill, such as `ref`, `out` or
+  `dynamic`, is TSH004.
 
 ### D17. One flat chain per declaration
 

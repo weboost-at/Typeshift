@@ -5,6 +5,7 @@ using Typeshift.Generators.Diagnostics;
 using Typeshift.Generators.Emitting;
 using Typeshift.Generators.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 
 namespace Typeshift.Generators.Parsing;
@@ -114,14 +115,22 @@ internal static class ToolsetParser
     {
         var argument = addTool.Arguments[0].Value;
 
-        // A static local function is no method the generated code can call, nor is a generic one it would have to close
+        // A static local function is no method the generated code can call, nor is a generic one it would have to
+        // close, by itself or as a member of a generic extension block, nor one that takes __arglist
         if (ConstructorChains.Unwrap(argument) is not IDelegateCreationOperation
             {
                 Target: IMethodReferenceOperation
                 {
-                    Method: { IsStatic: true, MethodKind: MethodKind.Ordinary, IsGenericMethod: false } method
+                    Method:
+                    {
+                        IsStatic: true,
+                        MethodKind: MethodKind.Ordinary,
+                        IsGenericMethod: false,
+                        IsVararg: false
+                    } method
                 }
-            })
+            }
+            || method.ContainingType is { IsExtension: true, IsGenericType: true })
         {
             reporter.Report(
                 Descriptors.NotStaticMethodGroup,
@@ -144,6 +153,9 @@ internal static class ToolsetParser
 
             return null;
         }
+
+        // A static abstract or virtual member of an interface is the compiler's CS8926 where AddTool names it
+        if (method.IsAbstract || method.IsVirtual) return null;
 
         if (!ConstructorChains.EndsInStatement(addTool))
         {
@@ -195,17 +207,36 @@ internal static class ToolsetParser
 
         foreach (var parameter in method.Parameters)
         {
-            if (!IsBindable(parameter))
+            if (GetUnboundReason(parameter) is { } unbound)
             {
+                // A method of a reference has no source here
+                var declared = parameter.Locations.FirstOrDefault(location => location.IsInSource);
+
                 reporter.Report(
-                    Descriptors.UnboundParameter,
-                    parameter.Locations.FirstOrDefault(),
-                    parameter.Name,
-                    name);
+                    Descriptors.NotBindable,
+                    declared ?? argument.Syntax.GetLocation(),
+                    $"parameter '{parameter.Name}'",
+                    name,
+                    "bound from the model's arguments",
+                    unbound);
+
                 return null;
             }
 
             parameters.Add(ParseParameter(parameter, chain.SettingsType, docs));
+        }
+
+        if (GetUnreturnedReason(method.ReturnType) is { } unreturned)
+        {
+            reporter.Report(
+                Descriptors.NotBindable,
+                GetReturnType(method, ct)?.GetLocation() ?? argument.Syntax.GetLocation(),
+                "result",
+                name,
+                "returned to the model",
+                unreturned);
+
+            return null;
         }
 
         if (settings is not null && parameters.All(parameter => parameter.Kind != ParameterKind.Settings))
@@ -220,10 +251,19 @@ internal static class ToolsetParser
         var returns = ParseReturn(method.ReturnType);
         ISymbol[] named = [method, method.ReturnType, .. method.Parameters.Select(parameter => parameter.Type)];
 
+        // A static member of a C# 14 extension block is called on the class that declares the block
+        var target = method.ContainingType;
+
+        while (target.IsExtension)
+        {
+            target = target.ContainingType;
+        }
+
+        // The type arguments keep their nullable annotations, as the method's parameters expect them
         return new ToolModel(
             Name: name,
             Method: Names.Identifier(method.Name),
-            Target: method.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            Target: target.ToFullyQualified(),
             Description: description,
             IsReadOnly: chain.IsReadOnly,
             RequiresApproval: chain.RequiresApproval,
@@ -376,15 +416,69 @@ internal static class ToolsetParser
     private static bool IsCompilersToReport(ITypeSymbol type) =>
         type.ContainsErrorType() || type.ContainsFileLocalType();
 
-    // The model's JSON fills a value; it cannot fill a reference, a pointer or a stack-only type
-    private static bool IsBindable(IParameterSymbol parameter) =>
+    // The model's JSON fills a value; it cannot fill a reference, a pointer, a stack-only type or dynamic. Null for a
+    // parameter it can fill
+    private static string? GetUnboundReason(IParameterSymbol parameter) =>
         parameter.RefKind is RefKind.None or RefKind.In
-        && parameter.Type is not (IPointerTypeSymbol or IFunctionPointerTypeSymbol)
-        && !parameter.Type.IsRefLikeType;
+            ? GetUnwrittenReason(parameter.Type, "take a JsonElement or the value's own type")
+            : "it is passed by reference";
+
+    // A task or a stream is awaited or read, so it must be there; the value it yields, or the method returns, is
+    // serialized as its type. Null for a result the generated code can return
+    private static string? GetUnreturnedReason(ITypeSymbol type)
+    {
+        var awaited = Unwrap(type);
+        var kind = ParseReturn(awaited);
+        var isNullable = type.NullableAnnotation == NullableAnnotation.Annotated
+            || !SymbolEqualityComparer.Default.Equals(awaited, type);
+
+        if (kind is not (ReturnKind.Void or ReturnKind.Value) && isNullable)
+        {
+            return "the task or the stream itself may be null; return one always and make its value nullable, as in "
+                + "Task<string?>";
+        }
+
+        return kind switch
+        {
+            ReturnKind.Value => GetUnwrittenReason(type, "return object or the value's own type"),
+            ReturnKind.AwaitableValue => GetUnwrittenReason(
+                ((INamedTypeSymbol)type).TypeArguments[0],
+                "return object or the value's own type"),
+            _ => null
+        };
+    }
+
+    // dynamic inside another type, as in List<dynamic>, is object there
+    private static string? GetUnwrittenReason(ITypeSymbol type, string instead) =>
+        type switch
+        {
+            _ when IsPointer(type) => "its type is a pointer or an array of pointers",
+            { IsRefLikeType: true } => "its type is a ref struct",
+            { TypeKind: TypeKind.Dynamic } => $"its type is dynamic; {instead}",
+            _ => null
+        };
+
+    private static bool IsPointer(ITypeSymbol type) =>
+        type is IPointerTypeSymbol or IFunctionPointerTypeSymbol
+        || (type is IArrayTypeSymbol array && IsPointer(array.ElementType));
+
+    private static ITypeSymbol Unwrap(ITypeSymbol type) =>
+        type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable
+            ? nullable.TypeArguments[0]
+            : type;
+
+    // Null for a method of a reference, which has no syntax here
+    private static TypeSyntax? GetReturnType(IMethodSymbol method, CancellationToken ct) =>
+        method.DeclaringSyntaxReferences
+            .Select(reference => reference.GetSyntax(ct))
+            .OfType<MethodDeclarationSyntax>()
+            .FirstOrDefault()
+            ?.ReturnType;
 
     private static ParameterModel ParseParameter(IParameterSymbol parameter, ITypeSymbol? settings, XmlDocs docs)
     {
-        var kind = parameter.Type switch
+        // What the call fills is told by its type, nullable or not: CancellationToken? takes the call's token too
+        var kind = Unwrap(parameter.Type) switch
         {
             // D16: the settings are bound like the services, never by the model
             var type when SymbolEqualityComparer.Default.Equals(type, settings) => ParameterKind.Settings,

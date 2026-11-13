@@ -1078,6 +1078,106 @@ public class DiagnosticTests : GeneratorTestBase
         run.Assert.ReportsNothingOfTheAnalyzers();
     }
 
+    [Fact]
+    public void Given_A_Dynamic_Parameter_TSH004_Is_Reported_On_The_Parameter()
+    {
+        // Act
+        var run = Run(DiagnosticSources.DynamicParameter);
+
+        // Assert
+        run.Assert.Reports("TSH004", DiagnosticSeverity.Error, "value");
+    }
+
+    [Fact]
+    public void Given_A_Parameter_Of_An_Array_Of_Pointers_TSH004_Is_Reported_On_The_Parameter()
+    {
+        // Act
+        var run = Run(CompileUnsafe(DiagnosticSources.PointerArrayParameter));
+
+        // Assert
+        run.Assert.Reports("TSH004", DiagnosticSeverity.Error, "values");
+    }
+
+    [Fact]
+    public void Given_A_Result_Of_A_Ref_Struct_TSH004_Is_Reported_On_The_Return_Type()
+    {
+        // Act
+        var run = Run(DiagnosticSources.RefStructResult);
+
+        // Assert
+        run.Assert.Reports("TSH004", DiagnosticSeverity.Error, "ReadOnlySpan<char>");
+    }
+
+    [Fact]
+    public void Given_A_Result_Of_A_Pointer_TSH004_Is_Reported_On_The_Return_Type()
+    {
+        // Act
+        var run = Run(CompileUnsafe(DiagnosticSources.PointerResult));
+
+        // Assert
+        run.Assert.Reports("TSH004", DiagnosticSeverity.Error, "int*");
+    }
+
+    [Fact]
+    public void Given_A_Result_Of_A_Task_Of_Dynamic_TSH004_Is_Reported_On_The_Return_Type()
+    {
+        // Act
+        var run = Run(DiagnosticSources.DynamicResult);
+
+        // Assert
+        run.Assert.Reports("TSH004", DiagnosticSeverity.Error, "Task<dynamic>");
+    }
+
+    [Fact]
+    public void Given_A_Result_Of_A_Nullable_Task_TSH004_Is_Reported_On_The_Return_Type()
+    {
+        // Act
+        var run = Run(DiagnosticSources.NullableTaskResult);
+
+        // Assert
+        run.Assert.Reports("TSH004", DiagnosticSeverity.Error, "Task<string>?");
+    }
+
+    [Fact]
+    public void Given_A_Result_Of_A_Nullable_ValueTask_TSH004_Is_Reported_On_The_Return_Type()
+    {
+        // Act
+        var run = Run(DiagnosticSources.NullableValueTaskResult);
+
+        // Assert
+        run.Assert.Reports("TSH004", DiagnosticSeverity.Error, "ValueTask<string>?");
+    }
+
+    [Fact]
+    public void Given_A_Result_Of_A_Nullable_Stream_TSH004_Is_Reported_On_The_Return_Type()
+    {
+        // Act
+        var run = Run(DiagnosticSources.NullableStreamResult);
+
+        // Assert
+        run.Assert.Reports("TSH004", DiagnosticSeverity.Error, "IAsyncEnumerable<string>?");
+    }
+
+    [Fact]
+    public void Given_A_Static_Virtual_Member_Of_An_Interface_As_Tool_Only_The_Compiler_Reports_It()
+    {
+        // Act
+        var run = Run(DiagnosticSources.StaticVirtualInterfaceMember);
+
+        // Assert
+        run.Assert.ReportsNothingOfTheAnalyzers();
+    }
+
+    [Fact]
+    public void Given_A_Member_Of_A_Generic_Extension_Block_As_Tool_TSH003_Is_Reported_On_The_Argument()
+    {
+        // Act
+        var run = Run(DiagnosticSources.MemberOfAGenericExtensionBlock);
+
+        // Assert
+        run.Assert.Reports("TSH003", DiagnosticSeverity.Error, "List<int>.Grow");
+    }
+
     [Theory]
     [MemberData(nameof(Mistakes))]
     public void Given_Any_Mistake_The_Generated_Code_Holds_No_Error(string mistake)

@@ -14,7 +14,7 @@ a compiler error inside generated code.
 | [TSH001](#tsh001) | Error | Toolset or agent is not partial |
 | [TSH002](#tsh002) | Error | Declared value is not a constant |
 | [TSH003](#tsh003) | Error | Tool is not a static method group |
-| [TSH004](#tsh004) | Error | Tool parameter cannot be bound |
+| [TSH004](#tsh004) | Error | Tool parameter or result cannot be bound |
 | [TSH005](#tsh005) | Error | Settings type is not a record with a parameterless constructor |
 | [TSH006](#tsh006) | Error | Settings are less accessible than what exposes them |
 | [TSH007](#tsh007) | Error | Tool name is not unique |
@@ -84,13 +84,25 @@ class it is nested in must be `partial`.
 static method that is not generic. A lambda, an instance method, a local function, a generic method or a delegate
 variable cannot be called that way. Pass a static method, of any accessibility: `AddTool(Find)`.
 
+A static member of a C# 14 extension block works, as in `AddTool(string.Shout)`, unless the block has type
+parameters, as `extension<T>(List<T>)` does.
+
 A method of a `file` class cannot be called either. The generated code is written to files of its own, where a
 file-local class has no name, so move the method to a class that is not file-local.
 
 ## TSH004
 
-**Tool parameter cannot be bound.** The model's JSON arguments cannot fill a `ref` or `out` parameter, a pointer, or
-a ref struct such as `Span<T>`.
+**Tool parameter or result cannot be bound.** The model's JSON arguments cannot fill a `ref` or `out` parameter, a
+pointer, an array of pointers or a ref struct such as `Span<T>`. They cannot fill a `dynamic` parameter either,
+which names no type to read the JSON as. Take the value's own type, or a `JsonElement` for JSON of any shape.
+
+A result has the same limits. A tool cannot return a pointer, a ref struct or `dynamic`, by itself or as the value
+of a `Task<T>` or a `ValueTask<T>`: return the value's own type, or `object`. A task or a stream that may itself be
+null, such as `Task<string>?`, is reported too, because the generated code awaits it. Return the task always and
+make its value nullable, as in `Task<string?>`.
+
+The diagnostic is on the parameter, or on the method's return type. For a method of another project it is on the
+method in `AddTool(...)`.
 
 ## TSH005
 

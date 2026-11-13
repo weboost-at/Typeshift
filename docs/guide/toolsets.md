@@ -115,7 +115,8 @@ parameters itself when it calls the tool. The model never sees them, so they nee
 | `AIFunctionArguments` | The raw arguments the model sent. |
 
 The `IServiceProvider` is the scope you resolved the agent's host from. So when you resolve the host in a web
-request, every tool of the run reaches that request's scoped services, such as the current customer.
+request, every tool of the run reaches that request's scoped services, such as the current customer. A nullable
+parameter of these types is filled the same way, so `CancellationToken? ct = null` receives the call's token.
 
 - A required argument the model leaves out fails the call with an `ArgumentException`. The tool loop reports it
   back to the model.
@@ -125,7 +126,8 @@ request, every tool of the run reaches that request's scoped services, such as t
 - The properties of a record or class parameter are described by their XML docs, a positional record's `<param>`
   docs included. Use them to tell the model how to fill a property, such as the format of a code.
   [Registration](./registration.md#xml-docs-of-parameter-types) shows how those docs are collected.
-- The analyzer rejects `ref` and `out` parameters ([TSH004](./diagnostics.md#tsh004)).
+- The analyzer rejects what JSON cannot fill: `ref` and `out` parameters, pointers, ref structs such as `Span<T>`
+  and `dynamic` ([TSH004](./diagnostics.md#tsh004)). Take a `JsonElement` where the JSON may have any shape.
 
 ## Results
 
@@ -134,6 +136,10 @@ The model receives the result as JSON, serialized through its type's `JsonTypeIn
 [Native AOT](./native-aot.md) that type needs JSON metadata. The model takes one result per call, so
 Typeshift reads a stream to its end and sends its items as one array. Under Native AOT, list `List<T>` in your JSON
 context for it.
+
+The analyzer rejects a result JSON cannot carry: a pointer, a ref struct or `dynamic`
+([TSH004](./diagnostics.md#tsh004)). It also rejects a task or a stream that may itself be null, such as
+`Task<string>?`. Return the task always and make its value nullable, as in `Task<string?>`.
 
 When a tool throws, the model reads the exception's message. Write it as a hint, such as "No ticket 4711 exists.
 Search for it first.", and the model can correct its call. Keep secrets out of it, because the message goes to the

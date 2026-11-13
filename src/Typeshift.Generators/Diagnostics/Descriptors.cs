@@ -24,10 +24,10 @@ internal static class Descriptors
         "Tool is not a static method group",
         "'{0}' cannot be a tool: {1}");
 
-    public static readonly DiagnosticDescriptor UnboundParameter = Error(
+    public static readonly DiagnosticDescriptor NotBindable = Error(
         "TSH004",
-        "Tool parameter cannot be bound",
-        "The parameter '{0}' of the tool '{1}' cannot be bound from the model's arguments");
+        "Tool parameter or result cannot be bound",
+        "The {0} of the tool '{1}' cannot be {2}: {3}");
 
     public static readonly DiagnosticDescriptor SettingsNotRecord = Error(
         "TSH005",

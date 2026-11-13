@@ -8,7 +8,7 @@ Rule ID | Category | Severity | Notes
 TSH001 | Typeshift | Error | Toolset or agent is not partial
 TSH002 | Typeshift | Error | Declared value is not a constant
 TSH003 | Typeshift | Error | Tool is not a static method group
-TSH004 | Typeshift | Error | Tool parameter cannot be bound
+TSH004 | Typeshift | Error | Tool parameter or result cannot be bound
 TSH005 | Typeshift | Error | Settings type is not a record with a parameterless constructor
 TSH006 | Typeshift | Error | Settings are less accessible than what exposes them
 TSH007 | Typeshift | Error | Tool name is not unique

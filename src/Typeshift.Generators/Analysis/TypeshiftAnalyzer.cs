@@ -22,7 +22,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.NotPartial,
         Descriptors.NotConstant,
         Descriptors.NotStaticMethodGroup,
-        Descriptors.UnboundParameter,
+        Descriptors.NotBindable,
         Descriptors.SettingsNotRecord,
         Descriptors.SettingsLessAccessible,
         Descriptors.DuplicateToolName,

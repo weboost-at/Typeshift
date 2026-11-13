@@ -1761,4 +1761,162 @@ public static class DiagnosticSources
             public static string Take(Scratch scratch) => scratch.Text;
         }
         """;
+
+    public const string DynamicParameter =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class InspectTools : Toolset
+        {
+            public InspectTools() => AddTool(Inspect).WithDescription("Inspects.");
+
+            public static string Inspect(dynamic value) => "";
+        }
+        """;
+
+    // Compiled with unsafe code allowed
+    public const string PointerArrayParameter =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal unsafe partial class SumTools : Toolset
+        {
+            public SumTools() => AddTool(Sum).WithDescription("Sums.");
+
+            public static string Sum(int*[] values) => "";
+        }
+        """;
+
+    public const string RefStructResult =
+        """
+        using System;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class CharTools : Toolset
+        {
+            public CharTools() => AddTool(Chars).WithDescription("Reads.");
+
+            public static ReadOnlySpan<char> Chars(string value) => value;
+        }
+        """;
+
+    // Compiled with unsafe code allowed
+    public const string PointerResult =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal unsafe partial class AddressTools : Toolset
+        {
+            public AddressTools() => AddTool(Address).WithDescription("Points.");
+
+            public static int* Address(string value) => null;
+        }
+        """;
+
+    public const string DynamicResult =
+        """
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class AnyTools : Toolset
+        {
+            public AnyTools() => AddTool(AnyAsync).WithDescription("Returns anything.");
+
+            public static Task<dynamic> AnyAsync(string value) => Task.FromResult<dynamic>(value);
+        }
+        """;
+
+    public const string NullableTaskResult =
+        """
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class MaybeTools : Toolset
+        {
+            public MaybeTools() => AddTool(MaybeAsync).WithDescription("Maybe.");
+
+            public static Task<string>? MaybeAsync(string value) => null;
+        }
+        """;
+
+    public const string NullableValueTaskResult =
+        """
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class MaybeTools : Toolset
+        {
+            public MaybeTools() => AddTool(MaybeAsync).WithDescription("Maybe.");
+
+            public static ValueTask<string>? MaybeAsync(string value) => null;
+        }
+        """;
+
+    public const string NullableStreamResult =
+        """
+        using System.Collections.Generic;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class MaybeTools : Toolset
+        {
+            public MaybeTools() => AddTool(Maybe).WithDescription("Maybe.");
+
+            public static IAsyncEnumerable<string>? Maybe(string value) => null;
+        }
+        """;
+
+    // The compiler reports the member where AddTool names it, as CS8926; the analyzer adds nothing
+    public const string StaticVirtualInterfaceMember =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal interface IShout
+        {
+            static virtual string Shout(string text) => text.ToUpperInvariant();
+        }
+
+        internal partial class ShoutTools : Toolset
+        {
+            public ShoutTools() => AddTool(IShout.Shout).WithDescription("Shouts.");
+        }
+        """;
+
+    public const string MemberOfAGenericExtensionBlock =
+        """
+        using System.Collections.Generic;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class ListExtensions
+        {
+            extension<T>(List<T>)
+            {
+                public static int Grow(int count) => count * 2;
+            }
+        }
+
+        internal partial class ListTools : Toolset
+        {
+            public ListTools() => AddTool(List<int>.Grow).WithDescription("Sizes a list.");
+        }
+        """;
 }

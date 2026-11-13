@@ -39,6 +39,13 @@ public abstract class GeneratorTestBase
                 nullableContextOptions: NullableContextOptions.Enable,
                 warningLevel: 9999));
 
+    // As a project with AllowUnsafeBlocks
+    protected static CSharpCompilation CompileUnsafe(params string[] sources)
+    {
+        var compilation = Compile(sources);
+        return compilation.WithOptions(compilation.Options.WithAllowUnsafe(true));
+    }
+
     protected static SyntaxTree Parse(string source, string path) =>
         CSharpSyntaxTree.ParseText(source, ParseOptions, path);
 
