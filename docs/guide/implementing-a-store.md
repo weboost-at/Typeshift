@@ -47,6 +47,9 @@ registered:
 - A call that needs an interface none of your stores implements throws an `InvalidOperationException` that names
   `WithStore<T>()` and the interface. A run with a conversation id and a store of settings alone throws, and so does
   an id of a type none of your stores keeps, such as a settings id of `long` beside an `ISettingsStore<int>`.
+- A store you register in the container yourself is a singleton too ([Plan for one instance](#plan-for-one-instance)).
+  One registered with `AddScoped` or `AddTransient` fails the first run with an `InvalidOperationException` that
+  names it, because Typeshift takes its stores from the root container, not from a request's scope.
 
 ### Plan for one instance
 

@@ -348,6 +348,58 @@ public class IdScopeTests : AgentTestBase
             .WithMessage("No ISettingsStore<Guid> is registered*");
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Given_A_Store_Registered_As_Scoped_The_First_Run_Fails_Naming_The_Rule(bool validateScopes)
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddScoped<IConversationStore<Guid>, InMemoryTypeshiftStore<Guid>>();
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider(validateScopes);
+        await using var scope = provider.CreateAsyncScope();
+
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
+
+        // Act
+        var run = () => host.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("IConversationStore<Guid> is registered as scoped, but a store is one*WithStore<T>()*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_Of_Agent_Settings_Whose_Creation_Failed_Once_The_Next_Run_Resolves_It_Again()
+    {
+        // Arrange
+        var creations = 0;
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        services.AddSingleton<IAgentSettingsStore>(_ => Interlocked.Increment(ref creations) == 1
+            ? throw new TimeoutException(Data.Agent.Reason)
+            : new InMemoryTypeshiftStore<Guid>());
+
+        await using var provider = services.BuildServiceProvider(validateScopes: true);
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        await Record.ExceptionAsync(() => host.RunAsync(Data.Tool.Question, ct: Ct));
+
+        // Act
+        var response = await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
+    }
+
     protected override void ConfigureServices(IServiceCollection services)
     {
         base.ConfigureServices(services);

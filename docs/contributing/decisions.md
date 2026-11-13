@@ -884,13 +884,19 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `WithFileStore()` for agents' own settings, and says the data is gone when the app stops; loads stay quiet, since
   a load of nothing loses nothing. Once any store is registered, only registered stores serve, so an app that kept
   settings in a database and forgot a store of conversations still gets the exception of D43 instead of
-  conversations that vanish.
+  conversations that vanish. A store registration that is no singleton fails the first store call, naming its
+  interface, its lifetime and `WithStore<T>()`: the store access asks the root (D25), which refuses a scoped service
+  where scopes are validated and elsewhere hands out one instance for every request, with whatever scoped services
+  it took. The store access reads the registrations before it asks the container, so the message is Typeshift's
+  either way. Its lookup of the agent settings store keeps no failed creation, so a store whose database was down at
+  the first run is asked for again by the next.
 - **Where:** `Storage/StoreAccess.cs`, `Generated/ModuleRegistration.cs`.
 - **Alternatives:** throwing as before, ceremony every first run hits; memory for each interface no registered store
   implements, which hides a forgotten store in an app that chose one; a warning at startup, which an app that never
   stores anything would see too; asking the container for the stores of the build's id type, which went with that
   type (D72); `WithStore<T>()` alone as the switch, which kept the settings of an app that registered its store of
-  conversations itself in memory, under a warning that no store was registered.
+  conversations itself in memory, under a warning that no store was registered; resolving a scoped store from the
+  run's scope, which gives up the one instance that D25 and the store guide plan for, a second way to write a store.
 
 ### D72. Ids are given in code, and their types pick the stores
 

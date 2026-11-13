@@ -24,6 +24,11 @@ All notable changes to this project are documented here. The format follows
   now carry times that tie and run backwards, and a store that writes a document which is not stored when a save
   names a version other than 0, where a `StoreConflictException` belongs. Agents' own settings are checked under
   kinds named after the id, from `typeshift_check_<id>` on, instead of new kinds on every call.
+- **Breaking:** a store registered in the container with `AddScoped` or `AddTransient` fails the first run with an
+  `InvalidOperationException` that names it: register it with `WithStore<T>()` or `AddSingleton`, and let it take a
+  factory such as `IDbContextFactory<T>`. Typeshift takes its stores from the root container. Before, such a run
+  failed with the container's own message where scopes are validated, and elsewhere one instance of the store, with
+  the `DbContext` it took, served every request.
 - Stored JSON keeps text outside ASCII as it is written, in settings, conversation entries and the file store's
   files. Before, every such character was stored as `\uXXXX`, so Chinese, Japanese and Korean text took about twice
   the bytes, a row could not be read in a database tool, and a `LIKE` search found nothing. Quotes, `<`, `>` and `&`
@@ -76,6 +81,9 @@ All notable changes to this project are documented here. The format follows
   zero, a combination with a bit no member names, a number cast to the enum, or such a value as a dictionary's key.
   It is stored as its number. Before, it was saved without an error and read back as missing, so the layer below
   applied instead, and settings saved that way take effect once you upgrade.
+- A store of agents' own settings whose creation failed once, such as one whose database was not up at the first
+  run, is created again on the next run. Before, every later run of every agent failed with that first exception
+  until the app restarted.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

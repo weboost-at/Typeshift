@@ -11,17 +11,18 @@ internal sealed class StoreAccess(IServiceProvider services, IServiceCollection 
 
     // D69: an app whose container holds no store, through WithStore or registered by the app itself, keeps everything
     // in memory, so a stock setup works; one with any store chose, and an interface no store of it implements throws
-    private readonly Lazy<bool> _inMemory = new(() => !registrations.Any(IsStoreRegistration));
+    private readonly Lazy<bool> _inMemory = new(() => !HoldsStores(registrations));
 
-    // Every run asks, so the lookup runs once
-    private readonly Lazy<IAgentSettingsStore?> _agentSettingsStore = new(services.GetService<IAgentSettingsStore>);
+    // Every run asks, so the lookup runs once; a store whose creation failed is asked for again by the next run
+    private readonly Lazy<IAgentSettingsStore?> _agentSettingsStore =
+        new(services.GetService<IAgentSettingsStore>, LazyThreadSafetyMode.PublicationOnly);
 
     private readonly InMemoryTypeshiftStore<string> _agentSettingsMemory = new();
 
     private int _warned;
 
     // D66: whether runs have an agent's own settings to load, which no settings id reaches
-    public bool KeepsAgentSettings => _agentSettingsStore.Value is not null || _inMemory.Value;
+    public bool KeepsAgentSettings => _inMemory.Value || _agentSettingsStore.Value is not null;
 
     public async Task<Stored<TData>?> LoadAsync<TData>(StoreId id, CancellationToken ct)
         where TData : class, IStorable<TData> =>
@@ -66,10 +67,11 @@ internal sealed class StoreAccess(IServiceProvider services, IServiceCollection 
         return store;
     }
 
-    // D43: the stores are the persistence switch
+    // D43: the stores are the persistence switch; the registrations are read before the container is asked, so a
+    // store it may not hand out from the root is refused in Typeshift's words
     public ISettingsStore<TId> SettingsStore<TId>() where TId : notnull =>
-        services.GetService<ISettingsStore<TId>>()
-        ?? Memory<TId>()
+        Memory<TId>()
+        ?? services.GetService<ISettingsStore<TId>>()
         ?? throw new InvalidOperationException(
             $"No ISettingsStore<{TypeNames.Of<TId>()}> is registered for a settings id of that type: call "
             + "WithStore<T>() after AddTypeshift() with a store that implements it, or pass an id of your store's "
@@ -77,8 +79,8 @@ internal sealed class StoreAccess(IServiceProvider services, IServiceCollection 
 
     // D73: a conversation PersistAllConversations starts is under a Guid unless NewConversationIds gives other ids
     public IConversationStore<TId> ConversationStore<TId>() where TId : notnull =>
-        services.GetService<IConversationStore<TId>>()
-        ?? Memory<TId>()
+        Memory<TId>()
+        ?? services.GetService<IConversationStore<TId>>()
         ?? throw new InvalidOperationException(
             $"No IConversationStore<{TypeNames.Of<TId>()}> is registered for a conversation id of that type: call "
             + "WithStore<T>() after AddTypeshift() with a store that implements it, or give ids of your store's "
@@ -86,8 +88,7 @@ internal sealed class StoreAccess(IServiceProvider services, IServiceCollection 
             + "NewConversationIds.");
 
     private IAgentSettingsStore AgentSettingsStore =>
-        _agentSettingsStore.Value
-        ?? (_inMemory.Value ? _agentSettingsMemory : null)
+        (_inMemory.Value ? _agentSettingsMemory : _agentSettingsStore.Value)
         ?? throw new InvalidOperationException(
             "No agent settings store is registered: call WithStore<T>() after AddTypeshift() with an "
             + "IAgentSettingsStore, such as InMemoryTypeshiftStore<TId>, to load or save an agent's own settings.");
@@ -113,20 +114,46 @@ internal sealed class StoreAccess(IServiceProvider services, IServiceCollection 
     // A keyed store serves no run, which resolves stores without a key
     private static bool IsStoreRegistration(ServiceDescriptor registration) =>
         !registration.IsKeyedService && IsStoreInterface(registration.ServiceType);
+
+    // D25: a store is one instance for every run, asked of the root. A scoped one the root refuses, or, without scope
+    // validation, hands out once and for every request, so it fails here, where the message can name the way out
+    private static bool HoldsStores(IServiceCollection registrations)
+    {
+        var stores = registrations.Where(IsStoreRegistration).ToList();
+
+        if (stores.Find(store => store.Lifetime != ServiceLifetime.Singleton) is { } perScope)
+        {
+            var lifetime = perScope.Lifetime.ToString().ToLowerInvariant();
+
+            throw new InvalidOperationException(
+                $"{TypeNames.Of(perScope.ServiceType)} is registered as {lifetime}, but a store is one instance for "
+                + "every run: register it with WithStore<T>() or AddSingleton, and let it take a factory, such as "
+                + "IDbContextFactory<T>, for what it needs per call.");
+        }
+
+        return stores.Count > 0;
+    }
 }
 
-// The C# names an error message gives the common id types
+// The C# names an error message gives the common id types, and the store interfaces of them
 internal static class TypeNames
 {
-    public static string Of<T>() =>
-        typeof(T).IsEnum
-            ? typeof(T).Name
-            : Type.GetTypeCode(typeof(T)) switch
+    public static string Of<T>() => Of(typeof(T));
+
+    public static string Of(Type type) =>
+        type switch
+        {
+            { IsGenericType: true } => $"{type.Name[..type.Name.IndexOf('`')]}<{Arguments(type)}>",
+            { IsEnum: true } => type.Name,
+            _ => Type.GetTypeCode(type) switch
             {
                 TypeCode.Int32 => "int",
                 TypeCode.Int64 => "long",
                 TypeCode.Int16 => "short",
                 TypeCode.String => "string",
-                _ => typeof(T).Name
-            };
+                _ => type.Name
+            }
+        };
+
+    private static string Arguments(Type type) => string.Join(", ", type.GenericTypeArguments.Select(Of));
 }
