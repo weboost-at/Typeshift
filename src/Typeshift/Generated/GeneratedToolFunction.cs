@@ -77,6 +77,28 @@ public abstract class GeneratedToolFunction(ToolJson json) : AIFunction
     /// <returns>The result as a <see cref="JsonElement"/>, serialized through its type's contract.</returns>
     protected object GetResult<T>(T result) => JsonSerializer.SerializeToElement(result, json.GetTypeInfo<T>());
 
+    /// <summary>
+    /// Reads a tool's stream to its end and turns its items into the JSON the model receives, as one array.
+    /// </summary>
+    /// <typeparam name="T">The type of the stream's items.</typeparam>
+    /// <param name="stream">The stream the tool method returned.</param>
+    /// <param name="ct">Cancels the reading, also of a stream that takes no token itself.</param>
+    /// <returns>The items as a <see cref="JsonElement"/>, serialized through the contract of their list.</returns>
+    /// <exception cref="OperationCanceledException">The call was cancelled before the stream ended.</exception>
+    protected async ValueTask<object?> GetResultAsync<T>(IAsyncEnumerable<T> stream, CancellationToken ct)
+    {
+        var items = new List<T>();
+
+        await foreach (var item in stream.WithCancellation(ct))
+        {
+            // An iterator without [EnumeratorCancellation] never sees the token
+            ct.ThrowIfCancellationRequested();
+            items.Add(item);
+        }
+
+        return GetResult(items);
+    }
+
     private T Bind<T>(object? value) =>
         value switch
         {

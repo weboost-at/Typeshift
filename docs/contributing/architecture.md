@@ -86,7 +86,8 @@ operation action. `ParameterDocsSuppressor` suppresses CS1573 for the parameters
    element or JSON text is converted through `JsonTypeInfo<T>`. A missing required argument throws an
    `ArgumentException`, and an absent optional one takes its default. The settings the function was created with,
    the services, the token and the raw arguments pass through and stay out of the schema (D16).
-3. The result is serialized through `JsonTypeInfo` into a `JsonElement`.
+3. The result is serialized through `JsonTypeInfo` into a `JsonElement`. A stream is read to its end first, by the
+   library's `GetResultAsync`, which stops at the call's token, and serialized as the list of its items (D45).
 
 `ToolJson` builds the schema of each function type once and caches it. That is one
 `AIJsonUtilities.CreateJsonSchema` per parameter, with its description and default, nullable references widened to

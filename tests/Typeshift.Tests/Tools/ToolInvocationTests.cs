@@ -8,7 +8,8 @@ namespace Typeshift.Tests.Tools;
 
 public class ToolInvocationTests : HostTestBase
 {
-    protected override void ConfigureServices(IServiceCollection services) => services.AddScoped<CallScope>();
+    protected override void ConfigureServices(IServiceCollection services) =>
+        services.AddScoped<CallScope>().AddSingleton<StreamGate>();
 
     [Fact]
     public async Task Given_A_Scripted_Call_The_Tool_Receives_Its_Arguments()
@@ -136,6 +137,25 @@ public class ToolInvocationTests : HostTestBase
 
         // Assert
         result.Should().Equal("one", "two", "three");
+    }
+
+    [Fact]
+    public async Task Given_A_Stream_Tool_Without_A_Token_A_Cancelled_Call_Stops_Reading()
+    {
+        // Arrange
+        var count = StreamingToolset.CreateCountSlowly(Json);
+        var gate = Scope.GetRequiredService<StreamGate>();
+        using var cancelling = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+
+        // Act
+        var reading = count.InvokeAsync(Arguments(), cancelling.Token).AsTask();
+        await gate.FirstRead.Task.WaitAsync(Ct);
+        await cancelling.CancelAsync();
+        gate.Opened.SetResult();
+        var read = async () => await reading;
+
+        // Assert
+        await read.Should().ThrowAsync<OperationCanceledException>();
     }
 
     [Fact]

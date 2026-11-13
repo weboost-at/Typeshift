@@ -1,11 +1,14 @@
+using Microsoft.Extensions.DependencyInjection;
+
 namespace Typeshift.Tests.Tools.Support;
 
-// A tool that yields its results one at a time
+// Tools that yield their results one at a time
 public partial class StreamingToolset : Toolset
 {
     public StreamingToolset()
     {
         AddTool(SplitWordsAsync);
+        AddTool(CountSlowlyAsync);
     }
 
     /// <summary>
@@ -20,4 +23,30 @@ public partial class StreamingToolset : Toolset
             yield return word;
         }
     }
+
+    /// <summary>
+    /// Counts to three, and waits at its gate once the first number is read. It takes no token.
+    /// </summary>
+    public static async IAsyncEnumerable<int> CountSlowlyAsync(IServiceProvider services)
+    {
+        var gate = services.GetRequiredService<StreamGate>();
+
+        for (var number = 1; number <= 3; number++)
+        {
+            yield return number;
+
+            if (number > 1) continue;
+
+            gate.FirstRead.TrySetResult();
+            await gate.Opened.Task;
+        }
+    }
+}
+
+// Where a stream tool waits between two of its items, so a test acts while the stream is being read
+public sealed class StreamGate
+{
+    public TaskCompletionSource FirstRead { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public TaskCompletionSource Opened { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 }

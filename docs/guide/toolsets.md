@@ -135,7 +135,8 @@ A tool returns a value, nothing (`void`), `Task`, `Task<T>`, `ValueTask`, `Value
 The model receives the result as JSON, serialized through its type's `JsonTypeInfo`, so under
 [Native AOT](./native-aot.md) that type needs JSON metadata. The model takes one result per call, so
 Typeshift reads a stream to its end and sends its items as one array. Under Native AOT, list `List<T>` in your JSON
-context for it.
+context for it. A cancelled call stops reading the stream at its next item, also when the method takes no
+`CancellationToken`.
 
 The analyzer rejects a result JSON cannot carry: a pointer, a ref struct or `dynamic`
 ([TSH004](./diagnostics.md#tsh004)). It also rejects a task or a stream that may itself be null, such as

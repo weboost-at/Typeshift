@@ -1140,7 +1140,14 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `TimeSpan`, JSON elements) and the contexts of the compilation; a tool returning `IAsyncEnumerable<T>` returns a
   `List<T>`, which it checks. The console sample publishes as Native AOT in CI, where a trim or AOT warning fails the
   build.
-- **Where:** `Analysis/TypeshiftAnalyzer.cs`, `samples/Typeshift.Samples.Console`.
+- **Streams are read by the library:** the generated function hands the stream to the hidden
+  `GeneratedToolFunction.GetResultAsync`, which collects the list. Generated code called
+  `System.Linq.AsyncEnumerable.ToListAsync` once, a name that exists twice in a consumer whose packages bring
+  System.Linq.Async before 7.0, so the call was CS0433 in a file the consumer cannot edit. The library compiles
+  against the framework alone, where no reference of the consumer makes a name ambiguous. It also checks the call's
+  token before each item, since an iterator without `[EnumeratorCancellation]` never sees the token.
+- **Where:** `Analysis/TypeshiftAnalyzer.cs`, `Generated/GeneratedToolFunction.cs`, `Emitting/ToolsetEmitter.cs`,
+  `samples/Typeshift.Samples.Console`.
 
 ### D62. Union types in tools and typed runs
 

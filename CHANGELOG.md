@@ -51,6 +51,8 @@ All notable changes to this project are documented here. The format follows
   every record has from `object`, which is CS0108. Settings stored under the tool's name are not affected.
 - The module of an assembly whose name holds other characters than letters, digits and dots carries a hash of the
   name, as `Acme_Tools_1a2b3c4dModule` for `Acme-Tools`. The generated registration names it for you.
+- Module stamps are at version 7, so a referenced project built with an earlier Typeshift is TSH020 until it is
+  rebuilt.
 
 ### Fixed
 
@@ -156,6 +158,11 @@ All notable changes to this project are documented here. The format follows
     longer share one module name, which gave CS0433.
   - A settings member named like a parameter or a local of the generated code, such as `settings`, `writer` or
     `value`, compiles. It gave CS0019 and CS0165.
+- A toolset with a tool that returns `IAsyncEnumerable<T>` builds in a project whose packages bring System.Linq.Async
+  before 7.0. The generated code named `System.Linq.AsyncEnumerable`, which exists twice there, and failed with
+  CS0433.
+- A cancelled call stops reading a stream tool at its next item, also when the tool's method takes no
+  `CancellationToken`. Such a stream was read to its end before the cancellation showed.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

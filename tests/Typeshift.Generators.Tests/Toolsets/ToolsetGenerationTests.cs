@@ -276,4 +276,26 @@ public class ToolsetGenerationTests : GeneratorTestBase
         // Assert
         run.Source("Demo.WaitTools.g.cs").Should().NotContain("new(\"ct\"");
     }
+
+    [Fact]
+    public void Given_A_Stream_Tool_The_Library_Reads_Its_Stream()
+    {
+        // Act
+        var run = Run(ShapeSources.StreamTool);
+
+        // Assert
+        run.Source("Demo.WordToolset.g.cs")
+            .Should()
+            .Contain("GetResultAsync(global::Demo.WordToolset.Spell(GetArgument<string>(arguments, \"word\")), ct);");
+    }
+
+    [Fact]
+    public void Given_A_Stream_Tool_The_Generated_Code_Names_No_Type_Of_Async_Linq()
+    {
+        // Act
+        var run = Run(ShapeSources.StreamTool);
+
+        // Assert
+        run.Source("Demo.WordToolset.g.cs").Should().NotContain("System.Linq");
+    }
 }
