@@ -196,23 +196,25 @@ internal sealed class ShellGuard : IToolApprovalRule
     private static readonly string[] Never = ["sudo", "rm -rf", "curl", "wget", "ssh"];
 
     // A provider sends each argument as a JsonElement, whose ToString() is the string itself
-    public ValueTask<ToolDecision> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct) =>
+    public ValueTask<RuleVerdict> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct) =>
         ValueTask.FromResult(call is { Name: "run_command", Arguments: { } arguments }
             && arguments.TryGetValue("command", out var value)
             && value?.ToString() is { } command
             && Never.Any(command.Contains)
-                ? ToolDecision.Reject("This command is never allowed here.")
-                : ToolDecision.Abstain);
+                ? RuleVerdict.Reject("This command is never allowed here.")
+                : RuleVerdict.Abstain);
 }
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/ShellGuard.cs#L5-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-| Decision | Means |
+A rule answers with a `RuleVerdict`:
+
+| Verdict | Means |
 |---|---|
-| `ToolDecision.Reject(reason)` | The call is rejected in every mode, and the model receives the reason. A rejection wins over every approval. |
-| `ToolDecision.Approve` | The call runs, unless another rule rejects it. |
-| `ToolDecision.Abstain` | No opinion. Another rule, a standing approval or the [mode](#the-three-modes) decides: auto mode runs the call, and the default and plan modes ask your app. |
+| `RuleVerdict.Reject(reason)` | The call is rejected in every mode, and the model receives the reason. A rejection wins over every approval. The reason is required: a null or blank one throws an `ArgumentException`. |
+| `RuleVerdict.Approve` | The call runs, unless another rule rejects it. |
+| `RuleVerdict.Abstain` | No opinion. Another rule, a standing approval or the [mode](#the-three-modes) decides: auto mode runs the call, and the default and plan modes ask your app. |
 
 ::: danger Approve only what you can read in full
 A command that looks harmless may run code the model wrote. That is why the rule above only rejects and leaves the

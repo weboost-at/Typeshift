@@ -267,16 +267,16 @@ internal sealed class ApprovalChatClient(IChatClient inner, Func<int, IChatClien
                 continue;
             }
 
-            var decisions = new List<ToolDecision>();
+            var verdicts = new List<RuleVerdict>();
 
             foreach (var rule in rules)
             {
-                decisions.Add(await rule.DecideAsync(call, run, ct));
+                verdicts.Add(await rule.DecideAsync(call, run, ct));
             }
 
-            if (decisions.FirstOrDefault(decision => decision.Rejection is not null) is { Rejection: { } reason })
+            if (verdicts.FirstOrDefault(verdict => verdict.Rejected) is { Rejected: true, Rejection: var reason })
                 answers.Add(request.CreateResponse(approved: false, reason));
-            else if (decisions.Any(decision => decision.Approved)
+            else if (verdicts.Any(verdict => verdict.Approved)
                      || standing.Contains(call.Name)
                      || run.Mode == AgentMode.Auto)
                 answers.Add(request.CreateResponse(approved: true));

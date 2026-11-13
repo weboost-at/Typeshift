@@ -14,42 +14,67 @@ public interface IToolApprovalRule
     /// <param name="call">The call, with the arguments the model sent.</param>
     /// <param name="run">The run, with its mode.</param>
     /// <param name="ct">Cancels the decision.</param>
-    /// <returns>The decision.</returns>
-    ValueTask<ToolDecision> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct);
+    /// <returns>The verdict.</returns>
+    ValueTask<RuleVerdict> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct);
 }
 
 /// <summary>
-/// A rule's decision on a tool call.
+/// A rule's verdict on a tool call.
 /// </summary>
-public readonly record struct ToolDecision
+public readonly record struct RuleVerdict
 {
+    // The verdict is its kind, never its reason, so a rejection cannot read as no opinion
+    private readonly Kind _kind;
+
+    private RuleVerdict(Kind kind, string? rejection)
+    {
+        _kind = kind;
+        Rejection = rejection;
+    }
+
     /// <summary>
     /// No opinion: the mode decides, asking your app in <see cref="AgentMode.Default"/>, running the call in
     /// <see cref="AgentMode.Auto"/>.
     /// </summary>
-    public static ToolDecision Abstain => default;
+    public static RuleVerdict Abstain => default;
 
     /// <summary>
     /// The call runs.
     /// </summary>
-    public static ToolDecision Approve => new() { Approved = true };
+    public static RuleVerdict Approve => new(Kind.Approve, null);
 
     /// <summary>
     /// Whether the rule approves the call.
     /// </summary>
-    public bool Approved { get; private init; }
+    public bool Approved => _kind == Kind.Approve;
 
     /// <summary>
     /// Why the call is rejected, which the model receives; null unless it is.
     /// </summary>
-    public string? Rejection { get; private init; }
+    public string? Rejection { get; }
+
+    internal bool Rejected => _kind == Kind.Reject;
 
     /// <summary>
     /// The call is rejected in every mode; the model receives the reason.
     /// </summary>
     /// <param name="reason">Why, for the model.</param>
-    /// <returns>The decision.</returns>
-    public static ToolDecision Reject(string reason) => new() { Rejection = reason };
+    /// <returns>The verdict.</returns>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="reason"/> is null, empty or white space, which the model could not read.
+    /// </exception>
+    public static RuleVerdict Reject(string reason)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        return new(Kind.Reject, reason);
+    }
+
+    private enum Kind
+    {
+        Abstain,
+        Approve,
+        Reject
+    }
 }
 
 /// <summary>

@@ -348,8 +348,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   response once one needs approval; the approval layer approves the others). A run that asks without a conversation
   throws, naming the tool. `request.ApproveForConversation()` approves the tool for the rest of the conversation; the
   approval is stored with it, so it holds across runs and processes. `IToolApprovalRule`s (`WithApprovalRule<T>()`,
-  scoped) decide calls before the host is asked, seeing the exact arguments: `Approve`, `Reject(reason)` (wins over
-  every approval) or `Abstain`, which the mode resolves (D52). A layer above `FunctionInvokingChatClient` answers the
+  scoped) decide calls before the host is asked, seeing the exact arguments, with a `RuleVerdict`: `Approve`,
+  `Reject(reason)` (wins over every approval, and throws without a reason, which would read as no opinion) or
+  `Abstain`, which the mode resolves (D52). A layer above `FunctionInvokingChatClient` answers the
   requests rules and standing approvals decide and continues the loop, so only the rest reach the host. It also stores
   the requests and its own answers when a run ends asking, as `FunctionInvokingChatClient` keeps them out of what the
   checkpoint layer below it sees; a streaming run stores them before the host reads them, so a host that stops

@@ -65,12 +65,17 @@ All notable changes to this project are documented here. The format follows
   them out of your numbers. The host's members and the tools' factories carry `[DebuggerStepThrough]`, so a step
   into `host.RunAsync(...)` does not stop in a generated forwarder.
 - `Configure{Tool}().With{Member}(...)` shows the `<summary>` of the settings member it sets.
+- `ToolDecision`, what an `IToolApprovalRule` returns, is now `RuleVerdict`, with the same `Approve`, `Abstain` and
+  `Reject(reason)`. Rename it in your rules.
 - A layer taken out of the client `CreateChatClientAsync` created, such as its `FunctionInvokingChatClient` through
   `GetService`, throws when it is called on its own. Such a call ran the tools, stored nothing in the conversation
   and counted no model call. Call the created client itself.
 
 ### Fixed
 
+- `RuleVerdict.Reject(reason)` throws an `ArgumentException` for a null or blank reason. Such a rejection counted as
+  no opinion, so a rule that built its reason from data let the call run in auto mode whenever the reason was
+  missing.
 - A store that failed to save one model response no longer breaks the conversation. Its tool result stayed in the
   history without the call it answers, and providers rejected every later run. A run now leaves such a result out,
   and sends each tool result directly after the message that made its call, wherever the store holds it.

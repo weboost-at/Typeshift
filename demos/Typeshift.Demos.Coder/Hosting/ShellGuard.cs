@@ -13,18 +13,18 @@ public sealed class ShellGuard : IToolApprovalRule
     // A command that chains, pipes or substitutes another runs more than its start says, so it is never approved here
     private static readonly char[] Chains = [';', '&', '|', '\n', '`', '$', '>', '<'];
 
-    public ValueTask<ToolDecision> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct)
+    public ValueTask<RuleVerdict> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct)
     {
         if (call is not { Name: "run_command", Arguments: { } arguments }
             || !arguments.TryGetValue("command", out var sent)
             || sent?.ToString() is not { } command)
-            return ValueTask.FromResult(ToolDecision.Abstain);
+            return ValueTask.FromResult(RuleVerdict.Abstain);
 
         var decision = Never.Any(never => command.Contains(never, StringComparison.Ordinal))
-            ? ToolDecision.Reject($"'{command}' is never allowed in this workspace.")
+            ? RuleVerdict.Reject($"'{command}' is never allowed in this workspace.")
             : Looks.Any(looks => command.StartsWith(looks, StringComparison.Ordinal)) && command.IndexOfAny(Chains) < 0
-                ? ToolDecision.Approve
-                : ToolDecision.Abstain;
+                ? RuleVerdict.Approve
+                : RuleVerdict.Abstain;
 
         return ValueTask.FromResult(decision);
     }

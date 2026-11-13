@@ -204,7 +204,7 @@ public class ToolApprovalTests : ApprovalTestBase
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
-        Rules.Decisions.Add(_ => ToolDecision.Reject(Data.Agent.Reason));
+        Rules.Verdicts.Add(_ => RuleVerdict.Reject(Data.Agent.Reason));
 
         var call = new FunctionCallContent(Data.Tool.CallId, "close_ticket", new Dictionary<string, object?>
         {
@@ -288,7 +288,7 @@ public class ToolApprovalTests : ApprovalTestBase
     public async Task Given_A_Streaming_Run_A_Rule_Approves_Its_Text_Is_Stored_Once_And_The_Call_Before_Its_Result()
     {
         // Arrange
-        Rules.Decisions.Add(_ => ToolDecision.Approve);
+        Rules.Verdicts.Add(_ => RuleVerdict.Approve);
 
         ChatClient
             .Reply(Text(Data.Agent.FollowUp), CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
@@ -386,7 +386,7 @@ public class ToolApprovalTests : ApprovalTestBase
     public async Task Given_A_Rule_That_Approves_The_Call_Runs_Without_Asking()
     {
         // Arrange
-        Rules.Decisions.Add(_ => ToolDecision.Approve);
+        Rules.Verdicts.Add(_ => RuleVerdict.Approve);
 
         ChatClient
             .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
@@ -404,7 +404,7 @@ public class ToolApprovalTests : ApprovalTestBase
     public async Task Given_A_Rule_That_Rejects_The_Model_Receives_Its_Reason()
     {
         // Arrange
-        Rules.Decisions.Add(_ => ToolDecision.Reject(Data.Agent.Reason));
+        Rules.Verdicts.Add(_ => RuleVerdict.Reject(Data.Agent.Reason));
 
         ChatClient
             .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
@@ -418,12 +418,25 @@ public class ToolApprovalTests : ApprovalTestBase
         ResultSentToModel(1).Should().Contain(Data.Agent.Reason);
     }
 
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("  ")]
+    public void Given_A_Rejection_Without_A_Reason_The_Rule_Fails_Naming_The_Argument(string? reason)
+    {
+        // Act
+        var reject = () => RuleVerdict.Reject(reason!);
+
+        // Assert
+        reject.Should().Throw<ArgumentException>().WithParameterName("reason");
+    }
+
     [Fact]
     public async Task Given_One_Rule_That_Approves_And_One_That_Rejects_The_Rejection_Wins()
     {
         // Arrange
-        Rules.Decisions.Add(_ => ToolDecision.Approve);
-        Rules.Decisions.Add(_ => ToolDecision.Reject(Data.Agent.Reason));
+        Rules.Verdicts.Add(_ => RuleVerdict.Approve);
+        Rules.Verdicts.Add(_ => RuleVerdict.Reject(Data.Agent.Reason));
 
         ChatClient
             .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
@@ -476,9 +489,9 @@ public class ToolApprovalTests : ApprovalTestBase
     public async Task Given_A_Rule_Answering_One_Call_And_The_Host_Another_Both_Run_Once_The_Host_Answered()
     {
         // Arrange
-        Rules.Decisions.Add(call => call.Arguments!["number"]!.ToString() == Data.Agent.Ticket.Default.ToString()
-            ? ToolDecision.Approve
-            : ToolDecision.Abstain);
+        Rules.Verdicts.Add(call => call.Arguments!["number"]!.ToString() == Data.Agent.Ticket.Default.ToString()
+            ? RuleVerdict.Approve
+            : RuleVerdict.Abstain);
 
         ChatClient
             .Reply(Calls(
@@ -654,7 +667,7 @@ public class ToolApprovalTests : ApprovalTestBase
     public async Task Given_A_Streaming_Run_And_A_Rule_That_Approves_No_Request_Reaches_The_Host()
     {
         // Arrange
-        Rules.Decisions.Add(_ => ToolDecision.Approve);
+        Rules.Verdicts.Add(_ => RuleVerdict.Approve);
 
         ChatClient
             .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))

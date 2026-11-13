@@ -48,7 +48,7 @@ public class ModeTests : ApprovalTestBase
     public async Task Given_Auto_Mode_A_Rule_That_Rejects_Still_Wins()
     {
         // Arrange
-        Rules.Decisions.Add(_ => ToolDecision.Reject(Data.Agent.Reason));
+        Rules.Verdicts.Add(_ => RuleVerdict.Reject(Data.Agent.Reason));
 
         ChatClient
             .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
@@ -58,6 +58,24 @@ public class ModeTests : ApprovalTestBase
         await RunAsync(Data.Tool.Question, AgentMode.Auto);
 
         // Assert
+        ToolCalls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_Auto_Mode_A_Rule_That_Rejects_Without_A_Reason_The_Run_Fails_And_The_Call_Does_Not_Run()
+    {
+        // Arrange
+        Rules.Verdicts.Add(_ => RuleVerdict.Reject(null!));
+
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var run = () => RunAsync(Data.Tool.Question, AgentMode.Auto);
+
+        // Assert
+        await run.Should().ThrowAsync<ArgumentException>();
         ToolCalls.Should().BeEmpty();
     }
 

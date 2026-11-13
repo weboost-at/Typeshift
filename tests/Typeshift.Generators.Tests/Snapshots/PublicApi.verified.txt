@@ -283,7 +283,7 @@ static abstract string Typeshift.IStorable<TSelf>.Kind { get; }
 static abstract int Typeshift.IStorable<TSelf>.SchemaVersion { get; }
 abstract string Typeshift.IStorable<TSelf>.Serialize()
 public interface Typeshift.IToolApprovalRule
-abstract System.Threading.Tasks.ValueTask<Typeshift.ToolDecision> Typeshift.IToolApprovalRule.DecideAsync(Microsoft.Extensions.AI.FunctionCallContent call, Typeshift.AgentRun run, System.Threading.CancellationToken ct)
+abstract System.Threading.Tasks.ValueTask<Typeshift.RuleVerdict> Typeshift.IToolApprovalRule.DecideAsync(Microsoft.Extensions.AI.FunctionCallContent call, Typeshift.AgentRun run, System.Threading.CancellationToken ct)
 public interface Typeshift.IToolMiddleware
 abstract System.Threading.Tasks.ValueTask<object?> Typeshift.IToolMiddleware.InvokeAsync(Microsoft.Extensions.AI.FunctionInvocationContext call, System.Func<System.Threading.Tasks.ValueTask<object?>> next, System.Threading.CancellationToken ct)
 public interface Typeshift.ITypeshiftStore<TId> : Typeshift.ISettingsStore<TId>, Typeshift.IConversationStore<TId> where TId : notnull
@@ -323,6 +323,18 @@ public Typeshift.RealtimeTrackingOptions.RealtimeTrackingOptions()
 public override string Typeshift.RealtimeTrackingOptions.ToString()
 public static bool Typeshift.RealtimeTrackingOptions.operator !=(Typeshift.RealtimeTrackingOptions? left, Typeshift.RealtimeTrackingOptions? right)
 public static bool Typeshift.RealtimeTrackingOptions.operator ==(Typeshift.RealtimeTrackingOptions? left, Typeshift.RealtimeTrackingOptions? right)
+public readonly struct Typeshift.RuleVerdict : System.IEquatable<Typeshift.RuleVerdict>
+public static Typeshift.RuleVerdict Typeshift.RuleVerdict.Abstain { get; }
+public static Typeshift.RuleVerdict Typeshift.RuleVerdict.Approve { get; }
+public bool Typeshift.RuleVerdict.Approved { get; }
+public bool Typeshift.RuleVerdict.Equals(Typeshift.RuleVerdict other)
+public override bool Typeshift.RuleVerdict.Equals(object obj)
+public override int Typeshift.RuleVerdict.GetHashCode()
+public static Typeshift.RuleVerdict Typeshift.RuleVerdict.Reject(string reason)
+public string? Typeshift.RuleVerdict.Rejection { get; }
+public override string Typeshift.RuleVerdict.ToString()
+public static bool Typeshift.RuleVerdict.operator !=(Typeshift.RuleVerdict left, Typeshift.RuleVerdict right)
+public static bool Typeshift.RuleVerdict.operator ==(Typeshift.RuleVerdict left, Typeshift.RuleVerdict right)
 public sealed record Typeshift.RunOptions : System.IEquatable<Typeshift.RunOptions>
 public bool Typeshift.RunOptions.ConcurrentToolCalls { get; init; }
 public bool Typeshift.RunOptions.Equals(Typeshift.RunOptions? other)
@@ -398,18 +410,6 @@ public Typeshift.ToolBuilder Typeshift.ToolBuilder.WithName(string name)
 public Typeshift.ToolBuilder<TSettings> Typeshift.ToolBuilder.WithSettings<TSettings>() where TSettings : class, new()
 public sealed class Typeshift.ToolBuilder<TSettings> where TSettings : class, new()
 public Typeshift.ToolBuilder<TSettings> Typeshift.ToolBuilder<TSettings>.Configurable<TMember>(System.Func<TSettings, TMember> member)
-public readonly struct Typeshift.ToolDecision : System.IEquatable<Typeshift.ToolDecision>
-public static Typeshift.ToolDecision Typeshift.ToolDecision.Abstain { get; }
-public static Typeshift.ToolDecision Typeshift.ToolDecision.Approve { get; }
-public bool Typeshift.ToolDecision.Approved { get; }
-public bool Typeshift.ToolDecision.Equals(Typeshift.ToolDecision other)
-public override bool Typeshift.ToolDecision.Equals(object obj)
-public override int Typeshift.ToolDecision.GetHashCode()
-public static Typeshift.ToolDecision Typeshift.ToolDecision.Reject(string reason)
-public string? Typeshift.ToolDecision.Rejection { get; }
-public override string Typeshift.ToolDecision.ToString()
-public static bool Typeshift.ToolDecision.operator !=(Typeshift.ToolDecision left, Typeshift.ToolDecision right)
-public static bool Typeshift.ToolDecision.operator ==(Typeshift.ToolDecision left, Typeshift.ToolDecision right)
 public sealed class Typeshift.ToolExclusion<TToolset> where TToolset : Typeshift.Toolset
 public Typeshift.ToolExclusion<TToolset> Typeshift.ToolExclusion<TToolset>.Exclude(System.Func<Typeshift.ToolList<TToolset>, Typeshift.ToolName> tool)
 public sealed class Typeshift.ToolInclusion<TToolset> where TToolset : Typeshift.Toolset
