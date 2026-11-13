@@ -13,8 +13,8 @@ style and tests, for people and coding agents alike.
 
 ```bash
 dotnet tool restore
-dotnet build -c Release -warnaserror
-dotnet test -c Release --no-build
+dotnet build Typeshift.slnx -c Release -warnaserror
+dotnet test --solution Typeshift.slnx -c Release --no-build
 dotnet run --project samples/Typeshift.Samples.Docs -c Release --no-build
 ```
 

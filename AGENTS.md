@@ -22,7 +22,6 @@ the playbook. That is meant to be enough; if you had to dig for something, add i
   alternatives that lost, and where it lives. A comment `// D25: ...` in code points at one. Read the entry before
   you change such code; to change the decision, edit the entry in the same commit, or add a new one and move the old
   to the withdrawn table.
-- **What is open?** `docs/contributing/status.md`: the slices, known gaps, and which test covers each behavior.
 - **How do users see it?** The guide in `docs/guide/`, published at <https://weboost-at.github.io/Typeshift/>.
 
 ## Traps
@@ -63,8 +62,10 @@ dotnet mdsnippets && git diff --exit-code
 - Cloud sessions run `.claude/hooks/session-start.sh`: the .NET SDK from Ubuntu's feed (dot.net is unreachable), the
   tools, the packages, and the skills pinned to reviewed commits: the owner's, ponytail's and `humanizer`.
 - `global.json` pins the .NET 11 SDK, and every project targets `net11.0` (D61).
-- The build is warning-free with `TreatWarningsAsErrors`. The only suppressed warning is CS1591 in `tests/` and
-  `samples/`.
+- The build is warning-free with `TreatWarningsAsErrors`. Two kinds of warning are suppressed. CS1591 is off outside
+  `src/`: `tests/.editorconfig` and `demos/.editorconfig` turn it off, and the samples lose it through the package's
+  props (D68). Three test files disable, with a `#pragma`, the Typeshift diagnostic they provoke on purpose: TSH024
+  (`MultiAgentTestBase`), TSH028 (`AgentSettingsTests`) and TSH030 (`ChatClientResolutionTests`).
 - Generator snapshots live in `tests/Typeshift.Generators.Tests/Snapshots`. A mismatch writes `.received.txt`; review
   it, then rerun with `ACCEPT_SNAPSHOTS=1` to accept.
 - Run the whole suite three times before you call a change done. All green every time.
@@ -119,7 +120,7 @@ style; the essentials:
 | A chat UI's endpoints: posting, streaming as server-sent events, approvals by their ids | `guide/chat-endpoint.md` | |
 | Generated members, `AgentHost` members and signatures | `guide/generated-members.md` | `running-agents.md` |
 | Spans, metrics and message content | `guide/observability.md` | `models.md#wrapping-a-client` (a second `UseOpenTelemetry()`) |
-| Native AOT: the project, JSON metadata for tool and run types, trackers of value-type ids | `guide/native-aot.md` | `diagnostics.md#tsh027`, `conversations.md#live-runs` (the tracker tip) |
+| Native AOT: the project, JSON metadata for tool and run types, trackers of value-type ids | `guide/native-aot.md` | `diagnostics.md#tsh027`, `conversations.md#live-updates` (the tracker tip) |
 | Docs for coding assistants: `llms.txt`, `llms-full.txt`, a page as Markdown | `guide/getting-started.md#docs-for-coding-assistants` | |
 | Diagnostics | `guide/diagnostics.md` | every page, linked by ID |
 | Terms | `guide/glossary.md` | |
@@ -178,7 +179,9 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `samples/Typeshift.Samples.PackageConsumer` | A consumer of the packed package rather than the projects, run by CI after the pack. |
 | `docs/` | The VitePress site: `guide/` for users, `contributing/` for this repository, `contributing/templates/` for new pages, `.vitepress/lint.mjs` for the docs rules. |
 | `.claude/skills/` | The playbooks of the table above. |
-| `build/UseGenerator.props` | What the package gives a consumer: the generator as an analyzer and the interceptor opt-in. |
+| `demos/` | Three apps built on the library, in a solution of their own (`demos/Typeshift.Demos.slnx`), outside the package and CI. |
+| `src/Typeshift/buildTransitive/Typeshift.props` | What the package gives a consumer: XML docs on (D68), the interceptor opt-in, the schema annotations class (D55). Edit this one. |
+| `build/UseGenerator.props` | What a project of this repository imports in the package's place: the generator as an analyzer, and the props above. |
 
 ## Code style
 
@@ -203,8 +206,8 @@ The code must read as if the owner wrote it: terse, intention-revealing, comment
   `docs/contributing/status.md`).
 - Never read the clock: inject `TimeProvider` (`GetTimestamp`, `GetElapsedTime`, `Task.Delay(span, time)`,
   `new CancellationTokenSource(span, time)`).
-- `shortcut: <the limit>, <when to upgrade>` comments mark a known limit; `ponytail-debt` carries them into
-  `status.md`.
+- `shortcut: <the limit>, <when to upgrade>` comments mark a known limit; list them with `ponytail-debt` and carry
+  them into `status.md` by hand.
 - No reflection over user types on generated paths, no static mutable state, JSON through `JsonTypeInfo` only.
 
 ## Generator rules

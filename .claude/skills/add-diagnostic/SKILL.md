@@ -43,7 +43,4 @@ test.
 
 ## Check
 
-```shell
-dotnet build -c Release -warnaserror
-dotnet test --solution Typeshift.slnx -c Release --no-build
-```
+Build and run the whole suite with the commands of `AGENTS.md`, "Build and test".

@@ -5,7 +5,7 @@ description: Change what the Typeshift source generator reads or writes (tool fu
 
 # Change generated code
 
-Read `docs/contributing/architecture.md`, "The generator", first.
+Read `docs/contributing/architecture.md`, "The generator and the analyzer", first.
 
 ## Rules
 
@@ -35,4 +35,6 @@ Read `docs/contributing/architecture.md`, "The generator", first.
 3. Add a `CompilesCleanly` test for every new shape of user code, a keyword name or a nested class say.
 4. Keep `IncrementalTests` green: an edit outside a toolset or agent keeps every output cached, and an agent's output
    stays cached while what it offers is unchanged.
-5. Debug the output of a real project in its `obj/Release/net10.0/Typeshift.Generators/` folder.
+5. Debug the output of a real project: no project keeps the generated files, so build it with
+   `dotnet build <project> -c Release -p:EmitCompilerGeneratedFiles=true` and read them in its
+   `obj/Release/net11.0/generated/Typeshift.Generators/Typeshift.Generators.TypeshiftGenerator/` folder.

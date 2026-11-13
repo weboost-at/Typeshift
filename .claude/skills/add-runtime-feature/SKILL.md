@@ -1,6 +1,6 @@
 ---
 name: add-runtime-feature
-description: Add or change public behavior of the Typeshift runtime library (src/Typeshift) - toolsets, tools, and the agents, hosts, stores and conversations the later slices add. Use for any change a library user can observe, to find where code, tests and docs go.
+description: Add or change public behavior of the Typeshift runtime library (src/Typeshift) - toolsets, tools, agents, hosts, stores and conversations. Use for any change a library user can observe, to find where code, tests and docs go.
 ---
 
 # Add a runtime feature
