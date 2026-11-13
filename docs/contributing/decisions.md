@@ -1217,10 +1217,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** carried (v0 D18), with the audit's fixes.
 - **Decision:** tracking wraps the tool loop and marks where a run begins and ends; checkpoints inside it store
   each step (D50). The provider never receives the
-  conversation id. On resume, unanswered calls and error messages are left out. A failed save is logged and traced,
-  and the answer returns. The agent's name goes on `AuthorName`, never into `AdditionalProperties`.
+  conversation id. On resume, each result follows the message that made its call, and unanswered calls, results
+  without their call and error messages are left out. A failed save is logged and traced, and the answer returns. The agent's name goes on `AuthorName`, never into `AdditionalProperties`.
 - **Details:** the end of a run is an entry of its own (`EndsRun`), with an `ErrorContent` when the run failed, was
-  cancelled or its stream was left early. Calls and results pair by call id, which D59 keeps unique in a conversation. The checkpoints know what they stored by reference, since the tool loop
+  cancelled or its stream was left early. Calls and results pair by call id, which D59 keeps unique in a conversation;
+  of a call or a result a store holds twice, the last copy counts. The checkpoints know what they stored by reference, since the tool loop
   hands the same messages on; a streamed response is stored from the updates, and the tool loop's own messages
   built from those updates are matched by count.
 - **Where:** `Conversations/ConversationChatClient.cs`, `Conversations/CheckpointChatClient.cs`,

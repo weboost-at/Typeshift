@@ -71,6 +71,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- A store that failed to save one model response no longer breaks the conversation. Its tool result stayed in the
+  history without the call it answers, and providers rejected every later run. A run now leaves such a result out,
+  and sends each tool result directly after the message that made its call, wherever the store holds it.
 - A streaming run's spans form one tree: its `execute_tool` spans and its `chat` spans after the first update are
   children of the run's `invoke_agent` span, as in a run that does not stream. They attached to the span of the
   caller, such as the web request's, or started traces of their own.

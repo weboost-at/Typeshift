@@ -110,8 +110,12 @@ Runs that fail or stop early are stored too:
 - A run cut off by a crash has no ending entry, and [resuming](#resuming) continues it.
 
 When the store fails to save, the failure is logged and recorded on the run's span, and the run still returns its
-answer. Whenever a run loads the conversation, it leaves tool calls that never got a result and error messages out of
-what the model sees, because providers reject them.
+answer. The step it failed to save is missing from later runs.
+
+Whenever a run loads the conversation, it builds what the model sees so that a provider accepts it. Each tool result
+follows the message that made its call, even when the store holds input or an end of a run between the two. A call
+that never got a result is left out, and so are a result whose call is missing and error messages, because providers
+reject them.
 
 Some providers, such as local servers with an OpenAI-compatible API, number their tool calls per response, so a later
 call can get an id the conversation holds already. Typeshift renames such a call, as `call_1_2`, before it stores or

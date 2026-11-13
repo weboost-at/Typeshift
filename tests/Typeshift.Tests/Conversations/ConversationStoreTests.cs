@@ -239,6 +239,37 @@ public class ConversationStoreTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Store_That_Failed_To_Append_A_Response_The_Next_Run_Leaves_Its_Tool_Result_Out()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithStore<FlakyAppendStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
+
+        provider.GetRequiredService<FlakyAppendStore>().Failing = 2;
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason));
+
+        await host.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        var sent = ChatClient.Requests[2].SelectMany(message => message.Contents).ToList();
+
+        // Assert
+        sent.OfType<FunctionResultContent>().Should().BeEmpty();
+        sent.OfType<TextContent>().Select(text => text.Text).Should().Contain(Data.Tool.Answer);
+    }
+
+    [Fact]
     public async Task Given_No_Store_A_Conversation_Is_Kept_In_Memory_And_Its_Next_Run_Resumes_It()
     {
         // Arrange
