@@ -26,8 +26,8 @@ public abstract class MiddlewareTestBase : AgentTestBase
         services.AddSingleton(ToolCalls);
     }
 
-    protected Task<ChatResponse> RunAsync(string input) =>
-        Host<ContextAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(input, ct: Ct);
+    protected Task<ChatResponse> RunAsync(string input, ContextAgent.Settings? settings = null) =>
+        Host<ContextAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(input, settings: settings, ct: Ct);
 
     protected async Task<ChatResponse> StreamAsync(string input) =>
         (await Host<ContextAgent>()
@@ -37,7 +37,7 @@ public abstract class MiddlewareTestBase : AgentTestBase
         .ToChatResponse();
 }
 
-// The guarded tools, with a context provider
+// The guarded tools, with a context provider, compacting once a test's run settings turn it on
 public partial class ContextAgent : Agent
 {
     public const string Prompt = "Help with tickets.";
@@ -45,6 +45,8 @@ public partial class ContextAgent : Agent
     public ContextAgent()
     {
         WithChatOptions().WithModel("scripted", "context-model");
+
+        WithRunOptions().Configurable(r => r.MaxInputTokens);
 
         UseToolset<GuardedToolset>();
 

@@ -27,7 +27,8 @@ public partial class PlanningToolset : Toolset
     /// Replaces the to-do list.
     /// </summary>
     /// <param name="todos">The whole list, in order.</param>
-    public static string WriteTodos(IReadOnlyList<PlannedItem> todos) => $"The list has {todos.Count} items.";
+    public static string WriteTodos(IReadOnlyList<PlannedItem> todos) =>
+        string.Join('\n', todos.Select(todo => $"{todo.Status}: {todo.Title}"));
 }
 
 public sealed record PlannedItem(string Title, string Status);

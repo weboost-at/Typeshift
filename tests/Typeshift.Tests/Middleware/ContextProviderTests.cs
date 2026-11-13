@@ -49,6 +49,27 @@ public class ContextProviderTests : MiddlewareTestBase
     }
 
     [Fact]
+    public async Task Given_A_Compaction_In_A_Run_With_Context_Its_Summary_Leaves_The_Context_Out()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        Script.Context = new AgentContext { Messages = [new ChatMessage(ChatRole.User, Data.Agent.CompanyName)] };
+
+        await RunAsync(new string('x', Page));
+
+        // Act
+        await RunAsync(Data.Agent.FollowUp, new() { MaxInputTokens = 1_000 });
+
+        // Assert
+        var summary = (await EntriesAsync(Data.Agent.ConversationId)).Single(entry => entry.IsSummary);
+        summary.Messages.Skip(1).Select(message => message.Text).Should().Equal(Data.Tool.Answer, Data.Agent.FollowUp);
+    }
+
+    [Fact]
     public async Task Given_Steering_And_Context_That_Grows_The_Steering_Input_Stays_After_The_Tool_Result()
     {
         // Arrange

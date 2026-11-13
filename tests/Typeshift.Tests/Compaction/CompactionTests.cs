@@ -10,6 +10,8 @@ public class CompactionTests : AgentTestBase
 {
     private const string SummaryModel = "summary-model";
 
+    private const string Cleared = Typeshift.Compaction.ClearedResult;
+
     [Fact]
     public async Task Given_Input_Over_The_Maximum_The_Oldest_Tool_Results_Are_Cleared_And_Their_Calls_Kept()
     {
@@ -23,7 +25,7 @@ public class CompactionTests : AgentTestBase
         await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 2_000, TargetInputTokens = 1_500 });
 
         // Assert
-        Results(2).Should().Equal(Typeshift.Compaction.ClearedResult, new string('x', Page));
+        Results(2).Should().Equal(Cleared, new string('x', Page));
         Calls(2).Should().Equal(Data.Tool.CallId, Data.Tool.SecondCallId);
     }
 
@@ -41,7 +43,72 @@ public class CompactionTests : AgentTestBase
         await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 2_000, TargetInputTokens = 1_500 });
 
         // Assert
-        Results(3).Should().StartWith(Typeshift.Compaction.ClearedResult);
+        Results(3).Should().StartWith(Cleared);
+    }
+
+    [Fact]
+    public async Task Given_No_Target_Compaction_Shrinks_To_Half_The_Maximum()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Read(Data.Tool.CallId, Page))
+            .Reply(Read(Data.Tool.SecondCallId, Page))
+            .Reply(Read($"{Data.Tool.CallId}_3", Page))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 3_000 });
+
+        // Assert
+        Results(3).Should().Equal(Cleared, Cleared, new string('x', Page));
+    }
+
+    [Fact]
+    public async Task Given_Input_Of_Exactly_The_Maximum_It_Is_Compacted()
+    {
+        // Arrange
+        await ReadTwoPagesAsync();
+        var estimate = Tokens.Estimate(ChatClient.Requests[2], ChatClient.Options[2]);
+
+        // Act
+        await ReadTwoPagesAsync(new() { MaxInputTokens = estimate, TargetInputTokens = estimate - 500 });
+
+        // Assert
+        Results(5)[0].Should().Be(Cleared);
+    }
+
+    [Fact]
+    public async Task Given_Input_One_Token_Under_The_Maximum_Nothing_Is_Compacted()
+    {
+        // Arrange
+        await ReadTwoPagesAsync();
+        var estimate = Tokens.Estimate(ChatClient.Requests[2], ChatClient.Options[2]);
+
+        // Act
+        await ReadTwoPagesAsync(new() { MaxInputTokens = estimate + 1, TargetInputTokens = estimate - 500 });
+
+        // Assert
+        Results(5)[0].Should().Be(new string('x', Page));
+    }
+
+    [Fact]
+    public async Task Given_Input_Over_The_Maximum_The_Latest_Todo_List_Keeps_Its_Result()
+    {
+        // Arrange
+        var title = new string('t', Page / 10);
+        var todos = JsonElement.Parse($$"""[{ "title": "{{title}}", "status": "InProgress" }]""");
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "write_todos", ("todos", todos)))
+            .Reply(Read(Data.Tool.SecondCallId, Page))
+            .Reply(Read($"{Data.Tool.CallId}_3", Page))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 2_000, TargetInputTokens = 1_500 });
+
+        // Assert
+        Results(3).Should().Equal($"InProgress: {title}", Cleared, new string('x', Page));
     }
 
     [Fact]
@@ -195,6 +262,47 @@ public class CompactionTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Turn_Of_Several_Calls_The_Cut_Never_Parts_A_Call_From_Its_Result()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Calls(Read(Data.Tool.CallId, Page), Read(Data.Tool.SecondCallId, Page)))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 1_000 });
+
+        // Assert
+        Roles(2).Should().Equal("user", "assistant", "tool");
+        Calls(2).Should().Equal(Data.Tool.CallId, Data.Tool.SecondCallId);
+        Results(2).Should().Equal(new string('x', Page), new string('x', Page));
+    }
+
+    [Fact]
+    public async Task Given_A_Second_Compaction_Of_A_Run_The_First_Summary_Stays_Whole()
+    {
+        // Arrange
+        var todos = JsonElement.Parse("""[{ "title": "Read the logs", "status": "InProgress" }]""");
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "write_todos", ("todos", todos)))
+            .Reply(Read(Data.Tool.SecondCallId, Page))
+            .Reply(Text(new string('s', Page)))
+            .Reply(Read($"{Data.Tool.CallId}_3", 4))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 1_000 });
+
+        // Assert
+        ChatClient.Requests[4][1].Text.Should().Contain(new string('s', Page));
+        ChatClient.Requests[4][1].Text.Should().Contain("write_todos");
+        Roles(5).Should().Equal("user", "assistant", "tool", "assistant", "tool", "assistant", "tool");
+    }
+
+    [Fact]
     public async Task Given_Reported_Input_Tokens_Over_The_Estimate_Compaction_Goes_By_The_Report()
     {
         // Arrange
@@ -212,7 +320,7 @@ public class CompactionTests : AgentTestBase
         await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 1_500, TargetInputTokens = 1_000 });
 
         // Assert
-        Results(3)[0].Should().Be(Typeshift.Compaction.ClearedResult);
+        Results(3)[0].Should().Be(Cleared);
     }
 
     [Fact]
@@ -232,7 +340,7 @@ public class CompactionTests : AgentTestBase
         await RunAsync(Data.Agent.FollowUp, new() { MaxInputTokens = 1_500, TargetInputTokens = 1_000 });
 
         // Assert
-        Results(2)[0].Should().Be(Typeshift.Compaction.ClearedResult);
+        Results(2)[0].Should().Be(Cleared);
     }
 
     [Fact]
@@ -259,7 +367,7 @@ public class CompactionTests : AgentTestBase
             .ToListAsync(Ct);
 
         // Assert
-        Results(3)[0].Should().Be(Typeshift.Compaction.ClearedResult);
+        Results(3)[0].Should().Be(Cleared);
     }
 
     [Fact]
@@ -283,7 +391,21 @@ public class CompactionTests : AgentTestBase
             .WithConversationId(Data.Agent.ConversationId)
             .RunAsync(input, settings: settings, ct: Ct);
 
+    // A run of no conversation that reads two pages, one after the other, then answers: its third call holds both
+    private async Task ReadTwoPagesAsync(CompactingAgent.Settings? settings = null)
+    {
+        ChatClient
+            .Reply(Read(Data.Tool.CallId, Page))
+            .Reply(Read(Data.Tool.SecondCallId, Page))
+            .Reply(Text(Data.Tool.Answer));
+
+        await Host<CompactingAgent>().RunAsync(Data.Tool.Question, settings: settings, ct: Ct);
+    }
+
     private ChatResponseUpdate Read(string callId, int length) => Call(callId, "read", ("length", length));
+
+    private List<string> Roles(int request) =>
+        [.. ChatClient.Requests[request].Select(message => message.Role.Value)];
 
     private List<string> Results(int request) =>
     [
