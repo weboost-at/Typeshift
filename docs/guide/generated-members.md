@@ -12,8 +12,11 @@ section names the declaration that adds a member.
 
 - Member names come from the tool's name in PascalCase, so `search_tickets` gives `SearchTickets`.
 - Members marked *hidden* are `[EditorBrowsable(Never)]` plumbing that only generated code calls. Code completion
-  leaves them out, but their names are taken all the same, so the analyzer reports
-  [TSH018](./diagnostics.md#tsh018) for a member of yours with one of them.
+  leaves them out in a project that references your compiled assembly, such as a consumer of your package. The
+  project that declares them and the other projects of its solution still see them, because Roslyn, the code
+  completion behind Visual Studio and VS Code, hides such members only when they come from a compiled reference.
+- The names of hidden members are taken all the same, so the analyzer reports [TSH018](./diagnostics.md#tsh018) for a
+  member of yours with one of them.
 
 ## Per toolset
 
@@ -205,8 +208,9 @@ has a public or internal parameterless constructor. For any other agent, the ana
 
 The class lives in the global namespace, so the typed members are in scope in every file, whatever it imports. Its
 name spells out the agent's full name, each part after its length, such as `TypeshiftHost_4Demo12SupportAgent` for
-`Demo.SupportAgent`, so no two agents share one. Editors leave the class out of type completion, since you call the
-members on the host and never need its name.
+`Demo.SupportAgent`, so no two agents share one. The class is [hidden](#names-and-hidden-members), since you call the
+members on the host and never need its name: type completion leaves it out where your assembly is a compiled
+reference, and lists it in the projects of your own solution.
 
 ### Hidden members
 

@@ -14,7 +14,7 @@ internal static class Names
     // user's when the analyzer looks at both
     public const string Generator = "Typeshift.Generators.TypeshiftGenerator";
 
-    // Generated plumbing the consumer's code completion leaves out
+    // Generated plumbing that code completion leaves out, though only where the assembly is a compiled reference
     public const string Hidden =
         "[global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]";
 
