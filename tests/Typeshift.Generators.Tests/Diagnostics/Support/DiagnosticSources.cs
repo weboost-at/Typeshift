@@ -375,6 +375,40 @@ public static class DiagnosticSources
         }
         """;
 
+    // The chain goes on in a helper, on a parameter that holds no declaration of its own
+    public const string ChainContinuedOnAParameter =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset()
+            {
+                Describe(AddTool(Echo));
+            }
+
+            /// <summary>Echoes.</summary>
+            public static string Echo(string text) => text;
+
+            private static void Describe(ToolBuilder tool) => tool.WithDescription("Echoes.");
+        }
+        """;
+
+    // Two methods of one name: the method group names both, and the compiler binds AddTool to neither (CS1503)
+    public const string OverloadedToolMethod =
+        """
+        using Typeshift;
+
+        internal partial class FindToolset : Toolset
+        {
+            public FindToolset() => AddTool(Find).WithDescription("Finds.");
+
+            public static string Find(string text) => text;
+
+            public static string Find(int number) => "";
+        }
+        """;
+
     public const string ComputedPick =
         """
         using Typeshift;

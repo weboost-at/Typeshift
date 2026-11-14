@@ -10,6 +10,7 @@ using Typeshift.Generators.Models;
 using Typeshift.Generators.Parsing;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
 
@@ -85,7 +86,10 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         var needsJsonMetadata = NeedsJsonMetadata(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
         // The library's own builders make the calls a user may not
         if (context.Compilation.AssemblyName != KnownTypes.LibraryAssembly)
+        {
             context.RegisterOperationAction(call => AnalyzeCall(call, found), OperationKind.Invocation);
+            context.RegisterOperationAction(AnalyzeUnboundTool, OperationKind.Invalid);
+        }
 
         context.RegisterCompilationEndAction(end =>
         {
@@ -304,16 +308,90 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         }
 
         // D4: a chain call on a variable goes on a chain the generator never sees. A receiver that does not bind, such
-        // as the AddTool of an argument the compiler rejects, is the compiler's to report
+        // as the AddTool of an argument the compiler rejects, is the compiler's to report, and a variable that holds
+        // a declaration is reported where it is declared
         var receiver = ConstructorChains.Unwrap(invocation.Instance!);
 
-        if (IsChainCall(target) && receiver is not (IInvocationOperation or IInvalidOperation))
+        if (IsChainCall(target)
+            && receiver is not (IInvocationOperation or IInvalidOperation)
+            && !HoldsDeclaration(receiver, context.CancellationToken))
         {
             context.ReportDiagnostic(Diagnostic.Create(
                 Descriptors.UnreadableChain,
                 invocation.Syntax.GetLocation(),
                 "declaration chain"));
         }
+    }
+
+    // var tool = AddTool(Echo): the declaration ends in no statement of its own and is reported for it, as TSH015 in
+    // a constructor and as TSH014 outside one, so a call on the variable is the same mistake
+    private static bool HoldsDeclaration(IOperation receiver, CancellationToken ct)
+    {
+        if (receiver is not ILocalReferenceOperation { Local: var local, SemanticModel: { } model }) return false;
+
+        var declared = local.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(ct);
+        if (declared is not VariableDeclaratorSyntax { Initializer.Value: var value }) return false;
+
+        var chain = model.GetOperation(value, ct);
+
+        while (chain is not null && ConstructorChains.Unwrap(chain) is IInvocationOperation call)
+        {
+            if (ToolsetParser.IsAddTool(call) || AgentParser.IsDeclaration(call)) return true;
+
+            chain = call.Instance;
+        }
+
+        return false;
+    }
+
+    // AddTool(Find) with two methods named Find binds to neither, and the compiler says so as CS1503, "cannot convert
+    // from 'method group' to 'System.Delegate'", which names no way out
+    private static void AnalyzeUnboundTool(OperationAnalysisContext context)
+    {
+        var ct = context.CancellationToken;
+
+        if (context.Operation is not
+            {
+                Syntax: InvocationExpressionSyntax { ArgumentList.Arguments: { Count: 1 } arguments } call,
+                SemanticModel: { } model
+            }
+            || !model.GetSymbolInfo(call, ct).CandidateSymbols.OfType<IMethodSymbol>().Any(ToolsetParser.IsAddTool))
+            return;
+
+        var argument = arguments[0].Expression;
+        var overloads = model.GetMemberGroup(argument, ct).OfType<IMethodSymbol>().ToList();
+        if (overloads.Count < 2) return;
+
+        var first = overloads.OrderBy(method => method.Locations.FirstOrDefault()?.SourceSpan.Start ?? 0).First();
+        var cast = GetDelegateType(first, context.Compilation)?.ToMinimalDisplayString(model, argument.SpanStart);
+        var pick = cast is null ? "" : $", or pass the one you mean, as in AddTool(({cast}){argument})";
+
+        context.ReportDiagnostic(Diagnostic.Create(
+            Descriptors.NotStaticMethodGroup,
+            argument.GetLocation(),
+            argument.ToString(),
+            $"it has {overloads.Count} overloads, and a tool is one method; rename one of them{pick}"));
+    }
+
+    // The Func or Action of a method's signature; null for a signature that neither can be closed over
+    private static INamedTypeSymbol? GetDelegateType(IMethodSymbol method, Compilation compilation)
+    {
+        var types = method.Parameters.Select(parameter => parameter.Type).ToList();
+        if (!method.ReturnsVoid) types.Add(method.ReturnType);
+
+        var name = method.ReturnsVoid ? "System.Action" : "System.Func";
+        var definition = compilation.GetTypeByMetadataName(types.Count == 0 ? name : $"{name}`{types.Count}");
+
+        var closes = method.Parameters.All(parameter => parameter.RefKind == RefKind.None)
+            && types.All(type => type is
+            {
+                IsRefLikeType: false,
+                TypeKind: not (TypeKind.Pointer or TypeKind.FunctionPointer)
+            });
+
+        return definition is null || !closes ? null
+            : types.Count == 0 ? definition
+            : definition.Construct([.. types]);
     }
 
     // D38, D66, D72, D79: a store keeps settings, conversations or decisions, of any id type, or agents' own settings

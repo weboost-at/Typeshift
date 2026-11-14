@@ -94,6 +94,11 @@ class it is nested in must be `partial`.
 static method that is not generic. A lambda, an instance method, a local function, a generic method or a delegate
 variable cannot be called that way. Pass a static method, of any accessibility: `AddTool(Find)`.
 
+A name that two methods share is no single method either. For `AddTool(Find)` beside `Find(string)` and `Find(int)`
+the compiler reports CS1503, "cannot convert from 'method group' to 'System.Delegate'", and TSH003 says what to do:
+rename one of the methods, or name the one you mean with a cast, as in `AddTool((Func<string, string>)Find)`. When
+both overloads are tools, each needs a name of its own from `WithName("...")`.
+
 A static member of a C# 14 extension block works, as in `AddTool(string.Shout)`, unless the block has type
 parameters, as `extension<T>(List<T>)` does.
 

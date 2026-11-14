@@ -545,10 +545,41 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_A_Chain_Continued_On_A_Variable_TSH015_Is_Reported_On_The_Continuation()
+    public void Given_An_Overloaded_Tool_Method_TSH003_Is_Reported_On_The_Argument()
+    {
+        // Act
+        var run = Run(DiagnosticSources.OverloadedToolMethod);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH003",
+            DiagnosticSeverity.Error,
+            "Find",
+            message: "'Find' cannot be a tool: it has 2 overloads, and a tool is one method; rename one of them, or "
+                + "pass the one you mean, as in AddTool((System.Func<string, string>)Find)",
+            also: "CS1503");
+    }
+
+    [Fact]
+    public void Given_A_Chain_Continued_On_A_Variable_TSH015_Is_Reported_Once_On_AddTool()
     {
         // Act
         var run = Run(DiagnosticSources.ChainOnVariable);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH015",
+            DiagnosticSeverity.Error,
+            "AddTool(Echo)",
+            message: "The generator cannot read this tool chain: keep the declaration in one chain and pick members "
+                + "as s => s.Member");
+    }
+
+    [Fact]
+    public void Given_A_Chain_Continued_On_A_Parameter_TSH015_Is_Reported_On_The_Continuation()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ChainContinuedOnAParameter);
 
         // Assert
         run.Assert.ReportsAmong(
@@ -742,13 +773,13 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_A_Toolset_Use_Continued_On_A_Variable_TSH015_Is_Reported_On_The_Continuation()
+    public void Given_A_Toolset_Use_Continued_On_A_Variable_TSH015_Is_Reported_Once_On_The_Use()
     {
         // Act
         var run = Run(DiagnosticSources.UseOnVariable);
 
         // Assert
-        run.Assert.ReportsAmong("TSH015", DiagnosticSeverity.Error, "use.Include(t => t.Echo)");
+        run.Assert.Reports("TSH015", DiagnosticSeverity.Error, "UseToolset<EchoToolset>()");
     }
 
     [Fact]

@@ -101,10 +101,11 @@ internal static class ToolsetParser
         return declared;
     }
 
-    public static bool IsAddTool(IInvocationOperation invocation) =>
-        invocation.TargetMethod.Name == "AddTool"
-        && (invocation.TargetMethod.ContainingType.Is(KnownTypes.Toolset)
-            || invocation.TargetMethod.ContainingType.Is(KnownTypes.Agent));
+    public static bool IsAddTool(IInvocationOperation invocation) => IsAddTool(invocation.TargetMethod);
+
+    public static bool IsAddTool(IMethodSymbol method) =>
+        method.Name == "AddTool"
+        && (method.ContainingType.Is(KnownTypes.Toolset) || method.ContainingType.Is(KnownTypes.Agent));
 
     // The analyzer sees the generated members too; only the user's own can clash
     private static ISymbol? ClashingMember(INamedTypeSymbol owner, ToolModel tool) =>

@@ -99,6 +99,19 @@ public class ToolsetGenerationTests : GeneratorTestBase
         run.Assert.CompilesCleanly();
     }
 
+    [Theory]
+    [InlineData("global::Demo.FindToolset.Find(GetArgument<string>(arguments, \"text\"))")]
+    [InlineData("global::Demo.FindToolset.Find(GetArgument<int>(arguments, \"number\"))")]
+    public void Given_Overloads_Picked_By_A_Cast_Each_Tool_Calls_Its_Method(string call)
+    {
+        // Act
+        var run = Run(ShapeSources.OverloadsPickedByACast);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+        run.Source("Demo.FindToolset.g.cs").Should().Contain(call);
+    }
+
     [Fact]
     public void Given_Names_Spelled_Like_Keywords_The_Generated_Code_Compiles_Without_Warnings()
     {

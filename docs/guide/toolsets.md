@@ -80,7 +80,8 @@ The calls chained onto `AddTool` describe the tool:
 | `WithSettings<T>()` | The tool gets [settings](./tool-settings.md) the model never sees, such as a search's limit. Put it last in the chain. `WithConfigurableSettings<T>()` does the same, but opens every settable member to stored settings and runs, except the ones `NotConfigurable` keeps in code. |
 
 `WithDisplayName("Tickets")` names the toolset for people, for example in a tool picker. `AddTool` takes a static method
-group, so the generated function can call it directly ([TSH003](./diagnostics.md#tsh003)). Each `AddTool` sits directly
+group, so the generated function can call it directly ([TSH003](./diagnostics.md#tsh003)). Of two methods with one
+name, a cast picks one, as in `AddTool((Func<string, string>)Find)`. Each `AddTool` sits directly
 in the constructor ([TSH014](./diagnostics.md#tsh014)), as one chain ([TSH015](./diagnostics.md#tsh015)), and
 [How Typeshift reads your code](./how-typeshift-reads-your-code.md) explains why. [Builders](./builders.md#toolbuilder)
 lists every call.

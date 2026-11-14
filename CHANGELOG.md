@@ -236,6 +236,9 @@ All notable changes to this project are documented here. The format follows
 - A sub-agent whose run fails, for example because no client serves its model, tells the calling model only that
   the call failed, in the foreground and in the background. The exception is logged as an error and set on the
   span. An answer outside the type of `WithResult<T>()` still tells the calling model what the sub-agent answered.
+- TSH003 also reports `AddTool(Find)` where two methods are named `Find`, and names the cast that picks one, such as
+  `AddTool((Func<string, string>)Find)`. The compiler's CS1503, "cannot convert from 'method group' to
+  'System.Delegate'", stood alone and named no way out.
 
 ### Fixed
 
@@ -436,6 +439,9 @@ All notable changes to this project are documented here. The format follows
   directly in the constructor".
 - A tool chain with a call that does not bind yet, such as `AddTool(Echo).WithSettings()` while its type is typed,
   gets the compiler's error alone. TSH009 was reported beside it, about a description the chain had no place for yet.
+- A declaration stored in a variable and continued there, as in `var tool = AddTool(Echo);` followed by
+  `tool.WithDescription(...)`, gets one TSH015, on the declaration. It got a second one on the call that continues
+  the chain.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

@@ -522,6 +522,28 @@ public static class ShapeSources
         }
         """;
 
+    // A cast names one of two methods of a name, and the generated call passes arguments of its parameter types
+    public const string OverloadsPickedByACast =
+        """
+        using System;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class FindToolset : Toolset
+        {
+            public FindToolset()
+            {
+                AddTool((Func<string, string>)Find).WithName("find_by_text").WithDescription("Finds by a text.");
+                AddTool((Func<int, string>)Find).WithName("find_by_number").WithDescription("Finds by a number.");
+            }
+
+            public static string Find(string text) => text;
+
+            public static string Find(int number) => "";
+        }
+        """;
+
     public const string EveryAgentDeclaration =
         """
         using Typeshift;
