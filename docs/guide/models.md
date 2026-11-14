@@ -331,7 +331,8 @@ internal sealed class ScriptedChatClientProvider : IChatClientProvider<Provider>
   a client registered under the provider's value, such as `services.AddKeyedChatClient(Provider.Scripted, client)`,
   then to the client registered for every agent.
 - With `Configurable(o => o.ModelId)`, the agent's `Settings` store its provider, so a user's pick is a `Provider`
-  too. An agent that makes its model configurable without calling `WithModel` stores providers as strings.
+  too. An agent that makes its model configurable and names no provider in code, with `WithModel(model)` or without
+  `WithModel`, stores providers as strings.
 - `Settings` store a provider as a single value, so an agent whose `Settings` store one needs a string, a number, a
   `Guid` or an enum ([TSH029](./diagnostics.md#tsh029)). The generated `Settings` name the type in a file of their
   own, so it may not be nested as `private` or `protected` or be a `file` type, and a public agent's must be public
@@ -366,6 +367,11 @@ WithChatOptions()
 [`Settings`](./generated-members.md#settings), so stored settings or a run can pick another model. The two values
 [layer](./settings-and-stores.md#settings-layering) separately: a layer that sets only `Model` keeps the provider of
 the layer below, so set both when you switch providers.
+
+An agent may name its model without a provider, as in `WithModel("gpt-5-mini")`. Its runs take the client registered
+for every agent, and receive the model as `ChatOptions.ModelId` ([Registering clients](#registering-clients)). The
+call sets the model alone: after a `WithModel` that names a provider it keeps that provider, and with
+`Configurable(o => o.ModelId)` a settings layer may still name one, as a string.
 
 Leave out `WithModel` but keep `Configurable(o => o.ModelId)`, and the choice is the user's. Every run then needs a
 provider and a model from stored settings or from the run's own settings. A run without them takes the client

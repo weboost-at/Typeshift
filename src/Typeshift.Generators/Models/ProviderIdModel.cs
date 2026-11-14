@@ -4,7 +4,7 @@ namespace Typeshift.Generators.Models;
 // store it, and whether it is public (D6)
 internal sealed record ProviderIdModel(string Type, StorageModel Storage, bool IsPublic)
 {
-    // An agent without WithModel, or with a type settings cannot store, which TSH029 reports
+    // An agent whose code names no provider, or one of a type settings cannot store, which TSH029 reports
     public static readonly ProviderIdModel String = new(
         "string",
         new StorageModel(StorageKind.Scalar, "string") { IsReference = true },

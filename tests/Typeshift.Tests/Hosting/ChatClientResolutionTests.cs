@@ -71,6 +71,56 @@ public class ChatClientResolutionTests : HostTestBase
     }
 
     [Fact]
+    public async Task Given_A_Model_Without_A_Provider_The_Client_For_Every_Agent_Receives_The_Model()
+    {
+        // Arrange
+        _register = services =>
+        {
+            services.AddChatClient(ChatClient);
+            services.AddKeyedChatClient(ProbeAgent.ModelProvider, Other);
+            services.AddScoped<IChatClientProvider<string>, ScriptedChatClientProvider>();
+        };
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ModelOnlyAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.ModelId.Should().Be(ModelOnlyAgent.Model);
+        Models.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Model_Without_A_Provider_Settings_That_Name_A_Provider_Reach_It_With_The_Model()
+    {
+        // Arrange
+        _register = services => services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        var settings = new ModelOnlyAgent.Settings { Provider = Data.Agent.Provider };
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ModelOnlyAgent>().RunAsync(Data.Tool.Question, settings, Ct);
+
+        // Assert
+        Models.Should().Equal(new ProvidedModel(Data.Agent.Provider, ModelOnlyAgent.Model));
+    }
+
+    [Fact]
+    public async Task Given_A_Model_Named_After_A_Provider_And_Its_Model_The_Provider_Serves_The_Later_Model()
+    {
+        // Arrange
+        _register = services => services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<SwitchedModelAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        Models.Should().Equal(new ProvidedModel(SwitchedModelAgent.ModelProvider, SwitchedModelAgent.Model));
+    }
+
+    [Fact]
     public async Task Given_A_Chat_Client_Keyed_By_The_Agents_Provider_The_Run_Answers_On_It()
     {
         // Arrange

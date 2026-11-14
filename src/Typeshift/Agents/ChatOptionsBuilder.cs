@@ -39,6 +39,20 @@ public sealed class ChatOptionsBuilder
     }
 
     /// <summary>
+    /// Sets the model alone. An agent that names no provider, here or in its settings, runs on the default client:
+    /// the one registered for every agent. <c>Configurable(o => o.ModelId)</c> lets stored settings or a run choose
+    /// another model, or name a provider.
+    /// </summary>
+    /// <param name="model">The model, as the API of the client that serves the run names it.</param>
+    /// <returns>The same chain.</returns>
+    /// <exception cref="ArgumentException"><paramref name="model"/> is null or white space.</exception>
+    public ChatOptionsBuilder WithModel(string model)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(model);
+        return Set(options => options.ModelId = model);
+    }
+
+    /// <summary>
     /// Sets the sampling temperature.
     /// </summary>
     /// <param name="temperature">The temperature.</param>

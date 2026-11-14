@@ -99,6 +99,7 @@ the client receives, so the provider's default applies:
 
 | Call | Sets | Default | May be configurable |
 |---|---|---|---|
+| `WithModel(string model)` | `ModelId` alone. An agent that names no provider runs on the client registered for every agent ([Naming a model](./models.md#naming-a-model)) | The model of the client that serves the run | Yes, as `Provider` and `Model` |
 | `WithModel(TProviderId provider, string model)` | `ModelId`, and the [provider](./models.md) that serves it, whose type is the agent's [provider id type](./models.md#the-provider-id-type) | The model of the client that serves the run | Yes, as `Provider` and `Model` |
 | [`WithInstructions`](#agent) in the agent, or `GetInstructions()` overridden | `Instructions` | None | Yes |
 | `WithTemperature(float temperature)` | `Temperature` | The provider's | Yes |

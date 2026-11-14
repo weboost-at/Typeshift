@@ -257,14 +257,15 @@ internal static class AgentParser
         }
     }
 
-    // D77: the static type of WithModel's provider is the agent's provider id type
+    // D77: the static type of WithModel's provider is the agent's provider id type; WithModel(model) names none
     private static void ReadModel(IInvocationOperation call, Declarations declarations)
     {
         var models = ConstructorChains.GetChainedCalls(call).Where(next => next.TargetMethod.Name == "WithModel");
 
         foreach (var model in models)
         {
-            if (model.TargetMethod.TypeArguments[0] is not { TypeKind: not TypeKind.Error } type) continue;
+            var provider = model.TargetMethod.TypeArguments.FirstOrDefault();
+            if (provider is not { TypeKind: not TypeKind.Error } type) continue;
 
             var argument = model.Arguments.First(passed => passed.Parameter?.Ordinal == 0).Syntax;
             declarations.Models.Add((type, argument));

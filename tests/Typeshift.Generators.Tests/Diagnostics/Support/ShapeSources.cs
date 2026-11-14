@@ -2377,4 +2377,42 @@ public static class ShapeSources
             public static string Link(string text) => text;
         }
         """;
+
+    // D77: WithModel(model) names no provider, alone and after a WithModel that names one
+    public const string ModelWithoutAProvider =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal enum Vendor
+        {
+            OpenAi
+        }
+
+        internal partial class ModelAgent : Agent
+        {
+            public ModelAgent()
+            {
+                WithDescription("Names a model.");
+
+                WithChatOptions()
+                    .WithModel("fast-model")
+                    .Configurable(o => o.ModelId);
+            }
+        }
+
+        internal partial class SwitchingAgent : Agent
+        {
+            public SwitchingAgent()
+            {
+                WithDescription("Names a provider, then another model.");
+
+                WithChatOptions()
+                    .WithModel(Vendor.OpenAi, "fast-model")
+                    .WithModel("faster-model")
+                    .Configurable(o => o.ModelId);
+            }
+        }
+        """;
 }

@@ -498,7 +498,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   generator writes `string` in place of a type it cannot name, so its code compiles. The `WithModel` that
   `new TAgent()` runs last types the providers, as the module creates an agent with its parameterless constructor:
   the last `WithModel` of that constructor, or else of the constructors it chains to with `this(...)`, nearest
-  first. Gone with the build's type: `TypeshiftProviderIdType`, the
+  first. `WithModel(model)` (owner) names a model and no provider, so an agent can mean the client registered for
+  every agent (D63): it sets `ModelId` alone, keeps a provider an earlier `WithModel` named, and the parser passes
+  it by, so an agent with no other `WithModel` has `string` providers. Gone with the build's type: `TypeshiftProviderIdType`, the
   `IChatClientProvider` alias, the type parameter of `AddCoreServices`, `ChatClients<TProviderId>`, the module
   stamps' provider id type (stamp version 6), TSH021, and the build-wide parts of TSH029 and TSH030.
 - **Where:** `Hosting/ProviderId.cs`, `Hosting/ChatClients.cs`, `Hosting/IChatClientProvider.cs`,

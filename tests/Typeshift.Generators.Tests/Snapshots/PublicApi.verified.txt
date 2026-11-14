@@ -80,6 +80,7 @@ public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithAdditionalP
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithAllowMultipleToolCalls(bool allow)
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithFrequencyPenalty(float penalty)
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithMaxOutputTokens(int tokens)
+public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithModel(string model)
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithModel<TProviderId>(TProviderId provider, string model) where TProviderId : notnull
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithPresencePenalty(float penalty)
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithReasoning(Microsoft.Extensions.AI.ReasoningOptions reasoning)

@@ -438,6 +438,27 @@ public partial class AgentGenerationTests : GeneratorTestBase
             .Be(provider);
     }
 
+    [Theory]
+    [InlineData("Demo.ModelAgent+Settings", "string?")]
+    [InlineData("Demo.SwitchingAgent+Settings", "Demo.Vendor?")]
+    public void Given_A_Model_Named_Without_A_Provider_It_Leaves_The_Type_Of_The_Settings_Providers_Alone(
+        string settings,
+        string provider)
+    {
+        // Act
+        var run = Run(SourceCatalogs.Read(typeof(ShapeSources), nameof(ShapeSources.ModelWithoutAProvider)));
+
+        // Assert
+        run.Assert.CompilesCleanly();
+        run.Output.GetTypeByMetadataName(settings)!
+            .GetMembers("Provider")
+            .OfType<IPropertySymbol>()
+            .Single()
+            .Type.ToDisplayString()
+            .Should()
+            .Be(provider);
+    }
+
     [Fact]
     public void Given_An_Experimental_Toolset_Settings_And_Provider_Type_The_Agents_File_Disables_Their_Ids()
     {

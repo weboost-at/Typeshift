@@ -104,6 +104,9 @@ All notable changes to this project are documented here. The format follows
   of either, and `TypeshiftRuntime.Create(client)` with a `dynamic` argument. Each compiled and threw an
   `InvalidOperationException` when the app started.
 - `services?.AddTypeshift()` is intercepted like `services.AddTypeshift()`. It compiled and threw at startup.
+- `WithChatOptions().WithModel(model)` names a model and no provider, as in `WithModel("gpt-5-mini")`. The run takes
+  the client registered for every agent, with `services.AddChatClient(client)` or `TypeshiftRuntime.Create(client)`,
+  and sends it the model. An app with one client no longer needs a provider name that nothing reads.
 
 ### Changed
 
