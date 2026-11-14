@@ -465,18 +465,14 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             : Unanswered(messages)
                 .LastOrDefault(call => call.Name.StartsWith(HandoffPrefix, StringComparison.Ordinal));
 
-    // The calls the tool loop left without a result. It hands a whole response back uninvoked when one of its calls
-    // names a declaration, as a handoff is. A call a provider ran itself is none of the loop's
+    // The calls without a result. The tool loop hands a whole response back uninvoked when one of its calls names a
+    // declaration, as a handoff is
     private static List<FunctionCallContent> Unanswered(IList<ChatMessage> messages)
     {
         var contents = messages.SelectMany(message => message.Contents).ToList();
         var answered = contents.OfType<FunctionResultContent>().Select(result => result.CallId).ToHashSet();
 
-        return
-        [
-            .. contents.OfType<FunctionCallContent>()
-                .Where(call => !call.InformationalOnly && !answered.Contains(call.CallId))
-        ];
+        return [.. contents.OfType<FunctionCallContent>().Where(call => !answered.Contains(call.CallId))];
     }
 
     // D34: the one place a handoff is carried out. The call's result is stored, and the run is the other agent's
@@ -506,8 +502,9 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         var result = new ChatMessage(
             ChatRole.Tool,
             [
+                // A call the loop would not have run, as one a provider ran itself, is not its to answer
                 .. Unanswered(messages)
-                    .Where(other => other != call)
+                    .Where(other => other != call && !other.InformationalOnly)
                     .Select(other => new FunctionResultContent(other.CallId, beside)),
                 new FunctionResultContent(
                     call.CallId,
