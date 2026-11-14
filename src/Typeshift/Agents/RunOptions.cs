@@ -17,7 +17,8 @@ public sealed class RunOptionsBuilder
     public RunOptionsBuilder WithMode(AgentMode mode) => Set(options => options with { Mode = mode });
 
     /// <summary>
-    /// The most rounds of tool calls one run makes; 40 unless set.
+    /// The most rounds of tool calls the agent makes in one run; 40 unless set. An agent the run is handed off to
+    /// counts its own.
     /// </summary>
     /// <param name="iterations">The rounds.</param>
     /// <returns>The same chain.</returns>
@@ -94,7 +95,7 @@ public sealed record RunOptions
     public AgentMode Mode { get; init; }
 
     /// <summary>
-    /// The most rounds of tool calls one run makes.
+    /// The most rounds of tool calls the agent makes in one run. An agent the run is handed off to counts its own.
     /// </summary>
     public int MaxToolIterations { get; init; } = 40;
 

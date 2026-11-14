@@ -126,7 +126,7 @@ require approval ([TSH037](./diagnostics.md#tsh037)).
 | Call | Default | Does |
 |---|---|---|
 | `WithMode(AgentMode mode)` | `Default` | Sets the [mode](./tool-approval.md#the-three-modes) runs start in: `Default`, `Plan` or `Auto`. |
-| `WithMaxToolIterations(int iterations)` | 40 | Sets the most rounds of tool calls one run makes. Calls your app [approves](./tool-approval.md#approving-or-rejecting) run in the next run, which counts its own. |
+| `WithMaxToolIterations(int iterations)` | 40 | Sets the most rounds of tool calls the agent makes in one run. Calls your app [approves](./tool-approval.md#approving-or-rejecting) run in the next run, which counts its own, and so does an agent the run is [handed off](./multi-agent.md#handoff) to. |
 | `WithMaxConsecutiveToolErrors(int errors)` | 3 | Sets how many rounds of tool calls in a row may fail before the failing tool's exception ends the run and reaches your code. |
 | `WithConcurrentToolCalls(bool concurrent)` | off | Runs the tool calls in one model response at the same time. |
 | `WithMaxInputTokens(int tokens)` | off | Turns [compaction](./conversations.md#compaction) on at this many input tokens. |

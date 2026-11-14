@@ -267,6 +267,9 @@ All notable changes to this project are documented here. The format follows
 - A tool call the model makes in the same response as a handoff gets a result: it reads that it did not run
   because the conversation was handed off, and the agent that takes over reads the call with it. Such a call was
   dropped without a trace. It never ran, nothing failed, and neither agent saw it again.
+- A run hands off at most ten times. The next handoff call is answered with a note that none is left, and the
+  agent that made it answers the user. Two agents that handed the conversation back and forth made any number of
+  model calls in one run, since each handoff started a count of tool rounds of its own.
 - A handoff stops the background sub-agents the handing agent left working, and waits until they have stopped,
   before the other agent takes over. That agent reads which of them were lost. They kept calling their model and
   running tools after the run had returned, in a scope the request had disposed, and their answers were dropped.

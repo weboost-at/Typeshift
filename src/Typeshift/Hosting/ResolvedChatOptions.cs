@@ -39,6 +39,9 @@ internal sealed class ResolvedChatOptions : ChatOptions
     // D34, D50: the claim on the conversation a handoff or the agent passing a run on handed this run
     public RunClaim? Claim { get; set; }
 
+    // D34: the handoffs the run made before this agent took it over
+    public int Handoffs { get; set; }
+
     // D64: the format a typed run asked for, which an agent answering in its place answers in too
     public ChatResponseFormat? ResultFormat { get; set; }
 
@@ -71,6 +74,7 @@ internal sealed class ResolvedChatOptions : ChatOptions
             ConversationRun = ConversationRun,
             Caller = Caller,
             Claim = Claim,
+            Handoffs = Handoffs,
             ResultFormat = ResultFormat
         };
 }

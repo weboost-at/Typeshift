@@ -245,6 +245,11 @@ reads what was left undone and can do it. When one response calls two handoffs, 
 handoff called next to a call that [waits for your app](./tool-approval.md#when-a-call-needs-approval) is not carried
 out: the model reads that it was not handed off, and the agent that asked keeps the conversation.
 
+A run hands off at most ten times. Each agent that takes the run over counts its own
+[rounds of tool calls](./builders.md#runoptionsbuilder), so without that limit two agents that each send the user to the
+other would call their models for as long as your app waits. The eleventh handoff call is answered with a note that
+the run has no handoffs left, and the agent that made it answers the user itself.
+
 The `Settings` you pass to one run apply only to the agent you started it on. An agent it hands off to runs with its
 own settings stored under the same settings id. The mode is the one exception: a `Mode` in a run's settings switches
 the conversation, so the agent that answers the run is in it too, as it is in the mode of an approved plan

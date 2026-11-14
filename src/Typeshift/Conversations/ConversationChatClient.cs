@@ -18,6 +18,10 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 {
     public const string HandoffPrefix = "handoff_to_";
 
+    // D34: two agents that each send the user to the other would hand off for as long as the caller waits, each
+    // handoff a run with a limit of its own
+    private const int MaxHandoffs = 10;
+
     public override async Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,
@@ -164,26 +168,27 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                     ? await HandOffAsync(run, runOptions, last.Messages, handing)
                     : null;
 
-                if (handoff is var (result, target, handed))
+                if (handoff is not null) response = ChatResponses.Merge(response, new ChatResponse(handoff.Result));
+
+                if (handoff is { Target: { } target, Handed: { } handed })
                 {
                     handedOff = true;
-                    ChatResponse answer;
 
                     try
                     {
-                        answer = await target.RunAsync([], handed, ct);
+                        return ChatResponses.Merge(response, await target.RunAsync([], handed, ct));
                     }
                     finally
                     {
                         Runs.Release(handed.Claim);
                     }
-
-                    return ChatResponses.Merge(ChatResponses.Merge(response, new ChatResponse(result)), answer);
                 }
 
-                if (!GoesFurther(runOptions, ref calls) || !await run.GoesOnAsync(ct)) break;
+                // D34: a handoff the run had none left for is answered, and its own agent goes on at once
+                if (!GoesFurther(runOptions, ref calls) || (handoff is null && !await run.GoesOnAsync(ct))) break;
 
                 call = [.. call, .. last.Messages];
+                if (handoff is not null) call.Add(handoff.Result);
 
                 // D51, D80: steering input passed the batch the run asked by
                 if (run.Asked is { } passed)
@@ -284,14 +289,17 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                 await run.StoreResultsAsync(last);
                 run.MarkStored(last);
 
-                if (HandoffIn(last) is { } handoff
-                    && await HandOffAsync(run, runOptions, last, handoff) is (var result, var target, var handed))
+                var handoff = HandoffIn(last) is { } handing
+                    ? await HandOffAsync(run, runOptions, last, handing)
+                    : null;
+
+                if (handoff is { Target: { } target, Handed: { } handed })
                 {
                     ended = true;
 
                     try
                     {
-                        yield return new ChatResponseUpdate(ChatRole.Tool, result.Contents);
+                        yield return new ChatResponseUpdate(ChatRole.Tool, handoff.Result.Contents);
 
                         await foreach (var update in target.RunStreamingAsync([], handed, ct))
                         {
@@ -306,9 +314,19 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                     yield break;
                 }
 
-                if (!GoesFurther(runOptions, ref calls) || !await run.GoesOnAsync(ct)) break;
+                // D34: a handoff the run had none left for is answered, and its own agent goes on at once
+                if (handoff is not null)
+                {
+                    var refused = AsUpdate(handoff.Result);
+
+                    publisher?.Add(refused);
+                    yield return refused;
+                }
+
+                if (!GoesFurther(runOptions, ref calls) || (handoff is null && !await run.GoesOnAsync(ct))) break;
 
                 call = [.. call, .. last];
+                if (handoff is not null) call.Add(handoff.Result);
 
                 // D51, D80: steering input passed the batch the run asked by
                 if (run.Asked is { } passed)
@@ -518,11 +536,13 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         ];
     }
 
-    // D34: the call's result is stored, and the run is the other agent's from here: it resumes the conversation,
-    // so this agent neither ends the run nor holds it, and hands its claim on with what else the other run takes
-    // over; input steered to it is stored for the other agent. The calls made beside the handoff did not run, and
-    // each reads so in the same tool message. Null for a call of no agent this one hands off to
-    private async Task<(ChatMessage Result, IAgentHost Target, RunHandover Handed)?> HandOffAsync(
+    // D34: the one place a handoff is carried out. The call's result is stored, and the run is the other agent's
+    // from here: it resumes the conversation, so this agent neither ends the run nor holds it, and hands its claim
+    // on with what else the other run takes over; input steered to it is stored for the other agent. The calls made
+    // beside the handoff did not run, and each reads so in the same tool message. A run that has handed off as often
+    // as it may does not: the call reads so, and this agent goes on. Null for a call of no agent this one hands
+    // off to
+    private async Task<Handoff?> HandOffAsync(
         ConversationRun run,
         ResolvedChatOptions options,
         IList<ChatMessage> messages,
@@ -533,9 +553,12 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
         if (target is null) return null;
 
-        var beside =
-            $"This call did not run: the conversation was handed off to {target.Agent.Name} in the same step. "
-            + "Call it again if it is still needed.";
+        var spent = options.Handoffs >= MaxHandoffs;
+
+        var beside = spent
+            ? "This call did not run: it was made beside a handoff. Call it again if it is still needed."
+            : $"This call did not run: the conversation was handed off to {target.Agent.Name} in the same step. "
+                + "Call it again if it is still needed.";
 
         var result = new ChatMessage(
             ChatRole.Tool,
@@ -543,8 +566,18 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                 .. Unanswered(messages)
                     .Where(other => other != call)
                     .Select(other => new FunctionResultContent(other.CallId, beside)),
-                new FunctionResultContent(call.CallId, $"Handed off to {target.Agent.Name}.")
+                new FunctionResultContent(
+                    call.CallId,
+                    spent
+                        ? "No more handoffs in this run: answer the user yourself."
+                        : $"Handed off to {target.Agent.Name}.")
             ]);
+
+        if (spent)
+        {
+            await run.AppendAsync([result]);
+            return new Handoff(result);
+        }
 
         await run.AppendHandoffAsync(result, target.Agent.Name);
 
@@ -555,10 +588,19 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             target.Agent.Name,
             [.. lost.Select(call => Lost(call.CallId, call.Agent, "the conversation was handed off"))]);
 
-        var handed = new RunHandover(options.SettingsId, run.Conversation, Runs.HandOff(run), options.ResultFormat);
+        var handed = new RunHandover(
+            options.SettingsId,
+            run.Conversation,
+            Runs.HandOff(run),
+            options.ResultFormat,
+            options.Handoffs + 1);
 
-        return (result, target, handed);
+        return new Handoff(result, target, handed);
     }
+
+    // D34: a handoff call as it was answered: the tool message for it and for the calls made beside it, and the
+    // agent that takes over with what its run is handed. Without an agent the run had no handoff left
+    private sealed record Handoff(ChatMessage Result, IAgentHost? Target = null, RunHandover? Handed = null);
 
     // The run that began, or, for a run without input whose decisions are still open, the batch that waits
     private async Task<(

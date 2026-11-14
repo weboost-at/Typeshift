@@ -511,6 +511,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         var options = (ResolvedChatOptions)await ResolveOptionsCoreAsync(handover.SettingsId, settings, ct);
         options.Conversation = handover.Conversation;
         options.Claim = handover.Claim;
+        options.Handoffs = handover.Handoffs;
         options.HostRun = true;
 
         if (handover.Format is { } format)

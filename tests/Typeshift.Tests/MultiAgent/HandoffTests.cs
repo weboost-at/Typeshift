@@ -469,6 +469,42 @@ public class HandoffTests : MultiAgentTestBase
         results[Data.Tool.SecondCallId].Should().Be("Handed off to guarded_back_agent.");
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_Two_Agents_Handing_Back_And_Forth_The_Run_Ends_After_The_Most_Handoffs(bool streaming)
+    {
+        // Arrange
+        ScriptHandoffsBackAndForth(11);
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await RunAsync(Data.Tool.Question, streaming);
+        var refused = ResultsOf(ChatClient.Requests[^1])[$"{Data.Tool.CallId}_10"];
+
+        // Assert
+        ChatClient.Requests.Should().HaveCount(12);
+        refused.Should().Be("No more handoffs in this run: answer the user yourself.");
+        response.Messages[^1].AuthorName.Should().Be("front_agent");
+        response.Text.Should().EndWith(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_A_Model_That_Hands_Off_Whatever_It_Reads_The_Run_Ends_At_Its_Agents_Limit_Of_Model_Calls()
+    {
+        // Arrange
+        ScriptHandoffsBackAndForth(60);
+
+        // Act
+        await RunAsync(Data.Tool.Question);
+        var entries = await EntriesAsync(Data.Agent.ConversationId);
+
+        // Assert
+        ChatClient.Requests.Should().HaveCount(51);
+        entries[^1].EndsRun.Should().BeTrue();
+        Tracker.Runs.Should().BeEmpty();
+    }
+
     [Fact]
     public async Task Given_A_Conversation_Handed_Off_In_Auto_Mode_A_Run_Naming_The_Default_Mode_Asks_Again()
     {
@@ -655,6 +691,17 @@ public class HandoffTests : MultiAgentTestBase
     }
 
     private string Lives() => JsonSerializer.Serialize(new { data = Data.Tool.Lives }, Json.SerializerOptions);
+
+    // The front and the back agent hand the conversation to each other, the front agent first
+    private void ScriptHandoffsBackAndForth(int handoffs)
+    {
+        foreach (var hop in Enumerable.Range(0, handoffs))
+        {
+            ChatClient.Reply(Call(
+                $"{Data.Tool.CallId}_{hop}",
+                hop % 2 == 0 ? "handoff_to_back_agent" : "handoff_to_front_agent"));
+        }
+    }
 
     // The texts of the tool results among the messages, by call id
     private static Dictionary<string, string> ResultsOf(IEnumerable<ChatMessage> messages) =>

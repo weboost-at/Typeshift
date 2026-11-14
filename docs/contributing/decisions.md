@@ -629,7 +629,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   agent's loop; the target answers in the same run with the whole conversation. The conversation's last entry names
   the agent that answers its next run, if it is reachable through the host agent's handoffs. Handoff needs a
   conversation; run settings apply to the host's agent only, except a mode they name, which is the conversation's
-  (D52) and so reaches the agent that answers or is handed to. A handoff called in a response of which a call waits
+  (D52) and so reaches the agent that answers or is handed to. A run hands off at most ten times: each agent
+  handed the run has a limit of model calls of its own (D32), so nothing else bounds two agents that hand back and
+  forth. A handoff beyond that is answered as refused, and the agent that called it goes on. A handoff called in a
+  response of which a call waits
   for your app is not carried out: the model reads that it was not handed off, and the agent that asked keeps the
   conversation, so the answers continue with it (D81).
 - **As built:** the conversation layer sees the declaration's call the tool loop passes out, stores its result as an
@@ -644,7 +647,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   passes it to that agent's run, as a run passed on to the agent that answers the conversation is passed its claim;
   so no run starts between the two. A run that starts then waits, as for any run still loading, and is refused once
   the agent handed to began. What one run hands another is one record, `RunHandover`: the settings id, the
-  conversation, the claim and a typed run's format (D64). It travels as an argument and in the run's options rather
+  conversation, the claim, a typed run's format (D64) and the handoffs the run made so far. The limit of ten is a
+  constant: a run option for it would be one more member of every agent's generated settings, for a number nobody
+  has asked to change. It travels as an argument and in the run's options rather
   than in an `AsyncLocal`, which a value set before a stream's `yield` loses and code the agent's run calls would
   carry along.
 - **Where:** `Conversations/ConversationChatClient.cs`, `Conversations/LiveRuns.cs`, `Hosting/IAgentHost.cs`

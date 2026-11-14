@@ -37,7 +37,7 @@ internal sealed class SubAgentFunction(AgentUse use, Agent agent) : AIFunction
         var format = use.Result?.GetFormat(json);
 
         // D33: the caller's settings id and the caller itself, and no conversation of its own
-        var handover = new RunHandover(options.SettingsId, Conversation: null, Claim: null, format, caller);
+        var handover = new RunHandover(options.SettingsId, Conversation: null, Claim: null, format, Caller: caller);
 
         Task<ChatResponse> RunAsync(CancellationToken token) => host.RunAsync([input], handover, token);
 
