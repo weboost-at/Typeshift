@@ -605,4 +605,21 @@ public class AgentGenerationTests : GeneratorTestBase
         // Assert
         run.Source("Research.EchoAgent.g.cs").Should().NotContain("WithTimes");
     }
+
+    [Theory]
+    [InlineData(nameof(ShapeSources.AgentWithABaseInitializer))]
+    [InlineData(nameof(ShapeSources.AgentWithAPrimaryConstructor))]
+    public void Given_An_Explicit_Base_Initializer_The_Agent_Is_Generated(string shape)
+    {
+        // Arrange
+        var source = SourceCatalogs.Read(typeof(ShapeSources), shape);
+
+        // Act
+        var run = Run(source);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH014");
+        run.Assert.CompilesCleanly();
+        run.Source("Demo.ProbeAgent.g.cs").Should().Contain("partial class ProbeAgent");
+    }
 }

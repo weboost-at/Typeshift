@@ -431,6 +431,9 @@ All notable changes to this project are documented here. The format follows
 - `UseToolset<T>()` in parentheses or followed by `!`, as in `(UseToolset<TicketToolset>()).Include(t => t.Close)`
   or `UseToolset<TicketToolset>()!.Exclude(t => t.Close)`, is read with its picks. The agent offered none of the
   toolset's tools, and nothing reported it.
+- An agent's constructor with an explicit `: base()`, or a primary constructor as in
+  `partial class HelpAgent() : Agent()`, no longer gives TSH014 with the text "'.ctor' is read by the generator only
+  directly in the constructor".
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

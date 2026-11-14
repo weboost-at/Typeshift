@@ -2074,4 +2074,31 @@ public static class ShapeSources
             public override JsonTypeInfo? GetTypeInfo(Type type) => null;
         }
         """;
+
+    // `: base()` calls a constructor of Agent, which is no declaration
+    public const string AgentWithABaseInitializer =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class ProbeAgent : Agent
+        {
+            public ProbeAgent() : base()
+            {
+                WithDescription("Probes.");
+            }
+        }
+        """;
+
+    public const string AgentWithAPrimaryConstructor =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class ProbeAgent() : Agent()
+        {
+        }
+        """;
 }

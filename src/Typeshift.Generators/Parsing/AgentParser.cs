@@ -131,9 +131,15 @@ internal static class AgentParser
             named.GetExperimentalIds());
     }
 
-    // AddTool declares a tool, which ToolsetParser reads in an agent as in a toolset
+    // AddTool declares a tool, which ToolsetParser reads in an agent as in a toolset. The base constructor that
+    // `: base()` calls is a method of Agent too, and declares nothing
     public static bool IsDeclaration(IInvocationOperation invocation) =>
-        invocation.TargetMethod is { IsStatic: false, Name: not ("GetInstructions" or "AddTool") } method
+        invocation.TargetMethod is
+        {
+            MethodKind: MethodKind.Ordinary,
+            IsStatic: false,
+            Name: not ("GetInstructions" or "AddTool")
+        } method
         && method.ContainingType.Is(KnownTypes.Agent);
 
     // The analyzer sees the generated members too; only the user's own can clash
