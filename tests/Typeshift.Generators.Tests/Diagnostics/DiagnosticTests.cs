@@ -1232,7 +1232,11 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(Compile(SubjectAssembly, [billing, support]));
 
         // Assert
-        run.Assert.ReportsOnTheCompilation("TSH022", DiagnosticSeverity.Error).GetMessage().Should().Contain("Billing");
+        run.Assert.ReportsOnTheCompilation(
+            "TSH022",
+            DiagnosticSeverity.Error,
+            message: "'Support.HelpAgent' stores its settings as 'HelpAgent', like 'Billing.HelpAgent': give one of "
+                + "them a WithStorageKind of its own");
     }
 
     [Fact]
@@ -1245,7 +1249,12 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(Compile(SubjectAssembly, [billing], ReferenceSources.SupportHelpAgent));
 
         // Assert
-        run.Assert.Reports("TSH022", DiagnosticSeverity.Error, "HelpAgent");
+        run.Assert.Reports(
+            "TSH022",
+            DiagnosticSeverity.Error,
+            "HelpAgent",
+            message: "'Support.HelpAgent' stores its settings as 'HelpAgent', like 'Billing.HelpAgent': give one of "
+                + "them a WithStorageKind of its own");
     }
 
     [Fact]

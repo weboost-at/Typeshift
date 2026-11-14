@@ -82,6 +82,12 @@ descriptor that only this action reports carries the `CompilationEnd` tag, which
 build. Calls the generator cannot read (TSH014, TSH015) or intercept (TSH040) it checks in operation actions, where
 it also names the overloads behind an `AddTool` the compiler could not bind (TSH003).
 
+The compiler asks the analyzer about every class and every call of a project, and nearly none of them concerns the
+library. Both paths therefore return before they allocate: `AnalyzeCall` on the assembly of the called method, and
+`SymbolExtensions.Is`, which tells a type by its metadata name, on the type's simple name before it builds the full
+one. The JSON contexts are collected only in a project without JSON reflection (D45), and the end of the compilation
+reads the references' stamps in one pass, `ReferenceReader.ReadStamps`, for every check that needs them.
+
 `ParameterDocsSuppressor` suppresses CS1573 for the parameters of a tool the model never sees (D14). A suppressor
 gets no operations, so it finds the `AddTool` calls of the compilation by their name and binds the method each one
 names, wherever that method lives.

@@ -16,8 +16,12 @@ internal static class SymbolExtensions
 
     extension(ITypeSymbol? type)
     {
+        // The name alone is compared first, which builds no string: the analyzer asks this of every class and the
+        // parsers of every attribute, and nearly all of them are named otherwise
         public bool Is(string metadataName) =>
-            type is INamedTypeSymbol named && GetMetadataName(named.OriginalDefinition) == metadataName;
+            type is INamedTypeSymbol named
+            && EndsInName(metadataName, named.Name)
+            && GetMetadataName(named.OriginalDefinition) == metadataName;
     }
 
     extension(IEnumerable<ISymbol?> symbols)
@@ -232,6 +236,17 @@ internal static class SymbolExtensions
     private static bool IsInternalOrWider(ITypeSymbol type) =>
         type.DeclaredAccessibility
             is Accessibility.Public or Accessibility.Internal or Accessibility.ProtectedOrInternal;
+
+    // Typeshift.ToolBuilder`1 ends in the name ToolBuilder
+    private static bool EndsInName(string metadataName, string name)
+    {
+        var start = metadataName.LastIndexOf('.') + 1;
+        var end = start + name.Length;
+
+        return end <= metadataName.Length
+            && string.CompareOrdinal(metadataName, start, name, 0, name.Length) == 0
+            && (end == metadataName.Length || metadataName[end] == '`');
+    }
 
     private static string GetMetadataName(INamedTypeSymbol type) =>
         type.ContainingNamespace is { IsGlobalNamespace: false } ns

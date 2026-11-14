@@ -31,49 +31,48 @@ internal static class ReferenceReader
         return new ReferenceModel(modules.ToEquatableArray(), toolsets.ToEquatableArray());
     }
 
-    // TSH007: the referenced toolsets, each with the name of its assembly, which a summary does not hold
-    public static IEnumerable<(ToolsetSummary Toolset, string Assembly)> ReadToolsets(
-        Compilation compilation,
-        CancellationToken ct) =>
-        GetNameableLibraryUsers(compilation)
-            .Select(GetModule)
-            .OfType<INamedTypeSymbol>()
-            .SelectMany(GetToolsets)
-            .Select(toolset => (ReadToolset(toolset, ct), toolset.ContainingAssembly.Name));
+    // What the analyzer checks of the references when a compilation ends, from one pass over them
+    public static ReferenceStamps ReadStamps(Compilation compilation, CancellationToken ct)
+    {
+        var toolsets = new List<(ToolsetSummary Toolset, string Assembly)>();
+        var agents = new List<ModuleAgent>();
+        var unstamped = new List<string>();
+        var underAliasOnly = new List<string>();
 
-    // TSH020: the references that use the library, declare toolsets or agents, and carry no module of this version
-    public static IEnumerable<IAssemblySymbol> GetUnstamped(Compilation compilation, CancellationToken ct) =>
-        GetLibraryUsers(compilation)
-            .Where(assembly => GetModule(assembly) is null && DeclaresToolsetsOrAgents(assembly.GlobalNamespace, ct));
+        foreach (var assembly in GetLibraryUsers(compilation))
+        {
+            ct.ThrowIfCancellationRequested();
 
-    // TSH020: the references whose module generated code cannot name, so no interceptor registers it
-    public static IEnumerable<IAssemblySymbol> GetUnderAliasOnly(Compilation compilation) =>
-        GetLibraryUsers(compilation)
-            .Where(assembly => IsUnderAliasOnly(compilation, assembly) && GetModule(assembly) is not null);
+            if (GetModule(assembly) is not { } module)
+            {
+                if (DeclaresToolsetsOrAgents(assembly.GlobalNamespace, ct)) unstamped.Add(assembly.Name);
+                continue;
+            }
+
+            if (IsUnderAliasOnly(compilation, assembly))
+            {
+                underAliasOnly.Add(assembly.Name);
+                continue;
+            }
+
+            toolsets.AddRange(GetToolsets(module)
+                .Select(toolset => (ReadToolset(toolset, ct), toolset.ContainingAssembly.Name)));
+
+            agents.AddRange(GetAgents(module));
+        }
+
+        return new ReferenceStamps(toolsets, agents, unstamped, underAliasOnly);
+    }
 
     // Generated code names every type from global::, which a reference under an extern alias alone is no part of
     public static bool IsUnderAliasOnly(Compilation compilation, IAssemblySymbol assembly) =>
         compilation.GetMetadataReference(assembly) is { Properties.Aliases: { IsDefaultOrEmpty: false } aliases }
         && !aliases.Contains(MetadataReferenceProperties.GlobalAlias);
 
-    // D39: the kinds of the referenced agents' stored settings
-    public static IEnumerable<(string Kind, string Agent)> GetAgentKinds(Compilation compilation) =>
-        GetAgentStamps(compilation)
-            .Select(attribute => (
-                (string)attribute.ConstructorArguments[1].Value!,
-                ((ITypeSymbol)attribute.ConstructorArguments[0].Value!).ToDisplayString()));
-
-    // D33, D34: the referenced agents as their modules stamp them, for the agents that use them
-    public static IEnumerable<ModuleAgent> GetAgents(Compilation compilation) =>
-        GetAgentStamps(compilation)
-            .Select(ReadAgent);
-
     // D2: the agents of the compilation itself as the generator read them, from the stamps of its own module, which
     // the analyzer sees
     public static IEnumerable<ModuleAgent> GetOwnAgents(Compilation compilation) =>
-        (GetModule(compilation.Assembly)?.GetAttributes() ?? [])
-        .Where(attribute => attribute.AttributeClass.Is(KnownTypes.ModuleAgentAttribute))
-        .Select(ReadAgent);
+        GetModule(compilation.Assembly) is { } module ? GetAgents(module) : [];
 
     // D2: the names of the tools the generated part of a toolset stamps
     public static IEnumerable<string> GetToolNames(ITypeSymbol toolset) =>
@@ -81,12 +80,11 @@ internal static class ReferenceReader
             .Where(attribute => attribute.AttributeClass.Is(KnownTypes.GeneratedToolAttribute))
             .Select(attribute => (string)attribute.ConstructorArguments[0].Value!);
 
-    private static IEnumerable<AttributeData> GetAgentStamps(Compilation compilation) =>
-        GetNameableLibraryUsers(compilation)
-            .Select(GetModule)
-            .OfType<INamedTypeSymbol>()
-            .SelectMany(module => module.GetAttributes())
-            .Where(attribute => attribute.AttributeClass.Is(KnownTypes.ModuleAgentAttribute));
+    // D33, D34, D39: the agents of an assembly as its module stamps them
+    private static IEnumerable<ModuleAgent> GetAgents(INamedTypeSymbol module) =>
+        module.GetAttributes()
+            .Where(attribute => attribute.AttributeClass.Is(KnownTypes.ModuleAgentAttribute))
+            .Select(ReadAgent);
 
     private static ModuleAgent ReadAgent(AttributeData stamp)
     {
@@ -194,3 +192,12 @@ internal static class ReferenceReader
             && (type.DerivesFrom(KnownTypes.Toolset) || type.DerivesFrom(KnownTypes.Agent)))
         || type.GetTypeMembers().Any(IsToolsetOrAgent);
 }
+
+// The stamps of the references: their toolsets, each with the name of its assembly, which a summary does not hold
+// (TSH007), their agents (TSH022, TSH023), the assemblies that use the library, declare toolsets or agents and carry
+// no module of this version, and those whose module generated code cannot name (TSH020)
+internal sealed record ReferenceStamps(
+    IReadOnlyList<(ToolsetSummary Toolset, string Assembly)> Toolsets,
+    IReadOnlyList<ModuleAgent> Agents,
+    IReadOnlyList<string> Unstamped,
+    IReadOnlyList<string> UnderAliasOnly);

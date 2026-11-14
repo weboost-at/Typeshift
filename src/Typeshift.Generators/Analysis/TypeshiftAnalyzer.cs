@@ -78,15 +78,16 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
     {
         if (context.Compilation.GetTypeByMetadataName(KnownTypes.Toolset) is null) return;
 
-        var tools = new ConcurrentBag<(string Name, INamedTypeSymbol Owner, Location Location)>();
-        var kinds = new ConcurrentBag<(string Kind, INamedTypeSymbol Agent)>();
         var found = new Found();
 
-        context.RegisterSymbolStartAction(start => StartClass(start, tools, kinds, found), SymbolKind.NamedType);
+        context.RegisterSymbolStartAction(start => StartClass(start, found), SymbolKind.NamedType);
 
-        context.RegisterSymbolAction(symbol => CollectJsonTypes(symbol, found), SymbolKind.NamedType);
-
+        // D45: only a project without JSON reflection is asked which types its contexts list
         var needsJsonMetadata = NeedsJsonMetadata(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
+
+        if (needsJsonMetadata)
+            context.RegisterSymbolAction(symbol => CollectJsonTypes(symbol, found), SymbolKind.NamedType);
+
         // The library's own builders make the calls a user may not
         if (context.Compilation.AssemblyName != KnownTypes.LibraryAssembly)
         {
@@ -98,22 +99,20 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
         context.RegisterCompilationEndAction(end =>
         {
+            var references = ReferenceReader.ReadStamps(end.Compilation, end.CancellationToken);
+
             ReportLanguageVersion(end, found);
-            ReportClashesAcrossToolsets(end, tools);
-            ReportUnstampedReferences(end);
-            ReportSharedKinds(end, kinds);
-            ReportAgentUses(end, found);
-            ReportConversationsWithoutDecisions(end, found);
+            ReportClashesAcrossToolsets(end, found, references);
+            ReportUnstampedReferences(end, references);
+            ReportSharedKinds(end, found, references);
+            ReportAgentUses(end, found, references);
+            ReportConversationsWithoutDecisions(end, found, references);
             if (needsJsonMetadata) ReportMissingJsonMetadata(end, found);
             if (needsJsonMetadata) ReportNumericEnums(end, found);
         });
     }
 
-    private static void StartClass(
-        SymbolStartAnalysisContext context,
-        ConcurrentBag<(string Name, INamedTypeSymbol Owner, Location Location)> tools,
-        ConcurrentBag<(string Kind, INamedTypeSymbol Agent)> kinds,
-        Found found)
+    private static void StartClass(SymbolStartAnalysisContext context, Found found)
     {
         var type = (INamedTypeSymbol)context.Symbol;
         if (type.IsAbstract) return;
@@ -177,17 +176,12 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
                 .Any(reference => reference.SyntaxTree.Options.DocumentationMode != DocumentationMode.None);
 
             var declarations = baseType == "Agent"
-                ? ParseAgent(type, ordered, documented, reporter, kinds, found, ct)
+                ? ParseAgent(type, ordered, documented, reporter, found, ct)
                 : ParseToolset(type, ordered, documented, reporter, found, ct);
 
             foreach (var (tool, addTool) in declarations)
             {
-                var location = addTool.Syntax.GetLocation();
-                found.Tools.Add((tool, location));
-
-                // D57: an agent's own tools clash only across the handoffs of a conversation
-                if (baseType == "Agent") found.OwnTools.Add((type, tool.Name, location));
-                else tools.Add((tool.Name, type, location));
+                found.Tools.Add(new FoundTool(tool, type, baseType == "Agent", addTool.Syntax.GetLocation()));
             }
         });
     }
@@ -197,7 +191,6 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         IReadOnlyList<IOperation> constructors,
         bool documented,
         Reporter reporter,
-        ConcurrentBag<(string Kind, INamedTypeSymbol Agent)> kinds,
         Found found,
         CancellationToken ct)
     {
@@ -220,7 +213,6 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
                 ConstructorChains.GetCalledName(call).GetLocation()))
             .ToList();
 
-        kinds.Add((agent.Kind, type));
         found.Agents.Add(new FoundAgent(type, agent, uses, asks, toolsetUses));
         return tools;
     }
@@ -496,9 +488,12 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
     // D79: a store of conversations whose chain registers no store of their decisions loads none and fails the
     // first run that asks, which is known here when an agent the project sees can ask
-    private static void ReportConversationsWithoutDecisions(CompilationAnalysisContext context, Found found)
+    private static void ReportConversationsWithoutDecisions(
+        CompilationAnalysisContext context,
+        Found found,
+        ReferenceStamps references)
     {
-        var asking = new System.Lazy<string?>(() => GetAskingAgent(context, found));
+        var asking = new System.Lazy<string?>(() => GetAskingAgent(found, references));
 
         foreach (var chain in found.Stores.GroupBy(store => store.Chain))
         {
@@ -532,13 +527,9 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
     // An agent that can ask your app, of this compilation or of a reference, as far as its declarations and its
     // module stamp say: a tool or an MCP server that requires approval, plan mode, or UseQuestions()
-    private static string? GetAskingAgent(CompilationAnalysisContext context, Found found)
+    private static string? GetAskingAgent(Found found, ReferenceStamps references)
     {
-        List<ToolsetSummary> toolsets =
-        [
-            .. found.Toolsets,
-            .. ReferenceReader.Read(context.Compilation, context.CancellationToken).Toolsets
-        ];
+        var toolsets = GetToolsets(found, references);
 
         var own = found.Agents
             .Where(agent => agent.Model.AsksUser
@@ -549,7 +540,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             .Select(agent => agent.Type.Name);
 
         // A stamp names its agent's type in full, from global:: on
-        var referenced = ReferenceReader.GetAgents(context.Compilation)
+        var referenced = references.Agents
             .Where(agent => agent.AsksUser || agent.ApprovalTools.Count > 0)
             .Select(agent => agent.Type.Substring(agent.Type.LastIndexOfAny(['.', ':']) + 1));
 
@@ -587,14 +578,14 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
     // within one toolset or agent the parser reports it
     private static void ReportClashesAcrossToolsets(
         CompilationAnalysisContext context,
-        IEnumerable<(string Name, INamedTypeSymbol Owner, Location Location)> tools)
+        Found found,
+        ReferenceStamps references)
     {
         const string rule = "tool names are unique across the toolsets of a project and its references; give one of "
             + "the two another name with WithName(\"...\")";
 
         // A referenced toolset is named in full and with its assembly, which is all there is to search for
-        var referenced = ReferenceReader
-            .ReadToolsets(context.Compilation, context.CancellationToken)
+        var referenced = references.Toolsets
             .SelectMany(read => read.Toolset.Tools.Select(tool => (
                 tool.Name,
                 Owner: $"'{read.Toolset.Type.Replace("global::", "")}' in the assembly '{read.Assembly}'")))
@@ -617,7 +608,10 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        var ordered = tools
+        // D57: an agent's own tools clash only across the handoffs of a conversation
+        var ordered = found.Tools
+            .Where(tool => !tool.OfAgent)
+            .Select(tool => (tool.Tool.Name, tool.Owner, tool.Location))
             .OrderBy(tool => tool.Location.SourceTree?.FilePath, StringComparer.Ordinal)
             .ThenBy(tool => tool.Location.SourceSpan.Start);
 
@@ -674,41 +668,42 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
     }
 
     // D9: a reference whose toolsets and agents AddTypeshift() cannot register
-    private static void ReportUnstampedReferences(CompilationAnalysisContext context)
+    private static void ReportUnstampedReferences(CompilationAnalysisContext context, ReferenceStamps references)
     {
-        foreach (var assembly in ReferenceReader.GetUnstamped(context.Compilation, context.CancellationToken))
+        foreach (var assembly in references.Unstamped)
         {
             context.ReportDiagnostic(Diagnostic.Create(
                 Descriptors.UnstampedReference,
                 Location.None,
-                assembly.Name,
+                assembly,
                 "was built with another Typeshift version or without the Typeshift package",
                 "reference the Typeshift package in its project, at this version, and build it again"));
         }
 
-        foreach (var assembly in ReferenceReader.GetUnderAliasOnly(context.Compilation))
+        foreach (var assembly in references.UnderAliasOnly)
         {
             context.ReportDiagnostic(Diagnostic.Create(
                 Descriptors.UnstampedReference,
                 Location.None,
-                assembly.Name,
+                assembly,
                 "is referenced under an extern alias only, which generated code cannot name",
                 "reference it without an alias"));
         }
     }
 
     // D39: the kinds of this compilation's agents, and those its references stamp
-    private static void ReportSharedKinds(
-        CompilationAnalysisContext context,
-        IEnumerable<(string Kind, INamedTypeSymbol Agent)> kinds)
+    private static void ReportSharedKinds(CompilationAnalysisContext context, Found found, ReferenceStamps references)
     {
-        // A referenced agent has no location here, so a clash between two references is reported on the compilation
-        var referenced = ReferenceReader
-            .GetAgentKinds(context.Compilation)
-            .Select(stamped => (stamped.Kind, stamped.Agent, Location: Location.None));
+        // A referenced agent has no location here, so a clash between two references is reported on the compilation.
+        // A stamp names its agent's type in full, from global:: on
+        var referenced = references.Agents
+            .Select(agent => (agent.Kind, Agent: agent.Type.Replace("global::", ""), Location: Location.None));
 
-        var own = kinds
-            .Select(kind => (kind.Kind, Agent: kind.Agent.ToDisplayString(), Location: kind.Agent.Locations.First()))
+        var own = found.Agents
+            .Select(agent => (
+                agent.Model.Kind,
+                Agent: agent.Type.ToDisplayString(),
+                Location: agent.Type.Locations.First()))
             .OrderBy(kind => kind.Location.SourceTree?.FilePath, StringComparer.Ordinal)
             .ThenBy(kind => kind.Location.SourceSpan.Start);
 
@@ -728,24 +723,20 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
     }
 
     // D33, D34: the agents an agent uses, of this compilation or of a reference, whose module stamps them
-    private static void ReportAgentUses(CompilationAnalysisContext context, Found found)
+    private static void ReportAgentUses(CompilationAnalysisContext context, Found found, ReferenceStamps references)
     {
         var agents = found.Agents.ToDictionary(
             agent => agent.Type,
             agent => agent,
             (IEqualityComparer<INamedTypeSymbol>)SymbolEqualityComparer.Default);
 
-        List<ToolsetSummary> toolsets =
+        var toolsets = GetToolsets(found, references);
+        var referenced = references.Agents.ToLookup(agent => agent.Type);
+
+        List<(INamedTypeSymbol Agent, string Name, Location Location)> ownTools =
         [
-            .. found.Toolsets,
-            .. ReferenceReader.Read(context.Compilation, context.CancellationToken).Toolsets
+            .. found.Tools.Where(tool => tool.OfAgent).Select(tool => (tool.Owner, tool.Tool.Name, tool.Location))
         ];
-
-        var referenced = ReferenceReader
-            .GetAgents(context.Compilation)
-            .ToLookup(agent => agent.Type);
-
-        List<(INamedTypeSymbol Agent, string Name, Location Location)> ownTools = [.. found.OwnTools];
 
         foreach (var (type, _, uses, _, _) in found.Agents)
         {
@@ -805,6 +796,10 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
                 ? Catalog.Summarize(Catalog.Resolve(own.Model, toolsets))
                 : referenced[agent.ToTypeOf()].FirstOrDefault();
     }
+
+    // The toolsets an agent of the compilation can use: its own and those the references stamp
+    private static List<ToolsetSummary> GetToolsets(Found found, ReferenceStamps references) =>
+        [.. found.Toolsets, .. references.Toolsets.Select(read => read.Toolset)];
 
     // D2: what the generator read of an agent is in the stamp its module carries. An agent without a stamp has no
     // generated part yet, or is out of the module's reach (TSH016). A tool that a toolset already misses is reported
@@ -1153,7 +1148,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
     // D45: where JSON reflection is off, every type a tool binds or returns needs metadata from a context
     private static void ReportMissingJsonMetadata(CompilationAnalysisContext context, Found found)
     {
-        foreach (var (tool, location) in found.Tools)
+        foreach (var (tool, _, _, location) in found.Tools)
         {
             foreach (var type in JsonTypesOf(tool))
             {
@@ -1207,16 +1202,13 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         // A toolset, an agent, or a call the generator intercepts; set from any thread, and only ever to true
         public bool NeedsGeneratedCode { get; set; }
 
-
-        public ConcurrentBag<(ToolModel Tool, Location Location)> Tools { get; } = [];
+        public ConcurrentBag<FoundTool> Tools { get; } = [];
 
         public ConcurrentDictionary<string, bool> JsonTypes { get; } = [];
 
         public ConcurrentBag<NumericEnum> NumericEnums { get; } = [];
 
         public ConcurrentBag<FoundAgent> Agents { get; } = [];
-
-        public ConcurrentBag<(INamedTypeSymbol Agent, string Name, Location Location)> OwnTools { get; } = [];
 
         public ConcurrentBag<ToolsetSummary> Toolsets { get; } = [];
 
@@ -1225,6 +1217,9 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
         public ConcurrentBag<RegisteredStore> Stores { get; } = [];
     }
+
+    // A tool with the toolset or the agent that declares it, and where its AddTool stands
+    private sealed record FoundTool(ToolModel Tool, INamedTypeSymbol Owner, bool OfAgent, Location Location);
 
     // ToolsetUses holds where each UseToolset<T>() names its toolset, which the model has no place for
     private sealed record FoundAgent(
