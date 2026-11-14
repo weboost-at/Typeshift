@@ -308,6 +308,23 @@ public sealed class TelemetryTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Failed_Run_Its_Span_Carries_The_Exception()
+    {
+        // Arrange
+        ChatClient.Reply(new InvalidOperationException(Data.Agent.Reason));
+
+        // Act
+        await Record.ExceptionAsync(() => RunAsync());
+
+        // Assert
+        Activities.Run(Data.Agent.ConversationId).Events
+            .Where(logged => logged.Name == "exception")
+            .SelectMany(logged => logged.Tags)
+            .Should()
+            .Contain(tag => tag.Key == "exception.message" && (string?)tag.Value == Data.Agent.Reason);
+    }
+
+    [Fact]
     public async Task Given_A_Tool_That_Throws_Its_Span_Carries_The_Exception_The_Model_Does_Not_Read()
     {
         // Arrange

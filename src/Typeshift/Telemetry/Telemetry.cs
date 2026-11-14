@@ -47,10 +47,12 @@ internal static class Telemetry
         activity.SetTag("gen_ai.usage.output_tokens", usage.OutputTokenCount);
     }
 
+    // The exception itself too, as an event with its stack, as a store's failure that the run survives has it
     public static void Failed(Activity? activity, Exception exception)
     {
         activity?.SetTag("error.type", exception.GetType().FullName);
         activity?.SetStatus(ActivityStatusCode.Error, exception.Message);
+        activity?.AddException(exception);
     }
 
     // D80: what the run asks your app, counted on its span and an event for each decision. A run that ends waiting

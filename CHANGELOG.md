@@ -73,6 +73,8 @@ All notable changes to this project are documented here. The format follows
   it and the settings that applied, `Compacted` what compaction took out of a model call, and `RuleDecided` the
   approval rule that approved or rejected a call. `UpdatesDropped` warns once for each watcher of live updates that
   fell behind and lost updates, which left no trace before.
+- A failed run's `invoke_agent` span carries the exception as an event, with its type, its message and its stack,
+  beside the span's error status.
 - `ToolException`: a tool throws it to tell the model why a call failed. The model reads its message as the call's
   result, so write it as a hint, such as "No ticket 4711 exists. Search for it first."
 - `host.SetModeAsync(mode)` switches a conversation's mode without a run, and the agent needs no

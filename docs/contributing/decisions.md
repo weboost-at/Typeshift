@@ -744,7 +744,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   entries had the event id 0 and the names of internal classes as categories, so an alert had to match text. A
   new event takes the next number, the guide lists every event, and `LogEventCatalogTests` holds the list to the
   code. The tool loop logs a tool's exception under Microsoft.Extensions.AI's own category. The logger is the
-  `ILoggerFactory` of the run's services, none when the app registered none (D75).
+  `ILoggerFactory` of the run's services, none when the app registered none (D75). A failed run's span carries
+  its exception as an event, as the span of a run that survived a store's failure does.
 - **Where:** `Telemetry/Telemetry.cs`, `Telemetry/InstrumentedClients.cs`, `Telemetry/LogEvents.cs`,
   `Conversations/ConversationChatClient.cs` (`GetStreamingResponseAsync`).
 
