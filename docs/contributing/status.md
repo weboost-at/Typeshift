@@ -299,7 +299,8 @@ rewrite.
   the module of a project without toolsets and agents, which gets no diagnostic. The XML docs of its types then
   describe nothing in the schemas of the tools that take them, and a JSON context it holds is not registered.
 - **One conversation through unrelated hosts.** An app that runs one conversation id through the hosts of two agents
-  that never hand off to each other shares their standing approvals, and no diagnostic sees it.
+  that never hand off to each other shares their standing approvals and the conversation's mode, and no diagnostic
+  sees it.
 - **No claim on a conversation across processes.** One run per conversation holds within a process only (D50), so two
   instances of an app can run or resume one conversation at once, and an entry without an ending one looks the same
   for an interrupted run and for a run another instance is still on. A claim in the store, such as a lease or a

@@ -107,6 +107,9 @@ you ship, your app has to do these things itself:
 - Mark as configurable only what a customer may change ([Precedence](./settings-and-stores.md#precedence)).
 - Decide which tool calls wait for a person, and write your rules before a run goes in auto mode
   ([Approval and modes](./tool-approval.md)).
+- Switch a conversation back once a plan approved into auto mode is carried out, and let your user see and withdraw
+  what they approved for a conversation ([Setting the mode](./tool-approval.md#setting-the-mode),
+  [Approving for the conversation](./tool-approval.md#approving-for-the-conversation)).
 - Treat the tools of an MCP server you do not control as untrusted, and mark a server `ReadOnly()` only when its
   tools change nothing ([How the agent offers the tools](./mcp.md#how-the-agent-offers-the-tools)).
 - Throw a `ToolException` for what the model should read of a failed tool call, and keep out of its message what
