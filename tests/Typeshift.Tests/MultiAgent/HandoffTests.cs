@@ -411,6 +411,100 @@ public class HandoffTests : MultiAgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Conversation_Handed_Off_In_Auto_Mode_A_Run_Naming_The_Default_Mode_Asks_Again()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Call(Data.Tool.CallId, "handoff_to_guarded_back_agent"))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Call(Data.Tool.SecondCallId, "close_ticket", ("number", Data.Agent.Ticket.Default)));
+
+        var chat = Host<ModeFrontAgent>().WithConversationId(Data.Agent.ConversationId);
+
+        await chat.RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Auto }, ct: Ct);
+        await chat.RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Act
+        var response = await chat.RunAsync(Data.Agent.Steering, settings: new() { Mode = AgentMode.Default }, ct: Ct);
+
+        // Assert
+        Models[^1].Model.Should().Be("back-model");
+        response.Decisions.Should().ContainSingle();
+        ToolCalls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Conversation_Handed_Off_A_Run_Naming_Plan_Mode_Offers_Only_What_Plan_Mode_Offers()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_guarded_back_agent"))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer));
+
+        var chat = Host<ModeFrontAgent>().WithConversationId(Data.Agent.ConversationId);
+        await chat.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await chat.RunAsync(Data.Agent.FollowUp, settings: new() { Mode = AgentMode.Plan }, ct: Ct);
+
+        // Assert
+        Models[^1].Model.Should().Be("back-model");
+        ChatClient.Options[2]!.Tools!.Select(tool => tool.Name).Should().Equal("exit_plan_mode");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Run_Naming_A_Mode_That_Hands_Off_The_Agent_Handed_To_Runs_In_It(bool streaming)
+    {
+        // Arrange
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Call(Data.Tool.CallId, "handoff_to_guarded_back_agent"))
+            .Reply(Call(Data.Tool.SecondCallId, "close_ticket", ("number", Data.Agent.Ticket.Default)));
+
+        var chat = Host<ModeFrontAgent>().WithConversationId(Data.Agent.ConversationId);
+        var named = new ModeFrontAgent.Settings { Mode = AgentMode.Default };
+
+        await chat.RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Auto }, ct: Ct);
+
+        // Act
+        var response = streaming
+            ? (await chat.RunStreamingAsync(Data.Agent.FollowUp, named, Ct).ToListAsync(Ct)).ToChatResponse()
+            : await chat.RunAsync(Data.Agent.FollowUp, named, Ct);
+
+        // Assert
+        response.Decisions.Single().Agent.Should().Be("guarded_back_agent");
+        ToolCalls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Plan_Approved_Into_Auto_Mode_Then_A_Handoff_The_Agent_Handed_To_Runs_In_Auto()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call($"{Data.Tool.CallId}_plan", "exit_plan_mode", ("plan", Data.Tool.Answer)))
+            .Reply(Call(Data.Tool.CallId, "handoff_to_guarded_back_agent"))
+            .Reply(Call(Data.Tool.SecondCallId, "close_ticket", ("number", Data.Agent.Ticket.Default)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var chat = Host<ModeFrontAgent>().WithConversationId(Data.Agent.ConversationId);
+        var planned = await chat.RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, ct: Ct);
+
+        // Act
+        var response = await chat.AnswerAsync(
+            [planned.Decisions.OfType<PlanDecision>().Single().Approve(AgentMode.Auto)],
+            ct: Ct);
+
+        // Assert
+        response.Decisions.Should().BeEmpty();
+        ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
+        ChatClient.Options[2]!.Tools!.Select(tool => tool.Name).Should().NotContain("exit_plan_mode");
+    }
+
+    [Fact]
     public async Task Given_A_Typed_Run_Handed_Off_The_Agent_Handed_To_Answers_In_Its_Format()
     {
         // Arrange

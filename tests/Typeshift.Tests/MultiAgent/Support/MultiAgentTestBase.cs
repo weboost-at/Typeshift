@@ -169,6 +169,21 @@ public partial class GuardedFrontAgent : Agent
     }
 }
 
+// A front desk whose runs may name a mode, handing off to the agent that closes tickets behind approval
+public partial class ModeFrontAgent : Agent
+{
+    public ModeFrontAgent()
+    {
+        WithDescription("Finds out what the customer needs.");
+
+        WithChatOptions().WithModel("scripted", "front-model");
+
+        WithRunOptions().Configurable(r => r.Mode);
+
+        UseHandoff<GuardedBackAgent>();
+    }
+}
+
 public partial class GuardedBackAgent : Agent
 {
     public GuardedBackAgent()

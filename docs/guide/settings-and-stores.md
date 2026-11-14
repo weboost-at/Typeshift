@@ -87,7 +87,8 @@ switches the conversation to it, and so do an approved plan and `SetModeAsync`
 Sub-agents and handoffs keep the settings id, but not the run's settings. A sub-agent runs with the stored settings
 of its own kind, those of the agent and those under the caller's settings id, in the caller's mode. An agent handed
 off to answers with the stored settings of its kind under the same id. Run settings apply only to the agent the run
-started on ([Multiple agents](./multi-agent.md)).
+started on, except a mode they name, which [belongs to the conversation](#the-mode-of-a-conversation)
+([Multiple agents](./multi-agent.md)).
 
 ## Ids of your own types
 

@@ -238,7 +238,9 @@ Console.WriteLine($"{second.Messages[^1].AuthorName}: {second.Text}");
 <!-- endSnippet -->
 
 The `Settings` you pass to one run apply only to the agent you started it on. An agent it hands off to runs with its
-own settings stored under the same settings id.
+own settings stored under the same settings id. The mode is the one exception: a `Mode` in a run's settings switches
+the conversation, so the agent that answers the run is in it too, as it is in the mode of an approved plan
+([Setting the mode](./tool-approval.md#setting-the-mode)).
 
 ::: warning Handoffs need a conversation
 A run without a conversation id does not offer the handoff tools, so its agent cannot hand off, unless your app

@@ -624,7 +624,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** `UseHandoff<T>()` adds a declaration-only tool `handoff_to_{name}`. Calling it ends the current
   agent's loop; the target answers in the same run with the whole conversation. The conversation's last entry names
   the agent that answers its next run, if it is reachable through the host agent's handoffs. Handoff needs a
-  conversation; run settings apply to the host's agent only. A handoff called in a response of which a call waits
+  conversation; run settings apply to the host's agent only, except a mode they name, which is the conversation's
+  (D52) and so reaches the agent that answers or is handed to. A handoff called in a response of which a call waits
   for your app is not carried out: the model reads that it was not handed off, and the agent that asked keeps the
   conversation, so the answers continue with it (D81).
 - **As built:** the conversation layer sees the declaration's call the tool loop passes out, stores its result as an
