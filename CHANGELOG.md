@@ -38,6 +38,7 @@ All notable changes to this project are documented here. The format follows
   of the tools a run offers itself. The model saw two tools of one name, or the tool never ran.
 - TSH037 warns about an agent that makes its mode configurable with `Configurable(r => r.Mode)` and offers tools
   that require approval. Settings that are stored or posted could name `Auto`, in which those tools run unasked.
+  Its message names `SetModeAsync`, which switches a conversation's mode without the pick.
 - TSH036 warns about a `WithStore<T>()` whose store keeps conversations while no store of the same chain keeps
   their decisions, when an agent of the project can ask your app. The first run that asked failed at run time.
 - A run's `invoke_agent` span records its decisions: `typeshift.decisions.asked` counts what the run asked, a

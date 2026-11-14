@@ -1502,7 +1502,8 @@ public class DiagnosticTests : GeneratorTestBase
             "r => r.Mode",
             message: "'DeskAgent' makes its mode configurable and offers tools that require approval (close), so "
                 + "settings that are stored or posted can put a run in auto mode, where those calls run unasked: keep "
-                + "Mode out of the agent's settings, or reject what must never run in an approval rule");
+                + "Mode out of the agent's settings and switch a conversation's mode with SetModeAsync on its host, "
+                + "or reject what must never run in an approval rule");
     }
 
     [Fact]

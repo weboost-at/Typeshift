@@ -1453,7 +1453,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **A configurable mode:** `Configurable(r => r.Mode)` makes the mode a member of the agent's `Settings`, so
   settings that are stored per customer or posted by a page can name `Auto`. The owner kept the mode configurable
   and chose a warning: TSH037 reports the pick on an agent that offers a tool or an MCP server that requires
-  approval. A rule's rejection holds in every mode, which is the fix the message names beside removing the pick.
+  approval. A rule's rejection holds in every mode, which is the fix the message names beside removing the pick
+  and switching a conversation's mode with `SetModeAsync`, which needs none.
 - **As built:** the mode is a member of the conversation's decisions document (D80), null until named. A run whose
   settings name a mode saves it when it takes the conversation, before it learns which agent answers, and the save
   that starts an answered batch switches to an approved plan's mode. A run reads the document when it begins and

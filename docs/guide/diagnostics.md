@@ -433,9 +433,11 @@ of decisions, in the container or in another chain, disable the warning where it
 **Configurable mode can turn approval off.** `Configurable(r => r.Mode)` puts the agent's
 [mode](./tool-approval.md#the-three-modes) into its `Settings`, and the agent offers tools that require approval, of
 a toolset, of its own or of an MCP server. Whoever can store or post those settings can then name `Auto`, and in
-auto mode those tools run without asking your app. Remove the pick, so that only your code sets the mode with
-`WithMode(...)` and an approved plan switches it. For calls that must never run unasked, write an
-[approval rule](./tool-approval.md#approval-rules), because a rule's rejection holds in every mode.
+auto mode those tools run without asking your app. Remove the pick, so that only your code sets the mode:
+`WithMode(...)` for the agent's runs, an approved plan, and `SetModeAsync(mode)` on the agent's host for one
+conversation, which switches it back from auto mode too ([Setting the mode](./tool-approval.md#setting-the-mode)).
+For calls that must never run unasked, write an [approval rule](./tool-approval.md#approval-rules), because a
+rule's rejection holds in every mode.
 
 Keep the pick, and disable the warning there, only when every source of the agent's settings is your own code, for
 example a run that passes `Mode = AgentMode.Plan` and no settings that a customer stores or a page posts.

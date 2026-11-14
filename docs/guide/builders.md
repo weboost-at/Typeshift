@@ -121,7 +121,8 @@ the client receives, so the provider's default applies:
 `WithRunOptions()` sets how a run goes: its mode, the limits of its tool loop and when its history is compacted. Every
 run option may be configurable: `Configurable(r => r.X)` puts it into the agent's `Settings`, like a chat option. A
 configurable mode lets those settings name `Auto`, so the analyzer warns about it on an agent with tools that
-require approval ([TSH037](./diagnostics.md#tsh037)).
+require approval ([TSH037](./diagnostics.md#tsh037)). `SetModeAsync` on the agent's host switches a conversation's
+mode without the pick ([Setting the mode](./tool-approval.md#setting-the-mode)).
 
 | Call | Default | Does |
 |---|---|---|
