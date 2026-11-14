@@ -314,6 +314,20 @@ public class HandoffTests : MultiAgentTestBase
     }
 
     [Fact]
+    public async Task Given_Plan_Mode_The_Agent_Is_Offered_No_Handoff()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        var chat = Host<ModeFrontAgent>().WithConversationId(Data.Agent.ConversationId);
+
+        // Act
+        await chat.RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal("exit_plan_mode");
+    }
+
+    [Fact]
     public async Task Given_No_Conversation_Handoffs_Are_Not_Offered()
     {
         // Arrange

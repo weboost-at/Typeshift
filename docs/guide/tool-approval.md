@@ -273,7 +273,8 @@ services.AddTypeshift()
 <!-- endSnippet -->
 
 Every rule sees every call that requires approval, with the arguments the model sent, so it decides on exactly the
-call that runs. This one rejects the shell commands it never allows:
+call that runs. A rule never sees a call of a tool without `RequiresApproval()`: guard those with
+[tool middleware](./middleware.md#wrap-every-tool-call). This rule rejects the shell commands it never allows:
 
 <!-- snippet: approval-rule -->
 <a id='snippet-approval-rule'></a>
@@ -319,7 +320,7 @@ that require approval:
 | Mode | Offers | Tools that require approval |
 |---|---|---|
 | `Default` | every tool | ask your app, unless a rule or a standing approval decides |
-| `Plan` | read-only tools and `exit_plan_mode` | offered only if also marked `ReadOnly()`, and then ask as in `Default` |
+| `Plan` | read-only tools, sub-agents and `exit_plan_mode`; no handoffs | offered only if also marked `ReadOnly()`, and then ask as in `Default` |
 | `Auto` | every tool | run without asking, unless a rule rejects the call |
 
 ## Setting the mode
@@ -327,7 +328,8 @@ that require approval:
 The mode is a [run option](./defining-agents.md#run-options). `WithMode(mode)` in the agent's `WithRunOptions()` sets
 the mode the agent's runs are in, `Default` unless set. Add `Configurable(r => r.Mode)` to the same chain, and the
 agent's generated `Settings` gets a `Mode`, so stored settings or a run can change it. `TriageAgent` makes `Mode`
-configurable, so this run can pass `Mode = AgentMode.Plan` and start in plan mode:
+configurable, so this run can pass `Mode = AgentMode.Plan` and start in plan mode, where the agent hands off to
+nobody until its plan is approved:
 
 <!-- snippet: switch-mode -->
 <a id='snippet-switch-mode'></a>
@@ -383,7 +385,8 @@ before any step runs. Approve the plan into auto mode, and its steps run without
 The model sees only the tools marked `ReadOnly()`, a toolset's or an [MCP server's](./mcp.md), plus its
 [sub-agents](./multi-agent.md#sub-agents) and `exit_plan_mode`, and Typeshift adds a short instruction to research,
 then present the plan. A sub-agent called in plan mode sees only its own read-only tools and answers its caller, which
-presents the plan.
+presents the plan. The model is offered no [handoff](./multi-agent.md#handoff) in plan mode, so an agent that plans
+answers the run itself.
 
 `exit_plan_mode(plan)` ends the run with a `PlanDecision` that carries the plan:
 
@@ -424,9 +427,10 @@ research with it.
 In auto mode, tools that require approval run without asking your app. Rules still see each such call first, and a
 rule that rejects it wins.
 
-::: danger In auto mode, only your rules stop a call
+::: danger In auto mode, only your rules stop a call that requires approval
 Guard auto mode with [approval rules](#approval-rules), for example a guard that never lets `sudo` through, or a
-classifier that asks a model.
+classifier that asks a model. A tool without `RequiresApproval()` asks nobody in any mode, and no rule sees its
+calls.
 :::
 
 ## Asking the user

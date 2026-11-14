@@ -1438,7 +1438,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** `AgentMode` `Default`, `Plan`, `Auto`, a run option (`WithMode`, configurable like any run option).
   `Plan` offers only tools marked `ReadOnly()` (toolset tools, or MCP servers with `UseMcpServer(...).ReadOnly()`),
   and a built-in `exit_plan_mode(plan)`, which asks your app with a `PlanDecision`; `plan.Approve(mode)` continues in
-  `Default` or `Auto`, a rejection's reason sends the model back to planning. Outside a host's run in plan mode a
+  `Default` or `Auto`, a rejection's reason sends the model back to planning. Handoffs are not offered in plan mode:
+  an agent that plans answers itself until its plan is approved. Offering them is open, now that the agent handed
+  to would plan in the conversation's mode. Outside a host's run in plan mode a
   call of `exit_plan_mode` asks nobody: the model reads that it is not planning, so no model can raise a plan prompt
   in a conversation that never planned (D81). `Auto` runs tools that require approval unless a
   rule rejects the call. A conversation keeps its mode once something names one: a run whose settings name a mode,
