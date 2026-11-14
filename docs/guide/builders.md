@@ -124,15 +124,25 @@ configurable mode lets those settings name `Auto`, so the analyzer warns about i
 require approval ([TSH037](./diagnostics.md#tsh037)). `SetModeAsync` on the agent's host switches a conversation's
 mode without the pick ([Setting the mode](./tool-approval.md#setting-the-mode)).
 
-| Call | Default | Does |
-|---|---|---|
-| `WithMode(AgentMode mode)` | `Default` | Sets the [mode](./tool-approval.md#the-three-modes) runs start in: `Default`, `Plan` or `Auto`. |
-| `WithMaxToolIterations(int iterations)` | 40 | Sets the most rounds of tool calls the agent makes in one run. Calls your app [approves](./tool-approval.md#approving-or-rejecting) run in the next run, which counts its own, and so does an agent the run is [handed off](./multi-agent.md#handoff) to. |
-| `WithMaxConsecutiveToolErrors(int errors)` | 3 | Sets how many rounds of tool calls in a row may fail before the failing tool's exception ends the run and reaches your code. |
-| `WithConcurrentToolCalls(bool concurrent)` | off | Runs the tool calls in one model response at the same time. |
-| `WithMaxInputTokens(int tokens)` | off | Turns [compaction](./conversations.md#compaction) on at this many input tokens. |
-| `WithTargetInputTokens(int tokens)` | half the maximum | Sets how far compaction shrinks the history. |
-| `WithSummaryModel(string model)` | the run's model | Sets the model that summarizes the oldest turns when clearing old tool results does not shrink the history enough, served by the run's provider. Made configurable, it also adds `SummaryProvider` to `Settings` ([the summary model](./models.md#the-summary-model)). |
+| Call | Default | Range | Does |
+|---|---|---|---|
+| `WithMode(AgentMode mode)` | `Default` | Any mode | Sets the [mode](./tool-approval.md#the-three-modes) runs start in: `Default`, `Plan` or `Auto`. |
+| `WithMaxToolIterations(int iterations)` | 40 | 1 or more | Sets the most rounds of tool calls the agent makes in one run. Calls your app [approves](./tool-approval.md#approving-or-rejecting) run in the next run, which counts its own, and so does an agent the run is [handed off](./multi-agent.md#handoff) to. |
+| `WithMaxConsecutiveToolErrors(int errors)` | 3 | 0 or more | Sets how many rounds of tool calls in a row may fail before the failing tool's exception ends the run and reaches your code. |
+| `WithConcurrentToolCalls(bool concurrent)` | off | On or off | Runs the tool calls in one model response at the same time. |
+| `WithMaxInputTokens(int tokens)` | off | Above 0 | Turns [compaction](./conversations.md#compaction) on at this many input tokens. |
+| `WithTargetInputTokens(int tokens)` | half the maximum | Above 0 and below the maximum | Sets how far compaction shrinks the history. |
+| `WithSummaryModel(string model)` | the run's model | Not blank | Sets the model that summarizes the oldest turns when clearing old tool results does not shrink the history enough, served by the run's provider. Made configurable, it also adds `SummaryProvider` to `Settings` ([the summary model](./models.md#the-summary-model)). |
+
+No run can go with a value outside its range, so Typeshift refuses one wherever it enters, and each message names the
+option:
+
+- In the agent's code, the call throws an `ArgumentOutOfRangeException` from the constructor, or an
+  `ArgumentException` for a blank model.
+- In settings your app saves, the save throws an `ArgumentException` and stores nothing
+  ([What a save refuses](./settings-and-stores.md#what-a-save-refuses)).
+- In a run's own settings, or between two layers, such as a stored target above the maximum the code sets, the run
+  throws an `InvalidOperationException` before it calls the model or stores an entry in its conversation.
 
 ## Related
 

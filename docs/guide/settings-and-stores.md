@@ -239,6 +239,23 @@ Saving `Instructions = null` removes the stored instructions, so runs with this 
 again. After a conflict, the sample loads the settings again, so you can show the user the current
 values before they save.
 
+### What a save refuses
+
+`SaveSettingsAsync` and `ConfigureAsync` throw an `ArgumentException` and store nothing when the settings set a value
+no run can go with:
+
+- a run option outside its [range](./builders.md#runoptionsbuilder), such as `MaxToolIterations = 0`, or a
+  `TargetInputTokens` that is not below the `MaxInputTokens` of the same settings;
+- a blank `Provider`, `Model`, `SummaryProvider` or `SummaryModel`.
+
+The message names the member, so a settings form can show it next to the field. Whether a model exists is not
+checked: only its provider knows ([When a provider fails](./models.md#when-a-provider-fails)).
+
+A save checks only what the saved settings themselves set, because the layers below may change by the time a run
+reads them. A value that goes wrong together with another layer, such as a stored target above the maximum the
+agent's code sets, is found by the run that resolves the layers. That run throws an `InvalidOperationException`
+that names the agent and the option, before it calls the model or stores an entry in its conversation.
+
 ## The stores
 
 Each kind of stored data goes through an interface of its own. Until you write a store over your database, one of

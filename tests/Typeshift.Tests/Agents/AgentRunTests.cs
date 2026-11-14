@@ -374,6 +374,115 @@ public class AgentRunTests : AgentTestBase
         ChatClient.Requests.Should().HaveCount(2);
     }
 
+    [Theory]
+    [InlineData(nameof(RunOptions.MaxToolIterations), 0)]
+    [InlineData(nameof(RunOptions.MaxConsecutiveToolErrors), -1)]
+    [InlineData(nameof(RunOptions.MaxInputTokens), 0)]
+    [InlineData(nameof(RunOptions.TargetInputTokens), 0)]
+    public async Task Given_A_Run_Setting_Out_Of_Range_The_Run_Throws_Naming_The_Option(string option, int value)
+    {
+        // Arrange
+        var settings = LimitsAgent.Limit(option, value);
+
+        // Act
+        var run = () => Host<LimitsAgent>().RunAsync(Data.Tool.Question, settings, Ct);
+
+        // Assert
+        await run.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage($"*'{LimitsAgent.AgentName}'*{option} {value}*");
+    }
+
+    [Fact]
+    public async Task Given_A_Target_Of_One_Layer_Not_Below_The_Maximum_Of_Another_The_Run_Throws_Naming_Both()
+    {
+        // Arrange
+        var host = Host<LimitsAgent>();
+        await host.SaveSettingsAsync(new() { MaxInputTokens = 1_000 }, 0, Ct);
+
+        // Act
+        var run = () => host.RunAsync(Data.Tool.Question, new() { TargetInputTokens = 1_000 }, Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(
+            $"The agent '{LimitsAgent.AgentName}' resolved TargetInputTokens 1000 from the settings of its code, its "
+            + "stored settings, the run: it must be below MaxInputTokens, 1000.");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task Given_Run_Settings_With_A_Blank_Model_The_Run_Throws_Naming_It(string model)
+    {
+        // Act
+        var run = () => Host<LimitsAgent>().RunAsync(Data.Tool.Question, new() { Model = model }, Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage($"*Model '{model}'*name a model*");
+    }
+
+    [Fact]
+    public async Task Given_Run_Settings_With_A_Blank_Summary_Model_The_Run_Throws_Naming_It()
+    {
+        // Act
+        var run = () => Host<LimitsAgent>().RunAsync(Data.Tool.Question, new() { SummaryModel = " " }, Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*SummaryModel ' '*");
+    }
+
+    [Theory]
+    [InlineData(0, 3, 1_000, 500, "MaxToolIterations")]
+    [InlineData(40, -1, 1_000, 500, "MaxConsecutiveToolErrors")]
+    [InlineData(40, 3, 0, 500, "MaxInputTokens")]
+    [InlineData(40, 3, 1_000, 0, "TargetInputTokens")]
+    public void Given_A_Limit_Out_Of_Range_The_Agent_Fails_To_Declare_Naming_It(
+        int iterations,
+        int errors,
+        int maximum,
+        int target,
+        string option)
+    {
+        // Act
+        var declare = () => new LimitsAgent(iterations, errors, maximum, target);
+
+        // Assert
+        declare.Should().Throw<ArgumentOutOfRangeException>().WithMessage($"{option} must *");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(" ")]
+    [InlineData(null)]
+    public void Given_A_Blank_Model_The_Agent_Fails_To_Declare(string? model)
+    {
+        // Act
+        var declare = () => new LimitsAgent(LimitsAgent.ModelProvider, model!);
+
+        // Assert
+        declare.Should().Throw<ArgumentException>().WithParameterName("model");
+    }
+
+    [Fact]
+    public void Given_A_Blank_Provider_The_Agent_Fails_To_Declare()
+    {
+        // Act
+        var declare = () => new LimitsAgent(" ", LimitsAgent.Model);
+
+        // Assert
+        declare.Should().Throw<ArgumentException>().WithParameterName("provider");
+    }
+
+    [Fact]
+    public void Given_A_Blank_Summary_Model_The_Agent_Fails_To_Declare()
+    {
+        // Act
+        var declare = () => new LimitsAgent(summaryModel: " ");
+
+        // Assert
+        declare.Should().Throw<ArgumentException>().WithParameterName("model");
+    }
+
     [Fact]
     public async Task Given_Instructions_Set_In_The_Constructor_A_Run_Sends_Them()
     {

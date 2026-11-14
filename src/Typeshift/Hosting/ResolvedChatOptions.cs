@@ -60,6 +60,21 @@ internal sealed class ResolvedChatOptions : ChatOptions
                 "A client taken out of the one CreateChatClientAsync created was called on its own: call the created "
                 + "client, which begins the run its tool loop and checkpoints belong to.");
 
+    // D28, D32: the first value a settings layer set that no run can go with, a blank provider or model or a run
+    // option out of range, and what it must do instead; null when every value holds
+    public (string Option, object Value, string Must)? GetInvalid() =>
+        this switch
+        {
+            { Provider.Value: string provider } when IsBlank(provider) =>
+                (nameof(Provider), $"'{provider}'", "name a provider"),
+            { ModelId: { } model } when IsBlank(model) => ("Model", $"'{model}'", "name a model"),
+            { SummaryProvider.Value: string provider } when IsBlank(provider) =>
+                (nameof(SummaryProvider), $"'{provider}'", "name a provider"),
+            _ => RunOptions.GetInvalid()
+        };
+
+    private static bool IsBlank(string text) => string.IsNullOrWhiteSpace(text);
+
     // A clone of the options, keeping what this type remembers
     public static ResolvedChatOptions From(ChatOptions options) =>
         options is ResolvedChatOptions resolved

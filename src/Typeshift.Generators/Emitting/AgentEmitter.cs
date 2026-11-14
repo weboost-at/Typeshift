@@ -636,6 +636,10 @@ internal static class AgentEmitter
                 """);
             writer.Line();
 
+            const string Refused =
+                "The settings set a value no run can go with, such as a blank model or no round of tool calls; "
+                + "nothing is saved.";
+
             // D41, D66: versions guard every save; a host with a settings id has that id's settings in place of the
             // agent's own
             Docs.WriteSummary(
@@ -672,6 +676,7 @@ internal static class AgentEmitter
             Docs.WriteReturns(writer, "The new version, to pass to the next save.");
             Docs.WriteException(writer, "global::Typeshift.StoreConflictException", "Another save came first.");
             Docs.WriteException(writer, InvalidOperation, NoSettingsStore);
+            Docs.WriteException(writer, "global::System.ArgumentException", Refused);
             writer.Lines(
                 $"""
                 public {Task}<long> SaveSettingsAsync(
@@ -696,6 +701,7 @@ internal static class AgentEmitter
                 "Another save came first ten times in a row.");
             Docs.WriteException(writer, InvalidOperation, NoSettingsStore);
             WriteNewerSettings(writer);
+            Docs.WriteException(writer, "global::System.ArgumentException", Refused);
             writer.Lines(
                 $"""
                 public {Task}<{settings}> ConfigureAsync(

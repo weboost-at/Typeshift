@@ -450,6 +450,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   overriding `WithModel`; without it the model stays in code. The allow list holds for the model too. The options
   that may be configurable are the model, the instructions, the sampling options, the stop sequences, multiple tool
   calls and reasoning; the rest belong to the run or have no stored form (TSH012).
+- **A name at all (owner: traps are loud):** a blank model or provider is refused where it enters, as a run option
+  out of range is (D32): `WithModel` and `WithSummaryModel` throw, a save refuses blank settings and a run that
+  resolves one throws by the member's name. Before, a settings form's empty field was stored and sent to the
+  provider as the model. Whether a model exists stays the provider's to say.
 - **Alternatives:** `Model` in every `Settings` (v0, the brief's first sketch), which lets a settings form a
   customer edits pick any model the provider knows.
 
@@ -618,8 +622,17 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   a round like any other, since the gate decides it inside the loop (D81). Calls your app approves run in the
   conversation's next run, which counts its own rounds; carrying them out takes one turn of the loop that calls no
   model.
+- **Ranges (owner: traps are loud):** a run needs one round of tool calls or more, no negative count of failed
+  rounds, a maximum and a target above 0 and a target below the maximum. A value outside is refused where it enters,
+  by the option's name: the chain throws from the agent's constructor, a save stores nothing, and a run whose layers
+  resolve one throws before it starts. Before, the first check was the setter of `FunctionInvokingChatClient` inside
+  the tool loop, whose message named a parameter `value`, so stored settings of no round saved and then failed every
+  run of their id. A save checks the layer over no values but its own (`AgentRuns.SaveSettingsAsync`). Checked over
+  the agent's code, it would refuse a target that the agent's own stored settings, the layer between, make valid;
+  what goes wrong only between two layers is the resolving run's to report.
 - **Where:** `Compaction/`, `Conversations/ConversationEntry.cs` for the stored estimate,
-  `Conversations/ConversationRun.cs` for what a pass added, `Approval/ModeChatClient.cs` for the shared limit.
+  `Conversations/ConversationRun.cs` for what a pass added, `Approval/ModeChatClient.cs` for the shared limit,
+  `Agents/RunOptions.cs` and `Hosting/ResolvedChatOptions.cs` for the ranges.
 - **Alternatives:** MAF's strategy pipeline and trigger combinators, more concepts for the same two steps; a
   tokenizer dependency; message-count triggers, which ignore that one tool result may outweigh a hundred messages; a
   separate `WithCompaction()` chain next to the limits. For a summary call that fails: ending the run, as it did,

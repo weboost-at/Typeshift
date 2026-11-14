@@ -463,9 +463,11 @@ What your code sees depends on whether the run fails before or after it touches 
 - The OpenAI client throws a `ClientResultException`, from `System.ClientModel`, with the HTTP status in `Status`. A
   timeout that outlasts the retries throws an `AggregateException` instead.
 - A streaming run throws each of these from the loop over its updates.
-- Typeshift never checks a model's name: the provider rejects an unknown one when a run calls it, so a typo saved on
-  a settings page fails a later run. Check the pick against the models the provider offers when your settings page
-  saves it.
+- Typeshift checks only that a model's name is not blank: `WithModel` and `WithSummaryModel` throw an
+  `ArgumentException` for a blank model, and a save refuses blank settings
+  ([What a save refuses](./settings-and-stores.md#what-a-save-refuses)). It never checks that the model exists: the
+  provider rejects an unknown one when a run calls it, so a typo saved on a settings page fails a later run. Check
+  the pick against the models the provider offers when your settings page saves it.
 
 ## Related
 

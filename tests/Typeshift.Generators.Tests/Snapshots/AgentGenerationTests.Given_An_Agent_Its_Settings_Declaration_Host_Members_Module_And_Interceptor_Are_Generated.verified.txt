@@ -492,6 +492,10 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// No store keeps these settings: stores are registered, and none of them is an <c>IAgentSettingsStore</c>, for
         /// the agent's own, or an <c>ISettingsStore</c> of the id's type, for those under the host's id.
         /// </exception>
+        /// <exception cref="global::System.ArgumentException">
+        /// The settings set a value no run can go with, such as a blank model or no round of tool calls; nothing is
+        /// saved.
+        /// </exception>
         public global::System.Threading.Tasks.Task<long> SaveSettingsAsync(
             global::Demo.SupportAgent.Settings settings,
             long loadedVersion,
@@ -516,6 +520,10 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
+        /// <exception cref="global::System.ArgumentException">
+        /// The settings set a value no run can go with, such as a blank model or no round of tool calls; nothing is
+        /// saved.
         /// </exception>
         public global::System.Threading.Tasks.Task<global::Demo.SupportAgent.Settings> ConfigureAsync(
             global::System.Func<global::Demo.SupportAgent.Settings, global::Demo.SupportAgent.Settings> configure,

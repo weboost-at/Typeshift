@@ -24,9 +24,14 @@ public sealed class ChatOptionsBuilder
     /// <param name="model">The model, as the provider's API names it.</param>
     /// <returns>The same chain.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="provider"/> is null.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="model"/> is null or white space, or <paramref name="provider"/> is text that is white space.
+    /// </exception>
     public ChatOptionsBuilder WithModel<TProviderId>(TProviderId provider, string model) where TProviderId : notnull
     {
         ArgumentNullException.ThrowIfNull(provider);
+        if (provider is string text) ArgumentException.ThrowIfNullOrWhiteSpace(text, nameof(provider));
+        ArgumentException.ThrowIfNullOrWhiteSpace(model);
 
         // D77: typed here, where the provider's type is known, so the run asks the IChatClientProvider of that type
         _agent.Provider = new ProviderId<TProviderId>(provider);

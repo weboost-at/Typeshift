@@ -182,7 +182,7 @@ WithRunOptions()
 
 Run options set the [mode](./tool-approval.md#the-three-modes) a run starts in, the limits of its tool loop, whether
 the calls of one response run at the same time, and when the history is [compacted](./conversations.md#compaction).
-[Builders](./builders.md#runoptionsbuilder) lists each one with its default.
+[Builders](./builders.md#runoptionsbuilder) lists each one with its default and the range it accepts.
 
 ## Tool settings
 

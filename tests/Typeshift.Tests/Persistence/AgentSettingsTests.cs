@@ -131,6 +131,120 @@ public class AgentSettingsTests : AgentTestBase
         await save.Should().ThrowAsync<StoreConflictException>();
     }
 
+    [Theory]
+    [InlineData(nameof(RunOptions.MaxToolIterations), 0)]
+    [InlineData(nameof(RunOptions.MaxConsecutiveToolErrors), -1)]
+    [InlineData(nameof(RunOptions.MaxInputTokens), 0)]
+    [InlineData(nameof(RunOptions.TargetInputTokens), 0)]
+    public async Task Given_Settings_Out_Of_Range_Saving_Throws_And_Stores_Nothing(string option, int value)
+    {
+        // Arrange
+        var host = Host<LimitsAgent>().WithSettingsId(Data.Persistence.SettingsId);
+
+        // Act
+        var save = () => host.SaveSettingsAsync(LimitsAgent.Limit(option, value), 0, Ct);
+
+        // Assert
+        await save.Should()
+            .ThrowAsync<ArgumentException>()
+            .WithMessage($"*'{LimitsAgent.AgentName}'*{option} {value}*");
+
+        (await host.LoadSettingsAsync(Ct)).Version.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Given_A_Target_Not_Below_The_Maximum_Of_The_Same_Settings_Saving_Throws_And_Stores_Nothing()
+    {
+        // Arrange
+        var host = Host<LimitsAgent>();
+
+        // Act
+        var save = () => host.SaveSettingsAsync(new() { MaxInputTokens = 1_000, TargetInputTokens = 2_000 }, 0, Ct);
+
+        // Assert
+        await save.Should().ThrowAsync<ArgumentException>().WithMessage(
+            $"The settings of the agent '{LimitsAgent.AgentName}' set TargetInputTokens 2000, and it must be below "
+            + "MaxInputTokens, 1000. No run could go with them, so nothing was saved: set a value that holds, or null "
+            + "to keep the layer below.*");
+
+        (await host.LoadSettingsAsync(Ct)).Version.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Given_A_Target_That_Only_Another_Layers_Maximum_Decides_Saving_Stores_It()
+    {
+        // Arrange
+        var host = Host<LimitsAgent>();
+        await host.SaveSettingsAsync(new() { MaxInputTokens = 1_000 }, 0, Ct);
+
+        // Act
+        var version = await host
+            .WithSettingsId(Data.Persistence.SettingsId)
+            .SaveSettingsAsync(new() { TargetInputTokens = 2_000 }, 0, Ct);
+
+        // Assert
+        version.Should().Be(1);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task Given_A_Blank_Model_Saving_Throws_And_Stores_Nothing(string model)
+    {
+        // Arrange
+        var host = Host<LimitsAgent>();
+
+        // Act
+        var save = () => host.SaveSettingsAsync(new() { Model = model }, 0, Ct);
+
+        // Assert
+        await save.Should().ThrowAsync<ArgumentException>().WithMessage($"*Model '{model}'*name a model*");
+        (await host.LoadSettingsAsync(Ct)).Version.Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task Given_A_Blank_Provider_Saving_Throws_And_Stores_Nothing(string provider)
+    {
+        // Arrange
+        var host = Host<LimitsAgent>();
+
+        // Act
+        var save = () => host.SaveSettingsAsync(new() { Provider = provider }, 0, Ct);
+
+        // Assert
+        await save.Should().ThrowAsync<ArgumentException>().WithMessage($"*Provider '{provider}'*name a provider*");
+        (await host.LoadSettingsAsync(Ct)).Version.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Given_A_Blank_Summary_Provider_Saving_Throws_Naming_It()
+    {
+        // Arrange
+        var host = Host<LimitsAgent>();
+
+        // Act
+        var save = () => host.SaveSettingsAsync(new() { SummaryProvider = " " }, 0, Ct);
+
+        // Assert
+        await save.Should().ThrowAsync<ArgumentException>().WithMessage("*SummaryProvider ' '*name a provider*");
+    }
+
+    [Fact]
+    public async Task Given_A_Change_To_A_Blank_Model_Configuring_Throws_And_Stores_Nothing()
+    {
+        // Arrange
+        var host = Host<LimitsAgent>();
+
+        // Act
+        var configure = () => host.ConfigureAsync(settings => settings with { Model = " " }, Ct);
+
+        // Assert
+        await configure.Should().ThrowAsync<ArgumentException>().WithParameterName("settings");
+        (await host.LoadSettingsAsync(Ct)).Version.Should().Be(0);
+    }
+
     [Fact]
     public async Task Given_A_Store_Of_Agent_Settings_Alone_A_Run_Applies_Them()
     {

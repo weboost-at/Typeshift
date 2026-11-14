@@ -119,13 +119,14 @@ version 0 when none are stored. It layers nothing, so the record holds only what
 
 `SaveSettingsAsync` saves the settings `LoadSettingsAsync` loads, if the stored version is still `loadedVersion`:
 the version `LoadSettingsAsync` returned, or 0 when it loaded none. It returns the new version, which your app passes
-to its next save. It throws a `StoreConflictException` when another save came first.
+to its next save. It throws a `StoreConflictException` when another save came first, and an `ArgumentException` for
+settings no run can go with ([What a save refuses](./settings-and-stores.md#what-a-save-refuses)).
 
 ### `ConfigureAsync`
 
 `ConfigureAsync` loads the settings, applies `configure`, and saves them with the loaded version. On a conflict it
 loads and applies again until its save wins, then returns what it saved. After ten conflicts in a row it throws the
-last `StoreConflictException`.
+last `StoreConflictException`. It refuses the settings a save refuses, with the same `ArgumentException`.
 
 ### What a run stores
 

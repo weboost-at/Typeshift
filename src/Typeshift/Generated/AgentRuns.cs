@@ -243,16 +243,40 @@ public static class AgentRuns
     /// <param name="loadedVersion">The version <c>LoadSettingsAsync</c> returned, 0 when it loaded none.</param>
     /// <param name="ct">Cancels the save.</param>
     /// <returns>The new version, to pass to the next save.</returns>
+    /// <exception cref="ArgumentException">
+    /// The settings set a value no run can go with, such as a blank model or no round of tool calls; nothing is saved.
+    /// </exception>
     public static Task<long> SaveSettingsAsync<TAgent, TSettings>(
         AgentHost<TAgent> host,
         TSettings settings,
         long loadedVersion,
         CancellationToken ct)
         where TAgent : Agent
-        where TSettings : class, IStorable<TSettings> =>
-        host.SettingsId is { } id
+        where TSettings : class, IStorable<TSettings>
+    {
+        EnsureRuns(host.Agent, settings);
+
+        return host.SettingsId is { } id
             ? host.Store.SaveAsync(id, settings, loadedVersion, ct)
             : host.Store.SaveAgentSettingsAsync(settings, loadedVersion, ct);
+    }
+
+    // D28, D32: a dry run of the layer over no values but its own, so it refuses what the settings themselves set
+    // wrong, whatever the layers below hold. What goes wrong only between two layers fails the run that resolves it
+    private static void EnsureRuns(Agent agent, object settings)
+    {
+        var options = new ResolvedChatOptions(new ChatOptions());
+        options.RunOptions = agent.GeneratedDeclaration.ApplySettings(options, new RunOptions(), settings);
+
+        if (options.GetInvalid() is { } invalid)
+        {
+            throw new ArgumentException(
+                $"The settings of the agent '{agent.Name}' set {invalid.Option} {invalid.Value}, and it must "
+                + $"{invalid.Must}. No run could go with them, so nothing was saved: set a value that holds, or null "
+                + "to keep the layer below.",
+                nameof(settings));
+        }
+    }
 
     /// <summary>
     /// Changes the agent's own settings, or those under the id the host was given, reloading and changing them again
@@ -265,6 +289,9 @@ public static class AgentRuns
     /// <param name="ct">Cancels the change.</param>
     /// <returns>The settings saved.</returns>
     /// <exception cref="StoreConflictException">Another save came first ten times in a row.</exception>
+    /// <exception cref="ArgumentException">
+    /// The changed settings set a value no run can go with; nothing is saved.
+    /// </exception>
     public static async Task<TSettings> ConfigureAsync<TAgent, TSettings>(
         AgentHost<TAgent> host,
         Func<TSettings, TSettings> configure,

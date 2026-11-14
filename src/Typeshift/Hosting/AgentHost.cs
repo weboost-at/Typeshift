@@ -350,6 +350,15 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         ];
 
         options.Layers = string.Join(", ", applied.OfType<string>());
+        options.RunOptions = run;
+
+        // D32: what a layer set that no run can go with fails here, by its name, before anything runs
+        if (options.GetInvalid() is { } invalid)
+        {
+            throw new InvalidOperationException(
+                $"The agent '{Agent.Name}' resolved {invalid.Option} {invalid.Value} from the settings of "
+                + $"{options.Layers}: it must {invalid.Must}.");
+        }
 
         var tools = declaration.CreateTools(Agent, layers, _services.GetRequiredService<ToolJson>());
 
@@ -358,7 +367,6 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         List<AITool> own = [.. tools, .. agents, .. options.Tools ?? []];
 
         options.Tools = [.. own, .. await McpToolsAsync(own, ct)];
-        options.RunOptions = run;
         options.RunSetsMode = NamedMode(settings) is not null;
         options.SettingsId = settingsId;
 

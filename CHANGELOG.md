@@ -356,6 +356,20 @@ All notable changes to this project are documented here. The format follows
   shell command that is not one of a few whole commands it names, and in the other modes it abstains, so your app
   asks. It rejected commands that contain one of five words and let the rest run in auto mode, so `rm -r -f /` or
   `su''do id` ran unasked. A rule you copied from it guards auto mode only once it names what it allows.
+- **Breaking:** a run option outside its range is refused where it enters, by its name. `WithMaxToolIterations`
+  takes 1 or more, `WithMaxConsecutiveToolErrors` 0 or more, `WithMaxInputTokens` and `WithTargetInputTokens` a
+  value above 0, and the target a value below the maximum. Each throws an `ArgumentOutOfRangeException` from the
+  agent's constructor for any other value. `SaveSettingsAsync` and `ConfigureAsync` throw an `ArgumentException` and
+  store nothing for settings that set such a value, and a run whose settings layers resolve one throws an
+  `InvalidOperationException` before it starts, as in "The agent 'support_agent' resolved MaxToolIterations 0 from
+  the settings of its code, settings id 42: it must be 1 or more." Before, `MaxToolIterations = 0` saved, and every
+  run with that settings id then failed inside the tool loop with "Specified argument was out of the range of valid
+  values. (Parameter 'value')". Stored settings that hold such a value fail their runs until your app saves valid
+  ones.
+- **Breaking:** `WithModel` and `WithSummaryModel` throw an `ArgumentException` for a blank model, and `WithModel`
+  for a blank provider too. A save refuses a blank `Provider`, `Model`, `SummaryProvider` or `SummaryModel`, and a
+  run whose settings resolve one throws before it starts. Before, the empty field of a settings form was stored and
+  sent to the provider as the model. Pass null for a field the user left empty, which keeps the layer below.
 
 ### Fixed
 

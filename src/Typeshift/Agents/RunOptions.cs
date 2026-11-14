@@ -20,19 +20,21 @@ public sealed class RunOptionsBuilder
     /// The most rounds of tool calls the agent makes in one run; 40 unless set. An agent the run is handed off to
     /// counts its own.
     /// </summary>
-    /// <param name="iterations">The rounds.</param>
+    /// <param name="iterations">The rounds, 1 or more.</param>
     /// <returns>The same chain.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">No run can go with the value.</exception>
     public RunOptionsBuilder WithMaxToolIterations(int iterations) =>
-        Set(options => options with { MaxToolIterations = iterations });
+        SetLimit(options => options with { MaxToolIterations = iterations }, nameof(iterations), iterations);
 
     /// <summary>
     /// The most rounds of tool calls in a row that may fail before the failing tool's exception ends the run and
     /// reaches your code; 3 unless set.
     /// </summary>
-    /// <param name="errors">The failed rounds.</param>
+    /// <param name="errors">The failed rounds, 0 or more.</param>
     /// <returns>The same chain.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">No run can go with the value.</exception>
     public RunOptionsBuilder WithMaxConsecutiveToolErrors(int errors) =>
-        Set(options => options with { MaxConsecutiveToolErrors = errors });
+        SetLimit(options => options with { MaxConsecutiveToolErrors = errors }, nameof(errors), errors);
 
     /// <summary>
     /// Runs the tool calls of one model response at the same time instead of one after the other.
@@ -46,18 +48,20 @@ public sealed class RunOptionsBuilder
     /// Turns compaction on: before each model call whose input reaches this many tokens, the history the model sees
     /// shrinks to <see cref="WithTargetInputTokens"/>.
     /// </summary>
-    /// <param name="tokens">The input tokens.</param>
+    /// <param name="tokens">The input tokens, above 0 and above the target.</param>
     /// <returns>The same chain.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">No run can go with the value.</exception>
     public RunOptionsBuilder WithMaxInputTokens(int tokens) =>
-        Set(options => options with { MaxInputTokens = tokens });
+        SetLimit(options => options with { MaxInputTokens = tokens }, nameof(tokens), tokens);
 
     /// <summary>
     /// How far compaction shrinks the history; half of <see cref="WithMaxInputTokens"/> unless set.
     /// </summary>
-    /// <param name="tokens">The input tokens.</param>
+    /// <param name="tokens">The input tokens, above 0 and below the maximum.</param>
     /// <returns>The same chain.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">No run can go with the value.</exception>
     public RunOptionsBuilder WithTargetInputTokens(int tokens) =>
-        Set(options => options with { TargetInputTokens = tokens });
+        SetLimit(options => options with { TargetInputTokens = tokens }, nameof(tokens), tokens);
 
     /// <summary>
     /// The model that summarizes what clearing tool results did not free, served by the run's provider; without one,
@@ -65,8 +69,12 @@ public sealed class RunOptionsBuilder
     /// </summary>
     /// <param name="model">The model, as the run's provider names it.</param>
     /// <returns>The same chain.</returns>
-    public RunOptionsBuilder WithSummaryModel(string model) =>
-        Set(options => options with { SummaryModel = model });
+    /// <exception cref="ArgumentException"><paramref name="model"/> is null or white space.</exception>
+    public RunOptionsBuilder WithSummaryModel(string model)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(model);
+        return Set(options => options with { SummaryModel = model });
+    }
 
     // D5: the generator reads the pick; at runtime the call declares nothing
     /// <summary>
@@ -81,6 +89,15 @@ public sealed class RunOptionsBuilder
     {
         _agent.RunOptions = set(_agent.RunOptions);
         return this;
+    }
+
+    // D32: a value no run can go with is refused where the agent declares it
+    private RunOptionsBuilder SetLimit(Func<RunOptions, RunOptions> set, string parameter, int value)
+    {
+        if (set(_agent.RunOptions).GetInvalid() is { } invalid)
+            throw new ArgumentOutOfRangeException(parameter, value, $"{invalid.Option} must {invalid.Must}.");
+
+        return Set(set);
     }
 }
 
@@ -124,6 +141,22 @@ public sealed record RunOptions
     /// the run's model.
     /// </summary>
     public string? SummaryModel { get; init; }
+
+    // D32: the first value no run can go with, and what it must do instead; null when every value holds
+    internal (string Option, object Value, string Must)? GetInvalid() =>
+        this switch
+        {
+            { MaxToolIterations: < 1 } => (nameof(MaxToolIterations), MaxToolIterations, "be 1 or more"),
+            { MaxConsecutiveToolErrors: < 0 } =>
+                (nameof(MaxConsecutiveToolErrors), MaxConsecutiveToolErrors, "be 0 or more"),
+            { MaxInputTokens: <= 0 } => (nameof(MaxInputTokens), MaxInputTokens, "be above 0"),
+            { TargetInputTokens: <= 0 } => (nameof(TargetInputTokens), TargetInputTokens, "be above 0"),
+            { MaxInputTokens: { } max, TargetInputTokens: { } target } when target >= max =>
+                (nameof(TargetInputTokens), target, $"be below {nameof(MaxInputTokens)}, {max}"),
+            { SummaryModel: { } model } when string.IsNullOrWhiteSpace(model) =>
+                (nameof(SummaryModel), $"'{model}'", "name a model"),
+            _ => null
+        };
 }
 
 /// <summary>

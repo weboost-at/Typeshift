@@ -171,6 +171,20 @@ public class CompactionTests : AgentTestBase
         Texts(2)[1..].Should().Equal(Data.Tool.Answer, Data.Agent.FollowUp);
     }
 
+    [Theory]
+    [InlineData(2_000)]
+    [InlineData(1_000)]
+    public void Given_A_Target_Not_Below_The_Maximum_The_Agent_Fails_To_Declare(int target)
+    {
+        // Act
+        var declare = () => new LimitsAgent(iterations: 40, errors: 3, maximum: 1_000, target);
+
+        // Assert
+        declare.Should()
+            .Throw<ArgumentOutOfRangeException>()
+            .WithMessage("TargetInputTokens must be below MaxInputTokens, 1000.*");
+    }
+
     [Fact]
     public async Task Given_No_Summary_Model_The_Runs_Model_Summarizes()
     {
