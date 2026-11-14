@@ -52,8 +52,9 @@ what does not parse (D2).
    `AddTool(...).WithName(...).ReadOnly().WithSettings<T>().Configurable(...)` chain, only directly in a constructor
    and only as one statement (D4). The analyzer receives the constructors as operation blocks, and the generator
    reads them through the semantic model.
-3. **Models** hold only strings, bools, enums and `EquatableArray<T>`. They carry no locations, so code that moves
-   within a toolset leaves its output cached.
+3. **Models** are records that hold only strings, bools, ints, enums, other models and `EquatableArray<T>` of
+   those, which `ModelShapeTests` checks. They carry no locations, so code that moves within a toolset leaves
+   its output cached.
 4. **Emitting** (`Emitting/ToolsetEmitter.cs`) writes, for each tool, an overrides record when it has configurable
    settings, a hidden `Create{Tool}` factory and a private `GeneratedToolFunction` subclass. For each toolset it
    writes an extension block on `ToolList<T>` with a property per tool, in a file of its own and the global

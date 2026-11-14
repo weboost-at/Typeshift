@@ -205,7 +205,8 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `Testing/GeneratorRunAssertions`: `Reports`, `ReportsAmong`, `ReportsOnTheCompilation`, `DoesNotReport` (generator tests) | A fixture holds the one mistake its test names: the run reports no other diagnostic of the analyzer and no compiler error in the fixture, unless the test lists it (`also:`). |
 | RS2000 (analyzer) | Every descriptor has a row in `AnalyzerReleases.Unshipped.md` or `Shipped.md`. |
 | CA1305, CA1309, CA1310 as errors (`.editorconfig`, generator project) | No comparison or format call in the generator follows the build machine's culture. |
-| `IncrementalTests` (generator tests) | Unrelated edits leave the generator's output cached. |
+| `IncrementalTests` (generator tests) | Unrelated edits leave the generator's output cached, in a project with a referenced toolset, JSON contexts and a schema annotations class too; so does a reference recompiled from the same source, and a toolset that is added generates the module again and no agent. |
+| `Repository/ModelShapeTests` (generator tests) | Every type of `Typeshift.Generators.Models` is a record whose members are strings, bools, ints, enums, other models or `EquatableArray<T>` of those, so a model compares by its values and a step of the pipeline stays cached while they are the same. |
 | CI: the steps after the pack in `ci.yml` | The package's build files sit under `buildTransitive/net11.0/` (D61). The consumer sample, which never chose XML docs, builds with mistakes in its XML comments and publishes without an XML file, and with XML docs of its own choice it keeps CS1591 (D68). |
 | `release.yml`, for a tag | The tag sits on `main`, has its section in `CHANGELOG.md` and is the version MinVer packed, or nothing is published. |
 | CI: the Windows and macOS legs | The build and the tests pass where the file system ignores case, and on a Windows checkout with Git's default `core.autocrlf`. |
@@ -271,7 +272,8 @@ state, and the commit format.
 ## Generator rules
 
 - Discovery is attribute-free: a non-abstract class whose base list names `Toolset` (D3), checked semantically.
-- Parser and emitter stay apart. Models hold only strings, bools, enums and `EquatableArray<T>`, never locations.
+- Parser and emitter stay apart. A model is a record that holds only strings, bools, ints, enums, other models
+  and `EquatableArray<T>` of those, never a symbol, a syntax node or a location.
 - The analyzer reports every diagnostic, with the parsers the generator uses (D2).
 - Cross-assembly data travels only through the stamps (assembly and class attributes).
 - Name the pipeline steps; an unrelated edit must leave every output cached.

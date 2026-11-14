@@ -14,8 +14,9 @@ Read `docs/contributing/architecture.md`, "The generator and the analyzer", firs
 - Neither may throw, whatever the code looks like while it is typed: an exception in the generator drops every
   generated file of the project (CS8785), one in the analyzer is AD0001. A symbol of half-typed code can be an error
   type, which has no containing assembly and an empty name.
-- Parsing and emitting stay apart. Models (`Models/`) hold only strings, bools, enums and `EquatableArray<T>`: no
-  symbols, no syntax, no locations, or caching breaks.
+- Parsing and emitting stay apart. A model (`Models/`) is a record that holds only strings, bools, ints, enums,
+  other models and `EquatableArray<T>` of those: no symbols, no syntax, no locations, or caching breaks.
+  `ModelShapeTests` fails on any other member.
 - Generated code is `global::`-qualified, escapes keyword names (`Names.Identifier`), starts with the header of
   `SourceWriter`, documents every public member, and hides what only generated code calls with
   `EditorBrowsable(Never)` (D10).
