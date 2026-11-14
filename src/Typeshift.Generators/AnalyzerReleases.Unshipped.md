@@ -35,3 +35,4 @@ TSH028 | Typeshift | Error | Type is no store
 TSH029 | Typeshift | Error | Provider id type cannot be used
 TSH030 | Typeshift | Error | Type is no chat client provider
 TSH031 | Typeshift | Error | C# language version is below 14
+TSH032 | Typeshift | Warning | Generator read the declaration differently

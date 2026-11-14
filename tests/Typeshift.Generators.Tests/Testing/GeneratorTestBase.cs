@@ -53,11 +53,17 @@ public abstract class GeneratorTestBase
     protected static SyntaxTree Parse(string source, string path) =>
         CSharpSyntaxTree.ParseText(source, ParseOptions, path);
 
+    // Typeshift's generator first, then the project's other generators, whose output it never sees
     protected static GeneratorDriver CreateDriver(
         CSharpParseOptions? parseOptions = null,
-        BuildProperties? properties = null) =>
+        BuildProperties? properties = null,
+        params IIncrementalGenerator[] others) =>
         CSharpGeneratorDriver.Create(
-            generators: [new TypeshiftGenerator().AsSourceGenerator()],
+            generators:
+            [
+                new TypeshiftGenerator().AsSourceGenerator(),
+                .. others.Select(other => other.AsSourceGenerator())
+            ],
             parseOptions: parseOptions ?? ParseOptions,
             optionsProvider: properties ?? BuildProperties.None,
             driverOptions: new GeneratorDriverOptions(
@@ -68,9 +74,10 @@ public abstract class GeneratorTestBase
     protected GeneratorRun Run(
         Compilation compilation,
         CSharpParseOptions? parseOptions = null,
-        BuildProperties? properties = null)
+        BuildProperties? properties = null,
+        params IIncrementalGenerator[] others)
     {
-        var driver = CreateDriver(parseOptions, properties)
+        var driver = CreateDriver(parseOptions, properties, others)
             .RunGeneratorsAndUpdateCompilation(compilation, out var output, out _, Ct);
 
         return Checked(new GeneratorRun(driver, output, Analyze(output, properties ?? BuildProperties.None)));

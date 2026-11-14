@@ -41,6 +41,7 @@ a compiler error inside generated code.
 | [TSH029](#tsh029) | Error | Provider id type cannot be used |
 | [TSH030](#tsh030) | Error | Type is no chat client provider |
 | [TSH031](#tsh031) | Error | C# language version is below 14 |
+| [TSH032](#tsh032) | Warning | Generator read the declaration differently |
 
 TSH021 is retired: the diagnostic it named is gone, and ids are never reused.
 
@@ -330,6 +331,27 @@ error is reported when you build, for a project that declares a toolset or an ag
 A project below C# 14 that does none of this gets no error. It still goes without its
 [registration module](./registration.md#what-addtypeshift-registers), so the XML docs of its types describe nothing
 in the schemas of the tools that take them.
+
+## TSH032
+
+**Generator read the declaration differently.** The generator and the analyzer read your declarations with the same
+code, but the generator reads them before any source generator has written its code, its own included. A declaration
+that names such code is clear to the analyzer and unreadable to the generator, which then leaves it out. The message
+names the first difference: a tool that is missing, or an agent's name, storage kind or description that fell back
+to its default.
+
+These declarations compile and are read differently:
+
+- `AddTool(Generated.Find)`, when another source generator writes `Generated.Find`. The tool is missing.
+- `WithName(Generated.AgentName)` or `WithStorageKind(Generated.Kind)` with a constant another generator writes.
+  The agent keeps the name or the kind of its class, so its settings are stored under another kind than the code
+  says.
+- A tool whose method takes a type Typeshift generates, such as another agent's `Settings`. The tool is missing.
+
+Declare tools, names and kinds with methods, constants and types of your own code. The diagnostic is a warning
+because it compares your code with generated code, and an editor may show generated code that is a moment behind
+what you typed. A build always compares the two as they are. A class the generator wrote nothing for is not compared:
+[TSH001](#tsh001) and [TSH017](#tsh017) say why it wrote nothing.
 
 ## Related
 

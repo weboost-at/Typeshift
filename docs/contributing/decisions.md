@@ -39,6 +39,16 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   takes a report callback, a no-op in the generator. Compilation-wide checks (unique names, references, the provider id
   type) are compilation-end actions. The analyzer sees generated code, so it checks picks and the store type
   semantically. A `DiagnosticSuppressor` silences CS1573 for tool parameters the model never sees.
+- **The two passes are compared:** the parsers are shared, the compilations are not. The generator's holds no
+  generator's output, its own included, so a declaration that names such code parses in the analyzer and is dropped
+  by the generator: `AddTool(Generated.Find)`, `WithStorageKind(Generated.Kind)`, a tool that takes an agent's
+  `Settings`. The analyzer compares its model with what the generator wrote, the `[GeneratedTool]` stamps of a
+  toolset and the `[ModuleAgent]` stamp of an agent in the compilation's own module, and reports the first
+  difference as TSH032: a missing tool, another name or kind, a missing description. It is a warning, since an
+  editor may hold generated code a moment behind the source, and a class without a generated part is not compared.
+  A toolset's missing tool is reported on the toolset alone, not on each agent that uses it. A schema version, a
+  provider type and the text of a description are in no stamp and are not compared
+  (see [Status](./status.md#known-gaps)).
 - **Alternatives:** the generator reporting with real locations, which keeps syntax nodes out of cached models only
   with v0's plumbing.
 - **Where:** `src/Typeshift.Generators/Analysis/`.

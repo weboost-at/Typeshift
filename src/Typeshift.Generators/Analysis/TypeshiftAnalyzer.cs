@@ -50,7 +50,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.NoStore,
         Descriptors.UnusableProviderIdType,
         Descriptors.NoChatClientProvider,
-        Descriptors.LanguageVersionTooLow
+        Descriptors.LanguageVersionTooLow,
+        Descriptors.ReadDifferently
     ];
 
     public override void Initialize(AnalysisContext context)
@@ -198,10 +199,30 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         CancellationToken ct)
     {
         var toolset = ToolsetParser.Parse(type, constructors, documented, reporter, ct, out var tools);
-        if (toolset is not null) found.Toolsets.Add(Catalog.Summarize(toolset));
+        if (toolset is null) return tools;
+
+        found.Toolsets.Add(Catalog.Summarize(toolset));
+
+        // D2: what the generator read of the toolset is in the stamps of its generated part. Without one there is
+        // nothing to compare with yet, as in an editor that has not run the generator since the class was typed
+        var stamped = new HashSet<string>(ReferenceReader.GetToolNames(type));
+
+        if (HasGeneratedPart(type) && toolset.Tools.FirstOrDefault(tool => !stamped.Contains(tool.Name)) is { } missing)
+        {
+            found.Misread[toolset.Type.FullName] = true;
+
+            reporter.Report(
+                Descriptors.ReadDifferently,
+                type.Locations.FirstOrDefault(),
+                type.Name,
+                $"the tool '{missing.Name}' is missing");
+        }
 
         return tools;
     }
+
+    private static bool HasGeneratedPart(INamedTypeSymbol type) =>
+        type.DeclaringSyntaxReferences.Any(reference => Names.IsGenerated(reference.SyntaxTree));
 
     private static string? GetIndirection(INamedTypeSymbol type, string baseType) =>
         type switch
@@ -474,11 +495,50 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         }
 
         ReportClashesAcrossHandoffs(context, agents, ResolveTarget, [.. found.OwnTools]);
+        ReportAgentsReadDifferently(context, found, toolsets);
 
         ModuleAgent? ResolveTarget(INamedTypeSymbol agent) =>
             agents.TryGetValue(agent, out var own)
                 ? Catalog.Summarize(Catalog.Resolve(own.Model, toolsets))
                 : referenced[agent.ToTypeOf()].FirstOrDefault();
+    }
+
+    // D2: what the generator read of an agent is in the stamp its module carries. An agent without a stamp has no
+    // generated part yet, or is out of the module's reach (TSH016). A tool that a toolset already misses is reported
+    // there, once, and not on every agent that uses the toolset
+    private static void ReportAgentsReadDifferently(
+        CompilationAnalysisContext context,
+        Found found,
+        IReadOnlyList<ToolsetSummary> toolsets)
+    {
+        var stamps = ReferenceReader.GetOwnAgents(context.Compilation).ToLookup(agent => agent.Type);
+
+        foreach (var agent in found.Agents)
+        {
+            if (stamps[agent.Type.ToTypeOf()].FirstOrDefault() is not { } stamp) continue;
+
+            var output = Catalog.Resolve(agent.Model, toolsets);
+            var read = Catalog.Summarize(output);
+
+            var missing = output.Tools
+                .Where(offered => !found.Misread.ContainsKey(offered.Owner))
+                .Select(offered => offered.Tool.Name)
+                .FirstOrDefault(name => !stamp.Tools.Contains(name));
+
+            var difference = stamp.Name != read.Name ? $"its name is '{stamp.Name}'"
+                : stamp.Kind != read.Kind ? $"its kind is '{stamp.Kind}'"
+                : stamp.Described != read.Described ? "its description is missing"
+                : missing is not null ? $"the tool '{missing}' is missing"
+                : null;
+
+            if (difference is null) continue;
+
+            context.ReportDiagnostic(Diagnostic.Create(
+                Descriptors.ReadDifferently,
+                agent.Type.Locations.FirstOrDefault(),
+                agent.Type.Name,
+                difference));
+        }
     }
 
     // Null for an agent that can be a tool or a handoff target
@@ -714,6 +774,9 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         public ConcurrentBag<(INamedTypeSymbol Agent, string Name, Location Location)> OwnTools { get; } = [];
 
         public ConcurrentBag<ToolsetSummary> Toolsets { get; } = [];
+
+        // The toolsets whose generated part lacks a tool (TSH032), by their full names
+        public ConcurrentDictionary<string, bool> Misread { get; } = [];
     }
 
     private sealed record FoundAgent(INamedTypeSymbol Type, AgentModel Model, IReadOnlyList<AgentUseDeclaration> Uses);

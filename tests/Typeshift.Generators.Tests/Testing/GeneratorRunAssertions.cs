@@ -28,9 +28,11 @@ public sealed class GeneratorRunAssertions(GeneratorRun run)
     // header cannot lose one unseen
     public GeneratorRun StartsEveryFileWithTheHeader()
     {
-        run.Result.GeneratedTrees
-            .Where(tree => !tree.ToString().StartsWith(Header, StringComparison.Ordinal))
-            .Select(tree => Path.GetFileName(tree.FilePath))
+        run.Result.Results
+            .Where(result => result.Generator.GetGeneratorType() == typeof(TypeshiftGenerator))
+            .SelectMany(result => result.GeneratedSources)
+            .Where(source => !source.SourceText.ToString().StartsWith(Header, StringComparison.Ordinal))
+            .Select(source => source.HintName)
             .Should()
             .BeEmpty();
 

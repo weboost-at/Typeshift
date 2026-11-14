@@ -30,6 +30,11 @@ All notable changes to this project are documented here. The format follows
   open decisions, whether the answered ones wait to be carried out, and the tools approved for the conversation,
   each with the time the approval took effect. `host.RecordAnswersAsync(answers)` records answers without a run,
   and `ResumeAsync()` then carries them out.
+- TSH032 warns when the generator read a toolset or an agent differently from what its code says, because a
+  declaration names code that a source generator writes, such as `AddTool(Generated.Find)`,
+  `WithStorageKind(Generated.Kind)` or a tool that takes another agent's generated `Settings`. The generator cannot
+  see such code and left the declaration out without a word: the tool was missing, or the agent's settings were
+  stored under the kind of its class. The message names the first difference.
 
 ### Changed
 

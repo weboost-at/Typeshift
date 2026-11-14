@@ -1535,6 +1535,56 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Toolset_That_Names_Another_Generators_Output_TSH032_Is_Reported_On_The_Class()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.DeclarationsOfAnotherGeneratorsOutput);
+        var other = new OtherGenerator("Generated.g.cs", DiagnosticSources.OtherGeneratorsOutput);
+
+        // Act
+        var run = Run(compilation, others: other);
+
+        // Assert
+        run.Assert.ReportsAmong(
+            "TSH032",
+            DiagnosticSeverity.Warning,
+            "OrderToolset",
+            message: "The generator read 'OrderToolset' differently from what the code says (the tool 'find' is "
+                + "missing): it cannot see code that source generators write, its own included; declare it with "
+                + "constants, methods and types of your own code");
+    }
+
+    [Fact]
+    public void Given_An_Agent_That_Names_Another_Generators_Output_TSH032_Is_Reported_On_The_Class()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.DeclarationsOfAnotherGeneratorsOutput);
+        var other = new OtherGenerator("Generated.g.cs", DiagnosticSources.OtherGeneratorsOutput);
+
+        // Act
+        var run = Run(compilation, others: other);
+
+        // Assert
+        run.Assert.ReportsAmong("TSH032", DiagnosticSeverity.Warning, "OrderAgent")
+            .GetMessage()
+            .Should()
+            .Contain("(its name is 'order_agent')");
+    }
+
+    [Fact]
+    public void Given_A_Tool_That_Takes_A_Type_The_Generator_Writes_TSH032_Is_Reported_On_The_Toolset()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToolThatTakesAGeneratedType);
+
+        // Assert
+        run.Assert.Reports("TSH032", DiagnosticSeverity.Warning, "NoteToolset")
+            .GetMessage()
+            .Should()
+            .Contain("(the tool 'describe' is missing)");
+    }
+
+    [Fact]
     public void Given_A_Static_Virtual_Member_Of_An_Interface_As_Tool_Only_The_Compiler_Reports_It()
     {
         // Act

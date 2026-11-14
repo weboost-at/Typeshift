@@ -24,7 +24,11 @@ flowchart LR
 
 Your toolsets, your agents and your `AddTypeshift()` call go to two parts of the package. The source generator writes
 the code your app compiles, and the analyzer reports mistakes as errors and warnings at the line you wrote. Both read
-your code the same way, so whatever the generator cannot read, the analyzer reports.
+a declaration with the same code, so a shape the generator cannot read is one the analyzer reports.
+
+They do not read the same project, though. The generator runs before any source generator has written its code, and
+the analyzer after all of them. The analyzer therefore compares what it read with what the generator wrote, and warns
+when the two differ ([TSH032](./diagnostics.md#tsh032)).
 
 ## What the generator reads
 
@@ -64,6 +68,21 @@ cannot follow a chain split over variables, and an `AddTool` inside an `if` woul
 code always includes it, so the analyzer reports both ([TSH014](./diagnostics.md#tsh014),
 [TSH015](./diagnostics.md#tsh015)). Names and descriptions are constants, because the generator needs their values
 when you build. [Rules for every chain](./builders.md#rules-for-every-chain) lists each rule with its diagnostic.
+
+## Code that other generators write
+
+The generator cannot see code that a source generator writes, whether another package's or Typeshift's own. That is
+how the compiler runs generators: each one reads the project as you wrote it. A declaration that names such code
+compiles, but the generator cannot read it:
+
+- A tool whose method another generator writes, as in `AddTool(Generated.Find)`, is not generated.
+- A name, a description or a storage kind from a constant another generator writes is not read, so the agent keeps
+  the default.
+- A toolset or an agent that another generator writes as a whole class gets no generated code at all.
+
+The analyzer warns about the first two ([TSH032](./diagnostics.md#tsh032)). It cannot tell the third from a class the
+generator has not reached yet, so nothing reports it: an agent that uses such a toolset offers none of its tools.
+Write toolsets and agents in your own source files, and declare them with your own methods and constants.
 
 ## Generated code sits in files of its own
 

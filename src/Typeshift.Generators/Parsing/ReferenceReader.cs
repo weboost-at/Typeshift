@@ -58,6 +58,19 @@ internal static class ReferenceReader
         GetAgentStamps(compilation)
             .Select(ReadAgent);
 
+    // D2: the agents of the compilation itself as the generator read them, from the stamps of its own module, which
+    // the analyzer sees
+    public static IEnumerable<ModuleAgent> GetOwnAgents(Compilation compilation) =>
+        (GetModule(compilation.Assembly)?.GetAttributes() ?? [])
+        .Where(attribute => attribute.AttributeClass.Is(KnownTypes.ModuleAgentAttribute))
+        .Select(ReadAgent);
+
+    // D2: the names of the tools the generated part of a toolset stamps
+    public static IEnumerable<string> GetToolNames(ITypeSymbol toolset) =>
+        toolset.GetAttributes()
+            .Where(attribute => attribute.AttributeClass.Is(KnownTypes.GeneratedToolAttribute))
+            .Select(attribute => (string)attribute.ConstructorArguments[0].Value!);
+
     private static IEnumerable<AttributeData> GetAgentStamps(Compilation compilation) =>
         GetNameableLibraryUsers(compilation)
             .Select(GetModule)

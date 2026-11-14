@@ -54,6 +54,7 @@ rewrite.
 | new | Tool names derive from the method, without `Async` (D13) | `ToolSchemaTests.Given_An_Async_Method_Without_WithName_The_Tool_Is_Named_Without_The_Suffix`, `ToolNamesTests` |
 | new | A call without services fails, saying how to run the tool | `ToolInvocationTests.Given_No_Services_The_Call_Fails_Saying_How_To_Run_It` |
 | new | Every shape the generator cannot handle is a diagnostic, the generated code holds no error for a mistake or for a shape it accepts, and code being typed makes neither the generator nor the analyzer throw | `DiagnosticTests`, `DiagnosticTests.Given_Any_Mistake_The_Generated_Code_Holds_No_Error`, `..._Given_Any_Shape_The_Generated_Code_Holds_No_Error`, `HalfTypedCodeTests` |
+| new | A declaration the generator read differently from the analyzer, because it names code a source generator writes, is TSH032 on its class: a tool missing from a toolset, an agent's name, kind, description or tool (D2) | `DiagnosticTests.Given_A_Toolset_That_Names_Another_Generators_Output_TSH032_Is_Reported_On_The_Class`, `..._Given_An_Agent_That_Names_Another_Generators_Output_TSH032_Is_Reported_On_The_Class`, `..._Given_A_Tool_That_Takes_A_Type_The_Generator_Writes_TSH032_Is_Reported_On_The_Toolset` |
 | new | Parameters the model never sees need no `<param>` | `ToolsetGenerationTests.Given_Parameters_The_Model_Never_Sees_Their_Missing_Docs_Are_Suppressed` |
 | 11 | `AddTypeshift()` registers the project's and the references' toolsets and agents, once | `AddTypeshiftTests` |
 | 12 | A call the generator did not intercept throws, saying what to check | `AddTypeshiftTests.Given_A_Call_The_Generator_Did_Not_Intercept_It_Fails_Saying_What_To_Check` |
@@ -230,6 +231,11 @@ rewrite.
 - **The file store's save on the caller's thread.** A save creates the folder, opens the lock file and its own
   file, flushes to the disk and moves the file on the thread that called it, so a desktop app's UI thread waits for
   the disk. Moving that work to the thread pool waits for the decision on how the library awaits.
+- **What TSH032 does not compare.** The analyzer compares its reading of a declaration with the generated code by
+  the stamps, which hold the tools and an agent's name, kind and whether it is described (D2). A schema version, a
+  provider type, a chat option or the text of a description that names another generator's output is in no stamp,
+  so the generator's fallback goes unreported. A toolset or an agent that another generator writes as a whole class
+  has no generated part and is not compared either.
 - **The empty union as a default.** A union parameter that defaults to `default` states `"default": null` in its
   schema, which none of its cases accepts, although the tool binds JSON null to that default.
 - **Trackers of value-type ids under Native AOT.** The container closes the tracker's open generic over reference

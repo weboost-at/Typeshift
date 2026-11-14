@@ -75,7 +75,8 @@ what does not parse (D2).
    registration (D75).
 
 The analyzer checks what spans declarations in a compilation-end action: unique tool names, the references' stamps
-included, and references without a module. Calls the generator cannot read (TSH014, TSH015) it checks in an
+included, and references without a module. It also compares what it parsed with what the generator wrote, by the
+stamps of the generated code, since the generator's compilation lacks every generator's output (TSH032, D2). Calls the generator cannot read (TSH014, TSH015) it checks in an
 operation action. `ParameterDocsSuppressor` suppresses CS1573 for the parameters of a tool the model never sees
 (D14).
 

@@ -2388,6 +2388,73 @@ public static class DiagnosticSources
         }
         """;
 
+    // Declarations that name what another source generator of the project writes, OtherGeneratorsOutput here.
+    // Typeshift's generator does not see that file, so it reads none of them, while the analyzer and the compiler do
+    public const string DeclarationsOfAnotherGeneratorsOutput =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class OrderToolset : Toolset
+        {
+            public OrderToolset()
+            {
+                AddTool(Generated.Find).WithDescription("Finds an order.");
+                AddTool(Echo).WithName(Generated.EchoName).WithDescription("Echoes.");
+            }
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class OrderAgent : Agent
+        {
+            public OrderAgent()
+            {
+                WithName(Generated.AgentName);
+                WithStorageKind(Generated.Kind);
+                WithDescription("Handles orders.");
+                UseToolset<OrderToolset>();
+            }
+        }
+        """;
+
+    public const string OtherGeneratorsOutput =
+        """
+        namespace Demo;
+
+        internal static class Generated
+        {
+            public const string AgentName = "order_desk";
+
+            public const string Kind = "orders-v1";
+
+            public const string EchoName = "echo_back";
+
+            public static string Find(int number) => "order";
+        }
+        """;
+
+    // The agent's Settings are the generator's own output, which it does not see while it reads the tool
+    public const string ToolThatTakesAGeneratedType =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent() => WithDescription("Helps.");
+        }
+
+        internal partial class NoteToolset : Toolset
+        {
+            public NoteToolset() => AddTool(Describe).WithDescription("Describes the agent's settings.");
+
+            public static string Describe(HelpAgent.Settings settings) => settings.ToString();
+        }
+        """;
+
     // No toolset, no agent and no AddTypeshift(): nothing the generator writes code for
     public const string NothingOfTypeshift =
         """

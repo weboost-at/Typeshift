@@ -166,6 +166,12 @@ internal static class Descriptors
         DiagnosticSeverity.Error,
         WellKnownDiagnosticTags.CompilationEnd);
 
+    public static readonly DiagnosticDescriptor ReadDifferently = Warning(
+        "TSH032",
+        "Generator read the declaration differently",
+        "The generator read '{0}' differently from what the code says ({1}): it cannot see code that source "
+        + "generators write, its own included; declare it with constants, methods and types of your own code");
+
     private static DiagnosticDescriptor Error(string id, string title, string message) =>
         Create(id, title, message, DiagnosticSeverity.Error);
 
