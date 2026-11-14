@@ -47,6 +47,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.AgentCircle,
         Descriptors.OfferedTwice,
         Descriptors.NoJsonMetadata,
+        Descriptors.NumericEnum,
         Descriptors.NoStore,
         Descriptors.UnusableProviderIdType,
         Descriptors.NoChatClientProvider,
@@ -90,6 +91,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             ReportSharedKinds(end, kinds);
             ReportAgentUses(end, found);
             if (needsJsonMetadata) ReportMissingJsonMetadata(end, found);
+            if (needsJsonMetadata) ReportNumericEnums(end, found);
         });
     }
 
@@ -740,14 +742,26 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             || Discovery.GetAliasedBase(type, "JsonSerializerContext", context.CancellationToken) is not null
             || !Discovery.CanRegister(type, context.CancellationToken)) return;
 
-        var listed = type.GetAttributes()
+        var listings = type.GetAttributes()
             .Where(attribute => attribute.AttributeClass.Is(KnownTypes.JsonSerializableAttribute))
+            .ToList();
+
+        var listed = listings
             .Select(attribute => attribute.ConstructorArguments.FirstOrDefault().Value)
             .OfType<ITypeSymbol>();
 
+        // The declaration that lists the types is the developer's, another may be the JSON generator's
+        var written = listings.FirstOrDefault()?.ApplicationSyntaxReference?.SyntaxTree;
+        var location = type.Locations.FirstOrDefault(location => location.SourceTree == written) ?? Location.None;
+        var names = JsonEnums.AreNames(type);
+
         foreach (var json in listed)
         {
-            found.JsonTypes[json.ToTypeOf()] = true;
+            var listedType = json.ToTypeOf();
+            found.JsonTypes[listedType] = true;
+
+            if (!names && JsonEnums.FindNumeric(json) is { } numeric)
+                found.NumericEnums.Add(new NumericEnum(type.Name, location, listedType, numeric.Name));
         }
     }
 
@@ -756,12 +770,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
     {
         foreach (var (tool, location) in found.Tools)
         {
-            var types = tool.Parameters
-                .Where(parameter => parameter.Kind == ParameterKind.Argument)
-                .Select(parameter => parameter.TypeOf)
-                .Concat(tool.Result is { } result ? [result] : []);
-
-            foreach (var type in types.Distinct())
+            foreach (var type in JsonTypesOf(tool))
             {
                 if (CoveredTypes.Contains(type) || found.JsonTypes.ContainsKey(type)) continue;
 
@@ -769,6 +778,43 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             }
         }
     }
+
+    // D45: there the context that lists a tool's type also decides how an enum in it travels, and says so once
+    private static void ReportNumericEnums(CompilationAnalysisContext context, Found found)
+    {
+        var uses = found.Tools
+            .SelectMany(tool => JsonTypesOf(tool.Tool).Select(type => (Type: type, Tool: tool.Tool.Name)))
+            .ToList();
+
+        var reports = found.NumericEnums
+            .SelectMany(listing => uses
+                .Where(use => use.Type == listing.Type)
+                .Select(use => (Listing: listing, use.Tool)))
+            .GroupBy(report => report.Listing.Context);
+
+        foreach (var report in reports)
+        {
+            var (listing, tool) = report
+                .OrderBy(use => use.Tool, System.StringComparer.Ordinal)
+                .ThenBy(use => use.Listing.Enum, System.StringComparer.Ordinal)
+                .First();
+
+            context.ReportDiagnostic(Diagnostic.Create(
+                Descriptors.NumericEnum,
+                listing.Location,
+                listing.Context,
+                listing.Enum,
+                tool));
+        }
+    }
+
+    // The types a tool's JSON goes through: those of the arguments the model fills, and that of its result
+    private static IEnumerable<string> JsonTypesOf(ToolModel tool) =>
+        tool.Parameters
+            .Where(parameter => parameter.Kind == ParameterKind.Argument)
+            .Select(parameter => parameter.TypeOf)
+            .Concat(tool.Result is { } result ? [result] : [])
+            .Distinct();
 
     // What the classes of the compilation declare, for the checks at its end
     private sealed class Found
@@ -781,6 +827,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
         public ConcurrentDictionary<string, bool> JsonTypes { get; } = [];
 
+        public ConcurrentBag<NumericEnum> NumericEnums { get; } = [];
+
         public ConcurrentBag<FoundAgent> Agents { get; } = [];
 
         public ConcurrentBag<(INamedTypeSymbol Agent, string Name, Location Location)> OwnTools { get; } = [];
@@ -792,4 +840,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
     }
 
     private sealed record FoundAgent(INamedTypeSymbol Type, AgentModel Model, IReadOnlyList<AgentUseDeclaration> Uses);
+
+    // A type a JSON context lists whose JSON holds an enum the context writes as a number
+    private sealed record NumericEnum(string Context, Location Location, string Type, string Enum);
 }

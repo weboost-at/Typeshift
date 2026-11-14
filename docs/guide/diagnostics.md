@@ -42,6 +42,7 @@ a compiler error inside generated code.
 | [TSH030](#tsh030) | Error | Type is no chat client provider |
 | [TSH031](#tsh031) | Error | C# language version is below 14 |
 | [TSH032](#tsh032) | Warning | Generator read the declaration differently |
+| [TSH033](#tsh033) | Warning | Enum of a tool is a number for Native AOT or a trimmed app |
 
 TSH021 is retired: the diagnostic it named is gone, and ids are never reused.
 
@@ -361,10 +362,28 @@ because it compares your code with generated code, and an editor may show genera
 what you typed. A build always compares the two as they are. A class the generator wrote nothing for is not compared:
 [TSH001](#tsh001) and [TSH017](#tsh017) say why it wrote nothing.
 
+## TSH033
+
+**Enum of a tool is a number for Native AOT or a trimmed app.** In an app that keeps JSON reflection, the model
+reads an enum of a tool by its names: the schema lists them, the model sends one, and the result holds one. An app
+published with Native AOT or trimmed leaves that to the `JsonSerializerContext` that lists the type, and a context
+writes an enum as a number unless you tell it otherwise. The model then reads `integer` in the schema and has to
+guess the numbers, and a name it sends fails the call.
+
+Add `[JsonSourceGenerationOptions(UseStringEnumConverter = true)]` to the context, or give the enum a converter of
+its own, `[JsonConverter(typeof(JsonStringEnumConverter<TEnum>))]`.
+[Native AOT](./native-aot.md#tool-parameter-and-result-types) shows such a context.
+
+The analyzer reports a context once, with one of the enums and one of the tools, in the projects
+[TSH027](#tsh027) checks. It finds an enum that is a tool's parameter or result, a type argument or an array's
+element of one, or the type of a property, however deep. It reads the types of tools only, not the `T` of
+`RunAsync<T>`.
+
 ## Related
 
 - [Toolsets](./toolsets.md): the rules most toolset diagnostics guard.
 - [Agents](./defining-agents.md): the rules of an agent's declarations.
 - [Builders](./builders.md): every call the analyzer checks.
 - [Registration](./registration.md): the package, ids and what each project needs.
-- [Native AOT](./native-aot.md): the JSON metadata [TSH027](#tsh027) asks for.
+- [Native AOT](./native-aot.md): the JSON metadata [TSH027](#tsh027) asks for, and the option
+  [TSH033](#tsh033) asks for.

@@ -35,6 +35,11 @@ All notable changes to this project are documented here. The format follows
   `WithStorageKind(Generated.Kind)` or a tool that takes another agent's generated `Settings`. The generator cannot
   see such code and left the declaration out without a word: the tool was missing, or the agent's settings were
   stored under the kind of its class. The message names the first difference.
+- TSH033 warns about a `JsonSerializerContext` that lists a tool type with an enum and has no
+  `UseStringEnumConverter = true`, in an app published with Native AOT or trimmed. There the context decides how an
+  enum travels, and without the option the model reads `integer` in the tool's schema, gets numbers back, and fails
+  the call when it sends the enum's name, as it does in an app that keeps JSON reflection. Add
+  `[JsonSourceGenerationOptions(UseStringEnumConverter = true)]` to the context.
 - `ToolException`: a tool throws it to tell the model why a call failed. The model reads its message as the call's
   result, so write it as a hint, such as "No ticket 4711 exists. Search for it first."
 

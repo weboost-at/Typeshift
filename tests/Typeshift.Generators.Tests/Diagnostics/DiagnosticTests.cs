@@ -1148,6 +1148,74 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_An_Enum_Tool_Type_In_A_Context_Without_String_Enums_TSH033_Is_Reported_On_The_Context()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.EnumToolTypeAsNumber);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.PublishingAot());
+
+        // Assert
+        run.Assert.Reports(
+            "TSH033",
+            DiagnosticSeverity.Warning,
+            "PickJson",
+            message: "'PickJson' reads and writes the enum 'Mode' of the tool 'pick' as a number in an app published "
+                + "with Native AOT or trimmed: add [JsonSourceGenerationOptions(UseStringEnumConverter = true)] to "
+                + "the context, so the model reads and sends the enum's names");
+    }
+
+    [Fact]
+    public void Given_A_Tool_Type_Holding_An_Enum_In_A_Trimmed_App_TSH033_Is_Reported_On_The_Context()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.ToolTypeHoldingAnEnumAsNumber);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.JsonReflection(enabled: false));
+
+        // Assert
+        run.Assert.Reports("TSH033", DiagnosticSeverity.Warning, "PickJson");
+    }
+
+    [Fact]
+    public void Given_An_Enum_Tool_Type_In_A_Context_Of_String_Enums_TSH033_Is_Not_Reported()
+    {
+        // Arrange
+        var compilation = Compile(ShapeSources.EnumToolTypeInAContextOfStringEnums);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.PublishingAot());
+
+        // Assert
+        run.Assert.DoesNotReport("TSH033");
+    }
+
+    [Fact]
+    public void Given_An_Enum_Tool_Type_With_A_Converter_Of_Its_Own_TSH033_Is_Not_Reported()
+    {
+        // Arrange
+        var compilation = Compile(ShapeSources.EnumToolTypeWithAConverterOfItsOwn);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.PublishingAot());
+
+        // Assert
+        run.Assert.DoesNotReport("TSH033");
+    }
+
+    [Fact]
+    public void Given_An_Enum_Tool_Type_Where_Json_Reflects_TSH033_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(DiagnosticSources.EnumToolTypeAsNumber);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH033");
+    }
+
+    [Fact]
     public void Given_A_Stored_Object_With_A_Required_Member_TSH012_Is_Reported_On_The_Pick()
     {
         // Act

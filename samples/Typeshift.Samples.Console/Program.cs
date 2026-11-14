@@ -1,6 +1,7 @@
 using Typeshift;
 using Typeshift.Samples.Chat;
 using Typeshift.Samples.Companies;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
 // Runs a toolset, stored settings, a tracked conversation, streaming and structured output published as Native AOT;
@@ -60,8 +61,18 @@ var counting = customer.RunStreamingAsync<CompanyCount>("Graz");
 await foreach (var _ in counting) { }
 Expect(counting.Response.Result == new CompanyCount("Graz", 1), counting.Response.Text);
 
+// An enum travels as its name where JSON does not reflect, since AppJsonContext says so: in the schema the model
+// reads, in the argument it sends and in the result it gets back
+var offered = await customer.ResolveOptionsAsync();
+var countCompanies = offered.Tools!.OfType<AIFunction>().Single(tool => tool.Name == "count_companies");
+var sector = countCompanies.JsonSchema.GetProperty("properties").GetProperty("sector");
+Expect(sector.TryGetProperty("enum", out _), $"the schema {sector.GetRawText()}");
+
+var robotics = await customer.RunAsync("Robotics");
+Expect(robotics.Text == "2 companies work in Robotics.", robotics.Text);
+
 Console.WriteLine(
-    $"{research.Agent.Name}: {answer.Text} {streamed} {count.Result} {counting.Response.Result}; "
+    $"{research.Agent.Name}: {answer.Text} {streamed} {count.Result} {counting.Response.Result} {robotics.Text}; "
     + $"{entries.Count} entries stored");
 return 0;
 

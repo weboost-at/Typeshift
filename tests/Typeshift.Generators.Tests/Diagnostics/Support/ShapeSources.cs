@@ -4,6 +4,74 @@ namespace Typeshift.Generators.Tests.Diagnostics.Support;
 // parser newly accepts gets a field here, and one it rejects gets a field in DiagnosticSources
 public static class ShapeSources
 {
+    public const string EnumToolTypeInAContextOfStringEnums =
+        """
+        using System.Text.Json.Serialization;
+        using Typeshift;
+
+        internal enum Mode
+        {
+            Fast,
+            Thorough
+        }
+
+        internal partial class PickToolset : Toolset
+        {
+            public PickToolset()
+            {
+                AddTool(Pick).WithDescription("Picks how to search.");
+            }
+
+            public static string Pick(Mode mode) => mode.ToString();
+        }
+
+        // The System.Text.Json generator does not run here; what it would write is stubbed
+        [JsonSourceGenerationOptions(UseStringEnumConverter = true)]
+        [JsonSerializable(typeof(Mode))]
+        internal partial class PickJson() : JsonSerializerContext(null)
+        {
+            public static PickJson Default { get; } = new();
+
+            protected override System.Text.Json.JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type) => null;
+        }
+        """;
+
+    public const string EnumToolTypeWithAConverterOfItsOwn =
+        """
+        using System.Text.Json.Serialization;
+        using Typeshift;
+
+        [JsonConverter(typeof(JsonStringEnumConverter<Mode>))]
+        internal enum Mode
+        {
+            Fast,
+            Thorough
+        }
+
+        internal partial class PickToolset : Toolset
+        {
+            public PickToolset()
+            {
+                AddTool(Pick).WithDescription("Picks how to search.");
+            }
+
+            public static string Pick(Mode mode) => mode.ToString();
+        }
+
+        // The System.Text.Json generator does not run here; what it would write is stubbed
+        [JsonSerializable(typeof(Mode))]
+        internal partial class PickJson() : JsonSerializerContext(null)
+        {
+            public static PickJson Default { get; } = new();
+
+            protected override System.Text.Json.JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type) => null;
+        }
+        """;
+
     public const string EveryParameterKind =
         """
         using System;

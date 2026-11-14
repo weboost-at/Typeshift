@@ -172,6 +172,13 @@ internal static class Descriptors
         "The generator read '{0}' differently from what the code says ({1}): it cannot see code that source "
         + "generators write, its own included; declare it with constants, methods and types of your own code");
 
+    public static readonly DiagnosticDescriptor NumericEnum = Warning(
+        "TSH033",
+        "Enum of a tool is a number for Native AOT or a trimmed app",
+        "'{0}' reads and writes the enum '{1}' of the tool '{2}' as a number in an app published with Native AOT or "
+        + "trimmed: add [JsonSourceGenerationOptions(UseStringEnumConverter = true)] to the context, so the model "
+        + "reads and sends the enum's names");
+
     private static DiagnosticDescriptor Error(string id, string title, string message) =>
         Create(id, title, message, DiagnosticSeverity.Error);
 

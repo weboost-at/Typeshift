@@ -36,3 +36,4 @@ TSH029 | Typeshift | Error | Provider id type cannot be used
 TSH030 | Typeshift | Error | Type is no chat client provider
 TSH031 | Typeshift | Error | C# language version is below 14
 TSH032 | Typeshift | Warning | Generator read the declaration differently
+TSH033 | Typeshift | Warning | Enum of a tool is a number for Native AOT or a trimmed app

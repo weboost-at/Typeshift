@@ -25,7 +25,8 @@ internal partial class ResearchAgent : Agent
             .WithLimit(3);
     }
 
-    protected override string GetInstructions() => "Find companies with the find_companies tool and list them.";
+    protected override string GetInstructions() =>
+        "Find companies with the find_companies tool and list them. Count those of a sector with count_companies.";
 }
 
 // What a run asking for structured output returns

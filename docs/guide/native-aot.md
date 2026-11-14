@@ -45,11 +45,14 @@ analyzer checks the library too.
 <!-- snippet: json-context -->
 <a id='snippet-json-context'></a>
 ```cs
+[JsonSourceGenerationOptions(UseStringEnumConverter = true)]
 [JsonSerializable(typeof(IReadOnlyList<Company>))]
 [JsonSerializable(typeof(CompanyCount))]
+[JsonSerializable(typeof(Sector))]
+[JsonSerializable(typeof(SectorCount))]
 internal partial class AppJsonContext : JsonSerializerContext;
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/AppJsonContext.cs#L6-L10' title='Snippet source file'>snippet source</a> | <a href='#snippet-json-context' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/AppJsonContext.cs#L6-L13' title='Snippet source file'>snippet source</a> | <a href='#snippet-json-context' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 You don't register the context yourself: `AddTypeshift()` does. Each assembly's generated module adds that assembly's
@@ -67,6 +70,13 @@ Any other context is left out, and the types it lists count as not listed for
 [TSH027](./diagnostics.md#tsh027). The context derives from `JsonSerializerContext` directly and names it in its base
 list.
 
+`UseStringEnumConverter = true` keeps an enum what the model knows it as. Where JSON reflects, a tool's enum is its
+name: in the schema the model reads, in the argument it sends and in the result it gets back. Where it does not,
+the context decides, and without the option an enum is a number there. The schema then says `integer`, the model
+has to guess which number means what, and a name it sends fails the call. The analyzer warns about a context that
+lists a tool type with an enum and lacks the option ([TSH033](./diagnostics.md#tsh033)). An enum that carries its
+own `[JsonConverter(typeof(JsonStringEnumConverter<TEnum>))]` needs none.
+
 Strings, `char`, `bool`, `short`, `int`, `long` and their unsigned forms, `float`, `double`, `decimal`, `DateTime`,
 `DateTimeOffset`, `TimeSpan`, `IEnumerable<string>` and the JSON element, document and node types need no context.
 In a project that publishes with Native AOT or trimmed, or that sets `IsAotCompatible` or `IsTrimmable`, the analyzer
@@ -76,7 +86,7 @@ Some of the types that need an entry look as plain as the ones above:
 
 - each nullable value type, such as `int?` or `bool?`, although `int` and `bool` need none. A nullable reference
   type, such as `string?`, counts as its type;
-- each enum;
+- each enum, in a context that [writes enums as their names](./diagnostics.md#tsh033);
 - each array and list, such as `string[]` or `List<string>`;
 - `byte`, `Guid` and `DateOnly`.
 
@@ -103,7 +113,7 @@ services.AddTypeshift()
     .WithConversationTracker<Guid>()
     .WithChatClientProvider<ScriptedChatClientProvider>();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L10-L15' title='Snippet source file'>snippet source</a> | <a href='#snippet-aot-tracker' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L11-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-aot-tracker' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - `WithConversationTracker<Guid>()` registers the tracker of `Guid` ids as a singleton of its own, so the container
@@ -119,7 +129,8 @@ services.AddTypeshift()
 The generated `Settings` and overrides records serialize member by member, and conversations go through
 Microsoft.Extensions.AI's own contracts, so none of them needs a context from you. `RunAsync<T>`,
 `RunStreamingAsync<T>` and a sub-agent's `WithResult<T>()` do need one: list `T` in a context too. In the sample,
-`AppJsonContext` above lists `CompanyCount` because the app calls `RunAsync<CompanyCount>`.
+`AppJsonContext` above lists `CompanyCount` because the app calls `RunAsync<CompanyCount>`. An enum in such a `T`
+is a number unless its context has `UseStringEnumConverter` too.
 
 ::: warning The analyzer checks tool types only
 No diagnostic reports a `T` of these calls that no context lists. The build and the publish succeed, and the

@@ -10,6 +10,9 @@ internal partial class CompanyToolset : Toolset
             .ReadOnly()
             .WithSettings<FindCompaniesSettings>()
             .Configurable(s => s.Limit);
+
+        AddTool(CountCompanies)
+            .ReadOnly();
     }
 
     /// <summary>
@@ -24,4 +27,11 @@ internal partial class CompanyToolset : Toolset
             .Where(company => company.Active || settings.IncludeInactive)
             .Take(settings.Limit)
     ];
+
+    /// <summary>
+    /// Counts the active companies of a sector.
+    /// </summary>
+    /// <param name="sector">The sector the companies work in.</param>
+    public static SectorCount CountCompanies(Sector sector) =>
+        new(sector, KnownCompanies.All.Count(company => company.Active && company.Sector == sector));
 }

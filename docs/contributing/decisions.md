@@ -1241,6 +1241,14 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   Blazor WebAssembly SDK trims and sets the switch back to `true`, and an app may do the same, where an error would
   be wrong. Until 0.1.0-alpha.6 only the two AOT properties counted, so a trimmed app built and published without a
   word and its tools with a record or a list failed at run time.
+- **Enums:** where JSON reflects, Microsoft.Extensions.AI's defaults carry a `JsonStringEnumConverter`, which wins
+  over every context, so a tool's enum is its name in the schema, the arguments and the result. Where it does not,
+  the defaults carry none, the context that lists the type decides, and its default is the number: the model reads
+  `integer`, and a name it sends fails the call. TSH033 warns about a context that lists a tool type with an enum
+  and has no `UseStringEnumConverter = true`, and skips an enum, and a property, with a `[JsonConverter]` of its
+  own. It is a warning, since the tool still works with numbers, and it shares TSH027's condition. The generator
+  registers no converters itself: that would need every enum of every tool and typed-run type found at build time,
+  nested ones included, where one line on the context does it.
 - **As built:** TSH027 knows the types Microsoft.Extensions.AI's own context lists (strings, numbers, `bool`, dates,
   `TimeSpan`, JSON elements) and the contexts of the compilation; a tool returning `IAsyncEnumerable<T>` returns a
   `List<T>`, which it checks. The console sample publishes as Native AOT in CI, where a trim or AOT warning fails the
@@ -1260,8 +1268,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   System.Linq.Async before 7.0, so the call was CS0433 in a file the consumer cannot edit. The library compiles
   against the framework alone, where no reference of the consumer makes a name ambiguous. It also checks the call's
   token before each item, since an iterator without `[EnumeratorCancellation]` never sees the token.
-- **Where:** `Analysis/TypeshiftAnalyzer.cs`, `Parsing/Discovery.cs`, `TypeshiftGenerator.cs` (`CreateModule`),
-  `Generated/GeneratedToolFunction.cs`, `Emitting/ToolsetEmitter.cs`, `samples/Typeshift.Samples.Console`.
+- **Where:** `Analysis/TypeshiftAnalyzer.cs`, `Analysis/JsonEnums.cs`, `Parsing/Discovery.cs`,
+  `TypeshiftGenerator.cs` (`CreateModule`), `Generated/GeneratedToolFunction.cs`, `Emitting/ToolsetEmitter.cs`,
+  `samples/Typeshift.Samples.Console`.
 
 ### D62. Union types in tools and typed runs
 

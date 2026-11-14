@@ -1094,6 +1094,75 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string EnumToolTypeAsNumber =
+        """
+        using System.Text.Json.Serialization;
+        using Typeshift;
+
+        internal enum Mode
+        {
+            Fast,
+            Thorough
+        }
+
+        internal partial class PickToolset : Toolset
+        {
+            public PickToolset()
+            {
+                AddTool(Pick).WithDescription("Picks how to search.");
+            }
+
+            public static string Pick(Mode mode) => mode.ToString();
+        }
+
+        // The System.Text.Json generator does not run here; what it would write is stubbed
+        [JsonSerializable(typeof(Mode))]
+        internal partial class PickJson() : JsonSerializerContext(null)
+        {
+            public static PickJson Default { get; } = new();
+
+            protected override System.Text.Json.JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type) => null;
+        }
+        """;
+
+    public const string ToolTypeHoldingAnEnumAsNumber =
+        """
+        using System.Collections.Generic;
+        using System.Text.Json.Serialization;
+        using Typeshift;
+
+        internal enum Mode
+        {
+            Fast,
+            Thorough
+        }
+
+        internal sealed record Filter(Mode Mode, string Text);
+
+        internal partial class PickToolset : Toolset
+        {
+            public PickToolset()
+            {
+                AddTool(ListFilters).WithDescription("Lists the filters of a search.");
+            }
+
+            public static IReadOnlyList<Filter> ListFilters(string text) => [new(Mode.Fast, text)];
+        }
+
+        // The System.Text.Json generator does not run here; what it would write is stubbed
+        [JsonSerializable(typeof(IReadOnlyList<Filter>))]
+        internal partial class PickJson() : JsonSerializerContext(null)
+        {
+            public static PickJson Default { get; } = new();
+
+            protected override System.Text.Json.JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type) => null;
+        }
+        """;
+
     public const string RequiredStoredMember =
         """
         using Typeshift;
