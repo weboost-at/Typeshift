@@ -490,6 +490,33 @@ public class DecisionLedgerTests : LedgerTestBase
     }
 
     [Fact]
+    public async Task Given_Standing_Approvals_Of_One_Tool_Name_Withdrawing_One_Keeps_The_Other_Servers()
+    {
+        // Arrange
+        await GrantedAsync(Approval(Data.Tool.CallId), Approval(Data.Tool.SecondCallId) with { Server = "deploy" });
+
+        // Act
+        var document = await Ledger.RevokeAsync(Conversation, "close_ticket", null, Ct);
+
+        // Assert
+        document.Standing.Select(approval => approval.Server).Should().Equal("deploy");
+    }
+
+    [Fact]
+    public async Task Given_A_Standing_Approval_The_Conversation_Does_Not_Hold_Withdrawing_It_Saves_Nothing()
+    {
+        // Arrange
+        await GrantedAsync(Approval(Data.Tool.CallId));
+        var saves = Store.Saves;
+
+        // Act
+        await Ledger.RevokeAsync(Conversation, "close_ticket", "deploy", Ct);
+
+        // Assert
+        Store.Saves.Should().Be(saves);
+    }
+
+    [Fact]
     public async Task Given_A_Mode_Setting_It_Stores_It_With_The_Decisions()
     {
         // Act

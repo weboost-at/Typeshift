@@ -52,6 +52,21 @@ public abstract class LedgerTestBase : HostTestBase
         return answered.Batch!;
     }
 
+    // Tools approved for the conversation, as the run that carried the answers out granted them
+    internal async Task GrantedAsync(params BatchCall[] calls)
+    {
+        var batch = Batch(calls);
+        await Ledger.OpenAsync(Conversation, batch, Ct);
+
+        var answered = await Ledger.RecordAsync(
+            Conversation,
+            [.. batch.Ids.Select(DecisionAnswer.ApproveForConversation)],
+            Ct);
+
+        var started = await Ledger.StartAsync(Conversation, answered.Batch!, Ct);
+        await Ledger.CloseAsync(Conversation, started.Batch!, Ct);
+    }
+
     // A batch a run began to carry out
     internal async Task<DecisionBatch> StartedAsync(DecisionBatch batch) =>
         (await Ledger.StartAsync(Conversation, await AnsweredAsync(batch), Ct)).Batch!;

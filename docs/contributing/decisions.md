@@ -1512,12 +1512,15 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   one that does not fit its decision throws `ArgumentException`. Answering is an API of its own: the generated
   `AnswerAsync(answers)` records the answers and, once no decision is left open, continues the run;
   `RecordAnswersAsync` records them without a run, `ResumeAsync` continues, and `GetDecisionsAsync` lists what
-  waits, with the tools approved for the conversation. No answer travels in a run's input (D81).
+  waits, with the tools approved for the conversation, each of which `RevokeStandingApprovalAsync` withdraws. No
+  answer travels in a run's input (D81).
 - **Details:** a batch is `open` until its last answer, then `answered`, then `started` once a run begins to carry
   the answers out, then gone and remembered as answered. `started` is the commit point: from it on every call the
   batch would run counts as started, so no later run starts one again. An open batch that new input passes by is
   `expired`, then gone and remembered as expired. Standing approvals join the document when their batch starts,
-  never when they are recorded, so an answer that expires grants nothing. `DecisionLedger` is the only code that
+  never when they are recorded, so an answer that expires grants nothing, and leave it when your app withdraws
+  them. A run reads them, and the mode, when it begins, so a withdrawal reaches the conversation's next run: a
+  check on every call would cost a load of the document for each. `DecisionLedger` is the only code that
   loads and saves the document. Each change is a compare-and-set on the version it loaded; after a lost save it
   loads again and checks its precondition on what the winner wrote, at most ten times. Ids are version 7 GUIDs made
   when the run asks, never from the model's call ids, which a provider may reuse (D59). `Decision` reads and writes

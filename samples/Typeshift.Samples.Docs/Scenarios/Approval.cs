@@ -60,5 +60,14 @@ internal static class Approval
 
         if (decisions.Standing is not [{ Tool: "close_ticket" }])
             throw new InvalidOperationException("Expected the standing approval to be listed.");
+
+        // begin-snippet: approval-revoke
+        await chat.RevokeStandingApprovalAsync("close_ticket");
+        // end-snippet
+
+        var asksAgain = await chat.RunAsync("Close ticket 1234 a last time.");
+        if (asksAgain.Decisions.Count != 1) throw new InvalidOperationException("Expected the tool to ask again.");
+
+        await chat.AnswerAsync([asksAgain.Decisions[0].Reject()]);
     }
 }

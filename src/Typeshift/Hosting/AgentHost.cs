@@ -160,6 +160,27 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         await Ledger.SetModeAsync(DecidedConversation, mode, ct);
 
     /// <summary>
+    /// Withdraws a standing approval of the host's conversation, from <c>WithConversationId</c>: a tool your app
+    /// approved for the conversation asks again, from the conversation's next run on. A run going on keeps the
+    /// approvals it began with. Nothing changes when the conversation holds no such approval.
+    /// </summary>
+    /// <param name="tool">The tool's name, as <see cref="StandingApproval.Tool"/> lists it.</param>
+    /// <param name="server">
+    /// The MCP server that offers the tool, as <see cref="StandingApproval.Server"/> lists it; null for every other
+    /// tool.
+    /// </param>
+    /// <param name="ct">Cancels the save.</param>
+    /// <returns>The save.</returns>
+    /// <exception cref="StoreConflictException">Other saves came first ten times in a row.</exception>
+    /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
+    public async Task RevokeStandingApprovalAsync(string tool, string? server = null, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(tool);
+
+        await Ledger.RevokeAsync(DecidedConversation, tool, server, ct);
+    }
+
+    /// <summary>
     /// The raw path: creates the client of a run whose options <c>ResolveOptionsAsync</c> resolved. It takes the
     /// client from the <see cref="IChatClientProvider{TProviderId}"/> of the provider's type, an
     /// <see cref="IChatClient"/> registered under the options' provider, or the one registered for every agent, and

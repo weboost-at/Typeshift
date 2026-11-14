@@ -208,6 +208,20 @@ foreach (var standing in decisions.Standing)
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L54-L59' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-standing' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+`RevokeStandingApprovalAsync(tool)` withdraws one, and the tool asks again:
+
+<!-- snippet: approval-revoke -->
+<a id='snippet-approval-revoke'></a>
+```cs
+await chat.RevokeStandingApprovalAsync("close_ticket");
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L64-L66' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-revoke' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+For an [MCP server's](./mcp.md) tool, pass the server as well, as `Standing` lists it:
+`RevokeStandingApprovalAsync("deploy", "deploy-server")`. Withdrawing an approval the conversation does not hold
+changes nothing.
+
 A standing approval:
 
 - matches a tool by its name, whatever arguments the model sends. An [MCP server's](./mcp.md) tool is approved with
@@ -216,12 +230,14 @@ A standing approval:
   [sub-agents](./multi-agent.md#sub-agents) they call.
 - takes effect when a run begins to carry the answer out. An answer that [expires](#when-a-decision-closes) before
   then grants nothing.
+- holds until your app withdraws it. A run reads the approvals when it begins, so a withdrawal reaches the
+  conversation's next run and not one that is going on.
 - never overrules a rule. A rule that rejects the call still wins.
 
 ::: danger A standing approval covers calls your user never saw
-Approving `run_command` for the conversation approves every later command, whatever it runs, for as long as the
-conversation lasts. Offer it only for tools whose every call you would approve, and guard the others with
-[approval rules](#approval-rules).
+Approving `run_command` for the conversation approves every later command, whatever it runs, by every agent of the
+conversation, until your app withdraws the approval. Offer it only for tools whose every call you would approve,
+guard the others with [approval rules](#approval-rules), and show your user what stands, with a way to withdraw it.
 :::
 
 ## Approval rules

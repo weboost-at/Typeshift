@@ -133,6 +133,36 @@ public class McpTests : McpTestBase
     }
 
     [Fact]
+    public async Task Given_A_Servers_Tool_Approved_For_The_Conversation_Withdrawing_It_Without_The_Server_Keeps_It()
+    {
+        // Arrange
+        var chat = await ApprovedForTheConversationAsync();
+
+        // Act
+        await chat.RevokeStandingApprovalAsync("deploy", ct: Ct);
+        var decisions = await chat.GetDecisionsAsync(Ct);
+
+        // Assert
+        decisions.Standing.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Given_A_Servers_Tool_Approved_For_The_Conversation_Withdrawing_It_With_The_Server_Makes_It_Ask()
+    {
+        // Arrange
+        var chat = await ApprovedForTheConversationAsync();
+        ChatClient.Reply(Call(Data.Tool.SecondCallId, "deploy"));
+
+        // Act
+        await chat.RevokeStandingApprovalAsync("deploy", "deploy", Ct);
+        var later = await chat.RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Assert
+        later.Decisions.Should().ContainSingle();
+        ToolCalls.Should().Equal("deploy");
+    }
+
+    [Fact]
     public async Task Given_A_Read_Only_Server_Plan_Mode_Offers_Its_Tools()
     {
         // Arrange
@@ -193,6 +223,22 @@ public class McpTests : McpTestBase
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*WithMcpToolProvider*");
+    }
+
+    // A conversation whose user approved the deploy server's tool for all of it
+    private async Task<AgentHost<McpAgent>> ApprovedForTheConversationAsync()
+    {
+        Servers["deploy"] = [Tool("deploy")];
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "deploy"))
+            .Reply(Text(Data.Tool.Answer));
+
+        var chat = Host<McpAgent>().WithConversationId(Data.Agent.ConversationId);
+        var asked = await chat.RunAsync(Data.Tool.Question, ct: Ct);
+        await chat.AnswerAsync([DecisionAnswer.ApproveForConversation(asked.Decisions[0].Id)], ct: Ct);
+
+        return chat;
     }
 
     private Task<ChatResponse> RunAsync(McpAgent.Settings? settings = null) =>

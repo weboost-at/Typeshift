@@ -19,6 +19,22 @@ internal sealed class DecisionLedger(StoreAccess stores, TimeProvider time, Agen
     public Task<DecisionDocument> SetModeAsync(StoreId conversation, AgentMode mode, CancellationToken ct) =>
         ChangeAsync(conversation, document => document.Mode == mode ? document : document with { Mode = mode }, ct);
 
+    // Your app withdraws a standing approval, with its server for an MCP server's tool: the tool asks again
+    public Task<DecisionDocument> RevokeAsync(
+        StoreId conversation,
+        string tool,
+        string? server,
+        CancellationToken ct) =>
+        ChangeAsync(
+            conversation,
+            document => document.Standing.Any(held => held.Tool == tool && held.Server == server)
+                ? document with
+                {
+                    Standing = [.. document.Standing.Where(held => held.Tool != tool || held.Server != server)]
+                }
+                : document,
+            ct);
+
     // T1: a run asks. A conversation waits for one batch at a time, which every run settles before its first model
     // call, so a batch found here was opened by a run of another process
     public Task OpenAsync(StoreId conversation, DecisionBatch batch, CancellationToken ct) =>

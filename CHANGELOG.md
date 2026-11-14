@@ -64,6 +64,8 @@ All notable changes to this project are documented here. The format follows
 - `host.SetModeAsync(mode)` switches a conversation's mode without a run, and the agent needs no
   `Configurable(r => r.Mode)` for it. It is the way back to the default mode after a plan was approved into auto
   mode. `GetDecisionsAsync()` returns the conversation's mode as `Mode`.
+- `host.RevokeStandingApprovalAsync(tool, server)` withdraws an approval your app gave for the conversation, so the
+  tool asks again from the conversation's next run on. `GetDecisionsAsync().Standing` lists what stands.
 
 ### Changed
 

@@ -248,8 +248,9 @@ chat.MapPost("/decisions", async Task<IResult> (
 
 - The body is a `DecisionAnswer`. `{"decisionId":"...","approved":true}` approves, `"approved":false` with a
   `"reason"` rejects and tells the model why, `"forConversation":true` makes the approval a
-  [standing approval](./tool-approval.md#approving-for-the-conversation), and `"mode":"Auto"` picks the mode an
-  approved [plan](./tool-approval.md#plan-mode) continues in.
+  [standing approval](./tool-approval.md#approving-for-the-conversation), which covers every later call of the tool
+  until your app withdraws it, and `"mode":"Auto"` picks the mode an approved
+  [plan](./tool-approval.md#plan-mode) continues in.
 - Questions are answered with `"answers"`, one entry for each question in the questions' order:
   `{"decisionId":"...","answers":[{"selected":["It leaks"]},{"text":"Since Monday."}]}`. An entry holds the labels
   the user picked in `selected`, their own words in `text`, or both. Without `answers`, the body declines the
