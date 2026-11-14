@@ -189,6 +189,16 @@ public class AgentGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Runtime_With_The_File_Store_Under_A_Using_Of_Typeshift_Alone_The_Code_Compiles_Cleanly()
+    {
+        // Act
+        var run = Run(AgentSources.RuntimeWithFileStore);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
     public void Given_A_Create_Method_Of_The_Projects_Own_The_Generator_Does_Not_Intercept_It()
     {
         // Act

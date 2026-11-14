@@ -135,9 +135,9 @@ All notable changes to this project are documented here. The format follows
   keeps them, where the last did.
 - The message for a missing store ends with the store interfaces the app registered, and the one for agents' own
   settings names `WithFileStore()` or a store of your own instead of `InMemoryTypeshiftStore<TId>`.
-- `VerifyAsync` has no method on `ITypeshiftStore<TId>` any more: a call on such a store takes the one on
-  `ISettingsStore<TId>`, which runs the same rules. Calls compile as before; an assembly compiled against an
-  earlier version is rebuilt.
+- `WithFileStore` is a method of `TypeshiftBuilder`, and the class `FileStoreExtensions` is gone. `VerifyAsync` has
+  no method on `ITypeshiftStore<TId>` any more: a call on such a store takes the one on `ISettingsStore<TId>`, which
+  runs the same rules. Calls compile as before; an assembly compiled against an earlier version is rebuilt.
 - **Breaking:** `store.VerifyAsync(id)` is now `store.VerifyAsync(id, otherId)`. The check stores a document and an
   entry under the second id first and fails when they changed, or when they load under the first id, so a store that
   forgets the id in a query no longer passes. Such a store served one customer's settings or conversation to another.
@@ -324,6 +324,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- `typeshift.WithFileStore()` compiles inside `TypeshiftRuntime.Create(client, typeshift => ...)` in a file with
+  `using Typeshift;` alone. It was CS1061 there: the method was an extension in
+  `Microsoft.Extensions.DependencyInjection`, which such a file does not import.
 - `store.VerifyAsync(id, otherId)` compiles for a store that implements several store interfaces without
   `ITypeshiftStore<TId>`, such as one of conversations and their decisions. It was CS0121, ambiguous between the
   interfaces, and needed a cast.

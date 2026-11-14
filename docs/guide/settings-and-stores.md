@@ -172,6 +172,8 @@ folder, since a save takes a lock file of its kind first.
   file stays in the folder between saves.
 - A file that is no JSON, or whose JSON has another shape than the store writes, fails the load with an
   `InvalidDataException` that names the file and the shape.
+- `WithFileStore` is a call of the chain like the others, so it needs no `using` of its own, inside
+  `TypeshiftRuntime.Create(client, typeshift => typeshift.WithFileStore())` either.
 - Registering the file store, as registering any store does, ends the memory: settings under ids and conversations
   then need a store of their own ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call)).
   `InMemoryTypeshiftStore<TId>` beside the file store keeps those in memory and leaves the agents' own settings to

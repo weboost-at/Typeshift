@@ -434,6 +434,27 @@ public static class AgentSources
         }
         """;
 
+    // D67: an app without a container that knows the Typeshift namespace alone and keeps its agents' settings in files
+    public const string RuntimeWithFileStore =
+        """
+        #pragma warning disable CS1591
+
+        using Typeshift;
+
+        namespace Demo;
+
+        public partial class SupportAgent : Agent
+        {
+            public SupportAgent() => WithChatOptions().WithModel("openai", "fast-model");
+        }
+
+        internal static class Program
+        {
+            public static TypeshiftRuntime Start(Microsoft.Extensions.AI.IChatClient client) =>
+                TypeshiftRuntime.Create(client, typeshift => typeshift.WithFileStore(store => store.Folder = "data"));
+        }
+        """;
+
     // An app whose agents and toolsets live in its references: it holds the JSON context of its typed results and
     // no toolset, agent or schema annotations class. The System.Text.Json generator does not run here; what it would
     // write is stubbed

@@ -1,7 +1,3 @@
-public static class Microsoft.Extensions.DependencyInjection.FileStoreExtensions
-public static Typeshift.TypeshiftBuilder Microsoft.Extensions.DependencyInjection.FileStoreExtensions.WithFileStore(Typeshift.TypeshiftBuilder builder, System.Action<Typeshift.FileStoreOptions>? configure = null, bool replace = false)
-public static Microsoft.Extensions.DependencyInjection.FileStoreExtensions.extension(Typeshift.TypeshiftBuilder)
-public Typeshift.TypeshiftBuilder Microsoft.Extensions.DependencyInjection.FileStoreExtensions.extension(Typeshift.TypeshiftBuilder).WithFileStore(System.Action<Typeshift.FileStoreOptions>? configure = null, bool replace = false)
 public static class Microsoft.Extensions.DependencyInjection.TypeshiftServiceCollectionExtensions
 public static Typeshift.TypeshiftBuilder Microsoft.Extensions.DependencyInjection.TypeshiftServiceCollectionExtensions.AddTypeshift(Microsoft.Extensions.DependencyInjection.IServiceCollection services)
 public static Microsoft.Extensions.DependencyInjection.TypeshiftServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection)
@@ -596,6 +592,7 @@ public Microsoft.Extensions.DependencyInjection.IServiceCollection Typeshift.Typ
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithApprovalRule<TRule>() where TRule : class, Typeshift.IToolApprovalRule
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithChatClientProvider<TProvider>() where TProvider : class
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithConversationTracker<TId>() where TId : notnull
+public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithFileStore(System.Action<Typeshift.FileStoreOptions>? configure = null, bool replace = false)
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithMcpToolProvider<TProvider>() where TProvider : class, Typeshift.IMcpToolProvider
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithOptions(System.Action<Typeshift.TypeshiftOptions> configure)
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithRealtimeTracking(Typeshift.RealtimeTrackingOptions? options = null)
