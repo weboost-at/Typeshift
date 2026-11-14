@@ -53,18 +53,18 @@ public abstract class GeneratedToolFunction(ToolJson json) : AIFunction
     /// <param name="arguments">The model's arguments.</param>
     /// <param name="name">The parameter's name.</param>
     /// <returns>The value, bound through the type's JSON contract.</returns>
-    /// <exception cref="ArgumentException">
+    /// <exception cref="ToolException">
     /// The model did not pass the argument, passed null for a parameter that takes none, or passed JSON that does not
     /// fit the parameter's type.
     /// </exception>
     protected T GetArgument<T>(AIFunctionArguments arguments, string name)
     {
         if (!arguments.TryGetValue(name, out var value))
-            throw new ArgumentException($"The tool '{Name}' requires the argument '{name}'.", name);
+            throw new ToolException($"The tool '{Name}' requires the argument '{name}'.");
 
         // A parameter that takes any JSON, such as a JsonElement, takes a JSON null as the value it is
         if (IsNull(value) && value is not T && !AcceptsNull<T>(name))
-            throw new ArgumentException($"The tool '{Name}' requires the argument '{name}', and it was null.", name);
+            throw new ToolException($"The tool '{Name}' requires the argument '{name}', and it was null.");
 
         return Bind<T>(value, name);
     }
@@ -77,7 +77,7 @@ public abstract class GeneratedToolFunction(ToolJson json) : AIFunction
     /// <param name="name">The parameter's name.</param>
     /// <param name="defaultValue">The parameter's default.</param>
     /// <returns>The value, or <paramref name="defaultValue"/> when the argument is absent or null.</returns>
-    /// <exception cref="ArgumentException">The model passed JSON that does not fit the parameter's type.</exception>
+    /// <exception cref="ToolException">The model passed JSON that does not fit the parameter's type.</exception>
     protected T GetArgument<T>(AIFunctionArguments arguments, string name, T defaultValue) =>
         arguments.TryGetValue(name, out var value) && !IsNull(value) ? Bind<T>(value, name) : defaultValue;
 
@@ -132,9 +132,8 @@ public abstract class GeneratedToolFunction(ToolJson json) : AIFunction
         catch (JsonException exception)
         {
             // D53: the model corrects its call only when it reads which argument of which tool was wrong
-            throw new ArgumentException(
+            throw new ToolException(
                 $"The argument '{name}' of the tool '{Name}' does not fit its schema: {exception.Message}",
-                name,
                 exception);
         }
     }

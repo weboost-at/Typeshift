@@ -48,8 +48,11 @@ A call runs the sub-agent in a fresh context, with no conversation of its own, a
 runs with the caller's settings id, so the settings stored for the sub-agent under that id apply. It also runs in the
 caller's mode and shares the caller's [standing approvals](./tool-approval.md#approving-for-the-conversation) and
 [approval rules](./tool-approval.md#approval-rules). In [plan mode](./tool-approval.md#plan-mode) it researches with
-its read-only tools and answers the caller, which presents the plan. A sub-agent that fails, for example because no
-client serves its model, answers its caller with the exception's message, and the calling run goes on.
+its read-only tools and answers the caller, which presents the plan.
+
+A sub-agent that fails, for example because no client serves its model, fails its call as
+[a tool that fails](./toolsets.md#when-a-tool-fails) does. The calling model reads that the call failed, but not
+why, the exception is logged and set on the call's span, and the calling run goes on.
 
 Its tool calls and tokens stay out of the caller's history, which keeps a long run's context small. A sub-agent can
 read twenty files and answer in one paragraph, and only the paragraph reaches the caller. When the calling agent's run
@@ -113,7 +116,8 @@ internal sealed record CityCompanies(string City, IReadOnlyList<string> Companie
 - When the sub-agent answers without that JSON, the call fails, and the calling model reads why.
 - In the background, the JSON arrives as the sub-agent's answer, and so does the failure.
 - Under [Native AOT](./native-aot.md), `T` needs JSON metadata, as for `RunAsync<T>`. Without it, the call
-  fails, and only the calling model reads why.
+  fails. The calling model reads only that it failed, and the `NotSupportedException` that names the type is in
+  your log and on the call's span.
 
 ### In the background
 
@@ -137,6 +141,8 @@ When the sub-agent finishes, its answer reaches the calling run as a message bef
   or tool call sees the cancellation, so a tool that ignores its `CancellationToken` holds up the end of the run.
 - When a background sub-agent never answered, because the calling run ended first or the process crashed, the
   conversation's next run tells the model it was lost, so the model can call it again.
+- A background sub-agent that fails tells the calling model so in its message, without the exception's message.
+  Typeshift logs the exception as an error and records it on the calling run's span.
 
 The sub-agent itself is an agent like any other. This one explores the workspace with a fast model and offers only
 the reading tools of the app's `WorkspaceToolset`, so none of its calls needs approval:

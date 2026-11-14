@@ -59,7 +59,9 @@ the response before the conversation stores how the run ended.
    model response passes a gate before the loop runs its calls. There, approval rules, standing approvals and auto
    mode decide each call of a tool that requires approval, and a rejected call gets the reason as its result. If a
    call remains that only your app can decide, the run stores a decision for it, runs none of the response's calls
-   and ends ([Approval and modes](./tool-approval.md)).
+   and ends ([Approval and modes](./tool-approval.md)). A tool that throws does not end the run. The model reads
+   that the call failed, and why when the tool threw a `ToolException`
+   ([When a tool fails](./toolsets.md#when-a-tool-fails)).
 
 ## Inside the tool loop
 

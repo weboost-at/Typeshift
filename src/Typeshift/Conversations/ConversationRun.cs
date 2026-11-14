@@ -484,9 +484,17 @@ internal sealed class ConversationRun(
         {
             return $"The background agent {agent} answered:\n\n{await work(_stopping.Token)}";
         }
-        catch (Exception exception) when (!_stopping.IsCancellationRequested)
+        catch (ToolException exception) when (!_stopping.IsCancellationRequested)
         {
             return $"The background agent {agent} failed: {exception.Message}";
+        }
+        catch (Exception exception) when (!_stopping.IsCancellationRequested)
+        {
+            // D53: a message nobody wrote for the model stays with the app, as a failed tool call's does
+            logger.LogError(exception, "The background agent {Agent} failed in {Conversation}.", agent, Conversation);
+            run.Activity?.AddException(exception);
+
+            return $"The background agent {agent} failed. {ToolLoop.Undisclosed}";
         }
         catch (Exception)
         {

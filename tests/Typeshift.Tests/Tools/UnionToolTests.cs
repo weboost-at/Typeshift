@@ -112,7 +112,9 @@ public class UnionToolTests : HostTestBase
         var failure = await Record.ExceptionAsync(() => find.InvokeAsync(Arguments(("key", key)), Ct).AsTask());
 
         // Assert
-        failure!.Message.Should().Contain("A JSON true fits no single case of TicketKey: Int32, String.");
+        failure!.Message.Should().Be(
+            "The argument 'key' of the tool 'find_ticket' does not fit its schema: "
+            + "A JSON true fits no single case of TicketKey: Int32, String.");
     }
 
     [Fact]

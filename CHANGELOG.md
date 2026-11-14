@@ -35,6 +35,8 @@ All notable changes to this project are documented here. The format follows
   `WithStorageKind(Generated.Kind)` or a tool that takes another agent's generated `Settings`. The generator cannot
   see such code and left the declaration out without a word: the tool was missing, or the agent's settings were
   stored under the kind of its class. The message names the first difference.
+- `ToolException`: a tool throws it to tell the model why a call failed. The model reads its message as the call's
+  result, so write it as a hint, such as "No ticket 4711 exists. Search for it first."
 
 ### Changed
 
@@ -162,6 +164,20 @@ All notable changes to this project are documented here. The format follows
   although the tool's schema lists it as required, and the method failed on it later.
 - The error for a tool parameter whose type System.Text.Json cannot read or write names the tool and the parameter.
   For a parameter that is such a type itself it says to use another type, where it advised `[JsonIgnore]`.
+- **Breaking:** the model no longer reads the message of every exception a tool throws. It reads the message of a
+  `ToolException`, and of any other exception one fixed sentence: "Error: Function failed. The details of the
+  failure are not available to you." Where a tool throws a hint for the model, as in
+  `throw new InvalidOperationException("No ticket 4711 exists. Search for it first.")`, throw
+  `new ToolException(...)` with the same text. Before, what a database driver or an HTTP client wrote into its
+  exception, a server's name or a connection string for example, went to the model provider, into the response and
+  into the stored conversation. The exception is not lost: the tool loop logs it as an error, the call's
+  `execute_tool` span carries its type and message, and past `WithMaxConsecutiveToolErrors` it ends the run and
+  reaches your code as before.
+- A call whose arguments do not fit fails with a `ToolException` where it failed with an `ArgumentException`, so
+  the model reads "The tool 'probe' requires the argument 'query'." without "(Parameter 'query')" behind it.
+- A sub-agent whose run fails, for example because no client serves its model, tells the calling model only that
+  the call failed, in the foreground and in the background. The exception is logged as an error and set on the
+  span. An answer outside the type of `WithResult<T>()` still tells the calling model what the sub-agent answered.
 
 ### Fixed
 

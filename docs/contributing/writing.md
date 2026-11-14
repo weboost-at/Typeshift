@@ -26,7 +26,7 @@ slogan, rewrite it.
 | "The analyzer rejects `ref` and `out` parameters with TSH004." | "`ref` and `out` parameters are TSH004." |
 | "A tool is named after its method in snake_case, without `Async`." | "The name is, by default, derived from the method in snake_case form." |
 | "Stored settings are keyed by the tool's name, so renaming the method orphans them." | "A tool's name keys its stored settings. Rename the method. The settings no longer apply." |
-| "Write the exception's message as a hint, and the model can correct its call." | "It's worth noting that exception messages are seamlessly surfaced to the model." |
+| "Write the `ToolException`'s message as a hint, and the model can correct its call." | "It's worth noting that exception messages are seamlessly surfaced to the model." |
 | "A UI can forward the updates over SignalR, for example." | "A UI forwards them over SignalR, say." |
 
 - **Present tense**, describing what the library does today. What is not built yet belongs in

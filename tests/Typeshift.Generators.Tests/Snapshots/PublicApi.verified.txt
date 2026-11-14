@@ -511,6 +511,9 @@ public Typeshift.ToolBuilder Typeshift.ToolBuilder.WithName(string name)
 public Typeshift.ToolBuilder<TSettings> Typeshift.ToolBuilder.WithSettings<TSettings>() where TSettings : class, new()
 public sealed class Typeshift.ToolBuilder<TSettings> where TSettings : class, new()
 public Typeshift.ToolBuilder<TSettings> Typeshift.ToolBuilder<TSettings>.Configurable<TMember>(System.Func<TSettings, TMember> member)
+public class Typeshift.ToolException : System.Exception
+public Typeshift.ToolException.ToolException(string message)
+public Typeshift.ToolException.ToolException(string message, System.Exception innerException)
 public sealed class Typeshift.ToolExclusion<TToolset> where TToolset : Typeshift.Toolset
 public Typeshift.ToolExclusion<TToolset> Typeshift.ToolExclusion<TToolset>.Exclude(System.Func<Typeshift.ToolList<TToolset>, Typeshift.ToolName> tool)
 public sealed class Typeshift.ToolInclusion<TToolset> where TToolset : Typeshift.Toolset

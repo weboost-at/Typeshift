@@ -62,6 +62,12 @@ wait; those appear under the run that carries your app's answers out
 A compaction summary that fails does not fail the run either: Typeshift logs a warning, records the exception on the
 run's span, and goes on as [The summary model](./models.md#the-summary-model) describes.
 
+A tool call that throws does not fail the run either, until [too many rounds in a row](./toolsets.md#when-a-tool-fails)
+fail. Its `execute_tool` span is an error, with the exception's type in `error.type` and its message as the status
+description, and the tool loop logs the exception as an error. The span and the log are where a tool's exception
+goes in full: the model reads its message only when the tool threw a `ToolException`. A background sub-agent that
+fails is logged as an error and recorded on the calling run's span.
+
 A `chat` span names the backend that answered its call. Its `gen_ai.provider.name`, `server.address` and
 `server.port` come from the `ChatClientMetadata` of the client the run got, which each provider's client library
 fills in. When [your own provider](./models.md#your-own-provider) returns a client per customer, each customer's
@@ -98,6 +104,11 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 The variable is read once per process, so set it before your app starts. The `chat` spans then carry the messages of
 their call, and each `execute_tool` span carries its call's arguments in `gen_ai.tool.call.arguments` and its result
 in `gen_ai.tool.call.result`.
+
+An exception's message is no message content. The status of a failed `execute_tool` or `invoke_agent` span carries
+it whatever the variable says, and so does the entry that
+[ends a failed run](./conversations.md#what-is-stored) in the stored conversation. So a trace backend and the
+store receive what a database driver or an HTTP client wrote into its exception.
 
 ::: warning Captured content is your customers' data
 With the variable set, your traces hold every run's messages and every tool call's arguments and results, including

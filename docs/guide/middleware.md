@@ -97,6 +97,8 @@ internal sealed class AuditToolCalls(ICurrentCustomer customer, ILogger<AuditToo
   answer approved it, in the run that carries the answer out.
 - What it returns is the result the model receives. Return without calling `next`, and it answers in place of the
   tool.
+- An exception the tool throws passes through it. Catch one there and throw a `ToolException` in its place when
+  the model should read why the call failed ([When a tool fails](./toolsets.md#when-a-tool-fails)).
 - Setting `call.Terminate` ends the tool loop. The model isn't called again with this round's results, and other
   calls of the same round may be skipped.
 

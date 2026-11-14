@@ -188,13 +188,14 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         // D32: a tool loop per call with that call's iteration limit, so concurrent calls never share one
         IChatClient Loop(int iterations)
         {
-            var loop = new FunctionInvokingChatClient(decisions, loggers, _services)
+            var loop = new ToolLoop(decisions, loggers, _services)
             {
                 MaximumIterationsPerRequest = iterations,
                 MaximumConsecutiveErrorsPerRequest = run.MaxConsecutiveToolErrors,
                 AllowConcurrentInvocation = run.ConcurrentToolCalls,
 
-                // D53: the model fixes a failed call only when it reads why it failed
+                // D53: the model fixes a failed call only when it reads why it failed, which the loop passes on for
+                // a message written for the model
                 IncludeDetailedErrors = true,
 
                 // The call of an answered plan resolves whatever mode the run continues in

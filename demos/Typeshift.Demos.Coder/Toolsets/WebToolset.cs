@@ -22,7 +22,7 @@ internal partial class WebToolset : Toolset
     public static Task<WebPage> WebFetchAsync(Uri url, IServiceProvider services, CancellationToken ct) =>
         url is { IsAbsoluteUri: true, Scheme: "http" or "https" }
             ? services.GetRequiredService<SafeWebFetch>().FetchAsync(url, ct)
-            : throw new ArgumentException($"'{url}' is no absolute http or https URL.", nameof(url));
+            : throw new ToolException($"'{url}' is no absolute http or https URL.");
 }
 
 /// <summary>

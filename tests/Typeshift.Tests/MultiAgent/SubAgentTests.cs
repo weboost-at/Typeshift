@@ -7,6 +7,9 @@ namespace Typeshift.Tests.MultiAgent;
 
 public class SubAgentTests : MultiAgentTestBase
 {
+    // What a model reads of a failure nobody wrote for it
+    private const string Undisclosed = "The details of the failure are not available to you.";
+
     private readonly RunEnds _ends = new();
 
     protected override void ConfigureServices(IServiceCollection services)
@@ -194,6 +197,41 @@ public class SubAgentTests : MultiAgentTestBase
         // Assert
         ChatClient.Requests[2][^1].Text.Should().EndWith(Data.Agent.Reason);
         response.Messages[^1].Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_A_Sub_Agent_Whose_Run_Fails_Its_Caller_Reads_Only_That_The_Call_Failed()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Tool.Answer));
+
+        HelperClient.Reply(new InvalidOperationException(Data.Agent.Reason));
+
+        // Act
+        await Host<LeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        Result(ChatClient.Requests[1]).Should().Be($"Error: Function failed. {Undisclosed}");
+    }
+
+    [Fact]
+    public async Task Given_A_Background_Sub_Agent_Whose_Run_Fails_Its_Caller_Reads_Only_That_It_Failed()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Agent.Steering))
+            .Reply(Text(Data.Tool.Answer));
+
+        HelperClient.Reply(new InvalidOperationException(Data.Agent.Reason));
+
+        // Act
+        await Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Requests[^1][^1].Text.Should().Be($"The background agent helper_agent failed. {Undisclosed}");
     }
 
     [Fact]

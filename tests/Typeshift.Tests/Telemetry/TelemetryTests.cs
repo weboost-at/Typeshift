@@ -258,6 +258,27 @@ public sealed class TelemetryTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Tool_That_Throws_Its_Span_Carries_The_Exception_The_Model_Does_Not_Read()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "crash", ("message", Data.Agent.Reason)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var host = Host<FailingAgent>().WithConversationId(Data.Agent.ConversationId);
+
+        // Act
+        await host.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        var span = Activities.Under(Activities.Run(Data.Agent.ConversationId))
+            .Single(activity => activity.DisplayName == "execute_tool crash");
+
+        span.GetTagItem("error.type").Should().Be(typeof(InvalidOperationException).FullName);
+        span.StatusDescription.Should().Be(Data.Agent.Reason);
+    }
+
+    [Fact]
     public async Task Given_A_Run_That_Waits_For_A_Decision_Its_Span_Carries_No_Error_And_No_Tool_Span()
     {
         // Arrange

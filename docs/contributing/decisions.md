@@ -606,7 +606,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   every run has a `ConversationRun`, which stores only with a conversation; the run's end cancels the sub-agents
   still working and awaits them, so none outlives its run or the scope of a host disposed after it (D76), and the
   next run tells the model which ones it lost, after a crash, a cancellation or a failure,
-  including the ones a summary left working. TSH023 and TSH024 check the agents a compilation uses, a reference's
+  including the ones a summary left working. A sub-agent that fails tells the calling model only that it failed,
+  unless it failed with a `ToolException` (D53). TSH023 and TSH024 check the agents a compilation uses, a reference's
   through its module stamp, which carries the agent's name, whether it has a description and the tools it offers that
   require approval; tool stamps carry `RequiresApproval` for that list. TSH026 checks the compilation's own agents,
   since assemblies cannot reference each other in a circle.
@@ -707,13 +708,25 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Alternatives:** keeping them in the library; a `Typeshift.Toolsets` package in this repository, built like any
   plugin, which then needed TSH021 to accept a toolset-only package built with another provider id type.
 
-### D53. A failed tool call reports its exception's message
+### D53. A failed tool call tells the model what was written for it
 
 - **Status:** owner.
 - **Context:** Microsoft.Extensions.AI's tool loop hides why a call failed unless `IncludeDetailedErrors` is on, so
-  the model read only "Error: Function failed." and could not correct a missing argument or an unknown id.
-- **Decision:** the tool loop always passes the exception's message to the model. Tool authors write messages that
-  say what to do instead, and keep secrets out of them, since the provider receives them.
+  the model read only "Error: Function failed." and could not correct a missing argument or an unknown id. Up to
+  0.1.0-alpha.6 the loop therefore passed every exception's message on. Most exceptions a tool lets through were
+  written by a database driver, an HTTP client or the container, for a developer: they named hosts, queries and
+  connection strings, and went to the model provider, into the response, into the stored conversation and to its
+  watchers.
+- **Decision:** `ToolException` is the exception whose message is written for the model. The model reads it as the
+  call's result, behind the prefix Microsoft.Extensions.AI writes. Of any other exception it reads one fixed
+  sentence, `ToolLoop.Failed`. What Typeshift itself tells the model is a `ToolException`: an argument that does
+  not fit, below, and a sub-agent's answer outside its result type (D65). A background sub-agent's failure (D33)
+  follows the same rule in the message that reports it, and is logged and recorded on the calling run's span.
+- **The exception is never lost:** `ToolLoop` derives from `FunctionInvokingChatClient` and overrides
+  `CreateResponseMessages`. After the base wrote the results, it replaces the result of each call whose exception is
+  no `ToolException`. Nothing is caught, wrapped or thrown again, so the loop logs the exception the tool threw as
+  an error, sets its type and message on the call's `execute_tool` span, counts it for `MaxConsecutiveToolErrors`
+  and, past that limit, ends the run with it as it is.
 - **Arguments:** a call the model got wrong fails before the method runs, with a message that names the tool and
   the argument. An argument holds what its schema requires: a required one may not be missing or, unless the
   parameter is nullable or a union (D62), null, and a record's member may not be left out without a default or be
@@ -722,9 +735,15 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   annotations also fail a null being written. A serializer failure is wrapped with the argument's and the tool's
   name. An object sent as a JSON string is read as its JSON only after the string itself did not bind, so a text
   that starts with `[` still binds a string, also as a case of a union.
-- **Where:** `Hosting/AgentHost.cs`, `Generated/GeneratedToolFunction.cs`, `Generated/ToolJson.cs`.
-- **Alternatives:** a run option, off by default, which every agent would have to turn on to recover from its errors;
-  catching exceptions in tool middleware, which hides the failure from `MaxConsecutiveToolErrors`.
+- **Where:** `Toolsets/ToolException.cs`, `Hosting/ToolLoop.cs`, `Hosting/AgentHost.cs`,
+  `Generated/GeneratedToolFunction.cs`, `Generated/ToolJson.cs`, `Agents/SubAgentResult.cs`,
+  `Conversations/ConversationRun.cs`.
+- **Alternatives:** every exception's message to the model, as before, which sends a third party text nobody wrote
+  for it; a run option that passes every message on again, which is the same forwarding behind a switch, and three
+  lines of tool middleware for an app that wants it; an exception with the fixed sentence thrown from the function
+  invoker in the tool's place, which hands the app a wrapper past the limit and puts the wrapper on the span;
+  catching exceptions in tool middleware and returning a result, which hides the failure from
+  `MaxConsecutiveToolErrors`.
 
 ## Storage
 

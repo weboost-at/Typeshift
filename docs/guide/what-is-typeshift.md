@@ -108,7 +108,8 @@ you ship, your app has to do these things itself:
   ([Approval and modes](./tool-approval.md)).
 - Treat the tools of an MCP server you do not control as untrusted, and mark a server `ReadOnly()` only when its
   tools change nothing ([How the agent offers the tools](./mcp.md#how-the-agent-offers-the-tools)).
-- Keep secrets out of the messages of the exceptions your tools throw ([Results](./toolsets.md#results)).
+- Throw a `ToolException` for what the model should read of a failed tool call, and keep out of its message what
+  the model provider may not hold ([When a tool fails](./toolsets.md#when-a-tool-fails)).
 - Make tools with side effects safe to repeat ([Resuming](./conversations.md#resuming)).
 - Turn compaction on for agents whose conversations grow long ([Compaction](./conversations.md#compaction)).
 - With several processes, keep each conversation to one run at a time yourself

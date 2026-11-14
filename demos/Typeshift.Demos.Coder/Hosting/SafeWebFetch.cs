@@ -22,7 +22,18 @@ public sealed partial class SafeWebFetch : IDisposable
 
     internal async Task<WebPage> FetchAsync(Uri url, CancellationToken ct)
     {
-        var html = await _http.GetStringAsync(url, ct);
+        string html;
+
+        try
+        {
+            html = await _http.GetStringAsync(url, ct);
+        }
+        catch (HttpRequestException exception)
+        {
+            // The model picked the URL, so it reads why the fetch failed and can pick another
+            throw new ToolException($"'{url}' could not be fetched: {exception.Message}", exception);
+        }
+
         var title = Title().Match(html) is { Success: true } match ? match.Groups[1].Value.Trim() : null;
         var text = Whitespace().Replace(Tags().Replace(html, " "), " ").Trim();
 

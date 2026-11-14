@@ -150,8 +150,8 @@ parameter of these types is filled the same way, so `CancellationToken? ct = nul
 ### Arguments that do not fit
 
 A model corrects a call only when it reads what was wrong with it. So a call whose arguments do not fit its
-parameters fails before your method runs, with an `ArgumentException` whose message the tool loop reports back to
-the model:
+parameters fails before your method runs, with a [`ToolException`](#when-a-tool-fails) whose message the model
+reads:
 
 - A required argument the model leaves out fails the call, naming the tool and the argument.
 - A null for a required argument fails the same way, so a tool never acts on `0` where the model knew no number.
@@ -178,12 +178,58 @@ The analyzer rejects a result JSON cannot carry: a pointer, a ref struct or `dyn
 ([TSH004](./diagnostics.md#tsh004)). It also rejects a task or a stream that may itself be null, such as
 `Task<string>?`. Return the task always and make its value nullable, as in `Task<string?>`.
 
-When a tool throws, the model reads the exception's message. Write it as a hint, such as "No ticket 4711 exists.
-Search for it first.", and the model can correct its call. Keep secrets out of it, because the message goes to the
-model provider.
+## When a tool fails
 
-Three rounds of tool calls in a row may fail this way. A fourth failing round ends the run, and the tool's exception
-reaches your code. [`WithMaxConsecutiveToolErrors`](./builders.md#runoptionsbuilder) sets another limit.
+A tool tells the model what went wrong by throwing a `ToolException`. The model reads its message as the result of
+the call, so write it as a hint that says what to do instead, and the model can correct its call:
+
+<!-- snippet: tool-exception -->
+<a id='snippet-tool-exception'></a>
+```cs
+internal partial class TicketEscalationToolset : Toolset
+{
+    public TicketEscalationToolset() => AddTool(EscalateTicketAsync);
+
+    /// <summary>
+    /// Hands an open ticket to a person of the support team.
+    /// </summary>
+    /// <param name="number">The ticket's number.</param>
+    public static async Task<string> EscalateTicketAsync(int number, IServiceProvider services, CancellationToken ct)
+    {
+        var ticket = await services.GetRequiredService<ITicketClient>().GetAsync(number, ct)
+            ?? throw new ToolException($"No ticket {number} exists. Search for it first.");
+
+        if (ticket.Closed)
+            throw new ToolException($"Ticket {number} is closed. Tell the customer to open a new one.");
+
+        return $"Ticket {number} is with the support team now.";
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketEscalationToolset.cs#L5-L25' title='Snippet source file'>snippet source</a> | <a href='#snippet-tool-exception' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- For ticket 4711 the model reads "Error: Function failed. Exception: No ticket 4711 exists. Search for it first."
+  and can search before it tries again.
+- The message goes where a tool's result goes: to the model provider, into the response and into the stored
+  conversation. Keep out of it what those may not hold.
+- Derive exceptions of your own from `ToolException` where your code catches them by type.
+- What Typeshift itself tells the model is a `ToolException` too: [arguments that do not fit](#arguments-that-do-not-fit)
+  and a sub-agent's answer [outside its result type](./multi-agent.md#typed-answers).
+
+Of any other exception the model reads one fixed sentence: "Error: Function failed. The details of the failure are
+not available to you." A database driver, an HTTP client or the container wrote such a message for a developer, and
+it may hold a server's name, a query or a connection string. It stays in your app, where you find it:
+
+- The tool loop logs the exception as an error, under the category
+  `Microsoft.Extensions.AI.FunctionInvokingChatClient`.
+- The call's `execute_tool` span carries its type and its message ([Spans](./observability.md#spans)).
+- A [tool middleware](./middleware.md#wrap-every-tool-call) sees it first, and can throw a `ToolException` in its
+  place, for example for a timeout the model may retry.
+
+Three rounds of tool calls in a row may fail, whatever they threw. A fourth failing round ends the run, and the
+exception the tool threw reaches your code as it is.
+[`WithMaxConsecutiveToolErrors`](./builders.md#runoptionsbuilder) sets another limit.
 
 ## Union types
 

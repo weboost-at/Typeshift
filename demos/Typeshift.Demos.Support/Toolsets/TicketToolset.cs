@@ -59,7 +59,7 @@ internal partial class TicketToolset : Toolset
 
         return services.GetRequiredService<CrmData>().Tickets
             .FirstOrDefault(ticket => ticket.Number == number && ticket.Customer == customer)
-            ?? throw new InvalidOperationException($"The customer has no ticket {number}; search for it first.");
+            ?? throw new ToolException($"The customer has no ticket {number}; search for it first.");
     }
 
     /// <summary>

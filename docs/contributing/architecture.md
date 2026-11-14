@@ -85,9 +85,10 @@ operation action. `ParameterDocsSuppressor` suppresses CS1573 for the parameters
 1. `FunctionInvokingChatClient` calls `InvokeAsync` with the model's arguments and the services it was built with,
    which are the run's (D25).
 2. The generated `InvokeToolAsync` binds each parameter with `GetArgument<T>`. A value that is already `T`, a JSON
-   element or JSON text is converted through `JsonTypeInfo<T>`. A missing required argument throws an
-   `ArgumentException`, and an absent optional one takes its default. The settings the function was created with,
-   the services, the token and the raw arguments pass through and stay out of the schema (D16).
+   element or JSON text is converted through `JsonTypeInfo<T>`. A required argument that is missing, or null where
+   the parameter takes none, throws a `ToolException`, as does JSON that does not fit, each naming the tool and the
+   argument (D53). An absent optional argument takes its default. The settings the function was created with, the
+   services, the token and the raw arguments pass through and stay out of the schema (D16).
 3. The result is serialized through `JsonTypeInfo` into a `JsonElement`. A stream is read to its end first, by the
    library's `GetResultAsync`, which stops at the call's token, and serialized as the list of its items (D45).
 
@@ -115,9 +116,10 @@ unless it is an object of properties.
    pipeline, outermost first:
    - the conversation (D46, D50), which also settles the decisions that wait (D80), run middleware (D30), context
      providers (D31), the mode (D52), and author names on every message (D26);
-   - `FunctionInvokingChatClient`, with the run options, the scope's services, `exit_plan_mode` and, as its function
-     invoker, the tool gate with the tool middleware behind it, built anew for each pass with what is left of the
-     run's limit, so one client serves concurrent calls;
+   - `ToolLoop`, a `FunctionInvokingChatClient` that writes one fixed sentence as the result of a call whose
+     exception is no `ToolException` (D53), with the run options, the scope's services, `exit_plan_mode` and, as its
+     function invoker, the tool gate with the tool middleware behind it, built anew for each pass with what is left
+     of the run's limit, so one client serves concurrent calls;
    - the decision gate (D81), the checkpoints, unique call ids (D59), compaction (D32), and the provider's client,
      instrumented (D36), behind a wrapper that never disposes it (D29).
 4. The options are a `ChatOptions` subclass that remembers the run options, so the raw path's client gets them too.

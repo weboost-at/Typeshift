@@ -159,7 +159,7 @@ public class ToolInvocationTests : HostTestBase
     }
 
     [Fact]
-    public async Task Given_A_Missing_Required_Argument_The_Call_Fails_With_An_ArgumentException()
+    public async Task Given_A_Missing_Required_Argument_The_Call_Fails_With_A_ToolException_Naming_It()
     {
         // Arrange
         var count = SchemaToolset.CreateCountWords(Json);
@@ -168,7 +168,9 @@ public class ToolInvocationTests : HostTestBase
         var invoke = async () => await count.InvokeAsync(Arguments(), Ct);
 
         // Assert
-        await invoke.Should().ThrowAsync<ArgumentException>();
+        await invoke.Should()
+            .ThrowExactlyAsync<ToolException>()
+            .WithMessage("The tool 'count_words' requires the argument 'text'.");
     }
 
     [Theory]
@@ -184,10 +186,12 @@ public class ToolInvocationTests : HostTestBase
         arguments[argument] = asJson ? JsonElement.Parse("null") : null;
 
         // Act
-        var failure = await Record.ExceptionAsync(() => refund.InvokeAsync(arguments, Ct).AsTask());
+        var invoke = async () => await refund.InvokeAsync(arguments, Ct);
 
         // Assert
-        failure!.Message.Should().StartWith($"The tool 'refund' requires the argument '{argument}', and it was");
+        await invoke.Should()
+            .ThrowExactlyAsync<ToolException>()
+            .WithMessage($"The tool 'refund' requires the argument '{argument}', and it was null.");
     }
 
     [Theory]

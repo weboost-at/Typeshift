@@ -47,6 +47,7 @@ Typeshift reuses Microsoft.Extensions.AI's words wherever it can: a run returns 
 | **Store** | What your app registers with `WithStore<T>()` to keep settings (`ISettingsStore<TId>`), conversations (`IConversationStore<TId>`), their decisions (`IDecisionStore<TId>`) or all three (`ITypeshiftStore<TId>`). See [Register your store](./implementing-a-store.md#register-your-store). |
 | **Sub-agent** | Another agent offered as a tool with `UseAgent<T>()`. It works in a context of its own and answers with text. |
 | **Tool** | A static method that a toolset or an agent declares with `AddTool`, offered to the model as a generated `AIFunction`. |
+| **Tool exception** | A `ToolException`, which a tool throws to tell the model why a call failed. The model reads its message, and of any other exception only that the call failed. See [When a tool fails](./toolsets.md#when-a-tool-fails). |
 | **Tool list** | `ToolList<TToolset>`, the type `Include` and `Exclude` pick tools from. A generated extension block gives it one property per tool of the toolset. |
 | **Toolset** | A `partial` class deriving from `Toolset` that declares the tools of one domain. See [Toolsets](./toolsets.md). |
 | **Version** | The number that marks a stored document's current state; each save gives the document a new one. A save passes the version it loaded, so it fails when another save came first. Not the schema version. See [Save with a version](./implementing-a-store.md#save-with-a-version). |

@@ -109,6 +109,10 @@ The run fails when a server's tool is named like one of the agent's own tools or
 uses, because the model would otherwise see only one of them. The error names the server and the tool. An agent that
 uses servers also fails its run when no provider is registered.
 
+A server's tool whose call throws, for example because the server is down, fails like any other tool. The model
+reads only that the call failed, and the exception is in your log and on the call's span
+([When a tool fails](./toolsets.md#when-a-tool-fails)).
+
 ::: danger A server's tools are untrusted
 Treat a server's tool descriptions and results as untrusted text, never as instructions. The model reads both, so a
 server you do not control puts its words into the model's context.

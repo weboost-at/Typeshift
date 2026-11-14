@@ -111,6 +111,8 @@ Console.WriteLine($"{entries.Count} entries, {entries.Sum(entry => entry.Usage?.
 Runs that fail or stop early are stored too:
 
 - A failed run stores an entry with an `ErrorContent` that ends the run, then rethrows the exception to your code.
+  The `ErrorContent` holds the exception's message as it is, which no model reads. Show your users a text of your
+  own in its place, since a driver's or a provider's message may name what they should not see.
 - A streaming run that fails, is cancelled, or that your code stops reading early stores the updates that had arrived.
 - A cancelled run is stored too, because Typeshift stores without the run's cancellation token.
 - A run cut off by a crash has no ending entry, and [resuming](#resuming) continues it.
