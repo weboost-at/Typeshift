@@ -205,6 +205,11 @@ internal static class Descriptors
         + "settings and switch a conversation's mode with SetModeAsync on its host, or reject what must never run in "
         + "an approval rule");
 
+    public static readonly DiagnosticDescriptor ModelFilledParameter = Warning(
+        "TSH038",
+        "Model fills a settings or service parameter",
+        "The parameter '{0}' of the tool '{1}' is an argument the model fills, {2}");
+
     private static DiagnosticDescriptor Error(string id, string title, string message) =>
         Create(id, title, message, DiagnosticSeverity.Error);
 

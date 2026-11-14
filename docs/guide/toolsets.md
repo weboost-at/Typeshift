@@ -138,6 +138,10 @@ The `IServiceProvider` is the scope you resolved the agent's host from. So when 
 request, every tool of the run reaches that request's scoped services, such as the current customer. A nullable
 parameter of these types is filled the same way, so `CancellationToken? ct = null` receives the call's token.
 
+Every other parameter is an argument the model fills. A service as a parameter, such as `ITicketClient tickets`, is
+therefore not injected: it would be an argument that JSON cannot create, and the analyzer warns about it, as it does
+about a settings record whose `AddTool` lacks its `WithSettings<T>()` ([TSH038](./diagnostics.md#tsh038)).
+
 - An optional argument the model leaves out takes its default, and so does one it sends as null. A nullable
   reference parameter accepts null in the schema, but the model must still send it unless it has a default value. A
   reference parameter that defaults to null accepts null as well, also without the `?`, as in a project without

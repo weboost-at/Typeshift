@@ -41,3 +41,4 @@ TSH034 | Typeshift | Warning | Sub-agent cannot ask the user
 TSH035 | Typeshift | Error | Tool name is reserved
 TSH036 | Typeshift | Warning | Conversation store keeps no decisions
 TSH037 | Typeshift | Warning | Configurable mode can turn approval off
+TSH038 | Typeshift | Warning | Model fills a settings or service parameter

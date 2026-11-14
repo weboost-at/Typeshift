@@ -94,6 +94,69 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Parameter_Of_A_Service_Type_TSH038_Is_Reported_On_The_Parameter()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ServiceParameter);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH038",
+            DiagnosticSeverity.Warning,
+            "repository",
+            message: "The parameter 'repository' of the tool 'search' is an argument the model fills, and its type "
+                + "'ITicketRepository' is an interface, which JSON cannot create: for a service, take an "
+                + "IServiceProvider parameter and call GetRequiredService<ITicketRepository>()");
+    }
+
+    [Theory]
+    [InlineData("file", "'Stream' is an abstract class")]
+    [InlineData("render", "'Func<string, string>' is a delegate")]
+    public void Given_A_Parameter_Json_Cannot_Create_TSH038_Is_Reported_On_The_Parameter(string parameter, string kind)
+    {
+        // Act
+        var run = Run(DiagnosticSources.AbstractClassAndDelegateParameters);
+
+        // Assert
+        run.Assert.ReportsAmong("TSH038", DiagnosticSeverity.Warning, parameter).GetMessage().Should().Contain(kind);
+    }
+
+    [Fact]
+    public void Given_A_Settings_Parameter_Without_WithSettings_TSH038_Is_Reported_On_The_Parameter()
+    {
+        // Act
+        var run = Run(DiagnosticSources.SettingsParameterWithoutWithSettings);
+
+        // Assert
+        run.Assert.Reports("TSH038", DiagnosticSeverity.Warning, "settings")
+            .GetMessage()
+            .Should()
+            .Be("The parameter 'settings' of the tool 'find' is an argument the model fills, and its type "
+                + "'FindSettings' looks like settings: chain WithSettings<FindSettings>() onto AddTool to keep its "
+                + "values with your app");
+    }
+
+    [Fact]
+    public void Given_A_Parameter_Of_Another_Tools_Settings_Type_TSH038_Is_Reported_On_The_Parameter()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ParameterOfAnotherToolsSettingsType);
+
+        // Assert
+        run.Assert.Reports("TSH038", DiagnosticSeverity.Warning, "limits");
+    }
+
+    [Fact]
+    public void Given_Parameters_Json_Can_Create_TSH038_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(ShapeSources.ParametersJsonCanCreate);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH038");
+    }
+
+    [Fact]
     public void Given_Settings_That_Are_No_Record_TSH005_Is_Reported_On_WithSettings()
     {
         // Act

@@ -52,6 +52,88 @@ public static class DiagnosticSources
         }
         """;
 
+    // What a developer used to minimal APIs writes: a service as a parameter, which nothing injects
+    public const string ServiceParameter =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal interface ITicketRepository
+        {
+            string Find(string query);
+        }
+
+        internal partial class TicketToolset : Toolset
+        {
+            public TicketToolset() => AddTool(Search).WithDescription("Searches tickets.");
+
+            public static string Search(string query, ITicketRepository repository) => repository.Find(query);
+        }
+        """;
+
+    public const string AbstractClassAndDelegateParameters =
+        """
+        using System;
+        using System.IO;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class FileToolset : Toolset
+        {
+            public FileToolset() => AddTool(Read).WithDescription("Reads a file.");
+
+            public static string Read(Stream file, Func<string, string> render) => "";
+        }
+        """;
+
+    // The chain was cut to AddTool(Find) and the method kept its settings parameter
+    public const string SettingsParameterWithoutWithSettings =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record FindSettings
+        {
+            public int Limit { get; init; } = 5;
+        }
+
+        internal partial class CompanyToolset : Toolset
+        {
+            public CompanyToolset() => AddTool(Find).WithDescription("Finds companies.");
+
+            public static string Find(string city, FindSettings settings) => city;
+        }
+        """;
+
+    // One tool names the record as its settings, the other takes it under another name and names nothing
+    public const string ParameterOfAnotherToolsSettingsType =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record FindSettings
+        {
+            public int Limit { get; init; } = 5;
+        }
+
+        internal partial class CompanyToolset : Toolset
+        {
+            public CompanyToolset()
+            {
+                AddTool(Find).WithDescription("Finds companies.").WithSettings<FindSettings>();
+                AddTool(Count).WithDescription("Counts companies.");
+            }
+
+            public static string Find(string city, FindSettings settings) => city;
+
+            public static int Count(string city, FindSettings? limits = null) => 0;
+        }
+        """;
+
     public const string SettingsNotRecord =
         """
         using Typeshift;
@@ -3346,7 +3428,7 @@ public static class DiagnosticSources
         {
             public NoteToolset() => AddTool(Describe).WithDescription("Describes the agent's settings.");
 
-            public static string Describe(HelpAgent.Settings settings) => settings.ToString();
+            public static string Describe(HelpAgent.Settings stored) => stored.ToString();
         }
         """;
 

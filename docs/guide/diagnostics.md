@@ -47,6 +47,7 @@ a compiler error inside generated code.
 | [TSH035](#tsh035) | Error | Tool name is reserved |
 | [TSH036](#tsh036) | Warning | Conversation store keeps no decisions |
 | [TSH037](#tsh037) | Warning | Configurable mode can turn approval off |
+| [TSH038](#tsh038) | Warning | Model fills a settings or service parameter |
 
 TSH021 is retired: the diagnostic it named is gone, and ids are never reused.
 
@@ -472,6 +473,26 @@ rule's rejection holds in every mode.
 
 Keep the pick, and disable the warning there, only when every source of the agent's settings is your own code, for
 example a run that passes `Mode = AgentMode.Plan` and no settings that a customer stores or a page posts.
+
+## TSH038
+
+**Model fills a settings or service parameter.** Typeshift fills four kinds of
+[parameters](./toolsets.md#parameters) itself when it calls a tool, and every other parameter is an argument the
+model sends. The analyzer warns about two parameters that look as if the call filled them, and the tool is
+generated all the same:
+
+- A record that looks like the tool's settings: a parameter named `settings`, or one of a type that another tool of
+  the same class names in `WithSettings<T>()`. This tool's chain names no settings, so its schema lists every member
+  of the record and the model sets them. Chain `WithSettings<T>()` or `WithConfigurableSettings<T>()` onto its
+  `AddTool`.
+- An interface, an abstract class or a delegate, such as `ITicketRepository` or `ILogger<T>`. Typeshift injects no
+  services into parameters, and JSON cannot create such a type, so every call of the tool fails. Take an
+  `IServiceProvider` and resolve the service from it, as in `services.GetRequiredService<ITicketRepository>()`.
+
+A type that JSON reads is not reported: a collection interface such as `IReadOnlyList<T>`, a node of
+System.Text.Json such as `JsonNode`, and a type that carries `[JsonConverter]`, `[JsonPolymorphic]` or
+`[JsonDerivedType]`. When the model is meant to fill the parameter, for example through a converter that your JSON
+options register, disable the warning at the parameter.
 
 ## Related
 

@@ -106,6 +106,43 @@ public static class ShapeSources
         }
         """;
 
+    // Interfaces and abstract types JSON reads all the same, and a record argument that is no settings: the model
+    // fills each of them, and nothing warns
+    public const string ParametersJsonCanCreate =
+        """
+        using System.Collections.Generic;
+        using System.Text.Json.Nodes;
+        using System.Text.Json.Serialization;
+        using Typeshift;
+
+        namespace Demo;
+
+        [JsonPolymorphic]
+        [JsonDerivedType(typeof(Circle), "circle")]
+        internal abstract record Shape;
+
+        internal record Circle(double Radius) : Shape;
+
+        internal record Paging
+        {
+            public int Page { get; init; }
+        }
+
+        internal partial class ShapeToolset : Toolset
+        {
+            public ShapeToolset() => AddTool(Draw).WithDescription("Draws a shape.");
+
+            public static string Draw(
+                Shape shape,
+                IEnumerable<string> tags,
+                IReadOnlyList<int> sizes,
+                IDictionary<string, string> labels,
+                JsonNode extra,
+                Paging paging,
+                Paging? more = null) => "";
+        }
+        """;
+
     public const string EveryParameterKind =
         """
         using System;

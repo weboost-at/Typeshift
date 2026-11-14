@@ -60,6 +60,14 @@ internal static class KnownTypes
 
     public const string JsonSerializableAttribute = "System.Text.Json.Serialization.JsonSerializableAttribute";
 
+    // The attributes by which a type says how JSON reads it, whatever its kind
+    public static readonly string[] JsonShapes =
+    [
+        "System.Text.Json.Serialization.JsonConverterAttribute",
+        "System.Text.Json.Serialization.JsonPolymorphicAttribute",
+        "System.Text.Json.Serialization.JsonDerivedTypeAttribute"
+    ];
+
     public const string SchemaAnnotationsAttribute = "Weboost.SchemaAnnotations.SchemaAnnotationsAttribute";
 
     public const string ServiceProvider = "System.IServiceProvider";

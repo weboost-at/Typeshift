@@ -71,6 +71,10 @@ All notable changes to this project are documented here. The format follows
   `DecisionClosedReason.Cancelled`. With each decision's `AskedAt`, an app can time a prompt out.
 - `host.RevokeStandingApprovalAsync(tool, server)` withdraws an approval your app gave for the conversation, so the
   tool asks again from the conversation's next run on. `GetDecisionsAsync().Standing` lists what stands.
+- TSH038 warns about a tool parameter the model fills although it looks as if the call did: a settings record on a
+  tool whose `AddTool` lacks `WithSettings<T>()`, and a service such as `ITicketRepository` or `ILogger<T>`, an
+  interface, an abstract class or a delegate that JSON cannot create. Both built without a word. The settings
+  became arguments the model set, and a tool with a service parameter failed on every call.
 
 ### Changed
 

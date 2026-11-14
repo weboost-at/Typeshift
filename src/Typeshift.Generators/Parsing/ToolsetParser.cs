@@ -59,10 +59,18 @@ internal static class ToolsetParser
         CancellationToken ct)
     {
         var declared = new List<(ToolModel Tool, IInvocationOperation AddTool)>();
+        var addTools = ConstructorChains.GetInvocations(constructors).Where(IsAddTool).ToList();
 
-        foreach (var addTool in ConstructorChains.GetInvocations(constructors).Where(IsAddTool))
+        // The settings types the owner's tools name, for a tool that takes one of them without naming it (TSH038)
+        var settingsTypes = new HashSet<ITypeSymbol>(
+            addTools.SelectMany(ConstructorChains.GetChainedCalls)
+                .Where(call => call.TargetMethod.Name is "WithSettings" or "WithConfigurableSettings")
+                .Select(call => call.TargetMethod.TypeArguments[0]),
+            SymbolEqualityComparer.Default);
+
+        foreach (var addTool in addTools)
         {
-            if (ParseTool(addTool, owner, documented, reporter, ct) is not { } tool) continue;
+            if (ParseTool(addTool, owner, settingsTypes, documented, reporter, ct) is not { } tool) continue;
 
             var clash = declared
                 .Select(other => (
@@ -133,6 +141,7 @@ internal static class ToolsetParser
     private static ToolModel? ParseTool(
         IInvocationOperation addTool,
         INamedTypeSymbol owner,
+        ISet<ITypeSymbol> ownerSettings,
         bool documented,
         Reporter reporter,
         CancellationToken ct)
@@ -247,14 +256,15 @@ internal static class ToolsetParser
 
         foreach (var parameter in method.Parameters)
         {
+            // A method of a reference has no source here
+            var declared = parameter.Locations.FirstOrDefault(location => location.IsInSource)
+                ?? argument.Syntax.GetLocation();
+
             if (GetUnboundReason(parameter) is { } unbound)
             {
-                // A method of a reference has no source here
-                var declared = parameter.Locations.FirstOrDefault(location => location.IsInSource);
-
                 reporter.Report(
                     Descriptors.NotBindable,
-                    declared ?? argument.Syntax.GetLocation(),
+                    declared,
                     $"parameter '{parameter.Name}'",
                     name,
                     "bound from the model's arguments",
@@ -263,7 +273,11 @@ internal static class ToolsetParser
                 return null;
             }
 
-            parameters.Add(ParseParameter(parameter, chain.SettingsType, docs));
+            var parsed = ParseParameter(parameter, chain.SettingsType, docs);
+            parameters.Add(parsed);
+
+            if (parsed.Kind == ParameterKind.Argument && GetMisfilledReason(parameter, ownerSettings) is { } misfilled)
+                reporter.Report(Descriptors.ModelFilledParameter, declared, parameter.Name, name, misfilled);
         }
 
         if (GetUnreturnedReason(method.ReturnType) is { } unreturned)
@@ -544,6 +558,48 @@ internal static class ToolsetParser
             { TypeKind: TypeKind.Dynamic } => $"its type is dynamic; {instead}",
             _ => null
         };
+
+    // D15, D16: the call fills the settings and the services, and every other parameter is the model's. Null for a
+    // parameter the model may and can fill; a reason for one that looks like settings the chain forgot to name, or
+    // like a service that minimal APIs would inject
+    private static string? GetMisfilledReason(IParameterSymbol parameter, ISet<ITypeSymbol> ownerSettings)
+    {
+        var type = Unwrap(parameter.Type).WithNullableAnnotation(NullableAnnotation.NotAnnotated);
+        var name = type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+
+        var named = parameter.Name == "settings" && type is { IsRecord: true, IsValueType: false };
+
+        if (named || ownerSettings.Contains(type))
+        {
+            return $"and its type '{name}' looks like settings: chain WithSettings<{name}>() onto AddTool to keep its "
+                + "values with your app";
+        }
+
+        return GetUncreatableKind(type) is { } kind
+            ? $"and its type '{name}' is {kind}, which JSON cannot create: for a service, take an IServiceProvider "
+            + $"parameter and call GetRequiredService<{name}>()"
+            : null;
+    }
+
+    // An interface, an abstract class or a delegate has no JSON form, unless JSON knows the type: a collection
+    // interface, a node of System.Text.Json, or a type that names its converter or its derived types
+    private static string? GetUncreatableKind(ITypeSymbol type)
+    {
+        var known = type.ContainingNamespace?.ToDisplayString() is { } home
+            && (home.StartsWith("System.Collections", System.StringComparison.Ordinal)
+                || home.StartsWith("System.Text.Json", System.StringComparison.Ordinal));
+
+        if (known || type.GetAttributes().Any(attribute => KnownTypes.JsonShapes.Any(attribute.AttributeClass.Is)))
+            return null;
+
+        return type switch
+        {
+            { TypeKind: TypeKind.Interface } => "an interface",
+            { TypeKind: TypeKind.Delegate } => "a delegate",
+            { TypeKind: TypeKind.Class, IsAbstract: true } => "an abstract class",
+            _ => null
+        };
+    }
 
     private static bool IsPointer(ITypeSymbol type) =>
         type is IPointerTypeSymbol or IFunctionPointerTypeSymbol

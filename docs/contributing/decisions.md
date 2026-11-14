@@ -273,15 +273,19 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - **Status:** owner.
 - **Context:** the brief asked to investigate injecting resolved services as parameters.
-- **Decision:** tools stay static and take `IServiceProvider`, the run's services. No injection.
-- **Alternatives:** `[FromServices]` parameters (one attribute, TSH for an interface parameter without it); inference
-  by type (interfaces are services), leaky for collection interfaces and concrete services such as a `DbContext`.
+- **Decision:** tools stay static and take `IServiceProvider`, the run's services. No injection. A parameter that
+  reads like an injected service, an interface, an abstract class or a delegate that JSON cannot create, is a
+  warning (TSH038): the model would have to fill it, and every call would fail. Collection interfaces,
+  System.Text.Json's nodes and types that name a converter or their derived types are JSON's and pass.
+- **Alternatives:** `[FromServices]` parameters (one attribute); inference by type (interfaces are services), leaky
+  for collection interfaces and concrete services such as a `DbContext`.
 
 ### D16. A tool receives its settings as a parameter
 
 - **Status:** carried (v0 D40). The settings, `IServiceProvider`, `CancellationToken` and `AIFunctionArguments` are
   bound by type, nullable or not, and left out of the schema; a parameter JSON cannot fill, such as `ref`, `out` or
-  `dynamic`, is TSH004.
+  `dynamic`, is TSH004. A record parameter named `settings`, or of a type another tool of the class names as its
+  settings, on a tool whose chain names none is a warning (TSH038): the model would see and set every member.
 
 ### D17. One flat chain per declaration
 
