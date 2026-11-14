@@ -53,6 +53,9 @@ Each of these cost a debugging session once.
   once, README.md included, and once replaced about 40 uncommitted README lines without a word. The script prints
   the uncommitted lines a run replaced and keeps the file as it was under `.context/mdsnippets-backup/`.
 - A test that resolves a scoped service needs a scope: `HostTestBase` builds with `ValidateScopes` and offers `Scope`.
+  An agent's host needs one too: resolved from the root provider, `Services` in a test, it throws (D25).
+- A chain's second store for a store interface throws at registration (D38): a test base that swaps the store of
+  the base it derives from registers it with `replace: true`.
 
 ## Build and test
 
