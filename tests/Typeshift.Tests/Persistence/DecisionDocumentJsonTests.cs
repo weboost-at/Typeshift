@@ -133,6 +133,27 @@ public class DecisionDocumentJsonTests : UnitTestBase
     }
 
     [Fact]
+    public void Given_A_Cancelled_Batch_And_A_Decision_Closed_As_Cancelled_Both_Are_Stored_By_Name_And_Read_Back()
+    {
+        // Arrange
+        var document = new DecisionDocument
+        {
+            Batch = new DecisionBatch("support_agent", Time.GetUtcNow(), BatchState.Cancelled, []),
+            Closed = [new ClosedDecision(Data.Decisions.DecisionId, DecisionClosedReason.Cancelled)]
+        };
+
+        // Act
+        var json = document.Serialize();
+        var read = DecisionDocument.Deserialize(json);
+
+        // Assert
+        json.Should().Contain("\"state\":\"cancelled\"");
+        json.Should().Contain("\"reason\":\"cancelled\"");
+        read.Batch!.State.Should().Be(BatchState.Cancelled);
+        read.ClosedReason(Data.Decisions.DecisionId).Should().Be(DecisionClosedReason.Cancelled);
+    }
+
+    [Fact]
     public void Given_No_Stored_Members_An_Empty_Object_Reads_As_A_Document_Without_A_Batch()
     {
         // Act

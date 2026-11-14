@@ -1511,13 +1511,17 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   answer, or one to a decision that is not open, throws `DecisionClosedException` and records nothing of its call;
   one that does not fit its decision throws `ArgumentException`. Answering is an API of its own: the generated
   `AnswerAsync(answers)` records the answers and, once no decision is left open, continues the run;
-  `RecordAnswersAsync` records them without a run, `ResumeAsync` continues, and `GetDecisionsAsync` lists what
-  waits, with the tools approved for the conversation, each of which `RevokeStandingApprovalAsync` withdraws. No
-  answer travels in a run's input (D81).
+  `RecordAnswersAsync` records them without a run, `ResumeAsync` continues, `CancelDecisionsAsync` withdraws
+  what waits, and `GetDecisionsAsync` lists what waits, with the tools approved for the conversation, each of which
+  `RevokeStandingApprovalAsync` withdraws. No answer travels in a run's input (D81).
 - **Details:** a batch is `open` until its last answer, then `answered`, then `started` once a run begins to carry
   the answers out, then gone and remembered as answered. `started` is the commit point: from it on every call the
   batch would run counts as started, so no later run starts one again. An open batch that new input passes by is
-  `expired`, then gone and remembered as expired. Standing approvals join the document when their batch starts,
+  `expired`, then gone and remembered as expired. A batch your app withdraws while it is open or answered is
+  `cancelled`: an answered one too, since its answers were not carried out and a withdrawal that left approved
+  calls to run would surprise. The conversation's next run stores a result for each of its calls, as for an
+  expired one, and it is then gone and remembered as cancelled; a run without input goes on to the model, which
+  reads the withdrawal. Standing approvals join the document when their batch starts,
   never when they are recorded, so an answer that expires grants nothing, and leave it when your app withdraws
   them. A run reads them, and the mode, when it begins, so a withdrawal reaches the conversation's next run: a
   check on every call would cost a load of the document for each. `DecisionLedger` is the only code that

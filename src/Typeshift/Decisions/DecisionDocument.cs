@@ -135,6 +135,10 @@ internal sealed record DecisionBatch(
     public IReadOnlyList<Decision> Unanswered =>
         [.. Calls.Where(call => call.Ask is { Answer: null }).Select(call => call.ToDecision(this)!)];
 
+    // Open or answered: answers still reach it, and your app can still withdraw it. Once a run began to carry it
+    // out, new input passed it by or it was withdrawn, only its calls' results are left to store
+    public bool IsPending => State is BatchState.Open or BatchState.Answered;
+
     // A batch is told by its decisions, whose ids no other batch has
     public bool IsSame(DecisionBatch other) => Ids.SequenceEqual(other.Ids);
 
@@ -184,7 +188,10 @@ internal enum BatchState
     Started,
 
     // New input passed the batch by; each call gets a result that says so
-    Expired
+    Expired,
+
+    // Your app withdrew the batch before a run began to carry it out; each call gets a result that says so
+    Cancelled
 }
 
 // One call of the batch: with an ask when it waits for your app, with a rejection when a rule rejected it, bare when

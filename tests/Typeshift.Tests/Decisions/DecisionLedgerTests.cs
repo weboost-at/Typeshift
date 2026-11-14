@@ -426,6 +426,112 @@ public class DecisionLedgerTests : LedgerTestBase
     }
 
     [Fact]
+    public async Task Given_An_Open_Batch_Cancelling_It_Marks_It_Cancelled()
+    {
+        // Arrange
+        await Ledger.OpenAsync(Conversation, Batch(Approval(Data.Tool.CallId)), Ct);
+
+        // Act
+        var document = await Ledger.CancelAsync(Conversation, Ct);
+
+        // Assert
+        document.Batch!.State.Should().Be(BatchState.Cancelled);
+        document.Open.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_An_Answered_Batch_Cancelling_It_Withdraws_The_Answers()
+    {
+        // Arrange
+        await AnsweredAsync(Batch(Approval(Data.Tool.CallId)));
+
+        // Act
+        var document = await Ledger.CancelAsync(Conversation, Ct);
+
+        // Assert
+        document.Batch!.State.Should().Be(BatchState.Cancelled);
+        document.ToDecisions().CanResume.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Given_A_Started_Batch_Cancelling_Leaves_It_Started_And_Saves_Nothing()
+    {
+        // Arrange
+        await StartedAsync(Batch(Approval(Data.Tool.CallId)));
+        var saves = Store.Saves;
+
+        // Act
+        var document = await Ledger.CancelAsync(Conversation, Ct);
+
+        // Assert
+        document.Batch!.State.Should().Be(BatchState.Started);
+        Store.Saves.Should().Be(saves);
+    }
+
+    [Fact]
+    public async Task Given_A_Cancelled_Batch_An_Answer_Throws_Naming_The_Decision_Cancelled()
+    {
+        // Arrange
+        var batch = Batch(Approval(Data.Tool.CallId));
+        await Ledger.OpenAsync(Conversation, batch, Ct);
+        await Ledger.CancelAsync(Conversation, Ct);
+
+        // Act
+        var late = () => Ledger.RecordAsync(Conversation, [DecisionAnswer.Approve(batch.Ids.Single())], Ct);
+
+        // Assert
+        await late.Should()
+            .ThrowAsync<DecisionClosedException>()
+            .Where(closed => closed.Decisions[batch.Ids.Single()] == DecisionClosedReason.Cancelled);
+    }
+
+    [Fact]
+    public async Task Given_An_Answered_Batch_Another_Process_Cancelled_Starting_It_Throws_Naming_It_Cancelled()
+    {
+        // Arrange
+        var answered = await AnsweredAsync(Batch(Approval(Data.Tool.CallId)));
+        await OtherProcess.CancelAsync(Conversation, Ct);
+
+        // Act
+        var start = () => Ledger.StartAsync(Conversation, answered, Ct);
+
+        // Assert
+        await start.Should()
+            .ThrowAsync<DecisionClosedException>()
+            .Where(closed => closed.Decisions[answered.Ids.Single()] == DecisionClosedReason.Cancelled);
+    }
+
+    [Fact]
+    public async Task Given_A_Cancelled_Batch_Closed_Its_Decisions_Are_Remembered_As_Cancelled()
+    {
+        // Arrange
+        await Ledger.OpenAsync(Conversation, Batch(Approval(Data.Tool.CallId)), Ct);
+        var cancelled = (await Ledger.CancelAsync(Conversation, Ct)).Batch!;
+
+        // Act
+        await Ledger.CloseAsync(Conversation, cancelled, Ct);
+        var document = await DocumentAsync();
+
+        // Assert
+        document.Batch.Should().BeNull();
+        document.ClosedReason(cancelled.Ids.Single()).Should().Be(DecisionClosedReason.Cancelled);
+    }
+
+    [Fact]
+    public async Task Given_A_Cancelled_Batch_Expiring_Leaves_It_Cancelled()
+    {
+        // Arrange
+        await Ledger.OpenAsync(Conversation, Batch(Approval(Data.Tool.CallId)), Ct);
+        await Ledger.CancelAsync(Conversation, Ct);
+
+        // Act
+        var batch = await Ledger.ExpireAsync(Conversation, Ct);
+
+        // Assert
+        batch!.State.Should().Be(BatchState.Cancelled);
+    }
+
+    [Fact]
     public async Task Given_A_Started_Batch_Closing_It_Removes_It_And_Remembers_Its_Decisions_As_Answered()
     {
         // Arrange

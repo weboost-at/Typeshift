@@ -68,6 +68,10 @@ internal static class Approval
         var asksAgain = await chat.RunAsync("Close ticket 1234 a last time.");
         if (asksAgain.Decisions.Count != 1) throw new InvalidOperationException("Expected the tool to ask again.");
 
-        await chat.AnswerAsync([asksAgain.Decisions[0].Reject()]);
+        // begin-snippet: approval-cancel
+        var cancelled = await chat.CancelDecisionsAsync();
+        // end-snippet
+
+        if (cancelled.Open.Count > 0) throw new InvalidOperationException("Expected nothing left to answer.");
     }
 }

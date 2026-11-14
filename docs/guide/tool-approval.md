@@ -139,6 +139,23 @@ A decision stays open until your app answers it or the conversation goes on with
 - its own run takes [steering input](./conversations.md#steering) after it asked. The decisions expire the same way,
   and the run's response lists none of them. A background agent's answer expires nothing: it is stored, and the model
   reads it once your app has answered.
+- your app withdraws what waits, with `CancelDecisionsAsync()`.
+
+`CancelDecisionsAsync()` withdraws every open decision of the conversation, and every answer that no run has begun
+to carry out. Use it when a prompt has waited longer than your app allows, which each decision's `AskedAt` tells
+you, or when the user leaves the chat:
+
+<!-- snippet: approval-cancel -->
+<a id='snippet-approval-cancel'></a>
+```cs
+var cancelled = await chat.CancelDecisionsAsync();
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Approval.cs#L71-L73' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-cancel' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+None of the calls runs. The conversation's next run tells the model that the request was withdrawn, whether it
+starts with a new message or with [`ResumeAsync()`](./conversations.md#resuming), which lets the model go on
+without one. To turn down a single decision and keep the others, answer it with `Reject(reason)` instead.
 
 An answer to a closed decision throws `DecisionClosedException` and records nothing, so your app learns that its
 prompt is out of date. Its `Decisions` says why each one is closed:
@@ -147,6 +164,7 @@ prompt is out of date. Its `Decisions` says why each one is closed:
 |---|---|
 | `Answered` | Another answer stands, or the answers were carried out: a second tab, or a retry after the run continued. |
 | `Expired` | The user sent something else first, as a new message or as steering input. |
+| `Cancelled` | Your app withdrew the decision with `CancelDecisionsAsync()`. |
 | `Unknown` | The conversation holds no such decision: an id of another conversation, or of an earlier round of decisions. |
 
 <!-- snippet: approval-closed -->

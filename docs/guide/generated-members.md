@@ -310,6 +310,7 @@ a host without a conversation id.
 | `GetDecisionsAsync()` | `Task<ConversationDecisions>` |
 | `RecordAnswersAsync(IReadOnlyList<DecisionAnswer> answers)` | `Task<ConversationDecisions>` |
 | `SetModeAsync(AgentMode mode)` | `Task` |
+| `CancelDecisionsAsync()` | `Task<ConversationDecisions>` |
 | `RevokeStandingApprovalAsync(string tool, string? server = null)` | `Task` |
 
 `GetDecisionsAsync` reads what the conversation waits for in one load, without its history. `Open` lists the
@@ -324,11 +325,14 @@ lists the tools approved for the conversation, and `Mode` is the conversation's 
 `SetModeAsync` switches the conversation's mode from its next run on
 ([Setting the mode](./tool-approval.md#setting-the-mode)).
 
+`CancelDecisionsAsync` withdraws every open decision and every answer no run has begun to carry out, and returns
+the decisions as they stand then ([When a decision closes](./tool-approval.md#when-a-decision-closes)).
+
 `RevokeStandingApprovalAsync` withdraws a standing approval, with its `server` for an MCP server's tool, and
 changes nothing when the conversation holds none for the tool
 ([Approving for the conversation](./tool-approval.md#approving-for-the-conversation)).
 
-The three that save throw a `StoreConflictException` when ten saves in a row lost to another writer.
+The four that save throw a `StoreConflictException` when ten saves in a row lost to another writer.
 `RecordAnswersAsync` and `SetModeAsync` throw an `InvalidOperationException` when your app registered stores and
 none of them [keeps decisions](./implementing-a-store.md#which-store-serves-a-call).
 

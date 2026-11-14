@@ -39,8 +39,8 @@ the response before the conversation stores how the run ended.
    layers resolve once, when the run starts ([settings layering](./settings-and-stores.md#settings-layering)).
 2. **Resume the conversation.** With a conversation id, the run puts the stored entries ahead of the new input, so the
    model sees the whole conversation, and stores the input. It also settles the decisions the conversation waits
-   for: new input expires the ones still open, so the model reads that their calls did not run, and the answers your
-   app gave are carried out as the run's first step
+   for: new input expires the ones still open, so the model reads that their calls did not run, as it does for
+   the ones your app withdrew, and the answers your app gave are carried out as the run's first step
    ([When a decision closes](./tool-approval.md#when-a-decision-closes)). The run keeps the conversation's mode unless
    the run's settings name one. If an earlier run [handed the conversation off](./multi-agent.md#handoff) to another
    agent, the agent that answered last answers this run too. Without a conversation id, the run starts fresh and

@@ -74,7 +74,8 @@ internal static class Telemetry
     }
 
     // D80: what became of each call of a batch the run settles. A call of an answered batch goes by your app's
-    // answer, one of an expired batch did not run, and of one that another run started and left nobody knows.
+    // answer, one of an expired or a withdrawn batch did not run, and of one that another run started and left
+    // nobody knows.
     // The text the model reads in the call's place is content, as an argument is
     public static void Settled(Activity? activity, DecisionBatch batch, IEnumerable<BatchCall> calls, bool repaired)
     {
@@ -88,6 +89,7 @@ internal static class Telemetry
             tags["typeshift.decision.outcome"] = (batch.State, call, repaired) switch
             {
                 (BatchState.Expired, _, _) => "expired",
+                (BatchState.Cancelled, _, _) => "cancelled",
                 (_, { Rejected: not null }, _) => "rejected",
                 (_, { Ask: { Kind: AskKind.Question, Answer.Answers: not null } }, _) => "answered",
                 (_, { Ask.Kind: AskKind.Question }, _) => "declined",
@@ -98,7 +100,9 @@ internal static class Telemetry
                 _ => "run"
             };
 
-            if (CapturesContent(activity) && batch.State is not BatchState.Expired && verdict.Answer is { } answer)
+            var ran = batch.State is not (BatchState.Expired or BatchState.Cancelled);
+
+            if (CapturesContent(activity) && ran && verdict.Answer is { } answer)
                 tags["gen_ai.tool.call.result"] = answer;
 
             activity.AddEvent(new ActivityEvent("typeshift.decision.settled", tags: tags));

@@ -94,6 +94,7 @@ decision's id in `typeshift.decision.id`, the id your app answers by, and its ki
 | `declined` | Your app declined the questions. |
 | `run` | The call needed no decision and waited beside one. It runs with the answers. |
 | `expired` | New input passed the decisions by, so the call did not run. |
+| `cancelled` | Your app withdrew the decisions with `CancelDecisionsAsync`, so the call did not run. |
 | `unknown` | An earlier run began to carry the answers out and stopped before the call's result was stored. |
 
 An `unknown` outcome is worth an alert, because nobody knows whether that call took effect

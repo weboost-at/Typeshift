@@ -39,6 +39,7 @@ public static bool Typeshift.AgentContext.operator !=(Typeshift.AgentContext? le
 public static bool Typeshift.AgentContext.operator ==(Typeshift.AgentContext? left, Typeshift.AgentContext? right)
 public sealed class Typeshift.AgentHost<TAgent> : System.IAsyncDisposable where TAgent : Typeshift.Agent
 public TAgent Typeshift.AgentHost<TAgent>.Agent { get; }
+public System.Threading.Tasks.Task<Typeshift.ConversationDecisions> Typeshift.AgentHost<TAgent>.CancelDecisionsAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public System.Threading.Tasks.Task<Microsoft.Extensions.AI.IChatClient> Typeshift.AgentHost<TAgent>.CreateChatClientAsync(Microsoft.Extensions.AI.ChatOptions options, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public void Typeshift.AgentHost<TAgent>.Dispose()
 public System.Threading.Tasks.ValueTask Typeshift.AgentHost<TAgent>.DisposeAsync()
@@ -188,8 +189,9 @@ public Typeshift.DecisionClosedException.DecisionClosedException(string message,
 public System.Collections.Generic.IReadOnlyDictionary<string, Typeshift.DecisionClosedReason> Typeshift.DecisionClosedException.Decisions { get; }
 public enum Typeshift.DecisionClosedReason
 Typeshift.DecisionClosedReason.Answered = 0
+Typeshift.DecisionClosedReason.Cancelled = 2
 Typeshift.DecisionClosedReason.Expired = 1
-Typeshift.DecisionClosedReason.Unknown = 2
+Typeshift.DecisionClosedReason.Unknown = 3
 public sealed class Typeshift.DecisionRequestContent : Microsoft.Extensions.AI.InputRequestContent
 public Typeshift.Decision Typeshift.DecisionRequestContent.Decision { get; }
 public Typeshift.DecisionRequestContent.DecisionRequestContent(Typeshift.Decision decision)

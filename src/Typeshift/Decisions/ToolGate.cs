@@ -41,6 +41,8 @@ internal static class DecisionResults
 {
     public const string Expired = "The user did not answer and sent a new message instead. This call did not run.";
 
+    public const string Cancelled = "The request was withdrawn. This call did not run.";
+
     public const string Unknown =
         "This call was approved and started, and the run stopped before its result was stored. Whether it took "
         + "effect is unknown: check before you repeat it.";
@@ -73,6 +75,9 @@ internal static class DecisionResults
             { Ask.Answer: var answer } =>
                 CallVerdict.AnswerWith(WithReason("The user rejected this call.", answer?.Reason))
         };
+
+    // What each call of a batch reads that new input passed by or your app withdrew
+    public static string Closed(BatchState state) => state is BatchState.Cancelled ? Cancelled : Expired;
 
     // The results of calls that did not run, as one tool message
     public static ChatMessage Message(IEnumerable<(string CallId, string Result)> results) =>

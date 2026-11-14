@@ -64,6 +64,10 @@ All notable changes to this project are documented here. The format follows
 - `host.SetModeAsync(mode)` switches a conversation's mode without a run, and the agent needs no
   `Configurable(r => r.Mode)` for it. It is the way back to the default mode after a plan was approved into auto
   mode. `GetDecisionsAsync()` returns the conversation's mode as `Mode`.
+- `host.CancelDecisionsAsync()` withdraws what a conversation waits for: every open decision, and every answer no
+  run has carried out yet. None of the calls runs, the conversation's next run tells the model that the request
+  was withdrawn, and a late answer throws `DecisionClosedException` with the reason
+  `DecisionClosedReason.Cancelled`. With each decision's `AskedAt`, an app can time a prompt out.
 - `host.RevokeStandingApprovalAsync(tool, server)` withdraws an approval your app gave for the conversation, so the
   tool asks again from the conversation's next run on. `GetDecisionsAsync().Standing` lists what stands.
 

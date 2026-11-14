@@ -33,6 +33,7 @@ public sealed class DecisionClosedException(
         {
             DecisionClosedReason.Answered => "answered already",
             DecisionClosedReason.Expired => "the user sent something else",
+            DecisionClosedReason.Cancelled => "withdrawn",
             _ => "no such decision"
         };
 }
@@ -52,6 +53,11 @@ public enum DecisionClosedReason
     /// call did not run.
     /// </summary>
     Expired,
+
+    /// <summary>
+    /// Your app withdrew the decision with <c>CancelDecisionsAsync</c> before a run carried its answer out.
+    /// </summary>
+    Cancelled,
 
     /// <summary>
     /// The conversation holds no decision with this id among those it asked last.

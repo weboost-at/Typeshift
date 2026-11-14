@@ -406,15 +406,19 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         message.Contents.Any(content => content is FunctionCallContent);
 
     // T5 inside the run that asked: every call of the batch reads that it did not run, and the model then reads the
-    // input. Null when answers came first: the batch then waits for the run that carries them out
+    // input. So it is for a batch your app withdrew meanwhile (T6). Null when answers came first: the batch then
+    // waits for the run that carries them out
     private async Task<ChatMessage?> ExpireAsync(ConversationRun run, DecisionBatch asked)
     {
-        if (await run.ExpireAsync() is not { State: BatchState.Expired } expired || !expired.IsSame(asked)) return null;
+        if (await run.ExpireAsync() is not { State: BatchState.Expired or BatchState.Cancelled } passed
+            || !passed.IsSame(asked))
+            return null;
 
-        var results = DecisionResults.Message(expired.Calls.Select(call => (call.CallId, DecisionResults.Expired)));
+        var closed = DecisionResults.Closed(passed.State);
+        var results = DecisionResults.Message(passed.Calls.Select(call => (call.CallId, closed)));
 
-        Telemetry.Settled(run.Activity, expired, expired.Calls, repaired: false);
-        if (await run.AppendAsync([results]) is null) await run.CloseAsync(expired);
+        Telemetry.Settled(run.Activity, passed, passed.Calls, repaired: false);
+        if (await run.AppendAsync([results]) is null) await run.CloseAsync(passed);
         return results;
     }
 
@@ -644,11 +648,12 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         // your app set. While it names none, each run is in its agent's own mode
         var mode = document.Mode ?? legacy ?? runOptions.RunOptions.Mode;
 
-        // What the calls of a batch that will not run read: of an expired one that it did not run, and of one another
-        // run started and left that nobody knows (T7). The calls that have their result already keep it
+        // What the calls of a batch that will not run read: of an expired or a withdrawn one that it did not run, and
+        // of one another run started and left that nobody knows (T7). The calls that have their result already keep it
         var results = batch switch
         {
-            { State: BatchState.Expired } => ResultsOf(batch, entries, _ => DecisionResults.Expired),
+            { State: BatchState.Expired or BatchState.Cancelled } =>
+                ResultsOf(batch, entries, _ => DecisionResults.Closed(batch.State)),
             { State: BatchState.Started } when !started =>
                 ResultsOf(batch, entries, call => DecisionResults.VerdictOf(call).Answer ?? DecisionResults.Unknown),
             _ => null

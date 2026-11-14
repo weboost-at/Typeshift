@@ -95,19 +95,28 @@ internal sealed class DecisionLedger(StoreAccess stores, TimeProvider time, Agen
         return document.Batch;
     }
 
-    // T4, T7 and the end of an expiry: every call of the batch has its result in the conversation, so the batch
-    // goes, and its decisions are remembered as closed until the next batch closes
+    // T6: your app withdraws what waits, answered or not, as long as no run began to carry it out. The
+    // conversation's next run gives each call a result that says so
+    public Task<DecisionDocument> CancelAsync(StoreId conversation, CancellationToken ct) =>
+        ChangeAsync(
+            conversation,
+            document => document.Batch is { IsPending: true } waiting
+                ? document with { Batch = waiting with { State = BatchState.Cancelled } }
+                : document,
+            ct);
+
+    // T4, T7 and the end of an expiry or a withdrawal: every call of the batch has its result in the conversation,
+    // so the batch goes, and its decisions are remembered as closed until the next batch closes
     public Task CloseAsync(StoreId conversation, DecisionBatch batch, CancellationToken ct) =>
         ChangeAsync(
             conversation,
-            document => document.Batch is { State: BatchState.Started or BatchState.Expired } settled
-                && settled.IsSame(batch)
-                    ? document with
-                    {
-                        Batch = null,
-                        Closed = [.. settled.Ids.Select(id => new ClosedDecision(id, ClosedAs(settled.State)))]
-                    }
-                    : document,
+            document => document.Batch is { IsPending: false } settled && settled.IsSame(batch)
+                ? document with
+                {
+                    Batch = null,
+                    Closed = [.. settled.Ids.Select(id => new ClosedDecision(id, ClosedAs(settled.State)))]
+                }
+                : document,
             ct);
 
     private static DecisionDocument Record(
@@ -122,7 +131,7 @@ internal sealed class DecisionLedger(StoreAccess stores, TimeProvider time, Agen
         {
             var call = document.Batch?.Calls.FirstOrDefault(call => call.Ask?.Id == answer.DecisionId);
 
-            if (call?.Ask is not { } ask || document.Batch!.State is BatchState.Started or BatchState.Expired)
+            if (call?.Ask is not { } ask || !document.Batch!.IsPending)
             {
                 closed[answer.DecisionId] = ClosedReason(document, answer.DecisionId);
                 continue;
@@ -153,14 +162,20 @@ internal sealed class DecisionLedger(StoreAccess stores, TimeProvider time, Agen
         return document with { Batch = batch with { Calls = calls, State = state } };
     }
 
-    // Why a decision cannot be answered or carried out any more: its batch is under way or expired, or gone
+    // Why a decision cannot be answered or carried out any more: its batch is under way, expired or withdrawn, or
+    // gone
     private static DecisionClosedReason ClosedReason(DecisionDocument document, string decision) =>
         document.Batch is { } batch && batch.Ids.Contains(decision)
             ? ClosedAs(batch.State)
             : document.ClosedReason(decision);
 
     private static DecisionClosedReason ClosedAs(BatchState state) =>
-        state is BatchState.Expired ? DecisionClosedReason.Expired : DecisionClosedReason.Answered;
+        state switch
+        {
+            BatchState.Expired => DecisionClosedReason.Expired,
+            BatchState.Cancelled => DecisionClosedReason.Cancelled,
+            _ => DecisionClosedReason.Answered
+        };
 
     // The mode a plan was approved into; an answer stored without one continues in the default mode
     private static AgentMode? ApprovedMode(DecisionBatch batch) =>

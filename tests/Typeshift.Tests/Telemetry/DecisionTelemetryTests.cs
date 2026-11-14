@@ -157,6 +157,26 @@ public sealed class DecisionTelemetryTests : QuestionTestBase
     }
 
     [Fact]
+    public async Task Given_Decisions_Your_App_Withdrew_The_Next_Runs_Span_Names_Each_Call_Cancelled()
+    {
+        // Arrange
+        var note = Note(Data.Tool.SecondCallId, Data.Tool.Query);
+
+        ChatClient
+            .Reply(Calls(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket), note))
+            .Reply(Text(Data.Tool.Answer));
+
+        await Asking.RunAsync(Data.Tool.Question, ct: Ct);
+        await Asking.CancelDecisionsAsync(Ct);
+
+        // Act
+        await Asking.RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Assert
+        Tags(Activities.Runs(Data.Agent.ConversationId)[^1], Settled, Outcome).Should().Equal("cancelled", "cancelled");
+    }
+
+    [Fact]
     public async Task Given_A_Batch_A_Stopped_Run_Started_The_Next_Runs_Span_Names_Its_Approved_Call_Unknown()
     {
         // Arrange

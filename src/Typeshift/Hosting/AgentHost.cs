@@ -144,6 +144,19 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     }
 
     /// <summary>
+    /// Withdraws what the host's conversation, from <c>WithConversationId</c>, waits for: every decision that is
+    /// open, and every answer no run has begun to carry out. None of the calls runs. The conversation's next run,
+    /// with new input or from <c>ResumeAsync</c>, tells the model so, and an answer to a withdrawn decision throws
+    /// <see cref="DecisionClosedException"/>. Nothing changes when nothing waits. It starts no run.
+    /// </summary>
+    /// <param name="ct">Cancels the save.</param>
+    /// <returns>The conversation's decisions after the withdrawal, none of them open.</returns>
+    /// <exception cref="StoreConflictException">Other saves came first ten times in a row.</exception>
+    /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
+    public async Task<ConversationDecisions> CancelDecisionsAsync(CancellationToken ct = default) =>
+        (await Ledger.CancelAsync(DecidedConversation, ct)).ToDecisions();
+
+    /// <summary>
     /// Switches the mode of the host's conversation, from <c>WithConversationId</c>. Its next run is in
     /// <paramref name="mode"/>, whichever agent answers it, and so are the runs after it, until a run's settings, an
     /// approved plan or this method names another mode. It is the way back from auto mode, and needs no configurable
