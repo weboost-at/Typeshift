@@ -193,7 +193,8 @@ so disposing it does nothing. A request injects the host itself, from the reques
 ([Using an agent](./using-an-agent.md)).
 
 `runtime.Services` holds the root services, for singletons such as a `ConversationTracker<TId>`. Scoped services are
-not among them, since each lives in a scope, such as the one a host has.
+not among them, since each lives in a scope, such as the one a host has. An agent's host is not among them either:
+resolving `AgentHost<TAgent>` there throws, so take it with `runtime.Agent<TAgent>()`.
 
 ::: warning Dispose every host the runtime gives you
 `runtime.Agent<TAgent>()` creates a scope for the host. The services the chain registers as scoped, such as the

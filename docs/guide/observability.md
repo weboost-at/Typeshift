@@ -108,8 +108,8 @@ An `unknown` outcome is worth an alert, because nobody knows whether that call t
 
 ## Logs
 
-Typeshift writes its warnings and errors to the `ILoggerFactory` of your app's container, so an ASP.NET Core app or a
-generic host sees them without any setup. A runtime that `TypeshiftRuntime.Create` made has no logger until you
+Typeshift logs to the `ILoggerFactory` of your app's container, so an ASP.NET Core app or a generic host sees its
+warnings and errors without any setup. A runtime that `TypeshiftRuntime.Create` made has no logger until you
 register one in the chain, with `typeshift.Services.AddLogging(...)`
 ([The runtime](./registration.md#the-runtime)). Without a logger nothing is logged, and the spans above are the only
 trace of a failed save or a tool's exception.
