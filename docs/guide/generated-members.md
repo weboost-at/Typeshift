@@ -385,6 +385,11 @@ every conversation
 and no rule or mode approves the call. To avoid that, run with a conversation id, approve the call with a rule, or
 run in `Auto` mode.
 
+A run also throws an `InvalidOperationException` while its conversation has a run going on in this process
+([One run at a time](./conversations.md#one-run-at-a-time)), and when no chat client or no store serves it. It
+throws a `JsonException` for stored settings of a newer schema version than the code's
+([Migrate older settings](./implementing-a-store.md#migrate-older-settings)).
+
 When a run ends asking your app, the response's `Decisions` lists what it asks
 ([When a call needs approval](./tool-approval.md#when-a-call-needs-approval)). A message that carries
 Microsoft.Extensions.AI's approval contents throws an `ArgumentException`: answers go through `AnswerAsync`.

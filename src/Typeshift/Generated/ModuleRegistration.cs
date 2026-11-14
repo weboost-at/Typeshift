@@ -47,6 +47,7 @@ public static class ModuleRegistration
     /// <param name="client">The chat client of every run.</param>
     /// <param name="configure">What else the app registers; null for nothing.</param>
     /// <returns>The runtime.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="client"/> is null.</exception>
     public static TypeshiftRuntime CreateRuntime(
         IServiceCollection services,
         TypeshiftBuilder builder,

@@ -22,6 +22,17 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The response; its messages carry the agent's name as their author.</returns>
+        /// <exception cref="global::Typeshift.DecisionUnavailableException">
+        /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+        /// </exception>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host's conversation has a run going on in this process, or something the run needs is not registered: a
+        /// chat client for the agent's model, a store for the type of one of the host's ids, or an
+        /// <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse> RunAsync(
             string input,
             global::Demo.SupportAgent.Settings? settings = null,
@@ -36,6 +47,17 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The response; its messages carry the agent's name as their author.</returns>
+        /// <exception cref="global::Typeshift.DecisionUnavailableException">
+        /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+        /// </exception>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host's conversation has a run going on in this process, or something the run needs is not registered: a
+        /// chat client for the agent's model, a store for the type of one of the host's ids, or an
+        /// <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse> RunAsync(
             global::Microsoft.Extensions.AI.ChatMessage input,
             global::Demo.SupportAgent.Settings? settings = null,
@@ -51,6 +73,17 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The response; its messages carry the agent's name as their author.</returns>
+        /// <exception cref="global::Typeshift.DecisionUnavailableException">
+        /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+        /// </exception>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host's conversation has a run going on in this process, or something the run needs is not registered: a
+        /// chat client for the agent's model, a store for the type of one of the host's ids, or an
+        /// <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse<TResult>> RunAsync<TResult>(
             string input,
             global::Demo.SupportAgent.Settings? settings = null,
@@ -67,6 +100,17 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The response; its messages carry the agent's name as their author.</returns>
+        /// <exception cref="global::Typeshift.DecisionUnavailableException">
+        /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+        /// </exception>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host's conversation has a run going on in this process, or something the run needs is not registered: a
+        /// chat client for the agent's model, a store for the type of one of the host's ids, or an
+        /// <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse<TResult>> RunAsync<TResult>(
             global::Microsoft.Extensions.AI.ChatMessage input,
             global::Demo.SupportAgent.Settings? settings = null,
@@ -81,6 +125,17 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The updates; they carry the agent's name as their author.</returns>
+        /// <exception cref="global::Typeshift.DecisionUnavailableException">
+        /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+        /// </exception>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host's conversation has a run going on in this process, or something the run needs is not registered: a
+        /// chat client for the agent's model, a store for the type of one of the host's ids, or an
+        /// <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
         public global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate> RunStreamingAsync(
             string input,
             global::Demo.SupportAgent.Settings? settings = null,
@@ -95,6 +150,17 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The updates; they carry the agent's name as their author.</returns>
+        /// <exception cref="global::Typeshift.DecisionUnavailableException">
+        /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+        /// </exception>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host's conversation has a run going on in this process, or something the run needs is not registered: a
+        /// chat client for the agent's model, a store for the type of one of the host's ids, or an
+        /// <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
         public global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate> RunStreamingAsync(
             global::Microsoft.Extensions.AI.ChatMessage input,
             global::Demo.SupportAgent.Settings? settings = null,
@@ -112,6 +178,17 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The run, which streams its updates and then holds the result.</returns>
+        /// <exception cref="global::Typeshift.DecisionUnavailableException">
+        /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+        /// </exception>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host's conversation has a run going on in this process, or something the run needs is not registered: a
+        /// chat client for the agent's model, a store for the type of one of the host's ids, or an
+        /// <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
         public global::Typeshift.StreamingRun<TResult> RunStreamingAsync<TResult>(
             string input,
             global::Demo.SupportAgent.Settings? settings = null,
@@ -129,6 +206,17 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The run, which streams its updates and then holds the result.</returns>
+        /// <exception cref="global::Typeshift.DecisionUnavailableException">
+        /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+        /// </exception>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host's conversation has a run going on in this process, or something the run needs is not registered: a
+        /// chat client for the agent's model, a store for the type of one of the host's ids, or an
+        /// <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
         public global::Typeshift.StreamingRun<TResult> RunStreamingAsync<TResult>(
             global::Microsoft.Extensions.AI.ChatMessage input,
             global::Demo.SupportAgent.Settings? settings = null,
@@ -154,7 +242,17 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// An answer does not fit its decision, one decision is answered twice, or there is no answer. Nothing is
         /// recorded.
         /// </exception>
-        /// <exception cref="global::System.InvalidOperationException">The host has no conversation.</exception>
+        /// <exception cref="global::Typeshift.StoreConflictException">
+        /// Other saves of the conversation's decisions came first ten times in a row.
+        /// </exception>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host has no conversation, the conversation has a run going on in this process, or something the run
+        /// needs is not registered: a chat client for the agent's model, a store for the type of one of the host's ids,
+        /// or an <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse> AnswerAsync(
             global::System.Collections.Generic.IReadOnlyList<global::Typeshift.DecisionAnswer> answers,
             global::Demo.SupportAgent.Settings? settings = null,
@@ -182,7 +280,17 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// An answer does not fit its decision, one decision is answered twice, or there is no answer. Nothing is
         /// recorded.
         /// </exception>
-        /// <exception cref="global::System.InvalidOperationException">The host has no conversation.</exception>
+        /// <exception cref="global::Typeshift.StoreConflictException">
+        /// Other saves of the conversation's decisions came first ten times in a row.
+        /// </exception>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host has no conversation, the conversation has a run going on in this process, or something the run
+        /// needs is not registered: a chat client for the agent's model, a store for the type of one of the host's ids,
+        /// or an <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse<TResult>> AnswerAsync<TResult>(
             global::System.Collections.Generic.IReadOnlyList<global::Typeshift.DecisionAnswer> answers,
             global::Demo.SupportAgent.Settings? settings = null,
@@ -209,7 +317,17 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// An answer does not fit its decision, one decision is answered twice, or there is no answer. Nothing is
         /// recorded.
         /// </exception>
-        /// <exception cref="global::System.InvalidOperationException">The host has no conversation.</exception>
+        /// <exception cref="global::Typeshift.StoreConflictException">
+        /// Other saves of the conversation's decisions came first ten times in a row.
+        /// </exception>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host has no conversation, the conversation has a run going on in this process, or something the run
+        /// needs is not registered: a chat client for the agent's model, a store for the type of one of the host's ids,
+        /// or an <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
         public global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate> AnswerStreamingAsync(
             global::System.Collections.Generic.IReadOnlyList<global::Typeshift.DecisionAnswer> answers,
             global::Demo.SupportAgent.Settings? settings = null,
@@ -237,7 +355,17 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// An answer does not fit its decision, one decision is answered twice, or there is no answer. Nothing is
         /// recorded.
         /// </exception>
-        /// <exception cref="global::System.InvalidOperationException">The host has no conversation.</exception>
+        /// <exception cref="global::Typeshift.StoreConflictException">
+        /// Other saves of the conversation's decisions came first ten times in a row.
+        /// </exception>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host has no conversation, the conversation has a run going on in this process, or something the run
+        /// needs is not registered: a chat client for the agent's model, a store for the type of one of the host's ids,
+        /// or an <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
         public global::Typeshift.StreamingRun<TResult> AnswerStreamingAsync<TResult>(
             global::System.Collections.Generic.IReadOnlyList<global::Typeshift.DecisionAnswer> answers,
             global::Demo.SupportAgent.Settings? settings = null,
@@ -253,7 +381,12 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The response.</returns>
         /// <exception cref="global::System.InvalidOperationException">
-        /// The host has no conversation, or the conversation has nothing to continue.
+        /// The host has no conversation, the conversation has nothing to continue or a run going on in this process, or
+        /// something the run needs is not registered: a chat client for the agent's model, a store for the type of one
+        /// of the host's ids, or an <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse> ResumeAsync(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
             global::Typeshift.Generated.AgentRuns.ResumeAsync(host, settings, ct);
@@ -267,7 +400,12 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The updates.</returns>
         /// <exception cref="global::System.InvalidOperationException">
-        /// The host has no conversation, or the conversation has nothing to continue.
+        /// The host has no conversation, the conversation has nothing to continue or a run going on in this process, or
+        /// something the run needs is not registered: a chat client for the agent's model, a store for the type of one
+        /// of the host's ids, or an <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
         public global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate> ResumeStreamingAsync(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
             global::Typeshift.Generated.AgentRuns.ResumeStreamingAsync(host, settings, ct);
@@ -280,6 +418,13 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the resolution.</param>
         /// <returns>The options, with the agent's tools.</returns>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// Something the options need is not registered: a store for the type of the host's settings id, or an
+        /// <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
         public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatOptions> ResolveOptionsAsync(
             global::Demo.SupportAgent.Settings? settings = null,
             global::System.Threading.CancellationToken ct = default) =>
@@ -294,6 +439,13 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// The settings and the version <c>SaveSettingsAsync</c> takes; empty settings at version 0 when none are
         /// stored.
         /// </returns>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// No store keeps these settings: stores are registered, and none of them is an <c>IAgentSettingsStore</c>, for
+        /// the agent's own, or an <c>ISettingsStore</c> of the id's type, for those under the host's id.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
         public global::System.Threading.Tasks.Task<global::Typeshift.Stored<global::Demo.SupportAgent.Settings>> LoadSettingsAsync(
             global::System.Threading.CancellationToken ct = default) =>
             global::Typeshift.Generated.AgentRuns.LoadSettingsAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, ct);
@@ -307,6 +459,10 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="ct">Cancels the save.</param>
         /// <returns>The new version, to pass to the next save.</returns>
         /// <exception cref="global::Typeshift.StoreConflictException">Another save came first.</exception>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// No store keeps these settings: stores are registered, and none of them is an <c>IAgentSettingsStore</c>, for
+        /// the agent's own, or an <c>ISettingsStore</c> of the id's type, for those under the host's id.
+        /// </exception>
         public global::System.Threading.Tasks.Task<long> SaveSettingsAsync(
             global::Demo.SupportAgent.Settings settings,
             long loadedVersion,
@@ -322,6 +478,13 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <returns>The settings saved.</returns>
         /// <exception cref="global::Typeshift.StoreConflictException">
         /// Another save came first ten times in a row.
+        /// </exception>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// No store keeps these settings: stores are registered, and none of them is an <c>IAgentSettingsStore</c>, for
+        /// the agent's own, or an <c>ISettingsStore</c> of the id's type, for those under the host's id.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
         public global::System.Threading.Tasks.Task<global::Demo.SupportAgent.Settings> ConfigureAsync(
             global::System.Func<global::Demo.SupportAgent.Settings, global::Demo.SupportAgent.Settings> configure,

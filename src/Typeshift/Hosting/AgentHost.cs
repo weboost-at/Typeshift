@@ -70,6 +70,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// A host with the id, in this host's scope; this one keeps the ids it had. Disposing it leaves the scope to this
     /// host.
     /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="id"/> is null.</exception>
     public AgentHost<TAgent> WithSettingsId<TId>(TId id) where TId : notnull
     {
         ArgumentNullException.ThrowIfNull(id);
@@ -86,6 +87,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// A host with the id, in this host's scope; this one keeps the ids it had. Disposing it leaves the scope to this
     /// host.
     /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="id"/> is null.</exception>
     public AgentHost<TAgent> WithConversationId<TId>(TId id) where TId : notnull
     {
         ArgumentNullException.ThrowIfNull(id);
@@ -146,6 +148,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// </exception>
     /// <exception cref="StoreConflictException">Other saves came first ten times in a row.</exception>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="answers"/> is null.</exception>
     public async Task<ConversationDecisions> RecordAnswersAsync(
         IReadOnlyList<DecisionAnswer> answers,
         CancellationToken ct = default)
@@ -198,6 +201,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// <returns>The save.</returns>
     /// <exception cref="StoreConflictException">Other saves came first ten times in a row.</exception>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="tool"/> is null.</exception>
     public async Task RevokeStandingApprovalAsync(string tool, string? server = null, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(tool);

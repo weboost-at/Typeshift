@@ -28,6 +28,17 @@ internal static class AgentEmitter
 
     private const string Json = StorageEmitter.Json;
 
+    private const string InvalidOperation = "global::System.InvalidOperationException";
+
+    // What a run needs of the app's registrations, each named by the exception's message when it is missing
+    private const string MissingRegistration =
+        "something the run needs is not registered: a chat client for the agent's model, a store for the type of one "
+        + "of the host's ids, or an <c>IMcpToolProvider</c> for the agent's MCP servers";
+
+    private const string NoSettingsStore =
+        "No store keeps these settings: stores are registered, and none of them is an <c>IAgentSettingsStore</c>, "
+        + "for the agent's own, or an <c>ISettingsStore</c> of the id's type, for those under the host's id.";
+
     // The members of the record that its properties must not be named like
     private static readonly string[] RecordMembers =
     [
@@ -604,6 +615,12 @@ internal static class AgentEmitter
             Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
             Docs.WriteParam(writer, "ct", "Cancels the resolution.");
             Docs.WriteReturns(writer, "The options, with the agent's tools.");
+            Docs.WriteException(
+                writer,
+                InvalidOperation,
+                "Something the options need is not registered: a store for the type of the host's settings id, or an "
+                + "<c>IMcpToolProvider</c> for the agent's MCP servers.");
+            WriteNewerSettings(writer);
             writer.Lines(
                 $"""
                 public {Task}<{ChatOptions}> ResolveOptionsAsync(
@@ -624,6 +641,8 @@ internal static class AgentEmitter
                 writer,
                 "The settings and the version <c>SaveSettingsAsync</c> takes; empty settings at version 0 when none "
                 + "are stored.");
+            Docs.WriteException(writer, InvalidOperation, NoSettingsStore);
+            WriteNewerSettings(writer);
             writer.Lines(
                 $"""
                 public {Task}<global::Typeshift.Stored<{settings}>> LoadSettingsAsync(
@@ -644,6 +663,7 @@ internal static class AgentEmitter
             Docs.WriteParam(writer, "ct", "Cancels the save.");
             Docs.WriteReturns(writer, "The new version, to pass to the next save.");
             Docs.WriteException(writer, "global::Typeshift.StoreConflictException", "Another save came first.");
+            Docs.WriteException(writer, InvalidOperation, NoSettingsStore);
             writer.Lines(
                 $"""
                 public {Task}<long> SaveSettingsAsync(
@@ -665,6 +685,8 @@ internal static class AgentEmitter
                 writer,
                 "global::Typeshift.StoreConflictException",
                 "Another save came first ten times in a row.");
+            Docs.WriteException(writer, InvalidOperation, NoSettingsStore);
+            WriteNewerSettings(writer);
             writer.Lines(
                 $"""
                 public {Task}<{settings}> ConfigureAsync(
@@ -674,6 +696,13 @@ internal static class AgentEmitter
                 """);
         }
     }
+
+    // D40: settings written under a newer schema version are refused, by every member that loads them
+    private static void WriteNewerSettings(SourceWriter writer) =>
+        Docs.WriteException(
+            writer,
+            "global::System.Text.Json.JsonException",
+            "The stored settings were written under a newer schema version than this code's.");
 
     // D50, D80: the host's conversation's interrupted run or answered decisions, continued without input
     private static void WriteResume(SourceWriter writer, string name, string returns, string settings)
@@ -690,8 +719,10 @@ internal static class AgentEmitter
             returns.Contains("IAsyncEnumerable") ? "The updates." : "The response.");
         Docs.WriteException(
             writer,
-            "global::System.InvalidOperationException",
-            "The host has no conversation, or the conversation has nothing to continue.");
+            InvalidOperation,
+            "The host has no conversation, the conversation has nothing to continue or a run going on in this "
+            + $"process, or {MissingRegistration}.");
+        WriteNewerSettings(writer);
         writer.Lines(
             $"""
             public {returns} {name}({settings}? settings = null, {CancellationToken} ct = default) =>
@@ -738,7 +769,16 @@ internal static class AgentEmitter
                 "global::System.ArgumentException",
                 "An answer does not fit its decision, one decision is answered twice, or there is no answer. Nothing "
                 + "is recorded.");
-            Docs.WriteException(writer, "global::System.InvalidOperationException", "The host has no conversation.");
+            Docs.WriteException(
+                writer,
+                "global::Typeshift.StoreConflictException",
+                "Other saves of the conversation's decisions came first ten times in a row.");
+            Docs.WriteException(
+                writer,
+                InvalidOperation,
+                "The host has no conversation, the conversation has a run going on in this process, or "
+                + $"{MissingRegistration}.");
+            WriteNewerSettings(writer);
             writer.Lines(
                 $"""
                 public {returns} {name}(
@@ -774,6 +814,15 @@ internal static class AgentEmitter
             Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
             Docs.WriteParam(writer, "ct", "Cancels the run.");
             Docs.WriteReturns(writer, returnsDoc);
+            Docs.WriteException(
+                writer,
+                "global::Typeshift.DecisionUnavailableException",
+                "A tool call needs a decision of your app, and the run has no conversation to keep it in.");
+            Docs.WriteException(
+                writer,
+                InvalidOperation,
+                $"The host's conversation has a run going on in this process, or {MissingRegistration}.");
+            WriteNewerSettings(writer);
             writer.Lines(
                 $"""
                 public {returns} {name}(

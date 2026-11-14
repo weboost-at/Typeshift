@@ -67,6 +67,7 @@ public sealed class TypeshiftBuilder
     /// types (TSH028).
     /// </typeparam>
     /// <returns>The same chain.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="store"/> is null.</exception>
     /// <exception cref="InvalidOperationException">
     /// <typeparamref name="TStore"/> is no store, or another store is registered as one of its interfaces and
     /// <paramref name="replace"/> is false.
@@ -102,6 +103,7 @@ public sealed class TypeshiftBuilder
     /// or several of them, of any id types (TSH028).
     /// </typeparam>
     /// <returns>The same chain.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="create"/> is null.</exception>
     /// <exception cref="InvalidOperationException">
     /// <typeparamref name="TStore"/> is no store, or another store is registered as one of its interfaces and
     /// <paramref name="replace"/> is false.
@@ -216,6 +218,9 @@ public sealed class TypeshiftBuilder
     /// An <c>IChatClientProvider&lt;TProviderId&gt;</c>, or several of them, of any provider types (TSH030).
     /// </typeparam>
     /// <returns>The same chain.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// <typeparamref name="TProvider"/> implements no <c>IChatClientProvider&lt;TProviderId&gt;</c>.
+    /// </exception>
     public TypeshiftBuilder WithChatClientProvider<
         [DynamicallyAccessedMembers(
             DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.Interfaces)] TProvider>()
@@ -248,6 +253,7 @@ public sealed class TypeshiftBuilder
     /// </summary>
     /// <param name="configure">Changes the options.</param>
     /// <returns>The same chain.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="configure"/> is null.</exception>
     public TypeshiftBuilder WithOptions(Action<TypeshiftOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(configure);

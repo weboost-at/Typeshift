@@ -24,6 +24,7 @@ public sealed class TypeshiftOptions
     /// </summary>
     /// <param name="create">Returns a new id, one no conversation has, each time it is called.</param>
     /// <typeparam name="TId">The id type of your conversation store.</typeparam>
+    /// <exception cref="ArgumentNullException"><paramref name="create"/> is null.</exception>
     public void NewConversationIds<TId>(Func<TId> create) where TId : notnull
     {
         ArgumentNullException.ThrowIfNull(create);

@@ -36,10 +36,10 @@ public sealed class StreamingRun<TResult> : IAsyncEnumerable<ChatResponseUpdate>
     /// Starts the run and streams its updates.
     /// </summary>
     /// <param name="cancellationToken">Cancels the run.</param>
-    /// <returns>
-    /// The updates, with the tool calls running between them. Their first <c>MoveNextAsync</c> throws an
-    /// <see cref="InvalidOperationException"/> when the updates were read before.
-    /// </returns>
+    /// <returns>The updates, with the tool calls running between them.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// The updates were read before. Their first <c>MoveNextAsync</c> throws it.
+    /// </exception>
     public async IAsyncEnumerator<ChatResponseUpdate> GetAsyncEnumerator(CancellationToken cancellationToken = default)
     {
         if (Interlocked.Exchange(ref _read, 1) == 1)

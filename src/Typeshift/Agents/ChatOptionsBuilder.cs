@@ -23,6 +23,7 @@ public sealed class ChatOptionsBuilder
     /// <param name="provider">The provider.</param>
     /// <param name="model">The model, as the provider's API names it.</param>
     /// <returns>The same chain.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="provider"/> is null.</exception>
     public ChatOptionsBuilder WithModel<TProviderId>(TProviderId provider, string model) where TProviderId : notnull
     {
         ArgumentNullException.ThrowIfNull(provider);

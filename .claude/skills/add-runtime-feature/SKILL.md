@@ -8,8 +8,11 @@ description: Add or change public behavior of the Typeshift runtime library (src
 1. **Decide.** Read the decisions the feature touches in `docs/contributing/decisions.md`. A new choice gets an entry
    (context, decision, alternatives, where); code that only makes sense with it cites it as `// Dnn: ...`.
 2. **Code.** Public types live in the `Typeshift` namespace, what only generated code calls in `Typeshift.Generated`,
-   hidden from editors (D10). Every public member has XML docs with each `param`, `typeparam` and `returns`
-   (`PublicApiDocumentationTests`).
+   hidden from editors (D10). Every public member has XML docs with each `param`, `typeparam` and `returns`, and an
+   `<exception>` for each exception its code throws (`PublicApiDocumentationTests`). A new exception type is named
+   in the docs of what throws it. When a run, an answer, a resume or a settings member of the host throws it, that is
+   a generated member: add the tag where `AgentEmitter` writes the member's docs, and the type to its row of
+   `AgentGenerationTests.Given_A_Host_Member_That_Throws_Its_Docs_Name_The_Exception`.
 3. **Tests** in `tests/Typeshift.Tests`, one class per subject, following `AGENTS.md`, "Tests": the scripted
    `IChatClient` in `Testing/Fakes`, `HostTestBase` for anything that needs services, `AgentTestBase` for runs
    through `AddTypeshift()` and an `AgentHost<T>`, data from the catalog. A behavior across assemblies uses the

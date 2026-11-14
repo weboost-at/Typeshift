@@ -19,6 +19,7 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// The tracker of the runtime's conversations, which the container creates.
     /// </summary>
     /// <param name="runtime">The runtime whose runs it tracks.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="runtime"/> is null.</exception>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public ConversationTracker(TypeshiftRuntime runtime)
     {

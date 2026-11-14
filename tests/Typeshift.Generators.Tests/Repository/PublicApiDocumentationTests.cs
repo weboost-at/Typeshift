@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Typeshift.Generators.Tests.Repository.Support;
 using FluentAssertions;
 using Microsoft.CodeAnalysis;
@@ -47,6 +48,42 @@ public class PublicApiDocumentationTests
         // Assert
         gaps.Should().BeEmpty();
     }
+
+    [Fact]
+    public void Given_A_Member_That_Throws_Its_Docs_Name_The_Exception()
+    {
+        // Act
+        var gaps = ThrowingMembers.Undocumented;
+
+        // Assert
+        gaps.Should().BeEmpty(Listing.Of(gaps));
+    }
+
+    [Fact]
+    public void Given_An_Exception_Of_The_Library_A_Member_Names_It_In_Its_Docs()
+    {
+        // Arrange
+        var documented = string.Concat(
+            RepositoryFiles.Find("*.cs", "src/Typeshift")
+                .Concat(RepositoryFiles.Find("*.verified.txt", "tests/Typeshift.Generators.Tests/Snapshots"))
+                .Select(RepositoryFiles.Read));
+
+        // Act
+        var unnamed = PublicApi.Members.OfType<INamedTypeSymbol>()
+            .Where(IsException)
+            .Where(type => !ExceptionTag(type).IsMatch(documented))
+            .Select(type => type.Name);
+
+        // Assert
+        unnamed.Should().BeEmpty("a caller finds an exception in the docs of what throws it, generated members too");
+    }
+
+    private static bool IsException(INamedTypeSymbol type) =>
+        type.BaseType is { } parent && (parent.ToDisplayString() == "System.Exception" || IsException(parent));
+
+    // The tag of a library member, which names the type alone, or of a generated one, which names it in full
+    private static Regex ExceptionTag(INamedTypeSymbol type) =>
+        new($@"<exception cref=""(global::Typeshift\.)?{type.Name}""");
 
     private static bool Inherits(ISymbol member) => PublicApi.Docs(member).Element("inheritdoc") is not null;
 

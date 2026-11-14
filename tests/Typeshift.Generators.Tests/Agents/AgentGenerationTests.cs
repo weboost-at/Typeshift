@@ -2,13 +2,22 @@ using Typeshift.Generators.Emitting;
 using Typeshift.Generators.Tests.Agents.Support;
 using Typeshift.Generators.Tests.Diagnostics.Support;
 using Typeshift.Generators.Tests.Toolsets.Support;
+using System.Text.RegularExpressions;
 using FluentAssertions;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Typeshift.Generators.Tests.Agents;
 
-public class AgentGenerationTests : GeneratorTestBase
+public partial class AgentGenerationTests : GeneratorTestBase
 {
+    private const string Unavailable = "global::Typeshift.DecisionUnavailableException";
+    private const string Closed = "global::Typeshift.DecisionClosedException";
+    private const string Conflict = "global::Typeshift.StoreConflictException";
+    private const string Invalid = "global::System.InvalidOperationException";
+    private const string Argument = "global::System.ArgumentException";
+    private const string Newer = "global::System.Text.Json.JsonException";
+
     [Fact]
     public void Given_An_Agent_Its_Settings_Declaration_Host_Members_Module_And_Interceptor_Are_Generated()
     {
@@ -34,6 +43,28 @@ public class AgentGenerationTests : GeneratorTestBase
 
         // Assert
         run.Assert.CompilesCleanly();
+    }
+
+    [Theory]
+    [InlineData("RunAsync", new[] { Unavailable, Invalid, Newer })]
+    [InlineData("RunStreamingAsync", new[] { Unavailable, Invalid, Newer })]
+    [InlineData("AnswerAsync", new[] { Closed, Argument, Conflict, Invalid, Newer })]
+    [InlineData("AnswerStreamingAsync", new[] { Closed, Argument, Conflict, Invalid, Newer })]
+    [InlineData("ResumeAsync", new[] { Invalid, Newer })]
+    [InlineData("ResumeStreamingAsync", new[] { Invalid, Newer })]
+    [InlineData("ResolveOptionsAsync", new[] { Invalid, Newer })]
+    [InlineData("LoadSettingsAsync", new[] { Invalid, Newer })]
+    [InlineData("SaveSettingsAsync", new[] { Conflict, Invalid })]
+    [InlineData("ConfigureAsync", new[] { Conflict, Invalid, Newer })]
+    public void Given_A_Host_Member_That_Throws_Its_Docs_Name_The_Exception(string member, string[] thrown)
+    {
+        // Act
+        var run = Run(AgentSources.Tickets, AgentSources.Support);
+
+        // Assert
+        var overloads = DocumentedExceptions(run, "Demo.SupportAgent+Host.g.cs", member);
+        overloads.Should().NotBeEmpty();
+        overloads.Should().AllSatisfy(documented => documented.Should().Contain(thrown));
     }
 
     [Fact]
@@ -643,4 +674,22 @@ public class AgentGenerationTests : GeneratorTestBase
         run.Assert.CompilesCleanly();
         run.Source("Demo.ProbeAgent.g.cs").Should().Contain("partial class ProbeAgent");
     }
+
+    // The exceptions the docs of a generated member name, for each of its overloads
+    private static List<List<string>> DocumentedExceptions(GeneratorRun run, string file, string member) =>
+    [
+        .. run.Result.GeneratedTrees
+            .Single(tree => Path.GetFileName(tree.FilePath) == file)
+            .GetRoot()
+            .DescendantNodes()
+            .OfType<MethodDeclarationSyntax>()
+            .Where(method => method.Identifier.Text == member)
+            .Select(method => ExceptionTag()
+                .Matches(method.GetLeadingTrivia().ToFullString())
+                .Select(tag => tag.Groups["type"].Value)
+                .ToList())
+    ];
+
+    [GeneratedRegex(@"<exception cref=""(?<type>[^""]+)""")]
+    private static partial Regex ExceptionTag();
 }

@@ -336,6 +336,11 @@ All notable changes to this project are documented here. The format follows
   diagnostic when it is reported.
 - TSH023 also reports `UseAgent<T>()` and `UseHandoff<T>()` of an abstract agent. The generator writes nothing for
   an abstract class, so such a use compiled and had no agent behind it.
+- The tooltips of an agent's generated host members name what they throw. `RunAsync` and `RunStreamingAsync` list
+  `DecisionUnavailableException`, an `InvalidOperationException` for a conversation with a run going on or for a
+  chat client or store that is not registered, and a `JsonException` for stored settings of a newer schema version.
+  The answer, resume and settings members list theirs, and so do `WithSettingsId`, `WithConversationId`,
+  `WithModel`, `WithStore`, `WithChatClientProvider`, `WithOptions` and `NewConversationIds`.
 
 ### Fixed
 
