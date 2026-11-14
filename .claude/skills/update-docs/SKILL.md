@@ -10,7 +10,10 @@ Read `docs/contributing/writing.md` first: the voice, the page anatomy, and the 
 1. Find where the fact lives: the fact map under "Docs" in `AGENTS.md` names the canonical page. Change it there and
    link to it from elsewhere. For a change to the library, the change checklist next to it names every page to touch.
 2. Change the sample code in `samples/Typeshift.Samples.Docs`, keeping its `begin-snippet` and `end-snippet` markers,
-   and run its program: `dotnet run --project samples/Typeshift.Samples.Docs -c Release`.
+   and run its program: `dotnet run --project samples/Typeshift.Samples.Docs -c Release`. The failing examples of
+   `docs/guide/diagnostics.md` are the one exception: each is a region `tshNNN` of
+   `tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs`, which the generator tests compile
+   (the `add-diagnostic` playbook).
 3. Run `npm run docs:snippets`, never `dotnet mdsnippets` itself: the script runs the tool and prints the uncommitted
    lines it replaced, the owner's drafts included (the mdsnippets trap in `AGENTS.md`). Never edit between
    `<!-- snippet: x -->` and `<!-- endSnippet -->` by hand. C# never goes into a hand-written block.

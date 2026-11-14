@@ -12,6 +12,9 @@ public class DiagnosticTests : GeneratorTestBase
 
     public static TheoryData<string> Shapes { get; } = [.. SourceCatalogs.NamesOf(typeof(ShapeSources))];
 
+    public static TheoryData<string, string> Examples { get; } =
+        [.. SourceCatalogs.ExamplesOf(typeof(DiagnosticSources))];
+
     [Fact]
     public void Given_A_Toolset_That_Is_Not_Partial_TSH001_Is_Reported_On_Its_Name()
     {
@@ -446,7 +449,7 @@ public class DiagnosticTests : GeneratorTestBase
         run.Reported.Single(diagnostic => diagnostic.Id == "TSH007")
             .AdditionalLocations.Select(location => location.GetLineSpan().StartLinePosition.Line)
             .Should()
-            .Equal(4);
+            .Equal(5);
     }
 
     [Fact]
@@ -2924,6 +2927,20 @@ public class DiagnosticTests : GeneratorTestBase
 
         // Assert
         run.Assert.GeneratesValidCode();
+    }
+
+    [Theory]
+    [MemberData(nameof(Examples))]
+    public void Given_A_Failing_Example_Of_The_Docs_Its_Diagnostic_Is_Reported(string id, string mistake)
+    {
+        // Arrange
+        var source = SourceCatalogs.Read(typeof(DiagnosticSources), mistake);
+
+        // Act
+        var run = Run(source);
+
+        // Assert
+        run.Reported.Select(diagnostic => diagnostic.Id).Should().Contain(id);
     }
 
     [Theory]

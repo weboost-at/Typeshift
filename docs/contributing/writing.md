@@ -139,7 +139,8 @@ diagnostics. They also beat a list of bullets that each start with a bold call n
 ### Code
 
 - **C# comes from the samples**, through mdsnippets (see [Where the code comes from](#where-the-code-comes-from)).
-  The check fails on a hand-written C# block.
+  The check fails on a hand-written C# block. The failing example of a diagnostic is the one exception, and comes
+  from the generator's tests.
 - **Every code block has a language**: `bash`, `xml`, `json`, `yaml`, `text`, `mermaid`.
 - **Shell commands are copy-pasteable.** Placeholders look like `<version>`, never like real values.
 - **Show the code before you explain it**, then say what the reader needs to know, in the order the code reads.
@@ -196,6 +197,16 @@ A page uses it by its name, on a line of its own: `snippet: settings-picks`.
 [mdsnippets](https://github.com/SimonCropp/MarkdownSnippets) replaces that line with the code, between
 `<!-- snippet: settings-picks -->` and `<!-- endSnippet -->`, plus a link to the source. A whole file is used by its
 path from the repository root.
+
+One kind of code cannot come from the samples: the failing example of a diagnostic, which the analyzer rejects, so
+the samples would not build with it. [Diagnostics](../guide/diagnostics.md) takes these examples from
+`tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs`, the sources the generator's tests
+compile. A region there is named after its diagnostic, `tsh005` for TSH005, and marks the lines the page shows. Two
+tests guard it: the source that holds the region reports that diagnostic, and the diagnostic's section shows the
+region. The fix beside a failing example is a sentence, or a snippet of the samples where one fits.
+
+The link under a snippet names the lines of its region, so a line added above a region changes the page. Run
+`npm run docs:snippets` after you edit a sample or `DiagnosticSources.cs`, and commit the pages with the code.
 
 ## Changing a page or its code
 

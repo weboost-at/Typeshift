@@ -53,16 +53,27 @@ configuring a tool the agent does not offer need no diagnostic, because no gener
    `ShapeSources` instead, and a statement that made one of them throw is an entry of `HalfTypedSources`; both sit
    beside `DiagnosticSources` and have a theory of their own. A mistake that spans a referenced project takes its
    sources from `Support/ReferenceSources.cs` and compiles the reference with `CompileReference`.
+
+   Mark the lines the docs show, inside the constant, as a region named after the ID in lower case:
+   `// begin-snippet: tshxxx` before them and `// end-snippet` after them, each on a line of its own. The markers are
+   comments in the source under test, so place the first one where it moves no line a test names. A theory runs
+   every source that holds such a region and fails when it does not report the region's diagnostic.
 5. **Docs.** In `docs/guide/diagnostics.md`, add the table row
-   `| [TSHxxx](#tshxxx) | Error | <title> | While you type |` and a `## TSHxxx` section: the bold title, why it is a
-   mistake, how to fix it. The last cell is `On build` for a descriptor with `AtEnd`, and `Both` for one that a
-   class's action and the end of the compilation report. Link it from the guide page of the feature it guards.
+   `| [TSHxxx](#tshxxx) | Error | <title> | While you type |` and a `## TSHxxx` section of three parts: the bold title
+   with why it is a mistake, the failing example as a line `snippet: tshxxx`, and how to fix it, in a sentence or
+   with a snippet of the samples. The last cell is `On build` for a descriptor with `AtEnd`, and `Both` for one that
+   a class's action and the end of the compilation report. Link it from the guide page of the feature it guards.
+   Then run `npm run docs:snippets`, which writes the example into the section. Run it again whenever
+   `DiagnosticSources.cs` gains a line above a region, since the links under the examples name their lines. A
+   mistake that no C# of one file shows, a build property or a referenced assembly for example, has no region: add
+   its ID to `WithoutExample` in `DiagnosticCatalogTests`.
 6. **Changelog.** One line under `[Unreleased]` in `CHANGELOG.md`.
 
 `DiagnosticCatalogTests` fails when an ID has no docs row, no docs section or no `..._TSHxxx_Is_Reported_...` test,
-when its row states another severity or title than the descriptor, when its help link does not end in the section's
-anchor, when a number below the highest is neither a diagnostic nor a retired row, and when a retired number is a
-diagnostic again. It also reads from the analyzer's source which action reports each descriptor, and fails when one
+when its row states another severity or title than the descriptor, when its section does not open with the title in
+bold or does not show the region named after the ID, when its help link does not end in the section's anchor, when
+a number below the highest is neither a diagnostic nor a retired row, and when a retired number is a diagnostic
+again. It also reads from the analyzer's source which action reports each descriptor, and fails when one
 that only the end of the compilation reports lacks `AtEnd`, when one reported while typing has it, and when the
 row's last cell says otherwise.
 

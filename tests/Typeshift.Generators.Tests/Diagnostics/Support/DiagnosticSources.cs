@@ -7,18 +7,21 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh001
         internal class EchoToolset : Toolset
         {
             public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
 
             public static string Echo(string text) => text;
         }
+        // end-snippet
         """;
 
     public const string NotConstant =
         """
         using Typeshift;
 
+        // begin-snippet: tsh002
         internal partial class EchoToolset : Toolset
         {
             private static readonly string Prefix = "say_";
@@ -27,6 +30,7 @@ public static class DiagnosticSources
 
             public static string Echo(string text) => text;
         }
+        // end-snippet
         """;
 
     public const string Lambda =
@@ -34,22 +38,26 @@ public static class DiagnosticSources
         using System;
         using Typeshift;
 
+        // begin-snippet: tsh003
         internal partial class EchoToolset : Toolset
         {
             public EchoToolset() => AddTool((Func<string, string>)(text => text)).WithDescription("Echoes.");
         }
+        // end-snippet
         """;
 
     public const string RefParameter =
         """
         using Typeshift;
 
+        // begin-snippet: tsh004
         internal partial class CounterToolset : Toolset
         {
             public CounterToolset() => AddTool(Bump).WithDescription("Bumps.");
 
             public static void Bump(ref int value) => value++;
         }
+        // end-snippet
         """;
 
     // What a developer used to minimal APIs writes: a service as a parameter, which nothing injects
@@ -59,6 +67,7 @@ public static class DiagnosticSources
 
         namespace Demo;
 
+        // begin-snippet: tsh038
         internal interface ITicketRepository
         {
             string Find(string query);
@@ -70,6 +79,7 @@ public static class DiagnosticSources
 
             public static string Search(string query, ITicketRepository repository) => repository.Find(query);
         }
+        // end-snippet
         """;
 
     public const string AbstractClassAndDelegateParameters =
@@ -138,6 +148,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh005
         internal class EchoSettings
         {
             public int Repeat { get; init; }
@@ -149,6 +160,7 @@ public static class DiagnosticSources
 
             public static string Echo(string text, EchoSettings settings) => text;
         }
+        // end-snippet
         """;
 
     // A positional record has a constructor of its parameters, with defaults or without, and none without parameters
@@ -195,6 +207,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh006
         internal record EchoSettings
         {
             public int Repeat { get; init; }
@@ -208,6 +221,7 @@ public static class DiagnosticSources
 
             internal static string Echo(string text, EchoSettings settings) => text;
         }
+        // end-snippet
         """;
 
     public const string DuplicateName =
@@ -232,6 +246,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh007
         internal partial class FirstToolset : Toolset
         {
             public FirstToolset() => AddTool(Find).WithDescription("Finds.");
@@ -245,6 +260,7 @@ public static class DiagnosticSources
 
             public static string Find(string query) => query;
         }
+        // end-snippet
         """;
 
     // The first declaration in the file keeps the name, whatever order the analyzer reads the classes in, which
@@ -286,30 +302,35 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh008
         internal partial class EchoToolset : Toolset
         {
             public EchoToolset() => AddTool(Echo).WithName("Echo").WithDescription("Echoes.");
 
             public static string Echo(string text) => text;
         }
+        // end-snippet
         """;
 
     public const string MissingDescription =
         """
         using Typeshift;
 
+        // begin-snippet: tsh009
         internal partial class EchoToolset : Toolset
         {
             public EchoToolset() => AddTool(Echo);
 
             public static string Echo(string text) => text;
         }
+        // end-snippet
         """;
 
     public const string UnreadSettings =
         """
         using Typeshift;
 
+        // begin-snippet: tsh010
         internal record EchoSettings
         {
             public int Repeat { get; init; }
@@ -321,6 +342,7 @@ public static class DiagnosticSources
 
             public static string Echo(string text) => text;
         }
+        // end-snippet
         """;
 
     public const string SummaryOnly =
@@ -342,6 +364,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh013
         internal record EchoSettings
         {
             public int Repeat { get; init; } = 1;
@@ -361,12 +384,14 @@ public static class DiagnosticSources
 
             public static string Echo(string text, EchoSettings settings) => text;
         }
+        // end-snippet
         """;
 
     public const string OutsideConstructor =
         """
         using Typeshift;
 
+        // begin-snippet: tsh014
         internal partial class EchoToolset : Toolset
         {
             public EchoToolset() => Declare();
@@ -375,6 +400,7 @@ public static class DiagnosticSources
 
             private void Declare() => AddTool(Echo).WithDescription("Echoes.");
         }
+        // end-snippet
         """;
 
     public const string ConditionalTool =
@@ -468,6 +494,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh015
         internal partial class EchoToolset : Toolset
         {
             public EchoToolset()
@@ -479,6 +506,7 @@ public static class DiagnosticSources
             /// <summary>Echoes.</summary>
             public static string Echo(string text) => text;
         }
+        // end-snippet
         """;
 
     public const string StoredChain =
@@ -601,6 +629,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh017
         internal partial class EchoToolset : Toolset
         {
             public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
@@ -611,6 +640,7 @@ public static class DiagnosticSources
         internal partial class LoudToolset : EchoToolset
         {
         }
+        // end-snippet
         """;
 
     public const string Generic =
@@ -629,6 +659,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh018
         internal partial class EchoToolset : Toolset
         {
             public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
@@ -639,6 +670,7 @@ public static class DiagnosticSources
             {
             }
         }
+        // end-snippet
         """;
 
     // A configurable setting gives the tool an EchoOverrides record in the toolset
@@ -718,6 +750,7 @@ public static class DiagnosticSources
 
         namespace Demo;
 
+        // begin-snippet: tsh039
         internal partial class VersionedAgent : Agent
         {
             public VersionedAgent()
@@ -726,6 +759,7 @@ public static class DiagnosticSources
                 WithSchemaVersion(0);
             }
         }
+        // end-snippet
         """;
 
     public const string NegativeSchemaVersion =
@@ -888,10 +922,12 @@ public static class DiagnosticSources
             public static string Echo(string text) => text;
         }
 
+        // begin-snippet: tsh016
         internal partial class EchoAgent : Agent
         {
             public EchoAgent(string model) => WithChatOptions().WithModel("openai", model);
         }
+        // end-snippet
         """;
 
     // The agent's use compiles, and only the toolset is reported
@@ -991,6 +1027,7 @@ public static class DiagnosticSources
             public static string Echo(string text) => text;
         }
 
+        // begin-snippet: tsh025
         internal partial class EchoAgent : Agent
         {
             public EchoAgent()
@@ -1000,6 +1037,7 @@ public static class DiagnosticSources
                 UseToolset<EchoToolset>();
             }
         }
+        // end-snippet
         """;
 
     public const string PickNamedTwice =
@@ -1207,6 +1245,7 @@ public static class DiagnosticSources
         using System;
         using Typeshift;
 
+        // begin-snippet: tsh012
         internal record EchoSettings
         {
             public Func<int> Pick { get; init; } = () => 1;
@@ -1219,6 +1258,7 @@ public static class DiagnosticSources
 
             public static string Echo(string text, EchoSettings settings) => text;
         }
+        // end-snippet
         """;
 
     public const string UnstorableDenyList =
@@ -1248,6 +1288,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh022
         namespace Support
         {
             internal partial class HelpAgent : Agent
@@ -1263,6 +1304,7 @@ public static class DiagnosticSources
                 public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
             }
         }
+        // end-snippet
         """;
 
     // No class may derive from an agent (TSH017), so an abstract one is never generated
@@ -1291,6 +1333,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh023
         internal partial class HelpAgent : Agent
         {
             public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
@@ -1300,6 +1343,7 @@ public static class DiagnosticSources
         {
             public LeadAgent() => UseAgent<HelpAgent>();
         }
+        // end-snippet
         """;
 
     // An empty summary describes nothing
@@ -1399,6 +1443,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh024
         internal partial class HelpAgent : Agent
         {
             public HelpAgent()
@@ -1417,12 +1462,14 @@ public static class DiagnosticSources
         {
             public LeadAgent() => UseAgent<HelpAgent>();
         }
+        // end-snippet
         """;
 
     public const string SubAgentThatAsksTheUser =
         """
         using Typeshift;
 
+        // begin-snippet: tsh034
         internal partial class HelpAgent : Agent
         {
             public HelpAgent()
@@ -1437,6 +1484,7 @@ public static class DiagnosticSources
         {
             public LeadAgent() => UseAgent<HelpAgent>();
         }
+        // end-snippet
         """;
 
     public const string QuestionsDeclaredTwice =
@@ -1472,12 +1520,14 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh035
         internal partial class DeskToolset : Toolset
         {
             public DeskToolset() => AddTool(AskUser).WithDescription("Asks the user.");
 
             public static string AskUser(string question) => question;
         }
+        // end-snippet
         """;
 
     public const string ToolNamedExitPlanMode =
@@ -1717,6 +1767,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh037
         internal partial class TicketToolset : Toolset
         {
             public TicketToolset() => AddTool(Close).WithDescription("Closes a ticket.").RequiresApproval();
@@ -1735,6 +1786,7 @@ public static class DiagnosticSources
                 WithRunOptions().Configurable(r => r.Mode);
             }
         }
+        // end-snippet
         """;
 
     public const string ConfigurableModeBesideAServerThatNeedsApproval =
@@ -1975,6 +2027,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh026
         internal partial class AskAgent : Agent
         {
             public AskAgent()
@@ -1994,6 +2047,7 @@ public static class DiagnosticSources
                 UseAgent<AskAgent>();
             }
         }
+        // end-snippet
         """;
 
     public const string StreamWithoutJsonMetadata =
@@ -2605,6 +2659,7 @@ public static class DiagnosticSources
         using Typeshift;
         using Microsoft.Extensions.DependencyInjection;
 
+        // begin-snippet: tsh028
         internal sealed class Clock;
 
         internal static class Startup
@@ -2612,6 +2667,7 @@ public static class DiagnosticSources
             public static void Register(IServiceCollection services) =>
                 services.AddTypeshift().WithStore<Clock>();
         }
+        // end-snippet
         """;
 
     public const string OtherStoreIdType =
@@ -2873,6 +2929,7 @@ public static class DiagnosticSources
         """
         using Typeshift;
 
+        // begin-snippet: tsh029
         public sealed record ProviderKey(string Name);
 
         public partial class HelpAgent : Agent
@@ -2880,6 +2937,7 @@ public static class DiagnosticSources
             public HelpAgent() =>
                 WithChatOptions().WithModel(new ProviderKey("openai"), "fast-model").Configurable(o => o.ModelId);
         }
+        // end-snippet
         """;
 
     // Settings store no provider, so a record serves
@@ -2901,6 +2959,7 @@ public static class DiagnosticSources
         using Typeshift;
         using Microsoft.Extensions.DependencyInjection;
 
+        // begin-snippet: tsh030
         public sealed class Clients;
 
         internal static class Startup
@@ -2908,6 +2967,7 @@ public static class DiagnosticSources
             public static void Register(IServiceCollection services) =>
                 services.AddTypeshift().WithChatClientProvider<Clients>();
         }
+        // end-snippet
         """;
 
     // D77: an agent's providers may be ints, and a provider of them serves those agents
@@ -3577,6 +3637,7 @@ public static class DiagnosticSources
         using Microsoft.Extensions.AI;
         using Microsoft.Extensions.DependencyInjection;
         using Typeshift;
+        // begin-snippet: tsh040
         using static Typeshift.TypeshiftRuntime;
 
         namespace Demo;
@@ -3586,6 +3647,7 @@ public static class DiagnosticSources
             public static object? Start(IServiceCollection services, IChatClient client) =>
                 Create(client);
         }
+        // end-snippet
         """;
 
     public const string RuntimeCreatedThroughAnAlias =

@@ -12,6 +12,8 @@ namespace Typeshift.Generators.Tests.Diagnostics;
 
 public partial class DiagnosticCatalogTests
 {
+    private const StringComparison Ordinal = StringComparison.Ordinal;
+
     // What the analyzer may report; the RS2000 analyzer keeps the release tracking files in step with it
     private static readonly ImmutableArray<DiagnosticDescriptor> Catalog = new TypeshiftAnalyzer().SupportedDiagnostics;
 
@@ -29,6 +31,11 @@ public partial class DiagnosticCatalogTests
             .Matches(RepositoryFiles.Read("docs/guide/diagnostics.md"))
             .Select(match => match.Groups["id"].Value)
     ];
+
+    // No C# of one file shows these mistakes: they need a build property, a referenced assembly or another
+    // generator's output, or lie in a store and an agent that only together are the mistake
+    private static readonly IReadOnlyList<string> WithoutExample =
+        ["TSH011", "TSH019", "TSH020", "TSH027", "TSH031", "TSH032", "TSH033", "TSH036"];
 
     [Fact]
     public void Every_Diagnostic_Has_A_Row_And_A_Section_In_The_Docs()
@@ -60,6 +67,34 @@ public partial class DiagnosticCatalogTests
 
         // Assert
         drifted.Should().BeEmpty("the editor's help link opens the section, and the table states what is reported");
+    }
+
+    [Fact]
+    public void Every_Diagnostic_Section_Starts_With_Its_Title()
+    {
+        // Arrange
+        var docs = RepositoryFiles.Read("docs/guide/diagnostics.md");
+
+        // Act
+        var drifted = Catalog
+            .Where(descriptor => !SectionOf(docs, descriptor.Id).StartsWith($"**{descriptor.Title}.** ", Ordinal))
+            .Select(Id);
+
+        // Assert
+        drifted.Should().BeEmpty("a section opens with the title the editor shows, in bold");
+    }
+
+    [Fact]
+    public void Every_Diagnostic_Section_Shows_Its_Own_Failing_Example()
+    {
+        // Arrange
+        var docs = RepositoryFiles.Read("docs/guide/diagnostics.md");
+
+        // Act
+        var drifted = Ids.Where(id => !ExamplesIn(SectionOf(docs, id)).SequenceEqual(ExamplesOf(id)));
+
+        // Assert
+        drifted.Should().BeEmpty("a section shows the region of DiagnosticSources.cs that is named after its ID");
     }
 
     [Fact]
@@ -150,6 +185,20 @@ public partial class DiagnosticCatalogTests
 
     private static string Id(DiagnosticDescriptor descriptor) => descriptor.Id;
 
+    // What stands under the diagnostic's heading, up to the next one
+    private static string SectionOf(string docs, string id)
+    {
+        var start = docs.IndexOf($"\n## {id}\n\n", Ordinal) + $"\n## {id}\n\n".Length;
+        return docs[start..docs.IndexOf("\n## ", start, Ordinal)];
+    }
+
+    // The regions mdsnippets copied into a section, by their names
+    private static IEnumerable<string> ExamplesIn(string section) =>
+        Example().Matches(section).Select(match => match.Groups["name"].Value);
+
+    private static IEnumerable<string> ExamplesOf(string id) =>
+        WithoutExample.Contains(id) ? [] : [id.ToLowerInvariant()];
+
     private static bool AtTheEnd(DiagnosticDescriptor descriptor) =>
         AnalyzerActions.AtTheEnd.Contains(Fields[descriptor]);
 
@@ -168,6 +217,9 @@ public partial class DiagnosticCatalogTests
 
     private static string RowOf(DiagnosticDescriptor descriptor) =>
         $"| [{descriptor.Id}](#{Anchor(descriptor)}) | {descriptor.DefaultSeverity} | {descriptor.Title} |";
+
+    [GeneratedRegex(@"^<!-- snippet: (?<name>tsh\d{3}) -->$", RegexOptions.Multiline)]
+    private static partial Regex Example();
 
     // A diagnostic's own row links its ID to its section; a retired one has no section to link to
     [GeneratedRegex(@"^\| (?<id>TSH\d{3}) \|", RegexOptions.Multiline)]
