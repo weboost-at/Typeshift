@@ -30,7 +30,9 @@ flowchart TD
 ```
 
 Each step wraps the steps below it, so the answer passes back up through them in reverse order: run middleware sees
-the response before the conversation stores how the run ended.
+the response before the conversation stores how the run ended. The response itself is stored and streamed inside
+the tool loop, as each model call answers, so run middleware reads it and cannot change it
+([Guarding the answer](./middleware.md#guarding-the-answer)).
 
 ## The steps
 

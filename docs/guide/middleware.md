@@ -51,7 +51,7 @@ An `IRunMiddleware` receives the run as an `AgentRun`:
 | `Provider` | The [provider](./models.md#registering-clients) that serves the run, as the agent's code or its settings name it; null on the default client. Read-only: the run's client is taken before middleware runs, so a model your middleware sets in `Options` goes to this provider. |
 | `Mode` | The mode the run is in. |
 | `Services` | The run's services. |
-| `Response` | The answer, once `next` returns. |
+| `Response` | The answer, to read once `next` returns. |
 
 Middleware may change the messages and the options before it calls `next`. Changes to the messages hold for this
 run only, because the conversation stores the messages you sent. Middleware runs for every agent, so check `run.Agent`
@@ -61,7 +61,8 @@ when it should act on some of them only.
 
 Set `run.Response` and skip `next`, as `BlockedTopics` does above, and the middleware answers in place of the model.
 The conversation stores that answer. If your middleware returns without calling `next` or setting `run.Response`,
-the run throws an `InvalidOperationException`.
+the run throws an `InvalidOperationException`. Set the response in place of calling `next`, never after it
+([Guarding the answer](#guarding-the-answer)).
 
 ### Steering input
 
@@ -96,6 +97,75 @@ the middleware returns.
 answer starts another pass of the run, and that pass goes through the middleware again, so middleware can see one run
 more than once.
 :::
+
+### Guarding the answer
+
+Run middleware guards what goes into a run, and it may answer in place of the model. It cannot change an answer the
+model gave. By the time `next` returns, that answer is stored, has streamed to the caller and reached the watchers,
+and the next model call reads it from the conversation. `run.Response` is therefore read-only once `next` was
+called: setting it then throws an `InvalidOperationException`, where it used to change the answer for the caller of
+`RunAsync` alone.
+
+To check or change what a model says, wrap the provider's client in a `DelegatingChatClient`
+([Wrapping a client](./models.md#wrapping-a-client)). This one replaces card numbers:
+
+<!-- snippet: output-guardrail -->
+<a id='snippet-output-guardrail'></a>
+```cs
+internal sealed partial class RedactedCardNumbers(IChatClient inner) : DelegatingChatClient(inner)
+{
+    public override async Task<ChatResponse> GetResponseAsync(
+        IEnumerable<ChatMessage> messages,
+        ChatOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        var response = await base.GetResponseAsync(messages, options, cancellationToken);
+
+        foreach (var text in response.Messages.SelectMany(message => message.Contents).OfType<TextContent>())
+        {
+            text.Text = CardNumber().Replace(text.Text, "[card number]");
+        }
+
+        return response;
+    }
+
+    public override async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+        IEnumerable<ChatMessage> messages,
+        ChatOptions? options = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        // A number can arrive split over two updates, so the answer is checked whole and handed on after that
+        var response = await GetResponseAsync(messages, options, cancellationToken);
+
+        foreach (var update in response.ToChatResponseUpdates())
+        {
+            yield return update;
+        }
+    }
+
+    [GeneratedRegex(@"\b\d(?:[ -]?\d){12,18}\b")]
+    private static partial Regex CardNumber();
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/RedactedCardNumbers.cs#L7-L42' title='Snippet source file'>snippet source</a> | <a href='#snippet-output-guardrail' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- Everything else takes the answer from your wrapper, so the caller, the stream, the stored conversation, the
+  watchers and the next model call all get the text it returned.
+- It sees every model call of a run, the ones between tool calls included.
+- It answers a streaming call from the whole response, because a card number can arrive split over two updates. The
+  caller then gets the answer at once. A check that needs less of the text can hold back less.
+
+Register it where you register the client, or return the wrapped client from your `IChatClientProvider`:
+
+<!-- snippet: output-guardrail-registration -->
+<a id='snippet-output-guardrail-registration'></a>
+```cs
+services.AddKeyedChatClient("openai", openAi)
+    .Use(inner => new RedactedCardNumbers(inner));
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/OutputGuardrail.cs#L17-L20' title='Snippet source file'>snippet source</a> | <a href='#snippet-output-guardrail-registration' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
 
 ### Wrap every tool call
 

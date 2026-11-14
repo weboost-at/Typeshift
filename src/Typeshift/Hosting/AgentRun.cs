@@ -7,6 +7,8 @@ namespace Typeshift;
 /// </summary>
 public sealed class AgentRun
 {
+    private ChatResponse? _response;
+
     internal AgentRun(
         Agent agent,
         IList<ChatMessage> messages,
@@ -54,10 +56,32 @@ public sealed class AgentRun
     public AgentMode Mode { get; }
 
     /// <summary>
-    /// The response, once the run has one; run middleware that sets it without calling <c>next</c> answers in place
-    /// of the model.
+    /// The response, once the run has one, for run middleware to read after <c>next</c> returned. A run middleware
+    /// that sets it in place of calling <c>next</c> answers in place of the model.
     /// </summary>
-    public ChatResponse? Response { get; set; }
+    /// <exception cref="InvalidOperationException">
+    /// It is set after <c>next</c> was called, or by anything but run middleware. The answer was stored and streamed
+    /// as it was made, so another one would reach only the caller of a run that does not stream.
+    /// </exception>
+    public ChatResponse? Response
+    {
+        get => _response;
+        set => _response = Answerable
+            ? value
+            : throw new InvalidOperationException(
+                "The run's response was set after next was called, or outside run middleware. An answer is stored, "
+                + "streamed and published as it is made, so a response set afterwards would reach only the caller "
+                + "of a run that does not stream. Set the response in place of calling next to answer in place of "
+                + "the model, or wrap the provider's chat client in a DelegatingChatClient to change what a model "
+                + "says.");
+    }
+
+    // D30: whether the code that runs now is a run middleware that has not called next, which may still answer in
+    // place of the model
+    internal bool Answerable { get; set; }
+
+    // The answer of a pass as it was made, by the model, or none yet as a pass begins
+    internal void Answered(ChatResponse? response) => _response = response;
 
     // D77: the provider with its type, which the entries of the run's model responses name as text
     internal ProviderId? ResolvedProvider => (Options as ResolvedChatOptions)?.Provider;

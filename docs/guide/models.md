@@ -252,7 +252,8 @@ services.AddKeyedChatClient("openai", openAi)
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L86-L93' title='Snippet source file'>snippet source</a> | <a href='#snippet-wrapped-chat-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Wrap what concerns a single request, such as logging or a policy of your own written as a `DelegatingChatClient`. At
+Wrap what concerns a single request, such as logging or a policy of your own written as a `DelegatingChatClient`
+([Guarding the answer](./middleware.md#guarding-the-answer) shows one that changes what the model says). At
 the `Trace` level, `UseLogging()` logs every message and answer in full, and those are your customers' data
 ([Message content](./observability.md#message-content)). Two wrappers repeat what Typeshift already does:
 

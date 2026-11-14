@@ -7,7 +7,8 @@ namespace Typeshift;
 
 // D30: below the conversation, around each pass of a run: the run middleware the run's services resolve, the first
 // registered outermost. A response middleware sets without calling next answers in place of the model, and the
-// conversation stores it
+// conversation stores it. Once a middleware called next, the answer is made, stored and on its way to the caller,
+// and the response can only be read
 internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingChatClient(inner)
 {
     public override async Task<ChatResponse> GetResponseAsync(
@@ -26,7 +27,7 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
         {
             called = true;
             Keep(run, resolved, received);
-            run.Response = await InnerClient.GetResponseAsync(run.Messages, resolved, cancellationToken);
+            run.Answered(await InnerClient.GetResponseAsync(run.Messages, resolved, cancellationToken));
         }, cancellationToken);
 
         return await AnsweredAsync(run, resolved, called);
@@ -67,7 +68,7 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
                 await updates.Writer.WriteAsync(update, stop.Token);
             }
 
-            run.Response = arrived.ToChatResponse();
+            run.Answered(arrived.ToChatResponse());
         }, stop.Token);
 
         try
@@ -103,7 +104,7 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
         List<ChatMessage> received = [.. messages];
 
         run.Messages = [.. received];
-        run.Response = null;
+        run.Answered(null);
         return received;
     }
 
@@ -136,15 +137,38 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
         }
     }
 
-    private static Task InvokeAsync(
+    // A middleware may answer until it calls next: from then on the answer is the model's, or that of a middleware
+    // nearer the model, and it is read-only when next returns
+    private static async Task InvokeAsync(
         List<IRunMiddleware> middleware,
         int index,
         AgentRun run,
         Func<Task> model,
-        CancellationToken ct) =>
-        index == middleware.Count
-            ? model()
-            : middleware[index].InvokeAsync(run, () => InvokeAsync(middleware, index + 1, run, model, ct), ct);
+        CancellationToken ct)
+    {
+        if (index == middleware.Count)
+        {
+            await model();
+            return;
+        }
+
+        run.Answerable = true;
+
+        try
+        {
+            await middleware[index].InvokeAsync(run, NextAsync, ct);
+        }
+        finally
+        {
+            run.Answerable = false;
+        }
+
+        async Task NextAsync()
+        {
+            run.Answerable = false;
+            await InvokeAsync(middleware, index + 1, run, model, ct);
+        }
+    }
 
     private static async Task<ChatResponse> AnsweredAsync(AgentRun run, ResolvedChatOptions options, bool called)
     {

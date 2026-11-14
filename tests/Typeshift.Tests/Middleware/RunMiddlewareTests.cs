@@ -1,7 +1,9 @@
+using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Middleware.Support;
 using Typeshift.Tests.MultiAgent.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift.Tests.Middleware;
 
@@ -200,6 +202,89 @@ public class RunMiddlewareTests : MiddlewareTestBase
             .Select(message => message.Text)
             .Should()
             .Equal(Data.Tool.Question, Data.Tool.Answer);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_Middleware_That_Sets_The_Response_After_Next_The_Run_Fails_Saying_What_To_Do_Instead(
+        bool streaming)
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        Script.Runs[0] = async (run, next) =>
+        {
+            await next();
+            run.Response = new ChatResponse(new ChatMessage(ChatRole.Assistant, Data.Agent.Reason));
+        };
+
+        // Act
+        var run = () => RunAsync(Data.Tool.Question, settings: null, streaming);
+
+        // Assert
+        await run.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage("*after next was called*in place of calling next*DelegatingChatClient*");
+    }
+
+    [Fact]
+    public async Task Given_An_Outer_Middleware_That_Sets_The_Response_After_An_Inner_One_Answered_The_Run_Fails()
+    {
+        // Arrange
+        Script.Runs[1] = (run, _) => Refuse(run);
+
+        Script.Runs[0] = async (run, next) =>
+        {
+            await next();
+            run.Response = new ChatResponse(new ChatMessage(ChatRole.Assistant, Data.Agent.Reason));
+        };
+
+        // Act
+        var run = () => RunAsync(Data.Tool.Question);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*after next was called*");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Client_That_Redacts_The_Caller_The_Store_And_The_Next_Call_Hold_The_Redacted_Text(
+        bool streaming)
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        services.AddTypeshift()
+            .WithStore<InMemoryTypeshiftStore<Guid>>()
+            .WithChatClientProvider<RedactingChatClientProvider>();
+
+        services.AddSingleton(ChatClient);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var chat = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
+
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason));
+
+        // Act
+        var response = streaming
+            ? (await chat.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct)).ToChatResponse()
+            : await chat.RunAsync(Data.Tool.Question, ct: Ct);
+
+        await chat.RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        var stored = await provider.GetRequiredService<IConversationStore<Guid>>()
+            .LoadConversationAsync(Data.Agent.ConversationId, Ct);
+
+        // Assert
+        response.Text.Should().Be(RedactingChatClient.Redacted);
+        stored[1].Messages[0].Text.Should().Be(RedactingChatClient.Redacted);
+        ChatClient.Requests[1][1].Text.Should().Be(RedactingChatClient.Redacted);
     }
 
     [Fact]

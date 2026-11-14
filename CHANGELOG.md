@@ -436,6 +436,12 @@ All notable changes to this project are documented here. The format follows
   such a provider read as missing, so after a member of an enum of providers was renamed, the model stored beside
   it went to the provider of the layer below. Change the stored values when you rename or remove a provider, in
   your store's `LoadAsync` or with a script over your database.
+- Setting `run.Response` in a run middleware once it called `next` throws an `InvalidOperationException`. It
+  changed the answer for the caller of `RunAsync` alone: the stream of `RunStreamingAsync`, the stored
+  conversation, watchers and the next model call kept the model's text, so an output filter written that way passed
+  its test and leaked everywhere else. Set the response in place of calling `next` to answer in place of the
+  model. To check or change what a model says, wrap the provider's client in a `DelegatingChatClient`: "Guarding
+  the answer" in the guide's page on middleware shows one that holds in every place the answer goes.
 
 ### Fixed
 

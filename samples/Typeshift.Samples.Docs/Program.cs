@@ -23,6 +23,7 @@ var shop = Path.Combine(Path.GetTempPath(), $"typeshift-samples-shop-{Guid.NewGu
 
 await NoContainer.RunAsync(client);
 await SmallestAgent.RunAsync(client);
+await OutputGuardrail.RunAsync();
 await MinimalApi.RunAsync(client);
 var services = Registration.Register(new ServiceCollection(), client, client, database);
 services.AddSingleton<SampleLog>();

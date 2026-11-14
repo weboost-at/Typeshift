@@ -590,7 +590,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - **Status:** owner.
 - **Decision:** `IRunMiddleware.InvokeAsync(run, next, ct)` serves streaming and non-streaming runs alike: it may
-  change messages and options, read `run.Response` after `next`, or set it instead of calling `next`.
+  change messages and options, read `run.Response` after `next`, or set it instead of calling `next`. Setting it
+  once `next` was called throws: by then the answer is stored (D50), has streamed and was published (D47), so a
+  response set there reached the caller of a run that does not stream and nobody else. What a model says is
+  changed below the checkpoints, by a client the app wraps around the provider's, which the guide shows.
   `IToolMiddleware` wraps `FunctionInvocationContext`. Registered in the chain, in order, for every agent; a
   middleware filters by `run.Agent`. Changes to the messages hold for the pass; the conversation keeps what the
   host sent. A response set without `next` is stored with the conversation, and a pass that called no model ends
@@ -610,7 +613,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Where:** `Middleware/`, `FunctionInvokingChatClient.FunctionInvoker` for tool middleware,
   `Conversations/ConversationRun.cs` (steering input).
 - **Alternatives:** MAF's separate run and streaming delegates (streaming falls back to non-streaming when one is
-  missing); per-agent middleware in the agent's chain, a second place; for steering input, starting a pass for
+  missing); per-agent middleware in the agent's chain, a second place; applying a response set after `next`
+  everywhere, which takes checkpoints that wait for run middleware and a stream held back until it ends; a named
+  output guardrail in the chain, applied below the checkpoints, which is a feature of its own and not built; for
+  steering input, starting a pass for
   each one, so that `InvokeAsync` finds it as the pass's last message, which would keep it from the next model
   call inside a tool loop (D51); and leaving the check to the app, before it calls `TrySteer`, a second place for
   every guardrail.
