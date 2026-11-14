@@ -514,6 +514,19 @@ public static class DiagnosticSources
         }
         """;
 
+    // D40: the version of the stored Settings is read as a constant, as their kind is
+    public const string ComputedSchemaVersion =
+        """
+        using Typeshift;
+
+        internal partial class EchoAgent : Agent
+        {
+            private static readonly int Version = 3;
+
+            public EchoAgent() => WithSchemaVersion(Version);
+        }
+        """;
+
     public const string UnstorableOption =
         """
         using Typeshift;

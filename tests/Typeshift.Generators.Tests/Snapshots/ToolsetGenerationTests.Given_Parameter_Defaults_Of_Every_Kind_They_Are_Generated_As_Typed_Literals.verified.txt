@@ -123,6 +123,16 @@ partial class GreetingToolset
                 HasDefaultValue = true,
                 DefaultValue = float.PositiveInfinity
             },
+            new("bottomless", typeof(float))
+            {
+                HasDefaultValue = true,
+                DefaultValue = float.NegativeInfinity
+            },
+            new("unknown", typeof(float))
+            {
+                HasDefaultValue = true,
+                DefaultValue = float.NaN
+            },
             new("nan", typeof(double))
             {
                 HasDefaultValue = true,
@@ -142,6 +152,11 @@ partial class GreetingToolset
             {
                 HasDefaultValue = true,
                 DefaultValue = double.NegativeInfinity
+            },
+            new("always", typeof(double))
+            {
+                HasDefaultValue = true,
+                DefaultValue = double.PositiveInfinity
             },
             new("price", typeof(decimal))
             {
@@ -207,10 +222,13 @@ partial class GreetingToolset
                 GetArgument<ulong>(arguments, "total", 4UL),
                 GetArgument<float>(arguments, "ratio", 0.5f),
                 GetArgument<float>(arguments, "endless", float.PositiveInfinity),
+                GetArgument<float>(arguments, "bottomless", float.NegativeInfinity),
+                GetArgument<float>(arguments, "unknown", float.NaN),
                 GetArgument<double>(arguments, "nan", double.NaN),
                 GetArgument<double>(arguments, "rate", 0.25d),
                 GetArgument<double>(arguments, "big", 1E+300d),
                 GetArgument<double>(arguments, "never", double.NegativeInfinity),
+                GetArgument<double>(arguments, "always", double.PositiveInfinity),
                 GetArgument<decimal>(arguments, "price", 1.25m),
                 GetArgument<global::Demo.Level>(arguments, "level", global::Demo.Level.High),
                 GetArgument<global::Demo.Level>(arguments, "unnamed", (global::Demo.Level)(7)),

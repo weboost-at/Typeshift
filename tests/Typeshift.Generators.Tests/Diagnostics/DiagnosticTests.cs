@@ -698,6 +698,20 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Computed_Schema_Version_TSH002_Is_Reported_On_The_Argument()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ComputedSchemaVersion);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH002",
+            DiagnosticSeverity.Error,
+            "Version",
+            message: "The schema version must be a constant: the generator reads it at compile time");
+    }
+
+    [Fact]
     public void Given_A_Configurable_Chat_Option_Settings_Cannot_Store_TSH012_Is_Reported_On_The_Pick()
     {
         // Act

@@ -13,6 +13,7 @@ public class DiscoveryTests : GeneratorTestBase
     [InlineData("class Tools : Toolset;")]
     [InlineData("class Tools : Typeshift.Toolset;")]
     [InlineData("class Tools : global::Typeshift.Toolset;")]
+    [InlineData("class Tools : Library::Toolset;")]
     [InlineData("partial class Tools : System.IDisposable, Toolset;")]
     public void Given_A_Class_Whose_Base_List_Names_Toolset_It_Is_Bound_As_A_Toolset(string declaration)
     {
@@ -30,6 +31,7 @@ public class DiscoveryTests : GeneratorTestBase
     [InlineData("class Tools;")]
     [InlineData("class Tools : Agent;")]
     [InlineData("class Tools : ToolsetBase;")]
+    [InlineData("class Tools : object;")]
     [InlineData("abstract class Tools : Toolset;")]
     [InlineData("record Tools : Toolset;")]
     public void Given_Any_Other_Declaration_It_Is_Not_Bound_As_A_Toolset(string declaration)
