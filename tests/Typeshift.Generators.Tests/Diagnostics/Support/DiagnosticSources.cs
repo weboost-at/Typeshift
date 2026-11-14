@@ -125,6 +125,40 @@ public static class DiagnosticSources
         }
         """;
 
+    // The first declaration in the file keeps the name, whatever order the analyzer reads the classes in
+    public const string ToolsOfOneNameInFourToolsets =
+        """
+        using Typeshift;
+
+        internal partial class FirstToolset : Toolset
+        {
+            public FirstToolset() => AddTool(Find).WithDescription("Finds.");
+
+            public static string Find(string query) => query;
+        }
+
+        internal partial class SecondToolset : Toolset
+        {
+            public SecondToolset() => AddTool(FindSecond).WithName("find").WithDescription("Finds.");
+
+            public static string FindSecond(string query) => query;
+        }
+
+        internal partial class ThirdToolset : Toolset
+        {
+            public ThirdToolset() => AddTool(FindThird).WithName("find").WithDescription("Finds.");
+
+            public static string FindThird(string query) => query;
+        }
+
+        internal partial class FourthToolset : Toolset
+        {
+            public FourthToolset() => AddTool(FindFourth).WithName("find").WithDescription("Finds.");
+
+            public static string FindFourth(string query) => query;
+        }
+        """;
+
     public const string NotLowerSnakeCase =
         """
         using Typeshift;
@@ -231,6 +265,63 @@ public static class DiagnosticSources
             public EchoToolset()
             {
                 if (Loud) AddTool(Echo).WithDescription("Echoes.");
+            }
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    // The braces make the declaration a statement of a block, as one at the top of the constructor is
+    public const string ToolUnderABracedCondition =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            private static readonly bool Loud = true;
+
+            public EchoToolset()
+            {
+                if (Loud)
+                {
+                    AddTool(Echo).WithDescription("Echoes.");
+                }
+            }
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    public const string ToolInALoop =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset()
+            {
+                foreach (var _ in new[] { 1, 2 })
+                {
+                    AddTool(Echo).WithDescription("Echoes.");
+                }
+            }
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    // The lambda returns the chain, so inside it the chain ends in no statement
+    public const string ToolInALambda =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset()
+            {
+                var declare = () => AddTool(Echo).WithDescription("Echoes.");
+
+                declare();
             }
 
             public static string Echo(string text) => text;
@@ -362,6 +453,27 @@ public static class DiagnosticSources
             public static void CreateEcho()
             {
             }
+        }
+        """;
+
+    // A configurable setting gives the tool an EchoOverrides record in the toolset
+    public const string MemberNamedLikeTheOverrides =
+        """
+        using Typeshift;
+
+        internal record EchoSettings
+        {
+            public int Repeat { get; init; } = 1;
+        }
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Repeat);
+
+            public static int EchoOverrides => 1;
+
+            public static string Echo(string text, EchoSettings settings) => text;
         }
         """;
 
@@ -696,6 +808,43 @@ public static class DiagnosticSources
         internal partial class HelpAgent : Agent
         {
             public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
+        }
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent() => UseAgent<HelpAgent>();
+        }
+        """;
+
+    // An empty summary describes nothing
+    public const string SubAgentWithAnEmptySummary =
+        """
+        using Typeshift;
+
+        /// <summary></summary>
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent() => WithChatOptions().WithModel("openai", "fast-model");
+        }
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent() => UseAgent<HelpAgent>();
+        }
+        """;
+
+    // The model calls a sub-agent as a tool, by the agent's name
+    public const string SubAgentWithANameOfTwoWords =
+        """
+        using Typeshift;
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent()
+            {
+                WithName("Help Desk");
+                WithDescription("Helps.");
+            }
         }
 
         internal partial class LeadAgent : Agent

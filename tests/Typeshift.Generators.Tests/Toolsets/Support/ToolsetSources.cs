@@ -390,6 +390,27 @@ public static class ToolsetSources
         }
         """;
 
+    // No tool: a static method of a class that is no toolset, whose docs leave its token out
+    public const string MethodOutsideAToolset =
+        """
+        using System.Threading;
+
+        namespace Demo;
+
+        /// <summary>
+        /// Looks things up.
+        /// </summary>
+        public static class Lookups
+        {
+            /// <summary>
+            /// Finds a text.
+            /// </summary>
+            /// <param name="query">What to find.</param>
+            /// <returns>What it found.</returns>
+            public static string Find(string query, CancellationToken ct) => query;
+        }
+        """;
+
     // The class Typeshift's build adds, with the Source that Weboost.SchemaAnnotations' generator writes for it
     public const string SchemaAnnotations =
         """

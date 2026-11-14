@@ -155,6 +155,18 @@ public class ToolsetGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Multi_Line_Description_The_Tool_Is_Described_On_One_Line()
+    {
+        // Act
+        var run = Run(ToolsetSources.MultiLineDescription);
+
+        // Assert
+        run.Source("Demo.NoteToolset.g.cs")
+            .Should()
+            .Contain("Description => \"Takes a note that spans several lines, with code & \\\"quotes\\\".\";");
+    }
+
+    [Fact]
     public void Given_A_Parameter_Documented_Twice_The_Generator_Does_Not_Fail()
     {
         // Act
@@ -182,6 +194,16 @@ public class ToolsetGenerationTests : GeneratorTestBase
 
         // Assert
         run.Assert.Suppresses("CS1573");
+    }
+
+    [Fact]
+    public void Given_A_Method_Outside_A_Toolset_The_Missing_Docs_Of_Its_Parameters_Are_Reported()
+    {
+        // Act
+        var run = Run(ToolsetSources.MethodOutsideAToolset);
+
+        // Assert
+        run.Reported.Select(diagnostic => diagnostic.Id).Should().Contain("CS1573");
     }
 
     [Fact]
@@ -246,6 +268,36 @@ public class ToolsetGenerationTests : GeneratorTestBase
 
         // Assert
         run.Source("Typeshift.Generated.SubjectModule.g.cs").Should().NotContain("AddSchemaAnnotations");
+    }
+
+    [Fact]
+    public void Given_Several_Json_Contexts_The_Module_Registers_Them_In_Source_Order()
+    {
+        // Act
+        var run = Run(ShapeSources.SeveralJsonContexts);
+
+        var registered = run.Source("Typeshift.Generated.SubjectModule.g.cs")
+            .Split('\n')
+            .Where(line => line.Contains("AddJsonContext"))
+            .Select(line => line[line.IndexOf("global::Demo", StringComparison.Ordinal)..]);
+
+        // Assert
+        registered.Should().Equal(
+            "global::Demo.OrderJson.Default);",
+            "global::Demo.ListJson.Default);",
+            "global::Demo.NumberJson.Default);",
+            "global::Demo.TextJson.Default);",
+            "global::Demo.FlagJson.Default);");
+    }
+
+    [Fact]
+    public void Given_Stored_Collections_A_Stream_Tool_And_A_Json_Context_The_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(ShapeSources.StoredCollectionsAStreamAndAJsonContext);
+
+        // Assert
+        run.Assert.CompilesCleanly();
     }
 
     [Fact]

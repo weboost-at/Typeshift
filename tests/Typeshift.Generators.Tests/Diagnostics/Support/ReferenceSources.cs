@@ -71,6 +71,71 @@ public static class ReferenceSources
         }
         """;
 
+    // As a library built by an earlier Typeshift left it: a module of another stamp version, which this generator
+    // does not read
+    public const string StaleStampToolset =
+        """
+        using Typeshift;
+
+        [assembly: Typeshift.Generated.GeneratedModule(typeof(Stale.StaleModule), 1)]
+
+        namespace Stale;
+
+        public static class StaleModule;
+
+        public partial class StaleToolset : Toolset
+        {
+            public StaleToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    // Times is obsolete and not configurable, so no generated member names it, in this project or in one that
+    // references it
+    public const string ObsoleteSettingToolset =
+        """
+        #pragma warning disable CS1591
+
+        using System;
+        using Typeshift;
+
+        namespace Echoes;
+
+        public record EchoSettings
+        {
+            public int Repeat { get; init; } = 1;
+
+            [Obsolete("Use Repeat.")]
+            public int Times { get; init; }
+        }
+
+        public partial class EchoToolset : Toolset
+        {
+            public EchoToolset() =>
+                AddTool(Echo).WithDescription("Echoes.").WithSettings<EchoSettings>().Configurable(s => s.Repeat);
+
+            public static string Echo(string text, EchoSettings settings) => text;
+        }
+        """;
+
+    public const string ObsoleteSettingAgent =
+        """
+        using Typeshift;
+
+        namespace Research;
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent()
+            {
+                WithDescription("Echoes.");
+                UseToolset<Echoes.EchoToolset>();
+                ConfigureEcho().WithRepeat(2);
+            }
+        }
+        """;
+
     public const string CompanyAgent =
         """
         using Typeshift;

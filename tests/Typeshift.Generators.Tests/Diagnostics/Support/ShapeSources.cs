@@ -253,6 +253,167 @@ public static class ShapeSources
         }
         """;
 
+    // D45: tools ask the contexts in the order the module registers them, which is the order of the source. The
+    // System.Text.Json generator does not run here, so what it would write is stubbed
+    public const string SeveralJsonContexts =
+        """
+        using System;
+        using System.Text.Json;
+        using System.Text.Json.Serialization;
+        using System.Text.Json.Serialization.Metadata;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal sealed record Order(int Number);
+
+        internal partial class OrderToolset : Toolset
+        {
+            public OrderToolset() => AddTool(Find).WithDescription("Finds an order.");
+
+            public static Order Find(int number) => new(number);
+        }
+
+        [JsonSerializable(typeof(Order))]
+        internal partial class OrderJson() : JsonSerializerContext(null)
+        {
+            public static OrderJson Default { get; } = new();
+
+            protected override JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override JsonTypeInfo? GetTypeInfo(Type type) => null;
+        }
+
+        [JsonSerializable(typeof(Order[]))]
+        internal partial class ListJson() : JsonSerializerContext(null)
+        {
+            public static ListJson Default { get; } = new();
+
+            protected override JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override JsonTypeInfo? GetTypeInfo(Type type) => null;
+        }
+
+        [JsonSerializable(typeof(int))]
+        internal partial class NumberJson() : JsonSerializerContext(null)
+        {
+            public static NumberJson Default { get; } = new();
+
+            protected override JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override JsonTypeInfo? GetTypeInfo(Type type) => null;
+        }
+
+        [JsonSerializable(typeof(string))]
+        internal partial class TextJson() : JsonSerializerContext(null)
+        {
+            public static TextJson Default { get; } = new();
+
+            protected override JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override JsonTypeInfo? GetTypeInfo(Type type) => null;
+        }
+
+        [JsonSerializable(typeof(bool))]
+        internal partial class FlagJson() : JsonSerializerContext(null)
+        {
+            public static FlagJson Default { get; } = new();
+
+            protected override JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override JsonTypeInfo? GetTypeInfo(Type type) => null;
+        }
+        """;
+
+    // D19: a configurable member of every kind a store keeps beside the scalars: a list, an array, a set, a map, a
+    // map keyed by an enum, an object and a record struct. The two Endpoint records share their simple name, and one
+    // holds the other. The tool streams its result, whose list a JSON context lists (D45)
+    public const string StoredCollectionsAStreamAndAJsonContext =
+        """
+        using System;
+        using System.Collections.Generic;
+        using System.Text.Json;
+        using System.Text.Json.Serialization;
+        using System.Text.Json.Serialization.Metadata;
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo.Mail
+        {
+            internal record Endpoint
+            {
+                public string Address { get; init; } = "";
+            }
+        }
+
+        namespace Demo
+        {
+            internal enum Depth
+            {
+                Shallow,
+                Deep
+            }
+
+            internal record Endpoint
+            {
+                public string Host { get; init; } = "localhost";
+
+                public int Port { get; init; } = 80;
+
+                public List<string> Paths { get; init; } = [];
+
+                public Mail.Endpoint Contact { get; init; } = new();
+            }
+
+            internal record struct Size(int Width, int Height);
+
+            internal record CrawlSettings
+            {
+                public List<string> Names { get; init; } = [];
+
+                public string[] Tags { get; init; } = [];
+
+                public HashSet<int> Ports { get; init; } = [];
+
+                public IReadOnlyList<Endpoint> Mirrors { get; init; } = [];
+
+                public Dictionary<string, int> Weights { get; init; } = [];
+
+                public IReadOnlyDictionary<Depth, Endpoint> Starts { get; init; } = new Dictionary<Depth, Endpoint>();
+
+                public Endpoint Primary { get; init; } = new();
+
+                public Size Window { get; init; }
+
+                public Depth? Reach { get; init; }
+            }
+
+            internal sealed record Page(string Url);
+
+            internal partial class CrawlToolset : Toolset
+            {
+                public CrawlToolset() =>
+                    AddTool(Crawl).WithDescription("Crawls a site.").WithConfigurableSettings<CrawlSettings>();
+
+                public static async IAsyncEnumerable<Page> Crawl(string url, CrawlSettings settings)
+                {
+                    await Task.Yield();
+                    yield return new(url);
+                }
+            }
+
+            [JsonSerializable(typeof(List<Page>))]
+            internal partial class CrawlJson() : JsonSerializerContext(null)
+            {
+                public static CrawlJson Default { get; } = new();
+
+                protected override JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+                public override JsonTypeInfo? GetTypeInfo(Type type) => null;
+            }
+        }
+        """;
+
     public const string PublicInTheGlobalNamespace =
         """
         using Typeshift;
@@ -598,7 +759,7 @@ public static class ShapeSources
                     .WithDescription("Strips <b>tags</b> & \"quotes\", {braces}, a \\ and a */ from a text.")
                     .WithConfigurableSettings<MarkupSettings>();
 
-            /// <param name="text">The text, with <i>tags</i> &amp; more.</param>
+            /// <param name="text">The text, with <i>tags</i>, "quotes", a \ &amp; more.</param>
             public static string Strip(string text, MarkupSettings settings) => text;
         }
         """;
@@ -781,6 +942,86 @@ public static class ShapeSources
                 WithDescription("Pages.");
                 UseToolset<PageToolset>();
                 ConfigurePage().WithSize(10);
+            }
+        }
+        """;
+
+    // A member a derived record declares again counts once, as the derived record declares it
+    public const string RedeclaredSettingsMember =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record PageSettings
+        {
+            public int Size { get; init; } = 20;
+        }
+
+        internal record NamedPageSettings : PageSettings
+        {
+            public new string Size { get; init; } = "large";
+        }
+
+        internal partial class PageToolset : Toolset
+        {
+            public PageToolset() =>
+                AddTool(Page).WithDescription("Pages.").WithConfigurableSettings<NamedPageSettings>();
+
+            public static string Page(string query, NamedPageSettings paging) => query;
+        }
+
+        internal partial class PageAgent : Agent
+        {
+            public PageAgent()
+            {
+                WithDescription("Pages.");
+                UseToolset<PageToolset>();
+                ConfigurePage().WithSize("small");
+            }
+        }
+        """;
+
+    // The module creates the classes from inside their assembly, where an internal constructor is in reach. No agent
+    // uses the toolset: UseToolset<T>() takes a class with a public constructor
+    public const string InternalConstructors =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class EchoToolset : Toolset
+        {
+            internal EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            protected internal EchoAgent() => WithDescription("Echoes.");
+        }
+        """;
+
+    // D77: the model that is set last is the one a run asks for, so its provider's type is the agent's
+    public const string TwoModelsInOneConstructor =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal enum Vendor
+        {
+            OpenAi
+        }
+
+        internal partial class SwitchingAgent : Agent
+        {
+            public SwitchingAgent()
+            {
+                WithChatOptions().WithModel(Vendor.OpenAi, "first-model");
+
+                WithChatOptions().WithModel("openai", "fast-model").Configurable(o => o.ModelId);
             }
         }
         """;
@@ -1338,6 +1579,39 @@ public static class ShapeSources
             {
                 WithDescription("Reports.");
                 UseToolset<ReportToolset>().Include(t => t.Report).Include(t => t.CreateReport);
+            }
+        }
+        """;
+
+    // The agent offers the tools it includes in the order of its picks, which is not the toolset's here
+    public const string ToolsIncludedInAnotherOrder =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class ReportToolset : Toolset
+        {
+            public ReportToolset()
+            {
+                AddTool(Find).WithDescription("Finds a report.");
+                AddTool(Print).WithDescription("Prints a report.");
+                AddTool(Send).WithDescription("Sends a report.");
+            }
+
+            public static string Find(string title) => title;
+
+            public static string Print(string title) => title;
+
+            public static string Send(string title) => title;
+        }
+
+        internal partial class ReportAgent : Agent
+        {
+            public ReportAgent()
+            {
+                WithDescription("Reports.");
+                UseToolset<ReportToolset>().Include(t => t.Send).Include(t => t.Find);
             }
         }
         """;

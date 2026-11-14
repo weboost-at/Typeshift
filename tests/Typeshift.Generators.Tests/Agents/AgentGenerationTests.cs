@@ -544,4 +544,65 @@ public class AgentGenerationTests : GeneratorTestBase
             .Should()
             .Contain("/// Sets <c>Limit</c>: The most tickets a search returns.");
     }
+
+    [Fact]
+    public void Given_A_Schema_Version_The_Agents_Settings_Carry_It()
+    {
+        // Act
+        var run = Run(ShapeSources.EveryAgentDeclaration);
+
+        // Assert
+        run.Source("Demo.OfficeAgent.g.cs").Should().Contain("public static int SchemaVersion => 3;");
+    }
+
+    [Fact]
+    public void Given_Two_Models_In_One_Constructor_The_Settings_Store_Providers_Of_The_Last_Ones_Type()
+    {
+        // Act
+        var run = Run(ShapeSources.TwoModelsInOneConstructor);
+
+        // Assert
+        run.Output.GetTypeByMetadataName("Demo.SwitchingAgent+Settings")!
+            .GetMembers("Provider")
+            .OfType<IPropertySymbol>()
+            .Single()
+            .Type.ToDisplayString()
+            .Should()
+            .Be("string?");
+    }
+
+    [Fact]
+    public void Given_Tools_Included_In_Another_Order_Than_The_Toolsets_The_Agent_Offers_Them_As_Picked()
+    {
+        // Act
+        var run = Run(ShapeSources.ToolsIncludedInAnotherOrder);
+
+        // Assert
+        run.Source("Typeshift.Generated.SubjectModule.g.cs")
+            .Should()
+            .Contain("Tools = new string[] { \"send\", \"find\" }");
+    }
+
+    [Fact]
+    public void Given_An_Obsolete_Setting_That_Is_Not_Configurable_The_Agent_Gets_No_With_Method_For_It()
+    {
+        // Act
+        var run = Run(ReferenceSources.ObsoleteSettingToolset, ReferenceSources.ObsoleteSettingAgent);
+
+        // Assert
+        run.Source("Research.EchoAgent.g.cs").Should().NotContain("WithTimes");
+    }
+
+    [Fact]
+    public void Given_An_Obsolete_Setting_Of_A_Referenced_Toolset_The_Agent_Gets_No_With_Method_For_It()
+    {
+        // Arrange
+        var reference = CompileReference("Echoes", ReferenceSources.ObsoleteSettingToolset);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.ObsoleteSettingAgent));
+
+        // Assert
+        run.Source("Research.EchoAgent.g.cs").Should().NotContain("WithTimes");
+    }
 }

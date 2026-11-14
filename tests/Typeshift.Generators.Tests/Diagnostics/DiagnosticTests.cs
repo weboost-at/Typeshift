@@ -353,6 +353,18 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_Four_Toolsets_With_A_Tool_Of_One_Name_TSH007_Is_Reported_On_Each_But_The_First_In_The_File()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToolsOfOneNameInFourToolsets);
+
+        // Assert
+        run.Assert.ReportsAmong("TSH007", DiagnosticSeverity.Error, "AddTool(FindSecond)");
+        run.Assert.ReportsAmong("TSH007", DiagnosticSeverity.Error, "AddTool(FindThird)");
+        run.Assert.ReportsAmong("TSH007", DiagnosticSeverity.Error, "AddTool(FindFourth)");
+    }
+
+    [Fact]
     public void Given_A_Tool_Name_In_Pascal_Case_TSH008_Is_Reported_On_The_Name()
     {
         // Act
@@ -477,6 +489,36 @@ public class DiagnosticTests : GeneratorTestBase
     {
         // Act
         var run = Run(DiagnosticSources.ConditionalTool);
+
+        // Assert
+        run.Assert.Reports("TSH014", DiagnosticSeverity.Error, "AddTool");
+    }
+
+    [Fact]
+    public void Given_A_Tool_Declared_Under_A_Braced_Condition_TSH014_Is_Reported_On_AddTool()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToolUnderABracedCondition);
+
+        // Assert
+        run.Assert.Reports("TSH014", DiagnosticSeverity.Error, "AddTool");
+    }
+
+    [Fact]
+    public void Given_A_Tool_Declared_In_A_Loop_TSH014_Is_Reported_On_AddTool()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToolInALoop);
+
+        // Assert
+        run.Assert.Reports("TSH014", DiagnosticSeverity.Error, "AddTool");
+    }
+
+    [Fact]
+    public void Given_A_Tool_Declared_In_A_Lambda_TSH014_Is_Reported_On_AddTool_And_Nothing_Else()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToolInALambda);
 
         // Assert
         run.Assert.Reports("TSH014", DiagnosticSeverity.Error, "AddTool");
@@ -616,6 +658,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Member_Named_Like_The_Generated_Overrides_TSH018_Is_Reported_On_It()
+    {
+        // Act
+        var run = Run(DiagnosticSources.MemberNamedLikeTheOverrides);
+
+        // Assert
+        run.Assert.Reports("TSH018", DiagnosticSeverity.Error, "EchoOverrides");
+    }
+
+    [Fact]
     public void Given_An_Agent_That_Is_Not_Partial_TSH001_Is_Reported_On_Its_Name()
     {
         // Act
@@ -696,6 +748,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_Internal_Parameterless_Constructors_TSH016_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(ShapeSources.InternalConstructors);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH016");
+    }
+
+    [Fact]
     public void Given_An_Agent_Deriving_From_Another_TSH017_Is_Reported_On_Its_Name()
     {
         // Act
@@ -751,6 +813,19 @@ public class DiagnosticTests : GeneratorTestBase
                 + "the Typeshift package, so AddTypeshift() cannot register them: reference the Typeshift package in "
                 + "its project, at this version, and build it again",
             also: "TSH019");
+    }
+
+    [Fact]
+    public void Given_A_Reference_Stamped_By_Another_Version_Of_The_Generator_TSH020_Is_Reported()
+    {
+        // Arrange
+        var reference = CompileReferenceWithoutGenerator("Stale", ReferenceSources.StaleStampToolset);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.EmptyHost));
+
+        // Assert
+        run.Assert.ReportsOnTheCompilation("TSH020", DiagnosticSeverity.Warning);
     }
 
     [Fact]
@@ -810,6 +885,19 @@ public class DiagnosticTests : GeneratorTestBase
 
         // Assert
         run.Assert.ReportsOnTheCompilation("TSH022", DiagnosticSeverity.Error).GetMessage().Should().Contain("Billing");
+    }
+
+    [Fact]
+    public void Given_An_Agent_Of_A_Referenced_Agents_Kind_TSH022_Is_Reported_On_The_Projects_Own()
+    {
+        // Arrange
+        var billing = CompileReference("Billing", ReferenceSources.BillingHelpAgent);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [billing], ReferenceSources.SupportHelpAgent));
+
+        // Assert
+        run.Assert.Reports("TSH022", DiagnosticSeverity.Error, "HelpAgent");
     }
 
     [Fact]
@@ -969,6 +1057,30 @@ public class DiagnosticTests : GeneratorTestBase
             "UseAgent<HelpAgent>",
             message: "'HelpAgent' cannot be a sub-agent: it has no description, neither from WithDescription nor "
             + "from a <summary>");
+    }
+
+    [Fact]
+    public void Given_A_Sub_Agent_With_An_Empty_Summary_TSH023_Is_Reported_On_The_Use()
+    {
+        // Act
+        var run = Run(DiagnosticSources.SubAgentWithAnEmptySummary);
+
+        // Assert
+        run.Assert.Reports("TSH023", DiagnosticSeverity.Error, "UseAgent<HelpAgent>");
+    }
+
+    [Fact]
+    public void Given_A_Sub_Agent_Whose_Name_Is_Not_Lower_Snake_Case_TSH023_Is_Reported_On_The_Use()
+    {
+        // Act
+        var run = Run(DiagnosticSources.SubAgentWithANameOfTwoWords);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH023",
+            DiagnosticSeverity.Error,
+            "UseAgent<HelpAgent>",
+            message: "'HelpAgent' cannot be a sub-agent: its name 'Help Desk' is not lower_snake_case");
     }
 
     [Fact]
@@ -1337,6 +1449,19 @@ public class DiagnosticTests : GeneratorTestBase
             message: "'global::System.Guid' of 'count' has no JSON metadata, which an app published with Native AOT "
                 + "or trimmed needs: list it in a JsonSerializerContext of this assembly, "
                 + "[JsonSerializable(typeof(global::System.Guid))]");
+    }
+
+    [Fact]
+    public void Given_A_Tool_Type_No_Context_Lists_In_A_Library_Compatible_With_Aot_TSH027_Is_Reported_On_Its_Tool()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.ToolTypeWithoutJsonMetadata);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.With("IsAotCompatible", "true"));
+
+        // Assert
+        run.Assert.Reports("TSH027", DiagnosticSeverity.Error, "AddTool(Count)");
     }
 
     [Fact]
