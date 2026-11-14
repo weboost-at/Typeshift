@@ -125,7 +125,8 @@ public static class DiagnosticSources
         }
         """;
 
-    // The first declaration in the file keeps the name, whatever order the analyzer reads the classes in
+    // The first declaration in the file keeps the name, whatever order the analyzer reads the classes in, which
+    // differs from run to run
     public const string ToolsOfOneNameInFourToolsets =
         """
         using Typeshift;

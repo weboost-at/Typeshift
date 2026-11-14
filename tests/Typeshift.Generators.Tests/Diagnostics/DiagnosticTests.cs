@@ -353,15 +353,15 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_Four_Toolsets_With_A_Tool_Of_One_Name_TSH007_Is_Reported_On_Each_But_The_First_In_The_File()
+    public void Given_Four_Toolsets_With_A_Tool_Of_One_Name_TSH007_Is_Reported_On_Each_But_The_First_In_Every_Run()
     {
         // Act
-        var run = Run(DiagnosticSources.ToolsOfOneNameInFourToolsets);
+        var runs = Enumerable.Range(0, 8).Select(_ => Run(DiagnosticSources.ToolsOfOneNameInFourToolsets)).ToList();
 
         // Assert
-        run.Assert.ReportsAmong("TSH007", DiagnosticSeverity.Error, "AddTool(FindSecond)");
-        run.Assert.ReportsAmong("TSH007", DiagnosticSeverity.Error, "AddTool(FindThird)");
-        run.Assert.ReportsAmong("TSH007", DiagnosticSeverity.Error, "AddTool(FindFourth)");
+        runs.ForEach(run => run.Assert.ReportsAmong("TSH007", DiagnosticSeverity.Error, "AddTool(FindSecond)"));
+        runs.ForEach(run => run.Assert.ReportsAmong("TSH007", DiagnosticSeverity.Error, "AddTool(FindThird)"));
+        runs.ForEach(run => run.Assert.ReportsAmong("TSH007", DiagnosticSeverity.Error, "AddTool(FindFourth)"));
     }
 
     [Fact]
