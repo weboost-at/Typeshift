@@ -175,9 +175,8 @@ takes one result per call, so Typeshift reads a stream to its end and sends its 
 needs the metadata of that list. A cancelled call stops reading the stream at its next item, also when the method takes no
 `CancellationToken`.
 
-The analyzer rejects a result JSON cannot carry: a pointer, a ref struct or `dynamic`
-([TSH004](./diagnostics.md#tsh004)). It also rejects a task or a stream that may itself be null, such as
-`Task<string>?`. Return the task always and make its value nullable, as in `Task<string?>`.
+The analyzer rejects a result JSON cannot carry, which is a pointer, a ref struct or `dynamic`, and a task or a
+stream that may itself be null, such as `Task<string>?` ([TSH004](./diagnostics.md#tsh004)).
 
 ## When a tool fails
 

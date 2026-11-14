@@ -139,28 +139,15 @@ internal static class ToolsetParser
     {
         var argument = addTool.Arguments[0].Value;
 
-        // A static local function is no method the generated code can call, nor is a generic one it would have to
-        // close, by itself or as a member of a generic extension block, nor one that takes __arglist
-        if (ConstructorChains.Unwrap(argument) is not IDelegateCreationOperation
-            {
-                Target: IMethodReferenceOperation
-                {
-                    Method:
-                    {
-                        IsStatic: true,
-                        MethodKind: MethodKind.Ordinary,
-                        IsGenericMethod: false,
-                        IsVararg: false
-                    } method
-                }
-            }
-            || method.ContainingType is { IsExtension: true, IsGenericType: true })
+        var (method, uncallable) = ReadMethod(ConstructorChains.Unwrap(argument));
+
+        if (method is null)
         {
             reporter.Report(
                 Descriptors.NotStaticMethodGroup,
                 argument.Syntax,
                 argument.Syntax.ToString(),
-                "pass a static method that is not generic, AddTool(Method)");
+                $"{uncallable}; pass a static method that is not generic, AddTool(Method)");
 
             return null;
         }
@@ -319,6 +306,30 @@ internal static class ToolsetParser
             ExperimentalIds: named.GetExperimentalIds());
     }
 
+    // The static method AddTool names, or why the generated code cannot call what it names: a local function has no
+    // name outside its method, and a generic method, by itself or as a member of a generic extension block, would
+    // have to be closed
+    private static (IMethodSymbol? Method, string? Reason) ReadMethod(IOperation argument)
+    {
+        if (argument is not IDelegateCreationOperation { Target: var target })
+            return (null, "it is a delegate, not a method");
+
+        if (target is not IMethodReferenceOperation { Method: var method }) return (null, "it is a lambda");
+
+        var reason = method switch
+        {
+            { MethodKind: MethodKind.LocalFunction } => "it is a local function",
+            { IsStatic: false } => "it is an instance method",
+            { IsGenericMethod: true } => "it is generic",
+            { ContainingType: { IsExtension: true, IsGenericType: true } } => "its extension block is generic",
+            { IsVararg: true } => "it takes __arglist",
+            { MethodKind: not MethodKind.Ordinary } => "it is no ordinary method",
+            _ => null
+        };
+
+        return reason is null ? (method, null) : (null, reason);
+    }
+
     private static ToolChain? ReadChain(IInvocationOperation addTool, Reporter reporter)
     {
         var chain = new ToolChain();
@@ -443,8 +454,18 @@ internal static class ToolsetParser
 
                 var pick = picked.FirstOrDefault(candidate => candidate.Property.Name == property.Name).Call;
                 var location = pick?.Arguments[0].Syntax ?? settingsName;
+                var unstorable = property.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
 
-                reporter.Report(Descriptors.NotStorable, location, property.Name);
+                reporter.Report(
+                    Descriptors.NotStorable,
+                    location,
+                    property.Name,
+                    $"settings cannot store its type '{unstorable}' (they store strings, numbers, enums, dates, and "
+                    + "records and collections made of those)",
+                    pick is null
+                        ? $"keep it in code with NotConfigurable(s => s.{property.Name}), or change its type"
+                        : "remove the pick, or change the member's type");
+
                 return null;
             }
 

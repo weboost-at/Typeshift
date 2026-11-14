@@ -298,7 +298,15 @@ internal static class AgentParser
 
             if (option is null)
             {
-                reporter.Report(Descriptors.NotStorable, pick.Arguments[0].Syntax, property.Name);
+                var stored = string.Join(", ", options.Select(member => member.Option));
+
+                reporter.Report(
+                    Descriptors.NotStorable,
+                    pick.Arguments[0].Syntax,
+                    property.Name,
+                    $"of these options, settings store only {stored}",
+                    "remove the pick");
+
                 continue;
             }
 

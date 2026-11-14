@@ -157,7 +157,9 @@ internal static class SymbolExtensions
         public bool IsFileLocalOrNestedInOne() =>
             type.IsFileLocal || (type.ContainingType?.IsFileLocalOrNestedInOne() ?? false);
 
-        // TSH016: the generated code outside the class names it, and the module creates it; null when it can
+        // TSH016: the generated code outside the class names it, and the module creates it; null when it can. A
+        // constructor with parameters is what a developer used to injection writes first, so that reason says where
+        // services go
         public string? GetUnreachableReason() =>
             type.IsFileLocalOrNestedInOne() ? "it is file-local, and generated code is written to other files"
             : !type.IsVisibleInAssembly() ? "it is nested as private or protected"
@@ -166,7 +168,9 @@ internal static class SymbolExtensions
                 Parameters.IsEmpty: true,
                 DeclaredAccessibility:
                     Accessibility.Public or Accessibility.Internal or Accessibility.ProtectedOrInternal
-            }) ? "it has no public or internal parameterless constructor"
+            }) ? "it has no public or internal parameterless constructor, and Typeshift creates it with new; services "
+                + "go elsewhere: a tool takes an IServiceProvider parameter, and an agent's context provider, "
+                + "UseContext<T>(), is created from the run's services"
             : null;
 
         public bool DerivesFrom(string metadataName)

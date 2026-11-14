@@ -92,7 +92,8 @@ class it is nested in must be `partial`.
 
 **Tool is not a static method group.** The generated function calls your tool method directly, so `AddTool` needs a
 static method that is not generic. A lambda, an instance method, a local function, a generic method or a delegate
-variable cannot be called that way. Pass a static method, of any accessibility: `AddTool(Find)`.
+variable cannot be called that way, and the message says which of them `AddTool` got. Pass a static method, of any
+accessibility: `AddTool(Find)`.
 
 A name that two methods share is no single method either. For `AddTool(Find)` beside `Find(string)` and `Find(int)`
 the compiler reports CS1503, "cannot convert from 'method group' to 'System.Delegate'", and TSH003 says what to do:
@@ -194,12 +195,12 @@ only the `<summary>`.
 
 ## TSH012
 
-**Configurable member has a type settings cannot store.** The same error covers a `Configurable(o => ...)` pick of a
-chat option that belongs to a single run. Remove the pick, or change the member's type. A member that
-`WithConfigurableSettings<T>()` makes configurable is reported on that call, and you can leave it out with
-`NotConfigurable(...)`.
+**Configurable member has a type settings cannot store.** The message names the member and its type. Remove the
+pick, or change the member's type. A member that `WithConfigurableSettings<T>()` makes configurable is reported on
+that call, and you can leave it out with `NotConfigurable(...)`, as the message spells out. The same error covers a
+`Configurable(o => ...)` pick of a chat option that settings do not store, and then lists the options they do.
 
-- [Tool settings](./tool-settings.md#configurable-members) lists the types a configurable settings member may have.
+- [Tool settings](./tool-settings.md#storable-types) lists the types a configurable settings member may have.
 - `object`, a class without a settable member, and a list or a dictionary of those, such as
   `Dictionary<string, object>`, would be stored as `{}`. Give the member a record with settable members or a
   `Dictionary<string, string>`.
@@ -232,6 +233,11 @@ member of the lambda's parameter, as `t => t.SearchTickets` in `Include` or `s =
 so it cannot be nested as `private` or `protected`, and needs a public or internal parameterless constructor. It
 cannot be a `file` class or be nested in one either: the generated code is written to files of its own, and only its
 own file can name a file-local class.
+
+A constructor that takes services, such as `public ResearchAgent(TimeProvider time)`, is the usual cause: Typeshift
+creates the class with `new`, so its constructor takes no parameters. A tool reaches services through its
+[`IServiceProvider` parameter](./toolsets.md#parameters), and an agent through a
+[context provider](./middleware.md#context-providers), which the run's services create.
 
 On `UseToolset<T>()` it reports an abstract toolset. The generator writes no tools for an abstract class, and no
 class may derive from a toolset ([TSH017](#tsh017)), so the use would offer nothing. Name a toolset that is not

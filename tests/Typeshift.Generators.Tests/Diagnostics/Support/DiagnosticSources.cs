@@ -434,6 +434,34 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string LocalFunctionAsTool =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset()
+            {
+                AddTool(Echo).WithDescription("Echoes.");
+
+                static string Echo(string text) => text;
+            }
+        }
+        """;
+
+    public const string DelegateFieldAsTool =
+        """
+        using System;
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            private static readonly Func<string, string> Handler = text => text;
+
+            public EchoToolset() => AddTool(Handler).WithDescription("Echoes.");
+        }
+        """;
+
     // Two methods of one name: the method group names both, and the compiler binds AddTool to neither (CS1503)
     public const string OverloadedToolMethod =
         """

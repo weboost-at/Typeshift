@@ -74,8 +74,8 @@ public class DiagnosticTests : GeneratorTestBase
             "TSH003",
             DiagnosticSeverity.Error,
             "(Func<string, string>)(text => text)",
-            message: "'(Func<string, string>)(text => text)' cannot be a tool: pass a static method that is not "
-                + "generic, AddTool(Method)");
+            message: "'(Func<string, string>)(text => text)' cannot be a tool: it is a lambda; pass a static method "
+                + "that is not generic, AddTool(Method)");
     }
 
     [Fact]
@@ -350,7 +350,11 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.AgentToolOfAnInstanceMethod);
 
         // Assert
-        run.Assert.Reports("TSH003", DiagnosticSeverity.Error, "Close");
+        run.Assert.Reports("TSH003", DiagnosticSeverity.Error, "Close")
+            .GetMessage()
+            .Should()
+            .Be("'Close' cannot be a tool: it is an instance method; pass a static method that is not generic, "
+                + "AddTool(Method)");
     }
 
     [Fact]
@@ -537,7 +541,9 @@ public class DiagnosticTests : GeneratorTestBase
             "TSH012",
             DiagnosticSeverity.Error,
             "s => s.Pick",
-            message: "'Pick' cannot be configurable: settings cannot store it");
+            message: "'Pick' cannot be configurable: settings cannot store its type 'Func<int>' (they store strings, "
+                + "numbers, enums, dates, and records and collections made of those); remove the pick, or change the "
+                + "member's type");
     }
 
     [Fact]
@@ -547,7 +553,12 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.UnstorableDenyList);
 
         // Assert
-        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, "WithConfigurableSettings<EchoSettings>");
+        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, "WithConfigurableSettings<EchoSettings>")
+            .GetMessage()
+            .Should()
+            .Be("'Chain' cannot be configurable: settings cannot store its type 'Node' (they store strings, numbers, "
+                + "enums, dates, and records and collections made of those); keep it in code with "
+                + "NotConfigurable(s => s.Chain), or change its type");
     }
 
     [Fact]
@@ -625,7 +636,32 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.GenericMethod);
 
         // Assert
-        run.Assert.Reports("TSH003", DiagnosticSeverity.Error, "Echo<int>");
+        run.Assert.Reports("TSH003", DiagnosticSeverity.Error, "Echo<int>")
+            .GetMessage()
+            .Should()
+            .Be("'Echo<int>' cannot be a tool: it is generic; pass a static method that is not generic, "
+                + "AddTool(Method)");
+    }
+
+    [Theory]
+    [InlineData(nameof(DiagnosticSources.LocalFunctionAsTool), "Echo", "it is a local function")]
+    [InlineData(nameof(DiagnosticSources.DelegateFieldAsTool), "Handler", "it is a delegate, not a method")]
+    public void Given_A_Tool_That_Is_No_Method_Of_A_Class_TSH003_Says_What_It_Is(
+        string mistake,
+        string argument,
+        string reason)
+    {
+        // Arrange
+        var source = SourceCatalogs.Read(typeof(DiagnosticSources), mistake);
+
+        // Act
+        var run = Run(source);
+
+        // Assert
+        run.Assert.Reports("TSH003", DiagnosticSeverity.Error, argument)
+            .GetMessage()
+            .Should()
+            .Be($"'{argument}' cannot be a tool: {reason}; pass a static method that is not generic, AddTool(Method)");
     }
 
     [Fact]
@@ -833,7 +869,12 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.UnstorableOption);
 
         // Assert
-        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, "o => o.Tools");
+        run.Assert.Reports("TSH012", DiagnosticSeverity.Error, "o => o.Tools")
+            .GetMessage()
+            .Should()
+            .Be("'Tools' cannot be configurable: of these options, settings store only ModelId, Instructions, "
+                + "Temperature, MaxOutputTokens, TopP, TopK, FrequencyPenalty, PresencePenalty, Seed, StopSequences, "
+                + "AllowMultipleToolCalls, Reasoning; remove the pick");
     }
 
     [Fact]
@@ -883,7 +924,13 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.AgentWithoutParameterlessConstructor);
 
         // Assert
-        run.Assert.Reports("TSH016", DiagnosticSeverity.Error, "EchoAgent");
+        run.Assert.Reports("TSH016", DiagnosticSeverity.Error, "EchoAgent")
+            .GetMessage()
+            .Should()
+            .Be("'EchoAgent' is out of the generated code's reach: it has no public or internal parameterless "
+                + "constructor, and Typeshift creates it with new; services go elsewhere: a tool takes an "
+                + "IServiceProvider parameter, and an agent's context provider, UseContext<T>(), is created from the "
+                + "run's services");
     }
 
     [Fact]
@@ -2429,7 +2476,10 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.MemberOfAGenericExtensionBlock);
 
         // Assert
-        run.Assert.Reports("TSH003", DiagnosticSeverity.Error, "List<int>.Grow");
+        run.Assert.Reports("TSH003", DiagnosticSeverity.Error, "List<int>.Grow")
+            .GetMessage()
+            .Should()
+            .StartWith("'List<int>.Grow' cannot be a tool: its extension block is generic;");
     }
 
     [Fact]

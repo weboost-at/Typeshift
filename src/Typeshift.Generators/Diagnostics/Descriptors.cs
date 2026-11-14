@@ -67,7 +67,7 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor NotStorable = Error(
         "TSH012",
         "Configurable member has a type settings cannot store",
-        "'{0}' cannot be configurable: settings cannot store it");
+        "'{0}' cannot be configurable: {1}; {2}");
 
     public static readonly DiagnosticDescriptor NotSettable = Error(
         "TSH013",

@@ -254,6 +254,12 @@ All notable changes to this project are documented here. The format follows
   agent's own `AddTool(...)` or the second `UseToolset<T>()`, and names both sources. It sat on the agent's class
   name. Every TSH025 message ends with the fix of its own case, such as "use each toolset once". All of them ended
   with "use each toolset once, pick each tool once, and leave out one of two tools of a name".
+- Three messages say more. TSH003 names what `AddTool` got, as in "it is generic", "it is an instance method" or "it
+  is a lambda", where it said "pass a static method that is not generic" for each. TSH012 names the member's type
+  and the way out, `NotConfigurable(s => s.Member)` under `WithConfigurableSettings<T>()` or removing the pick, and
+  for a chat option the options settings do store. It said "settings cannot store it". TSH016 for a class without a
+  parameterless constructor says where services go: a tool's `IServiceProvider` parameter, or an agent's context
+  provider.
 
 ### Fixed
 
