@@ -2185,6 +2185,33 @@ public static class DiagnosticSources
         }
         """;
 
+    // The settings call is written before its type and before the tool's description (CS0411)
+    public const string SettingsCallBeingTyped =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithSettings();
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    // A generic type named without its type arguments, as while they are typed (CS7003, CS0452)
+    public const string SettingsOfAnUnboundGeneric =
+        """
+        using System.Collections.Generic;
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithConfigurableSettings<KeyValuePair<,>>();
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
     // The pick is written before its record is
     public const string SettingsPickOfAnUnresolvedType =
         """

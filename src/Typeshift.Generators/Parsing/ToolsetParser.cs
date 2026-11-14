@@ -175,6 +175,10 @@ internal static class ToolsetParser
         // member of a generic class without its type argument, AddTool(Finder<>.Find) while it is typed, its CS0305
         if (method.IsAbstract || method.IsVirtual || method.ContainingType.ContainsTypeParameter()) return null;
 
+        // So is a chain call that does not bind, as WithSettings() while its type is typed: what the chain declares
+        // is unknown until it does
+        if (ConstructorChains.GetChain(addTool).Any(link => link is IInvalidOperation)) return null;
+
         if (!ConstructorChains.EndsInStatement(addTool))
         {
             reporter.Report(Descriptors.UnreadableChain, addTool.Syntax, "tool chain");

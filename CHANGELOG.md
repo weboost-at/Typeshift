@@ -434,6 +434,8 @@ All notable changes to this project are documented here. The format follows
 - An agent's constructor with an explicit `: base()`, or a primary constructor as in
   `partial class HelpAgent() : Agent()`, no longer gives TSH014 with the text "'.ctor' is read by the generator only
   directly in the constructor".
+- A tool chain with a call that does not bind yet, such as `AddTool(Echo).WithSettings()` while its type is typed,
+  gets the compiler's error alone. TSH009 was reported beside it, about a description the chain had no place for yet.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

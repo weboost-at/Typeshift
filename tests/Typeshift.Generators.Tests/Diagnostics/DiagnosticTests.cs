@@ -1931,6 +1931,8 @@ public class DiagnosticTests : GeneratorTestBase
     [InlineData(nameof(DiagnosticSources.ToolsetUseUnresolvedShared))]
     [InlineData(nameof(DiagnosticSources.AgentUsesBeingTyped))]
     [InlineData(nameof(DiagnosticSources.SettingsBeingTyped))]
+    [InlineData(nameof(DiagnosticSources.SettingsCallBeingTyped))]
+    [InlineData(nameof(DiagnosticSources.SettingsOfAnUnboundGeneric))]
     [InlineData(nameof(DiagnosticSources.SettingsPickOfAnUnresolvedType))]
     [InlineData(nameof(DiagnosticSources.SettingOfAnUnresolvedType))]
     [InlineData(nameof(DiagnosticSources.UnresolvedSignature))]
