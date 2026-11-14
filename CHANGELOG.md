@@ -272,6 +272,10 @@ All notable changes to this project are documented here. The format follows
   for a chat option the options settings do store. It said "settings cannot store it". TSH016 for a class without a
   parameterless constructor says where services go: a tool's `IServiceProvider` parameter, or an agent's context
   provider.
+- The diagnostics that only a build reports say so to the editor, through the `CompilationEnd` tag: TSH020, TSH022,
+  TSH023, TSH024, TSH026, TSH027, TSH033, TSH034, TSH036 and TSH037, beside TSH031. They compare classes or
+  projects, which an editor does on a build and not while you type. The table of the diagnostics page says for each
+  diagnostic when it is reported.
 
 ### Fixed
 

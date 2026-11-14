@@ -5,50 +5,55 @@ description: Every TSHnnn error and warning the Typeshift analyzer reports, what
 
 # Diagnostics
 
-The analyzer reports these errors and warnings while you type, or when you build for those that compare several
-classes or projects. Each one points at a mistake in your code or your build, so you fix it there instead of debugging
-a compiler error inside generated code.
+The analyzer reports these errors and warnings. Most show while you type, and those that compare several classes or
+projects show when you build, as the table says for each. Each one points at a mistake in your code or your build,
+so you fix it there instead of debugging a compiler error inside generated code.
 
-| ID | Severity | Title |
-|---|---|---|
-| [TSH001](#tsh001) | Error | Toolset or agent is not partial |
-| [TSH002](#tsh002) | Error | Declared value is not a constant |
-| [TSH003](#tsh003) | Error | Tool is not a static method group |
-| [TSH004](#tsh004) | Error | Tool parameter or result cannot be bound |
-| [TSH005](#tsh005) | Error | Settings type is not a record with a parameterless constructor |
-| [TSH006](#tsh006) | Error | Settings are less accessible than what exposes them |
-| [TSH007](#tsh007) | Error | Tool name is not unique |
-| [TSH008](#tsh008) | Error | Tool name is not lower_snake_case |
-| [TSH009](#tsh009) | Warning | Tool has no description |
-| [TSH010](#tsh010) | Warning | Tool does not take its settings |
-| [TSH011](#tsh011) | Warning | XML docs are not generated |
-| [TSH012](#tsh012) | Error | Configurable member has a type settings cannot store |
-| [TSH013](#tsh013) | Error | Configurable member cannot be set |
-| [TSH014](#tsh014) | Error | Declaration outside the constructor |
-| [TSH015](#tsh015) | Error | Chain the generator cannot read |
-| [TSH016](#tsh016) | Error | Toolset or agent is out of the generated code's reach |
-| [TSH017](#tsh017) | Error | Toolset or agent does not derive from its base directly |
-| [TSH018](#tsh018) | Error | Member clashes with a generated member |
-| [TSH019](#tsh019) | Error | Toolset of a referenced assembly cannot be used |
-| [TSH020](#tsh020) | Warning | Toolsets and agents of a referenced assembly cannot be registered |
-| [TSH022](#tsh022) | Error | Two agents share a settings kind |
-| [TSH023](#tsh023) | Error | Agent cannot be a tool or a handoff target |
-| [TSH024](#tsh024) | Warning | Sub-agent offers tools that need approval |
-| [TSH025](#tsh025) | Error | Tool is offered twice |
-| [TSH026](#tsh026) | Error | Agents call each other in a circle |
-| [TSH027](#tsh027) | Error | Tool type has no JSON metadata for Native AOT or a trimmed app |
-| [TSH028](#tsh028) | Error | Type is no store |
-| [TSH029](#tsh029) | Error | Provider id type cannot be used |
-| [TSH030](#tsh030) | Error | Type is no chat client provider |
-| [TSH031](#tsh031) | Error | C# language version is below 14 |
-| [TSH032](#tsh032) | Warning | Generator read the declaration differently |
-| [TSH033](#tsh033) | Warning | Enum of a tool is a number for Native AOT or a trimmed app |
-| [TSH034](#tsh034) | Warning | Sub-agent cannot ask the user |
-| [TSH035](#tsh035) | Error | Tool name is reserved |
-| [TSH036](#tsh036) | Warning | Conversation store keeps no decisions |
-| [TSH037](#tsh037) | Warning | Configurable mode can turn approval off |
-| [TSH038](#tsh038) | Warning | Model fills a settings or service parameter |
-| [TSH039](#tsh039) | Error | Declared value cannot be used |
+| ID | Severity | Title | Reported |
+|---|---|---|---|
+| [TSH001](#tsh001) | Error | Toolset or agent is not partial | While you type |
+| [TSH002](#tsh002) | Error | Declared value is not a constant | While you type |
+| [TSH003](#tsh003) | Error | Tool is not a static method group | While you type |
+| [TSH004](#tsh004) | Error | Tool parameter or result cannot be bound | While you type |
+| [TSH005](#tsh005) | Error | Settings type is not a record with a parameterless constructor | While you type |
+| [TSH006](#tsh006) | Error | Settings are less accessible than what exposes them | While you type |
+| [TSH007](#tsh007) | Error | Tool name is not unique | Both |
+| [TSH008](#tsh008) | Error | Tool name is not lower_snake_case | While you type |
+| [TSH009](#tsh009) | Warning | Tool has no description | While you type |
+| [TSH010](#tsh010) | Warning | Tool does not take its settings | While you type |
+| [TSH011](#tsh011) | Warning | XML docs are not generated | While you type |
+| [TSH012](#tsh012) | Error | Configurable member has a type settings cannot store | While you type |
+| [TSH013](#tsh013) | Error | Configurable member cannot be set | While you type |
+| [TSH014](#tsh014) | Error | Declaration outside the constructor | While you type |
+| [TSH015](#tsh015) | Error | Chain the generator cannot read | While you type |
+| [TSH016](#tsh016) | Error | Toolset or agent is out of the generated code's reach | While you type |
+| [TSH017](#tsh017) | Error | Toolset or agent does not derive from its base directly | While you type |
+| [TSH018](#tsh018) | Error | Member clashes with a generated member | While you type |
+| [TSH019](#tsh019) | Error | Toolset of a referenced assembly cannot be used | While you type |
+| [TSH020](#tsh020) | Warning | Toolsets and agents of a referenced assembly cannot be registered | On build |
+| [TSH022](#tsh022) | Error | Two agents share a settings kind | On build |
+| [TSH023](#tsh023) | Error | Agent cannot be a tool or a handoff target | On build |
+| [TSH024](#tsh024) | Warning | Sub-agent offers tools that need approval | On build |
+| [TSH025](#tsh025) | Error | Tool is offered twice | Both |
+| [TSH026](#tsh026) | Error | Agents call each other in a circle | On build |
+| [TSH027](#tsh027) | Error | Tool type has no JSON metadata for Native AOT or a trimmed app | On build |
+| [TSH028](#tsh028) | Error | Type is no store | While you type |
+| [TSH029](#tsh029) | Error | Provider id type cannot be used | While you type |
+| [TSH030](#tsh030) | Error | Type is no chat client provider | While you type |
+| [TSH031](#tsh031) | Error | C# language version is below 14 | On build |
+| [TSH032](#tsh032) | Warning | Generator read the declaration differently | Both |
+| [TSH033](#tsh033) | Warning | Enum of a tool is a number for Native AOT or a trimmed app | On build |
+| [TSH034](#tsh034) | Warning | Sub-agent cannot ask the user | On build |
+| [TSH035](#tsh035) | Error | Tool name is reserved | While you type |
+| [TSH036](#tsh036) | Warning | Conversation store keeps no decisions | On build |
+| [TSH037](#tsh037) | Warning | Configurable mode can turn approval off | On build |
+| [TSH038](#tsh038) | Warning | Model fills a settings or service parameter | While you type |
+| [TSH039](#tsh039) | Error | Declared value cannot be used | While you type |
+
+The last column says when an editor shows a diagnostic. "On build" marks a check that compares classes or
+projects: an editor runs it for a build or for an analysis of the whole solution, so its squiggle appears after you
+build. "Both" marks a diagnostic with one check inside a class, which shows while you type, and one across classes,
+which shows on build.
 
 TSH021 is retired: the diagnostic it named is gone, and ids are never reused.
 
@@ -158,7 +163,8 @@ The message names the tool, the toolset that declares it and the toolset that de
 toolsets of your project, the later declaration is reported, with the first as its second location. A toolset of a
 referenced project is named in full and with its assembly, since it has no source in your project. When both
 toolsets are referenced, the diagnostic has no location at all: rename the tool in one of the two projects, or
-reference only one of them.
+reference only one of them. Two tools of one toolset show while you type, and a clash between toolsets when you
+build.
 
 Within one toolset or agent, two tools also clash when the generator would write one member for both, and the
 message names that member. `create_report` and `report_function` do: the function class of the first and the
@@ -316,7 +322,8 @@ mode its calls of such tools are rejected unless a standing approval or a rule a
 ## TSH025
 
 **Tool is offered twice.** The diagnostic sits on the declaration that brings a tool a second time, and its message
-ends with the fix of its case. An agent offers the same tool twice when it:
+ends with the fix of its case. The first three cases show while you type, the others when you build, since they
+compare the agent with its toolsets and the agents it uses. An agent offers the same tool twice when it:
 
 - uses the same toolset twice;
 - picks the same tool twice;

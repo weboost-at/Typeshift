@@ -1,6 +1,9 @@
 using System.Collections.Immutable;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using Typeshift.Generators.Analysis;
+using Typeshift.Generators.Diagnostics;
+using Typeshift.Generators.Tests.Diagnostics.Support;
 using Typeshift.Generators.Tests.Repository.Support;
 using FluentAssertions;
 using Microsoft.CodeAnalysis;
@@ -13,6 +16,11 @@ public partial class DiagnosticCatalogTests
     private static readonly ImmutableArray<DiagnosticDescriptor> Catalog = new TypeshiftAnalyzer().SupportedDiagnostics;
 
     private static readonly IReadOnlyList<string> Ids = [.. Catalog.Select(descriptor => descriptor.Id)];
+
+    // Each descriptor by the name of its field, which is how the analyzer's source names it
+    private static readonly IReadOnlyDictionary<DiagnosticDescriptor, string> Fields = typeof(Descriptors)
+        .GetFields(BindingFlags.Public | BindingFlags.Static)
+        .ToDictionary(field => (DiagnosticDescriptor)field.GetValue(null)!, field => field.Name);
 
     // D49: the IDs a tag once shipped and no diagnostic has any more, which the docs keep in a table of their own
     private static readonly IReadOnlyList<string> Retired =
@@ -92,6 +100,69 @@ public partial class DiagnosticCatalogTests
         // Assert
         reused.Should().BeEmpty("a suppression written for the retired diagnostic would silence the new one");
     }
+
+    [Fact]
+    public void Every_Diagnostic_Is_Reported_By_An_Action_Of_The_Analyzer()
+    {
+        // Act
+        var unreported = Catalog.Where(descriptor => !AtTheEnd(descriptor) && !WhileTyping(descriptor)).Select(Id);
+
+        // Assert
+        unreported.Should().BeEmpty("the tests below read from the analyzer's source which action reports what");
+    }
+
+    [Fact]
+    public void Every_Diagnostic_Only_The_End_Of_The_Compilation_Reports_Is_Tagged_As_Such()
+    {
+        // Act
+        var untagged = Catalog
+            .Where(descriptor => AtTheEnd(descriptor) && !WhileTyping(descriptor) && !Tagged(descriptor))
+            .Select(Id);
+
+        // Assert
+        untagged.Should().BeEmpty("an editor runs that action on a build, and the tag says so (RS1037)");
+    }
+
+    [Fact]
+    public void No_Diagnostic_Reported_While_Typing_Is_Tagged_As_Reported_At_The_End()
+    {
+        // Act
+        var tagged = Catalog.Where(descriptor => WhileTyping(descriptor) && Tagged(descriptor)).Select(Id);
+
+        // Assert
+        tagged.Should().BeEmpty("an editor would hold it back until the next build");
+    }
+
+    [Fact]
+    public void Every_Diagnostic_Row_Says_When_It_Is_Reported()
+    {
+        // Arrange
+        var docs = RepositoryFiles.Read("docs/guide/diagnostics.md");
+
+        // Act
+        var drifted = Catalog
+            .Where(descriptor => !docs.Contains($"{RowOf(descriptor)} {When(descriptor)} |", StringComparison.Ordinal))
+            .Select(Id);
+
+        // Assert
+        drifted.Should().BeEmpty("the fourth column reads 'While you type', 'On build' or 'Both'");
+    }
+
+    private static string Id(DiagnosticDescriptor descriptor) => descriptor.Id;
+
+    private static bool AtTheEnd(DiagnosticDescriptor descriptor) =>
+        AnalyzerActions.AtTheEnd.Contains(Fields[descriptor]);
+
+    private static bool WhileTyping(DiagnosticDescriptor descriptor) =>
+        AnalyzerActions.WhileTyping.Contains(Fields[descriptor]);
+
+    private static bool Tagged(DiagnosticDescriptor descriptor) =>
+        descriptor.CustomTags.Contains(WellKnownDiagnosticTags.CompilationEnd);
+
+    private static string When(DiagnosticDescriptor descriptor) =>
+        !AtTheEnd(descriptor) ? "While you type"
+        : WhileTyping(descriptor) ? "Both"
+        : "On build";
 
     private static string Anchor(DiagnosticDescriptor descriptor) => descriptor.Id.ToLowerInvariant();
 

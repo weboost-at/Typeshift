@@ -23,7 +23,9 @@ configuring a tool the agent does not offer need no diagnostic, because no gener
      `Parsing/AgentParser.cs` for what an agent declares, through the `Reporter` it gets; the generator parses with
      `Reporter.None` and must skip, never emit, what does not parse;
    - a rule about one call goes into `TypeshiftAnalyzer.AnalyzeCall`;
-   - a rule across declarations goes into a compilation-end action of `TypeshiftAnalyzer`.
+   - a rule across declarations goes into a compilation-end action of `TypeshiftAnalyzer`. A diagnostic that only
+     that action reports takes `AtEnd` as the last argument of its descriptor: an editor runs the action on a build
+     and reads from the tag which diagnostics to expect then.
    - Report on the narrowest syntax the developer has to change (the argument, the `WithSettings<T>` name).
    - Say nothing about a type that does not resolve yet (`ContainsErrorType()`): the compiler reports it, its name
      may be empty, and the generator skips what names it.
@@ -51,15 +53,18 @@ configuring a tool the agent does not offer need no diagnostic, because no gener
    `ShapeSources` instead, and a statement that made one of them throw is an entry of `HalfTypedSources`; both sit
    beside `DiagnosticSources` and have a theory of their own. A mistake that spans a referenced project takes its
    sources from `Support/ReferenceSources.cs` and compiles the reference with `CompileReference`.
-5. **Docs.** In `docs/guide/diagnostics.md`, add the table row `| [TSHxxx](#tshxxx) | Error | <title> |` and a
-   `## TSHxxx` section: the bold title, why it is a mistake, how to fix it. Link it from the guide page of the
-   feature it guards.
+5. **Docs.** In `docs/guide/diagnostics.md`, add the table row
+   `| [TSHxxx](#tshxxx) | Error | <title> | While you type |` and a `## TSHxxx` section: the bold title, why it is a
+   mistake, how to fix it. The last cell is `On build` for a descriptor with `AtEnd`, and `Both` for one that a
+   class's action and the end of the compilation report. Link it from the guide page of the feature it guards.
 6. **Changelog.** One line under `[Unreleased]` in `CHANGELOG.md`.
 
 `DiagnosticCatalogTests` fails when an ID has no docs row, no docs section or no `..._TSHxxx_Is_Reported_...` test,
 when its row states another severity or title than the descriptor, when its help link does not end in the section's
 anchor, when a number below the highest is neither a diagnostic nor a retired row, and when a retired number is a
-diagnostic again.
+diagnostic again. It also reads from the analyzer's source which action reports each descriptor, and fails when one
+that only the end of the compilation reports lacks `AtEnd`, when one reported while typing has it, and when the
+row's last cell says otherwise.
 
 ## Change or remove one
 

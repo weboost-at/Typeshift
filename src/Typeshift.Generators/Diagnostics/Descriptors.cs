@@ -9,6 +9,10 @@ internal static class Descriptors
 
     private const string HelpUrl = "https://weboost-at.github.io/Typeshift/guide/diagnostics#";
 
+    // For a diagnostic that only the end of the compilation reports, since it compares classes or projects: an
+    // editor runs that action on a build, not while you type, and reads from the tag which diagnostics those are
+    private const string AtEnd = WellKnownDiagnosticTags.CompilationEnd;
+
     public static readonly DiagnosticDescriptor NotPartial = Error(
         "TSH001",
         "Toolset or agent is not partial",
@@ -107,28 +111,33 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor UnstampedReference = Warning(
         "TSH020",
         "Toolsets and agents of a referenced assembly cannot be registered",
-        "'{0}' declares toolsets or agents but {1}, so AddTypeshift() cannot register them: {2}");
+        "'{0}' declares toolsets or agents but {1}, so AddTypeshift() cannot register them: {2}",
+        AtEnd);
 
     public static readonly DiagnosticDescriptor SharedKind = Error(
         "TSH022",
         "Two agents share a settings kind",
-        "'{0}' stores its settings as '{1}', like '{2}': give one of them a WithStorageKind of its own");
+        "'{0}' stores its settings as '{1}', like '{2}': give one of them a WithStorageKind of its own",
+        AtEnd);
 
     public static readonly DiagnosticDescriptor NotUsableAgent = Error(
         "TSH023",
         "Agent cannot be a tool or a handoff target",
-        "'{0}' cannot be {1}: {2}");
+        "'{0}' cannot be {1}: {2}",
+        AtEnd);
 
     public static readonly DiagnosticDescriptor SubAgentNeedsApproval = Warning(
         "TSH024",
         "Sub-agent offers tools that need approval",
         "'{0}' offers tools that need approval ({1}), and a sub-agent cannot ask your app: in the default mode those "
-        + "calls are rejected unless a rule or a standing approval allows them; add a rule, or hand off to the agent");
+        + "calls are rejected unless a rule or a standing approval allows them; add a rule, or hand off to the agent",
+        AtEnd);
 
     public static readonly DiagnosticDescriptor AgentCircle = Error(
         "TSH026",
         "Agents call each other in a circle",
-        "'{0}' calls '{1}' through UseAgent, and '{1}' calls '{0}' back: sub-agents may not form a circle");
+        "'{0}' calls '{1}' through UseAgent, and '{1}' calls '{0}' back: sub-agents may not form a circle",
+        AtEnd);
 
     public static readonly DiagnosticDescriptor OfferedTwice = Error(
         "TSH025",
@@ -139,7 +148,8 @@ internal static class Descriptors
         "TSH027",
         "Tool type has no JSON metadata for Native AOT or a trimmed app",
         "'{0}' of '{1}' has no JSON metadata, which an app published with Native AOT or trimmed needs: list it in a "
-        + "JsonSerializerContext of this assembly, [JsonSerializable(typeof({0}))]");
+        + "JsonSerializerContext of this assembly, [JsonSerializable(typeof({0}))]",
+        AtEnd);
 
     public static readonly DiagnosticDescriptor NoStore = Error(
         "TSH028",
@@ -158,13 +168,12 @@ internal static class Descriptors
         "Type is no chat client provider",
         "'{0}' is no chat client provider: implement IChatClientProvider<TProviderId>");
 
-    public static readonly DiagnosticDescriptor LanguageVersionTooLow = Create(
+    public static readonly DiagnosticDescriptor LanguageVersionTooLow = Error(
         "TSH031",
         "C# language version is below 14",
         "Typeshift's generated code needs C# 14 or later, and this project compiles as C# {0}: remove <LangVersion> "
         + "from the project, or raise it",
-        DiagnosticSeverity.Error,
-        WellKnownDiagnosticTags.CompilationEnd);
+        AtEnd);
 
     public static readonly DiagnosticDescriptor ReadDifferently = Warning(
         "TSH032",
@@ -177,13 +186,15 @@ internal static class Descriptors
         "Enum of a tool is a number for Native AOT or a trimmed app",
         "'{0}' reads and writes the enum '{1}' of the tool '{2}' as a number in an app published with Native AOT or "
         + "trimmed: add [JsonSourceGenerationOptions(UseStringEnumConverter = true)] to the context, so the model "
-        + "reads and sends the enum's names");
+        + "reads and sends the enum's names",
+        AtEnd);
 
     public static readonly DiagnosticDescriptor SubAgentAsksUser = Warning(
         "TSH034",
         "Sub-agent cannot ask the user",
         "'{0}' declares UseQuestions(), and a sub-agent cannot ask the user: as a sub-agent it is not offered "
-        + "ask_user; declare UseQuestions() on the agent that calls it, or hand off to the agent");
+        + "ask_user; declare UseQuestions() on the agent that calls it, or hand off to the agent",
+        AtEnd);
 
     public static readonly DiagnosticDescriptor ReservedToolName = Error(
         "TSH035",
@@ -195,7 +206,8 @@ internal static class Descriptors
         "Conversation store keeps no decisions",
         "'{0}' keeps conversations under {1} ids, and no store of this chain keeps their decisions, so a run of "
         + "'{2}' that asks your app fails: implement IDecisionStore<{1}> in the store, or add a store that does with "
-        + "WithStore<T>()");
+        + "WithStore<T>()",
+        AtEnd);
 
     public static readonly DiagnosticDescriptor ConfigurableModeBesideApproval = Warning(
         "TSH037",
@@ -203,7 +215,8 @@ internal static class Descriptors
         "'{0}' makes its mode configurable and offers tools that require approval ({1}), so settings that are stored "
         + "or posted can put a run in auto mode, where those calls run unasked: keep Mode out of the agent's "
         + "settings and switch a conversation's mode with SetModeAsync on its host, or reject what must never run in "
-        + "an approval rule");
+        + "an approval rule",
+        AtEnd);
 
     public static readonly DiagnosticDescriptor ModelFilledParameter = Warning(
         "TSH038",
@@ -215,19 +228,18 @@ internal static class Descriptors
         "Declared value cannot be used",
         "The {0} must {1}: {2}");
 
-    private static DiagnosticDescriptor Error(string id, string title, string message) =>
-        Create(id, title, message, DiagnosticSeverity.Error);
+    private static DiagnosticDescriptor Error(string id, string title, string message, params string[] tags) =>
+        Create(id, title, message, DiagnosticSeverity.Error, tags);
 
-    private static DiagnosticDescriptor Warning(string id, string title, string message) =>
-        Create(id, title, message, DiagnosticSeverity.Warning);
+    private static DiagnosticDescriptor Warning(string id, string title, string message, params string[] tags) =>
+        Create(id, title, message, DiagnosticSeverity.Warning, tags);
 
-    // A tag such as CompilationEnd tells an IDE that the diagnostic is reported for the compilation as a whole
     private static DiagnosticDescriptor Create(
         string id,
         string title,
         string message,
         DiagnosticSeverity severity,
-        params string[] tags) =>
+        string[] tags) =>
         new(
             id,
             title,
