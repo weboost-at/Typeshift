@@ -132,22 +132,21 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         Activity? activity,
         CancellationToken ct)
     {
-        var (conversation, entries, claim, answering) = await LoadAsync(options, ct);
+        var (taken, answering) = await TakeAsync(options, ct);
 
         if (answering is not null)
         {
             try
             {
-                return await answering.RunAsync(messages, PassedOn(options, conversation, claim), ct);
+                return await answering.RunAsync(messages, taken, ct);
             }
             finally
             {
-                Runs.Release(claim);
+                Runs.Release(taken.Claim);
             }
         }
 
-        var (run, call, runOptions, waiting) =
-            await BeginAsync(messages, options, conversation, entries, claim, activity, ct);
+        var (run, call, runOptions, waiting) = await BeginAsync(messages, options, taken, activity, ct);
 
         if (waiting is not null) return new ChatResponse(Asking(waiting, messageId: null));
 
@@ -234,29 +233,26 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         Activity? activity,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        var (conversation, entries, claim, answering) = await LoadAsync(options, ct);
+        var (taken, answering) = await TakeAsync(options, ct);
 
         if (answering is not null)
         {
             try
             {
-                var answer = answering.RunStreamingAsync(messages, PassedOn(options, conversation, claim), ct);
-
-                await foreach (var update in answer)
+                await foreach (var update in answering.RunStreamingAsync(messages, taken, ct))
                 {
                     yield return update;
                 }
             }
             finally
             {
-                Runs.Release(claim);
+                Runs.Release(taken.Claim);
             }
 
             yield break;
         }
 
-        var (run, call, runOptions, waiting) =
-            await BeginAsync(messages, options, conversation, entries, claim, activity, ct);
+        var (run, call, runOptions, waiting) = await BeginAsync(messages, options, taken, activity, ct);
 
         if (waiting is not null)
         {
@@ -429,15 +425,6 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             _ => null
         };
 
-    // D34: a run passed on to the agent that answers the conversation keeps its settings id and the format of a
-    // typed run (D64), and takes the claim and none of the run's own settings
-    private static RunHandover PassedOn(ChatOptions? options, StoreId? conversation, RunClaim? claim)
-    {
-        var resolved = options as ResolvedChatOptions;
-
-        return new RunHandover(resolved?.SettingsId, conversation, claim, resolved?.ResultFormat);
-    }
-
     // D30, D32: a pass that called no model (run middleware answered) or the run's limit spent ends the run; the
     // input still waiting is stored with its end
     private static bool GoesFurther(ResolvedChatOptions options, ref int calls)
@@ -449,69 +436,25 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         return further;
     }
 
-    // The run's conversation from its last summary, claimed and loaded once: for the agent that answers, which takes
-    // the claim on, and for the run's history (D50). A run handed a claim takes it in place of claiming (D34)
-    private async Task<(
-        StoreId? Conversation,
-        IReadOnlyList<ConversationEntry> Entries,
-        RunClaim? Claim,
-        IAgentHost? Answering)> LoadAsync(ChatOptions? options, CancellationToken ct)
+    // D34, D50: the conversation the run takes. A host's run took it before these options resolved, and they hold
+    // the claim and the entries; a call on the raw path takes it here, and passes it on when another agent answers,
+    // with the settings id and the format of a typed run (D64) and none of its own settings
+    private Task<(RunHandover Taken, IAgentHost? Answering)> TakeAsync(ChatOptions? options, CancellationToken ct)
     {
-        var conversation = options is null ? null : GetConversation(options);
-        if (conversation is null) return (null, [], null, null);
+        var resolved = options as ResolvedChatOptions;
 
-        var claim = options is ResolvedChatOptions { Claim: { } handed }
-            ? handed
-            : await Runs.ClaimAsync(conversation, ct);
+        var handover = new RunHandover(
+            resolved?.SettingsId,
+            options is null ? null : GetConversation(options),
+            resolved?.Claim,
+            resolved?.ResultFormat,
+            resolved?.Handoffs ?? 0,
+            resolved?.Entries);
 
-        try
-        {
-            var entries = await Store.LoadConversationSinceCompactionAsync(conversation, ct);
-
-            // D78: said once per load, since the run goes on without what the entries left out
-            if (entries.Sum(entry => entry.UnreadContents) is > 0 and var unread)
-            {
-                Logger.LogWarning(
-                    "Conversation {Conversation} holds {Count} contents this version of Microsoft.Extensions.AI "
-                    + "cannot read, and the run goes on without them.",
-                    conversation,
-                    unread);
-            }
-
-            // D52: a run whose settings name a mode switches the conversation to it before anyone answers, so the
-            // agent the run is passed on or handed to runs in it too (D34)
-            if (options is ResolvedChatOptions { RunSetsMode: true } named)
-                await Ledger.SetModeAsync(conversation, named.RunOptions.Mode, ct);
-
-            return (conversation, entries, claim, AnsweringAgent(entries));
-        }
-        catch
-        {
-            Runs.Release(claim);
-            throw;
-        }
-    }
-
-    // D34: the agent that answered the conversation last answers its next run, if this agent's handoffs reach it
-    private IAgentHost? AnsweringAgent(IReadOnlyList<ConversationEntry> entries) =>
-        agent.Handoffs.Count > 0 && entries.Count > 0 && entries[^1].Agent != agent.Name
-            ? Reachable().GetValueOrDefault(entries[^1].Agent)
-            : null;
-
-    private Dictionary<string, IAgentHost> Reachable()
-    {
-        var reached = new Dictionary<string, IAgentHost>();
-        var next = new Queue<Agent>([agent]);
-
-        while (next.TryDequeue(out var from))
-        {
-            foreach (var host in from.Handoffs.Select(handoff => handoff(services)))
-            {
-                if (host.Agent.Name != agent.Name && reached.TryAdd(host.Agent.Name, host)) next.Enqueue(host.Agent);
-            }
-        }
-
-        return reached;
+        return new RunStart(agent, services, Ledger).TakeAsync(
+            handover,
+            resolved is { RunSetsMode: true } ? resolved.RunOptions.Mode : null,
+            ct);
     }
 
     // The last handoff the response calls. A call the tool loop answered, as it answers a tool it does not know, is
@@ -610,19 +553,24 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         DecisionBatch? Waiting)> BeginAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options,
-        StoreId? conversation,
-        IReadOnlyList<ConversationEntry> entries,
-        RunClaim? claim,
+        RunHandover taken,
         Activity? activity,
         CancellationToken ct)
     {
         try
         {
-            return await BeginClaimedAsync(messages, options, conversation, entries, claim, activity, ct);
+            return await BeginClaimedAsync(
+                messages,
+                options,
+                taken.Conversation,
+                taken.Entries ?? [],
+                taken.Claim,
+                activity,
+                ct);
         }
         catch
         {
-            Runs.Release(claim);
+            Runs.Release(taken.Claim);
             throw;
         }
     }

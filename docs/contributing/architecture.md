@@ -107,12 +107,17 @@ unless it is an object of properties.
 1. The generated `RunAsync` passes the input, the settings id (boxed) and the run's `Settings` to `AgentRuns`, which
    calls the host. `AnswerAsync` passes your app's answers the same way; the host records them and then resumes
    (D80).
-2. `AgentHost<T>` resolves the options. It starts from a copy of the agent's chat options and its instructions, and
+2. `AgentHost<T>` takes the run's conversation before anything else (`RunStart`): it claims it (D50), loads it
+   from its last summary, saves a mode the run's settings name (D52) and learns which agent answers (D34). When
+   another agent does, the host passes the run on to that agent's host with a `RunHandover` that holds the claim
+   and the loaded entries, and resolves nothing itself. A call on the raw path takes its conversation the same
+   way, inside the client.
+3. The host resolves the options. It starts from a copy of the agent's chat options and its instructions, and
    applies each settings layer through the generated declaration: the agent's own stored settings, those under the
    settings id, then the run's. Each layer
    reaches the configurable options and the run options. Then come the offered tools, created with their layered
    settings (D27), the sub-agents (D33) and the MCP servers' tools (D35).
-3. It takes the client of the run's provider and model from the scope's `IChatClientProvider<T>` of the provider's
+4. It takes the client of the run's provider and model from the scope's `IChatClientProvider<T>` of the provider's
    type (D77), an `IChatClient` keyed by the provider, or the one registered for every agent (D63), and builds the
    pipeline, outermost first:
    - the conversation (D46, D50), which also settles the decisions that wait (D80), run middleware (D30), context
@@ -123,7 +128,8 @@ unless it is an object of properties.
      of the run's limit, so one client serves concurrent calls;
    - the decision gate (D81), the checkpoints, unique call ids (D59), compaction (D32), and the provider's client,
      instrumented (D36), behind a wrapper that never disposes it (D29).
-4. The options are a `ChatOptions` subclass that remembers the run options, so the raw path's client gets them too.
+5. The options are a `ChatOptions` subclass that remembers the run options, so the raw path's client gets them too.
+   A host's run finds the claim and the entries it took in them.
 
 ## Storage
 
@@ -221,10 +227,13 @@ approvals, or, in the background, starts it on `ConversationRun`, whose answers 
 queue.
 
 `ConversationChatClient` declares the handoff tools when the run has a conversation. When the tool loop passes a
-handoff call out, it continues the run with the agent handed to, and it sends the conversation's next run to the
-agent that answered last (D33, D34). Either way the other agent's run takes a `RunHandover`: the settings id, the
-conversation, the claim on it, so no other run starts in between (D50), and a typed run's format (D64). A
-sub-agent's run takes one with its caller and no conversation.
+handoff call out, `HandOffAsync` carries it out, for the streaming loop and the other: it answers the calls made
+beside the handoff as not run, stops the background sub-agents, counts the run's handoffs against the most a run
+makes, swaps the claim, and continues the run with the agent handed to. `RunStart` sends a conversation's next run
+to the agent that answered last (D33, D34). Either way the other agent's run takes a `RunHandover`: the settings
+id, the conversation, the claim on it, so no other run starts in between (D50), a typed run's format (D64), the
+handoffs made so far, and for a run passed on the entries loaded for it. A sub-agent's run takes one with its
+caller and no conversation.
 
 ## MCP servers
 

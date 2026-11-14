@@ -1,4 +1,6 @@
 using System.Text.Json;
+using Typeshift.Tests.Agents.Support;
+using Typeshift.Tests.Conversations.Support;
 using Typeshift.Tests.MultiAgent.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
@@ -131,6 +133,43 @@ public class HandoffTests : MultiAgentTestBase
         (await changes).Select(run => (run.Agent, run.Ended))
             .Should()
             .Equal(("front_agent", false), ("front_agent", true), ("back_agent", false));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Later_Run_Of_A_Handed_Off_Conversation_It_Loads_It_Once_And_Resolves_Only_Who_Answers(
+        bool streaming)
+    {
+        // Arrange
+        var services = new ServiceCollection();
+#pragma warning disable TSH036 // the store counts loads and keeps conversations alone, and the run never asks
+        services.AddTypeshift().WithStore<CountingLoadStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+#pragma warning restore TSH036
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var store = provider.GetRequiredService<CountingLoadStore>();
+        var front = scope.ServiceProvider.GetRequiredService<AgentHost<FrontAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason));
+
+        await front.RunAsync(Data.Tool.Question, ct: Ct);
+        var loads = store.Loads;
+        Models.Clear();
+
+        // Act
+        var response = await RunAsync(front, Data.Agent.FollowUp, streaming);
+
+        // Assert
+        (store.Loads - loads).Should().Be(1);
+        Models.Select(model => model.Model).Should().Equal("back-model");
+        response.Messages[^1].AuthorName.Should().Be("back_agent");
     }
 
     [Fact]

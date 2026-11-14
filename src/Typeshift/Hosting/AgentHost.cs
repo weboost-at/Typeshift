@@ -313,7 +313,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
 
         options.Tools = [.. own, .. await McpToolsAsync(own, ct)];
         options.RunOptions = run;
-        options.RunSetsMode = settings is not null && SetsMode(declaration, settings);
+        options.RunSetsMode = NamedMode(settings) is not null;
         options.SettingsId = settingsId;
 
         // The raw path's conversation, which a run replaces with its own
@@ -324,13 +324,13 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
 
     // A run without input resumes the conversation's interrupted run (D50)
     internal Task<ChatResponse> RunCoreAsync(ChatMessage? input, object? settings, CancellationToken ct) =>
-        RunAsync(input is null ? [] : [input], Start(Conversation(input)), settings, ct);
+        RunAsync(input is null ? [] : [input], OwnRun(Conversation(input)), settings, ct);
 
     // A resume needs a conversation
     private StoreId? Conversation(ChatMessage? input) => input is null ? ResumedConversation : _conversationId;
 
     // A run the host's own members start is handed nothing but the host's ids
-    private RunHandover Start(StoreId? conversation, ChatResponseFormat? format = null) =>
+    private RunHandover OwnRun(StoreId? conversation, ChatResponseFormat? format = null) =>
         new(_settingsId, conversation, Claim: null, format);
 
     internal async Task<ChatResponse<TResult>> RunCoreAsync<TResult>(
@@ -341,7 +341,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         var result = _services.GetRequiredService<ToolJson>().GetResultFormat<TResult>();
         var response = await RunAsync(
             input is null ? [] : [input],
-            Start(Conversation(input), result.Format),
+            OwnRun(Conversation(input), result.Format),
             settings,
             ct);
 
@@ -356,7 +356,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     {
         var result = _services.GetRequiredService<ToolJson>().GetResultFormat<TResult>();
         return new StreamingRun<TResult>(
-            RunStreamingAsync([input], Start(_conversationId, result.Format), settings, ct),
+            RunStreamingAsync([input], OwnRun(_conversationId, result.Format), settings, ct),
             result.SerializerOptions);
     }
 
@@ -406,7 +406,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     {
         await RecordAnswersAsync(answers, ct);
 
-        var resumed = RunStreamingAsync([], Start(ResumedConversation, format), settings, ct);
+        var resumed = RunStreamingAsync([], OwnRun(ResumedConversation, format), settings, ct);
 
         await foreach (var update in resumed)
         {
@@ -418,7 +418,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         ChatMessage? input,
         object? settings,
         CancellationToken ct) =>
-        RunStreamingAsync(input is null ? [] : [input], Start(Conversation(input)), settings, ct);
+        RunStreamingAsync(input is null ? [] : [input], OwnRun(Conversation(input)), settings, ct);
 
     internal StoreAccess Store => _services.GetRequiredService<StoreAccess>();
 
@@ -437,16 +437,30 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         CancellationToken ct) =>
         RunStreamingAsync(messages, handover, settings: null, ct);
 
+    // D34: the run takes its conversation before anything resolves, so on a conversation another agent answers,
+    // this agent loads no settings, lists no MCP server and asks for no chat client. The claim is the run's once it
+    // began, and free again when it never did
     private async Task<ChatResponse> RunAsync(
         IEnumerable<ChatMessage> messages,
         RunHandover handover,
         object? settings,
         CancellationToken ct)
     {
-        var options = await ResolveRunAsync(handover, settings, ct);
-        using var client = await CreateChatClientAsync(options, ct);
+        var (taken, answering) = await Start.TakeAsync(handover, NamedMode(settings), ct);
 
-        return await client.GetResponseAsync(messages, options, ct);
+        try
+        {
+            if (answering is not null) return await answering.RunAsync(messages, taken, ct);
+
+            var options = await ResolveRunAsync(taken, settings, ct);
+            using var client = await CreateChatClientAsync(options, ct);
+
+            return await client.GetResponseAsync(messages, options, ct);
+        }
+        finally
+        {
+            Runs.Release(taken.Claim);
+        }
     }
 
     private async IAsyncEnumerable<ChatResponseUpdate> RunStreamingAsync(
@@ -455,14 +469,37 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         object? settings,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        var options = await ResolveRunAsync(handover, settings, ct);
-        using var client = await CreateChatClientAsync(options, ct);
+        var (taken, answering) = await Start.TakeAsync(handover, NamedMode(settings), ct);
 
-        await foreach (var update in client.GetStreamingResponseAsync(messages, options, ct))
+        try
         {
-            yield return update;
+            if (answering is not null)
+            {
+                await foreach (var update in answering.RunStreamingAsync(messages, taken, ct))
+                {
+                    yield return update;
+                }
+
+                yield break;
+            }
+
+            var options = await ResolveRunAsync(taken, settings, ct);
+            using var client = await CreateChatClientAsync(options, ct);
+
+            await foreach (var update in client.GetStreamingResponseAsync(messages, options, ct))
+            {
+                yield return update;
+            }
+        }
+        finally
+        {
+            Runs.Release(taken.Claim);
         }
     }
+
+    private RunStart Start => new(Agent, _services, Ledger);
+
+    private LiveRuns Runs => _services.GetRequiredService<LiveRuns>();
 
     // D35: a server's tool named like one the agent offers would leave the model one of them, unseen
     private async Task<List<AITool>> McpToolsAsync(IEnumerable<AITool> own, CancellationToken ct)
@@ -495,10 +532,17 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         return offered;
     }
 
-    // A layer sets the mode when it moves two different modes to the same one
-    private static bool SetsMode(AgentDeclaration declaration, object settings) =>
-        declaration.ApplySettings(new ChatOptions(), new RunOptions { Mode = AgentMode.Default }, settings).Mode
-        == declaration.ApplySettings(new ChatOptions(), new RunOptions { Mode = AgentMode.Plan }, settings).Mode;
+    // D52: the mode the run's own settings name. A layer names one when it moves two different modes to the same
+    private AgentMode? NamedMode(object? settings)
+    {
+        if (settings is null) return null;
+
+        var declaration = Agent.GeneratedDeclaration;
+        var named = declaration.ApplySettings(new ChatOptions(), new RunOptions(), settings).Mode;
+        var onPlan = declaration.ApplySettings(new ChatOptions(), new RunOptions { Mode = AgentMode.Plan }, settings);
+
+        return named == onPlan.Mode ? named : null;
+    }
 
     // The run's options with what the run was handed: the conversation and the claim on it (D34, D50), a typed run's
     // format, which an agent handed the run or answering in its place keeps (D64), and a sub-agent's caller, in
@@ -512,6 +556,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         options.Conversation = handover.Conversation;
         options.Claim = handover.Claim;
         options.Handoffs = handover.Handoffs;
+        options.Entries = handover.Entries;
         options.HostRun = true;
 
         if (handover.Format is { } format)

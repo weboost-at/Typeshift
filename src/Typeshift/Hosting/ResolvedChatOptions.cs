@@ -42,6 +42,9 @@ internal sealed class ResolvedChatOptions : ChatOptions
     // D34: the handoffs the run made before this agent took it over
     public int Handoffs { get; set; }
 
+    // D34, D50: the conversation as the host's run loaded it when it took it, before these options resolved
+    public IReadOnlyList<ConversationEntry>? Entries { get; set; }
+
     // D64: the format a typed run asked for, which an agent answering in its place answers in too
     public ChatResponseFormat? ResultFormat { get; set; }
 
@@ -75,6 +78,7 @@ internal sealed class ResolvedChatOptions : ChatOptions
             Caller = Caller,
             Claim = Claim,
             Handoffs = Handoffs,
+            Entries = Entries,
             ResultFormat = ResultFormat
         };
 }

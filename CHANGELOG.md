@@ -151,6 +151,13 @@ All notable changes to this project are documented here. The format follows
 - **Breaking:** conversations stored by earlier versions load, with two losses. An approval request that was open
   cannot be answered any more: the model decides again and asks again. Standing approvals given before are not
   carried over, so the conversation asks once more.
+- A run of a conversation that was handed off loads the conversation once and resolves only the agent that
+  answers. It loaded it twice, and first resolved the agent the run was started on: its settings, its MCP servers'
+  tools and its chat client, so that agent's MCP server being down failed a run the other agent would have
+  answered. Such a run is now traced as one `invoke_agent` span, of the agent that answers; it was nested in a
+  span of the agent it was started on, which reported the same tokens again. A host's run loads its conversation
+  before that span opens, so a span your store writes for the load is no longer its child. A run on a conversation
+  that is busy is refused before its options resolve.
 - **Breaking:** a conversation's mode is stored with its decisions. The entry that ends a run and a summary no
   longer carry it in `ConversationEntry.Mode`, and the `ConversationDecisions` record has a fourth member, `Mode`.
   A run whose settings name a mode, an approved plan and `SetModeAsync` set the conversation's mode. Until one of

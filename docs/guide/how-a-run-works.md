@@ -12,7 +12,8 @@ middleware sees, when context is added, which calls ask for approval and what is
 
 ```mermaid
 flowchart TD
-  start(["RunAsync(input, settings)"]) --> resolve[Resolve the options]
+  start(["RunAsync(input, settings)"]) --> load[Load the conversation]
+  load --> resolve[Resolve the options]
   resolve --> conversation[Resume the conversation]
   conversation --> middleware[Run middleware]
   middleware --> context[Context providers]
@@ -33,30 +34,36 @@ the response before the conversation stores how the run ended.
 
 ## The steps
 
-1. **Resolve the options.** The host builds the run's `ChatOptions` from the agent's code, then the agent's own stored
+1. **Load the conversation.** With a conversation id, the host claims the conversation and loads its stored
+   entries, once. Within one process, a conversation has one run at a time, and starting a second while the first
+   goes on throws ([Conversations](./conversations.md)). If an earlier run
+   [handed the conversation off](./multi-agent.md#handoff) to another agent, the agent that answered last answers
+   this run too: the steps below are that agent's, and the agent you started the run on resolves nothing. A mode
+   the run's settings name is saved here, so whichever agent answers is in it. Without a conversation id, the run
+   starts fresh and stores nothing, unless
+   [`PersistAllConversations`](./conversations.md#keeping-every-conversation) starts a conversation for it. On the
+   [raw path](./running-agents.md#the-raw-path) your code resolved the options before the call, so this step
+   follows the next one there.
+2. **Resolve the options.** The host builds the run's `ChatOptions` from the agent's code, then the agent's own stored
    settings and those under the settings id, then the run's own settings. It creates the tools the agent offers, their
    settings resolved through the same layers, and adds the sub-agents and the tools of MCP servers after them. The
    layers resolve once, when the run starts ([settings layering](./settings-and-stores.md#settings-layering)).
-2. **Resume the conversation.** With a conversation id, the run puts the stored entries ahead of the new input, so the
-   model sees the whole conversation, and stores the input. It also settles the decisions the conversation waits
-   for: new input expires the ones still open, so the model reads that their calls did not run, as it does for
-   the ones your app withdrew, and the answers your app gave are carried out as the run's first step
-   ([When a decision closes](./tool-approval.md#when-a-decision-closes)). The run keeps the conversation's mode unless
-   the run's settings name one. If an earlier run [handed the conversation off](./multi-agent.md#handoff) to another
-   agent, the agent that answered last answers this run too. Without a conversation id, the run starts fresh and
-   stores nothing, unless [`PersistAllConversations`](./conversations.md#keeping-every-conversation) starts a
-   conversation for it. Within one process, a conversation has one run at a time, and starting a second while the
-   first goes on throws ([Conversations](./conversations.md)).
-3. **Run middleware.** Each `IRunMiddleware` wraps the rest of the run ([Middleware](./middleware.md)).
-4. **Context providers.** Each context provider the agent uses can add instructions, messages and tools to this run.
+3. **Resume the conversation.** The run puts the stored entries ahead of the new input, so the model sees the whole
+   conversation, and stores the input. It also settles the decisions the conversation waits for: new input expires
+   the ones still open, so the model reads that their calls did not run, as it does for the ones your app withdrew,
+   and the answers your app gave are carried out as the run's first step
+   ([When a decision closes](./tool-approval.md#when-a-decision-closes)). The run is in the conversation's mode, or
+   in the agent's own while nothing named one ([Setting the mode](./tool-approval.md#setting-the-mode)).
+4. **Run middleware.** Each `IRunMiddleware` wraps the rest of the run ([Middleware](./middleware.md)).
+5. **Context providers.** Each context provider the agent uses can add instructions, messages and tools to this run.
    The conversation stores none of it, so every run calls the providers again
    ([Context providers](./middleware.md#context-providers)).
-5. **Mode.** In plan mode, the run offers the model only the read-only tools and `exit_plan_mode`
+6. **Mode.** In plan mode, the run offers the model only the read-only tools and `exit_plan_mode`
    ([The three modes](./tool-approval.md#the-three-modes)). In every mode, an agent that declares `UseQuestions()`
    also offers `ask_user`, in a run with a conversation ([Asking the user](./tool-approval.md#asking-the-user)).
    The run's tools are complete now, and the run fails if two of them share a name
    ([How the agent offers the tools](./mcp.md#how-the-agent-offers-the-tools)).
-6. **The tool loop.** Microsoft.Extensions.AI's `FunctionInvokingChatClient` calls the model, runs the tools it asks
+7. **The tool loop.** Microsoft.Extensions.AI's `FunctionInvokingChatClient` calls the model, runs the tools it asks
    for, each through the tool middleware, and calls the model again until it answers. The
    [run options](./defining-agents.md#run-options) set its limits, such as the most rounds of tool calls. Every
    model response passes a gate before the loop runs its calls. There, approval rules, standing approvals and auto

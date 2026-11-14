@@ -646,14 +646,18 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   alike. The handing agent's run swaps its claim on the conversation (D50) for a claim of the agent handed to, and
   passes it to that agent's run, as a run passed on to the agent that answers the conversation is passed its claim;
   so no run starts between the two. A run that starts then waits, as for any run still loading, and is refused once
-  the agent handed to began. What one run hands another is one record, `RunHandover`: the settings id, the
-  conversation, the claim, a typed run's format (D64) and the handoffs the run made so far. The limit of ten is a
-  constant: a run option for it would be one more member of every agent's generated settings, for a number nobody
-  has asked to change. It travels as an argument and in the run's options rather
+  the agent handed to began. Who answers is decided before anyone's options resolve: a host's run takes its
+  conversation first (`RunStart`: the claim, the load from the last summary, a mode its settings name), and on a
+  conversation another agent answers it passes the run on with the loaded entries. So the conversation is loaded
+  once, and the agent the run was started on loads no settings, lists no MCP server and asks for no chat client,
+  whose failure would otherwise fail a run it does not answer. What one run hands another is one record,
+  `RunHandover`: the settings id, the conversation, the claim, a typed run's format (D64), the handoffs the run made
+  so far and, for a run passed on, the loaded entries. It travels as an argument and in the run's options rather
   than in an `AsyncLocal`, which a value set before a stream's `yield` loses and code the agent's run calls would
-  carry along.
-- **Where:** `Conversations/ConversationChatClient.cs`, `Conversations/LiveRuns.cs`, `Hosting/IAgentHost.cs`
-  (`RunHandover`).
+  carry along. The limit of ten handoffs is a constant: a run option for it would be one more member of every
+  agent's generated settings, for a number nobody has asked to change.
+- **Where:** `Conversations/ConversationChatClient.cs`, `Conversations/RunStart.cs`, `Conversations/LiveRuns.cs`,
+  `Hosting/IAgentHost.cs` (`RunHandover`), `Hosting/AgentHost.cs`.
 
 ### D65. A sub-agent can answer in a type
 

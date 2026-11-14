@@ -19,12 +19,14 @@ internal interface IAgentHost
 // What one agent's run hands the run of another: the settings id its stored settings load under, the conversation it
 // continues, and the format of a typed answer, which the other agent answers in too (D64). A run handed a claim on
 // the conversation takes it in place of claiming the conversation itself (D34, D50), and counts on from the
-// handoffs the run made before it. A sub-agent's run has its caller, whose mode and standing approvals it takes,
-// and no conversation (D33)
+// handoffs the run made before it. A run passed on to the agent that answers is handed the entries loaded for it
+// too, so the conversation is loaded once. A sub-agent's run has its caller, whose mode and standing approvals it
+// takes, and no conversation (D33)
 internal sealed record RunHandover(
     StoreId? SettingsId,
     StoreId? Conversation,
     RunClaim? Claim,
     ChatResponseFormat? Format,
     int Handoffs = 0,
+    IReadOnlyList<ConversationEntry>? Entries = null,
     AgentRun? Caller = null);
