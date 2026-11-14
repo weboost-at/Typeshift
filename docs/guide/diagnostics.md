@@ -36,7 +36,7 @@ a compiler error inside generated code.
 | [TSH024](#tsh024) | Warning | Sub-agent offers tools that need approval |
 | [TSH025](#tsh025) | Error | Tool is offered twice |
 | [TSH026](#tsh026) | Error | Agents call each other in a circle |
-| [TSH027](#tsh027) | Error | Tool type has no JSON metadata under Native AOT |
+| [TSH027](#tsh027) | Error | Tool type has no JSON metadata for Native AOT or a trimmed app |
 | [TSH028](#tsh028) | Error | Type is no store |
 | [TSH029](#tsh029) | Error | Provider id type cannot be used |
 | [TSH030](#tsh030) | Error | Type is no chat client provider |
@@ -295,10 +295,15 @@ could never end. Break the circle by removing one of these `UseAgent<T>()` calls
 
 ## TSH027
 
-**Tool type has no JSON metadata under Native AOT.** In a project that publishes with Native AOT or sets
-`IsAotCompatible`, the types of the parameters the model fills and the type the tool returns need source-generated
-metadata. List each type as `[JsonSerializable(typeof(T))]` on a `JsonSerializerContext` of the toolset's assembly.
-A context nested as `private` or `protected` does not count.
+**Tool type has no JSON metadata for Native AOT or a trimmed app.** An app published with Native AOT or trimmed
+has System.Text.Json's reflection off, so the types of the parameters the model fills and the type the tool returns
+need source-generated metadata there. List each type as `[JsonSerializable(typeof(T))]` on a `JsonSerializerContext`
+of the toolset's assembly. A context nested as `private` or `protected` does not count.
+
+The analyzer reports it in a project that sets `PublishAot` or `PublishTrimmed`, and in a library that sets
+`IsAotCompatible` or `IsTrimmable`. It reads what the SDK makes of them, the property
+`JsonSerializerIsReflectionEnabledByDefault`, so a project that turns JSON reflection back on, as a Blazor
+WebAssembly app does, is not reported.
 [Native AOT](./native-aot.md#tool-parameter-and-result-types) shows a context and lists the types that need none.
 
 ## TSH028

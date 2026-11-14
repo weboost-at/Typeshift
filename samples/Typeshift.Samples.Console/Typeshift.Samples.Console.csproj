@@ -10,6 +10,14 @@
   </PropertyGroup>
   <!-- end-snippet -->
 
+  <!-- CI publishes the sample a second time with -p:TrimmedOnly=true: trimmed and not as Native AOT, where JSON
+       reflection is off as well. PublishTrimmed on the command line would reach the generator's project too -->
+  <PropertyGroup Condition="'$(TrimmedOnly)' == 'true'">
+    <PublishAot>false</PublishAot>
+    <PublishTrimmed>true</PublishTrimmed>
+    <SelfContained>true</SelfContained>
+  </PropertyGroup>
+
   <PropertyGroup>
     <TargetFramework>net11.0</TargetFramework>
     <RootNamespace>Typeshift.Samples</RootNamespace>

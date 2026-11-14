@@ -11,8 +11,14 @@ public sealed class BuildProperties(IReadOnlyDictionary<string, string> global) 
 
     public override AnalyzerConfigOptions GlobalOptions { get; } = new Options(global);
 
-    public static BuildProperties PublishingAot() =>
-        new(new Dictionary<string, string> { ["build_property.PublishAot"] = "true" });
+    public static BuildProperties PublishingAot() => With("PublishAot", "true");
+
+    // What the SDK sets to false for an app published trimmed, and the Blazor WebAssembly SDK back to true
+    public static BuildProperties JsonReflection(bool enabled) =>
+        With("JsonSerializerIsReflectionEnabledByDefault", enabled ? "true" : "false");
+
+    public static BuildProperties With(string property, string value) =>
+        new(new Dictionary<string, string> { [$"build_property.{property}"] = value });
 
     public override AnalyzerConfigOptions GetOptions(SyntaxTree tree) => Options.Empty;
 

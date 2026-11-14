@@ -199,7 +199,8 @@ rewrite.
 | new | A referenced sub-agent is checked against its module stamp (TSH023, TSH024; D33) | `DiagnosticTests.Given_A_Sub_Agent_Of_A_Reference_Without_A_Description_TSH023_Is_Reported_On_The_Use`, `..._Given_A_Sub_Agent_Of_A_Reference_Offering_A_Tool_That_Needs_Approval_TSH024_Is_Reported_On_The_Use` |
 | new | MCP servers' tools follow the agent's own, read-only or behind approval; a clash or no provider fails (D35) | `McpTests` |
 | new | Under Native AOT, a tool type no context lists is TSH027 (D45) | `DiagnosticTests.Given_A_Tool_Type_No_Context_Lists_Under_Native_Aot_TSH027_Is_Reported_On_Its_Tool` |
-| new | Tools, settings with a provider of an enum, conversations, streaming and structured output run published as Native AOT | `samples/Typeshift.Samples.Console`, run by CI |
+| new | TSH027 also holds in an app published trimmed and in a library that declares itself trimmable, and not where a trimmed app keeps JSON reflection, as Blazor WebAssembly does (D45) | `DiagnosticTests.Given_A_Tool_Type_No_Context_Lists_In_A_Trimmed_App_TSH027_Is_Reported_On_Its_Tool`, `..._Given_A_Tool_Type_No_Context_Lists_In_A_Trimmable_Library_TSH027_Is_Reported_On_Its_Tool`, `..._Given_A_Trimmed_App_That_Keeps_Json_Reflection_TSH027_Is_Not_Reported` |
+| new | Tools, settings with a provider of an enum, conversations, streaming and structured output run published as Native AOT, and published trimmed without AOT | `samples/Typeshift.Samples.Console`, run by CI both ways |
 | new | A consumer of the package, not of the projects, generates and registers its agents | `samples/Typeshift.Samples.PackageConsumer`, run by CI |
 
 ## Known gaps

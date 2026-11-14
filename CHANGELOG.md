@@ -175,6 +175,12 @@ All notable changes to this project are documented here. The format follows
   reaches your code as before.
 - A call whose arguments do not fit fails with a `ToolException` where it failed with an `ArgumentException`, so
   the model reads "The tool 'probe' requires the argument 'query'." without "(Parameter 'query')" behind it.
+- TSH027 is also reported in an app published trimmed (`PublishTrimmed`) and in a library that sets `IsTrimmable`,
+  and is titled "Tool type has no JSON metadata for Native AOT or a trimmed app". The SDK turns System.Text.Json's
+  reflection off for a trimmed app as for a Native AOT one. Such an app built and published without a diagnostic,
+  and every tool that takes or returns a record or a list failed when the model called it. List the types in a
+  `JsonSerializerContext`, as the guide's Native AOT page shows. An app that turns JSON reflection back on, as a
+  Blazor WebAssembly app does, is not reported.
 - A sub-agent whose run fails, for example because no client serves its model, tells the calling model only that
   the call failed, in the foreground and in the background. The exception is logged as an error and set on the
   span. An answer outside the type of `WithResult<T>()` still tells the calling model what the sub-agent answered.

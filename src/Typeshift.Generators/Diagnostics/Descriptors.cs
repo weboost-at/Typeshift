@@ -137,9 +137,9 @@ internal static class Descriptors
 
     public static readonly DiagnosticDescriptor NoJsonMetadata = Error(
         "TSH027",
-        "Tool type has no JSON metadata under Native AOT",
-        "'{0}' of '{1}' has no JSON metadata, which Native AOT needs: list it in a JsonSerializerContext of this "
-        + "assembly, [JsonSerializable(typeof({0}))]");
+        "Tool type has no JSON metadata for Native AOT or a trimmed app",
+        "'{0}' of '{1}' has no JSON metadata, which an app published with Native AOT or trimmed needs: list it in a "
+        + "JsonSerializerContext of this assembly, [JsonSerializable(typeof({0}))]");
 
     public static readonly DiagnosticDescriptor NoStore = Error(
         "TSH028",

@@ -13,7 +13,8 @@ namespace Typeshift.Generated;
 
 /// <summary>
 /// How generated tools serialize their arguments and results and describe their parameters: the modules' JSON
-/// contexts first, then Microsoft.Extensions.AI's defaults, which reflect outside Native AOT.
+/// contexts first, then Microsoft.Extensions.AI's defaults, which reflect unless the app is published with Native AOT
+/// or trimmed.
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class ToolJson
@@ -30,7 +31,7 @@ public sealed class ToolJson
     /// <param name="annotations">The XML docs the modules register, which describe the parameters' properties.</param>
     public ToolJson(IEnumerable<IJsonTypeInfoResolver> resolvers, IEnumerable<ISchemaAnnotationSource> annotations)
     {
-        // D45: outside Native AOT the defaults reflect, so tools need no context of their own
+        // D45: the defaults reflect in an app that keeps JSON reflection, where tools need no context of their own
         var options = new JsonSerializerOptions(AIJsonUtilities.DefaultOptions)
         {
             TypeInfoResolver = JsonTypeInfoResolver.Combine(
@@ -73,7 +74,8 @@ public sealed class ToolJson
     /// <typeparam name="T">The type to serialize.</typeparam>
     /// <returns>The contract, from the first resolver that knows the type.</returns>
     /// <exception cref="NotSupportedException">
-    /// No resolver knows the type: under Native AOT, list it in a <c>JsonSerializerContext</c> of the tool's assembly.
+    /// No resolver knows the type: in an app published with Native AOT or trimmed, list it in a
+    /// <c>JsonSerializerContext</c> of the tool's assembly.
     /// </exception>
     public JsonTypeInfo<T> GetTypeInfo<T>() => (JsonTypeInfo<T>)SerializerOptions.GetTypeInfo(typeof(T));
 

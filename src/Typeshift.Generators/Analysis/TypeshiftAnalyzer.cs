@@ -77,7 +77,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
         context.RegisterSymbolAction(symbol => CollectJsonTypes(symbol, found), SymbolKind.NamedType);
 
-        var aot = IsAot(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
+        var needsJsonMetadata = NeedsJsonMetadata(context.Options.AnalyzerConfigOptionsProvider.GlobalOptions);
         // The library's own builders make the calls a user may not
         if (context.Compilation.AssemblyName != KnownTypes.LibraryAssembly)
             context.RegisterOperationAction(call => AnalyzeCall(call, found), OperationKind.Invocation);
@@ -89,7 +89,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             ReportUnstampedReferences(end);
             ReportSharedKinds(end, kinds);
             ReportAgentUses(end, found);
-            if (aot) ReportMissingJsonMetadata(end, found);
+            if (needsJsonMetadata) ReportMissingJsonMetadata(end, found);
         });
     }
 
@@ -720,11 +720,15 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         "global::System.Collections.Generic.IEnumerable<string>"
     ];
 
-    private static bool IsAot(AnalyzerConfigOptions options) =>
-        new[] { "build_property.PublishAot", "build_property.IsAotCompatible" }
-            .Any(name => options.TryGetValue(name, out var value) && IsTrue(value));
+    // D45: an app published trimmed has JSON reflection off as one published with Native AOT has, and the SDK says
+    // so in this switch. PublishTrimmed is no sign of it: Blazor WebAssembly trims and turns reflection back on
+    private static bool NeedsJsonMetadata(AnalyzerConfigOptions options) =>
+        Is(options, "JsonSerializerIsReflectionEnabledByDefault", "false")
+        || new[] { "PublishAot", "IsAotCompatible", "IsTrimmable" }.Any(name => Is(options, name, "true"));
 
-    private static bool IsTrue(string value) => value.Equals("true", StringComparison.OrdinalIgnoreCase);
+    private static bool Is(AnalyzerConfigOptions options, string property, string expected) =>
+        options.TryGetValue($"build_property.{property}", out var value)
+        && value.Equals(expected, StringComparison.OrdinalIgnoreCase);
 
     private static void CollectJsonTypes(SymbolAnalysisContext context, Found found)
     {
@@ -747,7 +751,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    // D45: under Native AOT, every type a tool binds or returns needs metadata from a context
+    // D45: where JSON reflection is off, every type a tool binds or returns needs metadata from a context
     private static void ReportMissingJsonMetadata(CompilationAnalysisContext context, Found found)
     {
         foreach (var (tool, location) in found.Tools)

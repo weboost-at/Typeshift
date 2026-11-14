@@ -1077,8 +1077,9 @@ public class DiagnosticTests : GeneratorTestBase
             "TSH027",
             DiagnosticSeverity.Error,
             "AddTool(Count)",
-            message: "'global::System.Guid' of 'count' has no JSON metadata, which Native AOT needs: list it in a "
-                + "JsonSerializerContext of this assembly, [JsonSerializable(typeof(global::System.Guid))]");
+            message: "'global::System.Guid' of 'count' has no JSON metadata, which an app published with Native AOT "
+                + "or trimmed needs: list it in a JsonSerializerContext of this assembly, "
+                + "[JsonSerializable(typeof(global::System.Guid))]");
     }
 
     [Fact]
@@ -1095,6 +1096,45 @@ public class DiagnosticTests : GeneratorTestBase
             .GetMessage()
             .Should()
             .Contain("global::System.Collections.Generic.List<global::Company>");
+    }
+
+    [Fact]
+    public void Given_A_Tool_Type_No_Context_Lists_In_A_Trimmed_App_TSH027_Is_Reported_On_Its_Tool()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.ToolTypeWithoutJsonMetadata);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.JsonReflection(enabled: false));
+
+        // Assert
+        run.Assert.Reports("TSH027", DiagnosticSeverity.Error, "AddTool(Count)");
+    }
+
+    [Fact]
+    public void Given_A_Tool_Type_No_Context_Lists_In_A_Trimmable_Library_TSH027_Is_Reported_On_Its_Tool()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.ToolTypeWithoutJsonMetadata);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.With("IsTrimmable", "true"));
+
+        // Assert
+        run.Assert.Reports("TSH027", DiagnosticSeverity.Error, "AddTool(Count)");
+    }
+
+    [Fact]
+    public void Given_A_Trimmed_App_That_Keeps_Json_Reflection_TSH027_Is_Not_Reported()
+    {
+        // Arrange
+        var compilation = Compile(DiagnosticSources.ToolTypeWithoutJsonMetadata);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.JsonReflection(enabled: true));
+
+        // Assert
+        run.Assert.DoesNotReport("TSH027");
     }
 
     [Fact]

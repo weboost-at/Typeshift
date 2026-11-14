@@ -107,6 +107,12 @@ jobs:
       - name: Run the AOT sample
         run: ./artifacts/sample/Typeshift.Samples.Console
 
+      # D45: an app published trimmed has JSON reflection off as well, without the AOT compiler to say so
+      - name: Publish the sample trimmed and not as Native AOT, and run it
+        run: |
+          dotnet publish samples/Typeshift.Samples.Console -c Release -r linux-x64 -p:TrimmedOnly=true -o artifacts/sample-trimmed
+          ./artifacts/sample-trimmed/Typeshift.Samples.Console
+
       - name: Run every scenario the documentation shows
         run: dotnet run --project samples/Typeshift.Samples.Docs -c Release --no-build
 

@@ -1,13 +1,13 @@
 ---
 title: Native AOT
-description: Publish your app with Native AOT, and give the types your tools take and return the JSON metadata they need there.
+description: Publish your app with Native AOT or trimmed, and give the types your tools take and return the JSON metadata they need there.
 ---
 
 # Native AOT
 
-You can publish your app with Native AOT. Typeshift writes the tool bindings and the settings serialization when you
-build, so its generated code never reflects over your types. What you add is JSON metadata for the types your tools
-take and return, and the analyzer reports each tool type that lacks it.
+You can publish your app with Native AOT, or trimmed. Typeshift writes the tool bindings and the settings
+serialization when you build, so its generated code never reflects over your types. What you add is JSON metadata
+for the types your tools take and return, and the analyzer reports each tool type that lacks it.
 
 ## The project
 
@@ -26,12 +26,21 @@ so tools keep their descriptions ([TSH011](./diagnostics.md#tsh011)):
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Typeshift.Samples.Console.csproj#L5-L11' title='Snippet source file'>snippet source</a> | <a href='#snippet-aot-project' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+An app published trimmed sets `PublishTrimmed` in place of `PublishAot`. For JSON it is where a Native AOT app is,
+because the SDK turns System.Text.Json's reflection off for both. So what this page says about JSON metadata holds
+for a trimmed app too.
+
 ## Tool parameter and result types
 
-Under Native AOT, the types your tools take and return need source-generated metadata: a `JsonSerializerContext` in
-the toolset's assembly that lists them. Outside Native AOT, serialization falls back to reflection, so an app that does
-not publish with Native AOT needs no context. Set `IsAotCompatible` in a toolset library that such apps use, so the
-analyzer checks it.
+Where System.Text.Json does not reflect, the types your tools take and return need source-generated metadata: a
+`JsonSerializerContext` in the toolset's assembly that lists them. That is the case in an app published with Native
+AOT and in one published trimmed. Without the metadata such an app builds and publishes, and each tool that takes or
+returns a record or a list fails when the model calls it.
+
+An app that keeps JSON reflection needs no context. That is an app published neither way, a Blazor WebAssembly app,
+which trims and turns reflection back on, and an app that sets `JsonSerializerIsReflectionEnabledByDefault` to `true`
+itself. In a toolset library that Native AOT or trimmed apps use, set `IsAotCompatible` or `IsTrimmable`, so the
+analyzer checks the library too.
 
 <!-- snippet: json-context -->
 <a id='snippet-json-context'></a>
@@ -60,8 +69,8 @@ list.
 
 Strings, `char`, `bool`, `short`, `int`, `long` and their unsigned forms, `float`, `double`, `decimal`, `DateTime`,
 `DateTimeOffset`, `TimeSpan`, `IEnumerable<string>` and the JSON element, document and node types need no context.
-In a project that publishes with Native AOT or sets `IsAotCompatible`, the analyzer reports
-[TSH027](./diagnostics.md#tsh027) for every other tool type that no context lists.
+In a project that publishes with Native AOT or trimmed, or that sets `IsAotCompatible` or `IsTrimmable`, the analyzer
+reports [TSH027](./diagnostics.md#tsh027) for every other tool type that no context lists.
 
 Some of the types that need an entry look as plain as the ones above:
 

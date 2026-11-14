@@ -15,9 +15,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- D45: TSH027 holds for projects that publish with Native AOT or declare themselves compatible -->
+    <!-- D45: TSH027 holds where System.Text.Json does not reflect: in an app published with Native AOT or trimmed,
+         where the SDK turns the switch off, and in a library that declares itself compatible with either -->
     <CompilerVisibleProperty Include="PublishAot" />
     <CompilerVisibleProperty Include="IsAotCompatible" />
+    <CompilerVisibleProperty Include="IsTrimmable" />
+    <CompilerVisibleProperty Include="JsonSerializerIsReflectionEnabledByDefault" />
   </ItemGroup>
 
   <!-- D55: Weboost.SchemaAnnotations collects docs for a class marked in source, so each project gets one, named after

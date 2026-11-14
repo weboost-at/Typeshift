@@ -123,8 +123,8 @@ model's arguments to your method's parameters through JSON metadata, and the `Se
 write themselves member by member. Generated code never reflects over your types, so your app can publish with
 [Native AOT](./native-aot.md).
 
-Outside Native AOT, System.Text.Json still reads the types your tools take and return through reflection. Under
-Native AOT they need JSON metadata of their own
+In an app that keeps JSON reflection, System.Text.Json still reads the types your tools take and return through
+reflection. An app published with Native AOT or trimmed has it off, and there they need JSON metadata of their own
 ([Tool parameter and result types](./native-aot.md#tool-parameter-and-result-types)).
 
 ## Agents are defined when you build

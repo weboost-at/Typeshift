@@ -63,6 +63,8 @@ dotnet test --solution Typeshift.slnx -c Release --no-build
 dotnet run --project samples/Typeshift.Samples.Docs -c Release --no-build
 dotnet publish samples/Typeshift.Samples.Console -c Release -r linux-x64 -o artifacts/sample
 ./artifacts/sample/Typeshift.Samples.Console
+dotnet publish samples/Typeshift.Samples.Console -c Release -r linux-x64 -p:TrimmedOnly=true -o artifacts/sample-trimmed
+./artifacts/sample-trimmed/Typeshift.Samples.Console
 dotnet slopwatch analyze --fail-on warning
 npm run docs:snippets:check
 ```
@@ -146,7 +148,7 @@ style; the essentials:
 | A chat UI's endpoints: posting, streaming as server-sent events, loading the decisions and answering one by its id | `guide/chat-endpoint.md` | |
 | Generated members, `AgentHost` members and signatures | `guide/generated-members.md` | `running-agents.md` |
 | Spans, metrics and message content | `guide/observability.md` | `models.md#wrapping-a-client` (a second `UseOpenTelemetry()`) |
-| Native AOT: the project, JSON metadata for tool and run types, trackers of value-type ids | `guide/native-aot.md` | `diagnostics.md#tsh027`, `toolsets.md#results` (link), `conversations.md#live-updates` (the tracker tip) |
+| Native AOT and trimmed apps: the project, JSON metadata for tool and run types, trackers of value-type ids | `guide/native-aot.md` | `diagnostics.md#tsh027`, `toolsets.md#results` (link), `conversations.md#live-updates` (the tracker tip) |
 | Docs for coding assistants: `llms.txt`, `llms-full.txt`, a page as Markdown | `guide/getting-started.md#docs-for-coding-assistants` | |
 | Diagnostics | `guide/diagnostics.md` | every page, linked by ID |
 | Terms | `guide/glossary.md` | |
@@ -219,7 +221,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `tests/Typeshift.Tests.Toolsets` | Toolsets in an assembly of their own, which `Typeshift.Tests` references for modules, stamps and JSON contexts across assemblies. |
 | `tests/Typeshift.Generators.Tests` | Snapshots, one test per diagnostic, incremental caching, guard tests. |
 | `samples/Typeshift.Samples.Docs` | The code every guide page shows, run as scenarios in CI. |
-| `samples/Typeshift.Samples.Console` | A host published as Native AOT in CI, failing on any trim or AOT warning. |
+| `samples/Typeshift.Samples.Console` | A host published as Native AOT in CI, failing on any trim or AOT warning, and once more trimmed without AOT (`-p:TrimmedOnly=true`). |
 | `samples/Typeshift.Samples.PackageConsumer` | A consumer of the packed package rather than the projects, run by CI after the pack. |
 | `docs/` | The VitePress site: `guide/` for users, `contributing/` for this repository, `contributing/templates/` for new pages, `.vitepress/lint.mjs` for the docs rules, `.vitepress/snippets.mjs` for running mdsnippets. |
 | `.claude/skills/` | The playbooks of the table above. |

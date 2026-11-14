@@ -1229,16 +1229,23 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   then receive; dropping the whole message, which loses the text beside the content; serving an app's own content
   types from its JSON contexts, a later step once an app needs it.
 
-### D45. Tool JSON: contexts from the modules, reflection outside AOT
+### D45. Tool JSON: contexts from the modules, reflection where the app keeps it
 
 - **Status:** approved.
-- **Decision:** modules register the `JsonSerializerContext`s that list their tools' types (v0 D44). Outside Native
-  AOT, Microsoft.Extensions.AI's reflection-based defaults cover the rest, so tools need no context; under AOT
-  (`PublishAot` or `IsAotCompatible`), a type no context lists is TSH027.
+- **Decision:** modules register the `JsonSerializerContext`s that list their tools' types (v0 D44). Where the app
+  keeps JSON reflection, Microsoft.Extensions.AI's reflection-based defaults cover the rest, so tools need no
+  context. Where it is off, a type no context lists is TSH027.
+- **Where reflection is off:** the analyzer reads four build properties. `JsonSerializerIsReflectionEnabledByDefault`
+  is `false`, which the SDK sets for an app with `PublishAot` or `PublishTrimmed`; or `PublishAot`, `IsAotCompatible`
+  or `IsTrimmable` is `true`, the last two for a library such apps use. `PublishTrimmed` itself is not read: the
+  Blazor WebAssembly SDK trims and sets the switch back to `true`, and an app may do the same, where an error would
+  be wrong. Until 0.1.0-alpha.6 only the two AOT properties counted, so a trimmed app built and published without a
+  word and its tools with a record or a list failed at run time.
 - **As built:** TSH027 knows the types Microsoft.Extensions.AI's own context lists (strings, numbers, `bool`, dates,
   `TimeSpan`, JSON elements) and the contexts of the compilation; a tool returning `IAsyncEnumerable<T>` returns a
   `List<T>`, which it checks. The console sample publishes as Native AOT in CI, where a trim or AOT warning fails the
-  build.
+  build, and a second time trimmed without AOT, through a `TrimmedOnly` switch in its project, since
+  `-p:PublishTrimmed=true` on the command line reaches the generator's netstandard2.0 project (NETSDK1124).
 - **Which contexts:** the module names a context and reads its static `Default`, so `Discovery.CanRegister` takes a
   context the assembly can name that is partial and carries a `[JsonSerializable]`, for which System.Text.Json's
   generator writes the member where this generator cannot see it, or that declares a static `Default` itself. A

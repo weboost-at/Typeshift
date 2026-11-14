@@ -30,7 +30,7 @@ TSH023 | Typeshift | Error | Agent cannot be a tool or a handoff target
 TSH024 | Typeshift | Warning | Sub-agent offers tools that need approval
 TSH025 | Typeshift | Error | Tool is offered twice
 TSH026 | Typeshift | Error | Agents call each other in a circle
-TSH027 | Typeshift | Error | Tool type has no JSON metadata under Native AOT
+TSH027 | Typeshift | Error | Tool type has no JSON metadata for Native AOT or a trimmed app
 TSH028 | Typeshift | Error | Type is no store
 TSH029 | Typeshift | Error | Provider id type cannot be used
 TSH030 | Typeshift | Error | Type is no chat client provider
