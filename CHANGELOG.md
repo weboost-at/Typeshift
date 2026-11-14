@@ -70,9 +70,10 @@ All notable changes to this project are documented here. The format follows
 - Every entry Typeshift logs is an event with an id and a name that stay, such as `2`, `StepNotStored`, for a failed
   append, so a filter or an alert no longer matches text. The guide's page on observability lists them all.
 - New log events: at `Debug`, `RunResolved` names the model and the provider a run resolved, the client that serves
-  it and the settings that applied, `Compacted` what compaction took out of a model call, and `RuleDecided` the
-  approval rule that approved or rejected a call. `UpdatesDropped` warns once for each watcher of live updates that
-  fell behind and lost updates, which left no trace before.
+  it and the settings that applied, `Compacted` what compaction took out of a model call, `RuleDecided` the
+  approval rule that approved or rejected a call, and `HandedOff` the agent a conversation was handed to.
+  `UpdatesDropped` warns once for each watcher of live updates that fell behind and lost updates, which left no
+  trace before.
 - A failed run's `invoke_agent` span carries the exception as an event, with its type, its message and its stack,
   beside the span's error status.
 - The file store logs the folder it keeps the settings in at its first save, as the event `FileStoreFolder` at

@@ -756,10 +756,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   says, with an id and a name that stay: warnings and errors for what a run survives (a failed append, a failed
   summary, a content it stored or read without, a background sub-agent that failed, a watcher that lost updates,
   the first write without a store), and `Debug` events for why a run did what it did (the model and provider it
-  resolved with the settings that applied, a compaction, an approval rule's verdict). Up to 0.1.0-alpha.6 the
-  entries had the event id 0 and the names of internal classes as categories, so an alert had to match text. A
-  new event takes the next number, the guide lists every event, and `LogEventCatalogTests` holds the list to the
-  code. The tool loop logs a tool's exception under Microsoft.Extensions.AI's own category. The logger is the
+  resolved with the settings that applied, a compaction, an approval rule's verdict, a handoff). Up to
+  0.1.0-alpha.6 the entries had the event id 0 and the names of internal classes as categories, so an alert had to
+  match text. A new event takes the next number, the guide lists every event, and `LogEventCatalogTests` holds the
+  list to the code. The tool loop logs a tool's exception under Microsoft.Extensions.AI's own category. The logger is the
   `ILoggerFactory` of the run's services, none when the app registered none (D75). A failed run's span carries
   its exception as an event, as the span of a run that survived a store's failure does.
 - **Where:** `Telemetry/Telemetry.cs`, `Telemetry/InstrumentedClients.cs`, `Telemetry/LogEvents.cs`,

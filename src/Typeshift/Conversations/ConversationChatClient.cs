@@ -518,6 +518,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         }
 
         await run.AppendHandoffAsync(result, target.Agent.Name);
+        LogEvents.HandedOff(Logger, agent.Name, run.Conversation, target.Agent.Name);
 
         // D33: the sub-agents this agent left working stop with its turn, and the agent handed to hears of each
         var lost = await run.StopBackgroundAsync();

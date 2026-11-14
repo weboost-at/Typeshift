@@ -109,4 +109,7 @@ internal static partial class LogEvents
 
     [LoggerMessage(14, LogLevel.Information, "The file store keeps agents' own settings in {Folder}.")]
     public static partial void FileStoreFolder(ILogger logger, string folder);
+
+    [LoggerMessage(15, LogLevel.Debug, "Agent {Agent} handed conversation {Conversation} off to {Target}.")]
+    public static partial void HandedOff(ILogger logger, string agent, StoreId? conversation, string target);
 }

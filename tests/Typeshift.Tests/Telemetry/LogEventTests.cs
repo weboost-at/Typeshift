@@ -101,6 +101,38 @@ public class LogEventTests : MultiAgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Handoff_It_Is_Logged_With_Both_Agents_And_The_Conversation()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<FrontAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        _log.Of("HandedOff").Select(logged => logged.Message).Should().Equal(
+            $"Agent front_agent handed conversation {Data.Agent.ConversationId} off to back_agent.");
+    }
+
+    [Fact]
+    public async Task Given_A_Handoff_It_Is_A_Debug_Event_Of_The_Category_Typeshift()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<FrontAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        _log.Of("HandedOff").Should().ContainSingle(logged =>
+            logged.Id.Id == 15 && logged.Level == LogLevel.Debug && logged.Category == Category);
+    }
+
+    [Fact]
     public async Task Given_A_Watcher_That_Falls_Behind_The_Updates_It_Loses_Are_Logged_Once()
     {
         // Arrange
