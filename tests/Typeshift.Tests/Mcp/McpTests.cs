@@ -88,6 +88,51 @@ public class McpTests : McpTestBase
     }
 
     [Fact]
+    public async Task Given_A_Tool_Approved_For_The_Conversation_A_Sub_Agents_Server_Tool_Of_That_Name_Does_Not_Run()
+    {
+        // Arrange
+        Servers["deploy"] = [Tool("close_ticket")];
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "close_ticket", ("number", Data.Agent.Ticket.Default)))
+            .Reply(Call(Data.Tool.SecondCallId, "mcp_helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Call($"{Data.Tool.CallId}_helper", "close_ticket"))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        var lead = Host<McpLeadAgent>().WithConversationId(Data.Agent.ConversationId);
+        var asked = await lead.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await lead.AnswerAsync([DecisionAnswer.ApproveForConversation(asked.Decisions[0].Id)], ct: Ct);
+
+        // Assert
+        ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
+    }
+
+    [Fact]
+    public async Task Given_A_Tool_Approved_For_The_Conversation_A_Server_Tool_Of_That_Name_After_A_Handoff_Asks()
+    {
+        // Arrange
+        Servers["deploy"] = [Tool("close_ticket")];
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "close_ticket", ("number", Data.Agent.Ticket.Default)))
+            .Reply(Call(Data.Tool.SecondCallId, "handoff_to_mcp_back_agent"))
+            .Reply(Call($"{Data.Tool.CallId}_back", "close_ticket"));
+
+        var front = Host<McpFrontAgent>().WithConversationId(Data.Agent.ConversationId);
+        var asked = await front.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        var handed = await front.AnswerAsync([DecisionAnswer.ApproveForConversation(asked.Decisions[0].Id)], ct: Ct);
+
+        // Assert
+        handed.Decisions.OfType<ApprovalDecision>().Select(decision => decision.Server).Should().Equal("deploy");
+        ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
+    }
+
+    [Fact]
     public async Task Given_A_Read_Only_Server_Plan_Mode_Offers_Its_Tools()
     {
         // Arrange
