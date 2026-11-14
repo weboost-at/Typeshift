@@ -222,8 +222,9 @@ queue.
 
 `ConversationChatClient` declares the handoff tools when the run has a conversation. When the tool loop passes a
 handoff call out, it continues the run with the agent handed to, and it sends the conversation's next run to the
-agent that answered last (D33, D34). Either way it passes its claim on the conversation to that agent's run, so no
-other run starts in between (D50).
+agent that answered last (D33, D34). Either way the other agent's run takes a `RunHandover`: the settings id, the
+conversation, the claim on it, so no other run starts in between (D50), and a typed run's format (D64). A
+sub-agent's run takes one with its caller and no conversation.
 
 ## MCP servers
 

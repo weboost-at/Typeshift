@@ -134,14 +134,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         {
             try
             {
-                return await answering.RunAsync(
-                    messages,
-                    SettingsId(options),
-                    conversation,
-                    null,
-                    claim,
-                    ResultFormat(options),
-                    ct);
+                return await answering.RunAsync(messages, PassedOn(options, conversation, claim), ct);
             }
             finally
             {
@@ -167,7 +160,9 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             {
                 await run.StoreResultsAsync(last.Messages);
 
-                var handoff = HandoffIn(last.Messages) is { } handing ? await HandOffAsync(run, handing) : null;
+                var handoff = HandoffIn(last.Messages) is { } handing
+                    ? await HandOffAsync(run, runOptions, handing)
+                    : null;
 
                 if (handoff is var (result, target, handed))
                 {
@@ -176,18 +171,11 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
                     try
                     {
-                        answer = await target.RunAsync(
-                            [],
-                            runOptions.SettingsId,
-                            run.Conversation,
-                            null,
-                            handed,
-                            runOptions.ResultFormat,
-                            ct);
+                        answer = await target.RunAsync([], handed, ct);
                     }
                     finally
                     {
-                        Runs.Release(handed);
+                        Runs.Release(handed.Claim);
                     }
 
                     return ChatResponses.Merge(ChatResponses.Merge(response, new ChatResponse(result)), answer);
@@ -247,13 +235,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         {
             try
             {
-                var answer = answering.RunStreamingAsync(
-                    messages,
-                    SettingsId(options),
-                    conversation,
-                    claim,
-                    ResultFormat(options),
-                    ct);
+                var answer = answering.RunStreamingAsync(messages, PassedOn(options, conversation, claim), ct);
 
                 await foreach (var update in answer)
                 {
@@ -303,7 +285,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                 run.MarkStored(last);
 
                 if (HandoffIn(last) is { } handoff
-                    && await HandOffAsync(run, handoff) is (var result, var target, var handed))
+                    && await HandOffAsync(run, runOptions, handoff) is (var result, var target, var handed))
                 {
                     ended = true;
 
@@ -311,22 +293,14 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                     {
                         yield return new ChatResponseUpdate(ChatRole.Tool, result.Contents);
 
-                        var answer = target.RunStreamingAsync(
-                            [],
-                            runOptions.SettingsId,
-                            run.Conversation,
-                            handed,
-                            runOptions.ResultFormat,
-                            ct);
-
-                        await foreach (var update in answer)
+                        await foreach (var update in target.RunStreamingAsync([], handed, ct))
                         {
                             yield return update;
                         }
                     }
                     finally
                     {
-                        Runs.Release(handed);
+                        Runs.Release(handed.Claim);
                     }
 
                     yield break;
@@ -437,10 +411,14 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             _ => null
         };
 
-    private static StoreId? SettingsId(ChatOptions? options) => (options as ResolvedChatOptions)?.SettingsId;
+    // D34: a run passed on to the agent that answers the conversation keeps its settings id and the format of a
+    // typed run (D64), and takes the claim and none of the run's own settings
+    private static RunHandover PassedOn(ChatOptions? options, StoreId? conversation, RunClaim? claim)
+    {
+        var resolved = options as ResolvedChatOptions;
 
-    private static ChatResponseFormat? ResultFormat(ChatOptions? options) =>
-        (options as ResolvedChatOptions)?.ResultFormat;
+        return new RunHandover(resolved?.SettingsId, conversation, claim, resolved?.ResultFormat);
+    }
 
     // D30, D32: a pass that called no model (run middleware answered) or the run's limit spent ends the run; the
     // input still waiting is stored with its end
@@ -532,10 +510,11 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     }
 
     // D34: the call's result is stored, and the run is the other agent's from here: it resumes the conversation,
-    // so this agent neither ends the run nor holds it, and hands its claim on; input steered to it is stored for the
-    // other agent. Null for a call of no agent this one hands off to
-    private async Task<(ChatMessage Result, IAgentHost Target, RunClaim Handed)?> HandOffAsync(
+    // so this agent neither ends the run nor holds it, and hands its claim on with what else the other run takes
+    // over; input steered to it is stored for the other agent. Null for a call of no agent this one hands off to
+    private async Task<(ChatMessage Result, IAgentHost Target, RunHandover Handed)?> HandOffAsync(
         ConversationRun run,
+        ResolvedChatOptions options,
         FunctionCallContent call)
     {
         var target = agent.Handoffs.Select(handoff => handoff(services))
@@ -550,7 +529,9 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         await run.AppendHandoffAsync(result, target.Agent.Name);
         await run.CloseAsync(target.Agent.Name);
 
-        return (result, target, Runs.HandOff(run));
+        var handed = new RunHandover(options.SettingsId, run.Conversation, Runs.HandOff(run), options.ResultFormat);
+
+        return (result, target, handed);
     }
 
     // The run that began, or, for a run without input whose decisions are still open, the batch that waits

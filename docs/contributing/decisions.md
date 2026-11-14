@@ -612,7 +612,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   through its module stamp, which carries the agent's name, whether it has a description and the tools it offers that
   require approval; tool stamps carry `RequiresApproval` for that list. TSH026 checks the compilation's own agents,
   since assemblies cannot reference each other in a circle.
-- **Where:** `Agents/SubAgentFunction.cs`, `Conversations/ConversationRun.cs`, `Analysis/TypeshiftAnalyzer.cs`.
+- **Where:** `Agents/SubAgentFunction.cs`, `Conversations/ConversationRun.cs`, `Hosting/IAgentHost.cs` (the
+  `RunHandover` a sub-agent's run is handed, with its caller), `Analysis/TypeshiftAnalyzer.cs`.
 - **Alternatives:** passing a sub-agent's decisions up to the caller's conversation, which pauses a parent run on a
   child's call and needs the child's state stored to resume (possible later); MAF's six background-task tools
   (start, wait, results, continue, clear), where one tool and an injected answer do the job; storing each sub-agent
@@ -635,9 +636,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   alike. The handing agent's run swaps its claim on the conversation (D50) for a claim of the agent handed to, and
   passes it to that agent's run, as a run passed on to the agent that answers the conversation is passed its claim;
   so no run starts between the two. A run that starts then waits, as for any run still loading, and is refused once
-  the agent handed to began. The claim travels as an argument and in the run's options rather than in an
-  `AsyncLocal`, which a value set before a stream's `yield` loses and code the agent's run calls would carry along.
-- **Where:** `Conversations/ConversationChatClient.cs`, `Conversations/LiveRuns.cs`.
+  the agent handed to began. What one run hands another is one record, `RunHandover`: the settings id, the
+  conversation, the claim and a typed run's format (D64). It travels as an argument and in the run's options rather
+  than in an `AsyncLocal`, which a value set before a stream's `yield` loses and code the agent's run calls would
+  carry along.
+- **Where:** `Conversations/ConversationChatClient.cs`, `Conversations/LiveRuns.cs`, `Hosting/IAgentHost.cs`
+  (`RunHandover`).
 
 ### D65. A sub-agent can answer in a type
 
@@ -1338,7 +1342,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   an approval asks for the format again. The format is the run's, not the agent's: an agent handed the run off to, or
   answering in a handed-off conversation, answers in it, and a sub-agent answers in its own.
 - **Where:** `Hosting/StreamingRun.cs`, `Hosting/AgentHost.cs`, `Hosting/ResolvedChatOptions.cs`,
-  `Conversations/ConversationChatClient.cs`, `Generated/AgentRuns.cs`, `Emitting/AgentEmitter.cs`.
+  `Hosting/IAgentHost.cs` (the format in `RunHandover`), `Conversations/ConversationChatClient.cs`,
+  `Generated/AgentRuns.cs`, `Emitting/AgentEmitter.cs`.
 - **Alternatives:** partial objects parsed from the JSON as it grows, which needs a parser that reads incomplete JSON
   and gives up the types System.Text.Json checks; a list of updates the caller collects and a helper that reads the
   result from them, two calls where one serves.
