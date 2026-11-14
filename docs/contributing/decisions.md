@@ -631,7 +631,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   conversation, so the answers continue with it (D81).
 - **As built:** the conversation layer sees the declaration's call the tool loop passes out, stores its result as an
   entry of the agent handed to, and lets that agent resume the run; a run without a conversation does not offer
-  handoffs, and a call of an agent it does not hand off to is answered by the tool loop as an unknown tool. Tool results
+  handoffs, and a call of an agent it does not hand off to is answered by the tool loop as an unknown tool. The tool
+  loop hands a whole response back uninvoked when one of its calls names a declaration, so the calls a model makes
+  beside a handoff never run. `HandOffAsync` answers each of them in the handoff's own tool message, as not run
+  because the conversation was handed off, and so the agent handed to reads them; of two handoff calls the last
+  is carried out. Running them instead would take a tool loop of Typeshift's own. Tool results
   after which the tool loop made no model call are stored before the run ends, a handoff's and a terminating tool's
   alike. The handing agent's run swaps its claim on the conversation (D50) for a claim of the agent handed to, and
   passes it to that agent's run, as a run passed on to the agent that answers the conversation is passed its claim;

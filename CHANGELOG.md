@@ -264,6 +264,9 @@ All notable changes to this project are documented here. The format follows
 - `exit_plan_mode` called outside plan mode asks nobody: the model reads that it is not planning. A model in the
   default mode that named the tool raised a plan prompt, and approving it into auto mode switched every later
   approval off. In auto mode without a conversation such a call failed the run.
+- A tool call the model makes in the same response as a handoff gets a result: it reads that it did not run
+  because the conversation was handed off, and the agent that takes over reads the call with it. Such a call was
+  dropped without a trace. It never ran, nothing failed, and neither agent saw it again.
 - A mode named in a run's settings reaches the agent that answers after a handoff. It was dropped there: on a
   conversation in auto mode that had been handed off, a run with `Mode = AgentMode.Default` asked for nothing, and
   the tools behind `RequiresApproval()` kept running. A plan approved into auto mode before a handoff put the agent

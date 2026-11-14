@@ -161,7 +161,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                 await run.StoreResultsAsync(last.Messages);
 
                 var handoff = HandoffIn(last.Messages) is { } handing
-                    ? await HandOffAsync(run, runOptions, handing)
+                    ? await HandOffAsync(run, runOptions, last.Messages, handing)
                     : null;
 
                 if (handoff is var (result, target, handed))
@@ -285,7 +285,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                 run.MarkStored(last);
 
                 if (HandoffIn(last) is { } handoff
-                    && await HandOffAsync(run, runOptions, handoff) is (var result, var target, var handed))
+                    && await HandOffAsync(run, runOptions, last, handoff) is (var result, var target, var handed))
                 {
                     ended = true;
 
@@ -496,25 +496,36 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         return reached;
     }
 
-    // A call the tool loop answered, as it answers a tool it does not know, is none
-    private FunctionCallContent? HandoffIn(IList<ChatMessage> messages)
-    {
-        if (agent.Handoffs.Count == 0) return null;
+    // The last handoff the response calls. A call the tool loop answered, as it answers a tool it does not know, is
+    // none
+    private FunctionCallContent? HandoffIn(IList<ChatMessage> messages) =>
+        agent.Handoffs.Count == 0
+            ? null
+            : Unanswered(messages)
+                .LastOrDefault(call => call.Name.StartsWith(HandoffPrefix, StringComparison.Ordinal));
 
+    // The calls the tool loop left without a result. It hands a whole response back uninvoked when one of its calls
+    // names a declaration, as a handoff is. A call a provider ran itself is none of the loop's
+    private static List<FunctionCallContent> Unanswered(IList<ChatMessage> messages)
+    {
         var contents = messages.SelectMany(message => message.Contents).ToList();
         var answered = contents.OfType<FunctionResultContent>().Select(result => result.CallId).ToHashSet();
 
-        return contents.OfType<FunctionCallContent>()
-            .LastOrDefault(call => call.Name.StartsWith(HandoffPrefix, StringComparison.Ordinal)
-                && !answered.Contains(call.CallId));
+        return
+        [
+            .. contents.OfType<FunctionCallContent>()
+                .Where(call => !call.InformationalOnly && !answered.Contains(call.CallId))
+        ];
     }
 
     // D34: the call's result is stored, and the run is the other agent's from here: it resumes the conversation,
     // so this agent neither ends the run nor holds it, and hands its claim on with what else the other run takes
-    // over; input steered to it is stored for the other agent. Null for a call of no agent this one hands off to
+    // over; input steered to it is stored for the other agent. The calls made beside the handoff did not run, and
+    // each reads so in the same tool message. Null for a call of no agent this one hands off to
     private async Task<(ChatMessage Result, IAgentHost Target, RunHandover Handed)?> HandOffAsync(
         ConversationRun run,
         ResolvedChatOptions options,
+        IList<ChatMessage> messages,
         FunctionCallContent call)
     {
         var target = agent.Handoffs.Select(handoff => handoff(services))
@@ -522,9 +533,18 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
         if (target is null) return null;
 
+        var beside =
+            $"This call did not run: the conversation was handed off to {target.Agent.Name} in the same step. "
+            + "Call it again if it is still needed.";
+
         var result = new ChatMessage(
             ChatRole.Tool,
-            [new FunctionResultContent(call.CallId, $"Handed off to {target.Agent.Name}.")]);
+            [
+                .. Unanswered(messages)
+                    .Where(other => other != call)
+                    .Select(other => new FunctionResultContent(other.CallId, beside)),
+                new FunctionResultContent(call.CallId, $"Handed off to {target.Agent.Name}.")
+            ]);
 
         await run.AppendHandoffAsync(result, target.Agent.Name);
         await run.CloseAsync(target.Agent.Name);

@@ -198,6 +198,22 @@ public partial class GuardedBackAgent : Agent
     }
 }
 
+// Notes what the customer needs and hands off, to either of two agents
+public partial class NotingFrontAgent : Agent
+{
+    public NotingFrontAgent()
+    {
+        WithDescription("Notes what the customer needs, then hands off.");
+
+        WithChatOptions().WithModel("scripted", "front-model");
+
+        UseToolset<GuardedToolset>().Include(t => t.Note);
+
+        UseHandoff<BackAgent>();
+        UseHandoff<GuardedBackAgent>();
+    }
+}
+
 // Hands off to the front agent alone, which hands on to the back agent: a chain of two handoffs
 public partial class EntryAgent : Agent
 {

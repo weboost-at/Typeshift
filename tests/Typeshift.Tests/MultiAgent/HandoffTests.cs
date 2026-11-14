@@ -410,6 +410,65 @@ public class HandoffTests : MultiAgentTestBase
         Models[^1].Model.Should().Be("back-model");
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Given_A_Tool_Call_Next_To_A_Handoff_The_Agent_Handed_To_Reads_That_It_Did_Not_Run(
+        bool streaming,
+        bool handoffFirst)
+    {
+        // Arrange
+        var note = Call(Data.Tool.CallId, "note", ("text", Data.Tool.Query));
+        var handoff = Call(Data.Tool.SecondCallId, "handoff_to_back_agent");
+
+        ChatClient
+            .Reply(handoffFirst ? Calls(handoff, note) : Calls(note, handoff))
+            .Reply(Text(Data.Tool.Answer));
+
+        var chat = Host<NotingFrontAgent>().WithConversationId(Data.Agent.ConversationId);
+
+        // Act
+        var response = streaming
+            ? (await chat.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct)).ToChatResponse()
+            : await chat.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ToolCalls.Should().BeEmpty();
+        ResultsOf(ChatClient.Requests[1])[Data.Tool.CallId].Should().StartWith("This call did not run");
+        CallsOf(ChatClient.Requests[1]).Should().Contain("note");
+        ResultsOf(response.Messages).Keys.Should().BeEquivalentTo(Data.Tool.CallId, Data.Tool.SecondCallId);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_Two_Handoff_Calls_In_One_Response_The_Last_One_Hands_Off_And_The_Other_Is_Answered(
+        bool streaming)
+    {
+        // Arrange
+        ChatClient
+            .Reply(Calls(
+                Call(Data.Tool.CallId, "handoff_to_back_agent"),
+                Call(Data.Tool.SecondCallId, "handoff_to_guarded_back_agent")))
+            .Reply(Text(Data.Tool.Answer));
+
+        var chat = Host<NotingFrontAgent>().WithConversationId(Data.Agent.ConversationId);
+
+        // Act
+        var response = streaming
+            ? (await chat.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct)).ToChatResponse()
+            : await chat.RunAsync(Data.Tool.Question, ct: Ct);
+
+        var results = ResultsOf(ChatClient.Requests[1]);
+
+        // Assert
+        response.Messages[^1].AuthorName.Should().Be("guarded_back_agent");
+        results[Data.Tool.CallId].Should().Contain("handed off to guarded_back_agent");
+        results[Data.Tool.SecondCallId].Should().Be("Handed off to guarded_back_agent.");
+    }
+
     [Fact]
     public async Task Given_A_Conversation_Handed_Off_In_Auto_Mode_A_Run_Naming_The_Default_Mode_Asks_Again()
     {
@@ -596,6 +655,17 @@ public class HandoffTests : MultiAgentTestBase
     }
 
     private string Lives() => JsonSerializer.Serialize(new { data = Data.Tool.Lives }, Json.SerializerOptions);
+
+    // The texts of the tool results among the messages, by call id
+    private static Dictionary<string, string> ResultsOf(IEnumerable<ChatMessage> messages) =>
+        messages
+            .SelectMany(message => message.Contents)
+            .OfType<FunctionResultContent>()
+            .ToDictionary(result => result.CallId, result => result.Result?.ToString() ?? "");
+
+    // The names of the tools the messages hold calls of
+    private static IEnumerable<string> CallsOf(IEnumerable<ChatMessage> messages) =>
+        messages.SelectMany(message => message.Contents).OfType<FunctionCallContent>().Select(call => call.Name);
 
     private Task<ChatResponse> RunAsync(string input) =>
         Host<FrontAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(input, ct: Ct);

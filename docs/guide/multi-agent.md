@@ -237,6 +237,12 @@ Console.WriteLine($"{second.Messages[^1].AuthorName}: {second.Text}");
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/MultiAgent.cs#L22-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-handoff-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+A handoff ends the handing agent's turn, and none of the tool calls the model made in the same response runs.
+Each gets a result that says it did not run because the conversation was handed off, so the agent that takes over
+reads what was left undone and can do it. When one response calls two handoffs, the last one is carried out. A
+handoff called next to a call that [waits for your app](./tool-approval.md#when-a-call-needs-approval) is not carried
+out: the model reads that it was not handed off, and the agent that asked keeps the conversation.
+
 The `Settings` you pass to one run apply only to the agent you started it on. An agent it hands off to runs with its
 own settings stored under the same settings id. The mode is the one exception: a `Mode` in a run's settings switches
 the conversation, so the agent that answers the run is in it too, as it is in the mode of an approved plan
