@@ -691,6 +691,159 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string PickNamedTwice =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent() => UseToolset<EchoToolset>().Include(t => t.Echo).Include(tools => tools.Echo);
+        }
+        """;
+
+    public const string SubAgentUsedTwice =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent() => WithDescription("Helps.");
+        }
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent()
+            {
+                UseAgent<HelpAgent>();
+
+                UseAgent<Demo.HelpAgent>();
+            }
+        }
+        """;
+
+    public const string HandoffTargetUsedTwice =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent() => WithDescription("Helps.");
+        }
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent()
+            {
+                UseHandoff<HelpAgent>();
+
+                UseHandoff<Demo.HelpAgent>();
+            }
+        }
+        """;
+
+    // D57: the agent's own tool comes after the toolset's, whose name it repeats
+    public const string OwnToolNamedLikeAUsedToolsets =
+        """
+        using Typeshift;
+
+        internal partial class DeskToolset : Toolset
+        {
+            public DeskToolset() => AddTool(Find).WithDescription("Finds a desk.");
+
+            public static string Find(string query) => query;
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseToolset<DeskToolset>();
+
+                AddTool(Find).WithDescription("Finds a seat.");
+            }
+
+            private static string Find(string query) => query;
+        }
+        """;
+
+    // D13: both tools are find, which TSH007 reports for the project; the agent that uses both offers the name twice
+    public const string UsedToolsetsSharingAToolName =
+        """
+        using Typeshift;
+
+        internal partial class DeskToolset : Toolset
+        {
+            public DeskToolset() => AddTool(Find).WithDescription("Finds a desk.");
+
+            public static string Find(string query) => query;
+        }
+
+        internal partial class SeatToolset : Toolset
+        {
+            public SeatToolset() => AddTool(FindSeat).WithName("find").WithDescription("Finds a seat.");
+
+            public static string FindSeat(string query) => query;
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseToolset<DeskToolset>();
+
+                UseToolset<SeatToolset>();
+            }
+        }
+        """;
+
+    // D13: the agent leaves one of the two tools out, and the name is still taken twice in the project
+    public const string SameNamedToolExcluded =
+        """
+        using Typeshift;
+
+        internal partial class DeskToolset : Toolset
+        {
+            public DeskToolset() => AddTool(Find).WithDescription("Finds a desk.");
+
+            public static string Find(string query) => query;
+        }
+
+        internal partial class SeatToolset : Toolset
+        {
+            public SeatToolset()
+            {
+                AddTool(FindSeat).WithName("find").WithDescription("Finds a seat.");
+
+                AddTool(Count).WithDescription("Counts the seats.");
+            }
+
+            public static string FindSeat(string query) => query;
+
+            public static int Count() => 0;
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseToolset<DeskToolset>();
+
+                UseToolset<SeatToolset>().Exclude(t => t.Find);
+            }
+        }
+        """;
+
     public const string PublicAgentOfInternalSettings =
         """
         #pragma warning disable CS1591

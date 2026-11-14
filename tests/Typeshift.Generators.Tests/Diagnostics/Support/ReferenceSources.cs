@@ -71,6 +71,44 @@ public static class ReferenceSources
         }
         """;
 
+    // A second assembly with a find_companies, which has overrides as the first one's has
+    public const string SearchToolset =
+        """
+        using Typeshift;
+
+        namespace Search;
+
+        public record FindSettings
+        {
+            public int Limit { get; init; } = 5;
+        }
+
+        public partial class SearchToolset : Toolset
+        {
+            public SearchToolset() =>
+                AddTool(FindCompanies).WithDescription("Finds companies too.").WithConfigurableSettings<FindSettings>();
+
+            public static string FindCompanies(string name, FindSettings settings) => name;
+        }
+        """;
+
+    public const string BothCompanyToolsetsAgent =
+        """
+        using Typeshift;
+
+        namespace Research;
+
+        internal partial class ResearchAgent : Agent
+        {
+            public ResearchAgent()
+            {
+                WithDescription("Researches companies.");
+                UseToolset<Companies.CompanyToolset>();
+                UseToolset<Search.SearchToolset>();
+            }
+        }
+        """;
+
     // As a library built by an earlier Typeshift left it: a module of another stamp version, which this generator
     // does not read
     public const string StaleStampToolset =

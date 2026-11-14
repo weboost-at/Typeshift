@@ -365,6 +365,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_One_Of_Two_Tools_Of_A_Name_Excluded_By_The_Agent_TSH007_Is_Still_Reported()
+    {
+        // Act
+        var run = Run(DiagnosticSources.SameNamedToolExcluded);
+
+        // Assert
+        run.Assert.Reports("TSH007", DiagnosticSeverity.Error, "AddTool(FindSeat)");
+    }
+
+    [Fact]
     public void Given_A_Tool_Name_In_Pascal_Case_TSH008_Is_Reported_On_The_Name()
     {
         // Act
@@ -1042,6 +1052,99 @@ public class DiagnosticTests : GeneratorTestBase
             "UseToolset<EchoToolset>",
             message: "'EchoToolset' is offered twice: use each toolset once, pick each tool once, and leave out one "
                 + "of two tools of a name");
+    }
+
+    [Fact]
+    public void Given_A_Pick_Named_Twice_TSH025_Is_Reported_On_The_Second()
+    {
+        // Act
+        var run = Run(DiagnosticSources.PickNamedTwice);
+
+        // Assert
+        run.Assert.Reports("TSH025", DiagnosticSeverity.Error, "tools => tools.Echo");
+    }
+
+    [Fact]
+    public void Given_A_Sub_Agent_Used_Twice_TSH025_Is_Reported_On_The_Second_Use()
+    {
+        // Act
+        var run = Run(DiagnosticSources.SubAgentUsedTwice);
+
+        // Assert
+        run.Assert.Reports("TSH025", DiagnosticSeverity.Error, "UseAgent<Demo.HelpAgent>");
+    }
+
+    [Fact]
+    public void Given_A_Handoff_Target_Used_Twice_TSH025_Is_Reported_On_The_Second_Use()
+    {
+        // Act
+        var run = Run(DiagnosticSources.HandoffTargetUsedTwice);
+
+        // Assert
+        run.Assert.Reports("TSH025", DiagnosticSeverity.Error, "UseHandoff<Demo.HelpAgent>");
+    }
+
+    [Fact]
+    public void Given_An_Own_Tool_Named_Like_A_Toolsets_TSH025_Is_Reported_On_The_Agent()
+    {
+        // Act
+        var run = Run(DiagnosticSources.OwnToolNamedLikeAUsedToolsets);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH025",
+            DiagnosticSeverity.Error,
+            "DeskAgent",
+            message: "The tool name 'find' is offered twice: use each toolset once, pick each tool once, and leave "
+                + "out one of two tools of a name");
+    }
+
+    [Fact]
+    public void Given_Two_Used_Toolsets_With_A_Tool_Of_One_Name_TSH025_Is_Reported_On_The_Agent()
+    {
+        // Act
+        var run = Run(DiagnosticSources.UsedToolsetsSharingAToolName);
+
+        // Assert
+        run.Assert.Reports("TSH025", DiagnosticSeverity.Error, "DeskAgent", also: "TSH007");
+    }
+
+    [Fact]
+    public void Given_Two_Used_Toolsets_Of_References_With_A_Tool_Of_One_Name_TSH025_Is_Reported_On_The_Agent()
+    {
+        // Arrange
+        var companies = CompileReference("Companies", ReferenceSources.CompanyToolset);
+        var search = CompileReference("Search", ReferenceSources.SearchToolset);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [companies, search], ReferenceSources.BothCompanyToolsetsAgent));
+
+        // Assert
+        run.Assert.Reports("TSH025", DiagnosticSeverity.Error, "ResearchAgent", also: "TSH007");
+    }
+
+    [Fact]
+    public void Given_Two_Used_Toolsets_Of_References_With_A_Tool_Of_One_Name_The_Generated_Code_Holds_No_Error()
+    {
+        // Arrange
+        var companies = CompileReference("Companies", ReferenceSources.CompanyToolset);
+        var search = CompileReference("Search", ReferenceSources.SearchToolset);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [companies, search], ReferenceSources.BothCompanyToolsetsAgent));
+
+        // Assert
+        run.Assert.GeneratesValidCode();
+    }
+
+    [Fact]
+    public void Given_Two_Tools_Of_One_Method_Name_Renamed_Apart_TSH025_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(ShapeSources.ToolsOfOneMethodNameRenamedApart);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH025");
     }
 
     [Fact]

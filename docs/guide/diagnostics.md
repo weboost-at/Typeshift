@@ -291,8 +291,9 @@ mode its calls of such tools are rejected unless a standing approval or a rule a
 - uses the same toolset twice;
 - picks the same tool twice;
 - uses the same agent twice as a sub-agent, or twice as a handoff target;
-- uses two toolsets that each have a tool of the same name. Leave one of the two tools out, for example with
-  `Exclude(...)`;
+- uses two toolsets that each have a tool of the same name. Give one of the two tools another name with
+  `WithName("...")`. Leaving one out with `Exclude(...)` does not help: a tool name is unique across your project
+  and its references, whatever the agents pick, so [TSH007](#tsh007) reports the pair as well;
 - has a tool of its own named like a tool of a toolset it uses. Rename its own tool with `WithName("...")`.
 - uses a sub-agent named like one of its tools, or two sub-agents of one name. A sub-agent is offered as a tool of
   the agent's name, so rename the tool or one of the agents with `WithName("...")`. The diagnostic sits on the

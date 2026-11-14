@@ -1026,6 +1026,38 @@ public static class ShapeSources
         }
         """;
 
+    // D13: both methods are Find, and WithName keeps the two tools apart, in the project and in the agent
+    public const string ToolsOfOneMethodNameRenamedApart =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class DeskToolset : Toolset
+        {
+            public DeskToolset() => AddTool(Find).WithDescription("Finds a desk.");
+
+            public static string Find(string query) => query;
+        }
+
+        internal partial class SeatToolset : Toolset
+        {
+            public SeatToolset() => AddTool(Find).WithName("find_seat").WithDescription("Finds a seat.");
+
+            public static string Find(string query) => query;
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                WithDescription("Finds desks and seats.");
+                UseToolset<DeskToolset>();
+                UseToolset<SeatToolset>();
+            }
+        }
+        """;
+
     // The compiler reports each use of an obsolete symbol where the user wrote it; the generated files name the same
     // symbols and must not report them again
     public const string DeprecatedToolsetAndAgent =
