@@ -3547,6 +3547,90 @@ public static class DiagnosticSources
         }
         """;
 
+    // D1, D75: the ways to reach AddTypeshift() and TypeshiftRuntime.Create() that no interceptor rewrites, so the
+    // library's own body would run and throw
+    public const string RuntimeCreatedThroughUsingStatic =
+        """
+        using System;
+        using Microsoft.Extensions.AI;
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+        using static Typeshift.TypeshiftRuntime;
+
+        namespace Demo;
+
+        internal static class Startup
+        {
+            public static object? Start(IServiceCollection services, IChatClient client) =>
+                Create(client);
+        }
+        """;
+
+    public const string RuntimeCreatedThroughAnAlias =
+        """
+        using System;
+        using Microsoft.Extensions.AI;
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+        using Runtime = Typeshift.TypeshiftRuntime;
+
+        namespace Demo;
+
+        internal static class Startup
+        {
+            public static object? Start(IServiceCollection services, IChatClient client) =>
+                Runtime.Create(client);
+        }
+        """;
+
+    public const string RuntimeCreateAsAMethodGroup =
+        """
+        using System;
+        using Microsoft.Extensions.AI;
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class Startup
+        {
+            public static object? Start(IServiceCollection services, IChatClient client) =>
+                (Func<IChatClient, Action<TypeshiftBuilder>?, TypeshiftRuntime>)TypeshiftRuntime.Create;
+        }
+        """;
+
+    public const string RuntimeCreatedWithADynamicArgument =
+        """
+        using System;
+        using Microsoft.Extensions.AI;
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class Startup
+        {
+            public static object? Start(IServiceCollection services, dynamic client) =>
+                TypeshiftRuntime.Create(client);
+        }
+        """;
+
+    public const string AddTypeshiftAsAMethodGroup =
+        """
+        using System;
+        using Microsoft.Extensions.AI;
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class Startup
+        {
+            public static object? Start(IServiceCollection services, IChatClient client) =>
+                (Func<IServiceCollection, TypeshiftBuilder>)TypeshiftServiceCollectionExtensions.AddTypeshift;
+        }
+        """;
+
     // No toolset, no agent and no AddTypeshift(): nothing the generator writes code for
     public const string NothingOfTypeshift =
         """

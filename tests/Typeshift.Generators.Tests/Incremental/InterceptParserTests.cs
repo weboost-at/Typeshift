@@ -1,6 +1,7 @@
 using Typeshift.Generators.Parsing;
 using FluentAssertions;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Typeshift.Generators.Tests.Incremental;
 
@@ -21,6 +22,19 @@ public class InterceptParserTests : GeneratorTestBase
 
         // Act
         var bound = InterceptParser.IsCandidate(node, Ct);
+
+        // Assert
+        bound.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Given_A_Call_After_A_Null_Check_Its_Invocation_Is_Bound()
+    {
+        // Arrange
+        var node = (ConditionalAccessExpressionSyntax)SyntaxFactory.ParseExpression("services?.AddTypeshift()");
+
+        // Act
+        var bound = InterceptParser.IsCandidate(node.WhenNotNull, Ct);
 
         // Assert
         bound.Should().BeTrue();

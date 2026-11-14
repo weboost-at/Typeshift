@@ -10,14 +10,25 @@ namespace Typeshift.Generators.Parsing;
 // generator intercepts
 internal static class InterceptParser
 {
+    // services.AddTypeshift(), services?.AddTypeshift() and TypeshiftRuntime.Create(...), by their spelling
     public static bool IsCandidate(SyntaxNode node, CancellationToken ct) =>
-        node is InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax access }
-        && access.Name.Identifier.ValueText switch
+        node is InvocationExpressionSyntax invocation
+        && invocation.Expression switch
         {
-            KnownTypes.RegistrationMethod => true,
-            KnownTypes.RuntimeMethod => NamesRuntime(access.Expression),
+            MemberAccessExpressionSyntax access => access.Name.Identifier.ValueText switch
+            {
+                KnownTypes.RegistrationMethod => true,
+                KnownTypes.RuntimeMethod => NamesRuntime(access.Expression),
+                _ => false
+            },
+            MemberBindingExpressionSyntax binding => binding.Name.Identifier.ValueText == KnownTypes.RegistrationMethod,
             _ => false
         };
+
+    // Whether Parse intercepts a call that binds to one of the library's two methods; the analyzer reports one it
+    // does not (TSH040), which would throw when it runs
+    public static bool CanIntercept(SyntaxNode call, SemanticModel model, CancellationToken ct) =>
+        IsCandidate(call, ct) && model.GetInterceptableLocation((InvocationExpressionSyntax)call, ct) is not null;
 
     public static InterceptModel? Parse(GeneratorSyntaxContext context, CancellationToken ct)
     {

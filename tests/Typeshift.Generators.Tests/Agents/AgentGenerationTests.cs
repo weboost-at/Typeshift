@@ -171,6 +171,23 @@ public class AgentGenerationTests : GeneratorTestBase
         run.Assert.CompilesCleanly();
     }
 
+    [Theory]
+    [InlineData(nameof(ShapeSources.AddTypeshiftAfterANullCheck), ".AddTypeshift()")]
+    [InlineData(
+        nameof(ShapeSources.AddTypeshiftInItsStaticForm),
+        "TypeshiftServiceCollectionExtensions.AddTypeshift(services)")]
+    public void Given_An_AddTypeshift_Call_In_Another_Spelling_It_Is_Intercepted(string shape, string call)
+    {
+        // Arrange
+        var source = SourceCatalogs.Read(typeof(ShapeSources), shape);
+
+        // Act
+        var run = Run(source);
+
+        // Assert
+        run.Assert.Intercepts(call);
+    }
+
     [Fact]
     public void Given_A_Create_Method_Of_The_Projects_Own_The_Generator_Does_Not_Intercept_It()
     {

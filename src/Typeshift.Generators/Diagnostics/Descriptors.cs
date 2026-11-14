@@ -228,6 +228,11 @@ internal static class Descriptors
         "Declared value cannot be used",
         "The {0} must {1}: {2}");
 
+    public static readonly DiagnosticDescriptor NotIntercepted = Error(
+        "TSH040",
+        "Call the generator cannot intercept",
+        "'{0}' is not a call the generator can intercept, so {1} throws when it runs: write it as {2}");
+
     private static DiagnosticDescriptor Error(string id, string title, string message, params string[] tags) =>
         Create(id, title, message, DiagnosticSeverity.Error, tags);
 

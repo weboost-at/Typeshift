@@ -26,7 +26,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** carried (v0 D1).
 - **Decision:** the library's `AddTypeshift()` throws, saying what to check; the generator intercepts every call in a
   project. It returns `TypeshiftBuilder`, the one registration chain. A library that calls `AddTypeshift()` inside its
-  own `AddX()` registers only its own modules; the docs say so.
+  own `AddX()` registers only its own modules; the docs say so. The analyzer reports the ways to reach the method
+  that it can see and no interceptor rewrites, such as a method group (TSH040), so the throw is left for a project
+  without the package.
 - **Alternatives:** a generated method per assembly, ambiguous (CS0121) wherever `InternalsVisibleTo` reaches.
 - **Where:** `DependencyInjection/`, `Emitting/InterceptorEmitter.cs`.
 
@@ -1197,7 +1199,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   every agent (D63), runs `configure` on the chain and builds the provider with scope validation. The container never
   disposes an instance, so the client outlives the runtime. The generator reads only a `Create` whose receiver names
   `TypeshiftRuntime` and skips a call bound at run time, such as one with a `dynamic` argument; a call it did not
-  intercept throws, saying how to call it. The generator's pass binds the call to its sole candidate when the
+  intercept throws, saying how to call it, and TSH040 reports each of them at build time: `using static`, an alias,
+  a method group and a `dynamic` argument. The generator's pass binds the call to its sole candidate when the
   `configure` lambda names code it has not written yet. The library references
   `Microsoft.Extensions.DependencyInjection`, the container, which it did not before.
 - **Where:** `Hosting/TypeshiftRuntime.cs`, `Generated/ModuleRegistration.cs`, `Parsing/InterceptParser.cs`,

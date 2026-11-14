@@ -103,7 +103,9 @@ public class AddTypeshiftTests : AgentTestBase
     public void Given_A_Call_The_Generator_Did_Not_Intercept_It_Fails_Saying_What_To_Check()
     {
         // Arrange
+#pragma warning disable TSH040 // the analyzer reports it at build time; this checks what the library's own body says
         Func<IServiceCollection, TypeshiftBuilder> add = TypeshiftServiceCollectionExtensions.AddTypeshift;
+#pragma warning restore TSH040
 
         // Act
         var register = () => add(new ServiceCollection());

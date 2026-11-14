@@ -2024,6 +2024,55 @@ public static class ShapeSources
         }
         """;
 
+    // The spellings of the two intercepted calls beside the plain ones, and their names, which call nothing
+    public const string AddTypeshiftAfterANullCheck =
+        """
+        using System;
+        using Microsoft.Extensions.AI;
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class Startup
+        {
+            public static object? Start(IServiceCollection? services, IChatClient client) =>
+                services?.AddTypeshift();
+        }
+        """;
+
+    public const string AddTypeshiftInItsStaticForm =
+        """
+        using System;
+        using Microsoft.Extensions.AI;
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class Startup
+        {
+            public static object? Start(IServiceCollection services, IChatClient client) =>
+                TypeshiftServiceCollectionExtensions.AddTypeshift(services);
+        }
+        """;
+
+    public const string NamesOfTheInterceptedMethods =
+        """
+        using System;
+        using Microsoft.Extensions.AI;
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal static class Startup
+        {
+            public static object? Start(IServiceCollection services, IChatClient client) =>
+                nameof(TypeshiftRuntime.Create) + nameof(TypeshiftServiceCollectionExtensions.AddTypeshift);
+        }
+        """;
+
     // Methods of the project's own that are named like the library's, called in every way the analyzer has a rule
     // for when the library's are: in a local function, on a variable, outside a constructor
     public const string MethodsNamedLikeTheLibrarys =

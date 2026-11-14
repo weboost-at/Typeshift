@@ -49,6 +49,7 @@ so you fix it there instead of debugging a compiler error inside generated code.
 | [TSH037](#tsh037) | Warning | Configurable mode can turn approval off | On build |
 | [TSH038](#tsh038) | Warning | Model fills a settings or service parameter | While you type |
 | [TSH039](#tsh039) | Error | Declared value cannot be used | While you type |
+| [TSH040](#tsh040) | Error | Call the generator cannot intercept | While you type |
 
 The last column says when an editor shows a diagnostic. "On build" marks a check that compares classes or
 projects: an editor runs it for a build or for an analysis of the whole solution, so its squiggle appears after you
@@ -515,6 +516,21 @@ settings under it:
 
 The agent keeps its default in the generated code, schema version 1 or the kind of its class, until you fix the
 value.
+
+## TSH040
+
+**Call the generator cannot intercept.** `AddTypeshift()` and `TypeshiftRuntime.Create(...)` do their work in code
+the generator writes in their place, and the library's own methods only throw. The generator rewrites a call it
+recognizes by its spelling: `services.AddTypeshift()`, also as `services?.AddTypeshift()`, and
+`TypeshiftRuntime.Create(...)` with the class named. Every other way to reach the two methods compiles and would
+throw an `InvalidOperationException` when your app starts, so the analyzer reports it:
+
+- `Create(client)` through `using static Typeshift.TypeshiftRuntime`, and `Runtime.Create(client)` through a using
+  alias. Name the class: `TypeshiftRuntime.Create(client)`.
+- A method group, such as `Func<IServiceCollection, TypeshiftBuilder> add = ...AddTypeshift`. A delegate holds the
+  library's method, which no call site rewrites. Call the method where you need it.
+- `TypeshiftRuntime.Create(client)` with a `dynamic` argument, which binds the call when it runs. Pass arguments of
+  static types.
 
 ## Related
 

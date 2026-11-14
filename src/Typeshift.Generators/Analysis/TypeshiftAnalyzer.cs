@@ -59,7 +59,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.ConversationsWithoutDecisions,
         Descriptors.ConfigurableModeBesideApproval,
         Descriptors.ModelFilledParameter,
-        Descriptors.UnusableValue
+        Descriptors.UnusableValue,
+        Descriptors.NotIntercepted
     ];
 
     public override void Initialize(AnalysisContext context)
@@ -91,6 +92,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         {
             context.RegisterOperationAction(call => AnalyzeCall(call, found), OperationKind.Invocation);
             context.RegisterOperationAction(AnalyzeUnboundTool, OperationKind.Invalid);
+            context.RegisterOperationAction(AnalyzeMethodGroup, OperationKind.MethodReference);
+            context.RegisterOperationAction(AnalyzeLateBoundCall, OperationKind.DynamicInvocation);
         }
 
         context.RegisterCompilationEndAction(end =>
@@ -273,7 +276,19 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         // calls: comparing the assembly's name costs nothing, each check below a string per call
         if (target.ContainingAssembly?.Name != KnownTypes.LibraryAssembly) return;
 
-        if (InterceptParser.IsIntercepted(target)) found.NeedsGeneratedCode = true;
+        if (InterceptParser.IsIntercepted(target))
+        {
+            found.NeedsGeneratedCode = true;
+
+            // D1, D75: the library's own body runs for a call the generator did not rewrite, and throws
+            if (invocation.Syntax is InvocationExpressionSyntax { Expression: var called } call
+                && invocation.SemanticModel is { } model
+                && !Names.IsGenerated(call.SyntaxTree)
+                && !InterceptParser.CanIntercept(call, model, context.CancellationToken))
+                ReportNotIntercepted(context, called, target.Name);
+
+            return;
+        }
 
         // D77: a chat client provider may serve providers of any type, but it must serve some. A type parameter is
         // its caller's to check, since its interfaces are unknown here, and a type that does not resolve the compiler's
@@ -351,6 +366,52 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         }
 
         return false;
+    }
+
+    // D1, D75: a method group of AddTypeshift or TypeshiftRuntime.Create is a delegate of the library's own body
+    private static void AnalyzeMethodGroup(OperationAnalysisContext context)
+    {
+        var reference = (IMethodReferenceOperation)context.Operation;
+
+        if (reference.Method.ContainingAssembly?.Name == KnownTypes.LibraryAssembly
+            && InterceptParser.IsIntercepted(reference.Method)
+            && !Names.IsGenerated(reference.Syntax.SyntaxTree))
+            ReportNotIntercepted(context, reference.Syntax, reference.Method.Name);
+    }
+
+    // D75: a dynamic argument binds TypeshiftRuntime.Create when it runs, where no interceptor is
+    private static void AnalyzeLateBoundCall(OperationAnalysisContext context)
+    {
+        if (context.Operation is IDynamicInvocationOperation
+            {
+                Operation: IDynamicMemberReferenceOperation
+                {
+                    MemberName: KnownTypes.RuntimeMethod,
+                    ContainingType: { } type,
+                    Syntax: var called
+                }
+            }
+            && type.Is(KnownTypes.Runtime))
+            ReportNotIntercepted(context, called, KnownTypes.RuntimeMethod, lateBound: true);
+    }
+
+    private static void ReportNotIntercepted(
+        OperationAnalysisContext context,
+        SyntaxNode called,
+        string method,
+        bool lateBound = false)
+    {
+        var runtime = method == KnownTypes.RuntimeMethod;
+
+        context.ReportDiagnostic(Diagnostic.Create(
+            Descriptors.NotIntercepted,
+            called.GetLocation(),
+            called.ToString(),
+            runtime ? "TypeshiftRuntime.Create()" : "AddTypeshift()",
+            lateBound ? "TypeshiftRuntime.Create(...) with arguments of static types, since a dynamic one binds the "
+                + "call when it runs"
+            : runtime ? "TypeshiftRuntime.Create(...), a call that names the class itself"
+            : "services.AddTypeshift(), a call on the services"));
     }
 
     // AddTool(Find) with two methods named Find binds to neither, and the compiler says so as CS1503, "cannot convert

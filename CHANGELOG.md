@@ -80,6 +80,11 @@ All notable changes to this project are documented here. The format follows
   document read back as version 1, "newer than this code's 0", and an empty kind threw an `ArgumentException` in
   the file store that named no agent. A negative version also failed to compile under cultures that write another
   minus sign, such as Swedish, Norwegian and Finnish.
+- TSH040 reports a way to reach `AddTypeshift()` or `TypeshiftRuntime.Create(...)` that the generator cannot
+  intercept: `Create(client)` through `using static`, `Runtime.Create(client)` through a using alias, a method group
+  of either, and `TypeshiftRuntime.Create(client)` with a `dynamic` argument. Each compiled and threw an
+  `InvalidOperationException` when the app started.
+- `services?.AddTypeshift()` is intercepted like `services.AddTypeshift()`. It compiled and threw at startup.
 
 ### Changed
 

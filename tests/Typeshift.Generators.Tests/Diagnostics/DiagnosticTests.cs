@@ -2757,6 +2757,81 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Runtime_Created_Through_Using_Static_TSH040_Is_Reported_On_The_Call()
+    {
+        // Act
+        var run = Run(DiagnosticSources.RuntimeCreatedThroughUsingStatic);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH040",
+            DiagnosticSeverity.Error,
+            "Create",
+            message: "'Create' is not a call the generator can intercept, so TypeshiftRuntime.Create() throws when "
+                + "it runs: write it as TypeshiftRuntime.Create(...), a call that names the class itself");
+    }
+
+    [Theory]
+    [InlineData(nameof(DiagnosticSources.RuntimeCreatedThroughAnAlias), "Runtime.Create")]
+    [InlineData(nameof(DiagnosticSources.RuntimeCreateAsAMethodGroup), "TypeshiftRuntime.Create")]
+    [InlineData(
+        nameof(DiagnosticSources.AddTypeshiftAsAMethodGroup),
+        "TypeshiftServiceCollectionExtensions.AddTypeshift")]
+    public void Given_A_Call_The_Generator_Does_Not_Intercept_TSH040_Is_Reported_On_It(string mistake, string call)
+    {
+        // Arrange
+        var source = SourceCatalogs.Read(typeof(DiagnosticSources), mistake);
+
+        // Act
+        var run = Run(source);
+
+        // Assert
+        run.Assert.Reports("TSH040", DiagnosticSeverity.Error, call);
+    }
+
+    [Fact]
+    public void Given_An_AddTypeshift_Method_Group_TSH040_Names_The_Call_On_The_Services()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AddTypeshiftAsAMethodGroup);
+
+        // Assert
+        run.Reported.Single(diagnostic => diagnostic.Id == "TSH040")
+            .GetMessage()
+            .Should()
+            .EndWith("AddTypeshift() throws when it runs: write it as services.AddTypeshift(), a call on the services");
+    }
+
+    [Fact]
+    public void Given_A_Runtime_Created_With_A_Dynamic_Argument_TSH040_Is_Reported_On_The_Call()
+    {
+        // Act
+        var run = Run(DiagnosticSources.RuntimeCreatedWithADynamicArgument);
+
+        // Assert
+        run.Assert.Reports("TSH040", DiagnosticSeverity.Error, "TypeshiftRuntime.Create")
+            .GetMessage()
+            .Should()
+            .EndWith("with arguments of static types, since a dynamic one binds the call when it runs");
+    }
+
+    [Theory]
+    [InlineData(nameof(ShapeSources.AddTypeshiftAfterANullCheck))]
+    [InlineData(nameof(ShapeSources.AddTypeshiftInItsStaticForm))]
+    [InlineData(nameof(ShapeSources.NamesOfTheInterceptedMethods))]
+    public void Given_A_Call_The_Generator_Intercepts_Or_A_Name_TSH040_Is_Not_Reported(string shape)
+    {
+        // Arrange
+        var source = SourceCatalogs.Read(typeof(ShapeSources), shape);
+
+        // Act
+        var run = Run(source);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH040");
+    }
+
+    [Fact]
     public void Given_A_Language_Version_Below_14_TSH031_Is_Reported_On_The_Compilation()
     {
         // Act

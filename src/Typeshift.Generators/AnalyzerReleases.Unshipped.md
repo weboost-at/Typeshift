@@ -43,3 +43,4 @@ TSH036 | Typeshift | Warning | Conversation store keeps no decisions
 TSH037 | Typeshift | Warning | Configurable mode can turn approval off
 TSH038 | Typeshift | Warning | Model fills a settings or service parameter
 TSH039 | Typeshift | Error | Declared value cannot be used
+TSH040 | Typeshift | Error | Call the generator cannot intercept

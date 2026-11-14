@@ -68,7 +68,8 @@ returns another chain.
 
 Because the generator intercepts the call, it works only in a project that references the package, and only when you
 call it on the service collection, such as `services.AddTypeshift()` or `builder.Services.AddTypeshift()`. A call the
-generator did not intercept throws an `InvalidOperationException` that says what to check.
+generator did not intercept throws an `InvalidOperationException` that says what to check, and the analyzer reports
+the spellings it cannot intercept, such as a method group ([TSH040](./diagnostics.md#tsh040)).
 
 ::: warning A library's call registers the library's agents, not your app's
 A library that calls `AddTypeshift()` in its own `AddX()` registers its own toolsets and agents and those of its
@@ -153,7 +154,8 @@ Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
 
 - `TypeshiftRuntime.Create(client, typeshift => typeshift.WithStore<MyStore>())` takes the rest of the chain, as
   `AddTypeshift()` does. The generator intercepts the call, so write it as `TypeshiftRuntime.Create(...)`: a call
-  through `using static` or a method group is not intercepted and throws.
+  through `using static`, an alias or a method group is not intercepted and would throw, which the analyzer reports
+  ([TSH040](./diagnostics.md#tsh040)).
 - Create the runtime once and keep it while your app runs. Disposing it disposes its singletons, such as your
   store, but not the client. A host's scoped services are disposed only with the host, so dispose each host as well.
 - An app whose tools or stores need services of its own calls `services.AddTypeshift()` instead, so it can register
