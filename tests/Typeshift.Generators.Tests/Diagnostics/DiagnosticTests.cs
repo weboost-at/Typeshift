@@ -207,7 +207,21 @@ public class DiagnosticTests : GeneratorTestBase
             "TSH007",
             DiagnosticSeverity.Error,
             "AddTool(GetOther)",
-            message: "Another tool is already named 'get_v_2', or maps to the same member 'GetV2'");
+            message: "The tool 'get_v_2' of 'VersionToolset' maps to the same generated member as its tool 'get_v2', "
+                + "'GetV2': give one of the two another name with WithName(\"...\")");
+    }
+
+    [Fact]
+    public void Given_Two_Tools_Mapping_To_One_Member_TSH007_Points_At_The_First_Too()
+    {
+        // Act
+        var run = Run(DiagnosticSources.DuplicateName);
+
+        // Assert
+        run.Reported.Single(diagnostic => diagnostic.Id == "TSH007")
+            .AdditionalLocations.Select(location => location.GetLineSpan().StartLinePosition.Line)
+            .Should()
+            .Equal(6);
     }
 
     [Fact]
@@ -237,8 +251,18 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.AgentToolsOfOneNameAcrossHandoff);
 
         // Assert
-        run.Assert.ReportsAmong("TSH007", DiagnosticSeverity.Error, "AddTool(FindOrder)");
-        run.Assert.ReportsAmong("TSH007", DiagnosticSeverity.Error, "AddTool(FindTicket)");
+        run.Assert.ReportsAmong(
+            "TSH007",
+            DiagnosticSeverity.Error,
+            "AddTool(FindOrder)",
+            message: "The tool 'lookup' of 'OrderAgent' is also a tool of 'TicketAgent': a standing approval names "
+                + "its tool and reaches both agents; give one of the two another name with WithName(\"...\")");
+        run.Assert.ReportsAmong(
+            "TSH007",
+            DiagnosticSeverity.Error,
+            "AddTool(FindTicket)",
+            message: "The tool 'lookup' of 'TicketAgent' is also a tool of 'OrderAgent': a standing approval names "
+                + "its tool and reaches both agents; give one of the two another name with WithName(\"...\")");
     }
 
     [Fact]
@@ -270,7 +294,12 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.AgentToolLikeItsToolsetsButForUnderscores);
 
         // Assert
-        run.Assert.Reports("TSH007", DiagnosticSeverity.Error, "AddTool(GetOwn)");
+        run.Assert.Reports(
+            "TSH007",
+            DiagnosticSeverity.Error,
+            "AddTool(GetOwn)",
+            message: "The tool 'get_v_2' of 'VersionAgent' maps to the same generated member as 'get_v2' of "
+                + "'VersionToolset', 'GetV2': give one of the two another name with WithName(\"...\")");
     }
 
     [Fact]
@@ -306,7 +335,12 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.HelpAgentHandoffWithToolset));
 
         // Assert
-        run.Assert.Reports("TSH007", DiagnosticSeverity.Error, "LeadAgent");
+        run.Assert.Reports(
+            "TSH007",
+            DiagnosticSeverity.Error,
+            "LeadAgent",
+            message: "The tool 'close' of 'HelpAgent' is also a tool of 'LeadAgent': a standing approval names its "
+                + "tool and reaches both agents; give one of the two another name with WithName(\"...\")");
     }
 
     [Fact]
@@ -326,7 +360,26 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(DiagnosticSources.DuplicateAcrossToolsets);
 
         // Assert
-        run.Assert.Reports("TSH007", DiagnosticSeverity.Error, "AddTool(Find)");
+        run.Assert.Reports(
+            "TSH007",
+            DiagnosticSeverity.Error,
+            "AddTool(Find)",
+            message: "The tool 'find' of 'SecondToolset' is already declared by 'FirstToolset': tool names are unique "
+                + "across the toolsets of a project and its references; give one of the two another name with "
+                + "WithName(\"...\")");
+    }
+
+    [Fact]
+    public void Given_Two_Toolsets_With_A_Tool_Of_One_Name_TSH007_Points_At_The_First_Tool_Too()
+    {
+        // Act
+        var run = Run(DiagnosticSources.DuplicateAcrossToolsets);
+
+        // Assert
+        run.Reported.Single(diagnostic => diagnostic.Id == "TSH007")
+            .AdditionalLocations.Select(location => location.GetLineSpan().StartLinePosition.Line)
+            .Should()
+            .Equal(4);
     }
 
     [Fact]
@@ -949,7 +1002,13 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.SameNamedToolset));
 
         // Assert
-        run.Assert.Reports("TSH007", DiagnosticSeverity.Error, "AddTool(FindCompanies)");
+        run.Assert.Reports(
+            "TSH007",
+            DiagnosticSeverity.Error,
+            "AddTool(FindCompanies)",
+            message: "The tool 'find_companies' of 'SearchToolset' is already declared by 'Companies.CompanyToolset' "
+                + "in the assembly 'Companies': tool names are unique across the toolsets of a project and its "
+                + "references; give one of the two another name with WithName(\"...\")");
     }
 
     [Fact]
@@ -963,10 +1022,12 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(Compile(SubjectAssembly, [companies, search]));
 
         // Assert
-        run.Assert.ReportsOnTheCompilation("TSH007", DiagnosticSeverity.Error)
-            .GetMessage()
-            .Should()
-            .Contain("find_companies");
+        run.Assert.ReportsOnTheCompilation(
+            "TSH007",
+            DiagnosticSeverity.Error,
+            message: "The tool 'find_companies' of 'SearchToolset' in the assembly 'Search' is already declared by "
+                + "'Companies.CompanyToolset' in the assembly 'Companies': tool names are unique across the toolsets "
+                + "of a project and its references; give one of the two another name with WithName(\"...\")");
     }
 
     [Fact]
@@ -1151,8 +1212,7 @@ public class DiagnosticTests : GeneratorTestBase
             "TSH025",
             DiagnosticSeverity.Error,
             "UseToolset<EchoToolset>",
-            message: "'EchoToolset' is offered twice: use each toolset once, pick each tool once, and leave out one "
-                + "of two tools of a name");
+            message: "'EchoToolset' is offered twice: use each toolset once");
     }
 
     [Fact]
@@ -1186,7 +1246,7 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_An_Own_Tool_Named_Like_A_Toolsets_TSH025_Is_Reported_On_The_Agent()
+    public void Given_An_Own_Tool_Named_Like_A_Toolsets_TSH025_Is_Reported_On_The_Own_Tool()
     {
         // Act
         var run = Run(DiagnosticSources.OwnToolNamedLikeAUsedToolsets);
@@ -1195,23 +1255,29 @@ public class DiagnosticTests : GeneratorTestBase
         run.Assert.Reports(
             "TSH025",
             DiagnosticSeverity.Error,
-            "DeskAgent",
-            message: "The tool name 'find' is offered twice: use each toolset once, pick each tool once, and leave "
-                + "out one of two tools of a name");
+            "AddTool(Find)",
+            message: "The tool name 'find' is offered twice, by 'DeskToolset' and by the agent's own tool: leave the "
+                + "toolset's tool out with Exclude(...), or rename the agent's tool with WithName(\"...\")");
     }
 
     [Fact]
-    public void Given_Two_Used_Toolsets_With_A_Tool_Of_One_Name_TSH025_Is_Reported_On_The_Agent()
+    public void Given_Two_Used_Toolsets_With_A_Tool_Of_One_Name_TSH025_Is_Reported_On_The_Second_Use()
     {
         // Act
         var run = Run(DiagnosticSources.UsedToolsetsSharingAToolName);
 
         // Assert
-        run.Assert.Reports("TSH025", DiagnosticSeverity.Error, "DeskAgent", also: "TSH007");
+        run.Assert.Reports(
+            "TSH025",
+            DiagnosticSeverity.Error,
+            "UseToolset<SeatToolset>",
+            message: "The tool name 'find' is offered twice, by 'DeskToolset' and by 'SeatToolset': give one of the "
+                + "two tools another name with WithName(\"...\")",
+            also: "TSH007");
     }
 
     [Fact]
-    public void Given_Two_Used_Toolsets_Of_References_With_A_Tool_Of_One_Name_TSH025_Is_Reported_On_The_Agent()
+    public void Given_Two_Used_Toolsets_Of_References_With_A_Tool_Of_One_Name_TSH025_Is_Reported_On_The_Second()
     {
         // Arrange
         var companies = CompileReference("Companies", ReferenceSources.CompanyToolset);
@@ -1221,7 +1287,7 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(Compile(SubjectAssembly, [companies, search], ReferenceSources.BothCompanyToolsetsAgent));
 
         // Assert
-        run.Assert.Reports("TSH025", DiagnosticSeverity.Error, "ResearchAgent", also: "TSH007");
+        run.Assert.Reports("TSH025", DiagnosticSeverity.Error, "UseToolset<Search.SearchToolset>", also: "TSH007");
     }
 
     [Fact]
@@ -1463,7 +1529,8 @@ public class DiagnosticTests : GeneratorTestBase
         run.Assert.Reports("TSH025", DiagnosticSeverity.Error, "UseAgent<BillingAgent>")
             .GetMessage()
             .Should()
-            .StartWith("The tool name 'billing_agent' is offered twice");
+            .Be("The tool name 'billing_agent' is offered twice: a sub-agent is offered as a tool of its name, so "
+                + "rename the tool or the agent with WithName(\"...\")");
     }
 
     [Fact]
@@ -1489,7 +1556,8 @@ public class DiagnosticTests : GeneratorTestBase
         run.Assert.Reports("TSH025", DiagnosticSeverity.Error, "UseHandoff<HelperTwo>")
             .GetMessage()
             .Should()
-            .StartWith("The tool name 'handoff_to_helper' is offered twice");
+            .Be("The tool name 'handoff_to_helper' is offered twice: two handoff targets are named 'helper', so "
+                + "rename one of the agents with WithName(\"...\")");
     }
 
     [Fact]

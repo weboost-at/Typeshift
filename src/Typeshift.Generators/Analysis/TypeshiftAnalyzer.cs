@@ -208,8 +208,15 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
         if (agent is null) return tools;
 
+        var toolsetUses = ConstructorChains.GetInvocations(constructors)
+            .Where(call => AgentParser.IsDeclaration(call) && call.TargetMethod.Name == "UseToolset")
+            .Select(call => (
+                call.TargetMethod.TypeArguments[0].ToTypeOf(),
+                ConstructorChains.GetCalledName(call).GetLocation()))
+            .ToList();
+
         kinds.Add((agent.Kind, type));
-        found.Agents.Add(new FoundAgent(type, agent, uses, asks));
+        found.Agents.Add(new FoundAgent(type, agent, uses, asks, toolsetUses));
         return tools;
     }
 
@@ -519,19 +526,31 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         CompilationAnalysisContext context,
         IEnumerable<(string Name, INamedTypeSymbol Owner, Location Location)> tools)
     {
+        const string rule = "tool names are unique across the toolsets of a project and its references; give one of "
+            + "the two another name with WithName(\"...\")";
+
+        // A referenced toolset is named in full and with its assembly, which is all there is to search for
         var referenced = ReferenceReader
-            .Read(context.Compilation, context.CancellationToken)
-            .Toolsets
-            .SelectMany(toolset => toolset.Tools)
+            .ReadToolsets(context.Compilation, context.CancellationToken)
+            .SelectMany(read => read.Toolset.Tools.Select(tool => (
+                tool.Name,
+                Owner: $"'{read.Toolset.Type.Replace("global::", "")}' in the assembly '{read.Assembly}'")))
             .ToLookup(tool => Names.ToPascalCase(tool.Name));
 
         foreach (var group in referenced)
         {
+            var first = group.First();
+
             foreach (var clash in group.Skip(1))
             {
                 // A referenced tool has no location, so a clash between two references goes on the compilation
-                context.ReportDiagnostic(
-                    Diagnostic.Create(Descriptors.DuplicateToolName, Location.None, clash.Name, group.Key));
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Descriptors.DuplicateToolName,
+                    Location.None,
+                    clash.Name,
+                    clash.Owner,
+                    Meets(clash.Name, first.Name, first.Owner),
+                    rule));
             }
         }
 
@@ -542,18 +561,38 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         foreach (var group in ordered.GroupBy(tool => Names.ToPascalCase(tool.Name)))
         {
             var first = group.First();
+            var reference = referenced[group.Key].FirstOrDefault();
 
-            var clashes = referenced.Contains(group.Key)
+            var clashes = reference.Name is not null
                 ? group
                 : group.Skip(1).Where(tool => !SymbolEqualityComparer.Default.Equals(tool.Owner, first.Owner));
 
             foreach (var clash in clashes)
             {
-                context.ReportDiagnostic(
-                    Diagnostic.Create(Descriptors.DuplicateToolName, clash.Location, clash.Name, group.Key));
+                var meets = reference.Name is not null
+                    ? Meets(clash.Name, reference.Name, reference.Owner)
+                    : Meets(clash.Name, first.Name, $"'{first.Owner.Name}'");
+
+                Location[] other = reference.Name is not null ? [] : [first.Location];
+
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Descriptors.DuplicateToolName,
+                    clash.Location,
+                    other,
+                    clash.Name,
+                    $"'{clash.Owner.Name}'",
+                    meets,
+                    rule));
             }
         }
     }
+
+    // What a tool name has in common with another tool's: the name itself, or the generated member both map to, as
+    // get_v2 and get_v_2 do
+    private static string Meets(string name, string other, string otherOwner) =>
+        name == other
+            ? $"is already declared by {otherOwner}"
+            : $"maps to the same generated member as '{other}' of {otherOwner}, '{Names.ToPascalCase(name)}'";
 
     // D12: the generator writes nothing for a project below C# 14, where its code would be an error per generated
     // member; one diagnostic says what to change, in a project that has something to generate for
@@ -643,7 +682,9 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             .GetAgents(context.Compilation)
             .ToLookup(agent => agent.Type);
 
-        foreach (var (type, _, uses, _) in found.Agents)
+        List<(INamedTypeSymbol Agent, string Name, Location Location)> ownTools = [.. found.OwnTools];
+
+        foreach (var (type, _, uses, _, _) in found.Agents)
         {
             foreach (var use in uses)
             {
@@ -674,11 +715,11 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
                 }
             }
 
-            ReportNamesOfferedTwice(context, agents[type], toolsets, ResolveTarget);
+            ReportNamesOfferedTwice(context, agents[type], toolsets, ownTools, ResolveTarget);
             ReportConfigurableMode(context, agents[type], toolsets);
         }
 
-        ReportClashesAcrossHandoffs(context, agents, ResolveTarget, [.. found.OwnTools]);
+        ReportClashesAcrossHandoffs(context, agents, toolsets, ResolveTarget, ownTools);
         ReportAgentsReadDifferently(context, found, toolsets);
 
         ModuleAgent? ResolveTarget(INamedTypeSymbol agent) =>
@@ -743,27 +784,44 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         CompilationAnalysisContext context,
         FoundAgent agent,
         IReadOnlyList<ToolsetSummary> toolsets,
+        IReadOnlyList<(INamedTypeSymbol Agent, string Name, Location Location)> ownTools,
         System.Func<INamedTypeSymbol, ModuleAgent?> resolve)
     {
+        // Each name with the toolset that offers it, or null for a tool of the agent's own, which comes last (D57)
         var tools = agent.Model.Toolsets
             .SelectMany(use => toolsets.Where(toolset => toolset.Type == use.Toolset)
                 .Take(1)
-                .SelectMany(toolset => Catalog.Offered(use, toolset)))
-            .Select(tool => tool.Name)
-            .Concat(agent.Model.Tools.Select(tool => tool.Name))
+                .SelectMany(toolset => Catalog.Offered(use, toolset)
+                    .Select(tool => (tool.Name, Toolset: (string?)toolset.Type))))
+            .Concat(agent.Model.Tools.Select(tool => (tool.Name, Toolset: (string?)null)))
             .ToList();
 
-        foreach (var name in tools.GroupBy(name => name).Where(group => group.Count() > 1))
+        // The declaration that brings a name a second time is the one reported, and the one to change
+        foreach (var name in tools.GroupBy(tool => tool.Name).Where(group => group.Count() > 1))
         {
-            context.ReportDiagnostic(Diagnostic.Create(
-                Descriptors.OfferedTwice,
-                agent.Type.Locations.FirstOrDefault(),
-                $"The tool name '{name.Key}'"));
+            var first = Simple(name.First().Toolset!);
+
+            foreach (var (_, toolset) in name.Skip(1))
+            {
+                var location = toolset is null
+                    ? ownTools.FirstOrDefault(tool => Same(tool.Agent, agent.Type) && tool.Name == name.Key).Location
+                    : agent.ToolsetUses.FirstOrDefault(use => use.Toolset == toolset).Location;
+
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Descriptors.OfferedTwice,
+                    location ?? agent.Type.Locations.FirstOrDefault(),
+                    $"The tool name '{name.Key}'",
+                    $"twice, by '{first}' and by {(toolset is null ? "the agent's own tool" : $"'{Simple(toolset)}'")}",
+                    toolset is null
+                        ? "leave the toolset's tool out with Exclude(...), or rename the agent's tool with "
+                        + "WithName(\"...\")"
+                        : "give one of the two tools another name with WithName(\"...\")"));
+            }
         }
 
         // D33, D34: a sub-agent is offered as a tool of its name and a handoff target as handoff_to_{name}, beside
         // the agent's tools, so the use that brings a name a second time is the one reported
-        var taken = new HashSet<string>(tools);
+        var taken = new HashSet<string>(tools.Select(tool => tool.Name));
 
         foreach (var use in agent.Uses)
         {
@@ -775,9 +833,20 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             context.ReportDiagnostic(Diagnostic.Create(
                 Descriptors.OfferedTwice,
                 use.Syntax.GetLocation(),
-                $"The tool name '{name}'"));
+                $"The tool name '{name}'",
+                "twice",
+                use.SubAgent
+                    ? "a sub-agent is offered as a tool of its name, so rename the tool or the agent with "
+                    + "WithName(\"...\")"
+                    : $"two handoff targets are named '{target.Name}', so rename one of the agents with "
+                    + "WithName(\"...\")"));
         }
     }
+
+    // A type as a message names it: TicketTools for global::Demo.TicketTools
+    private static string Simple(string type) => type.Substring(type.LastIndexOfAny(['.', ':']) + 1);
+
+    private static bool Same(ISymbol one, ISymbol other) => SymbolEqualityComparer.Default.Equals(one, other);
 
     // D52: a configurable mode is a member of the agent's Settings, so settings that are stored or posted can name
     // auto mode, in which the agent's tools that require approval run unasked
@@ -805,9 +874,11 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
     private static void ReportClashesAcrossHandoffs(
         CompilationAnalysisContext context,
         Dictionary<INamedTypeSymbol, FoundAgent> agents,
+        IReadOnlyList<ToolsetSummary> toolsets,
         Func<INamedTypeSymbol, ModuleAgent?> resolve,
         IReadOnlyList<(INamedTypeSymbol Agent, string Name, Location Location)> ownTools)
     {
+        const string rename = "give one of the two another name with WithName(\"...\")";
         var reported = new HashSet<(Location, string)>();
 
         foreach (var from in agents.Keys)
@@ -821,8 +892,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
                 if (resolve(to) is not { } target) continue;
 
                 // A referenced agent's own tool has no location here, so its clash goes on the agent that reaches it
-                Report(from, source, target, from.Locations.FirstOrDefault());
-                Report(to, target, source, from.Locations.FirstOrDefault());
+                Report(from, source, to, target, from.Locations.FirstOrDefault());
+                Report(to, target, from, source, from.Locations.FirstOrDefault());
             }
         }
 
@@ -830,40 +901,60 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         // the same name is TSH025, and two own tools of one agent the parser reports
         void ReportDropped(INamedTypeSymbol agent, ModuleAgent offered)
         {
-            var own = ownTools.Where(tool => SymbolEqualityComparer.Default.Equals(tool.Agent, agent)).ToList();
+            var own = ownTools.Where(tool => Same(tool.Agent, agent)).ToList();
 
             var dropped = own.Where(tool => !offered.Tools.Contains(tool.Name)
                 && own.Count(other => Names.ToPascalCase(other.Name) == Names.ToPascalCase(tool.Name)) == 1);
 
             foreach (var tool in dropped)
             {
-                Add(tool.Location, tool.Name);
+                var kept = Catalog.Resolve(agents[agent].Model, toolsets).Tools
+                    .First(other => Names.ToPascalCase(other.Tool.Name) == Names.ToPascalCase(tool.Name));
+
+                var meets = Meets(tool.Name, kept.Tool.Name, $"'{Simple(kept.Owner)}'");
+
+                Add(tool.Location, tool.Name, agent, meets, rename);
             }
         }
 
-        void Report(INamedTypeSymbol owner, ModuleAgent own, ModuleAgent other, Location? fallback)
+        void Report(
+            INamedTypeSymbol owner,
+            ModuleAgent own,
+            INamedTypeSymbol reached,
+            ModuleAgent other,
+            Location? fallback)
         {
-            var taken = new HashSet<string>(other.Tools.Select(Names.ToPascalCase));
             var otherOwn = new HashSet<string>(other.OwnTools.Select(Names.ToPascalCase));
 
-            foreach (var name in own.OwnTools.Where(name => taken.Contains(Names.ToPascalCase(name))))
+            foreach (var name in own.OwnTools)
             {
-                var declared = ownTools.FirstOrDefault(tool =>
-                    SymbolEqualityComparer.Default.Equals(tool.Agent, owner) && tool.Name == name);
+                var taken = other.Tools.FirstOrDefault(tool => Names.ToPascalCase(tool) == Names.ToPascalCase(name));
+                if (taken is null) continue;
+
+                var declared = ownTools.FirstOrDefault(tool => Same(tool.Agent, owner) && tool.Name == name);
 
                 // A clash with the other agent's own tool is reported there already, when that agent is this project's
                 if (declared.Location is null && otherOwn.Contains(Names.ToPascalCase(name))) continue;
 
-                Add(declared.Location ?? fallback ?? Location.None, name);
+                var meets = name == taken
+                    ? $"is also a tool of '{reached.Name}'"
+                    : Meets(name, taken, $"'{reached.Name}'");
+
+                Add(
+                    declared.Location ?? fallback ?? Location.None,
+                    name,
+                    owner,
+                    meets,
+                    $"a standing approval names its tool and reaches both agents; {rename}");
             }
         }
 
-        void Add(Location location, string name)
+        void Add(Location location, string name, INamedTypeSymbol owner, string meets, string fix)
         {
             if (!reported.Add((location, name))) return;
 
             context.ReportDiagnostic(
-                Diagnostic.Create(Descriptors.DuplicateToolName, location, name, Names.ToPascalCase(name)));
+                Diagnostic.Create(Descriptors.DuplicateToolName, location, name, $"'{owner.Name}'", meets, fix));
         }
     }
 
@@ -1057,11 +1148,13 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         public ConcurrentBag<RegisteredStore> Stores { get; } = [];
     }
 
+    // ToolsetUses holds where each UseToolset<T>() names its toolset, which the model has no place for
     private sealed record FoundAgent(
         INamedTypeSymbol Type,
         AgentModel Model,
         IReadOnlyList<AgentUseDeclaration> Uses,
-        AgentAsks Asks);
+        AgentAsks Asks,
+        IReadOnlyList<(string Toolset, Location Location)> ToolsetUses);
 
     // A type a JSON context lists whose JSON holds an enum the context writes as a number
     private sealed record NumericEnum(string Context, Location Location, string Type, string Enum);

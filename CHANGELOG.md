@@ -245,6 +245,15 @@ All notable changes to this project are documented here. The format follows
   shows the property form. It got CS0310, and TSH015 about a chain that was fine. An abstract settings record is
   TSH005 too. A toolset with an internal constructor can be used by an agent of its assembly, as TSH016 always
   said, and `UseToolset<T>()` of an abstract toolset is TSH016.
+- TSH007 names both tools and where each is declared: the two toolsets, a referenced toolset in full and with its
+  assembly, or the two agents a standing approval reaches. It says that tool names are unique across a project and
+  its references, ends with the fix, `WithName("...")`, and has the first declaration as its second location. It read
+  "Another tool is already named 'search', or maps to the same member 'Search'", also between two referenced
+  projects, where it has no location to look at.
+- TSH025 for a tool name that an agent offers twice sits on the declaration that brings the name a second time, the
+  agent's own `AddTool(...)` or the second `UseToolset<T>()`, and names both sources. It sat on the agent's class
+  name. Every TSH025 message ends with the fix of its own case, such as "use each toolset once". All of them ended
+  with "use each toolset once, pick each tool once, and leave out one of two tools of a name".
 
 ### Fixed
 

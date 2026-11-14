@@ -64,13 +64,26 @@ internal static class ToolsetParser
         {
             if (ParseTool(addTool, owner, documented, reporter, ct) is not { } tool) continue;
 
-            var shared = declared
-                .Select(offered => Names.SharedMember(offered.Tool.Name, tool.Name))
-                .FirstOrDefault(name => name is not null);
+            var clash = declared
+                .Select(other => (
+                    other.Tool.Name,
+                    other.AddTool,
+                    Member: Names.SharedMember(other.Tool.Name, tool.Name)))
+                .FirstOrDefault(other => other.Member is not null);
 
-            if (shared is not null)
+            if (clash.Member is not null)
             {
-                reporter.Report(Descriptors.DuplicateToolName, addTool.Syntax, tool.Name, shared);
+                reporter.ReportBeside(
+                    Descriptors.DuplicateToolName,
+                    addTool.Syntax,
+                    clash.AddTool.Syntax,
+                    tool.Name,
+                    $"'{owner.Name}'",
+                    clash.Name == tool.Name
+                        ? "is declared twice"
+                        : $"maps to the same generated member as its tool '{clash.Name}', '{clash.Member}'",
+                    "give one of the two another name with WithName(\"...\")");
+
                 continue;
             }
 

@@ -151,6 +151,12 @@ accessible as what exposes it. There are three cases:
 references. Names that differ only in their underscores, such as `get_v2` and `get_v_2`, count as the same, because
 they map to the same generated property. Give one of the tools another name with `WithName("...")`.
 
+The message names the tool, the toolset that declares it and the toolset that declared the name first. Of two
+toolsets of your project, the later declaration is reported, with the first as its second location. A toolset of a
+referenced project is named in full and with its assembly, since it has no source in your project. When both
+toolsets are referenced, the diagnostic has no location at all: rename the tool in one of the two projects, or
+reference only one of them.
+
 Within one toolset or agent, two tools also clash when the generator would write one member for both, and the
 message names that member. `create_report` and `report_function` do: the function class of the first and the
 factory of the second are both `CreateReportFunction`. So do `equals` and `equals_tool`, which are both
@@ -299,15 +305,19 @@ mode its calls of such tools are rejected unless a standing approval or a rule a
 
 ## TSH025
 
-**Tool is offered twice.** An agent offers the same tool twice when it:
+**Tool is offered twice.** The diagnostic sits on the declaration that brings a tool a second time, and its message
+ends with the fix of its case. An agent offers the same tool twice when it:
 
 - uses the same toolset twice;
 - picks the same tool twice;
 - uses the same agent twice as a sub-agent, or twice as a handoff target;
-- uses two toolsets that each have a tool of the same name. Give one of the two tools another name with
-  `WithName("...")`. Leaving one out with `Exclude(...)` does not help: a tool name is unique across your project
-  and its references, whatever the agents pick, so [TSH007](#tsh007) reports the pair as well;
-- has a tool of its own named like a tool of a toolset it uses. Rename its own tool with `WithName("...")`.
+- uses two toolsets that each have a tool of the same name. The message names both toolsets, and the diagnostic sits
+  on the second `UseToolset<T>()`. Give one of the two tools another name with `WithName("...")`. Leaving one out
+  with `Exclude(...)` does not help: a tool name is unique across your project and its references, whatever the
+  agents pick, so [TSH007](#tsh007) reports the pair as well;
+- has a tool of its own named like a tool of a toolset it uses. The message names the toolset, and the diagnostic
+  sits on the agent's `AddTool(...)`. Rename that tool with `WithName("...")`, or leave the toolset's out with
+  `Exclude(...)`.
 - uses a sub-agent named like one of its tools, or two sub-agents of one name. A sub-agent is offered as a tool of
   the agent's name, so rename the tool or one of the agents with `WithName("...")`. The diagnostic sits on the
   `UseAgent<T>()` that brings the name a second time.

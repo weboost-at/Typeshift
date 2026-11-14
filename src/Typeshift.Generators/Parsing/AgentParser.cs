@@ -209,7 +209,14 @@ internal static class AgentParser
                 var syntax = ConstructorChains.GetCalledName(call);
 
                 if (declarations.Agents.Any(other => other.SubAgent == subAgent && Same(other.Target, target)))
-                    reporter.Report(Descriptors.OfferedTwice, syntax, $"'{target.Name}'");
+                {
+                    reporter.Report(
+                        Descriptors.OfferedTwice,
+                        syntax,
+                        $"'{target.Name}'",
+                        "twice",
+                        subAgent ? "declare each sub-agent once" : "declare each handoff target once");
+                }
                 else
                     declarations.Agents.Add(new AgentUseDeclaration(target, subAgent, syntax));
 
@@ -218,7 +225,14 @@ internal static class AgentParser
             // D82: the agent records the flag itself at run time, so the generator writes no code, only the stamp
             case "UseQuestions":
                 if (declarations.AsksUser)
-                    reporter.Report(Descriptors.OfferedTwice, ConstructorChains.GetCalledName(call), "'ask_user'");
+                {
+                    reporter.Report(
+                        Descriptors.OfferedTwice,
+                        ConstructorChains.GetCalledName(call),
+                        "'ask_user'",
+                        "twice",
+                        "call UseQuestions() once");
+                }
 
                 declarations.AsksUser = true;
                 break;
@@ -329,7 +343,7 @@ internal static class AgentParser
 
         if (uses.Any(use => use.Toolset == type))
         {
-            reporter.Report(Descriptors.OfferedTwice, name, $"'{toolset.Name}'");
+            reporter.Report(Descriptors.OfferedTwice, name, $"'{toolset.Name}'", "twice", "use each toolset once");
             return null;
         }
 
@@ -352,7 +366,7 @@ internal static class AgentParser
 
             if (picks.Contains(picked))
             {
-                reporter.Report(Descriptors.OfferedTwice, argument, $"'{picked}'");
+                reporter.Report(Descriptors.OfferedTwice, argument, $"'{picked}'", "twice", "pick each tool once");
                 continue;
             }
 

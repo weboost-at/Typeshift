@@ -31,6 +31,16 @@ internal static class ReferenceReader
         return new ReferenceModel(modules.ToEquatableArray(), toolsets.ToEquatableArray());
     }
 
+    // TSH007: the referenced toolsets, each with the name of its assembly, which a summary does not hold
+    public static IEnumerable<(ToolsetSummary Toolset, string Assembly)> ReadToolsets(
+        Compilation compilation,
+        CancellationToken ct) =>
+        GetNameableLibraryUsers(compilation)
+            .Select(GetModule)
+            .OfType<INamedTypeSymbol>()
+            .SelectMany(GetToolsets)
+            .Select(toolset => (ReadToolset(toolset, ct), toolset.ContainingAssembly.Name));
+
     // TSH020: the references that use the library, declare toolsets or agents, and carry no module of this version
     public static IEnumerable<IAssemblySymbol> GetUnstamped(Compilation compilation, CancellationToken ct) =>
         GetLibraryUsers(compilation)

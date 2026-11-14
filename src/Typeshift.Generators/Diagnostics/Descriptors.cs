@@ -42,7 +42,7 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor DuplicateToolName = Error(
         "TSH007",
         "Tool name is not unique",
-        "Another tool is already named '{0}', or maps to the same member '{1}'");
+        "The tool '{0}' of {1} {2}: {3}");
 
     public static readonly DiagnosticDescriptor NotLowerSnakeCase = Error(
         "TSH008",
@@ -133,7 +133,7 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor OfferedTwice = Error(
         "TSH025",
         "Tool is offered twice",
-        "{0} is offered twice: use each toolset once, pick each tool once, and leave out one of two tools of a name");
+        "{0} is offered {1}: {2}");
 
     public static readonly DiagnosticDescriptor NoJsonMetadata = Error(
         "TSH027",
