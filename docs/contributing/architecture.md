@@ -198,6 +198,14 @@ started and left gets a result for each call that has none. A resume of an open 
 a run. Then it stores the input, begins the run in `LiveRuns`, and ends the run with an entry of its own. When the
 run asked your app, the decisions join the response after that end, in a message of their own that nothing stores.
 
+The run is written once for a run that streams and one that does not (`RunAsync` and `PassesAsync` in
+`ConversationChatClient`). Each pass is one tool loop, and what follows it is the same code for both: the pass's
+tool results are stored, a handoff is carried out, and the run goes on while steering input or a background
+sub-agent's answer waits. Only the pass differs. A streaming run hands each update on as it arrives and publishes
+it. A run that does not stream hands on the whole response, which `GetResponseAsync` merges with the others. So a
+change to a run's steps is made in one place, and `ConversationRun` knows whether the run ended, by storing its end
+or by handing the conversation on.
+
 Inside the tool loop, `CheckpointChatClient` stores the steps before each model call, tool results first and then
 any steering input it takes in, and stores each response as it arrives. `ConversationRun` holds what one run stored
 and where its steering input went. Streaming runs publish their updates through `LivePublisher` to the watchers

@@ -581,7 +581,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   approval read "not approved" (D81). The check asks the client for a `FunctionInvokingChatClient`; a wrapper that
   answers no `GetService` hides the loop, and there the gate's refusal stays the last line. A summary's client is
   not checked, since a summary call offers no tools.
-- **Where:** `AgentHost.cs`.
+  The conversation layer writes a run's steps once for both transports: a streaming run hands on the updates of
+  each pass and a run that does not stream whole responses, and everything around the pass is the same code. Two
+  copies of those steps had drifted apart in what a failed run stores and in what a watcher receives.
+- **Where:** `AgentHost.cs`, `Conversations/ConversationChatClient.cs` (the run's steps).
 
 ### D30. Middleware: one interface around runs, one around tool calls
 

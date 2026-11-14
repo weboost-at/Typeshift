@@ -55,6 +55,12 @@ internal sealed class ConversationRun(
     // D51: once the run decided to end, it takes no more steering input, which then starts a run of its own
     private bool _closed;
 
+    // The run stored its end, or handed the conversation on (D34): it stores no end after that
+    private bool _ended;
+
+    // D47: a streaming run publishes its updates as they stream, and so nothing as it stores them
+    private bool _streams;
+
     // A streamed response is stored as the updates make it; the tool loop builds its own messages from the same
     // updates, so the first ones it hands on next are those, already stored
     private int _streamedUnmatched;
@@ -83,8 +89,15 @@ internal sealed class ConversationRun(
 
     public bool HasReplay => _replay is not null;
 
-    // D47: a run that does not stream publishes each response and tool result as it stores them
-    public LivePublisher? Publisher { get; set; }
+    // D47: where the run's updates go to the conversation's watchers. A run that does not stream publishes each
+    // response and tool result as it stores them
+    public LivePublisher? Publisher { get; private set; }
+
+    public void PublishTo(LivePublisher? publisher, bool streams)
+    {
+        Publisher = publisher;
+        _streams = streams;
+    }
 
     // False once the run is ending: the input then reaches no model and the host starts a run with it instead
     public bool Steer(ChatMessage input)
@@ -322,9 +335,12 @@ internal sealed class ConversationRun(
     }
 
     // D46: the end of a run is an entry of its own, with what went wrong; background sub-agents still working stop,
-    // and input no model received is stored ahead of it
+    // and input no model received is stored ahead of it. A run ends once
     public async Task EndAsync(string? error)
     {
+        if (_ended) return;
+
+        _ended = true;
         await StopBackgroundAsync();
         await CloseAsync();
 
@@ -340,8 +356,29 @@ internal sealed class ConversationRun(
         if (results.ToList() is { Count: > 0 } steps) await AppendAsync(steps);
     }
 
-    // D34: the result of a handoff call names the agent handed to, which answers from here on
-    public Task AppendHandoffAsync(ChatMessage result, string target) => AppendAsync([result], answering: target);
+    // D34: the run hands the conversation on, and stores no end of its own. The result of the handoff call names the
+    // agent handed to, which answers from here on. The sub-agents this agent left working stop with its turn, and
+    // the agent handed to hears of each (D33), ahead of the input no model received
+    public async Task HandOffAsync(ChatMessage result, string target)
+    {
+        await AppendAsync([result], answering: target);
+
+        var lost = await StopBackgroundAsync();
+
+        await CloseAsync(
+            target,
+            [.. lost.Select(stopped => Lost(stopped.CallId, stopped.Agent, "the conversation was handed off"))]);
+
+        _ended = true;
+    }
+
+    // D33: what the model reads of a background sub-agent that never answered. The call id it carries keeps a
+    // later run from telling it again
+    public static ChatMessage Lost(string callId, string agent, string when) =>
+        new(ChatRole.User, $"The background agent {agent} was lost when {when}; call it again if you need it.")
+        {
+            AdditionalProperties = new() { [BackgroundCall] = callId }
+        };
 
     // D32: what compaction left of the history, which later runs start from without reading what came before
     public Task AppendSummaryAsync(IReadOnlyList<ChatMessage> messages) => AppendAsync(messages, summary: true);
@@ -380,7 +417,7 @@ internal sealed class ConversationRun(
 
         if (Conversation is null) return null;
 
-        if (!endsRun && !summary) Publish(messages);
+        if (!_streams && !endsRun && !summary) Publish(messages);
 
         var entry = new ConversationEntry(answering ?? Agent, Writable(messages), time.GetUtcNow())
         {

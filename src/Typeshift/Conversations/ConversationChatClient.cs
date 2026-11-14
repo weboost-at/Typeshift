@@ -21,6 +21,9 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     // handoff a run with a limit of its own
     private const int MaxHandoffs = 10;
 
+    // How a run ends that nothing failed in: its stream was left early
+    private const string Stopped = "The run stopped before it answered.";
+
     public override async Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,
@@ -31,9 +34,15 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
         try
         {
-            var response = await RunAsync(messages, options, activity, cancellationToken);
-            if (Named(options) is { } conversation) response.ConversationId = conversation;
-            Telemetry.Answered(activity, response.Usage);
+            ChatResponse? response = null;
+
+            await foreach (var part in RunAsync(messages, options, activity, streaming: false, cancellationToken))
+            {
+                response = part.JoinedTo(response);
+            }
+
+            if (Named(options) is { } conversation) response!.ConversationId = conversation;
+            Telemetry.Answered(activity, response!.Usage);
             return response;
         }
         catch (Exception exception)
@@ -53,7 +62,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         var usage = new UsageDetails();
         var conversation = Named(options);
 
-        await using var updates = RunStreamingAsync(messages, options, activity, cancellationToken)
+        await using var parts = RunAsync(messages, options, activity, streaming: true, cancellationToken)
             .GetAsyncEnumerator(cancellationToken);
 
         while (true)
@@ -63,7 +72,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
             try
             {
-                if (!await updates.MoveNextAsync()) break;
+                if (!await parts.MoveNextAsync()) break;
             }
             catch (Exception exception)
             {
@@ -71,14 +80,16 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                 throw;
             }
 
-            foreach (var content in updates.Current.Contents.OfType<UsageContent>())
+            var update = parts.Current.Update!;
+
+            foreach (var content in update.Contents.OfType<UsageContent>())
             {
                 usage.Add(content.Details);
             }
 
             // A copy, since the tool loop still holds the update, and one that names a conversation would make it
             // leave the history to the service
-            yield return conversation is null ? updates.Current : Named(updates.Current, conversation);
+            yield return conversation is null ? update : Named(update, conversation);
         }
 
         Telemetry.Answered(activity, usage);
@@ -124,111 +135,15 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
     private ILogger Logger => LogEvents.For(services);
 
-    private async Task<ChatResponse> RunAsync(
+    // D29: a run from the claim on its conversation to its end, written once for a run that streams and one that
+    // does not. The two differ in how a pass reaches the caller (PassesAsync), and in what they hand on: the updates
+    // of a stream, or whole responses, which the caller joins. A run that failed, was cancelled or whose stream was
+    // left early still ends
+    private async IAsyncEnumerable<RunPart> RunAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options,
         Activity? activity,
-        CancellationToken ct)
-    {
-        var (taken, answering) = await TakeAsync(options, ct);
-
-        if (answering is not null)
-        {
-            try
-            {
-                return await answering.RunAsync(messages, taken, ct);
-            }
-            finally
-            {
-                Runs.Release(taken.Claim);
-            }
-        }
-
-        var (run, call, runOptions, waiting) = await BeginAsync(messages, options, taken, activity, ct);
-
-        if (waiting is not null) return new ChatResponse(Asking(waiting, messageId: null));
-
-        var handedOff = false;
-
-        try
-        {
-            run.Publisher = CreatePublisher(run);
-            var calls = runOptions.AgentRun!.ModelCalls;
-            var last = await base.GetResponseAsync(call, runOptions, ct);
-            var response = last;
-
-            while (true)
-            {
-                await run.StoreResultsAsync(last.Messages);
-
-                var handoff = HandoffIn(last.Messages) is { } handing
-                    ? await HandOffAsync(run, runOptions, last.Messages, handing)
-                    : null;
-
-                if (handoff is not null) response = ChatResponses.Merge(response, new ChatResponse(handoff.Result));
-
-                if (handoff is { Target: { } target, Handed: { } handed })
-                {
-                    handedOff = true;
-
-                    try
-                    {
-                        return ChatResponses.Merge(response, await target.RunAsync([], handed, ct));
-                    }
-                    finally
-                    {
-                        Runs.Release(handed.Claim);
-                    }
-                }
-
-                // D34: a handoff the run had none left for is answered, and its own agent goes on at once
-                if (!GoesFurther(runOptions, ref calls) || (handoff is null && !await run.GoesOnAsync(ct))) break;
-
-                call = [.. call, .. last.Messages];
-                if (handoff is not null) call.Add(handoff.Result);
-
-                // D51, D80: steering input passed the batch the run asked by
-                if (run.Asked is { } passed)
-                {
-                    if (await ExpireAsync(run, passed) is not { } results) break;
-
-                    call.Add(results);
-                    response = ChatResponses.Merge(response, new ChatResponse(results));
-                }
-
-                last = await base.GetResponseAsync(call, runOptions, ct);
-                response = ChatResponses.Merge(response, last);
-            }
-
-            await run.EndAsync(null);
-
-            // D80: the decisions come last, once the run stored its end, so each one your app sees can be answered
-            if (run.Asked is { } asked)
-            {
-                var asking = Asking(asked, last.Messages.LastOrDefault(IsCalling)?.MessageId);
-
-                response.Messages.Add(asking);
-                run.Publisher?.Add(AsUpdate(asking));
-            }
-
-            return response;
-        }
-        catch (Exception exception) when (!handedOff)
-        {
-            await run.EndAsync(exception.Message);
-            throw;
-        }
-        finally
-        {
-            run.Publisher?.Flush();
-            Runs.End(run);
-        }
-    }
-
-    private async IAsyncEnumerable<ChatResponseUpdate> RunStreamingAsync(
-        IEnumerable<ChatMessage> messages,
-        ChatOptions? options,
-        Activity? activity,
+        bool streaming,
         [EnumeratorCancellation] CancellationToken ct)
     {
         var (taken, answering) = await TakeAsync(options, ct);
@@ -237,9 +152,9 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         {
             try
             {
-                await foreach (var update in answering.RunStreamingAsync(messages, taken, ct))
+                await foreach (var part in RunOn(answering, messages, taken, streaming, ct))
                 {
-                    yield return update;
+                    yield return part;
                 }
             }
             finally
@@ -254,107 +169,202 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
         if (waiting is not null)
         {
-            yield return AskingUpdate(waiting, []);
+            yield return streaming
+                ? new(AskingUpdate(waiting, []))
+                : new(Response: new ChatResponse(Asking(waiting, messageId: null)));
+
             yield break;
         }
 
-        LivePublisher? publisher = null;
-        var ended = false;
-        var calls = runOptions.AgentRun!.ModelCalls;
-        var updates = new List<ChatResponseUpdate>();
+        string? failure = null;
 
         try
         {
-            publisher = CreatePublisher(run);
+            run.PublishTo(CreatePublisher(run), streaming);
+
+            await using var parts = PassesAsync(run, call, runOptions, streaming, ct).GetAsyncEnumerator(ct);
 
             while (true)
             {
-                updates.Clear();
-
-                await foreach (var update in base.GetStreamingResponseAsync(call, runOptions, ct))
+                // An iterator cannot catch around what it yields, so the parts are read by hand
+                try
                 {
-                    updates.Add(update);
-                    publisher?.Add(update);
-                    yield return update;
+                    if (!await parts.MoveNextAsync()) break;
+                }
+                catch (Exception exception)
+                {
+                    failure = exception.Message;
+                    throw;
                 }
 
-                // Rebuilt from the updates, the messages hold new text the checkpoints stored already
-                var last = updates.ToChatResponse().Messages;
-                await run.StoreResultsAsync(last);
-                run.MarkStored(last);
-
-                var handoff = HandoffIn(last) is { } handing
-                    ? await HandOffAsync(run, runOptions, last, handing)
-                    : null;
-
-                if (handoff is { Target: { } target, Handed: { } handed })
-                {
-                    ended = true;
-
-                    try
-                    {
-                        yield return new ChatResponseUpdate(ChatRole.Tool, handoff.Result.Contents);
-
-                        await foreach (var update in target.RunStreamingAsync([], handed, ct))
-                        {
-                            yield return update;
-                        }
-                    }
-                    finally
-                    {
-                        Runs.Release(handed.Claim);
-                    }
-
-                    yield break;
-                }
-
-                // D34: a handoff the run had none left for is answered, and its own agent goes on at once
-                if (handoff is not null)
-                {
-                    var refused = AsUpdate(handoff.Result);
-
-                    publisher?.Add(refused);
-                    yield return refused;
-                }
-
-                if (!GoesFurther(runOptions, ref calls) || (handoff is null && !await run.GoesOnAsync(ct))) break;
-
-                call = [.. call, .. last];
-                if (handoff is not null) call.Add(handoff.Result);
-
-                // D51, D80: steering input passed the batch the run asked by
-                if (run.Asked is { } passed)
-                {
-                    if (await ExpireAsync(run, passed) is not { } results) break;
-
-                    var expired = AsUpdate(results);
-
-                    call.Add(results);
-                    publisher?.Add(expired);
-                    yield return expired;
-                }
-            }
-
-            ended = true;
-            await run.EndAsync(null);
-
-            // D80: the decisions come in the last update, once the run stored its end, so a reader that stops there
-            // leaves nothing half done. It carries the ids of the response that made the calls
-            if (run.Asked is { } asked)
-            {
-                var asking = AskingUpdate(asked, updates);
-
-                publisher?.Add(asking);
-                yield return asking;
+                yield return parts.Current;
             }
         }
         finally
         {
-            publisher?.Flush();
+            run.Publisher?.Flush();
 
-            // A stream that failed, was cancelled or was left early still ends its run
-            if (!ended) await run.EndAsync("The run stopped before it answered.");
+            // Nothing for a run that stored its end or handed the conversation on. A stream that failed, was
+            // cancelled or was left early ends with a text of its own
+            await run.EndAsync(streaming || failure is null ? Stopped : failure);
             Runs.End(run);
+        }
+    }
+
+    // The passes of a run, each one tool loop, and what follows each: its results are stored, a handoff is carried
+    // out (D34), and the run goes on while steering input or a background sub-agent's answer waits (D33, D51). The
+    // pass itself is the one step a streaming run takes another way
+    private async IAsyncEnumerable<RunPart> PassesAsync(
+        ConversationRun run,
+        List<ChatMessage> call,
+        ResolvedChatOptions options,
+        bool streaming,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        var calls = options.AgentRun!.ModelCalls;
+        var updates = new List<ChatResponseUpdate>();
+        IList<ChatMessage> last;
+
+        while (true)
+        {
+            if (streaming)
+            {
+                updates.Clear();
+
+                await foreach (var update in base.GetStreamingResponseAsync(call, options, ct))
+                {
+                    updates.Add(update);
+                    run.Publisher?.Add(update);
+                    yield return new(update);
+                }
+
+                // Rebuilt from the updates, the messages hold new text the checkpoints stored already
+                last = updates.ToChatResponse().Messages;
+                run.MarkStored(last);
+            }
+            else
+            {
+                var response = await base.GetResponseAsync(call, options, ct);
+
+                last = response.Messages;
+                yield return new(Response: response);
+            }
+
+            await run.StoreResultsAsync(last);
+
+            var handoff = HandoffIn(last) is { } handing
+                ? await HandOffAsync(run, options, last, handing)
+                : null;
+
+            if (handoff is { Target: { } target, Handed: { } handed })
+            {
+                try
+                {
+                    yield return streaming
+                        ? new(new ChatResponseUpdate(ChatRole.Tool, handoff.Result.Contents))
+                        : new(Response: new ChatResponse(handoff.Result));
+
+                    await foreach (var part in RunOn(target, [], handed, streaming, ct))
+                    {
+                        yield return part;
+                    }
+                }
+                finally
+                {
+                    Runs.Release(handed.Claim);
+                }
+
+                yield break;
+            }
+
+            // D34: a handoff the run had none left for is answered, and its own agent goes on at once
+            if (handoff is not null) yield return Made(run, handoff.Result, streaming);
+
+            if (!GoesFurther(options, ref calls) || (handoff is null && !await run.GoesOnAsync(ct))) break;
+
+            call = [.. call, .. last];
+            if (handoff is not null) call.Add(handoff.Result);
+
+            // D51, D80: steering input passed the batch the run asked by
+            if (run.Asked is { } passed)
+            {
+                if (await ExpireAsync(run, passed) is not { } results) break;
+
+                call.Add(results);
+                yield return Made(run, results, streaming);
+            }
+        }
+
+        await run.EndAsync(null);
+
+        // D80: the decisions come last, once the run stored its end, so each one your app sees can be answered and
+        // a reader that stops there leaves nothing half done
+        if (run.Asked is not { } asked) yield break;
+
+        if (streaming)
+        {
+            // It carries the ids of the response that made the calls
+            var asking = AskingUpdate(asked, updates);
+
+            run.Publisher?.Add(asking);
+            yield return new(asking);
+        }
+        else
+        {
+            var asking = Asking(asked, last.LastOrDefault(IsCalling)?.MessageId);
+
+            run.Publisher?.Add(AsUpdate(asking));
+            yield return new(Asking: asking);
+        }
+    }
+
+    // Another agent's run as a part of this one: the agent the conversation was handed to, by this run or an
+    // earlier one
+    private static async IAsyncEnumerable<RunPart> RunOn(
+        IAgentHost host,
+        IEnumerable<ChatMessage> messages,
+        RunHandover handover,
+        bool streaming,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        if (!streaming)
+        {
+            yield return new(Response: await host.RunAsync(messages, handover, ct));
+            yield break;
+        }
+
+        await foreach (var update in host.RunStreamingAsync(messages, handover, ct))
+        {
+            yield return new(update);
+        }
+    }
+
+    // A message the run made itself, as its caller gets it. A streaming run publishes it here, with its update; a
+    // run that does not stream published it when it stored it (D47)
+    private static RunPart Made(ConversationRun run, ChatMessage message, bool streaming)
+    {
+        if (!streaming) return new(Response: new ChatResponse(message));
+
+        var update = AsUpdate(message);
+
+        run.Publisher?.Add(update);
+        return new(update);
+    }
+
+    // What a run hands its caller next. A streaming run hands on updates. A run that does not stream hands on whole
+    // responses, each pass's and that of an agent it handed off to, which its caller merges into one; the decisions
+    // it asks join that response as they are, in a message of their own
+    private readonly record struct RunPart(
+        ChatResponseUpdate? Update = null,
+        ChatResponse? Response = null,
+        ChatMessage? Asking = null)
+    {
+        public ChatResponse JoinedTo(ChatResponse? response)
+        {
+            if (Asking is null) return response is null ? Response! : ChatResponses.Merge(response, Response!);
+
+            response!.Messages.Add(Asking);
+            return response;
         }
     }
 
@@ -517,15 +527,8 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             return new Handoff(result);
         }
 
-        await run.AppendHandoffAsync(result, target.Agent.Name);
+        await run.HandOffAsync(result, target.Agent.Name);
         LogEvents.HandedOff(Logger, agent.Name, run.Conversation, target.Agent.Name);
-
-        // D33: the sub-agents this agent left working stop with its turn, and the agent handed to hears of each
-        var lost = await run.StopBackgroundAsync();
-
-        await run.CloseAsync(
-            target.Agent.Name,
-            [.. lost.Select(stopped => Lost(stopped.CallId, stopped.Agent, "the conversation was handed off"))]);
 
         var handed = new RunHandover(
             options.SettingsId,
@@ -793,15 +796,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
         foreach (var call in lost)
         {
-            yield return Lost(call.CallId, call.Agent, "the run stopped");
+            yield return ConversationRun.Lost(call.CallId, call.Agent, "the run stopped");
         }
     }
-
-    // D33: what the model reads of a background sub-agent that never answered. The call id it carries keeps a
-    // later run from telling it again
-    private static ChatMessage Lost(string callId, string agent, string when) =>
-        new(ChatRole.User, $"The background agent {agent} was lost when {when}; call it again if you need it.")
-        {
-            AdditionalProperties = new() { [ConversationRun.BackgroundCall] = callId }
-        };
 }

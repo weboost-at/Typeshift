@@ -181,6 +181,38 @@ public class ExpiredDecisionTests : ApprovalTestBase
         ToolCalls.Should().BeEmpty();
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_Steering_After_The_Run_Asked_A_Watcher_Receives_The_Result_Of_The_Call_That_Did_Not_Run(
+        bool streaming)
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(gate, CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer));
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        await using var watch = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token).GetAsyncEnumerator(Ct);
+        var call = watch.MoveNextAsync();
+
+        var run = RunAsync(Data.Tool.Question, mode: null, streaming);
+        await ChatClient.Requested.WaitAsync(Ct);
+        Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+
+        // Act
+        gate.SetResult();
+        await run;
+
+        // Assert
+        (await call).Should().BeTrue();
+        watch.Current.Contents.Should().ContainSingle(content => content is FunctionCallContent);
+        (await watch.MoveNextAsync()).Should().BeTrue();
+        watch.Current.Contents.Should().ContainSingle(content => content is FunctionResultContent);
+    }
+
     // A run steered while its model call is under way: the call that needs approval comes back, the batch opens, and
     // the steering input passes it by before the run ends
     private async Task<ChatResponse> SteerPastADecisionAsync(ChatResponseUpdate next)
