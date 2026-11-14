@@ -129,7 +129,7 @@ internal sealed class FileAgentSettingsStore : IAgentSettingsStore
                         exception);
                 }
 
-                if (!waiting) _logger.LogDebug("Waiting for {LockFile}, which another save holds.", path);
+                if (!waiting) LogEvents.FileStoreWaiting(_logger, path);
                 waiting = true;
 
                 await Task.Delay(TimeSpan.FromMilliseconds(5), _time, ct);

@@ -3,7 +3,6 @@ using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Typeshift;
 
@@ -123,8 +122,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
     private DecisionLedger Ledger => new(Store, Time);
 
-    private ILogger Logger =>
-        (services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance).CreateLogger<ConversationChatClient>();
+    private ILogger Logger => LogEvents.For(services);
 
     private async Task<ChatResponse> RunAsync(
         IEnumerable<ChatMessage> messages,

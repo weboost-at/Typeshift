@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Typeshift;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -33,7 +32,7 @@ public static class FileStoreExtensions
             return builder.WithStore(provider => new FileAgentSettingsStore(
                 settings,
                 provider.GetService<TimeProvider>(),
-                provider.GetService<ILoggerFactory>()?.CreateLogger<FileAgentSettingsStore>()));
+                LogEvents.For(provider)));
         }
     }
 }

@@ -1,13 +1,14 @@
 ---
 title: Observability
-description: The OpenTelemetry spans and metrics every run records, how your app listens to them, and when the spans carry your customers' messages.
+description: The OpenTelemetry spans and metrics every run records, the events Typeshift logs, how your app listens to them, and when the spans carry your customers' messages.
 ---
 
 # Observability
 
 Every run records OpenTelemetry spans and metrics, with no Typeshift setting to turn on: you add the `Typeshift`
 source and meter to your OpenTelemetry setup. Each run, model call and tool call then shows up as a span, so you can
-follow a run from the user's message through every tool call to the answer.
+follow a run from the user's message through every tool call to the answer. What a run survives, such as a save that
+failed, Typeshift writes to your app's log, each as an event with an id of its own.
 
 ## Listening
 
@@ -112,6 +113,41 @@ generic host sees them without any setup. A runtime that `TypeshiftRuntime.Creat
 register one in the chain, with `typeshift.Services.AddLogging(...)`
 ([The runtime](./registration.md#the-runtime)). Without a logger nothing is logged, and the spans above are the only
 trace of a failed save or a tool's exception.
+
+Every event has the category `Typeshift`, and an id and a name that stay the same from one version to the next.
+Filter and alert on those, since the text of a message may change:
+
+| Id | Name | Level | Logged when |
+|---|---|---|---|
+| 1 | `NoStore` | Warning | The first save or append goes to memory, because no store is registered ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call)). Logged once. |
+| 2 | `StepNotStored` | Error | The store failed to append a step of a conversation. The entry holds the store's exception, and the run goes on. |
+| 3 | `DecisionsNotClosed` | Error | The store failed to save that a conversation's decisions were carried out. The entry holds the exception, and the conversation's next run saves it again. |
+| 4 | `ContentNotStored` | Warning | A step is stored without its contents of a type Microsoft.Extensions.AI cannot write ([What is stored](./conversations.md#what-is-stored)). Logged once for each type in a run. |
+| 5 | `ContentNotRead` | Warning | A run loaded a conversation with contents this version of Microsoft.Extensions.AI cannot read, and goes on without them. The entry holds their number. |
+| 6 | `BackgroundAgentFailed` | Error | A [background sub-agent](./multi-agent.md#in-the-background) failed with an exception the model does not read. The entry holds the exception. |
+| 7 | `SummaryFailed` | Warning | A call that writes a compaction summary failed. The entry holds the exception, the model and what the run does next ([The summary model](./models.md#the-summary-model)). |
+| 8 | `CallWithoutVerdict` | Error | A call of a tool that requires approval reached the tool loop without a decision about it, so it did not run. |
+| 9 | `UpdatesDropped` | Warning | A watcher of [live updates](./conversations.md#live-updates) fell behind and lost its oldest updates. Logged once for each watcher. |
+| 10 | `RunResolved` | Debug | A run got its chat client. The entry holds the agent, the model and the provider it resolved, the client's type, and the settings that applied, in their order. |
+| 11 | `Compacted` | Debug | [Compaction](./conversations.md#compaction) shrank a model call. The entry holds the messages and the estimated tokens before and after. |
+| 12 | `RuleDecided` | Debug | An [approval rule](./tool-approval.md#approval-rules) approved or rejected a call. The entry holds the rule's type, the tool and the call's id. |
+| 13 | `FileStoreWaiting` | Debug | A save of the [file store](./settings-and-stores.md#keep-them-in-a-file) waits for a lock file that another save holds. |
+
+The `Debug` events answer why a run used a model or ran a tool without asking. Turn them on for the category, for
+example in `appsettings.json`:
+
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Typeshift": "Debug"
+    }
+  }
+}
+```
+
+A tool's exception is logged by the tool loop, which is Microsoft.Extensions.AI's, under the category
+`Microsoft.Extensions.AI.FunctionInvokingChatClient` ([When a tool fails](./toolsets.md#when-a-tool-fails)).
 
 ## Metrics
 

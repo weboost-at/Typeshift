@@ -67,6 +67,12 @@ All notable changes to this project are documented here. The format follows
   warning that nothing is stored were written nowhere, and a tool could not resolve a service of the app.
 - `WithStore(provider => new MyStore(...))` registers a store the container builds with your factory, for a store
   whose constructor takes a folder or a connection string.
+- Every entry Typeshift logs is an event with an id and a name that stay, such as `2`, `StepNotStored`, for a failed
+  append, so a filter or an alert no longer matches text. The guide's page on observability lists them all.
+- New log events: at `Debug`, `RunResolved` names the model and the provider a run resolved, the client that serves
+  it and the settings that applied, `Compacted` what compaction took out of a model call, and `RuleDecided` the
+  approval rule that approved or rejected a call. `UpdatesDropped` warns once for each watcher of live updates that
+  fell behind and lost updates, which left no trace before.
 - `ToolException`: a tool throws it to tell the model why a call failed. The model reads its message as the call's
   result, so write it as a hint, such as "No ticket 4711 exists. Search for it first."
 - `host.SetModeAsync(mode)` switches a conversation's mode without a run, and the agent needs no
@@ -95,6 +101,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- Typeshift logs under one category, `Typeshift`. A failed append was logged under
+  `Typeshift.ConversationChatClient` and a waiting save of the file store under `Typeshift.FileAgentSettingsStore`,
+  the names of internal classes: a logging filter that names one of them names `Typeshift` now. The tool loop's
+  entries, a tool's exception among them, stay under `Microsoft.Extensions.AI.FunctionInvokingChatClient`.
 - `ITypeshiftStore<TId>` includes `IDecisionStore<TId>`, so a class that implements it needs two more methods,
   `LoadDecisionsAsync` and `SaveDecisionsAsync`. "Keep decisions" in the guide's page on implementing a store shows
   them over a table of their own.

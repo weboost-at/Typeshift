@@ -736,7 +736,16 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `OpenTelemetryChatClient` captures content (`EnableSensitiveData`, which the variable sets), so tool spans carry
   content exactly when chat spans do. The key is internal to Microsoft.Extensions.AI;
   `TelemetryTests.Given_Message_Capture_A_Run_Tags_The_Tool_Span_With_Arguments_And_Result` fails when it changes.
-- **Where:** `Telemetry/Telemetry.cs`, `Telemetry/InstrumentedClients.cs`,
+- **Logs:** what Typeshift logs itself is one category, `Typeshift`, and a `LoggerMessage` event for each thing it
+  says, with an id and a name that stay: warnings and errors for what a run survives (a failed append, a failed
+  summary, a content it stored or read without, a background sub-agent that failed, a watcher that lost updates,
+  the first write without a store), and `Debug` events for why a run did what it did (the model and provider it
+  resolved with the settings that applied, a compaction, an approval rule's verdict). Up to 0.1.0-alpha.6 the
+  entries had the event id 0 and the names of internal classes as categories, so an alert had to match text. A
+  new event takes the next number, the guide lists every event, and `LogEventCatalogTests` holds the list to the
+  code. The tool loop logs a tool's exception under Microsoft.Extensions.AI's own category. The logger is the
+  `ILoggerFactory` of the run's services, none when the app registered none (D75).
+- **Where:** `Telemetry/Telemetry.cs`, `Telemetry/InstrumentedClients.cs`, `Telemetry/LogEvents.cs`,
   `Conversations/ConversationChatClient.cs` (`GetStreamingResponseAsync`).
 
 ### D37. No built-in toolsets

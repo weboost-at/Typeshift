@@ -23,6 +23,9 @@ internal sealed class ResolvedChatOptions : ChatOptions
 
     public StoreId? SettingsId { get; set; }
 
+    // D27: the settings the options were resolved from, in the order they applied, as the run's log entry names them
+    public string Layers { get; set; } = "the options it was given";
+
     public StoreId? Conversation { get; set; }
 
     // D73: a run of the host's members, which the app continues with WithConversationId; the raw path names its
@@ -71,6 +74,7 @@ internal sealed class ResolvedChatOptions : ChatOptions
             RunOptions = RunOptions,
             RunSetsMode = RunSetsMode,
             SettingsId = SettingsId,
+            Layers = Layers,
             Conversation = Conversation,
             HostRun = HostRun,
             AgentRun = AgentRun,

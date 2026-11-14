@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace Typeshift;
 
@@ -64,10 +63,7 @@ internal sealed class StoreAccess(IServiceProvider services, IServiceCollection 
             && (ReferenceEquals(store, _agentSettingsMemory) || _memory.Values.Contains(store))
             && Interlocked.Exchange(ref _warned, 1) == 0)
         {
-            services.GetService<ILoggerFactory>()?.CreateLogger("Typeshift").LogWarning(
-                "No store is registered, so Typeshift keeps settings, conversations and decisions in memory and loses "
-                + "them when the app stops: call WithStore<T>() after AddTypeshift() to keep them, or WithFileStore() "
-                + "to keep agents' own settings in files.");
+            LogEvents.NoStore(LogEvents.For(services));
         }
 
         return store;

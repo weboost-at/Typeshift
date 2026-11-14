@@ -2,7 +2,6 @@ using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using Typeshift.Generated;
 
 namespace Typeshift;
@@ -225,10 +224,16 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         var checkpoints = new CheckpointChatClient(new UniqueCallIdsChatClient(new CompactingChatClient(provided)));
         var decisions = new DecisionChatClient(checkpoints);
         var loggers = _services.GetService<ILoggerFactory>();
+        var logger = LogEvents.For(loggers);
+        var gate = new ToolGate([.. _services.GetServices<IToolMiddleware>()], logger);
 
-        var gate = new ToolGate(
-            [.. _services.GetServices<IToolMiddleware>()],
-            (loggers ?? NullLoggerFactory.Instance).CreateLogger<ToolGate>());
+        LogEvents.RunResolved(
+            logger,
+            Agent.Name,
+            model,
+            provider,
+            client.GetType().Name,
+            resolved?.Layers ?? "the options it was given");
 
         var mode = new ModeChatClient(Loop(run.MaxToolIterations), Loop);
         var context = new ContextChatClient(mode);
@@ -304,6 +309,16 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         {
             run = declaration.ApplySettings(options, run, layer);
         }
+
+        string?[] applied =
+        [
+            "its code",
+            loaded[0] is null ? null : "its stored settings",
+            loaded[1] is null ? null : $"settings id {settingsId}",
+            settings is null ? null : "the run"
+        ];
+
+        options.Layers = string.Join(", ", applied.OfType<string>());
 
         var tools = declaration.CreateTools(Agent, layers, _services.GetRequiredService<ToolJson>());
 

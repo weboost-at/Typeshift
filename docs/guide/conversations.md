@@ -263,8 +263,9 @@ await foreach (var update in tracker.WatchAsync(conversationId, ct))
 <!-- endSnippet -->
 
 Text, reasoning and usage updates are merged and published at most every 100 ms, and other updates go out at once. A
-run never waits for a watcher, so a watcher that falls more than 256 updates behind loses the oldest ones. You can
-change both limits with `WithRealtimeTracking`:
+run never waits for a watcher, so a watcher that falls more than 256 updates behind loses the oldest ones, and
+Typeshift [logs a warning](./observability.md#logs) the first time it does. You can change both limits with
+`WithRealtimeTracking`:
 
 <!-- snippet: realtime-options -->
 <a id='snippet-realtime-options'></a>

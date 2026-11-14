@@ -1,7 +1,6 @@
 using System.Text;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 namespace Typeshift;
 
@@ -53,8 +52,16 @@ internal sealed class Compaction(ReportedCall? last)
         if (SentEstimate * _calibration < max) return call;
 
         var target = options.RunOptions.TargetInputTokens ?? max / 2;
+        var (count, estimate) = (call.Count, SentEstimate);
         call = await CompactAsync(history, SentEstimate, options, target / _calibration, ct);
         SentEstimate = Tokens.Estimate(call, options);
+
+        // A call with nothing left to clear or to summarize goes out as it came, and says nothing
+        if (SentEstimate >= estimate) return call;
+
+        var run = options.AgentRun!;
+        LogEvents.Compacted(LogEvents.For(run.Services), run.Agent.Name, count, estimate, call.Count, SentEstimate);
+
         return call;
     }
 
@@ -260,10 +267,9 @@ internal sealed class Compaction(ReportedCall? last)
             {
                 run.Activity?.AddException(exception);
 
-                run.Services.GetService<ILoggerFactory>()?.CreateLogger<Compaction>().LogWarning(
+                LogEvents.SummaryFailed(
+                    LogEvents.For(run.Services),
                     exception,
-                    "Agent {Agent} could not summarize its conversation with model {Model} of provider {Provider}: "
-                    + "{Next}.",
                     run.Agent.Name,
                     model,
                     provider,

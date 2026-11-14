@@ -279,7 +279,7 @@ internal sealed class ConversationRun(
         }
         catch (Exception exception)
         {
-            logger.LogError(exception, "Conversation {Conversation} could not close its decisions.", Conversation);
+            LogEvents.DecisionsNotClosed(logger, exception, Conversation);
             run.Activity?.AddException(exception);
         }
     }
@@ -400,7 +400,7 @@ internal sealed class ConversationRun(
         }
         catch (Exception exception)
         {
-            logger.LogError(exception, "Conversation {Conversation} could not store a step.", Conversation);
+            LogEvents.StepNotStored(logger, exception, Conversation);
             run.Activity?.AddException(exception);
 
             return exception;
@@ -449,11 +449,7 @@ internal sealed class ConversationRun(
 
         foreach (var type in left.Select(content => content.GetType()).Where(_unwritable.Add))
         {
-            logger.LogWarning(
-                "Conversation {Conversation} is stored without the {Content} contents of its steps: "
-                + "Microsoft.Extensions.AI's content contract cannot write that type.",
-                Conversation,
-                type.FullName);
+            LogEvents.ContentNotStored(logger, Conversation, type.FullName);
         }
 
         return [.. messages.Select(Writable).OfType<ChatMessage>()];
@@ -511,7 +507,7 @@ internal sealed class ConversationRun(
         catch (Exception exception) when (!_stopping.IsCancellationRequested)
         {
             // D53: a message nobody wrote for the model stays with the app, as a failed tool call's does
-            logger.LogError(exception, "The background agent {Agent} failed in {Conversation}.", agent, Conversation);
+            LogEvents.BackgroundAgentFailed(logger, exception, agent, Conversation);
             run.Activity?.AddException(exception);
 
             return $"The background agent {agent} failed. {ToolLoop.Undisclosed}";

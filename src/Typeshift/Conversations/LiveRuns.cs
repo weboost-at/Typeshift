@@ -2,12 +2,14 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Threading.Channels;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 
 namespace Typeshift;
 
 // The conversations running in this process, their steering input and their watchers, by id and its type (D72)
-internal sealed class LiveRuns(RealtimeTrackingOptions realtime)
+internal sealed class LiveRuns(RealtimeTrackingOptions realtime, ILoggerFactory? loggers = null)
 {
+    private readonly ILogger _logger = LogEvents.For(loggers);
     private readonly ConcurrentDictionary<StoreId, RunClaim> _runs = new();
     private readonly ConcurrentDictionary<StoreId, ImmutableList<Channel<ChatResponseUpdate>>> _watchers = new();
     private ImmutableList<Channel<(ConversationRun Run, bool Ended)>> _runWatchers = [];
@@ -88,7 +90,7 @@ internal sealed class LiveRuns(RealtimeTrackingOptions realtime)
         StoreId conversation,
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
     {
-        var feed = CreateFeed<ChatResponseUpdate>();
+        var feed = CreateFeed<ChatResponseUpdate>($"conversation {conversation}");
 
         _watchers.AddOrUpdate(conversation, [feed], (_, feeds) => feeds.Add(feed));
 
@@ -122,7 +124,7 @@ internal sealed class LiveRuns(RealtimeTrackingOptions realtime)
     public async IAsyncEnumerable<(ConversationRun Run, bool Ended)> WatchRunsAsync(
         [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
     {
-        var feed = CreateFeed<(ConversationRun Run, bool Ended)>();
+        var feed = CreateFeed<(ConversationRun Run, bool Ended)>("the runs");
         ImmutableInterlocked.Update(ref _runWatchers, feeds => feeds.Add(feed));
 
         try
@@ -154,13 +156,24 @@ internal sealed class LiveRuns(RealtimeTrackingOptions realtime)
         }
     }
 
-    // D47: a bounded feed per watcher that drops its oldest items, so a run never waits
-    private Channel<T> CreateFeed<T>() =>
-        Channel.CreateBounded<T>(new BoundedChannelOptions(realtime.MaxPendingUpdates)
+    // D47: a bounded feed per watcher that drops its oldest items, so a run never waits. The first item a watcher
+    // loses is logged, since its feed then misses updates with nothing else to say so
+    private Channel<T> CreateFeed<T>(string watched)
+    {
+        var dropped = 0;
+
+        var options = new BoundedChannelOptions(realtime.MaxPendingUpdates)
         {
             FullMode = BoundedChannelFullMode.DropOldest,
             SingleReader = true
+        };
+
+        return Channel.CreateBounded<T>(options, _ =>
+        {
+            if (Interlocked.Exchange(ref dropped, 1) == 0)
+                LogEvents.UpdatesDropped(_logger, watched, realtime.MaxPendingUpdates);
         });
+    }
 }
 
 // A conversation's place in this process, held from before its run loads it until the run ends

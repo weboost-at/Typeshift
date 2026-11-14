@@ -165,10 +165,23 @@ internal sealed class DecisionChatClient(IChatClient inner) : DelegatingChatClie
         if (tool?.GetService<GatedFunction>() is not { } gated) return (null, null);
 
         var verdicts = new List<RuleVerdict>();
+        var logger = LogEvents.For(run.Services);
 
         foreach (var rule in run.Services.GetServices<IToolApprovalRule>())
         {
-            verdicts.Add(await rule.DecideAsync(call, run, ct));
+            var verdict = await rule.DecideAsync(call, run, ct);
+            verdicts.Add(verdict);
+
+            // A rule that abstains leaves no trace; one that decides is why a call ran unasked or did not run
+            if (verdict.Rejected || verdict.Approved)
+            {
+                LogEvents.RuleDecided(
+                    logger,
+                    rule.GetType().Name,
+                    verdict.Rejected ? "rejected" : "approved",
+                    call.CallId,
+                    call.Name);
+            }
         }
 
         if (verdicts.FirstOrDefault(verdict => verdict.Rejected) is { Rejected: true, Rejection: var reason })

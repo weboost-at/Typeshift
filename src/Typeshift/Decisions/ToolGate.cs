@@ -16,10 +16,7 @@ internal sealed class ToolGate(IReadOnlyList<IToolMiddleware> middleware, ILogge
         if (verdict is not null || !NeedsVerdict(call.Function))
             return ToolMiddleware.InvokeAsync(middleware, 0, call, ct);
 
-        logger.LogError(
-            "The call {CallId} of {Tool} reached the tool loop without a verdict of the gate, so it did not run.",
-            call.CallContent.CallId,
-            call.Function.Name);
+        LogEvents.CallWithoutVerdict(logger, call.CallContent.CallId, call.Function.Name);
 
         return new(DecisionResults.NotApproved);
     }

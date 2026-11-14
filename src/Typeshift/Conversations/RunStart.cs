@@ -1,6 +1,4 @@
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Typeshift;
 
@@ -32,11 +30,7 @@ internal sealed class RunStart(Agent agent, IServiceProvider services, DecisionL
             // D78: said once per load, since the run goes on without what the entries left out
             if (entries.Sum(entry => entry.UnreadContents) is > 0 and var unread)
             {
-                Logger.LogWarning(
-                    "Conversation {Conversation} holds {Count} contents this version of Microsoft.Extensions.AI "
-                    + "cannot read, and the run goes on without them.",
-                    conversation,
-                    unread);
+                LogEvents.ContentNotRead(LogEvents.For(services), conversation, unread);
             }
 
             // D52: a run whose settings name a mode switches the conversation to it before anyone answers, so the
@@ -51,9 +45,6 @@ internal sealed class RunStart(Agent agent, IServiceProvider services, DecisionL
             throw;
         }
     }
-
-    private ILogger Logger =>
-        (services.GetService<ILoggerFactory>() ?? NullLoggerFactory.Instance).CreateLogger<ConversationChatClient>();
 
     // D34: the agent that answered the conversation last answers its next run, if this agent's handoffs reach it
     private IAgentHost? AnsweringAgent(IReadOnlyList<ConversationEntry> entries) =>
