@@ -136,6 +136,7 @@ Filter and alert on those, since the text of a message may change:
 | 13 | `FileStoreWaiting` | Debug | A save of the [file store](./settings-and-stores.md#keep-them-in-a-file) waits for a lock file that another save holds. |
 | 14 | `FileStoreFolder` | Information | The file store saved for the first time. The entry holds the folder that keeps the settings. |
 | 15 | `HandedOff` | Debug | An agent [handed its conversation off](./multi-agent.md#handoff) to another. The entry holds both agents and the conversation. |
+| 16 | `SteeringNotStored` | Error | A run middleware threw on [steering input](./middleware.md#steering-input) that still waited when its run ended, so the input is not stored. The entry holds the exception. |
 
 The `Debug` events answer why a run used a model or ran a tool without asking. Turn them on for the category, for
 example in `appsettings.json`:

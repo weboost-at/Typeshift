@@ -15,6 +15,9 @@ public sealed class MiddlewareScript
         get;
     } = [];
 
+    // By the middleware's position: what it makes of steering input in place of letting it pass
+    public Dictionary<int, Func<ChatMessage, ChatMessage?>> Steering { get; } = [];
+
     public AgentContext Context { get; set; } = new();
 }
 
@@ -22,12 +25,18 @@ public sealed class FirstRunMiddleware(MiddlewareScript script) : IRunMiddleware
 {
     public Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken ct) =>
         ScriptedRunMiddleware.InvokeAsync(script, 0, run, next, ct);
+
+    public ValueTask<ChatMessage?> OnSteeringAsync(AgentRun run, ChatMessage input, CancellationToken ct) =>
+        ScriptedRunMiddleware.OnSteeringAsync(script, 0, input);
 }
 
 public sealed class SecondRunMiddleware(MiddlewareScript script) : IRunMiddleware
 {
     public Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken ct) =>
         ScriptedRunMiddleware.InvokeAsync(script, 1, run, next, ct);
+
+    public ValueTask<ChatMessage?> OnSteeringAsync(AgentRun run, ChatMessage input, CancellationToken ct) =>
+        ScriptedRunMiddleware.OnSteeringAsync(script, 1, input);
 }
 
 public sealed class FirstToolMiddleware(MiddlewareScript script) : IToolMiddleware
@@ -71,6 +80,14 @@ internal static class ScriptedRunMiddleware
         await (script.Runs.TryGetValue(position, out var instead) ? instead(run, next) : next());
 
         script.Log.Add($"run {position} after: {run.Response?.Text}");
+    }
+
+    // Each middleware logs the steering input it is shown, then lets it pass or does what the script says
+    public static ValueTask<ChatMessage?> OnSteeringAsync(MiddlewareScript script, int position, ChatMessage input)
+    {
+        script.Log.Add($"steering {position}: {input.Text}");
+
+        return new(script.Steering.TryGetValue(position, out var instead) ? instead(input) : input);
     }
 }
 

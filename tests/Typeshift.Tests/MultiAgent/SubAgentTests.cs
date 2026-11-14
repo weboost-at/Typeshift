@@ -12,6 +12,8 @@ public class SubAgentTests : MultiAgentTestBase
 
     private readonly RunEnds _ends = new();
 
+    private readonly SteeringSeen _steering = [];
+
     protected override void ConfigureServices(IServiceCollection services)
     {
         base.ConfigureServices(services);
@@ -20,6 +22,7 @@ public class SubAgentTests : MultiAgentTestBase
             .WithRunMiddleware<RunEndMiddleware>();
 
         services.AddSingleton(_ends);
+        services.AddSingleton(_steering);
     }
 
     [Fact]
@@ -214,6 +217,31 @@ public class SubAgentTests : MultiAgentTestBase
         // Assert
         ChatClient.Requests[2][^1].Text.Should().EndWith(Data.Agent.Reason);
         response.Messages[^1].Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_A_Background_Sub_Agents_Answer_Run_Middleware_Is_Not_Shown_It_As_Steering_Input()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Agent.Steering))
+            .Reply(Text(Data.Tool.Answer));
+
+        HelperClient.Reply(gate, Text(Data.Agent.Reason));
+
+        var running = Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await ChatClient.RequestedAsync(2);
+
+        // Act
+        gate.SetResult();
+        await running;
+
+        // Assert
+        ChatClient.Requests[2][^1].Text.Should().EndWith(Data.Agent.Reason);
+        _steering.Should().BeEmpty();
     }
 
     [Fact]

@@ -132,6 +132,8 @@ you ship, your app has to do these things itself:
 - Mark as configurable only what a customer may change ([Precedence](./settings-and-stores.md#precedence)).
 - Decide which tool calls wait for a person, and write your rules before a run goes in auto mode
   ([Approval and modes](./tool-approval.md)).
+- Check input steered into a run where you check a run's input: a guardrail in run middleware implements
+  `OnSteeringAsync` too ([Steering input](./middleware.md#steering-input)).
 - Switch a conversation back once a plan approved into auto mode is carried out, and let your user see and withdraw
   what they approved for a conversation ([Setting the mode](./tool-approval.md#setting-the-mode),
   [Approving for the conversation](./tool-approval.md#approving-for-the-conversation)).

@@ -14,7 +14,7 @@ internal sealed class CheckpointChatClient(IChatClient inner) : DelegatingChatCl
         CancellationToken cancellationToken = default)
     {
         var run = Begin(options);
-        var call = await run.PrepareCallAsync(messages);
+        var call = await run.PrepareCallAsync(messages, cancellationToken);
         var response = await base.GetResponseAsync(call, options, cancellationToken);
 
         await run.AppendResponseAsync(response, options, streamed: false);
@@ -27,7 +27,7 @@ internal sealed class CheckpointChatClient(IChatClient inner) : DelegatingChatCl
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var run = Begin(options);
-        var call = await run.PrepareCallAsync(messages);
+        var call = await run.PrepareCallAsync(messages, cancellationToken);
         var updates = new List<ChatResponseUpdate>();
 
         // A stream that fails, is cancelled or is left early is stored with the updates that arrived. The tool loop

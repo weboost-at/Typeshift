@@ -79,7 +79,9 @@ the response before the conversation stores how the run ended.
 
 Before every model call inside the loop, the run appends the new steps to the conversation: tool results, input your
 app [steered](./conversations.md#steering) into the run, and the answers of sub-agents running
-[in the background](./multi-agent.md#in-the-background). Each model response is stored as it arrives, so a crash
+[in the background](./multi-agent.md#in-the-background). Steered input joins the run here, below run middleware, so
+the run shows it to each middleware's `OnSteeringAsync` before it takes it
+([Steering input](./middleware.md#steering-input)). Each model response is stored as it arrives, so a crash
 loses at most the calls in flight.
 
 When compaction is on and the estimate of a call reaches the maximum of input tokens, the run compacts what the model
@@ -91,7 +93,7 @@ text without white space ([Results](./toolsets.md#results)).
 
 | Step | Sees | Can |
 |---|---|---|
-| Run middleware | The agent, the messages, the options and the mode | Change the messages and options of this run, or answer in place of the model |
+| Run middleware | The agent, the messages, the options and the mode; each input steered into the run | Change the messages and options of this run, answer in place of the model, or drop or replace steered input |
 | Context provider | The run | Add instructions, messages and tools to this run |
 | Approval rule | Each call that requires approval, with the arguments the model sent | Approve it, reject it with a reason for the model, or abstain |
 | Tool middleware | Each tool call: the function, its arguments, the messages so far | Answer in place of the tool, or end the tool loop |

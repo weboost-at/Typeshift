@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Typeshift;
@@ -17,7 +18,12 @@ internal sealed class ConversationRun(
     TimeProvider time,
     ILogger logger)
 {
+    // The steering input and background answers as they arrived, which the run's middleware has not seen yet
     private readonly Queue<ChatMessage> _steering = new();
+
+    // D30, D51: what the run takes of them, in order, with its next model call or its end
+    private readonly List<ChatMessage> _taken = [];
+    private IRunMiddleware[]? _middleware;
 
     // Each steering input with the content it followed, so it goes back after it whatever moves ahead of it
     private readonly List<(AIContent? After, ChatMessage Message)> _injected = [];
@@ -112,8 +118,8 @@ internal sealed class ConversationRun(
         return true;
     }
 
-    // D51, D33: whether the run goes on: steering input waits, or a background sub-agent still works, whose answer
-    // the run waits for. A run that does not go on takes no more input
+    // D51, D33: whether the run goes on: steering input waits that run middleware let through, or a background
+    // sub-agent still works, whose answer the run waits for. A run that does not go on takes no more input
     public async Task<bool> GoesOnAsync(CancellationToken ct)
     {
         while (true)
@@ -121,14 +127,17 @@ internal sealed class ConversationRun(
             // Read before the queue: a sub-agent queues its answer before it counts itself done
             var working = !_background.IsEmpty;
 
+            await ScreenAsync(ct);
+
             lock (_steering)
             {
                 // D33, D80: while a batch waits, a background answer starts no model call, since the model would
                 // not see the calls that wait and would make them again. The answer is stored ahead of the run's
                 // end, and the model reads it once the batch is settled
-                if (_steering.Any(input => Asked is null || !IsBackgroundAnswer(input))) return true;
+                if (_taken.Any(input => Asked is null || !IsBackgroundAnswer(input))) return true;
 
-                if (!working)
+                // Input that arrived while the middleware saw the rest is seen before the run decides
+                if (_steering.Count == 0 && !working)
                 {
                     _closed = true;
                     return false;
@@ -143,16 +152,82 @@ internal sealed class ConversationRun(
     // handed to, behind what that agent has to hear of this run; the run takes no more
     public async Task CloseAsync(string? answering = null, IReadOnlyList<ChatMessage>? notes = null)
     {
-        List<ChatMessage> waiting;
-
         lock (_steering)
         {
             _closed = true;
-            waiting = [.. notes ?? [], .. _steering];
-            _steering.Clear();
         }
 
+        await ScreenLastAsync();
+
+        List<ChatMessage> waiting = [.. notes ?? [], .. _taken];
+        _taken.Clear();
+
         if (waiting.Count > 0) await AppendAsync(waiting, answering: answering);
+    }
+
+    // D30, D51: steering input meets the app's run middleware before the run takes it, in the order it arrived,
+    // the first registered first: each may drop it, or put another message in its place. A background agent's
+    // answer is none of the user's and passes as it is. Input whose middleware throws stays where it is, and the
+    // exception is the run's
+    private async Task ScreenAsync(CancellationToken ct)
+    {
+        while (true)
+        {
+            ChatMessage? input;
+
+            lock (_steering)
+            {
+                if (!_steering.TryPeek(out input)) return;
+            }
+
+            var taken = IsBackgroundAnswer(input) ? input : await OnSteeringAsync(input, ct);
+
+            // Only the run takes input off the queue, so its first is still the one the middleware saw
+            lock (_steering)
+            {
+                _steering.Dequeue();
+            }
+
+            if (taken is not null) _taken.Add(taken);
+        }
+    }
+
+    // The run is ending, whatever became of its token, and its end must be stored: input its middleware fails on
+    // is left out, since what no middleware judged must not reach the next run's model
+    private async Task ScreenLastAsync()
+    {
+        while (true)
+        {
+            try
+            {
+                await ScreenAsync(CancellationToken.None);
+                return;
+            }
+            catch (Exception exception)
+            {
+                LogEvents.SteeringNotStored(logger, exception, Conversation);
+                run.Activity?.AddException(exception);
+
+                lock (_steering)
+                {
+                    _steering.Dequeue();
+                }
+            }
+        }
+    }
+
+    private async ValueTask<ChatMessage?> OnSteeringAsync(ChatMessage input, CancellationToken ct)
+    {
+        _middleware ??= [.. run.Services.GetServices<IRunMiddleware>()];
+
+        foreach (var middleware in _middleware)
+        {
+            if (await middleware.OnSteeringAsync(run, input, ct) is not { } passed) return null;
+
+            input = passed;
+        }
+
+        return input;
     }
 
     // D33: a sub-agent working while the run goes on; its answer joins the run as a message before a later model
@@ -298,8 +373,8 @@ internal sealed class ConversationRun(
     }
 
     // The tool loop's list with the steering input put back where it went in; the steps not stored yet (tool results)
-    // are stored, then the steering input waiting is taken in and stored (D51)
-    public async Task<List<ChatMessage>> PrepareCallAsync(IEnumerable<ChatMessage> messages)
+    // are stored, then the steering input waiting is taken in, past run middleware (D30), and stored (D51)
+    public async Task<List<ChatMessage>> PrepareCallAsync(IEnumerable<ChatMessage> messages, CancellationToken ct)
     {
         var call = messages.ToList();
 
@@ -318,16 +393,15 @@ internal sealed class ConversationRun(
 
         if (steps.Count > streamed) await AppendAsync([.. steps.Skip(streamed)]);
 
-        var steering = new List<ChatMessage>();
+        await ScreenAsync(ct);
 
-        lock (_steering)
+        List<ChatMessage> steering = [.. _taken];
+        _taken.Clear();
+
+        foreach (var input in steering)
         {
-            while (_steering.TryDequeue(out var input))
-            {
-                _injected.Add((call.LastOrDefault()?.Contents.LastOrDefault(), input));
-                call.Add(input);
-                steering.Add(input);
-            }
+            _injected.Add((call.LastOrDefault()?.Contents.LastOrDefault(), input));
+            call.Add(input);
         }
 
         if (steering.Count > 0) await AppendAsync(steering);

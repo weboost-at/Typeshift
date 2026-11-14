@@ -128,6 +128,10 @@ All notable changes to this project are documented here. The format follows
   `AddTool(CloseTicket).WithSettings<CloseSettings>().Configurable(s => s.Notify).RequiresApproval()`. After a
   settings call they were a compiler error, CS1061, which read as if a tool with settings could not require
   approval.
+- `IRunMiddleware.OnSteeringAsync(run, input, ct)` shows a run middleware each input your app steers into a run with
+  `TrySteer`, before the model receives it and before the conversation stores it. It returns the input, another
+  message to take in its place, or null to drop it. The member has a default that lets the input pass, so a
+  middleware you wrote compiles as it is.
 
 ### Changed
 
@@ -643,6 +647,11 @@ All notable changes to this project are documented here. The format follows
   also one that lives in another class than its toolset, as shared tool methods do, and for a nullable
   `CancellationToken?`. Such a method warned for each of them, which failed a build that treats warnings as errors.
   A public method of a toolset or an agent that is no tool keeps its CS1573. It was hidden there.
+- Steering input passes run middleware. A guardrail in an `IRunMiddleware` saw the input that starts a run and
+  never the input steered into one, so a text it refused reached the model and the stored conversation when the user
+  sent it while an answer was under way. Implement `OnSteeringAsync` on such a middleware, since `InvokeAsync` still
+  does not find steered input among `run.Messages`. Input that a middleware drops starts no model call and expires
+  no decision.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

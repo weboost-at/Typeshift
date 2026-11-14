@@ -2,9 +2,11 @@ using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Approval.Support;
 using Typeshift.Tests.Compaction.Support;
 using Typeshift.Tests.Conversations.Support;
+using Typeshift.Tests.Middleware.Support;
 using Typeshift.Tests.MultiAgent.Support;
 using Typeshift.Tests.Testing.Fakes;
 using FluentAssertions;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -19,16 +21,20 @@ public class LogEventTests : MultiAgentTestBase
 
     private readonly RuleScript _rules = new();
 
+    private readonly MiddlewareScript _middleware = new();
+
     protected override void ConfigureServices(IServiceCollection services)
     {
         base.ConfigureServices(services);
 
         services.AddTypeshift()
             .WithApprovalRule<ScriptedRule>()
+            .WithRunMiddleware<FirstRunMiddleware>()
             .WithRealtimeTracking(new RealtimeTrackingOptions { MaxPendingUpdates = 1 });
 
         services.AddSingleton<ILoggerFactory>(_log);
         services.AddSingleton(_rules);
+        services.AddSingleton(_middleware);
     }
 
     [Fact]
@@ -95,6 +101,30 @@ public class LogEventTests : MultiAgentTestBase
         // Assert
         _log.Of("BackgroundAgentFailed").Should().ContainSingle(logged =>
             logged.Id.Id == 6
+            && logged.Level == LogLevel.Error
+            && logged.Category == Category
+            && logged.Exception!.Message == Data.Agent.Reason);
+    }
+
+    [Fact]
+    public async Task Given_A_Run_Middleware_That_Fails_On_Steering_Input_As_The_Run_Ends_The_Failure_Is_Logged()
+    {
+        // Arrange
+        _middleware.Steering[0] = _ => throw new InvalidOperationException(Data.Agent.Reason);
+
+        _middleware.Runs[0] = (run, _) =>
+        {
+            Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+            run.Response = new ChatResponse(new ChatMessage(ChatRole.Assistant, Data.Tool.Answer));
+            return Task.CompletedTask;
+        };
+
+        // Act
+        await Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        _log.Of("SteeringNotStored").Should().ContainSingle(logged =>
+            logged.Id.Id == 16
             && logged.Level == LogLevel.Error
             && logged.Category == Category
             && logged.Exception!.Message == Data.Agent.Reason);

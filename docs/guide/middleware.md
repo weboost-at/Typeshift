@@ -13,7 +13,7 @@ context provider, such as a memory, adds instructions, messages or tools only to
 ### Wrap every run
 
 An `IRunMiddleware` sees each run of every agent before the model does. This one answers in place of the model when
-the user asks about passwords:
+the user asks about passwords, and drops such a message when it is [steered](#steering-input) into a run:
 
 <!-- snippet: run-middleware -->
 <a id='snippet-run-middleware'></a>
@@ -22,7 +22,7 @@ internal sealed class BlockedTopics : IRunMiddleware
 {
     public Task InvokeAsync(AgentRun run, Func<Task> next, CancellationToken ct)
     {
-        if (run.Messages[^1].Text.Contains("password", StringComparison.OrdinalIgnoreCase))
+        if (IsBlocked(run.Messages[^1]))
         {
             run.Response = new ChatResponse(new ChatMessage(ChatRole.Assistant, "I can't help with passwords."));
             return Task.CompletedTask;
@@ -30,9 +30,15 @@ internal sealed class BlockedTopics : IRunMiddleware
 
         return next();
     }
+
+    public ValueTask<ChatMessage?> OnSteeringAsync(AgentRun run, ChatMessage input, CancellationToken ct) =>
+        ValueTask.FromResult(IsBlocked(input) ? null : input);
+
+    private static bool IsBlocked(ChatMessage message) =>
+        message.Text.Contains("password", StringComparison.OrdinalIgnoreCase);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/BlockedTopics.cs#L5-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-middleware' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/BlockedTopics.cs#L5-L25' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-middleware' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 An `IRunMiddleware` receives the run as an `AgentRun`:
@@ -40,7 +46,7 @@ An `IRunMiddleware` receives the run as an `AgentRun`:
 | Member | Holds |
 |---|---|
 | `Agent` | The agent that runs, such as its `Name`. |
-| `Messages` | What the model receives: the resumed conversation, then the input. |
+| `Messages` | The resumed conversation, then the input, as the pass began. What context providers add and steering input join the run below run middleware, so they are not among them. |
 | `Options` | The run's resolved `ChatOptions`, with every layer of settings applied. |
 | `Provider` | The [provider](./models.md#registering-clients) that serves the run, as the agent's code or its settings name it; null on the default client. Read-only: the run's client is taken before middleware runs, so a model your middleware sets in `Options` goes to this provider. |
 | `Mode` | The mode the run is in. |
@@ -56,6 +62,28 @@ when it should act on some of them only.
 Set `run.Response` and skip `next`, as `BlockedTopics` does above, and the middleware answers in place of the model.
 The conversation stores that answer. If your middleware returns without calling `next` or setting `run.Response`,
 the run throws an `InvalidOperationException`.
+
+### Steering input
+
+[Steering](./conversations.md#steering) hands input to a run while it works. That input joins the run inside the
+tool loop, with the next model call, so `InvokeAsync` never finds it in `run.Messages`. The run shows it to
+`OnSteeringAsync` instead, before it takes it: return the input to let it pass, another message to take in its
+place, or `null` to drop it. `BlockedTopics` above drops a message about passwords, so the same text is refused
+whether it starts a run or is steered into one.
+
+- What `OnSteeringAsync` returns is what the run takes: the model receives that message, and the conversation stores
+  it. Input it drops reaches neither, and starts no model call.
+- Each middleware sees the input in the order you registered them, and the next one sees what the one before
+  returned.
+- Input that still waits when a run ends is stored for the next run, and passes `OnSteeringAsync` before it is.
+- An exception it throws fails the run. If it throws while the run is ending, the input is not stored, and
+  Typeshift logs the failure ([Logs](./observability.md#logs)).
+- The answer of a [background sub-agent](./multi-agent.md#in-the-background) is no steering input, and is not shown.
+
+::: warning A guardrail checks steered input too
+Unless a middleware implements `OnSteeringAsync`, steered input passes. A guardrail that only checks
+`run.Messages` in `InvokeAsync` therefore misses everything a user sends while an answer is under way.
+:::
 
 ### Streaming runs
 

@@ -245,6 +245,11 @@ channel. Below it, `ContextChatClient` asks the agent's providers and adds their
 a copy of the options. It marks those messages as stored, so the checkpoints leave them out. Tool middleware is
 `FunctionInvokingChatClient`'s function invoker (D30, D31).
 
+Steering input joins a run below `RunMiddlewareChatClient`, at the checkpoints. `ConversationRun` therefore shows it
+to each middleware's `OnSteeringAsync` itself before it takes it, in three places: when the run decides whether it
+goes on, before each model call, and before it stores what still waits at its end or its handoff. What the
+middleware returns is what the run injects and stores (D30, D51).
+
 ## Telemetry and compaction
 
 `ConversationChatClient` opens each run's `invoke_agent` span, on which `ConversationRun` records the decisions the

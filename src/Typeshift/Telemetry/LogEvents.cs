@@ -112,4 +112,11 @@ internal static partial class LogEvents
 
     [LoggerMessage(15, LogLevel.Debug, "Agent {Agent} handed conversation {Conversation} off to {Target}.")]
     public static partial void HandedOff(ILogger logger, string agent, StoreId? conversation, string target);
+
+    [LoggerMessage(
+        16,
+        LogLevel.Error,
+        "Conversation {Conversation} is stored without steering input a run middleware failed on while the run "
+        + "ended.")]
+    public static partial void SteeringNotStored(ILogger logger, Exception exception, StoreId? conversation);
 }

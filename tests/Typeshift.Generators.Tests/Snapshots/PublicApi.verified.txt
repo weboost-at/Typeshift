@@ -361,6 +361,7 @@ public interface Typeshift.IMcpToolProvider
 abstract System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<Microsoft.Extensions.AI.AITool>> Typeshift.IMcpToolProvider.GetToolsAsync(string server, System.Threading.CancellationToken ct)
 public interface Typeshift.IRunMiddleware
 abstract System.Threading.Tasks.Task Typeshift.IRunMiddleware.InvokeAsync(Typeshift.AgentRun run, System.Func<System.Threading.Tasks.Task> next, System.Threading.CancellationToken ct)
+System.Threading.Tasks.ValueTask<Microsoft.Extensions.AI.ChatMessage?> Typeshift.IRunMiddleware.OnSteeringAsync(Typeshift.AgentRun run, Microsoft.Extensions.AI.ChatMessage input, System.Threading.CancellationToken ct)
 public interface Typeshift.ISettingsStore<TId> where TId : notnull
 abstract System.Threading.Tasks.Task<Typeshift.StoredDocument?> Typeshift.ISettingsStore<TId>.LoadAsync(TId id, string kind, System.Threading.CancellationToken ct)
 abstract System.Threading.Tasks.Task<long> Typeshift.ISettingsStore<TId>.SaveAsync(TId id, string kind, string json, long loadedVersion, System.Threading.CancellationToken ct)

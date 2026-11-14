@@ -598,9 +598,22 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   run the middleware awaits `next` while the updates go on to the caller through a channel, which reads the model's
   stream ahead of a slow caller. A steered run passes through again for steering input that arrives after its
   answer.
-- **Where:** `Middleware/`, `FunctionInvokingChatClient.FunctionInvoker` for tool middleware.
+  Steering input joins a run below run middleware, inside the tool loop (D51), so `InvokeAsync` never has it among
+  its messages. The interface has a second member for it, `OnSteeringAsync(run, input, ct)`, with a default that
+  lets the input pass: every registered middleware sees steering input in order before the run takes it, and
+  returns it, another message in its place, or null to drop it. What it returns is what the run takes, sent to the
+  model and stored: unlike a run's input, nothing of it is stored before middleware sees it, and input that was
+  dropped and stored all the same would reach the next run's model. Input that is dropped starts no pass. Input
+  that waits at a run's end or its handoff is shown too before it is stored, and when a middleware throws there
+  the input is left out and the failure logged, since the run's end must be stored and what no middleware judged
+  must not reach a model. A background agent's answer is none of the user's input and is not shown.
+- **Where:** `Middleware/`, `FunctionInvokingChatClient.FunctionInvoker` for tool middleware,
+  `Conversations/ConversationRun.cs` (steering input).
 - **Alternatives:** MAF's separate run and streaming delegates (streaming falls back to non-streaming when one is
-  missing); per-agent middleware in the agent's chain, a second place.
+  missing); per-agent middleware in the agent's chain, a second place; for steering input, starting a pass for
+  each one, so that `InvokeAsync` finds it as the pass's last message, which would keep it from the next model
+  call inside a tool loop (D51); and leaving the check to the app, before it calls `TrySteer`, a second place for
+  every guardrail.
 
 ### D31. Context providers
 
@@ -1594,8 +1607,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - **Status:** owner.
 - **Decision:** `ConversationTracker.TrySteer(conversation, input)` hands input to the run of the conversation going
-  on in this process; the checkpoint layer injects it before the run's next model call and stores it, and the run
-  does not end while steering input waits. It returns false when no run of the conversation is going on in this
+  on in this process; the checkpoint layer injects it before the run's next model call and stores it, once run
+  middleware let it through (D30), and the run does not end while such input waits. It returns false when no run of the conversation is going on in this
   process, or once the run has decided to end, and the host starts a run with the input instead. Stopping a run is
   cancelling its token. Steering input goes in after the message the tool loop's messages ended with when it
   arrived, found by reference in every later call of the run, so context that grows between passes cannot move it

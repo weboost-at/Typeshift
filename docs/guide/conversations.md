@@ -226,7 +226,8 @@ conversations the caller may see before you return them from an endpoint.
 
 `TrySteer` hands new input to a conversation's run while it works, for example when a user adds a request halfway
 through. The model receives it before its next call, and the run does not end before then. The input is stored like
-any other. When the run had asked your app before it took the input, its decisions expire, as they would for a new
+any other. Your run middleware sees it first and may drop or replace it
+([Steering input](./middleware.md#steering-input)). When the run had asked your app before it took the input, its decisions expire, as they would for a new
 message: the model reads that those calls did not run, and the run's response lists no decision
 ([When a decision closes](./tool-approval.md#when-a-decision-closes)).
 

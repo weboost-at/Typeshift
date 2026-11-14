@@ -279,6 +279,204 @@ public class RunMiddlewareTests : MiddlewareTestBase
     }
 
     [Fact]
+    public async Task Given_Steering_Input_The_Middleware_Sees_It_Before_The_Model()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(gate, Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.FollowUp));
+
+        var run = RunAsync(Data.Tool.Question);
+        await ChatClient.Requested;
+        Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+
+        // Act
+        gate.SetResult();
+        await run;
+
+        // Assert
+        Script.Log.Should().Equal(
+            "run 0 before",
+            "run 1 before",
+            $"run 1 after: {Data.Tool.Answer}",
+            $"run 0 after: {Data.Tool.Answer}",
+            $"steering 0: {Data.Agent.Steering}",
+            $"steering 1: {Data.Agent.Steering}",
+            "run 0 before",
+            "run 1 before",
+            $"run 1 after: {Data.Agent.FollowUp}",
+            $"run 0 after: {Data.Agent.FollowUp}");
+    }
+
+    [Fact]
+    public async Task Given_A_Middleware_That_Replaces_Steering_Input_The_Model_And_The_Store_Get_Its_Message()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+        Script.Steering[0] = _ => new ChatMessage(ChatRole.User, Data.Agent.CompanyName);
+
+        ChatClient
+            .Reply(gate, Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.FollowUp));
+
+        var run = RunAsync(Data.Tool.Question);
+        await ChatClient.Requested;
+        Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+
+        // Act
+        gate.SetResult();
+        await run;
+
+        // Assert
+        ChatClient.Requests[1].Select(message => message.Text)
+            .Should()
+            .Equal(Data.Tool.Question, Data.Tool.Answer, Data.Agent.CompanyName);
+
+        (await StoredTextsAsync())
+            .Should()
+            .Equal(Data.Tool.Question, Data.Tool.Answer, Data.Agent.CompanyName, Data.Agent.FollowUp);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Middleware_That_Drops_Steering_Input_It_Reaches_Neither_The_Model_Nor_The_Store(
+        bool streaming)
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+        Script.Steering[0] = _ => null;
+
+        ChatClient
+            .Reply(gate, Call(Data.Tool.CallId, "note", ("text", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var run = RunAsync(Data.Tool.Question, settings: null, streaming);
+        await ChatClient.Requested;
+        Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+
+        // Act
+        gate.SetResult();
+        await run;
+
+        // Assert
+        ChatClient.Requests[1].Select(message => message.Text).Should().NotContain(Data.Agent.Steering);
+        (await StoredTextsAsync()).Should().NotContain(Data.Agent.Steering);
+    }
+
+    [Fact]
+    public async Task Given_A_Guardrail_The_Same_Text_Steered_Never_Reaches_The_Model()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+        var blocked = $"{Data.Agent.Steering} password";
+
+        Script.Runs[0] = (run, next) => run.Messages[^1].Text.Contains("password") ? Refuse(run) : next();
+        Script.Steering[0] = input => input.Text.Contains("password") ? null : input;
+
+        ChatClient
+            .Reply(gate, Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.FollowUp));
+
+        var run = RunAsync(Data.Tool.Question);
+        await ChatClient.Requested;
+        Tracker.TrySteer(Data.Agent.ConversationId, blocked);
+
+        // Act
+        gate.SetResult();
+        await run;
+
+        // Assert
+        ChatClient.Requests.SelectMany(request => request).Select(message => message.Text).Should().NotContain(blocked);
+    }
+
+    [Fact]
+    public async Task Given_Steering_Input_Dropped_After_The_Answer_The_Run_Ends_Without_Another_Model_Call()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+        Script.Steering[0] = _ => null;
+
+        ChatClient.Reply(gate, Text(Data.Tool.Answer));
+
+        var run = RunAsync(Data.Tool.Question);
+        await ChatClient.Requested;
+        Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+
+        // Act
+        gate.SetResult();
+        var response = await run;
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
+        ChatClient.Requests.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Given_A_Middleware_That_Drops_Steering_Input_A_Run_That_Ends_Before_Taking_It_Does_Not_Store_It()
+    {
+        // Arrange
+        Script.Steering[0] = _ => null;
+
+        Script.Runs[0] = (run, _) =>
+        {
+            Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+            return Refuse(run);
+        };
+
+        // Act
+        await RunAsync(Data.Tool.Question);
+
+        // Assert
+        (await StoredTextsAsync()).Should().Equal(Data.Tool.Question, Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_A_Middleware_That_Drops_Steering_Input_After_The_Run_Asked_The_Decision_Stays_Open()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+        Script.Steering[0] = _ => null;
+
+        ChatClient.Reply(gate, Call(Data.Tool.CallId, "close_ticket", ("number", Data.Agent.Ticket.Default)));
+
+        var run = RunAsync(Data.Tool.Question);
+        await ChatClient.Requested;
+        Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+
+        // Act
+        gate.SetResult();
+        var response = await run;
+
+        // Assert
+        response.Decisions.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Given_A_Middleware_That_Fails_On_Steering_Input_The_Run_Fails_And_The_Input_Is_Not_Stored()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+        Script.Steering[0] = _ => throw new InvalidOperationException(Data.Agent.Reason);
+
+        ChatClient.Reply(gate, Text(Data.Tool.Answer));
+
+        var run = RunAsync(Data.Tool.Question);
+        await ChatClient.Requested;
+        Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+
+        // Act
+        gate.SetResult();
+        var failed = await Record.ExceptionAsync(() => run);
+
+        // Assert
+        failed.Should().BeOfType<InvalidOperationException>();
+        (await StoredTextsAsync()).Should().NotContain(Data.Agent.Steering);
+    }
+
+    [Fact]
     public async Task Given_Middleware_That_Prepends_A_Message_An_Approval_Still_Runs_The_Stored_Call()
     {
         // Arrange
@@ -339,4 +537,19 @@ public class RunMiddlewareTests : MiddlewareTestBase
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*next*");
     }
+
+    // Answers in place of the model, as a guardrail does
+    private Task Refuse(AgentRun run)
+    {
+        run.Response = new ChatResponse(new ChatMessage(ChatRole.Assistant, Data.Tool.Answer));
+        return Task.CompletedTask;
+    }
+
+    // The text of each message the conversation stores, in order
+    private async Task<List<string>> StoredTextsAsync() =>
+    [
+        .. (await EntriesAsync(Data.Agent.ConversationId))
+            .SelectMany(entry => entry.Messages)
+            .Select(message => message.Text)
+    ];
 }
