@@ -23,7 +23,6 @@ internal partial class CodingAgent : Agent
             .WithMaxToolIterations(500)
             .WithMaxInputTokens(150_000)
             .WithSummaryModel("claude-haiku-5-5")
-            .Configurable(r => r.Mode)
             .Configurable(r => r.MaxToolIterations)
             .Configurable(r => r.SummaryModel);
         // end-snippet

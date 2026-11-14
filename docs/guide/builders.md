@@ -119,7 +119,9 @@ the client receives, so the provider's default applies:
 ## RunOptionsBuilder
 
 `WithRunOptions()` sets how a run goes: its mode, the limits of its tool loop and when its history is compacted. Every
-run option may be configurable: `Configurable(r => r.X)` puts it into the agent's `Settings`, like a chat option.
+run option may be configurable: `Configurable(r => r.X)` puts it into the agent's `Settings`, like a chat option. A
+configurable mode lets those settings name `Auto`, so the analyzer warns about it on an agent with tools that
+require approval ([TSH037](./diagnostics.md#tsh037)).
 
 | Call | Default | Does |
 |---|---|---|

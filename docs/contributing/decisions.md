@@ -1422,6 +1422,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   stored on the run's ending entry and on a summary; a run whose settings name a mode switches it. Plan mode appends a
   short instruction to research, then call `exit_plan_mode`. Sub-agents run in their caller's mode; plan mode offers
   them, and in it a sub-agent gets its read-only tools and no `exit_plan_mode`, and answers its caller.
+- **A configurable mode:** `Configurable(r => r.Mode)` makes the mode a member of the agent's `Settings`, so
+  settings that are stored per customer or posted by a page can name `Auto`. The owner kept the mode configurable
+  and chose a warning: TSH037 reports the pick on an agent that offers a tool or an MCP server that requires
+  approval. A rule's rejection holds in every mode, which is the fix the message names beside removing the pick.
 - **Where:** `Agents/RunOptions.cs`, `Decisions/ExitPlanModeFunction.cs`, `Approval/ModeChatClient.cs`, the gate of
   D81.
 - **Alternatives:** modes as tools the model calls (MAF's `mode_get`/`mode_set`), which lets the model leave plan

@@ -33,6 +33,8 @@ public sealed class ScriptedMcpToolProvider(ScriptedServers servers) : IMcpToolP
         ValueTask.FromResult<IReadOnlyList<AITool>>(servers.GetValueOrDefault(server) ?? []);
 }
 
+// The tests name plan mode in a run's settings, to see which of the servers' tools it offers
+#pragma warning disable TSH037
 public partial class McpAgent : Agent
 {
     public McpAgent()
@@ -48,3 +50,4 @@ public partial class McpAgent : Agent
         UseMcpServer("deploy").RequiresApproval();
     }
 }
+#pragma warning restore TSH037

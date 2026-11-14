@@ -251,7 +251,6 @@ internal partial class CodingAgent : Agent
             .WithMaxToolIterations(500)
             .WithMaxInputTokens(150_000)
             .WithSummaryModel("claude-haiku-5-5")
-            .Configurable(r => r.Mode)
             .Configurable(r => r.MaxToolIterations)
             .Configurable(r => r.SummaryModel);
     }
@@ -262,7 +261,7 @@ internal partial class CodingAgent : Agent
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L37' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 </details>

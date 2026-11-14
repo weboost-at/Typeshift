@@ -1078,6 +1078,45 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string ConfigurableModeBesideAToolThatNeedsApproval =
+        """
+        using Typeshift;
+
+        internal partial class TicketToolset : Toolset
+        {
+            public TicketToolset() => AddTool(Close).WithDescription("Closes a ticket.").RequiresApproval();
+
+            public static void Close(int number)
+            {
+            }
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseToolset<TicketToolset>();
+
+                WithRunOptions().Configurable(r => r.Mode);
+            }
+        }
+        """;
+
+    public const string ConfigurableModeBesideAServerThatNeedsApproval =
+        """
+        using Typeshift;
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseMcpServer("deploy").RequiresApproval();
+
+                WithRunOptions().Configurable(r => r.Mode);
+            }
+        }
+        """;
+
     public const string AgentToolNamedLikeAToolsets =
         """
         using Typeshift;

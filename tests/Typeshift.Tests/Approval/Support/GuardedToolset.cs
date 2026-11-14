@@ -50,6 +50,8 @@ public partial class GuardedToolset : Toolset
     }
 }
 
+// A mode a run's settings name, the auto mode included, beside a tool behind approval is what the tests are about
+#pragma warning disable TSH037
 public partial class GuardedAgent : Agent
 {
     public GuardedAgent()
@@ -64,3 +66,4 @@ public partial class GuardedAgent : Agent
         UseToolset<GuardedToolset>();
     }
 }
+#pragma warning restore TSH037

@@ -545,6 +545,29 @@ public static class ShapeSources
         }
         """;
 
+    public const string ConfigurableModeWithoutToolsThatNeedApproval =
+        """
+        using Typeshift;
+
+        internal partial class TicketToolset : Toolset
+        {
+            public TicketToolset() => AddTool(Read).WithDescription("Reads a ticket.").ReadOnly();
+
+            public static string Read(int number) => "";
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseToolset<TicketToolset>();
+                UseMcpServer("status").ReadOnly();
+
+                WithRunOptions().WithMode(AgentMode.Plan).Configurable(r => r.Mode);
+            }
+        }
+        """;
+
     public const string DescriptionOfMarkup =
         """
         using Typeshift;

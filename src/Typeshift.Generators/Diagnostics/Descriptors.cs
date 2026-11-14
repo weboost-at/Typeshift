@@ -197,6 +197,13 @@ internal static class Descriptors
         + "'{2}' that asks your app fails: implement IDecisionStore<{1}> in the store, or add a store that does with "
         + "WithStore<T>()");
 
+    public static readonly DiagnosticDescriptor ConfigurableModeBesideApproval = Warning(
+        "TSH037",
+        "Configurable mode can turn approval off",
+        "'{0}' makes its mode configurable and offers tools that require approval ({1}), so settings that are stored "
+        + "or posted can put a run in auto mode, where those calls run unasked: keep Mode out of the agent's "
+        + "settings, or reject what must never run in an approval rule");
+
     private static DiagnosticDescriptor Error(string id, string title, string message) =>
         Create(id, title, message, DiagnosticSeverity.Error);
 

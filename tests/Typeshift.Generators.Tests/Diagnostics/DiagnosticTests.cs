@@ -1261,6 +1261,45 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Configurable_Mode_Beside_A_Tool_That_Needs_Approval_TSH037_Is_Reported_On_The_Pick()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ConfigurableModeBesideAToolThatNeedsApproval);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH037",
+            DiagnosticSeverity.Warning,
+            "r => r.Mode",
+            message: "'DeskAgent' makes its mode configurable and offers tools that require approval (close), so "
+                + "settings that are stored or posted can put a run in auto mode, where those calls run unasked: keep "
+                + "Mode out of the agent's settings, or reject what must never run in an approval rule");
+    }
+
+    [Fact]
+    public void Given_A_Configurable_Mode_Beside_A_Server_That_Needs_Approval_TSH037_Is_Reported_On_The_Pick()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ConfigurableModeBesideAServerThatNeedsApproval);
+
+        // Assert
+        run.Assert.Reports("TSH037", DiagnosticSeverity.Warning, "r => r.Mode")
+            .GetMessage()
+            .Should()
+            .Contain("(the tools of an MCP server)");
+    }
+
+    [Fact]
+    public void Given_A_Configurable_Mode_Without_Tools_That_Need_Approval_TSH037_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(ShapeSources.ConfigurableModeWithoutToolsThatNeedApproval);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH037");
+    }
+
+    [Fact]
     public void Given_Two_Agents_Calling_Each_Other_TSH026_Is_Reported_On_Both_Uses()
     {
         // Act

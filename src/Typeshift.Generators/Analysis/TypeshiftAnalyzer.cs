@@ -55,7 +55,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.ReadDifferently,
         Descriptors.SubAgentAsksUser,
         Descriptors.ReservedToolName,
-        Descriptors.ConversationsWithoutDecisions
+        Descriptors.ConversationsWithoutDecisions,
+        Descriptors.ConfigurableModeBesideApproval
     ];
 
     public override void Initialize(AnalysisContext context)
@@ -596,6 +597,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             }
 
             ReportNamesOfferedTwice(context, agents[type], toolsets, ResolveTarget);
+            ReportConfigurableMode(context, agents[type], toolsets);
         }
 
         ReportClashesAcrossHandoffs(context, agents, ResolveTarget, [.. found.OwnTools]);
@@ -697,6 +699,27 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
                 use.Syntax.GetLocation(),
                 $"The tool name '{name}'"));
         }
+    }
+
+    // D52: a configurable mode is a member of the agent's Settings, so settings that are stored or posted can name
+    // auto mode, in which the agent's tools that require approval run unasked
+    private static void ReportConfigurableMode(
+        CompilationAnalysisContext context,
+        FoundAgent agent,
+        IReadOnlyList<ToolsetSummary> toolsets)
+    {
+        if (agent.Asks.ModePick is not { } pick) return;
+
+        var guarded = Catalog.Summarize(Catalog.Resolve(agent.Model, toolsets)).ApprovalTools.ToList();
+
+        if (agent.Asks.ServersAsk) guarded.Add("the tools of an MCP server");
+        if (guarded.Count == 0) return;
+
+        context.ReportDiagnostic(Diagnostic.Create(
+            Descriptors.ConfigurableModeBesideApproval,
+            pick.GetLocation(),
+            agent.Type.Name,
+            string.Join(", ", guarded)));
     }
 
     // D13, D33, D57: a standing approval names its tool and reaches every agent a handoff passes the conversation to

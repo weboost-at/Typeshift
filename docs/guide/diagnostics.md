@@ -46,6 +46,7 @@ a compiler error inside generated code.
 | [TSH034](#tsh034) | Warning | Sub-agent cannot ask the user |
 | [TSH035](#tsh035) | Error | Tool name is reserved |
 | [TSH036](#tsh036) | Warning | Conversation store keeps no decisions |
+| [TSH037](#tsh037) | Warning | Configurable mode can turn approval off |
 
 TSH021 is retired: the diagnostic it named is gone, and ids are never reused.
 
@@ -425,6 +426,18 @@ or `ITypeshiftStore<TId>`, which includes it, or add a store of decisions to the
 
 The analyzer sees the `WithStore<T>()` calls of one chain only. When another part of your app registers the store
 of decisions, in the container or in another chain, disable the warning where it is reported.
+
+## TSH037
+
+**Configurable mode can turn approval off.** `Configurable(r => r.Mode)` puts the agent's
+[mode](./tool-approval.md#the-three-modes) into its `Settings`, and the agent offers tools that require approval, of
+a toolset, of its own or of an MCP server. Whoever can store or post those settings can then name `Auto`, and in
+auto mode those tools run without asking your app. Remove the pick, so that only your code sets the mode with
+`WithMode(...)` and an approved plan switches it. For calls that must never run unasked, write an
+[approval rule](./tool-approval.md#approval-rules), because a rule's rejection holds in every mode.
+
+Keep the pick, and disable the warning there, only when every source of the agent's settings is your own code, for
+example a run that passes `Mode = AgentMode.Plan` and no settings that a customer stores or a page posts.
 
 ## Related
 

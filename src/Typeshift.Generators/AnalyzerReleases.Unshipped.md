@@ -40,3 +40,4 @@ TSH033 | Typeshift | Warning | Enum of a tool is a number for Native AOT or a tr
 TSH034 | Typeshift | Warning | Sub-agent cannot ask the user
 TSH035 | Typeshift | Error | Tool name is reserved
 TSH036 | Typeshift | Warning | Conversation store keeps no decisions
+TSH037 | Typeshift | Warning | Configurable mode can turn approval off

@@ -394,11 +394,10 @@ WithRunOptions()
     .WithMaxToolIterations(500)
     .WithMaxInputTokens(150_000)
     .WithSummaryModel("claude-haiku-5-5")
-    .Configurable(r => r.Mode)
     .Configurable(r => r.MaxToolIterations)
     .Configurable(r => r.SummaryModel);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L20-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-long-running-options' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L20-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-long-running-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 With `Configurable(r => r.SummaryModel)`, stored settings or a run may name another provider for it too:

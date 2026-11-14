@@ -312,8 +312,16 @@ the run name a mode, which switches the conversation to it.
 
 ::: warning A conversation stays in the mode it ended in
 After your app approves a plan with `Approve(AgentMode.Auto)`, later runs of the conversation run in auto mode,
-whatever mode the agent's code starts runs in. To switch back, pass a mode in a run's settings. That needs
-`Configurable(r => r.Mode)`, so add it to every agent that can enter plan mode.
+whatever mode the agent's code starts runs in. To switch back, pass a mode in a run's settings, which needs
+`Configurable(r => r.Mode)`.
+:::
+
+::: danger A configurable mode lets settings turn approval off
+With `Configurable(r => r.Mode)`, the mode is a member of the agent's `Settings`. Settings that a customer stores or
+a page posts can then name `Auto`, in which tools that require approval run unasked. The analyzer warns about an
+agent that makes its mode configurable and offers such tools ([TSH037](./diagnostics.md#tsh037)). Pass a mode only
+in settings your own code builds, as the run above does, and reject in an [approval rule](#approval-rules) what must
+never run unasked.
 :::
 
 ## Plan mode

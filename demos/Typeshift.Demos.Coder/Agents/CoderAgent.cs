@@ -33,7 +33,6 @@ internal partial class CoderAgent : Agent
             .WithMaxToolIterations(120)
             .WithMaxInputTokens(24_000)
             .WithTargetInputTokens(12_000)
-            .Configurable(r => r.Mode)
             .Configurable(r => r.MaxToolIterations)
             .Configurable(r => r.MaxInputTokens);
 

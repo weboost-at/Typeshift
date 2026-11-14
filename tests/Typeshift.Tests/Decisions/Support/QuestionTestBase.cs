@@ -60,7 +60,9 @@ public abstract class QuestionTestBase : ApprovalTestBase
         Asking.AnswerAsync(answers, ct: Ct);
 }
 
-// Asks the user, beside a tool behind approval, one that reads and one that does neither
+// Asks the user, beside a tool behind approval, one that reads and one that does neither. The tests name the mode
+// of a run in its settings, to see that it asks in plan mode and in auto mode too
+#pragma warning disable TSH037
 public partial class AskingAgent : Agent
 {
     public AskingAgent()
@@ -76,6 +78,7 @@ public partial class AskingAgent : Agent
         UseQuestions();
     }
 }
+#pragma warning restore TSH037
 
 // Would ask the user, and runs as a sub-agent, on the helper's model
 public partial class AskingHelperAgent : Agent

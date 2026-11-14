@@ -72,9 +72,6 @@ internal partial class BillingAgent : Agent
         UseContext<CustomerContext>();
 
         UseHandoff<SupportAgent>();
-
-        WithRunOptions()
-            .Configurable(r => r.Mode);
     }
 
     protected override string GetInstructions() =>
