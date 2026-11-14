@@ -47,6 +47,7 @@ The `invoke_agent` span carries these tags:
 | `gen_ai.request.model` | The model the run asks for |
 | `gen_ai.conversation.id` | The conversation's id, when the run has one |
 | `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens` | The run's token usage |
+| `typeshift.decisions.asked` | The number of [decisions](#decisions) the run asked your app, when it asked any |
 | `error.type` | The exception's type, when the run fails; the span's status is then an error |
 
 ::: warning A failed save does not fail the run
@@ -54,10 +55,6 @@ When the store fails to save an entry, the run goes on. Typeshift logs the failu
 exception on the run's span, so watch your logs or spans for it. Only what a run asks your app must be saved: a run
 that could not store it fails, with the store's exception on its span.
 :::
-
-A run that ends asking your app is no failure. Its span has no error and no `execute_tool` span for the calls that
-wait; those appear under the run that carries your app's answers out
-([Approval and modes](./tool-approval.md#how-approval-works)).
 
 A compaction summary that fails does not fail the run either: Typeshift logs a warning, records the exception on the
 run's span, and goes on as [The summary model](./models.md#the-summary-model) describes.
@@ -72,6 +69,35 @@ A `chat` span names the backend that answered its call. Its `gen_ai.provider.nam
 `server.port` come from the `ChatClientMetadata` of the client the run got, which each provider's client library
 fills in. When [your own provider](./models.md#your-own-provider) returns a client per customer, each customer's
 calls therefore show that customer's endpoint, also when all of them run under one provider id.
+
+## Decisions
+
+A run that ends asking your app is no failure. Its span has no error and no `execute_tool` span for the calls that
+wait; those appear under the run that carries your app's answers out
+([Approval and modes](./tool-approval.md#how-approval-works)). What the run asks, and what becomes of it, are events
+on the `invoke_agent` spans:
+
+| Event | Added by | For |
+|---|---|---|
+| `typeshift.decision.asked` | The run that asks | Each decision: a tool call that needs approval, a plan, or questions to the user |
+| `typeshift.decision.settled` | The run that carries the answers out, or the one whose input passed the decisions by | Each call of the model response that asked, the calls that waited beside a decision included |
+
+Both events name the call in `gen_ai.tool.name` and `gen_ai.tool.call.id`. A call with a decision also has the
+decision's id in `typeshift.decision.id`, the id your app answers by, and its kind in `typeshift.decision.kind`:
+`approval`, `plan` or `question`. A settled call has `typeshift.decision.outcome`:
+
+| Outcome | Means |
+|---|---|
+| `approved` | Your app approved the call or the plan. |
+| `rejected` | Your app rejected the call or the plan, or an approval rule rejected the call. |
+| `answered` | Your app answered the questions. |
+| `declined` | Your app declined the questions. |
+| `run` | The call needed no decision and waited beside one. It runs with the answers. |
+| `expired` | New input passed the decisions by, so the call did not run. |
+| `unknown` | An earlier run began to carry the answers out and stopped before the call's result was stored. |
+
+An `unknown` outcome is worth an alert, because nobody knows whether that call took effect
+([When a decision closes](./tool-approval.md#when-a-decision-closes)).
 
 ## Metrics
 
@@ -103,7 +129,10 @@ export OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=true
 
 The variable is read once per process, so set it before your app starts. The `chat` spans then carry the messages of
 their call, and each `execute_tool` span carries its call's arguments in `gen_ai.tool.call.arguments` and its result
-in `gen_ai.tool.call.result`.
+in `gen_ai.tool.call.result`. The events of a [decision](#decisions) follow the same switch, under the same two
+names: an asked decision then carries its call's arguments, which for questions are the questions, and a settled
+call that your app's answer stands in for carries what the model reads in the tool's place, such as a rejection's
+reason or the user's answers.
 
 An exception's message is no message content. The status of a failed `execute_tool` or `invoke_agent` span carries
 it whatever the variable says, and so does the entry that

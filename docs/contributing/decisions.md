@@ -684,6 +684,14 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   SDK ends the instruments of a disposed meter; one per client instance did the same for a provider that hands out a
   client per run or per tenant. The tool loop writes its `execute_tool` spans under the run's span, with that span's
   source. A store that fails records the exception on the run's span.
+- **Decisions:** a run that ends asking your app is no error. Its span counts what it asked in
+  `typeshift.decisions.asked` and carries a `typeshift.decision.asked` event for each decision, added once the
+  batch is saved; a batch that could not be saved fails the run and its span. The run that settles a batch adds a
+  `typeshift.decision.settled` event for each call it gives a result: the one that carries the answers out, the one
+  whose input expired the batch, or the one that repairs a batch another run started. Each names the call, the
+  decision's id and kind, and an outcome (`approved`, `rejected`, `answered`, `declined`, `run`, `expired`,
+  `unknown`). The call's arguments and the text the model reads in a call's place are content, so they join the
+  events only where the run's chat spans carry their messages.
 - **One per backend:** a backend is what the instrumentation reads once from a client's `ChatClientMetadata` and
   writes on every span and metric: the provider's name, the server's address and port, and the client's own model.
   That model names only the calls that name none, so it counts only for a run without a model, and the clients a

@@ -416,6 +416,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
         var results = DecisionResults.Message(expired.Calls.Select(call => (call.CallId, DecisionResults.Expired)));
 
+        Telemetry.Settled(run.Activity, expired, expired.Calls, repaired: false);
         if (await run.AppendAsync([results]) is null) await run.CloseAsync(expired);
         return results;
     }
@@ -652,6 +653,9 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             _ => null
         };
 
+        if (batch is not null && results is not null)
+            Telemetry.Settled(activity, batch, CallsOf(batch, results), repaired: batch.State is BatchState.Started);
+
         // D33: the background sub-agents of a run that stopped are lost; the model hears so, once
         input = [.. LostBackground(entries), .. input];
 
@@ -734,6 +738,14 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         return missing.Count == 0
             ? null
             : DecisionResults.Message(missing.Select(call => (call.CallId, result(call))));
+    }
+
+    // The calls of a batch that a message of results answers
+    private static IEnumerable<BatchCall> CallsOf(DecisionBatch batch, ChatMessage results)
+    {
+        var answered = results.Contents.OfType<FunctionResultContent>().Select(result => result.CallId).ToHashSet();
+
+        return batch.Calls.Where(call => answered.Contains(call.CallId));
     }
 
     // D32: the last model call the conversation holds both compaction's estimate and the provider's report of. A

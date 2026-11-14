@@ -38,6 +38,11 @@ All notable changes to this project are documented here. The format follows
   of the tools a run offers itself. The model saw two tools of one name, or the tool never ran.
 - TSH036 warns about a `WithStore<T>()` whose store keeps conversations while no store of the same chain keeps
   their decisions, when an agent of the project can ask your app. The first run that asked failed at run time.
+- A run's `invoke_agent` span records its decisions: `typeshift.decisions.asked` counts what the run asked, a
+  `typeshift.decision.asked` event names each decision with its id, its kind and its tool, and the run that
+  settles them adds a `typeshift.decision.settled` event for each call with its outcome, such as `approved`,
+  `rejected`, `answered`, `expired` or `unknown`. The events carry the call's arguments and your app's answers
+  only where message content is captured.
 - `host.GetDecisionsAsync()` loads what a conversation waits for without a run, for a page that was reloaded: the
   open decisions, whether the answered ones wait to be carried out, and the tools approved for the conversation,
   each with the time the approval took effect. `host.RecordAnswersAsync(answers)` records answers without a run,

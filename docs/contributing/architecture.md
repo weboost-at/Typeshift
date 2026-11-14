@@ -199,7 +199,8 @@ a copy of the options. It marks those messages as stored, so the checkpoints lea
 
 ## Telemetry and compaction
 
-`ConversationChatClient` opens each run's `invoke_agent` span. `InstrumentedClients` keeps one Microsoft.Extensions.AI
+`ConversationChatClient` opens each run's `invoke_agent` span, on which `ConversationRun` records the decisions the
+run asks and what becomes of the calls of a batch it settles. `InstrumentedClients` keeps one Microsoft.Extensions.AI
 `OpenTelemetryChatClient` per backend, which passes each call on to the client its run got. The tool loop
 writes its tool spans under the run's span, which a streaming run makes current again before it asks for each update
 (D36).

@@ -71,6 +71,9 @@ internal sealed class ConversationRun(
 
     public TimeProvider Time => time;
 
+    // D36: the run's span, which carries what the run asks your app and what becomes of a batch it settles
+    public System.Diagnostics.Activity? Activity => run.Activity;
+
     // D80: the batch this run opened, which waits for your app. The run ends with it, unless steering input passes
     // it by first
     public DecisionBatch? Asked { get; private set; }
@@ -224,6 +227,7 @@ internal sealed class ConversationRun(
     {
         await ledger.OpenAsync(Conversation!, batch, CancellationToken.None);
         Asked = batch;
+        Telemetry.Asked(run.Activity, batch);
     }
 
     // The batch the run asked is expired or answered: it waits for nobody any more
@@ -245,6 +249,7 @@ internal sealed class ConversationRun(
 
         MarkStored([calls]);
         _replay = new ChatResponse(calls);
+        Telemetry.Settled(run.Activity, started, started.Calls, repaired: false);
     }
 
     public ChatResponse? TakeReplay() => Interlocked.Exchange(ref _replay, null);
