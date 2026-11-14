@@ -13,8 +13,10 @@ internal abstract record ProviderId
     // The interface that serves the provider, for the message of a run no client serves
     public abstract string Contract { get; }
 
-    // Null when no IChatClientProvider of the provider's type is registered
-    public abstract ValueTask<IChatClient?> GetChatClientAsync(
+    // D63: whether an IChatClientProvider of the provider's type is registered, which then alone serves it
+    public abstract bool HasChatClientProvider(IServiceProvider services);
+
+    public abstract ValueTask<IChatClient> GetChatClientAsync(
         IServiceProvider services,
         string model,
         CancellationToken ct);
@@ -28,13 +30,13 @@ internal sealed record ProviderId<TProviderId>(TProviderId Id) : ProviderId wher
 
     public override string Contract => $"IChatClientProvider<{TypeNames.Of<TProviderId>()}>";
 
-    public override async ValueTask<IChatClient?> GetChatClientAsync(
+    public override bool HasChatClientProvider(IServiceProvider services) =>
+        services.GetService<IChatClientProvider<TProviderId>>() is not null;
+
+    public override async ValueTask<IChatClient> GetChatClientAsync(
         IServiceProvider services,
         string model,
         CancellationToken ct) =>
-        services.GetService<IChatClientProvider<TProviderId>>() is { } clients
-            ? await clients.GetChatClientAsync(Id, model, ct)
-                ?? throw new InvalidOperationException(
-                    $"The {Contract} returned no client for '{model}' of '{Id}'.")
-            : null;
+        await services.GetRequiredService<IChatClientProvider<TProviderId>>().GetChatClientAsync(Id, model, ct)
+        ?? throw new InvalidOperationException($"The {Contract} returned no client for '{model}' of '{Id}'.");
 }

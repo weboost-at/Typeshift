@@ -141,8 +141,8 @@ for `WithModel("openai", "gpt-5-mini")`, or an enum of yours. See
 the projects it references. Each host it gives you is one unit of work, such as a job, with scoped services of its
 own.
 
-A console tool or a script without a container of its own creates the runtime, and one chat client serves all its
-runs:
+A console tool or a script without a container of its own creates the runtime with one chat client, the default
+client of its runs:
 
 <!-- snippet: typeshift-runtime -->
 <a id='snippet-typeshift-runtime'></a>
@@ -161,6 +161,10 @@ Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
   `AddTypeshift()` does. The generator intercepts the call, so write it as `TypeshiftRuntime.Create(...)`: a call
   through `using static`, an alias or a method group is not intercepted and would throw, which the analyzer reports
   ([TSH040](./diagnostics.md#tsh040)).
+- The client serves every agent that names no provider, as `WithModel("gpt-5-mini")` does. An agent that names
+  one, as in `WithModel("openai", "gpt-5-mini")`, does not run on it: its provider needs a client of its own,
+  registered through the chain's `Services`, as `typeshift.Services.AddKeyedChatClient("openai", openAi)` does
+  ([Registering clients](./models.md#registering-clients)).
 - Create the runtime once and keep it while your app runs. Disposing it disposes its singletons, such as your
   store, but not the client. A host's scoped services are disposed only with the host, so dispose each host as well.
 

@@ -212,19 +212,20 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     }
 
     /// <summary>
-    /// The raw path: creates the client of a run whose options <c>ResolveOptionsAsync</c> resolved. It takes the
-    /// client from the <see cref="IChatClientProvider{TProviderId}"/> of the provider's type, an
-    /// <see cref="IChatClient"/> registered under the options' provider, or the one registered for every agent, and
-    /// wraps it in the tool loop.
+    /// The raw path: creates the client of a run whose options <c>ResolveOptionsAsync</c> resolved. For options that
+    /// name a provider it takes the client from the <see cref="IChatClientProvider{TProviderId}"/> of the provider's
+    /// type, or else the <see cref="IChatClient"/> registered under the provider. For options that name none it
+    /// takes the default client, the one registered for every agent. It wraps the client in the tool loop.
     /// </summary>
     /// <param name="options">The resolved options; call the client with them.</param>
     /// <param name="ct">Cancels the creation.</param>
     /// <returns>The client; disposing it leaves the provider's client alone.</returns>
     /// <exception cref="InvalidOperationException">
-    /// No chat client serves the options' provider and model, or the agent, which names no model: no
-    /// <c>IChatClientProvider</c> of the provider's type is registered for a provider and a model, and no
-    /// <see cref="IChatClient"/> under the provider's key or for every agent. Or the client runs a tool loop of its
-    /// own, as one registered with <c>UseFunctionInvocation()</c> does.
+    /// No chat client serves the options: they name a provider nothing is registered for, or one without a model
+    /// that an <c>IChatClientProvider</c> serves, or they name no provider and no default client is registered. The
+    /// default client never serves a provider the options name. Or the run can compact and its summary provider has
+    /// no client, or the client runs a tool loop of its own, as one registered with <c>UseFunctionInvocation()</c>
+    /// does.
     /// </exception>
     public async Task<IChatClient> CreateChatClientAsync(ChatOptions options, CancellationToken ct = default)
     {
@@ -232,8 +233,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         var provider = resolved is null ? Agent.Provider : resolved.Provider;
         var model = options.ModelId;
 
-        var client = await ChatClients.GetAsync(_services, provider, model, ct)
-            ?? throw new InvalidOperationException(ChatClients.NoClient($"the agent '{Agent.Name}'", provider, model));
+        var client = await ChatClients.GetAsync(_services, $"the agent '{Agent.Name}'", provider, model, ct);
 
         // D29: a tool loop below Typeshift's own would run tools past the gate, the tool middleware and the run's
         // limits, so the client that brings one is refused before it is called
@@ -246,6 +246,14 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         }
 
         var run = resolved?.RunOptions ?? Agent.RunOptions;
+
+        // D63: a summary provider nothing serves fails the run here, where it has stored nothing, and not as a
+        // warning once the history is compacted
+        if (run.MaxInputTokens is not null && resolved?.SummaryProvider is { } summary)
+        {
+            var summarized = $"the summary of the agent '{Agent.Name}'";
+            ChatClients.EnsureServed(_services, summarized, summary, run.SummaryModel ?? model);
+        }
 
         // D29: outermost the conversation, then run middleware, context and the mode above the tool loop, the gate
         // (D81), the checkpoints, unique call ids (D59) and compaction inside it, and innermost the provider's

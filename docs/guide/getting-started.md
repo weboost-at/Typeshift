@@ -107,7 +107,7 @@ internal partial class ResearchAgent : Agent
         WithInstructions("Find companies with the find_companies tool and list them.");
 
         WithChatOptions()
-            .WithModel("openai", "gpt-5-mini")
+            .WithModel("gpt-5-mini")
             .WithTemperature(0.2f)
             .Configurable(o => o.Instructions)
             .Configurable(o => o.Temperature);
@@ -122,8 +122,9 @@ internal partial class ResearchAgent : Agent
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/ResearchAgent.cs#L3-L23' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-- `WithModel("openai", "gpt-5-mini")` names a provider and the model as that provider calls it. Step 4 creates the
-  client that serves it.
+- `WithModel("gpt-5-mini")` names the model as your provider calls it. Step 4 creates the client that serves it.
+  With clients of several providers, an agent names its provider too
+  ([Registering clients](./models.md#registering-clients)).
 - The two `Configurable` calls let stored settings change the instructions and the temperature, but not the model.
 - `ConfigureFindCompanies().WithLimit(3)` lowers the limit from the record's 5 to 3 for this agent. Typeshift writes a
   `Configure` method for each tool with settings that the agent offers.
@@ -174,7 +175,8 @@ research_agent: Found Danube Robotics, Prater Motion and Belvedere Optics.
 ```
 
 - `TypeshiftRuntime.Create(client)` sets up Typeshift in an app without a dependency injection container, such as a
-  console app or a script, and its one client serves every run ([The runtime](./registration.md#the-runtime)).
+  console app or a script. Its client is the default client, which serves every agent that names no provider
+  ([The runtime](./registration.md#the-runtime)).
 - `runtime.Agent<ResearchAgent>()` returns the agent's host, `AgentHost<ResearchAgent>`. You configure and run the
   agent through it.
 - The model called `find_companies` with `Vienna`, and the tool ran with the agent's limit of 3, so the answer lists

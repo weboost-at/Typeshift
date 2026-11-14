@@ -373,6 +373,22 @@ All notable changes to this project are documented here. The format follows
   for a blank provider too. A save refuses a blank `Provider`, `Model`, `SummaryProvider` or `SummaryModel`, and a
   run whose settings resolve one throws before it starts. Before, the empty field of a settings form was stored and
   sent to the provider as the model. Pass null for a field the user left empty, which keeps the layer below.
+- **Breaking:** the client registered for every agent, with `services.AddChatClient(client)` or
+  `TypeshiftRuntime.Create(client)`, is the default client and serves only a run that names no provider. A run that
+  names a provider nothing is registered for throws an `InvalidOperationException` before it calls a model or
+  stores an entry, and the message lists the keys your app registered clients under. Before, such a run was answered
+  by the client for every agent without a word: `WithModel("opnai", "gpt-5-mini")`, a stored `Provider` in another
+  case and an enum provider beside a provider class for strings all ran on another client, which may be another
+  account. Where an agent names a provider over one client, as `WithModel("openai", "gpt-5-mini")` over
+  `TypeshiftRuntime.Create(client)`, name the model alone, `WithModel("gpt-5-mini")`, or register the client under
+  the provider, `services.AddKeyedChatClient("openai", client)`.
+- **Breaking:** a run that names a provider and no model throws when an `IChatClientProvider<T>` of the provider's
+  type is registered, since the class serves a provider and a model. Before, it went on to a client registered under
+  the provider or to the one for every agent, which beside a provider class for a key per customer is your app's own
+  key. Name the model too.
+- **Breaking:** a `SummaryProvider` in settings that no client is registered for fails a run that can compact when
+  it starts. Before, the client for every agent wrote the summary, or the failure was a warning and the run's own
+  model wrote it. A summary call that fails is still a warning.
 
 ### Fixed
 

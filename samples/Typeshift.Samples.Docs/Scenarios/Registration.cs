@@ -26,6 +26,9 @@ internal static class Registration
         services.AddKeyedChatClient("anthropic", reasoning);
         // end-snippet
 
+        // The default client, for the quick start's agent, which names no provider and is a sub-agent here
+        services.AddChatClient(fast);
+
         services.AddTypeshift()
             .WithMcpToolProvider<CannedMcpToolProvider>();
         ShowApprovalRule(services);

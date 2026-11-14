@@ -26,6 +26,8 @@ public static class ModuleRegistration
 
         // D69: the registrations too, so a store the app registers without WithStore turns the memory off
         services.TryAddSingleton(provider => new StoreAccess(provider, services));
+        // D63: the registrations, whose keys the message of a run no client serves lists
+        services.TryAddSingleton(new RegisteredChatClients(services));
         services.TryAddSingleton<LiveRuns>();
         services.TryAddSingleton<InstrumentedClients>();
         // D74: live updates are on from the start; WithRealtimeTracking tunes them
@@ -44,7 +46,7 @@ public static class ModuleRegistration
     /// </summary>
     /// <param name="services">The services, with the core services and the modules registered.</param>
     /// <param name="builder">The registration chain the core services returned.</param>
-    /// <param name="client">The chat client of every run.</param>
+    /// <param name="client">The default chat client, of every run that names no provider.</param>
     /// <param name="configure">What else the app registers; null for nothing.</param>
     /// <returns>The runtime.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="client"/> is null.</exception>
@@ -56,7 +58,7 @@ public static class ModuleRegistration
     {
         ArgumentNullException.ThrowIfNull(client);
 
-        // D75: the client serves every agent, as one registered for every agent does (D63). An instance rather than
+        // D75: the client is the default, as one registered for every agent is (D63). An instance rather than
         // AddChatClient's factory, so the container never disposes it
         services.AddSingleton(client);
         configure?.Invoke(builder);

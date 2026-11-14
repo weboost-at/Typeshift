@@ -119,6 +119,8 @@ you ship, your app has to do these things itself:
 - With several processes, keep each conversation to one run at a time yourself
   ([One run at a time](./conversations.md#one-run-at-a-time)).
 - Read API keys from your app's configuration, never from code ([A real client](./models.md#a-real-client)).
+- Where each customer brings a key, register no default client, so an agent that names no provider fails instead of
+  running on your app's own key ([A key per customer](./models.md#a-key-per-customer)).
 - Watch your logs or spans for saves that failed ([Spans](./observability.md#spans)).
 - Capture message content in traces only where your tracing backend may keep it
   ([Message content](./observability.md#message-content)).

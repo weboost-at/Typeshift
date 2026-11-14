@@ -4,8 +4,9 @@ namespace Typeshift;
 
 /// <summary>
 /// Returns the client of a provider's model. Resolved scoped from the run's services, so it may serve each customer
-/// with their own credentials. A run asks the provider of its agent's provider type; without one, it takes the
-/// <see cref="IChatClient"/> registered under its provider, or the one registered for every agent.
+/// with their own credentials. A run that names a provider asks the provider class of its agent's provider type,
+/// which then decides alone; without one, it takes the <see cref="IChatClient"/> registered under its provider. A
+/// run that names no provider takes the default client and asks no provider class.
 /// More in the guide:
 /// <see href="https://weboost-at.github.io/Typeshift/guide/models#your-own-provider">Your own provider</see>.
 /// </summary>

@@ -146,8 +146,9 @@ unless it is an object of properties.
    reaches the configurable options and the run options. Then come the offered tools, created with their layered
    settings (D27), the sub-agents (D33) and the MCP servers' tools (D35).
 4. It takes the client of the run's provider and model from the scope's `IChatClientProvider<T>` of the provider's
-   type (D77), an `IChatClient` keyed by the provider, or the one registered for every agent (D63), and builds the
-   pipeline, outermost first:
+   type (D77) or else the `IChatClient` keyed by the provider, and for a run that names no provider the one
+   registered for every agent; a provider nothing serves throws here (D63). It builds the pipeline, outermost
+   first:
    - the conversation (D46, D50), which also settles the decisions that wait (D80), run middleware (D30), context
      providers (D31), the mode (D52), and author names on every message (D26);
    - `ToolLoop`, a `FunctionInvokingChatClient` that writes one fixed sentence as the result of a call whose

@@ -33,8 +33,9 @@ internal static class AgentEmitter
 
     // What a run needs of the app's registrations, each named by the exception's message when it is missing
     private const string MissingRegistration =
-        "something the run needs is not registered: a chat client for the agent's model, a store for the type of one "
-        + "of the host's ids, or an <c>IMcpToolProvider</c> for the agent's MCP servers";
+        "something the run needs is not registered: a chat client for the provider the run names or, when it names "
+        + "none, a default client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c> for "
+        + "the agent's MCP servers";
 
     private const string OwnLoop = "the agent's chat client runs a tool loop of its own";
 

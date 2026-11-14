@@ -1,4 +1,5 @@
 using Typeshift.Tests.Agents.Support;
+using Typeshift.Tests.Compaction.Support;
 using Typeshift.Tests.Hosting.Support;
 using Typeshift.Tests.Persistence.Support;
 using Typeshift.Tests.Testing.Fakes;
@@ -17,6 +18,8 @@ public class ChatClientResolutionTests : HostTestBase
     private ScriptedChatClient Other { get; }
 
     private ProvidedModels Models { get; } = [];
+
+    private ITypeshiftStore<Guid> Store => Services.GetRequiredService<ITypeshiftStore<Guid>>();
 
     protected override void ConfigureServices(IServiceCollection services)
     {
@@ -57,17 +60,176 @@ public class ChatClientResolutionTests : HostTestBase
     }
 
     [Fact]
-    public async Task Given_A_Model_And_A_Chat_Client_The_Client_Receives_The_Model()
+    public async Task Given_A_Provider_Nothing_Serves_The_Default_Client_Does_Not_Serve_It()
     {
         // Arrange
         _register = services => services.AddChatClient(ChatClient);
+
+        // Act
+        var run = () => Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(
+            $"No chat client serves the agent 'probe_agent' on '{ProbeAgent.Model}' of '{ProbeAgent.ModelProvider}': "
+            + "no client is registered under a provider, and no IChatClientProvider<string> is registered. Name a "
+            + "provider that has a client, register one with services.AddKeyedChatClient(provider, client), or "
+            + "register a provider class with WithChatClientProvider<T>(). The default client serves only a run "
+            + "that names no provider, as an agent with WithChatOptions().WithModel(model) does.");
+
+        ChatClient.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Provider_Nothing_Serves_Beside_Keyed_Clients_The_Run_Fails_Naming_The_Registered_Ones()
+    {
+        // Arrange
+        _register = services =>
+        {
+            services.AddChatClient(Other);
+            services.AddKeyedChatClient(Data.Agent.Provider, Other);
+            services.AddKeyedChatClient(Vendor.Other, Other);
+        };
+
+        // Act
+        var run = () => Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage($"*'{ProbeAgent.ModelProvider}'*under '{Data.Agent.Provider}', 'Other'*");
+    }
+
+    [Fact]
+    public async Task Given_A_Provider_Nothing_Serves_The_Run_Stores_No_Entry_And_Frees_Its_Conversation()
+    {
+        // Arrange
+        _register = services => services.AddChatClient(Other);
+        var host = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+        await Record.ExceptionAsync(() => host.RunAsync(Data.Tool.Question, ct: Ct));
+
+        // Act
+        var again = () => host.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await again.Should().ThrowAsync<InvalidOperationException>().WithMessage($"*'{ProbeAgent.ModelProvider}'*");
+        (await Store.LoadConversationAsync(Data.Agent.ConversationId, Ct)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_Settings_Naming_A_Provider_In_Another_Case_The_Run_Fails_Naming_The_Registered_One()
+    {
+        // Arrange
+        _register = services =>
+        {
+            services.AddChatClient(Other);
+            services.AddKeyedChatClient(ProbeAgent.ModelProvider, ChatClient);
+        };
+
+        var settings = new ProbeAgent.Settings { Provider = ProbeAgent.ModelProvider.ToUpperInvariant() };
+
+        // Act
+        var run = () => Host<ProbeAgent>().RunAsync(Data.Tool.Question, settings, Ct);
+
+        // Assert
+        await run.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage($"*under '{ProbeAgent.ModelProvider}'*");
+    }
+
+    [Fact]
+    public async Task Given_No_Provider_And_Only_Keyed_Clients_The_Run_Fails_Naming_The_Default_Client()
+    {
+        // Arrange
+        _register = services => services.AddKeyedChatClient(ProbeAgent.ModelProvider, Other);
+
+        // Act
+        var run = () => Host<ModelOnlyAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(
+            $"No chat client serves the agent 'model_only_agent' on '{ModelOnlyAgent.Model}', which names no "
+            + "provider, and no default client is registered: register one for every agent with "
+            + "services.AddChatClient(client) or TypeshiftRuntime.Create(client), or name a provider with "
+            + "WithChatOptions().WithModel(provider, model) or in the agent's settings.");
+    }
+
+    [Fact]
+    public async Task Given_A_Keyed_Client_And_A_Provider_Without_A_Model_The_Client_Answers_On_Its_Own_Model()
+    {
+        // Arrange
+        _register = services => services.AddKeyedChatClient(Data.Agent.Provider, ChatClient);
+        var settings = new EveryKindAgent.Settings { Provider = Data.Agent.Provider };
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<ProbeAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await Host<EveryKindAgent>().RunAsync(Data.Tool.Question, settings, Ct);
 
         // Assert
-        ChatClient.Options[0]!.ModelId.Should().Be(ProbeAgent.Model);
+        ChatClient.Options[0]!.ModelId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Given_A_Chat_Client_Provider_And_A_Provider_Without_A_Model_The_Run_Fails_Naming_The_Model()
+    {
+        // Arrange
+        _register = services =>
+        {
+            services.AddChatClient(Other);
+            services.AddKeyedChatClient(Data.Agent.Provider, Other);
+            services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        };
+
+        var settings = new EveryKindAgent.Settings { Provider = Data.Agent.Provider };
+
+        // Act
+        var run = () => Host<EveryKindAgent>().RunAsync(Data.Tool.Question, settings, Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(
+            $"No chat client serves the agent 'every_kind_agent' on '{Data.Agent.Provider}', which names no model: "
+            + "the IChatClientProvider<string> that is registered serves a provider and a model. Name the model "
+            + "too, in the agent's code or its settings.");
+
+        Other.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Summary_Provider_Nothing_Serves_A_Run_That_Compacts_Fails_Before_Its_First_Call()
+    {
+        // Arrange
+        _register = services => services.AddKeyedChatClient(CompactingAgent.ModelProvider, ChatClient);
+
+        var settings = new CompactingAgent.Settings
+        {
+            MaxInputTokens = 1_000,
+            SummaryProvider = Data.Agent.Provider,
+            SummaryModel = Data.Agent.Model
+        };
+
+        // Act
+        var run = () => Host<CompactingAgent>().RunAsync(Data.Tool.Question, settings, Ct);
+
+        // Assert
+        await run.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage($"*the summary of the agent*'{Data.Agent.Model}' of '{Data.Agent.Provider}'*");
+
+        ChatClient.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Summary_Provider_Nothing_Serves_A_Run_That_Never_Compacts_Answers()
+    {
+        // Arrange
+        _register = services => services.AddKeyedChatClient(CompactingAgent.ModelProvider, ChatClient);
+        var settings = new CompactingAgent.Settings { SummaryProvider = Data.Agent.Provider };
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await Host<CompactingAgent>().RunAsync(Data.Tool.Question, settings, Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
     }
 
     [Fact]
@@ -264,16 +426,21 @@ public class ChatClientResolutionTests : HostTestBase
     }
 
     [Fact]
-    public async Task Given_Only_A_Chat_Client_Provider_Of_Another_Type_The_Run_Fails_Naming_The_Type_It_Needs()
+    public async Task Given_A_Chat_Client_Provider_Of_Another_Type_The_Run_Fails_Naming_The_Type_It_Needs()
     {
         // Arrange
-        _register = services => services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        _register = services =>
+        {
+            services.AddChatClient(Other);
+            services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        };
 
         // Act
         var run = () => Host<VendorAgent>().RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*IChatClientProvider<Vendor>*");
+        Other.Requests.Should().BeEmpty();
     }
 
     [Fact]

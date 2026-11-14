@@ -1,17 +1,33 @@
 ---
 title: Models and providers
-description: Register the chat client of each provider, name an agent's model by provider and model, serve keys per customer from your own provider, handle a failing provider, and pick the summary model.
+description: Register a default chat client or one per provider, name an agent's model with or without a provider, serve keys per customer, handle a failing provider, and pick the summary model.
 ---
 
 # Models and providers
 
-An agent names its model by a provider and a model, such as `WithModel("openai", "gpt-5-mini")`. Typeshift finds the
-`IChatClient` your app registered for that provider and sends it the model as `ChatOptions.ModelId`, so one client
-serves every model of its provider. A model a user picks is stored like any other setting.
+An agent names its model, such as `WithModel("gpt-5-mini")`, and may name the provider that serves it, such as
+`WithModel("openai", "gpt-5-mini")`. Typeshift takes the `IChatClient` your app registered for that provider, or the
+default client when the agent names none, and sends it the model as `ChatOptions.ModelId`, so one client serves
+every model of its provider. A provider nothing is registered for fails the run: no other client stands in for it.
 
 ## Registering clients
 
-Register one client per provider, with the provider's name as its key:
+With one provider, register one client. It is the default client, which serves every run that names no provider:
+
+<!-- snippet: chat-client -->
+<a id='snippet-chat-client'></a>
+```cs
+services.AddChatClient(openAi);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L24-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+An agent then names its model alone, as `WithModel("gpt-5-mini")` does, or no model at all. Without a model the run
+sends no `ModelId`, so the client's own model answers, and a demo or a local test needs nothing else.
+`TypeshiftRuntime.Create(client)` registers its client as the default too
+([The runtime](./registration.md#the-runtime)).
+
+With several providers, register one client per provider, with the provider's name as its key:
 
 <!-- snippet: keyed-chat-clients -->
 <a id='snippet-keyed-chat-clients'></a>
@@ -22,41 +38,35 @@ services.AddKeyedChatClient("anthropic", anthropic);
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L16-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-keyed-chat-clients' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`AddKeyedChatClient` comes with Microsoft.Extensions.AI. Its key is the provider your agents name in `WithModel`, here
-`"openai"` and `"anthropic"`, and `openAi` and `anthropic` stand for the `IChatClient` instances your app creates
-([A real client](#a-real-client)). Register them however you like, as long as none runs a tool loop of its own
-([Wrapping a client](#wrapping-a-client) says why).
+`AddKeyedChatClient` comes with Microsoft.Extensions.AI. Its key is the provider your agents name in
+`WithModel(provider, model)`, here `"openai"` and `"anthropic"`, and `openAi` and `anthropic` stand for the
+`IChatClient` instances your app creates ([A real client](#a-real-client)). Register them however you like, as long
+as none runs a tool loop of its own ([Wrapping a client](#wrapping-a-client) says why). An app may register both: a
+default client, and clients under the providers some agents name.
 
-With one provider, register one client for every agent instead:
+Which client a run gets depends on the provider it names, in its agent's code or in its settings:
 
-<!-- snippet: chat-client -->
-<a id='snippet-chat-client'></a>
-```cs
-services.AddChatClient(openAi);
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L24-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-client' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
+| The run names | Your app registered | The run gets |
+|---|---|---|
+| No provider | A default client | The default client. Naming no provider is how a run means the default. |
+| No provider | No default client | An exception that names the ways to register one or to name a provider |
+| A provider | An `IChatClientProvider<T>` of the agent's [provider id type](#the-provider-id-type) | The client your provider class returns ([Your own provider](#your-own-provider)). The class decides alone for the providers of its type: when it throws, the run fails, and a run that names a provider without a model fails too, since the class serves a provider and a model. |
+| A provider | A client under that provider, and no provider class of the type | That client. It receives the model the run names, and answers with its own when the run names none. |
+| A provider | Neither | An exception that lists the keys your app registered clients under |
 
-That client serves every agent whose provider has no client of its own. It also runs an agent that names no model at
-all: the run sends no `ModelId`, so the client's own model answers, and a demo or a local test needs nothing else.
-
-For each run, Typeshift takes its client from the first of these that your app registered for it:
-
-1. your `IChatClientProvider<T>` of the agent's [provider id type](#the-provider-id-type), when the run names a
-   provider and a model ([Your own provider](#your-own-provider)). It decides alone: when it throws, the run fails,
-   and Typeshift tries no client after it.
-2. the client registered under the run's provider;
-3. the client registered for every agent, which also serves a run that names no provider.
-
-When none is registered, the run throws an `InvalidOperationException` that names what to register.
+The default client never stands in for a provider a run names. A typo, as in `WithModel("opnai", "gpt-5-mini")`, a
+stored `Provider` in another case and a provider your app no longer registers each fail the run, where they would
+otherwise send a customer's prompt to another account. The exception is an `InvalidOperationException`, thrown before
+the run calls a model or stores an entry in its conversation ([When a provider fails](#when-a-provider-fails)).
 
 ## Your own provider
 
 Write an `IChatClientProvider<TProviderId>` when a client depends on more than its provider, such as a key per
 customer. `TProviderId` is the type your agents name providers by, `string` for `WithModel("openai", ...)`
 ([The provider id type](#the-provider-id-type)). Its one method gets the provider and the model of every run that
-names both, and again when [compaction](./conversations.md#compaction) needs the summary model. Register your class
-with `WithChatClientProvider<TProvider>()`, and [A key per customer](#a-key-per-customer) shows one. For a class that
+names both, and again when [compaction](./conversations.md#compaction) needs the summary model. A run that names no
+provider never reaches it and takes the default client. Register your class with
+`WithChatClientProvider<TProvider>()`, and [A key per customer](#a-key-per-customer) shows one. For a class that
 implements no `IChatClientProvider<T>`, the analyzer reports [TSH030](./diagnostics.md#tsh030).
 
 ::: info The provider is scoped
@@ -219,6 +229,8 @@ services.AddTypeshift()
   in a singleton and keyed by the API key, so a changed key gets a new client.
 - `GetChatClientAsync` throws for any provider but `openai`, so a run that names another fails before it starts
   ([When a provider fails](#when-a-provider-fails)).
+- Register no default client beside it. An agent that names no provider then fails, where a default client would
+  answer it with your app's own key.
 
 ## Wrapping a client
 
@@ -327,9 +339,10 @@ internal sealed class ScriptedChatClientProvider : IChatClientProvider<Provider>
 - A run asks the `IChatClientProvider<T>` of its agent's provider type. The runs of this agent reach the class
   above, and those of an agent with string providers reach the class your app registered for strings. One class may
   serve both: `WithChatClientProvider<TProvider>()` registers it as each `IChatClientProvider<T>` it implements.
-- Without a provider class for the type, a run falls back as [Registering clients](#registering-clients) lists: to
-  a client registered under the provider's value, such as `services.AddKeyedChatClient(Provider.Scripted, client)`,
-  then to the client registered for every agent.
+- A run asks only the provider class of its agent's provider type. Beside a provider class for strings, an agent
+  that names an enum provider needs the interface implemented for the enum too, or a client registered under the
+  enum's value, such as `services.AddKeyedChatClient(Provider.Scripted, client)`. Without either its runs fail,
+  naming the `IChatClientProvider<T>` they need ([Registering clients](#registering-clients)).
 - With `Configurable(o => o.ModelId)`, the agent's `Settings` store its provider, so a user's pick is a `Provider`
   too. An agent that makes its model configurable and names no provider in code, with `WithModel(model)` or without
   `WithModel`, stores providers as strings.
@@ -338,17 +351,11 @@ internal sealed class ScriptedChatClientProvider : IChatClientProvider<Provider>
   own, so it may not be nested as `private` or `protected` or be a `file` type, and a public agent's must be public
   ([TSH006](./diagnostics.md#tsh006)).
 
-::: warning A provider class of another type serves nothing
-A run asks only the `IChatClientProvider<T>` of its agent's provider type. If your app registers a provider class
-for strings and an agent names an enum provider, that agent's runs skip your class without a word and take a client
-registered under the provider's value, or the one for every agent, which may be a different model or account. Only
-when neither is registered does the run fail, naming the `IChatClientProvider<T>` it needs. Implement the interface
-for each provider type your agents use.
-:::
-
 ## Naming a model
 
-`WithModel` takes the provider first, then the model as that provider's API names it:
+`WithModel` takes the model as the provider's API names it. With one argument it names the model alone, as the
+[getting started](./getting-started.md#_3-write-an-agent) agent's `WithModel("gpt-5-mini")` does, and the agent's runs
+take the default client. With two it takes the provider first, then the model:
 
 <!-- snippet: agent-model -->
 <a id='snippet-agent-model'></a>
@@ -368,14 +375,14 @@ WithChatOptions()
 [layer](./settings-and-stores.md#settings-layering) separately: a layer that sets only `Model` keeps the provider of
 the layer below, so set both when you switch providers.
 
-An agent may name its model without a provider, as in `WithModel("gpt-5-mini")`. Its runs take the client registered
-for every agent, and receive the model as `ChatOptions.ModelId` ([Registering clients](#registering-clients)). The
-call sets the model alone: after a `WithModel` that names a provider it keeps that provider, and with
-`Configurable(o => o.ModelId)` a settings layer may still name one, as a string.
+`WithModel(model)` sets the model alone. After a `WithModel` that names a provider it keeps that provider, and with
+`Configurable(o => o.ModelId)` a settings layer may still name one, as a string. A layer that names a provider moves
+the run off the default client, to the client registered for that provider
+([Registering clients](#registering-clients)).
 
-Leave out `WithModel` but keep `Configurable(o => o.ModelId)`, and the choice is the user's. Every run then needs a
-provider and a model from stored settings or from the run's own settings. A run without them takes the client
-registered for every agent, or fails before it starts when there is none
+Leave out `WithModel` but keep `Configurable(o => o.ModelId)`, and the choice is the user's. Every run then takes its
+provider and model from stored settings or from the run's own settings. A run without a provider takes the default
+client, or fails before it starts when there is none
 ([When a provider fails](#when-a-provider-fails)). Store the pick under a settings id, from a settings page
 that offers your providers and their models, for example:
 
@@ -431,6 +438,7 @@ var settings = new CodingAgent.Settings
 | Nothing | The run's provider and model |
 | `WithSummaryModel(model)`, or `SummaryModel` in settings | The run's provider, that model |
 | `SummaryProvider` and `SummaryModel` in settings | That provider, that model |
+| `SummaryProvider` alone in settings | That provider, the run's model |
 
 ::: warning The summary model follows the run's provider
 The run's provider is whichever provider the layers resolved for that run, so it changes when a user switches the
@@ -449,20 +457,25 @@ provider does not know it:
 Typeshift logs each failed summary call as a warning and records its exception on the run's span. Watch for them,
 because every compaction asks a failing summary model again before it falls back.
 
+Only a call fails that softly. A `SummaryProvider` that no client is registered for fails the run when it starts,
+as the run's own provider does, if the run can compact because it has a `MaxInputTokens`
+([Registering clients](#registering-clients)).
+
 ## When a provider fails
 
-What your code sees depends on whether the run fails before or after it touches the conversation:
+What your code sees depends on whether the run fails before or after it stores its input in the conversation:
 
 | What fails | Your code gets | The run's conversation |
 |---|---|---|
-| No client serves the run's provider and model, or the agent names no model and no client serves every agent | An `InvalidOperationException` that names the agent and what to register | Unchanged |
+| Nothing serves the run: it names a provider your app registered no client for, or no provider while no default client is registered, or it can compact and its settings name such a summary provider | An `InvalidOperationException` that names the agent, what it named and the keys your app registered clients under | Unchanged |
 | Your provider throws for the run's model, such as for a provider it does not know | Your provider's exception | Unchanged |
 | The summary call fails, or your provider throws for the summary model, when compaction asks for it during the run | Nothing: the run goes on ([The summary model](#the-summary-model)) | Goes on, with a summary by the run's own model or without one |
 | The model call fails, such as on a wrong key, an unknown model or a rate limit that outlasts the retries | The client library's exception | Ends with an entry that holds an `ErrorContent` |
 
-- Typeshift finds the run's client before it touches the conversation, so the first two fail before anything is
-  stored, and before the run's `invoke_agent` span starts. Run the agent again once you fix the
-  cause.
+- Typeshift finds the run's client before the run stores its input, so the first two fail with the conversation's
+  entries as they were, and before the run's `invoke_agent` span starts. The run has loaded the conversation by
+  then, and saved a mode its own settings name ([How a run works](./how-a-run-works.md#the-steps)). Run the agent
+  again once you fix the cause.
 - A run that fails later has stored its input already ([What is stored](./conversations.md#what-is-stored)), so a
   retry with the same input puts it into the conversation twice. `ResumeAsync` refuses such a conversation, because
   its last run ended.

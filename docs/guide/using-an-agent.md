@@ -29,7 +29,7 @@ app.MapGet("/research/{city}", async (string city, AgentHost<ResearchAgent> rese
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/MinimalApi.cs#L21-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-minimal-api' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`AddChatClient(client)` registers one client for every agent
+`AddChatClient(client)` registers the default client, which serves every agent that names no provider
 ([Registering clients](./models.md#registering-clients)). In a class that runs the agent, such as a controller or a
 service of your own, add the host to the constructor:
 

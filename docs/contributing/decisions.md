@@ -489,7 +489,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `WithModel`, and in the generated `ApplySettings`, through `SetProvider<TProviderId>` and `SetSummaryProvider`. It
   reaches the provider of its type through a generic call, as a `StoreId<TId>` reaches its store (D72), so no type is
   made at run time and Native AOT keeps working; it is equal only to a provider of the same type and value. D63's
-  fallbacks hold for any type, since keyed services take keys of any type. `WithChatClientProvider<T>()` registers `T`
+  keyed clients serve any type, since keyed services take keys of any type. `WithChatClientProvider<T>()` registers `T`
   as each `IChatClientProvider<X>` it implements, of any `X`, as `WithStore<T>()` registers a store, and a `T` that
   implements none is TSH030. Settings that store a provider need a type they store as one value, a string, a number,
   a `Guid` or an enum: TSH029, on the provider. An agent whose settings store none may name a provider of any type.
@@ -515,21 +515,41 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   up by its value's runtime type, which needs `MakeGenericType` and misses a provider whose runtime type differs from
   its declared one.
 
-### D63. A registered chat client serves a run no IChatClientProvider serves
+### D63. The default client serves only a run that names no provider
 
-- **Status:** owner.
+- **Status:** owner; rewritten. It read "a registered chat client serves a run no `IChatClientProvider` serves",
+  and let the client registered for every agent answer a run whose provider nothing served.
 - **Context:** the owner asked that an agent without a model still run, and for a simpler setup than writing an
-  `IChatClientProvider`: one provider, or a client per provider, for a demo or a local test.
-- **Decision:** a run takes its client from the first of these that serves it:
-  - the `IChatClientProvider` of the agent's provider type (D77), for a provider and a model;
-  - an `IChatClient` registered under the agent's provider as its key, as Microsoft.Extensions.AI's
-    `AddKeyedChatClient` registers one;
-  - the `IChatClient` registered for every agent, as `AddChatClient` registers it.
-  The provider decides alone for a run that names a provider and a model; when it throws, no client is tried after
-  it. An agent that names no model runs on the last client, without a `ModelId`, so the client's own model answers.
-  A model the agent names reaches a registered client as `ModelId`, as it reaches a provider's.
-- **Where:** `Hosting/ChatClients.cs`, `Hosting/AgentHost.cs`, `Compaction/Compaction.cs`.
-- **Alternatives:** chain calls of Typeshift's own, such as `WithChatClient(client)`, which repeat what
+  `IChatClientProvider`: one provider, or a client per provider, for a demo or a local test. The first rule took the
+  first of three that served, the last of them the client for every agent. So `WithModel("opnai", ...)`, a stored
+  provider in another case, a member an enum no longer has and an enum agent beside a provider class for strings all
+  ran on that client, which may be another account, without a log line. The owner's rule: "A user may configure a
+  default provider and model. If not configured it should throw. If the user tries to resolve a provider which does
+  not exist, throw. If they want to use the default provider on purpose, use the default provider."
+- **Decision:** the provider a run names decides alone which client serves it.
+  - A run that names no provider takes the default client: the `IChatClient` registered for every agent, as
+    `AddChatClient` and `TypeshiftRuntime.Create(client)` register it (D75). Without one it throws. Its model, as
+    `WithModel(model)` names it (D77), reaches the client as `ModelId`; without one the client's own model answers.
+  - A run that names a provider takes the client of the `IChatClientProvider` of the agent's provider type (D77)
+    when one is registered. The class decides alone for the providers of its type: when it throws, no client is
+    tried after it, and a run that names a provider and no model throws, since the class serves a provider and a
+    model. Before, such a run went on to a client keyed by the provider, which beside a class that serves a key per
+    customer is the app's own key.
+  - Without a class of the type, the run takes the `IChatClient` registered under the provider as its key, as
+    Microsoft.Extensions.AI's `AddKeyedChatClient` registers one. It receives the model as `ModelId`.
+  - A provider nothing serves throws. The message lists the keys clients are registered under, which tells a typo
+    from a provider the app never registered. The default client is never asked.
+- **As built:** the run's client is found before the run stores an entry or opens its span
+  (`AgentHost.CreateChatClientAsync`). With a conversation, the run has claimed and loaded it by then (D34), and
+  frees the claim when no client is found. A summary's provider is checked there too once the run can compact, without
+  asking a provider class, which is asked when a summary is needed: a summary call that fails is best effort (D32),
+  a provider that does not exist is not. The keys are read from the registrations (`RegisteredChatClients`), since
+  a container does not list them.
+- **Where:** `Hosting/ChatClients.cs`, `Hosting/ProviderId.cs`, `Hosting/AgentHost.cs`, `Compaction/Compaction.cs`,
+  `Generated/ModuleRegistration.cs`.
+- **Alternatives:** the fallback with a warning log, which still sends the prompt to the other account; the
+  fallback only where no keyed client and no provider class is registered, which keeps the trap for the app with
+  one client and a typo; chain calls of Typeshift's own, such as `WithChatClient(client)`, which repeat what
   Microsoft.Extensions.AI's registration already does; a built-in provider keyed by a registry of Typeshift's, a
   second place to register clients.
 
@@ -1293,7 +1313,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   it, and `runtime.Agent<TAgent>()` returns a host in a scope of its own (D76). The generator intercepts `Create` as
   it does `AddTypeshift()` (D1): the interceptor builds a `ServiceCollection`, registers the core services and the
   modules with its own `AddTypeshift`, and `ModuleRegistration.CreateRuntime` registers the client as an instance for
-  every agent (D63), runs `configure` on the chain and builds the provider with scope validation. The container never
+  every agent, the default client (D63), runs `configure` on the chain and builds the provider with scope validation. The container never
   disposes an instance, so the client outlives the runtime. The generator reads only a `Create` whose receiver names
   `TypeshiftRuntime` and skips a call bound at run time, such as one with a `dynamic` argument; a call it did not
   intercept throws, saying how to call it, and TSH040 reports each of them at build time: `using static`, an alias,

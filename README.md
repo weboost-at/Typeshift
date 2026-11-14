@@ -128,7 +128,7 @@ internal partial class ResearchAgent : Agent
         WithInstructions("Find companies with the find_companies tool and list them.");
 
         WithChatOptions()
-            .WithModel("openai", "gpt-5-mini")
+            .WithModel("gpt-5-mini")
             .WithTemperature(0.2f)
             .Configurable(o => o.Instructions)
             .Configurable(o => o.Temperature);

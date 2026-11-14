@@ -50,7 +50,11 @@ caller's mode and shares the caller's [standing approvals](./tool-approval.md#ap
 [approval rules](./tool-approval.md#approval-rules). In [plan mode](./tool-approval.md#plan-mode) it researches with
 its read-only tools and answers the caller, which presents the plan.
 
-A sub-agent that fails, for example because no client serves its model, fails its call as
+Each agent runs on the client of the provider it names itself. Here `ReportAgent` takes the client registered
+under `anthropic`, and `ResearchAgent`, which names no provider, the default client
+([Registering clients](./models.md#registering-clients)).
+
+A sub-agent that fails, for example because no client serves its provider, fails its call as
 [a tool that fails](./toolsets.md#when-a-tool-fails) does. The calling model reads that the call failed, but not
 why, the exception is logged and set on the call's span, and the calling run goes on.
 

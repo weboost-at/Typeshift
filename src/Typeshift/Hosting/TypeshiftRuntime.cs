@@ -25,12 +25,16 @@ public sealed class TypeshiftRuntime : IAsyncDisposable, IDisposable
     // D1, D75: the generator intercepts every call; this body runs only for one it did not see
     /// <summary>
     /// Creates the runtime of an app without a container, with every toolset and agent of this project and of the
-    /// projects it references, and with <paramref name="client"/> serving every agent's runs. The runtime owns the
-    /// container it builds. The generator intercepts the call; one it did not intercept throws, saying what to check.
+    /// projects it references, and with <paramref name="client"/> as the default client, which serves every run
+    /// that names no provider. The runtime owns the container it builds. The generator intercepts the call; one it
+    /// did not intercept throws, saying what to check.
     /// More in the guide:
     /// <see href="https://weboost-at.github.io/Typeshift/guide/registration#the-runtime">The runtime</see>.
     /// </summary>
-    /// <param name="client">The chat client of every run; the runtime never disposes it.</param>
+    /// <param name="client">
+    /// The default chat client. An agent that names a provider needs a client registered for that provider, through
+    /// <paramref name="configure"/>. The runtime never disposes the client.
+    /// </param>
     /// <param name="configure">
     /// Registers what else the app needs, as the chain of <c>AddTypeshift()</c> does, such as
     /// <c>typeshift => typeshift.WithStore&lt;MyStore&gt;()</c>; null for nothing.

@@ -28,8 +28,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The host's conversation has a run going on in this process, the agent's chat client runs a tool loop of its
-        /// own, or something the run needs is not registered: a chat client for the agent's model, a store for the type
-        /// of one of the host's ids, or an <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// own, or something the run needs is not registered: a chat client for the provider the run names or, when it
+        /// names none, a default client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c>
+        /// for the agent's MCP servers.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -54,8 +55,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The host's conversation has a run going on in this process, the agent's chat client runs a tool loop of its
-        /// own, or something the run needs is not registered: a chat client for the agent's model, a store for the type
-        /// of one of the host's ids, or an <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// own, or something the run needs is not registered: a chat client for the provider the run names or, when it
+        /// names none, a default client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c>
+        /// for the agent's MCP servers.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -81,8 +83,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The host's conversation has a run going on in this process, the agent's chat client runs a tool loop of its
-        /// own, or something the run needs is not registered: a chat client for the agent's model, a store for the type
-        /// of one of the host's ids, or an <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// own, or something the run needs is not registered: a chat client for the provider the run names or, when it
+        /// names none, a default client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c>
+        /// for the agent's MCP servers.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -109,8 +112,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The host's conversation has a run going on in this process, the agent's chat client runs a tool loop of its
-        /// own, or something the run needs is not registered: a chat client for the agent's model, a store for the type
-        /// of one of the host's ids, or an <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// own, or something the run needs is not registered: a chat client for the provider the run names or, when it
+        /// names none, a default client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c>
+        /// for the agent's MCP servers.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -135,8 +139,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The host's conversation has a run going on in this process, the agent's chat client runs a tool loop of its
-        /// own, or something the run needs is not registered: a chat client for the agent's model, a store for the type
-        /// of one of the host's ids, or an <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// own, or something the run needs is not registered: a chat client for the provider the run names or, when it
+        /// names none, a default client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c>
+        /// for the agent's MCP servers.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -161,8 +166,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The host's conversation has a run going on in this process, the agent's chat client runs a tool loop of its
-        /// own, or something the run needs is not registered: a chat client for the agent's model, a store for the type
-        /// of one of the host's ids, or an <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// own, or something the run needs is not registered: a chat client for the provider the run names or, when it
+        /// names none, a default client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c>
+        /// for the agent's MCP servers.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -190,8 +196,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The host's conversation has a run going on in this process, the agent's chat client runs a tool loop of its
-        /// own, or something the run needs is not registered: a chat client for the agent's model, a store for the type
-        /// of one of the host's ids, or an <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// own, or something the run needs is not registered: a chat client for the provider the run names or, when it
+        /// names none, a default client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c>
+        /// for the agent's MCP servers.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -219,8 +226,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The host's conversation has a run going on in this process, the agent's chat client runs a tool loop of its
-        /// own, or something the run needs is not registered: a chat client for the agent's model, a store for the type
-        /// of one of the host's ids, or an <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// own, or something the run needs is not registered: a chat client for the provider the run names or, when it
+        /// names none, a default client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c>
+        /// for the agent's MCP servers.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -257,9 +265,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The host has no conversation, the conversation has a run going on in this process, the agent's chat client
-        /// runs a tool loop of its own, or something the run needs is not registered: a chat client for the agent's
-        /// model, a store for the type of one of the host's ids, or an <c>IMcpToolProvider</c> for the agent's MCP
-        /// servers.
+        /// runs a tool loop of its own, or something the run needs is not registered: a chat client for the provider
+        /// the run names or, when it names none, a default client; a store for the type of one of the host's ids; or an
+        /// <c>IMcpToolProvider</c> for the agent's MCP servers.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -298,9 +306,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The host has no conversation, the conversation has a run going on in this process, the agent's chat client
-        /// runs a tool loop of its own, or something the run needs is not registered: a chat client for the agent's
-        /// model, a store for the type of one of the host's ids, or an <c>IMcpToolProvider</c> for the agent's MCP
-        /// servers.
+        /// runs a tool loop of its own, or something the run needs is not registered: a chat client for the provider
+        /// the run names or, when it names none, a default client; a store for the type of one of the host's ids; or an
+        /// <c>IMcpToolProvider</c> for the agent's MCP servers.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -338,9 +346,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The host has no conversation, the conversation has a run going on in this process, the agent's chat client
-        /// runs a tool loop of its own, or something the run needs is not registered: a chat client for the agent's
-        /// model, a store for the type of one of the host's ids, or an <c>IMcpToolProvider</c> for the agent's MCP
-        /// servers.
+        /// runs a tool loop of its own, or something the run needs is not registered: a chat client for the provider
+        /// the run names or, when it names none, a default client; a store for the type of one of the host's ids; or an
+        /// <c>IMcpToolProvider</c> for the agent's MCP servers.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -379,9 +387,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The host has no conversation, the conversation has a run going on in this process, the agent's chat client
-        /// runs a tool loop of its own, or something the run needs is not registered: a chat client for the agent's
-        /// model, a store for the type of one of the host's ids, or an <c>IMcpToolProvider</c> for the agent's MCP
-        /// servers.
+        /// runs a tool loop of its own, or something the run needs is not registered: a chat client for the provider
+        /// the run names or, when it names none, a default client; a store for the type of one of the host's ids; or an
+        /// <c>IMcpToolProvider</c> for the agent's MCP servers.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -404,8 +412,8 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <exception cref="global::System.InvalidOperationException">
         /// The host has no conversation, the conversation has nothing to continue or a run going on in this process,
         /// the agent's chat client runs a tool loop of its own, or something the run needs is not registered: a chat
-        /// client for the agent's model, a store for the type of one of the host's ids, or an <c>IMcpToolProvider</c>
-        /// for the agent's MCP servers.
+        /// client for the provider the run names or, when it names none, a default client; a store for the type of one
+        /// of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP servers.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -425,8 +433,8 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <exception cref="global::System.InvalidOperationException">
         /// The host has no conversation, the conversation has nothing to continue or a run going on in this process,
         /// the agent's chat client runs a tool loop of its own, or something the run needs is not registered: a chat
-        /// client for the agent's model, a store for the type of one of the host's ids, or an <c>IMcpToolProvider</c>
-        /// for the agent's MCP servers.
+        /// client for the provider the run names or, when it names none, a default client; a store for the type of one
+        /// of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP servers.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.

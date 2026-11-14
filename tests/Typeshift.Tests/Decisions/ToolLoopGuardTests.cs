@@ -126,7 +126,8 @@ public class ToolLoopGuardTests : ApprovalTestBase
         var calls = new ToolCalls();
         var services = new ServiceCollection();
         services.AddTypeshift().WithStore<InMemoryTypeshiftStore<Guid>>();
-        services.AddChatClient(new OpaqueChatClient(ChatClient.AsBuilder().UseFunctionInvocation().Build()));
+        var hidden = new OpaqueChatClient(ChatClient.AsBuilder().UseFunctionInvocation().Build());
+        services.AddKeyedChatClient("scripted", hidden);
         services.AddSingleton(calls);
 
         await using var provider = services.BuildServiceProvider();

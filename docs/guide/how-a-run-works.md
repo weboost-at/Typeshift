@@ -47,7 +47,9 @@ the response before the conversation stores how the run ended.
 2. **Resolve the options.** The host builds the run's `ChatOptions` from the agent's code, then the agent's own stored
    settings and those under the settings id, then the run's own settings. It creates the tools the agent offers, their
    settings resolved through the same layers, and adds the sub-agents and the tools of MCP servers after them. The
-   layers resolve once, when the run starts ([settings layering](./settings-and-stores.md#settings-layering)).
+   layers resolve once, when the run starts ([settings layering](./settings-and-stores.md#settings-layering)). The
+   host then takes the run's chat client. Settings no run can go with and a provider no client is registered for
+   fail the run here, before it stores an entry ([When a provider fails](./models.md#when-a-provider-fails)).
 3. **Resume the conversation.** The run puts the stored entries ahead of the new input, so the model sees the whole
    conversation, and stores the input. It also settles the decisions the conversation waits for: new input expires
    the ones still open, so the model reads that their calls did not run, as it does for the ones your app withdrew,

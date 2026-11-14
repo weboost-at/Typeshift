@@ -246,8 +246,9 @@ internal sealed class Compaction(ReportedCall? last)
     }
 
     // D77: a summary is best effort. The provider and model named for it write it, the run's own unless the settings
-    // or the agent name others, and when they fail the run's own; D63: none for a run on the client registered for
-    // every agent. Each failure is logged and recorded on the run's span, and null says that no model wrote one
+    // or the agent name others, and when they fail the run's own; D63: none for a run on the default client, and a
+    // summary provider nothing serves failed the run when it started. Each failure is logged and recorded on the
+    // run's span, and null says that no model wrote one
     private static async Task<ChatMessage?> TrySummarizeAsync(
         List<ChatMessage> turns,
         ResolvedChatOptions options,
@@ -291,9 +292,8 @@ internal sealed class Compaction(ReportedCall? last)
     {
         var instrumented = run.Services.GetRequiredService<InstrumentedClients>();
 
-        var provided = await ChatClients.GetAsync(run.Services, provider, model, ct)
-            ?? throw new InvalidOperationException(
-                ChatClients.NoClient($"the summary of the agent '{run.Agent.Name}'", provider, model));
+        var summarized = $"the summary of the agent '{run.Agent.Name}'";
+        var provided = await ChatClients.GetAsync(run.Services, summarized, provider, model, ct);
         using var client = instrumented.Instrument(provided, model);
 
         var response = await client.GetResponseAsync(

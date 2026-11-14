@@ -33,7 +33,7 @@ internal static class FileSettings
             .WithFileStore(store => store.Folder = folder);
         // end-snippet
 
-        services.AddKeyedChatClient("openai", new CannedChatClient());
+        services.AddChatClient(new CannedChatClient());
 
         return services.BuildServiceProvider(validateScopes: true);
     }

@@ -33,8 +33,9 @@ under the provider's name. `WithStore<T>()` registers the store that keeps setti
 
 ## Chat clients
 
-A run takes the `IChatClient` registered under its provider, or the one registered for every agent, from the run's
-services. [Models and providers](./models.md) shows how to register them, how an agent names its model, how to
+A run that names a provider takes the `IChatClient` registered under it, and a run that names none takes the default
+client, both from the run's services. A provider nothing is registered for fails the run before it starts.
+[Models and providers](./models.md) shows how to register them, how an agent names its model, how to
 create [a real client](./models.md#a-real-client) and when to write a provider of your own.
 
 ## Run an agent
