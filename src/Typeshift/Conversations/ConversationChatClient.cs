@@ -526,7 +526,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
         await run.CloseAsync(
             target.Agent.Name,
-            [.. lost.Select(call => Lost(call.CallId, call.Agent, "the conversation was handed off"))]);
+            [.. lost.Select(stopped => Lost(stopped.CallId, stopped.Agent, "the conversation was handed off"))]);
 
         var handed = new RunHandover(
             options.SettingsId,
