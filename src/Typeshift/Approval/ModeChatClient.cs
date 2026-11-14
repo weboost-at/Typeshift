@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 
 namespace Typeshift;
@@ -18,18 +17,14 @@ internal sealed class ModeChatClient(IChatClient inner, Func<int, IChatClient> l
         return loop(Budget(resolved)).GetResponseAsync(messages, ForMode(resolved), cancellationToken);
     }
 
-    public override async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+    public override IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
         var resolved = (ResolvedChatOptions)options!;
-        var pass = loop(Budget(resolved)).GetStreamingResponseAsync(messages, ForMode(resolved), cancellationToken);
 
-        await foreach (var update in pass)
-        {
-            yield return update;
-        }
+        return loop(Budget(resolved)).GetStreamingResponseAsync(messages, ForMode(resolved), cancellationToken);
     }
 
     // D32: each pass of a run, as steering input or a background answer starts one, gets what is left of the run's

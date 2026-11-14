@@ -32,22 +32,22 @@ internal sealed class RunMiddlewareChatClient(IChatClient inner) : DelegatingCha
         return await AnsweredAsync(run, resolved, called);
     }
 
-    public override async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+    public override IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        options is ResolvedChatOptions { AgentRun: { } run } resolved
+        && run.Services.GetServices<IRunMiddleware>().ToList() is { Count: > 0 } middleware
+            ? StreamAsync(middleware, run, resolved, messages, cancellationToken)
+            : base.GetStreamingResponseAsync(messages, options, cancellationToken);
+
+    private async IAsyncEnumerable<ChatResponseUpdate> StreamAsync(
+        List<IRunMiddleware> middleware,
+        AgentRun run,
+        ResolvedChatOptions resolved,
+        IEnumerable<ChatMessage> messages,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        if (options is not ResolvedChatOptions { AgentRun: { } run } resolved
-            || run.Services.GetServices<IRunMiddleware>().ToList() is not { Count: > 0 } middleware)
-        {
-            await foreach (var update in base.GetStreamingResponseAsync(messages, options, cancellationToken))
-            {
-                yield return update;
-            }
-
-            yield break;
-        }
-
         var received = Begin(run, messages);
 
         // The middleware awaits next while the updates stream on to the caller

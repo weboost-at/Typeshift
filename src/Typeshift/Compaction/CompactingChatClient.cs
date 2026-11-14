@@ -23,26 +23,26 @@ internal sealed class CompactingChatClient(IChatClient inner) : DelegatingChatCl
         return response;
     }
 
-    public override async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+    public override IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default) =>
+        options is ResolvedChatOptions { AgentRun: { } run, RunOptions.MaxInputTokens: { } max } resolved
+            ? StreamAsync(messages, resolved, run, max, cancellationToken)
+            : base.GetStreamingResponseAsync(messages, options, cancellationToken);
+
+    private async IAsyncEnumerable<ChatResponseUpdate> StreamAsync(
+        IEnumerable<ChatMessage> messages,
+        ResolvedChatOptions resolved,
+        AgentRun run,
+        int max,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        if (options is not ResolvedChatOptions { AgentRun: { } run, RunOptions.MaxInputTokens: { } max } resolved)
-        {
-            await foreach (var update in base.GetStreamingResponseAsync(messages, options, cancellationToken))
-            {
-                yield return update;
-            }
-
-            yield break;
-        }
-
         var compaction = run.Compaction ??= new Compaction(run.LastCall);
         var call = await compaction.PrepareAsync(messages, resolved, max, cancellationToken);
         UsageDetails? usage = null;
 
-        await foreach (var update in base.GetStreamingResponseAsync(call, options, cancellationToken))
+        await foreach (var update in base.GetStreamingResponseAsync(call, resolved, cancellationToken))
         {
             foreach (var content in update.Contents.OfType<UsageContent>())
             {
