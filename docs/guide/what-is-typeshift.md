@@ -47,6 +47,7 @@ Everything Typeshift does, you could write on Microsoft.Extensions.AI yourself. 
 | A `ChatOptions` per agent, and code that picks the client for its provider | `WithChatOptions().WithModel(...)` and a registered `IChatClient` |
 | Storing the history between requests, and resuming after a crash | A conversation id on the run |
 | Asking a person before a call that closes a ticket | `RequiresApproval()`, approval rules, and plan and auto modes |
+| A tool with which the model asks the user, and a place where the question waits for its answer | `UseQuestions()`, and a decision your app answers by its id |
 | Agents that call each other, or hand a conversation on | `UseAgent<T>()` and `UseHandoff<T>()` |
 | Registration for each of the above | `services.AddTypeshift()` |
 

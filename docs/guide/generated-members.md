@@ -153,6 +153,8 @@ internal partial class SupportAgent : Agent
             .ReadOnly();
 
         UseContext<CustomerProfileContext>();
+
+        UseQuestions();
     }
 
     protected override string GetInstructions() =>
@@ -161,7 +163,7 @@ internal partial class SupportAgent : Agent
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L48' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L52' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 | Declaration | Member |
@@ -339,7 +341,8 @@ It layers the agent's code, the stored settings, the mode the conversation's las
 ([Settings layering](./settings-and-stores.md#settings-layering)).
 
 On a host with a conversation id, it stores the run as it goes ([What a run stores](#what-a-run-stores)). Without
-one, it stores nothing, offers no handoffs and cannot ask for approval, unless your app keeps every conversation
+one, it stores nothing, offers no handoffs and no `ask_user`, and cannot ask for approval, unless your app keeps
+every conversation
 ([Keeping every conversation](./conversations.md#keeping-every-conversation)). A run that cannot ask throws a
 `DecisionUnavailableException`, an `InvalidOperationException`, when the model calls a tool that requires approval
 and no rule or mode approves the call. To avoid that, run with a conversation id, approve the call with a rule, or

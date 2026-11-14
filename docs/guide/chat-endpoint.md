@@ -97,9 +97,11 @@ internal sealed record ChatReply(string Text, IReadOnlyList<Decision> Decisions)
 
 `Decisions` lists what the run waits for
 ([When a call needs approval](./tool-approval.md#when-a-call-needs-approval)). A decision writes its own JSON, so the
-reply returns it as it is: its `kind`, `approval` or `plan`, its `id`, which the UI sends back with the user's
-answer, and what the UI shows to ask, the `tool` with its `arguments` or the `plan`. Show the arguments as they are,
-because those are the arguments the call runs with.
+reply returns it as it is: its `kind`, `approval`, `plan` or `question`, its `id`, which the UI sends back with the
+user's answer, and what the UI shows to ask. That is the `tool` with its `arguments`, the `plan`, or the `questions`
+the model [asks the user](./tool-approval.md#asking-the-user), each with its `header`, its `text`, its `options`
+(a `label` and a `description` each) and `multiSelect`. Show the arguments as they are, because those are the
+arguments the call runs with.
 
 ## Stream the answer
 
@@ -248,6 +250,10 @@ chat.MapPost("/decisions", async Task<IResult> (
   `"reason"` rejects and tells the model why, `"forConversation":true` makes the approval a
   [standing approval](./tool-approval.md#approving-for-the-conversation), and `"mode":"Auto"` picks the mode an
   approved [plan](./tool-approval.md#plan-mode) continues in.
+- Questions are answered with `"answers"`, one entry for each question in the questions' order:
+  `{"decisionId":"...","answers":[{"selected":["It leaks"]},{"text":"Since Monday."}]}`. An entry holds the labels
+  the user picked in `selected`, their own words in `text`, or both. Without `answers`, the body declines the
+  questions, and its `"reason"` tells the model why.
 - The UI sends back nothing of the call. Typeshift runs the call it stored under the id, with the arguments the user
   saw, and checks the answer against the stored decision
   ([Approving or rejecting](./tool-approval.md#approving-or-rejecting)).

@@ -37,6 +37,7 @@ await using (var provider = services.BuildServiceProvider(new ServiceProviderOpt
     await RunningAgents.RunAsync(provider);
     await Conversations.RunAsync(provider, CancellationToken.None);
     await Approval.RunAsync(provider);
+    await Questions.RunAsync(provider);
     await Modes.RunAsync(provider);
     await Middleware.RunAsync(provider);
     await MultiAgent.RunAsync(provider);

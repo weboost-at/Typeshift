@@ -48,9 +48,14 @@ internal sealed class ModeChatClient(IChatClient inner, Func<int, IChatClient> l
         var offered = (ResolvedChatOptions)options.Clone();
         var tools = options.Tools ?? [];
 
+        // D82: an agent that declares questions asks them in every mode, where a decision can wait: in a host's
+        // run with a conversation, never as a sub-agent
+        var asks = options is { Caller: null, AgentRun.Agent.AsksUser: true, ConversationRun.Conversation: not null };
+        AITool[] questions = asks ? [AskUserFunction.Instance] : [];
+
         if (options.AgentRun!.Mode != AgentMode.Plan)
         {
-            offered.Tools = [.. tools.Select(GatedFunction.Wrap)];
+            offered.Tools = [.. tools.Select(GatedFunction.Wrap), .. questions];
             return offered;
         }
 
@@ -62,7 +67,7 @@ internal sealed class ModeChatClient(IChatClient inner, Func<int, IChatClient> l
             return offered;
         }
 
-        offered.Tools = [.. planning, ExitPlanModeFunction.Instance];
+        offered.Tools = [.. planning, .. questions, ExitPlanModeFunction.Instance];
 
         offered.Instructions = options.Instructions is { } instructions
             ? $"{instructions}\n\n{ExitPlanModeFunction.Instructions}"

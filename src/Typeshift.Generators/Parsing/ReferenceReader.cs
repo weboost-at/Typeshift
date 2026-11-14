@@ -11,7 +11,7 @@ internal static class ReferenceReader
 {
     // D7: raised whenever the stamps change shape or a member generated code binds to changes; a reference with
     // another version is TSH020
-    public const int StampVersion = 9;
+    public const int StampVersion = 10;
 
     public static ReferenceModel Read(Compilation compilation, CancellationToken ct)
     {
@@ -93,7 +93,8 @@ internal static class ReferenceReader
             Described: stamp.NamedArguments.Any(argument => argument is { Key: "Described", Value.Value: true }),
             ApprovalTools: approvalTools,
             Tools: ReadNames(stamp, "Tools"),
-            OwnTools: ReadNames(stamp, "OwnTools"));
+            OwnTools: ReadNames(stamp, "OwnTools"),
+            AsksUser: stamp.NamedArguments.Any(argument => argument is { Key: "AsksUser", Value.Value: true }));
     }
 
     private static EquatableArray<string> ReadNames(AttributeData stamp, string argument) =>

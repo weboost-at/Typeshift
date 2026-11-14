@@ -26,6 +26,14 @@ All notable changes to this project are documented here. The format follows
   are open no model is called, and the response lists the rest. `decision.Approve()`, `ApproveForConversation()`,
   `Reject(reason)` and `plan.Approve(mode)` make the answers, and a `DecisionAnswer` binds from JSON such as
   `{"decisionId":"...","approved":true}`, so an endpoint takes it as its body.
+- `UseQuestions()` in an agent's constructor lets the model ask the user through a built-in tool, `ask_user`: one to
+  four questions, each with a short header and two to four options. A call of it ends the run with a
+  `QuestionDecision`, and `question.Answer(...)` takes one answer for each question, the labels the user picked or
+  their own words, which the model reads as the call's result. `Reject(reason)` declines. A UI posts
+  `{"decisionId":"...","answers":[{"selected":["..."]},{"text":"..."}]}`. The tool is offered in a run with a
+  conversation, in every mode, and never to a sub-agent.
+- TSH034 warns at the `UseAgent<T>()` of an agent that declares `UseQuestions()`: a sub-agent cannot ask the user,
+  so it is not offered `ask_user`.
 - `host.GetDecisionsAsync()` loads what a conversation waits for without a run, for a page that was reloaded: the
   open decisions, whether the answered ones wait to be carried out, and the tools approved for the conversation,
   each with the time the approval took effect. `host.RecordAnswersAsync(answers)` records answers without a run,

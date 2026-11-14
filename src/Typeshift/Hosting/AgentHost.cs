@@ -198,8 +198,8 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
                 // a message written for the model
                 IncludeDetailedErrors = true,
 
-                // The call of an answered plan resolves whatever mode the run continues in
-                AdditionalTools = [ExitPlanModeFunction.Instance],
+                // The call of an answered plan or question resolves whatever the run that continues offers
+                AdditionalTools = [ExitPlanModeFunction.Instance, AskUserFunction.Instance],
 
                 // D81: every call goes through its verdict, then the tool middleware (D30)
                 FunctionInvoker = gate.InvokeAsync

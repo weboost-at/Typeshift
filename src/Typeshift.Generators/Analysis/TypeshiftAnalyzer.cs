@@ -52,7 +52,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.UnusableProviderIdType,
         Descriptors.NoChatClientProvider,
         Descriptors.LanguageVersionTooLow,
-        Descriptors.ReadDifferently
+        Descriptors.ReadDifferently,
+        Descriptors.SubAgentAsksUser
     ];
 
     public override void Initialize(AnalysisContext context)
@@ -493,6 +494,9 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
                     var names = string.Join(", ", target.ApprovalTools);
                     Report(context, Descriptors.SubAgentNeedsApproval, use, use.Target.Name, names);
                 }
+
+                // D82: a sub-agent has no conversation to wait in, so it is never offered ask_user
+                if (target.AsksUser) Report(context, Descriptors.SubAgentAsksUser, use, use.Target.Name);
 
                 // Assemblies cannot reference each other in a circle, so only this compilation's agents can close one
                 if (Calls(use.Target, type, agents))

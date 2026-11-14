@@ -175,6 +175,23 @@ public static class ReferenceSources
         }
         """;
 
+    public const string QuestioningHelpAgent =
+        """
+        using Typeshift;
+
+        namespace Help;
+
+        public partial class HelpAgent : Agent
+        {
+            public HelpAgent()
+            {
+                WithDescription("Helps.");
+
+                UseQuestions();
+            }
+        }
+        """;
+
     public const string HelpAgentWithOwnTool =
         """
         using Typeshift;

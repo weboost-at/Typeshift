@@ -124,6 +124,7 @@ internal static class AgentParser
             declarations.RunOptions.ToEquatableArray(),
             declarations.Toolsets.ToEquatableArray(),
             tools.Select(declaration => declaration.Tool).ToEquatableArray(),
+            declarations.AsksUser,
             configures.ToEquatableArray(),
             named.GetExperimentalIds());
     }
@@ -196,6 +197,14 @@ internal static class AgentParser
                 else
                     declarations.Agents.Add(new AgentUseDeclaration(target, subAgent, syntax));
 
+                break;
+
+            // D82: the agent records the flag itself at run time, so the generator writes no code, only the stamp
+            case "UseQuestions":
+                if (declarations.AsksUser)
+                    reporter.Report(Descriptors.OfferedTwice, ConstructorChains.GetCalledName(call), "'ask_user'");
+
+                declarations.AsksUser = true;
                 break;
         }
     }
@@ -465,6 +474,8 @@ internal static class AgentParser
         public List<ITypeSymbol> Used { get; } = [];
 
         public List<AgentUseDeclaration> Agents { get; } = [];
+
+        public bool AsksUser { get; set; }
     }
 
     private static bool Same(ISymbol one, ISymbol other) => SymbolEqualityComparer.Default.Equals(one, other);

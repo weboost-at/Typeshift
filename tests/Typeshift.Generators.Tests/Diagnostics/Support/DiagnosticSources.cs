@@ -784,6 +784,55 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string SubAgentThatAsksTheUser =
+        """
+        using Typeshift;
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent()
+            {
+                WithDescription("Helps.");
+
+                UseQuestions();
+            }
+        }
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent() => UseAgent<HelpAgent>();
+        }
+        """;
+
+    public const string QuestionsDeclaredTwice =
+        """
+        using Typeshift;
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent()
+            {
+                UseQuestions();
+                UseQuestions();
+            }
+        }
+        """;
+
+    public const string QuestionsDeclaredUnderACondition =
+        """
+        using Typeshift;
+
+        internal partial class HelpAgent : Agent
+        {
+            private static readonly bool Asks = true;
+
+            public HelpAgent()
+            {
+                if (Asks) UseQuestions();
+            }
+        }
+        """;
+
     public const string AgentToolNamedLikeAToolsets =
         """
         using Typeshift;

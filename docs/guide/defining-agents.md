@@ -43,6 +43,8 @@ internal partial class SupportAgent : Agent
             .ReadOnly();
 
         UseContext<CustomerProfileContext>();
+
+        UseQuestions();
     }
 
     protected override string GetInstructions() =>
@@ -51,7 +53,7 @@ internal partial class SupportAgent : Agent
         """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L48' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L52' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The tools and their settings have sections of their own below. The other calls of this agent declare the rest:
@@ -62,6 +64,7 @@ The tools and their settings have sections of their own below. The other calls o
 | `WithChatOptions()` | The chat options every run starts from, such as the model and the temperature. [Models and providers](./models.md) explains what `WithModel` names and which client serves it. |
 | `UseMcpServer(...)` | The tools of an [MCP server](./mcp.md). `ReadOnly()` lets plan mode offer them. |
 | `UseContext<T>()` | A [context provider](./middleware.md#context-providers), whose instructions, messages and tools join every run. |
+| `UseQuestions()` | That the model may [ask the user](./tool-approval.md#asking-the-user) a question, which your app answers. |
 | `GetInstructions()` | The instructions, the agent's system prompt, as an override for text your code builds. `WithInstructions(...)` in the constructor suits instructions that are the same for every run. |
 
 [Builders](./builders.md#agent) lists every call an agent's constructor can make, with what each takes. Among them are

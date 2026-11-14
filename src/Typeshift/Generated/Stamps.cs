@@ -70,6 +70,11 @@ public sealed class ModuleAgentAttribute(
     /// D57: the tools the agent declares itself.
     /// </summary>
     public string[] OwnTools { get; init; } = [];
+
+    /// <summary>
+    /// D82: whether the agent offers <c>ask_user</c>, which it cannot ask as a sub-agent.
+    /// </summary>
+    public bool AsksUser { get; init; }
 }
 
 /// <summary>

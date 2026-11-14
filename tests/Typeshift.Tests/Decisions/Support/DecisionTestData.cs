@@ -12,8 +12,34 @@ public class DecisionTestData(Faker faker)
     public string Server { get; } = $"{faker.Hacker.Noun()}-server";
 
     // Every member set, none to a default: a mode, a standing approval of a server's tool, a batch with a call of
-    // each kind and an answer of each kind, and a closed decision
+    // each kind and an answer of each kind, the last one questions, and a closed decision
     internal DecisionDocument Document { get; } = CreateDocument(faker);
+
+    // Two questions as ask_user takes them, the first with several options to pick
+    private static readonly JsonElement Questions = JsonElement.Parse(
+        """
+        {
+          "questions": [
+            {
+              "question": "Which libraries may the data layer use?",
+              "header": "Libraries",
+              "options": [
+                { "label": "Dapper", "description": "Plain SQL." },
+                { "label": "EF Core", "description": "An object mapper." }
+              ],
+              "multiSelect": true
+            },
+            {
+              "question": "How far should the change reach?",
+              "header": "Scope",
+              "options": [
+                { "label": "Everything", "description": "Every table." },
+                { "label": "A part", "description": "The tables you name." }
+              ]
+            }
+          ]
+        }
+        """);
 
     private static DecisionDocument CreateDocument(Faker faker)
     {
@@ -51,7 +77,14 @@ public class DecisionTestData(Faker faker)
                         Ask = Answered(AskKind.Approval, id => DecisionAnswer.Reject(id, faker.Lorem.Sentence()))
                     },
                     Call(faker.Hacker.Verb()) with { Rejected = faker.Lorem.Sentence() },
-                    Call(faker.Hacker.Verb())
+                    Call(faker.Hacker.Verb()),
+                    Call("ask_user") with
+                    {
+                        Arguments = Questions,
+                        Ask = Answered(
+                            AskKind.Question,
+                            id => DecisionAnswer.Answer(id, new QuestionAnswer(["Dapper"]), faker.Lorem.Sentence()))
+                    }
                 ]),
             Closed = [new ClosedDecision(faker.Random.Guid().ToString("N"), DecisionClosedReason.Expired)]
         };

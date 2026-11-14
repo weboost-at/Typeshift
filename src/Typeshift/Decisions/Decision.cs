@@ -6,8 +6,9 @@ namespace Typeshift;
 
 /// <summary>
 /// What a run asks your app before it goes on, one record per waiting call of the model: an
-/// <see cref="ApprovalDecision"/> for a call of a tool that requires approval, a <see cref="PlanDecision"/> for a plan.
-/// Answer it by its <see cref="Id"/>. It writes and reads its own JSON, so an endpoint returns it as it is.
+/// <see cref="ApprovalDecision"/> for a call of a tool that requires approval, a <see cref="PlanDecision"/> for a plan,
+/// a <see cref="QuestionDecision"/> for questions to the user. Answer it by its <see cref="Id"/>. It writes and reads
+/// its own JSON, so an endpoint returns it as it is.
 /// </summary>
 // D80: a decision is a stored record with an id of its own, never a content of the conversation's history
 [JsonConverter(typeof(StorableJsonConverter<Decision>))]
@@ -38,7 +39,8 @@ public abstract record Decision : IJsonStorable<Decision>
     private protected abstract string Kind { get; }
 
     /// <summary>
-    /// Rejects the call or the plan. The model reads the rejection as the call's result and goes on.
+    /// Rejects the call or the plan, or declines the questions. The model reads that as the call's result and goes
+    /// on.
     /// </summary>
     /// <param name="reason">Why, for the model; null for none.</param>
     /// <returns>The answer, for <c>AnswerAsync</c> or <c>RecordAnswersAsync</c>.</returns>
@@ -71,6 +73,7 @@ public abstract record Decision : IJsonStorable<Decision>
         {
             ApprovalDecision.KindName => ApprovalDecision.Read(element),
             PlanDecision.KindName => PlanDecision.Read(element),
+            QuestionDecision.KindName => QuestionDecision.Read(element),
             var kind => throw new JsonException($"'{kind}' is no kind of decision.")
         };
 
@@ -210,18 +213,19 @@ public sealed record PlanDecision : Decision, IJsonStorable<PlanDecision>
 
 /// <summary>
 /// Your app's answer to one decision, by the decision's id. A UI posts it as JSON, such as
-/// <c>{"decisionId":"...","approved":true}</c>. It is checked against the stored decision when it is recorded.
+/// <c>{"decisionId":"...","approved":true}</c>, or <c>{"decisionId":"...","answers":[{"selected":["Dapper"]}]}</c> for
+/// questions. It is checked against the stored decision when it is recorded.
 /// </summary>
 /// <param name="DecisionId">The <see cref="Decision.Id"/> of the decision it answers.</param>
 public sealed record DecisionAnswer(string DecisionId)
 {
     /// <summary>
-    /// Whether the call or the plan is approved; false rejects it.
+    /// Whether the call or the plan is approved; false rejects it. Questions are answered by <see cref="Answers"/>.
     /// </summary>
     public bool Approved { get; init; }
 
     /// <summary>
-    /// Why the call or the plan is rejected, for the model; null for none.
+    /// Why the call or the plan is rejected or the questions are declined, for the model; null for none.
     /// </summary>
     public string? Reason { get; init; }
 
@@ -235,6 +239,11 @@ public sealed record DecisionAnswer(string DecisionId)
     /// </summary>
     [JsonConverter(typeof(JsonStringEnumConverter<AgentMode>))]
     public AgentMode? Mode { get; init; }
+
+    /// <summary>
+    /// For questions: one answer for each question, in the questions' order. Null declines them.
+    /// </summary>
+    public IReadOnlyList<QuestionAnswer>? Answers { get; init; }
 
     /// <summary>
     /// Approves a tool call.
@@ -269,13 +278,48 @@ public sealed record DecisionAnswer(string DecisionId)
                 "An approved plan continues in the default or the auto mode.");
 
     /// <summary>
-    /// Rejects a tool call or a plan.
+    /// Answers questions.
+    /// </summary>
+    /// <param name="decisionId">The decision's id.</param>
+    /// <param name="answers">
+    /// One answer for each question, in the questions' order. A string is an answer too: an option when it equals
+    /// the option's label, the user's own words otherwise.
+    /// </param>
+    /// <returns>The answer.</returns>
+    public static DecisionAnswer Answer(string decisionId, params IReadOnlyList<QuestionAnswer> answers) =>
+        new(decisionId) { Approved = true, Answers = answers };
+
+    /// <summary>
+    /// Rejects a tool call or a plan, or declines questions.
     /// </summary>
     /// <param name="decisionId">The decision's id.</param>
     /// <param name="reason">Why, for the model; null for none.</param>
     /// <returns>The answer.</returns>
     public static DecisionAnswer Reject(string decisionId, string? reason = null) =>
         new(decisionId) { Reason = reason };
+
+    /// <summary>
+    /// Whether two answers say the same about the same decision, the answers to questions compared one by one.
+    /// </summary>
+    /// <param name="other">The other answer.</param>
+    /// <returns>True when they are the same answer.</returns>
+    public bool Equals(DecisionAnswer? other) =>
+        other is not null
+        && DecisionId == other.DecisionId
+        && Approved == other.Approved
+        && Reason == other.Reason
+        && ForConversation == other.ForConversation
+        && Mode == other.Mode
+        && (Answers, other.Answers) switch
+        {
+            (null, null) => true,
+            ({ } own, { } others) => own.SequenceEqual(others),
+            _ => false
+        };
+
+    /// <inheritdoc />
+    public override int GetHashCode() =>
+        HashCode.Combine(DecisionId, Approved, Reason, ForConversation, Mode, Answers?.Count);
 }
 
 /// <summary>

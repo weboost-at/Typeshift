@@ -204,8 +204,16 @@ internal sealed record BatchCall(string CallId, string Tool, JsonElement Argumen
         {
             AskKind.Approval => new ApprovalDecision(Ask.Id, batch.Agent, batch.AskedAt, Tool, Server, Arguments),
             AskKind.Plan => new PlanDecision(Ask.Id, batch.Agent, batch.AskedAt, Plan),
+            AskKind.Question => new QuestionDecision(Ask.Id, batch.Agent, batch.AskedAt, Questions),
             _ => null
         };
+
+    // The questions ask_user asks; what the gate let through holds one to four
+    public IReadOnlyList<Question> Questions => AskUserFunction.Questions(Arguments);
+
+    // The answer as it is recorded; questions are answered against what they offer
+    public DecisionAnswer Normalize(DecisionAnswer answer) =>
+        Ask!.Normalize(answer, Ask.Kind is AskKind.Question ? Questions : []);
 
     // The plan exit_plan_mode presents; arguments of another shape show as they are
     private string Plan =>
@@ -270,13 +278,28 @@ internal sealed record Ask(string Id, AskKind Kind)
 
     // The answer as it is recorded: what does not apply to its kind is left out, so the same answer compares equal
     // however it was posted
-    public DecisionAnswer Normalize(DecisionAnswer answer)
+    public DecisionAnswer Normalize(DecisionAnswer answer, IReadOnlyList<Question> questions)
     {
+        // Questions are answered by their answers, whatever else the answer says
+        if (Kind is AskKind.Question && answer.Answers is { } answers)
+            return new(Id) { Approved = true, Answers = AskUserFunction.Normalize(questions, answers, Id) };
+
+        if (answer.Answers is not null)
+        {
+            throw new ArgumentException(
+                $"The answer to {Id} answers questions, and the decision asks none: approve or reject it.",
+                "answers");
+        }
+
         if (!answer.Approved)
             return new(Id) { Reason = string.IsNullOrWhiteSpace(answer.Reason) ? null : answer.Reason };
 
         return Kind switch
         {
+            AskKind.Question => throw new ArgumentException(
+                $"The answer to {Id} approves, and the decision is a question: answer it with Answer(...), or "
+                + "decline it with Reject().",
+                "answers"),
             AskKind.Approval when answer.Mode is not null => throw new ArgumentException(
                 $"The answer to {Id} approves a plan into a mode, and the decision is a tool call: approve it with "
                 + "Approve() or ApproveForConversation().",
@@ -307,6 +330,7 @@ internal sealed record Ask(string Id, AskKind Kind)
             if (Answer.Reason is not null) writer.WriteString("reason", Answer.Reason);
             if (Answer.ForConversation) writer.WriteBoolean("forConversation", true);
             if (Answer.Mode is { } mode) writer.WriteString("mode", mode.ToString());
+            if (Answer.Answers is { } answers) WriteAnswers(writer, answers);
             writer.WriteEndObject();
         }
 
@@ -337,14 +361,52 @@ internal sealed record Ask(string Id, AskKind Kind)
             Approved = StorableJson.TryRead(StorableJson.Member(answer, "approved"), out bool approved) && approved,
             Reason = StorableJson.TryRead(StorableJson.Member(answer, "reason"), out string reason) ? reason : null,
             ForConversation = StorableJson.TryRead(StorableJson.Member(answer, "forConversation"), out bool all) && all,
-            Mode = StorableJson.TryReadEnum(StorableJson.Member(answer, "mode"), out AgentMode mode) ? mode : null
+            Mode = StorableJson.TryReadEnum(StorableJson.Member(answer, "mode"), out AgentMode mode) ? mode : null,
+            Answers = StorableJson.TryReadList<QuestionAnswer>(
+                StorableJson.Member(answer, "answers"),
+                TryReadAnswer,
+                out var answers)
+                ? answers
+                : null
         };
+
+    private static void WriteAnswers(Utf8JsonWriter writer, IReadOnlyList<QuestionAnswer> answers)
+    {
+        writer.WriteStartArray("answers");
+
+        foreach (var answer in answers)
+        {
+            writer.WriteStartObject();
+            writer.WriteStartArray("selected");
+
+            foreach (var label in answer.Selected)
+            {
+                writer.WriteStringValue(label);
+            }
+
+            writer.WriteEndArray();
+            if (answer.Text is not null) writer.WriteString("text", answer.Text);
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();
+    }
+
+    private static bool TryReadAnswer(JsonElement element, out QuestionAnswer answer)
+    {
+        answer = new(
+            DecisionJson.List<string>(element, "selected", StorableJson.TryRead),
+            StorableJson.TryRead(StorableJson.Member(element, "text"), out string text) ? text : null);
+
+        return element.ValueKind is JsonValueKind.Object;
+    }
 }
 
 internal enum AskKind
 {
     Approval,
-    Plan
+    Plan,
+    Question
 }
 
 internal sealed record ClosedDecision(string Id, DecisionClosedReason Reason);

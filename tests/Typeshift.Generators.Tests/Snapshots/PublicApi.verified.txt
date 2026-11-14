@@ -17,6 +17,7 @@ protected Typeshift.AgentUse Typeshift.Agent.UseAgent<TAgent>() where TAgent : T
 protected void Typeshift.Agent.UseContext<TProvider>() where TProvider : class, Typeshift.IContextProvider
 protected void Typeshift.Agent.UseHandoff<TAgent>() where TAgent : Typeshift.Agent
 protected Typeshift.McpServerUse Typeshift.Agent.UseMcpServer(string server)
+protected void Typeshift.Agent.UseQuestions()
 protected Typeshift.ToolsetUse<TToolset> Typeshift.Agent.UseToolset<TToolset>() where TToolset : Typeshift.Toolset, new()
 protected Typeshift.ChatOptionsBuilder Typeshift.Agent.WithChatOptions()
 protected void Typeshift.Agent.WithDescription(string description)
@@ -160,6 +161,8 @@ public override string Typeshift.Decision.ToString()
 public static bool Typeshift.Decision.operator !=(Typeshift.Decision? left, Typeshift.Decision? right)
 public static bool Typeshift.Decision.operator ==(Typeshift.Decision? left, Typeshift.Decision? right)
 public sealed record Typeshift.DecisionAnswer : System.IEquatable<Typeshift.DecisionAnswer>
+public static Typeshift.DecisionAnswer Typeshift.DecisionAnswer.Answer(string decisionId, params System.Collections.Generic.IReadOnlyList<Typeshift.QuestionAnswer> answers)
+public System.Collections.Generic.IReadOnlyList<Typeshift.QuestionAnswer>? Typeshift.DecisionAnswer.Answers { get; init; }
 public static Typeshift.DecisionAnswer Typeshift.DecisionAnswer.Approve(string decisionId)
 public static Typeshift.DecisionAnswer Typeshift.DecisionAnswer.ApproveForConversation(string decisionId)
 public static Typeshift.DecisionAnswer Typeshift.DecisionAnswer.ApprovePlan(string decisionId, Typeshift.AgentMode mode)
@@ -253,6 +256,7 @@ abstract void Typeshift.Generated.IJsonStorable<TSelf>.WriteJson(System.Text.Jso
 public sealed class Typeshift.Generated.ModuleAgentAttribute : System.Attribute
 public System.Type Typeshift.Generated.ModuleAgentAttribute.Agent { get; }
 public System.Collections.Generic.IReadOnlyList<string> Typeshift.Generated.ModuleAgentAttribute.ApprovalTools { get; }
+public bool Typeshift.Generated.ModuleAgentAttribute.AsksUser { get; init; }
 public bool Typeshift.Generated.ModuleAgentAttribute.Described { get; init; }
 public string Typeshift.Generated.ModuleAgentAttribute.Kind { get; }
 public Typeshift.Generated.ModuleAgentAttribute.ModuleAgentAttribute(System.Type agent, string kind, string name, params string[] approvalTools)
@@ -399,6 +403,54 @@ protected override bool Typeshift.PlanDecision.PrintMembers(System.Text.StringBu
 public override string Typeshift.PlanDecision.ToString()
 public static bool Typeshift.PlanDecision.operator !=(Typeshift.PlanDecision? left, Typeshift.PlanDecision? right)
 public static bool Typeshift.PlanDecision.operator ==(Typeshift.PlanDecision? left, Typeshift.PlanDecision? right)
+public sealed record Typeshift.Question : System.IEquatable<Typeshift.Question>
+public void Typeshift.Question.Deconstruct(out string Header, out string Text, out System.Collections.Generic.IReadOnlyList<Typeshift.QuestionOption> Options, out bool MultiSelect)
+public bool Typeshift.Question.Equals(Typeshift.Question? other)
+public override bool Typeshift.Question.Equals(object? obj)
+public override int Typeshift.Question.GetHashCode()
+public string Typeshift.Question.Header { get; init; }
+public bool Typeshift.Question.MultiSelect { get; init; }
+public System.Collections.Generic.IReadOnlyList<Typeshift.QuestionOption> Typeshift.Question.Options { get; init; }
+public Typeshift.Question.Question(string Header, string Text, System.Collections.Generic.IReadOnlyList<Typeshift.QuestionOption> Options, bool MultiSelect)
+public string Typeshift.Question.Text { get; init; }
+public override string Typeshift.Question.ToString()
+public static bool Typeshift.Question.operator !=(Typeshift.Question? left, Typeshift.Question? right)
+public static bool Typeshift.Question.operator ==(Typeshift.Question? left, Typeshift.Question? right)
+public sealed record Typeshift.QuestionAnswer : System.IEquatable<Typeshift.QuestionAnswer>
+public void Typeshift.QuestionAnswer.Deconstruct(out System.Collections.Generic.IReadOnlyList<string> Selected, out string? Text)
+public bool Typeshift.QuestionAnswer.Equals(Typeshift.QuestionAnswer? other)
+public override bool Typeshift.QuestionAnswer.Equals(object? obj)
+public override int Typeshift.QuestionAnswer.GetHashCode()
+public Typeshift.QuestionAnswer.QuestionAnswer(System.Collections.Generic.IReadOnlyList<string> Selected, string? Text = null)
+public System.Collections.Generic.IReadOnlyList<string> Typeshift.QuestionAnswer.Selected { get; init; }
+public string? Typeshift.QuestionAnswer.Text { get; init; }
+public override string Typeshift.QuestionAnswer.ToString()
+public static Typeshift.QuestionAnswer.implicit operator Typeshift.QuestionAnswer(string answer)
+public static bool Typeshift.QuestionAnswer.operator !=(Typeshift.QuestionAnswer? left, Typeshift.QuestionAnswer? right)
+public static bool Typeshift.QuestionAnswer.operator ==(Typeshift.QuestionAnswer? left, Typeshift.QuestionAnswer? right)
+public sealed record Typeshift.QuestionDecision : Typeshift.Decision, Typeshift.Generated.IJsonStorable<Typeshift.QuestionDecision>, System.IEquatable<Typeshift.QuestionDecision>
+public Typeshift.DecisionAnswer Typeshift.QuestionDecision.Answer(params System.Collections.Generic.IReadOnlyList<Typeshift.QuestionAnswer> answers)
+protected override System.Type Typeshift.QuestionDecision.EqualityContract { get; }
+public override sealed bool Typeshift.QuestionDecision.Equals(Typeshift.Decision? other)
+public bool Typeshift.QuestionDecision.Equals(Typeshift.QuestionDecision? other)
+public override bool Typeshift.QuestionDecision.Equals(object? obj)
+public override int Typeshift.QuestionDecision.GetHashCode()
+protected override bool Typeshift.QuestionDecision.PrintMembers(System.Text.StringBuilder builder)
+public System.Collections.Generic.IReadOnlyList<Typeshift.Question> Typeshift.QuestionDecision.Questions { get; }
+public override string Typeshift.QuestionDecision.ToString()
+public static bool Typeshift.QuestionDecision.operator !=(Typeshift.QuestionDecision? left, Typeshift.QuestionDecision? right)
+public static bool Typeshift.QuestionDecision.operator ==(Typeshift.QuestionDecision? left, Typeshift.QuestionDecision? right)
+public sealed record Typeshift.QuestionOption : System.IEquatable<Typeshift.QuestionOption>
+public void Typeshift.QuestionOption.Deconstruct(out string Label, out string Description)
+public string Typeshift.QuestionOption.Description { get; init; }
+public bool Typeshift.QuestionOption.Equals(Typeshift.QuestionOption? other)
+public override bool Typeshift.QuestionOption.Equals(object? obj)
+public override int Typeshift.QuestionOption.GetHashCode()
+public string Typeshift.QuestionOption.Label { get; init; }
+public Typeshift.QuestionOption.QuestionOption(string Label, string Description)
+public override string Typeshift.QuestionOption.ToString()
+public static bool Typeshift.QuestionOption.operator !=(Typeshift.QuestionOption? left, Typeshift.QuestionOption? right)
+public static bool Typeshift.QuestionOption.operator ==(Typeshift.QuestionOption? left, Typeshift.QuestionOption? right)
 public sealed record Typeshift.RealtimeTrackingOptions : System.IEquatable<Typeshift.RealtimeTrackingOptions>
 public bool Typeshift.RealtimeTrackingOptions.Equals(Typeshift.RealtimeTrackingOptions? other)
 public override bool Typeshift.RealtimeTrackingOptions.Equals(object? obj)

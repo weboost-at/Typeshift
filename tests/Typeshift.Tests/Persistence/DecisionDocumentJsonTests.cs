@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Typeshift.Generated;
 using FluentAssertions;
 
 namespace Typeshift.Tests.Persistence;
@@ -64,6 +65,44 @@ public class DecisionDocumentJsonTests : UnitTestBase
               "closed": []
             }
             """));
+    }
+
+    [Fact]
+    public void Given_Answered_Questions_Their_Answers_Are_Stored_Each_With_Its_Labels_And_Its_Words()
+    {
+        // Arrange
+        var answer = DecisionAnswer.Answer(Data.Decisions.DecisionId, new QuestionAnswer(["Dapper"]), "Orders");
+        var ask = new Ask(Data.Decisions.DecisionId, AskKind.Question) { Answer = answer };
+
+        // Act
+        var json = StorableJson.Write(ask.Write);
+
+        // Assert
+        json.Should().Be(Compact(
+            $$"""
+            {
+              "id": "{{Data.Decisions.DecisionId}}",
+              "kind": "question",
+              "answer": {
+                "approved": true,
+                "answers": [{ "selected": ["Dapper"] }, { "selected": [], "text": "Orders" }]
+              }
+            }
+            """));
+    }
+
+    [Fact]
+    public void Given_Stored_Answers_To_Questions_They_Read_Back_Equal()
+    {
+        // Arrange
+        var asks = Data.Decisions.Document.Batch!.Asks.ToList();
+
+        // Act
+        var read = DecisionDocument.Deserialize(Data.Decisions.Document.Serialize()).Batch!.Asks.ToList();
+
+        // Assert
+        read[^1].Answer!.Answers.Should().HaveCount(2);
+        read[^1].Answer.Should().Be(asks[^1].Answer);
     }
 
     [Fact]
@@ -136,6 +175,41 @@ public class DecisionDocumentJsonTests : UnitTestBase
     }
 
     [Fact]
+    public void Given_A_Question_Decision_System_Text_Json_Writes_Its_Questions_With_Their_Options()
+    {
+        // Arrange
+        var batch = Data.Decisions.Document.Batch!;
+        var decision = batch.Calls[^1].ToDecision(batch)!;
+
+        // Act
+        var json = JsonDocument.Parse(JsonSerializer.Serialize(decision)).RootElement;
+        var question = json.GetProperty("questions")[0];
+
+        // Assert
+        json.GetProperty("kind").GetString().Should().Be("question");
+        question.GetProperty("header").GetString().Should().Be("Libraries");
+        question.GetProperty("text").GetString().Should().Be("Which libraries may the data layer use?");
+        question.GetProperty("multiSelect").GetBoolean().Should().BeTrue();
+        question.GetProperty("options")[1].GetRawText().Should().Be(
+            """{"label":"EF Core","description":"An object mapper."}""");
+    }
+
+    [Fact]
+    public void Given_The_Json_Of_A_Question_Decision_System_Text_Json_Reads_Its_Questions_Back()
+    {
+        // Arrange
+        var batch = Data.Decisions.Document.Batch!;
+        var json = JsonSerializer.Serialize(batch.Calls[^1].ToDecision(batch)!);
+
+        // Act
+        var read = JsonSerializer.Deserialize<Decision>(json);
+
+        // Assert
+        read.Should().BeOfType<QuestionDecision>();
+        JsonSerializer.Serialize(read).Should().Be(json);
+    }
+
+    [Fact]
     public void Given_A_Decision_Typed_As_Its_Kind_System_Text_Json_Writes_The_Same_Json()
     {
         // Arrange
@@ -170,6 +244,20 @@ public class DecisionDocumentJsonTests : UnitTestBase
 
         // Assert
         answer.Should().Be(DecisionAnswer.ApprovePlan(Data.Decisions.DecisionId, AgentMode.Auto));
+    }
+
+    [Fact]
+    public void Given_Answers_To_Questions_A_Page_Posts_System_Text_Json_Reads_Labels_And_Words()
+    {
+        // Arrange
+        var id = Data.Decisions.DecisionId;
+        var json = $$"""{"decisionId":"{{id}}","answers":[{"selected":["Dapper"]},{"text":"Orders"}]}""";
+
+        // Act
+        var answer = JsonSerializer.Deserialize<DecisionAnswer>(json, JsonSerializerOptions.Web)!;
+
+        // Assert
+        answer.Answers.Should().Equal(new QuestionAnswer(["Dapper"]), new QuestionAnswer([], "Orders"));
     }
 
     [Fact]

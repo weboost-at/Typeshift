@@ -447,6 +447,7 @@ public static class ShapeSources
                 UseToolset<CalendarToolset>().Include(t => t.Book);
                 UseAgent<ReviewAgent>().WithResult<Verdict>();
                 UseHandoff<BillingAgent>();
+                UseQuestions();
 
                 AddTool(Archive)
                     .WithDescription("Archives old mails.")

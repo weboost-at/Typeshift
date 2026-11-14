@@ -19,7 +19,8 @@ internal sealed record ModuleAgent(
     bool Described,
     EquatableArray<string> ApprovalTools,
     EquatableArray<string> Tools,
-    EquatableArray<string> OwnTools);
+    EquatableArray<string> OwnTools,
+    bool AsksUser);
 
 // The modules and toolsets of the referenced assemblies compiled with the generator
 internal sealed record ReferenceModel(EquatableArray<string> Modules, EquatableArray<ToolsetSummary> Toolsets);

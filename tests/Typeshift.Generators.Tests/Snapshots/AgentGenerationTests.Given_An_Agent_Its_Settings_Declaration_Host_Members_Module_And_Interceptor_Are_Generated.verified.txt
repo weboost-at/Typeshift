@@ -638,7 +638,7 @@ namespace System.Runtime.CompilerServices
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 9)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 10)]
 
 namespace Typeshift.Generated;
 
@@ -649,7 +649,7 @@ namespace Typeshift.Generated;
 [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
 [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [global::Typeshift.Generated.ModuleToolset(typeof(global::Demo.TicketToolset))]
-[global::Typeshift.Generated.ModuleAgent(typeof(global::Demo.SupportAgent), "SupportAgent", "support_agent", Described = true, Tools = new string[] { "search_tickets", "close_ticket" })]
+[global::Typeshift.Generated.ModuleAgent(typeof(global::Demo.SupportAgent), "SupportAgent", "support_agent", Described = true, Tools = new string[] { "search_tickets", "close_ticket" }, AsksUser = true)]
 public static class SubjectModule
 {
     /// <summary>

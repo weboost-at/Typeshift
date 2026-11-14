@@ -40,6 +40,9 @@ public abstract class Agent
 
     internal List<McpServerUse> McpServers { get; } = [];
 
+    // D82: whether the model may ask the user through ask_user
+    internal bool AsksUser { get; private set; }
+
     // Protected members stay protected, never protected internal, which an assembly that sees the library's internals
     // would have to override as protected internal
     internal AgentDeclaration GeneratedDeclaration => Declaration;
@@ -158,6 +161,13 @@ public abstract class Agent
         McpServers.Add(use);
         return use;
     }
+
+    /// <summary>
+    /// Offers the model the built-in tool <c>ask_user</c>, which asks the user one to four questions, each with two
+    /// to four options. A call of it ends the run with a <see cref="QuestionDecision"/>, and your app's answers are
+    /// the call's result. It needs a conversation to wait in, and a sub-agent is not offered it.
+    /// </summary>
+    protected void UseQuestions() => AsksUser = true;
 
     /// <summary>
     /// Adds instructions, messages or tools to every run from a provider the run's services resolve, or create when

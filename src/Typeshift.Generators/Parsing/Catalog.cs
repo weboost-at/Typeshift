@@ -32,7 +32,8 @@ internal static class Catalog
             OwnTools: output.Tools
                 .Where(offered => offered.Owner == output.Agent.Type.FullName)
                 .Select(offered => offered.Tool.Name)
-                .ToEquatableArray());
+                .ToEquatableArray(),
+            AsksUser: output.Agent.AsksUser);
     }
 
     // A use of a toolset the catalog lacks is skipped (TSH019), and so is a tool already offered (TSH025, or a name

@@ -1,4 +1,4 @@
-StampVersion = 9
+StampVersion = 10
 protected virtual Typeshift.Generated.AgentDeclaration Typeshift.Agent.Declaration { get; }
 public abstract class Typeshift.Generated.AgentDeclaration
 public abstract string? Typeshift.Generated.AgentDeclaration.Description { get; }
@@ -54,6 +54,7 @@ abstract void Typeshift.Generated.IJsonStorable<TSelf>.WriteJson(System.Text.Jso
 public sealed class Typeshift.Generated.ModuleAgentAttribute : System.Attribute
 public System.Type Typeshift.Generated.ModuleAgentAttribute.Agent { get; }
 public System.Collections.Generic.IReadOnlyList<string> Typeshift.Generated.ModuleAgentAttribute.ApprovalTools { get; }
+public bool Typeshift.Generated.ModuleAgentAttribute.AsksUser { get; init; }
 public bool Typeshift.Generated.ModuleAgentAttribute.Described { get; init; }
 public string Typeshift.Generated.ModuleAgentAttribute.Kind { get; }
 public Typeshift.Generated.ModuleAgentAttribute.ModuleAgentAttribute(System.Type agent, string kind, string name, params string[] approvalTools)

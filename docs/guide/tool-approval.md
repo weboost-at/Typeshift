@@ -1,13 +1,14 @@
 ---
 title: Approval and modes
-description: Pause a run until your app approves a tool call, let rules decide the calls you are sure about, and pick the default, plan or auto mode.
+description: Pause a run until your app approves a tool call, let rules decide the calls you are sure about, pick the default, plan or auto mode, and let the model ask the user.
 ---
 
 # Approval and modes
 
 Some tools must not run unasked, such as closing a ticket. When the model calls one, the run ends with a decision
 for your app, which approves or rejects the call by the decision's id. Approval rules, standing approvals and the
-run's mode decide which calls need asking at all.
+run's mode decide which calls need asking at all. A plan, and a question the model asks the user, reach your app as
+decisions too.
 
 ## How approval works
 
@@ -34,8 +35,8 @@ Here no [approval rule](#approval-rules) or [standing approval](#approving-for-t
 yet. Your app answers the decision by its id, and the stored call runs once the answer approves it.
 
 A decision is a record of Typeshift's own: an `ApprovalDecision` for a tool call, a `PlanDecision` for a
-[plan](#plan-mode). It is stored beside the conversation and never among its messages, so no provider receives it,
-and a page can load it again after a reload.
+[plan](#plan-mode), a `QuestionDecision` for [questions to the user](#asking-the-user). It is stored beside the
+conversation and never among its messages, so no provider receives it, and a page can load it again after a reload.
 
 ## Requiring approval
 
@@ -367,6 +368,78 @@ Guard auto mode with [approval rules](#approval-rules), for example a guard that
 classifier that asks a model.
 :::
 
+## Asking the user
+
+`UseQuestions()` lets the model ask the user instead of guessing. The agent then offers the built-in `ask_user` tool.
+A call of it ends the run with a `QuestionDecision`, and what your app answers becomes the call's result:
+
+<!-- snippet: use-questions -->
+<a id='snippet-use-questions'></a>
+```cs
+UseQuestions();
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L42-L44' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-questions' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+The model asks one to four questions in a call. Each has a short `Header`, the question's `Text` and two to four
+`Options` with a `Label` and a `Description`, and `MultiSelect` says whether the user may pick several of them:
+
+<!-- snippet: question-run -->
+<a id='snippet-question-run'></a>
+```cs
+var chat = support.WithConversationId(34);
+var response = await chat.RunAsync("Open a ticket for my dishwasher.");
+
+var asked = response.Decisions.OfType<QuestionDecision>().Single();
+
+foreach (var question in asked.Questions)
+{
+    var options = string.Join(", ", question.Options.Select(option => option.Label));
+    Console.WriteLine($"{question.Header}: {question.Text} ({options})");
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Questions.cs#L14-L25' title='Snippet source file'>snippet source</a> | <a href='#snippet-question-run' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Answer with one answer for each question, in the questions' order. The user can always answer in their own words,
+whatever the options are:
+
+<!-- snippet: question-answer -->
+<a id='snippet-question-answer'></a>
+```cs
+var resumed = await chat.AnswerAsync([asked.Answer("It leaks", "Since the last service, two weeks ago.")]);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Questions.cs#L30-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-question-answer' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- A string is an answer. It picks the option whose label it equals, and is the user's own words otherwise.
+- `new QuestionAnswer(["Today", "This week"], "Mostly in the evening.")` picks several options of a question with
+  `MultiSelect`, and adds words to them.
+- `Reject(reason)` declines the questions. The model reads that the user declined, with the reason, and goes on.
+- The model reads the answers as JSON, each under its question's header, such as
+  `{"answers":[{"header":"Problem","selected":["It leaks"]},{"header":"Since","text":"Two weeks ago."}]}`.
+- An answer that does not fit its questions throws an `ArgumentException` and records nothing: another number of
+  answers than questions, a label the question does not offer, several options for a question that takes one, or an
+  answer with neither an option nor words.
+
+A question is a decision like an approval. It is stored with the conversation, `GetDecisionsAsync()` lists it, your
+app answers it by its id, it [closes](#when-a-decision-closes) when the user sends a new message instead, and it
+waits together with the other calls of its response. Approval rules and standing approvals never apply to it. Whether
+the model can ask depends on the run:
+
+| Run | `ask_user` |
+|---|---|
+| Without a conversation | Not offered, because a decision needs a conversation to wait in. |
+| Of a [sub-agent](./multi-agent.md#sub-agents) | Not offered. The agent that calls it asks, if it declares `UseQuestions()` itself, and the analyzer warns where an agent that declares it is used as a sub-agent ([TSH034](./diagnostics.md#tsh034)). |
+| In [plan mode](#plan-mode) | Offered beside the read-only tools, so the model can clear up the task before it presents its plan. |
+| In [auto mode](#auto-mode) | Asks your app. Auto mode approves tool calls and answers no question. |
+| After a [handoff](./multi-agent.md#handoff) | Offered when the agent handed to declares `UseQuestions()`, and that agent receives the answers. |
+
+Arguments that break the tool's shape, such as five questions or a question with one option, ask nobody. The model
+reads what is wrong as the call's result and asks again. The tool's description tells the model to ask only what it
+can neither find out nor decide itself, and never to ask for approval of a plan or of a tool call, which are
+decisions of their own.
+
 ## Related
 
 - [Conversations](./conversations.md): where decisions, standing approvals and the mode are stored.
@@ -374,3 +447,4 @@ classifier that asks a model.
 - [MCP servers](./mcp.md): marking a server's tools read-only, so plan mode offers them.
 - [How a run works](./how-a-run-works.md): where approval sits among a run's steps.
 - [Serving a chat endpoint](./chat-endpoint.md#answer-a-decision): loading and answering decisions over HTTP.
+- [Multiple agents](./multi-agent.md#sub-agents): what a sub-agent cannot ask your app.

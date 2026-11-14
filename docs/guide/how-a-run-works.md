@@ -52,15 +52,16 @@ the response before the conversation stores how the run ended.
    The conversation stores none of it, so every run calls the providers again
    ([Context providers](./middleware.md#context-providers)).
 5. **Mode.** In plan mode, the run offers the model only the read-only tools and `exit_plan_mode`
-   ([The three modes](./tool-approval.md#the-three-modes)).
+   ([The three modes](./tool-approval.md#the-three-modes)). In every mode, an agent that declares `UseQuestions()`
+   also offers `ask_user`, in a run with a conversation ([Asking the user](./tool-approval.md#asking-the-user)).
 6. **The tool loop.** Microsoft.Extensions.AI's `FunctionInvokingChatClient` calls the model, runs the tools it asks
    for, each through the tool middleware, and calls the model again until it answers. The
    [run options](./defining-agents.md#run-options) set its limits, such as the most rounds of tool calls. Every
    model response passes a gate before the loop runs its calls. There, approval rules, standing approvals and auto
    mode decide each call of a tool that requires approval, and a rejected call gets the reason as its result. If a
-   call remains that only your app can decide, the run stores a decision for it, runs none of the response's calls
-   and ends ([Approval and modes](./tool-approval.md)). A tool that throws does not end the run. The model reads
-   that the call failed, and why when the tool threw a `ToolException`
+   call remains that only your app can decide, such as a question to the user, the run stores a decision for it,
+   runs none of the response's calls and ends ([Approval and modes](./tool-approval.md)). A tool that throws does
+   not end the run. The model reads that the call failed, and why when the tool threw a `ToolException`
    ([When a tool fails](./toolsets.md#when-a-tool-fails)).
 
 ## Inside the tool loop

@@ -24,6 +24,9 @@ internal partial class CoderAgent : Agent
 
         UseContext<WorkspaceContext>();
 
+        // The model may ask which way to go; the console answers by an option's number or in words
+        UseQuestions();
+
         // Plan first; the limits suit a local model with a 32K context, and the host may raise them per workspace
         WithRunOptions()
             .WithMode(AgentMode.Plan)

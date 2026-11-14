@@ -43,6 +43,7 @@ a compiler error inside generated code.
 | [TSH031](#tsh031) | Error | C# language version is below 14 |
 | [TSH032](#tsh032) | Warning | Generator read the declaration differently |
 | [TSH033](#tsh033) | Warning | Enum of a tool is a number for Native AOT or a trimmed app |
+| [TSH034](#tsh034) | Warning | Sub-agent cannot ask the user |
 
 TSH021 is retired: the diagnostic it named is gone, and ids are never reused.
 
@@ -379,6 +380,14 @@ The analyzer reports a context once, with one of the enums and one of the tools,
 [TSH027](#tsh027) checks. It finds an enum that is a tool's parameter or result, a type argument or an array's
 element of one, or the type of a property, however deep. It reads the types of tools only, not the `T` of
 `RunAsync<T>`.
+
+## TSH034
+
+**Sub-agent cannot ask the user.** The agent declares `UseQuestions()`, and a sub-agent has no conversation in which
+a question could wait, so it is not offered `ask_user` while another agent calls it with `UseAgent<T>()`. Declare
+`UseQuestions()` on the calling agent, which can [ask the user](./tool-approval.md#asking-the-user) and pass the
+answer on, or offer the agent with `UseHandoff<T>()`, since an agent handed the conversation can ask. Run on its own
+host, the agent asks as declared.
 
 ## Related
 

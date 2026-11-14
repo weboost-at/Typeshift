@@ -5,12 +5,37 @@ using Microsoft.Extensions.AI;
 namespace Typeshift.Samples.Hosting;
 
 // Stands in for a provider's client, so the guide's scenarios run without a network. It answers as a model would in
-// each scenario: a plan in plan mode, a call of close_ticket when asked to close a ticket, of a sub-agent it is
-// offered, a handoff to billing about a charge, of find_companies for the city it is given, JSON when the run asks for
-// it, otherwise one fixed answer; once a tool answered, it answers in text, listing the companies find_companies found
+// each scenario: a plan in plan mode, a call of close_ticket when asked to close a ticket, questions to the user when
+// asked to open one, a call of a sub-agent it is offered, a handoff to billing about a charge, of find_companies for
+// the city it is given, JSON when the run asks for it, otherwise one fixed answer; once a tool answered, it answers in
+// text, listing the companies find_companies found
 internal sealed class CannedChatClient : IChatClient
 {
     public const string Answer = "Your refund was approved and reaches your account within five days.";
+
+    // What a model asks before it opens a ticket: one choice, and one question the user answers in their own words
+    private static readonly JsonElement Questions = JsonElement.Parse(
+        """
+        [
+          {
+            "question": "What is wrong with the appliance?",
+            "header": "Problem",
+            "options": [
+              { "label": "It leaks", "description": "Water under or around it." },
+              { "label": "It does not start", "description": "No light and no sound." },
+              { "label": "It is loud", "description": "A noise it did not make before." }
+            ]
+          },
+          {
+            "question": "Since when?",
+            "header": "Since",
+            "options": [
+              { "label": "Today", "description": "It worked yesterday." },
+              { "label": "This week", "description": "It worked last week." }
+            ]
+          }
+        ]
+        """);
 
     public Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> messages,
@@ -47,6 +72,8 @@ internal sealed class CannedChatClient : IChatClient
                 Call("exit_plan_mode", ("plan", "1. Read the ticket. 2. Close it with the refund's date.")),
             (false, _) when offers.Contains("close_ticket") && input.StartsWith("Close ticket") =>
                 Call("close_ticket", ("number", 1234), ("reason", "The refund was paid.")),
+            (false, _) when offers.Contains("ask_user") && input.StartsWith("Open a ticket") =>
+                Call("ask_user", ("questions", Questions)),
             (false, _) when offers.Contains("research_agent") =>
                 Call("research_agent", ("input", "Vienna")),
             (false, _) when offers.Contains("handoff_to_billing_agent") && input.Contains("charged") =>

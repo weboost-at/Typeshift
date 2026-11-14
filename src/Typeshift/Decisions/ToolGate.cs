@@ -25,7 +25,7 @@ internal sealed class ToolGate(IReadOnlyList<IToolMiddleware> middleware, ILogge
     }
 
     private static bool NeedsVerdict(AIFunction function) =>
-        function.GetService<GatedFunction>() is not null || function is ExitPlanModeFunction;
+        function.GetService<GatedFunction>() is not null || function is ExitPlanModeFunction or AskUserFunction;
 }
 
 // What Typeshift settled for one call before it could run: run it, or answer it with a text in the tool's place
@@ -67,6 +67,8 @@ internal static class DecisionResults
             { Ask: { Kind: AskKind.Plan, Answer.Approved: true } } => CallVerdict.AnswerWith(PlanApproved),
             { Ask: { Kind: AskKind.Plan, Answer: var answer } } =>
                 CallVerdict.AnswerWith(WithReason("The user rejected the plan.", answer?.Reason)),
+            { Ask: { Kind: AskKind.Question, Answer: var answer } } =>
+                CallVerdict.AnswerWith(AskUserFunction.Result(call.Questions, answer)),
             { Ask: { Answer.Approved: true } } or { Ask: null } => CallVerdict.Run,
             { Ask.Answer: var answer } =>
                 CallVerdict.AnswerWith(WithReason("The user rejected this call.", answer?.Reason))

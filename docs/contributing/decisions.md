@@ -599,7 +599,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   conversation of its own, and returns its text, or its JSON with `.WithResult<T>()` (D65). `.InBackground()` makes the tool return at once; the answer reaches
   the calling run as a message before a later model call, and the run does not end while sub-agents work. A
   sub-agent cannot ask your app: in the default mode its calls that need approval and that nothing approves are
-  rejected, and its model reads the rejection as the call's result (D81; TSH024 warns). Circles are TSH026.
+  rejected, and its model reads the rejection as the call's result (D81; TSH024 warns), and it is not offered
+  `ask_user` (D82; TSH034 warns). Circles are TSH026.
 - **As built:** the sub-agent's tool is a runtime `AIFunction` that builds the agent's `AgentHost<T>` over the
   caller's services through a factory `UseAgent<T>()` captured (D76), so no generated code is needed; it finds its caller's run through
   `FunctionInvokingChatClient.CurrentContext`. Background answers join the run through the steering queue, so
@@ -1463,7 +1464,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   open, answered or carried out was worked out by scanning messages, in six files (D24, D60). Where two of those
   scans disagreed, an approved call ran twice, and calls ran after the user had sent something else.
 - **Decision:** a decision is a stored record with an id and a state: an `ApprovalDecision` for a call of a tool that
-  requires approval, a `PlanDecision` for `exit_plan_mode`. A conversation has one decisions document (D79): at most
+  requires approval, a `PlanDecision` for `exit_plan_mode`, a `QuestionDecision` for `ask_user` (D82). A conversation
+  has one decisions document (D79): at most
   one batch, the tools approved for the conversation, and the ids of the last batch's decisions with why they
   closed. A batch holds every call of one model response of which at least one waits for your app: with an ask for
   a call that waits, with a rejection for a call a rule rejected, bare for a call that runs with the batch. It
@@ -1543,6 +1545,38 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   decision the app already shows; refusing new input while decisions wait, where "no, do this instead" is how
   people answer a prompt; translating Microsoft.Extensions.AI's approval answers in a run's input, which fits a
   bridge for clients that speak that protocol, if one is built.
+
+### D82. Questions to the user are a built-in tool an agent declares
+
+- **Status:** owner.
+- **Context:** the owner asked for the decision system to cover "user input, kind of like the Claude Q&A tool
+  works": the model asks, the run waits, and the user's answer goes back to the model. An approval and a plan
+  already wait as decisions (D80), below a tool loop that never pauses (D81).
+- **Decision:** `UseQuestions()` in an agent's constructor offers the model a built-in tool, `ask_user`. It takes
+  one to four questions, each with a question text, a short header, two to four options with a label and a
+  description, and an optional `multiSelect`. A call of it is a `QuestionDecision`, asked and answered like every
+  decision: `question.Answer(...)` takes one `QuestionAnswer` for each question, the labels the user picked, their
+  own words, or both, and `Reject(reason)` declines. The model reads the answers as the call's result, as JSON with
+  each answer under its question's header, or that the user declined. Arguments that break the tool's shape open no
+  decision: the gate answers the call with what is wrong, and the model asks again.
+- **Details:** the tool is offered where a decision can wait and the agent declares it: in a host's run with a
+  conversation, in every mode, plan mode included. A sub-agent is not offered it (D33; TSH034 warns at the use), nor
+  is a run without a conversation, and a call of it there is answered as not available, which fails no run. Auto mode
+  answers no question, and neither do approval rules or standing approvals, which concern tools that require
+  approval. An answer is checked against the stored questions when it is recorded: another number of answers, a
+  label the question does not offer, several labels for a question that takes one, or an empty answer throws
+  `ArgumentException`. A string converts to an answer and picks the option whose label it equals. `QuestionAnswer`
+  and `DecisionAnswer` compare their lists by value, so the same answers recorded again change nothing (D80). The
+  function itself never runs: the loop's invoker answers its call from the record. `UseQuestions()` is recorded on
+  the agent at run time, as `UseAgent` and `UseHandoff` are, so the generator writes no code for it, only the module
+  stamp's `AsksUser`, which the analyzer reads for an agent of a reference.
+- **Where:** `Decisions/AskUserFunction.cs` (the schema, the check and the result), `Decisions/Question.cs`,
+  `Decisions/DecisionChatClient.cs`, `Approval/ModeChatClient.cs` (where it is offered), `Agents/Agent.cs`,
+  `Parsing/AgentParser.cs`, `Analysis/TypeshiftAnalyzer.cs`.
+- **Alternatives:** a tool of the app's own that blocks until the user answers, which holds a run open across
+  requests and loses it at a restart; free-text questions without options, which leave a UI nothing to render but
+  a text box, where options with a free answer serve both; an `IQuestionHandler` callback, a second way to answer
+  beside `AnswerAsync`; asking through a sub-agent, which needs the child's run stored (D33).
 
 ## Repository
 

@@ -243,6 +243,10 @@ static void Print(ChatResponseUpdate update)
             case DecisionRequestContent { Decision: ApprovalDecision asked }:
                 Console.WriteLine($"\n   [approval needed] {asked.Tool}");
                 break;
+
+            case DecisionRequestContent { Decision: QuestionDecision asked }:
+                Console.WriteLine($"\n   [the agent asks] {asked.Questions.Count} question(s)");
+                break;
         }
     }
 }

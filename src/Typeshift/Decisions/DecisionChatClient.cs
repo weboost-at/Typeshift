@@ -154,6 +154,14 @@ internal sealed class DecisionChatClient(IChatClient inner) : DelegatingChatClie
                 : (null, DecisionResults.NotPlanning);
         }
 
+        // D82: questions are asked in every mode, of a host's run with a conversation, by an agent that offers them
+        if (call.Name == AskUserFunction.ToolName && tool is null or AskUserFunction)
+        {
+            return tool is null ? (null, AskUserFunction.NotAvailable)
+                : AskUserFunction.Check(ArgumentsOf(call)) is { } wrong ? (null, wrong)
+                : (Ask.Create(AskKind.Question, time), null);
+        }
+
         if (tool?.GetService<GatedFunction>() is not { } gated) return (null, null);
 
         var verdicts = new List<RuleVerdict>();

@@ -80,6 +80,7 @@ member needs a public `set` or `init` accessor ([TSH013](./diagnostics.md#tsh013
 | `AddTool(Delegate method)` | Declares a tool of the agent's own, backed by a static method of the agent, and returns its [`ToolBuilder`](#toolbuilder). The agent offers it after the tools of its toolsets. See [Agents](./defining-agents.md#add-a-tool-of-the-agent-s-own). |
 | `UseAgent<TAgent>()` | Offers another agent as a tool named like it, with one `input` parameter. `.InBackground()` returns at once and delivers the answer later; `.WithResult<T>()` holds the answer to `T`'s JSON. See [Sub-agents](./multi-agent.md#sub-agents). |
 | `UseHandoff<TAgent>()` | Offers a tool `handoff_to_{name}` that hands the conversation to the other agent. See [Handoff](./multi-agent.md#handoff). |
+| `UseQuestions()` | Offers the built-in `ask_user` tool, with which the model asks the user one to four questions. A call of it ends the run with a `QuestionDecision`, in a run with a conversation. See [Asking the user](./tool-approval.md#asking-the-user). |
 | `UseMcpServer(string server)` | Offers the tools of an MCP server that your app's `IMcpToolProvider` connects. `.RequiresApproval()` makes every call to its tools wait for approval, and `.ReadOnly()` lets plan mode offer them. |
 | `UseContext<TProvider>()` | Adds what an `IContextProvider` returns to every run. The run's services resolve the provider, or create it when none is registered. |
 

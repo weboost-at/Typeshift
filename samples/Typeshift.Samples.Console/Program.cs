@@ -1,11 +1,13 @@
+using System.Text.Json;
 using Typeshift;
+using Typeshift.Samples;
 using Typeshift.Samples.Chat;
 using Typeshift.Samples.Companies;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
-// Runs a toolset, stored settings, a tracked conversation, streaming and structured output published as Native AOT;
-// any reflection a generated path needed would fail here, which fails CI
+// Runs a toolset, stored settings, a tracked conversation, streaming, structured output and a round of decisions
+// published as Native AOT; any reflection a generated path needed would fail here, which fails CI
 var services = new ServiceCollection();
 
 // begin-snippet: aot-tracker
@@ -71,9 +73,29 @@ Expect(sector.TryGetProperty("enum", out _), $"the schema {sector.GetRawText()}"
 var robotics = await customer.RunAsync("Robotics");
 Expect(robotics.Text == "2 companies work in Robotics.", robotics.Text);
 
+// Decisions: questions asked and answered, then a tool call approved, each stored, listed and carried out without
+// reflection. The decision and its answer cross JSON as an endpoint would send and receive them
+await using var outreach = provider.GetRequiredService<TypeshiftRuntime>().Agent<OutreachAgent>();
+var contact = outreach.WithConversationId(Guid.CreateVersion7());
+
+var asking = await contact.RunAsync("Write to a company in Vienna.");
+var shown = JsonSerializer.Serialize(asking.Decisions[0], EndpointJsonContext.Default.Decision);
+var question = JsonSerializer.Deserialize(shown, EndpointJsonContext.Default.Decision) as QuestionDecision;
+Expect(question is { Questions: [{ Header: "Company", Options.Count: 2 }] }, shown);
+
+var posted = $$"""{"decisionId":"{{question!.Id}}","answers":[{"selected":["Prater Motion"]}]}""";
+var answers = JsonSerializer.Deserialize(posted, EndpointJsonContext.Default.DecisionAnswer)!;
+var answered = await contact.AnswerAsync([answers]);
+
+var open = (await contact.GetDecisionsAsync()).Open;
+Expect(open is [ApprovalDecision { Tool: "send_mail" }] && answered.Decisions.Count == 1, $"{open.Count} open");
+
+var mailed = await contact.AnswerAsync([DecisionAnswer.Approve(open[0].Id)]);
+Expect(mailed.Text == "Sent to Prater Motion.", mailed.Text);
+
 Console.WriteLine(
     $"{research.Agent.Name}: {answer.Text} {streamed} {count.Result} {counting.Response.Result} {robotics.Text}; "
-    + $"{entries.Count} entries stored");
+    + $"{entries.Count} entries stored; {outreach.Agent.Name}: {mailed.Text}");
 return 0;
 
 static void Expect(bool holds, string what)

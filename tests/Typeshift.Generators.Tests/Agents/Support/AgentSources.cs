@@ -273,6 +273,8 @@ public static class AgentSources
 
                 UseToolset<TicketToolset>().Exclude(t => t.DeleteTicket);
 
+                UseQuestions();
+
                 ConfigureSearchTickets()
                     .WithLimit(5);
             }

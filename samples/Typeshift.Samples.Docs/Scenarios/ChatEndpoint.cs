@@ -17,7 +17,7 @@ using Typeshift.Samples.Web;
 namespace Typeshift.Samples.Scenarios;
 
 // Serves the chat endpoints on a local port and calls them as a chat UI would: a message, another customer's chat,
-// a decision loaded again and answered by its id, and a streamed answer
+// a decision loaded again and answered by its id, questions answered by label and in words, and a streamed answer
 internal static class ChatEndpoint
 {
     public static async Task RunAsync(IChatClient client, string database)
@@ -85,6 +85,21 @@ internal static class ChatEndpoint
 
         var again = await PostAsync<ChatReply>(http, "/chats/43/messages", new ChatInput("Close ticket 1234 again."));
         if (again.Decisions.Count > 0) throw new InvalidOperationException("Expected the standing approval.");
+
+        var opening = new ChatInput("Open a ticket for my dishwasher.");
+        var questions = await PostAsync<ChatReply>(http, "/chats/44/messages", opening);
+        if (questions.Decisions is not [QuestionDecision { Questions: [{ Options: [var first, ..] }, _] } question])
+            throw new InvalidOperationException("Expected one decision with two questions.");
+
+        var answers = new
+        {
+            decisionId = question.Id,
+            answers = new object[] { new { selected = new[] { first.Label } }, new { text = "Since Monday." } }
+        };
+
+        var answered = await PostAsync<ChatReply>(http, "/chats/44/decisions", answers);
+        if (answered.Text != CannedChatClient.Answer || answered.Decisions.Count > 0)
+            throw new InvalidOperationException("Expected the chat to go on with the answers.");
 
         var text = await http.PostAsJsonAsync("/chats/41/messages/stream", new ChatInput("Where is my refund?"));
         var answer = await text.Content.ReadAsStringAsync();

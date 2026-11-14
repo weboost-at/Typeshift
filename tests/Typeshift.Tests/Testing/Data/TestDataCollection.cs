@@ -18,5 +18,7 @@ public class TestDataCollection(Faker faker)
 
     public DecisionTestData Decisions { get; } = new(faker);
 
+    public QuestionTestData Questions { get; } = new(faker);
+
     public TelemetryTestData Telemetry { get; } = new(faker);
 }

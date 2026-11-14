@@ -1043,6 +1043,60 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Sub_Agent_That_Declares_Questions_TSH034_Is_Reported_On_The_Use()
+    {
+        // Act
+        var run = Run(DiagnosticSources.SubAgentThatAsksTheUser);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH034",
+            DiagnosticSeverity.Warning,
+            "UseAgent<HelpAgent>",
+            message: "'HelpAgent' declares UseQuestions(), and a sub-agent cannot ask the user: as a sub-agent it is "
+                + "not offered ask_user; declare UseQuestions() on the agent that calls it, or hand off to the agent");
+    }
+
+    [Fact]
+    public void Given_A_Sub_Agent_Of_A_Reference_That_Declares_Questions_TSH034_Is_Reported_On_The_Use()
+    {
+        // Arrange
+        var reference = CompileReference("Help", ReferenceSources.QuestioningHelpAgent);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.HelpAgentUse));
+
+        // Assert
+        run.Assert.Reports("TSH034", DiagnosticSeverity.Warning, "UseAgent<HelpAgent>")
+            .GetMessage()
+            .Should()
+            .StartWith("'HelpAgent' declares UseQuestions()");
+    }
+
+    [Fact]
+    public void Given_Questions_Declared_Twice_TSH025_Is_Reported_On_The_Second_Call()
+    {
+        // Act
+        var run = Run(DiagnosticSources.QuestionsDeclaredTwice);
+
+        // Assert
+        run.Assert.Reports("TSH025", DiagnosticSeverity.Error, "UseQuestions")
+            .Location.GetLineSpan()
+            .StartLinePosition.Line.Should()
+            .Be(7);
+    }
+
+    [Fact]
+    public void Given_Questions_Declared_Under_A_Condition_TSH014_Is_Reported_On_The_Call()
+    {
+        // Act
+        var run = Run(DiagnosticSources.QuestionsDeclaredUnderACondition);
+
+        // Assert
+        run.Assert.Reports("TSH014", DiagnosticSeverity.Error, "UseQuestions");
+    }
+
+    [Fact]
     public void Given_Two_Agents_Calling_Each_Other_TSH026_Is_Reported_On_Both_Uses()
     {
         // Act

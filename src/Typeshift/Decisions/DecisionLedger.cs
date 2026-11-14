@@ -94,15 +94,15 @@ internal sealed class DecisionLedger(StoreAccess stores, TimeProvider time)
 
         foreach (var answer in answers)
         {
-            var ask = document.Batch?.Asks.FirstOrDefault(ask => ask.Id == answer.DecisionId);
+            var call = document.Batch?.Calls.FirstOrDefault(call => call.Ask?.Id == answer.DecisionId);
 
-            if (ask is null || document.Batch!.State is BatchState.Started or BatchState.Expired)
+            if (call?.Ask is not { } ask || document.Batch!.State is BatchState.Started or BatchState.Expired)
             {
                 closed[answer.DecisionId] = ClosedReason(document, answer.DecisionId);
                 continue;
             }
 
-            var normalized = ask.Normalize(answer);
+            var normalized = call.Normalize(answer);
 
             if (ask.Answer is null) recorded[ask.Id] = normalized;
             else if (ask.Answer != normalized) closed[ask.Id] = DecisionClosedReason.Answered;

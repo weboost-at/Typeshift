@@ -38,6 +38,10 @@ internal partial class SupportAgent : Agent
         // begin-snippet: use-context
         UseContext<CustomerProfileContext>();
         // end-snippet
+
+        // begin-snippet: use-questions
+        UseQuestions();
+        // end-snippet
     }
 
     protected override string GetInstructions() =>

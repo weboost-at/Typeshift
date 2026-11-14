@@ -82,6 +82,11 @@ about such tools
 ([TSH024](./diagnostics.md#tsh024)), so add a rule, or hand off to the agent instead.
 :::
 
+A sub-agent cannot [ask the user](./tool-approval.md#asking-the-user) either. An agent that declares
+`UseQuestions()` is not offered `ask_user` while it runs as a sub-agent, and the analyzer warns at its `UseAgent<T>()`
+([TSH034](./diagnostics.md#tsh034)). Declare `UseQuestions()` on the calling agent, which asks on the sub-agent's
+behalf, or hand off to the agent.
+
 ### Typed answers
 
 By default, the calling model reads the sub-agent's answer as text. `WithResult<T>()` asks the sub-agent for JSON of

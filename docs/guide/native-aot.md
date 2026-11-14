@@ -52,7 +52,7 @@ analyzer checks the library too.
 [JsonSerializable(typeof(SectorCount))]
 internal partial class AppJsonContext : JsonSerializerContext;
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/AppJsonContext.cs#L6-L13' title='Snippet source file'>snippet source</a> | <a href='#snippet-json-context' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/AppJsonContext.cs#L7-L14' title='Snippet source file'>snippet source</a> | <a href='#snippet-json-context' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 You don't register the context yourself: `AddTypeshift()` does. Each assembly's generated module adds that assembly's
@@ -113,7 +113,7 @@ services.AddTypeshift()
     .WithConversationTracker<Guid>()
     .WithChatClientProvider<ScriptedChatClientProvider>();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L11-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-aot-tracker' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/Program.cs#L13-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-aot-tracker' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - `WithConversationTracker<Guid>()` registers the tracker of `Guid` ids as a singleton of its own, so the container
@@ -139,8 +139,19 @@ published app throws a `NotSupportedException` that names the type when it makes
 
 A conversation's [decisions](./tool-approval.md#how-approval-works) are stored without a context too. An endpoint of
 your own that returns a `Decision` or takes a `DecisionAnswer` needs both in the context your web app serializes
-with, as every type of an endpoint does: `[JsonSerializable(typeof(Decision))]` and
-`[JsonSerializable(typeof(DecisionAnswer))]`.
+with, as every type of an endpoint does. The two cover every kind of decision and of answer, the questions and their
+answers included:
+
+<!-- snippet: decision-json-context -->
+<a id='snippet-decision-json-context'></a>
+```cs
+[JsonSourceGenerationOptions(JsonSerializerDefaults.Web)]
+[JsonSerializable(typeof(Decision))]
+[JsonSerializable(typeof(DecisionAnswer))]
+internal partial class EndpointJsonContext : JsonSerializerContext;
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Console/AppJsonContext.cs#L17-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-decision-json-context' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
 
 ## Related
 

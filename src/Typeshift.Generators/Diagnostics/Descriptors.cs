@@ -179,6 +179,12 @@ internal static class Descriptors
         + "trimmed: add [JsonSourceGenerationOptions(UseStringEnumConverter = true)] to the context, so the model "
         + "reads and sends the enum's names");
 
+    public static readonly DiagnosticDescriptor SubAgentAsksUser = Warning(
+        "TSH034",
+        "Sub-agent cannot ask the user",
+        "'{0}' declares UseQuestions(), and a sub-agent cannot ask the user: as a sub-agent it is not offered "
+        + "ask_user; declare UseQuestions() on the agent that calls it, or hand off to the agent");
+
     private static DiagnosticDescriptor Error(string id, string title, string message) =>
         Create(id, title, message, DiagnosticSeverity.Error);
 

@@ -171,16 +171,18 @@ open-generic registration, and `WithConversationTracker<TId>()` closes one for N
 
 `ModeChatClient` sits above `FunctionInvokingChatClient`, around each pass of a run. It hands the loop the run's
 tools, those that require approval inside a `GatedFunction`, which hides the mark the loop would pause on. In plan
-mode it offers only the read-only tools and `exit_plan_mode`, and appends the planning instruction. It builds the
-loop of the pass with what is left of the run's limit.
+mode it offers only the read-only tools and `exit_plan_mode`, and appends the planning instruction. In every mode it
+adds `ask_user` for an agent that declares `UseQuestions()`, in a host's run with a conversation (D82). It builds
+the loop of the pass with what is left of the run's limit.
 
 `DecisionChatClient`, the gate, sits below the loop and above the checkpoints, so it reads each model response
 before the loop does. It gives every call that needs one a verdict on `ConversationRun`: the approval rules first,
-then the conversation's standing approvals, then the mode. When a call is left for your app, it opens a batch through
-`DecisionLedger` and marks the response's calls informational, so the loop invokes none and the run ends. In a run
-that carries out an answered batch, the gate answers the first model call with the batch's calls in place of the
-model. `ToolGate`, the loop's function invoker, returns a rejected call's text and runs every other call through the
-tool middleware, and a `GatedFunction` runs only a call the gate cleared (D81).
+then the conversation's standing approvals, then the mode. A call of `ask_user` always asks, unless its arguments
+break the tool's shape, which the gate answers with what is wrong. When a call is left for your app, it opens a
+batch through `DecisionLedger` and marks the response's calls informational, so the loop invokes none and the run
+ends. In a run that carries out an answered batch, the gate answers the first model call with the batch's calls in
+place of the model. `ToolGate`, the loop's function invoker, returns a rejected call's text and runs every other
+call through the tool middleware, and a `GatedFunction` runs only a call the gate cleared (D81).
 
 `AgentHost` has the members that need no run, `GetDecisionsAsync` and `RecordAnswersAsync`, both through the ledger.
 `AgentRun` carries the mode, and the run's ending entry stores it, so the conversation's next run resumes in it; a
