@@ -44,7 +44,7 @@ public sealed class ToolBuilder
     /// </summary>
     /// <typeparam name="TSettings">A record; its parameterless constructor sets the code defaults.</typeparam>
     /// <returns>The allow list.</returns>
-    public ToolBuilder<TSettings> WithSettings<TSettings>() where TSettings : class, new() =>
+    public ToolBuilder<TSettings> WithSettings<TSettings>() where TSettings : class =>
         ToolBuilder<TSettings>.Instance;
 
     /// <summary>
@@ -54,7 +54,7 @@ public sealed class ToolBuilder
     /// <typeparam name="TSettings">A record; its parameterless constructor sets the code defaults.</typeparam>
     /// <returns>The deny list.</returns>
     public ConfigurableSettingsBuilder<TSettings> WithConfigurableSettings<TSettings>()
-        where TSettings : class, new() =>
+        where TSettings : class =>
         ConfigurableSettingsBuilder<TSettings>.Instance;
 }
 
@@ -62,7 +62,7 @@ public sealed class ToolBuilder
 /// The allow list of a tool's configurable settings members.
 /// </summary>
 /// <typeparam name="TSettings">The tool's settings record.</typeparam>
-public sealed class ToolBuilder<TSettings> where TSettings : class, new()
+public sealed class ToolBuilder<TSettings> where TSettings : class
 {
     internal static readonly ToolBuilder<TSettings> Instance = new();
 
@@ -83,7 +83,7 @@ public sealed class ToolBuilder<TSettings> where TSettings : class, new()
 /// The deny list of a tool's configurable settings members.
 /// </summary>
 /// <typeparam name="TSettings">The tool's settings record.</typeparam>
-public sealed class ConfigurableSettingsBuilder<TSettings> where TSettings : class, new()
+public sealed class ConfigurableSettingsBuilder<TSettings> where TSettings : class
 {
     internal static readonly ConfigurableSettingsBuilder<TSettings> Instance = new();
 

@@ -239,6 +239,12 @@ All notable changes to this project are documented here. The format follows
 - TSH003 also reports `AddTool(Find)` where two methods are named `Find`, and names the cast that picks one, such as
   `AddTool((Func<string, string>)Find)`. The compiler's CS1503, "cannot convert from 'method group' to
   'System.Delegate'", stood alone and named no way out.
+- `WithSettings<T>()`, `WithConfigurableSettings<T>()` and `UseToolset<T>()` no longer require `new()` of their type
+  argument, so the analyzer answers where the compiler's CS0310 did. A settings record without a public
+  parameterless constructor, such as the positional `record FindSettings(int Limit = 5)`, is TSH005, whose message
+  shows the property form. It got CS0310, and TSH015 about a chain that was fine. An abstract settings record is
+  TSH005 too. A toolset with an internal constructor can be used by an agent of its assembly, as TSH016 always
+  said, and `UseToolset<T>()` of an abstract toolset is TSH016.
 
 ### Fixed
 

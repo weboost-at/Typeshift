@@ -109,6 +109,37 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Positional_Settings_Record_TSH005_Is_Reported_On_WithSettings()
+    {
+        // Act
+        var run = Run(DiagnosticSources.PositionalSettings);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH005",
+            DiagnosticSeverity.Error,
+            "WithSettings<FindSettings>",
+            message: "The settings type 'FindSettings' has no public parameterless constructor, which sets the code "
+                + "defaults: declare its members as properties with defaults, as in 'public int Limit { get; init; } "
+                + "= 5;', or add the constructor");
+    }
+
+    [Fact]
+    public void Given_An_Abstract_Settings_Record_TSH005_Is_Reported_On_WithSettings()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AbstractSettings);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH005",
+            DiagnosticSeverity.Error,
+            "WithSettings<FindSettings>",
+            message: "The settings type 'FindSettings' is abstract: the code defaults are a record of this type, so "
+                + "name a record that is not abstract");
+    }
+
+    [Fact]
     public void Given_Internal_Settings_Of_A_Public_Toolset_TSH006_Is_Reported_On_WithSettings()
     {
         // Act
@@ -810,6 +841,31 @@ public class DiagnosticTests : GeneratorTestBase
 
         // Assert
         run.Assert.DoesNotReport("TSH016");
+    }
+
+    [Fact]
+    public void Given_A_Used_Toolset_Without_A_Parameterless_Constructor_TSH016_Is_Reported_On_It()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToolsetWithoutParameterlessConstructorUsedByAnAgent);
+
+        // Assert
+        run.Assert.Reports("TSH016", DiagnosticSeverity.Error, "EchoToolset");
+    }
+
+    [Fact]
+    public void Given_An_Abstract_Toolset_Used_By_An_Agent_TSH016_Is_Reported_On_The_Use()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AbstractToolsetUsedByAnAgent);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH016",
+            DiagnosticSeverity.Error,
+            "UseToolset<BaseTools>",
+            message: "'BaseTools' is out of the generated code's reach: it is abstract, so no tools are generated "
+                + "for it; use a toolset that is not abstract");
     }
 
     [Fact]

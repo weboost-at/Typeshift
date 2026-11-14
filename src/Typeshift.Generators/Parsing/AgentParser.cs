@@ -309,6 +309,18 @@ internal static class AgentParser
         var type = toolset.ToTypeOf();
         var name = ConstructorChains.GetCalledName(call);
 
+        // The generator writes nothing for an abstract class, Toolset itself included, so the use would offer nothing
+        if (toolset.IsAbstract)
+        {
+            reporter.Report(
+                Descriptors.Unreachable,
+                name,
+                toolset.Name,
+                "it is abstract, so no tools are generated for it; use a toolset that is not abstract");
+
+            return null;
+        }
+
         if (GetUnusableReason(agent, toolset) is var (reason, fix))
         {
             reporter.Report(Descriptors.NotGenerated, name, toolset.Name, reason, fix);

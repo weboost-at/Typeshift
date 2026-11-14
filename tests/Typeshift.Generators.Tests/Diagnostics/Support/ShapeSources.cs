@@ -2097,6 +2097,30 @@ public static class ShapeSources
         }
         """;
 
+    // The module of the toolset's own assembly creates it, so its constructor may be internal
+    public const string ToolsetWithAnInternalConstructor =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class CompanyToolset : Toolset
+        {
+            internal CompanyToolset() => AddTool(Find).WithDescription("Finds companies.");
+
+            public static string Find(string city) => city;
+        }
+
+        internal partial class ResearchAgent : Agent
+        {
+            public ResearchAgent()
+            {
+                WithDescription("Researches.");
+                UseToolset<CompanyToolset>();
+            }
+        }
+        """;
+
     // `: base()` calls a constructor of Agent, which is no declaration
     public const string AgentWithABaseInitializer =
         """

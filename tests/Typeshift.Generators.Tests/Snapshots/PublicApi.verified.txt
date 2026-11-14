@@ -18,7 +18,7 @@ protected void Typeshift.Agent.UseContext<TProvider>() where TProvider : class, 
 protected void Typeshift.Agent.UseHandoff<TAgent>() where TAgent : Typeshift.Agent
 protected Typeshift.McpServerUse Typeshift.Agent.UseMcpServer(string server)
 protected void Typeshift.Agent.UseQuestions()
-protected Typeshift.ToolsetUse<TToolset> Typeshift.Agent.UseToolset<TToolset>() where TToolset : Typeshift.Toolset, new()
+protected Typeshift.ToolsetUse<TToolset> Typeshift.Agent.UseToolset<TToolset>() where TToolset : Typeshift.Toolset
 protected Typeshift.ChatOptionsBuilder Typeshift.Agent.WithChatOptions()
 protected void Typeshift.Agent.WithDescription(string description)
 protected void Typeshift.Agent.WithInstructions(string instructions)
@@ -102,7 +102,7 @@ public static Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI
 public System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate).Decisions { get; }
 public static System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.get_Decisions(Microsoft.Extensions.AI.ChatResponse response)
 public static System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.get_Decisions(Microsoft.Extensions.AI.ChatResponseUpdate update)
-public sealed class Typeshift.ConfigurableSettingsBuilder<TSettings> where TSettings : class, new()
+public sealed class Typeshift.ConfigurableSettingsBuilder<TSettings> where TSettings : class
 public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ConfigurableSettingsBuilder<TSettings>.NotConfigurable<TMember>(System.Func<TSettings, TMember> member)
 public sealed record Typeshift.ConversationDecisions : System.IEquatable<Typeshift.ConversationDecisions>
 public bool Typeshift.ConversationDecisions.CanResume { get; init; }
@@ -562,11 +562,11 @@ public Microsoft.Extensions.AI.ChatResponse<TResult> Typeshift.StreamingRun<TRes
 public sealed class Typeshift.ToolBuilder
 public Typeshift.ToolBuilder Typeshift.ToolBuilder.ReadOnly()
 public Typeshift.ToolBuilder Typeshift.ToolBuilder.RequiresApproval()
-public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ToolBuilder.WithConfigurableSettings<TSettings>() where TSettings : class, new()
+public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ToolBuilder.WithConfigurableSettings<TSettings>() where TSettings : class
 public Typeshift.ToolBuilder Typeshift.ToolBuilder.WithDescription(string description)
 public Typeshift.ToolBuilder Typeshift.ToolBuilder.WithName(string name)
-public Typeshift.ToolBuilder<TSettings> Typeshift.ToolBuilder.WithSettings<TSettings>() where TSettings : class, new()
-public sealed class Typeshift.ToolBuilder<TSettings> where TSettings : class, new()
+public Typeshift.ToolBuilder<TSettings> Typeshift.ToolBuilder.WithSettings<TSettings>() where TSettings : class
+public sealed class Typeshift.ToolBuilder<TSettings> where TSettings : class
 public Typeshift.ToolBuilder<TSettings> Typeshift.ToolBuilder<TSettings>.Configurable<TMember>(System.Func<TSettings, TMember> member)
 public class Typeshift.ToolException : System.Exception
 public Typeshift.ToolException.ToolException(string message)

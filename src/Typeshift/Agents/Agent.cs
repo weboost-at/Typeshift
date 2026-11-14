@@ -125,7 +125,7 @@ public abstract class Agent
     /// </summary>
     /// <typeparam name="TToolset">The toolset.</typeparam>
     /// <returns>The use, to include or exclude tools.</returns>
-    protected ToolsetUse<TToolset> UseToolset<TToolset>() where TToolset : Toolset, new() =>
+    protected ToolsetUse<TToolset> UseToolset<TToolset>() where TToolset : Toolset =>
         ToolsetUse<TToolset>.Instance;
 
     /// <summary>

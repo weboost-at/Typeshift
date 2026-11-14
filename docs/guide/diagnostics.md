@@ -121,9 +121,13 @@ method in `AddTool(...)`.
 
 ## TSH005
 
-**Settings type is not a record with a parameterless constructor.** That constructor sets the code defaults. Each
-layer of settings then changes a copy of them, made with `with`. A record without a parameterless constructor, such as
-a positional record, gets the compiler's CS0310 instead; give it one.
+**Settings type is not a record with a parameterless constructor.** A public parameterless constructor sets the code
+defaults, and each layer of settings then changes a copy of them, made with `with`. So the type is a record that the
+generated code can create with `new()`: no class, no abstract record, and no record without that constructor.
+
+A positional record, such as `record FindSettings(int Limit = 5)`, has only the constructor of its parameters, also
+when each of them has a default. Declare its members as properties with defaults instead, as
+[Tool settings](./tool-settings.md#the-settings-record) shows, or add a parameterless constructor.
 
 ## TSH006
 
@@ -222,6 +226,10 @@ member of the lambda's parameter, as `t => t.SearchTickets` in `Include` or `s =
 so it cannot be nested as `private` or `protected`, and needs a public or internal parameterless constructor. It
 cannot be a `file` class or be nested in one either: the generated code is written to files of its own, and only its
 own file can name a file-local class.
+
+On `UseToolset<T>()` it reports an abstract toolset. The generator writes no tools for an abstract class, and no
+class may derive from a toolset ([TSH017](#tsh017)), so the use would offer nothing. Name a toolset that is not
+abstract.
 
 ## TSH017
 

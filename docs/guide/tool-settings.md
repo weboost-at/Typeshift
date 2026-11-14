@@ -28,8 +28,11 @@ internal record SearchTicketsSettings
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/SearchTicketsSettings.cs#L3-L12' title='Snippet source file'>snippet source</a> | <a href='#snippet-settings-record' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-It must be a record ([TSH005](./diagnostics.md#tsh005)). Settings resolve in [layers](#the-layers), from these code
-defaults up to a single run, and each layer applies its values to a `with` copy of the defaults.
+It must be a record with a public parameterless constructor ([TSH005](./diagnostics.md#tsh005)). Settings resolve in
+[layers](#the-layers), from these code defaults up to a single run, and each layer applies its values to a `with`
+copy of the defaults. Write the members as properties, as above. A positional record such as
+`record SearchTicketsSettings(int Limit = 10)` has no parameterless constructor, so nothing could create its
+defaults.
 
 ## Configurable members
 

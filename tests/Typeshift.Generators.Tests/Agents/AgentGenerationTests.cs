@@ -606,6 +606,17 @@ public class AgentGenerationTests : GeneratorTestBase
         run.Source("Research.EchoAgent.g.cs").Should().NotContain("WithTimes");
     }
 
+    [Fact]
+    public void Given_A_Toolset_With_An_Internal_Constructor_An_Agent_Of_Its_Assembly_Uses_It()
+    {
+        // Act
+        var run = Run(ShapeSources.ToolsetWithAnInternalConstructor);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+        run.Source("Demo.ResearchAgent.g.cs").Should().Contain("global::Demo.CompanyToolset.CreateFind(json)");
+    }
+
     [Theory]
     [InlineData(nameof(ShapeSources.AgentWithABaseInitializer))]
     [InlineData(nameof(ShapeSources.AgentWithAPrimaryConstructor))]

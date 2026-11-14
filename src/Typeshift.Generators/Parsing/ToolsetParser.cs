@@ -380,9 +380,9 @@ internal static class ToolsetParser
         // A type that does not resolve yet is the compiler's to report, here and for a member below
         if (type.ContainsErrorType()) return null;
 
-        if (!type.IsRecord)
+        if (GetUnusableSettingsReason(type) is var (reason, fix))
         {
-            reporter.Report(Descriptors.SettingsNotRecord, settingsName, type.Name);
+            reporter.Report(Descriptors.SettingsNotRecord, settingsName, type.Name, reason, fix);
             return null;
         }
 
@@ -445,6 +445,26 @@ internal static class ToolsetParser
 
         return new SettingsModel(type.ToTypeOf(), properties.ToEquatableArray(), type.GetSettingsExperimentalIds());
     }
+
+    // A layer applies to a copy of the code defaults, made with `with`, and the generated code of every agent that
+    // offers the tool creates those with new(), in its own assembly. Null for a record it can create
+    private static (string Reason, string Fix)? GetUnusableSettingsReason(ITypeSymbol type) =>
+        type switch
+        {
+            { IsRecord: false } => ("must be a record", "each layer applies to a copy of the code defaults"),
+            { IsAbstract: true } => (
+                "is abstract",
+                "the code defaults are a record of this type, so name a record that is not abstract"),
+            INamedTypeSymbol named when !named.InstanceConstructors.Any(constructor => constructor is
+            {
+                Parameters.IsEmpty: true,
+                DeclaredAccessibility: Accessibility.Public
+            }) => (
+                "has no public parameterless constructor, which sets the code defaults",
+                "declare its members as properties with defaults, as in 'public int Limit { get; init; } = 5;', or "
+                + "add the constructor"),
+            _ => null
+        };
 
     private static bool IsCompilersToReport(ITypeSymbol type) =>
         type.ContainsErrorType() || type.ContainsFileLocalType();

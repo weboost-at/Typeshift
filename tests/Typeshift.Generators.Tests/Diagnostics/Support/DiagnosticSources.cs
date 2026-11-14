@@ -69,6 +69,46 @@ public static class DiagnosticSources
         }
         """;
 
+    // A positional record has a constructor of its parameters, with defaults or without, and none without parameters
+    public const string PositionalSettings =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record FindSettings(int Limit = 5, bool IncludeInactive = false);
+
+        internal partial class CompanyToolset : Toolset
+        {
+            public CompanyToolset() =>
+                AddTool(Find)
+                    .WithDescription("Finds companies.")
+                    .WithSettings<FindSettings>()
+                    .Configurable(s => s.Limit);
+
+            public static string Find(string city, FindSettings settings) => city;
+        }
+        """;
+
+    public const string AbstractSettings =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal abstract record FindSettings
+        {
+            public int Limit { get; init; } = 5;
+        }
+
+        internal partial class CompanyToolset : Toolset
+        {
+            public CompanyToolset() => AddTool(Find).WithDescription("Finds companies.").WithSettings<FindSettings>();
+
+            public static string Find(string city, FindSettings settings) => city;
+        }
+        """;
+
     public const string SettingsLessAccessible =
         """
         using Typeshift;
@@ -676,6 +716,54 @@ public static class DiagnosticSources
         internal partial class EchoAgent : Agent
         {
             public EchoAgent(string model) => WithChatOptions().WithModel("openai", model);
+        }
+        """;
+
+    // The agent's use compiles, and only the toolset is reported
+    public const string ToolsetWithoutParameterlessConstructorUsedByAnAgent =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset(string prefix) => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent()
+            {
+                WithDescription("Echoes.");
+                UseToolset<EchoToolset>();
+            }
+        }
+        """;
+
+    // No class may derive from a toolset (TSH017), so an abstract one never has tools
+    public const string AbstractToolsetUsedByAnAgent =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal abstract partial class BaseTools : Toolset
+        {
+            protected BaseTools() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+        }
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent()
+            {
+                WithDescription("Echoes.");
+                UseToolset<BaseTools>();
+            }
         }
         """;
 

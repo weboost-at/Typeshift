@@ -32,7 +32,7 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor SettingsNotRecord = Error(
         "TSH005",
         "Settings type is not a record with a parameterless constructor",
-        "The settings type '{0}' must be a record: each layer applies to a copy of the code defaults");
+        "The settings type '{0}' {1}: {2}");
 
     public static readonly DiagnosticDescriptor SettingsLessAccessible = Error(
         "TSH006",
