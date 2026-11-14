@@ -248,6 +248,35 @@ public class SubAgentTests : MultiAgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Background_Sub_Agent_That_Answered_The_Next_Run_Hears_Of_No_Loss()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Agent.Steering))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer));
+
+        HelperClient.Reply(gate, Text(Data.Agent.Reason));
+
+        var chat = Host<BackgroundLeadAgent>().WithConversationId(Data.Agent.ConversationId);
+        var running = chat.RunAsync(Data.Tool.Question, ct: Ct);
+        await ChatClient.RequestedAsync(2);
+        gate.SetResult();
+        await running;
+
+        // Act
+        await chat.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        var sent = ChatClient.Requests[^1].Select(message => message.Text).ToList();
+
+        // Assert
+        sent.Should().NotContain(text => text.Contains("was lost"));
+        sent.Should().Contain(text => text.EndsWith(Data.Agent.Reason));
+    }
+
+    [Fact]
     public async Task Given_An_Interrupted_Run_With_A_Background_Sub_Agent_The_Model_Hears_It_Was_Lost()
     {
         // Arrange

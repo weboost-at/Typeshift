@@ -183,6 +183,19 @@ public partial class GuardedBackAgent : Agent
     }
 }
 
+// Hands off to the front agent alone, which hands on to the back agent: a chain of two handoffs
+public partial class EntryAgent : Agent
+{
+    public EntryAgent()
+    {
+        WithDescription("Greets the customer.");
+
+        WithChatOptions().WithModel("scripted", "entry-model");
+
+        UseHandoff<FrontAgent>();
+    }
+}
+
 public partial class FrontAgent : Agent
 {
     public FrontAgent()

@@ -49,6 +49,91 @@ public class HandoffTests : MultiAgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Conversation_Handed_On_Twice_Its_Next_Run_Goes_To_The_Last_Agent()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_front_agent"))
+            .Reply(Call(Data.Tool.SecondCallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason));
+
+        var entry = Host<EntryAgent>().WithConversationId(Data.Agent.ConversationId);
+        await entry.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        var response = await entry.RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Assert
+        Models[^1].Model.Should().Be("back-model");
+        response.Messages[^1].AuthorName.Should().Be("back_agent");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Handoff_Whose_Agent_Fails_The_Conversation_Ends_Once_Under_That_Agent(bool streaming)
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(new InvalidOperationException(Data.Agent.Reason));
+
+        // Act
+        var run = () => RunAsync(Data.Tool.Question, streaming);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(Data.Agent.Reason);
+        (await EntriesAsync(Data.Agent.ConversationId)).Where(entry => entry.EndsRun)
+            .Select(entry => entry.Agent)
+            .Should()
+            .Equal("back_agent");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_No_Conversation_A_Call_Of_A_Handoff_Is_Answered_As_An_Unknown_Tool(bool streaming)
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await RunAsync(Host<FrontAgent>(), Data.Tool.Question, streaming);
+
+        var result = ChatClient.Requests[1]
+            .SelectMany(message => message.Contents)
+            .OfType<FunctionResultContent>()
+            .Single()
+            .Result?.ToString();
+
+        // Assert
+        response.Messages[^1].AuthorName.Should().Be("front_agent");
+        result.Should().Contain("not found");
+    }
+
+    [Fact]
+    public async Task Given_A_Run_Watcher_A_Handoff_Reports_The_First_Agents_Run_As_Ended()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer));
+
+        var changes = Tracker.WatchRunsAsync(Ct).Take(3).ToListAsync(Ct);
+
+        // Act
+        await RunAsync(Data.Tool.Question);
+
+        // Assert
+        (await changes).Select(run => (run.Agent, run.Ended))
+            .Should()
+            .Equal(("front_agent", false), ("front_agent", true), ("back_agent", false));
+    }
+
+    [Fact]
     public async Task Given_A_Run_Starting_While_A_Handoff_Passes_On_The_Conversation_The_Agent_Handed_To_Answers()
     {
         // Arrange
@@ -420,4 +505,13 @@ public class HandoffTests : MultiAgentTestBase
 
     private Task<ChatResponse> RunAsync(string input) =>
         Host<FrontAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(input, ct: Ct);
+
+    private Task<ChatResponse> RunAsync(string input, bool streaming) =>
+        RunAsync(Host<FrontAgent>().WithConversationId(Data.Agent.ConversationId), input, streaming);
+
+    // The same run on either path, a streamed one as the response its updates make
+    private async Task<ChatResponse> RunAsync(AgentHost<FrontAgent> front, string input, bool streaming) =>
+        streaming
+            ? (await front.RunStreamingAsync(input, ct: Ct).ToListAsync(Ct)).ToChatResponse()
+            : await front.RunAsync(input, ct: Ct);
 }
