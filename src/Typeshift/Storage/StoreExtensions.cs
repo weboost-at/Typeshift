@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 
 namespace Typeshift;
@@ -5,7 +6,9 @@ namespace Typeshift;
 /// <summary>
 /// Verifies a store of yours against the rules Typeshift relies on, from a test of the store.
 /// </summary>
-// D58: what a store must do, run against the store itself, so a broken rule fails a test instead of a run
+// D58: what a store must do, run against the store itself, so a broken rule fails a test instead of a run. A store of
+// several interfaces matches the block of each, which is ambiguous to the compiler, so the blocks have priorities:
+// settings before conversations before decisions. Every block runs the rules of all the store implements
 public static class StoreExtensions
 {
     private const string Kind = "typeshift_check";
@@ -33,6 +36,7 @@ public static class StoreExtensions
         /// The store broke a rule, or something is stored under one of the ids already; the message says which.
         /// </exception>
         /// <exception cref="ArgumentException">The two ids are equal.</exception>
+        [OverloadResolutionPriority(2)]
         public Task VerifyAsync(TId id, TId otherId, CancellationToken ct = default) =>
             VerifyEveryInterfaceAsync(store, store, (id, otherId), store as IConversationStore<TId>, (id, otherId), ct);
 
@@ -90,6 +94,7 @@ public static class StoreExtensions
         /// The store broke a rule, or something is stored under one of the ids already; the message says which.
         /// </exception>
         /// <exception cref="ArgumentException">The two ids are equal.</exception>
+        [OverloadResolutionPriority(1)]
         public Task VerifyAsync(TId id, TId otherId, CancellationToken ct = default) =>
             VerifyEveryInterfaceAsync(store, store as ISettingsStore<TId>, (id, otherId), store, (id, otherId), ct);
     }
@@ -120,29 +125,6 @@ public static class StoreExtensions
                 store as IConversationStore<TId>,
                 (id, otherId),
                 ct);
-    }
-
-    // A store that is all three would match every block above; this one is more specific, so the call compiles
-    extension<TId>(ITypeshiftStore<TId> store) where TId : notnull
-    {
-        /// <summary>
-        /// Runs the rules for settings, for conversations and for decisions against this store, and for agents' own
-        /// settings when it keeps those too. It writes under both ids, so give it two that nothing else uses, in a
-        /// database for tests.
-        /// </summary>
-        /// <param name="id">An id nothing is stored under yet, as a settings id and as a conversation id.</param>
-        /// <param name="otherId">
-        /// A second such id. What the check stores under it must stay as it is while the check writes under the first,
-        /// which tells a store that forgets the id.
-        /// </param>
-        /// <param name="ct">Cancels the check.</param>
-        /// <returns>A task that completes once the store passed.</returns>
-        /// <exception cref="InvalidOperationException">
-        /// The store broke a rule, or something is stored under one of the ids already; the message says which.
-        /// </exception>
-        /// <exception cref="ArgumentException">The two ids are equal.</exception>
-        public Task VerifyAsync(TId id, TId otherId, CancellationToken ct = default) =>
-            VerifyEveryInterfaceAsync(store, store, (id, otherId), store, (id, otherId), ct);
     }
 
     extension(IAgentSettingsStore store)

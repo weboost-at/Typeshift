@@ -550,11 +550,12 @@ await store.VerifyAsync(9001, 9002);
 <!-- endSnippet -->
 
 - It runs the rules of every interface your store implements for the id type you pass: the settings rules for an
-  `ISettingsStore`, the conversation rules for an `IConversationStore`, the decision rules for an `IDecisionStore`,
-  and all of them for a store that is all three for that id type, even when you call it through one of the
-  interfaces. A store whose settings ids and conversation ids have different types takes two ids of each type in one
-  call, as `store.VerifyAsync("tenant-a", "tenant-b", chat, otherChat)`, or one call per id type. Decisions are
-  checked under the conversation ids.
+  `ISettingsStore`, the conversation rules for an `IConversationStore` and the decision rules for an
+  `IDecisionStore`. A store of several of them gets the rules of each, whether it implements them one by one or as
+  an `ITypeshiftStore`, and whichever of the interfaces you call it through. A store whose settings ids and
+  conversation ids have different types takes two ids of each type in one call, as
+  `store.VerifyAsync("tenant-a", "tenant-b", chat, otherChat)`, or one call per id type. Decisions are checked under
+  the conversation ids.
 - A store that is also an `IAgentSettingsStore` gets the settings rules for agents' own settings, under kinds named
   after the first id, which start with `typeshift_check_`. These documents stay in the database, so run the check
   against a database for tests. For a store of agents' own settings alone, call `VerifyAgentSettingsAsync(kind)`

@@ -1021,10 +1021,15 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - **Status:** owner; the second id, the entries' times and the save of a document that is not stored came with the
   audit of November 2026.
-- **Decision:** `store.VerifyAsync(id, otherId)`, an extension method on `ISettingsStore`, `IConversationStore`,
-  `IDecisionStore` and `ITypeshiftStore`, runs the rules Typeshift relies on against a store and throws an `InvalidOperationException` that
-  names the rule a store broke. It runs the rules of every interface the store implements for ids of that type,
-  whichever one it is called through, so a store that is both cannot pass on one alone. It needs no test framework,
+- **Decision:** `store.VerifyAsync(id, otherId)`, an extension method on `ISettingsStore`, `IConversationStore`
+  and `IDecisionStore`, runs the rules Typeshift relies on against a store and throws an
+  `InvalidOperationException` that names the rule a store broke. It runs the rules of every interface the store
+  implements for ids of that type, whichever one it is called through, so a store that is both cannot pass on one
+  alone. A store of several interfaces matches the method of each, which the compiler called ambiguous (CS0121)
+  unless the store was an `ITypeshiftStore`, whose own method was the most specific: a store of conversations and
+  their decisions, the split the guide recommends, did not compile. The three methods carry an
+  `OverloadResolutionPriority`, settings before conversations before decisions, so one is chosen for any store, and
+  the method on `ITypeshiftStore`, which ran the same rules, went. It needs no test framework,
   so a store's tests in any framework can call it. It writes under both ids, as settings ids and as conversation ids,
   so tests pass two that nothing else uses. What it stores under the second id first must be as it was at the end, so
   a store that forgets the id in a load, in an update or in its search for the last summary fails; with one id such a

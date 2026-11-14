@@ -135,6 +135,9 @@ All notable changes to this project are documented here. The format follows
   keeps them, where the last did.
 - The message for a missing store ends with the store interfaces the app registered, and the one for agents' own
   settings names `WithFileStore()` or a store of your own instead of `InMemoryTypeshiftStore<TId>`.
+- `VerifyAsync` has no method on `ITypeshiftStore<TId>` any more: a call on such a store takes the one on
+  `ISettingsStore<TId>`, which runs the same rules. Calls compile as before; an assembly compiled against an
+  earlier version is rebuilt.
 - **Breaking:** `store.VerifyAsync(id)` is now `store.VerifyAsync(id, otherId)`. The check stores a document and an
   entry under the second id first and fails when they changed, or when they load under the first id, so a store that
   forgets the id in a query no longer passes. Such a store served one customer's settings or conversation to another.
@@ -321,6 +324,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Fixed
 
+- `store.VerifyAsync(id, otherId)` compiles for a store that implements several store interfaces without
+  `ITypeshiftStore<TId>`, such as one of conversations and their decisions. It was CS0121, ambiguous between the
+  interfaces, and needed a cast.
 - A null for a required tool argument fails the call, and the model reads which argument was null. The method ran
   with `0`, `false` or a null string in its place, so a model that sent `number: null` closed ticket 0 and read
   that it had succeeded. A nullable parameter such as `int?` or `string?`, a union and an optional parameter take

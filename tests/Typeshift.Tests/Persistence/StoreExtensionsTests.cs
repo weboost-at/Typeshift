@@ -405,6 +405,36 @@ public class StoreExtensionsTests : UnitTestBase
     }
 
     [Fact]
+    public async Task Given_A_Store_Of_Both_Interfaces_Without_The_Combined_One_It_Passes()
+    {
+        // Act
+        var verify = () => new SplitStore().VerifyAsync(Id, OtherId, Ct);
+
+        // Assert
+        await verify.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task Given_A_Store_Of_Both_Interfaces_Without_The_Combined_One_VerifyAsync_Checks_Both()
+    {
+        // Act
+        var verify = () => new SplitStore(newestFirst: true).VerifyAsync(Id, OtherId, Ct);
+
+        // Assert
+        await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*oldest first*");
+    }
+
+    [Fact]
+    public async Task Given_A_Store_Of_Conversations_And_Their_Decisions_VerifyAsync_Checks_The_Decisions()
+    {
+        // Act
+        var verify = () => new ConversationsWithDecisionsStore(neverConflicts: true).VerifyAsync(Id, OtherId, Ct);
+
+        // Assert
+        await verify.Should().ThrowAsync<InvalidOperationException>().WithMessage("*StoreConflictException*");
+    }
+
+    [Fact]
     public async Task Given_A_Store_That_Starts_At_The_First_Summary_It_Fails_Naming_The_Last_Summary()
     {
         // Act
