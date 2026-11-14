@@ -6,6 +6,9 @@ namespace Typeshift;
 /// Connects the MCP servers agents name in <c>UseMcpServer</c>, with the MCP client your app chooses. Registered
 /// with <c>WithMcpToolProvider&lt;T&gt;()</c>, resolved from the run's services, so it may connect each customer with
 /// their own credentials.
+/// More in the guide:
+/// <see href="https://weboost-at.github.io/Typeshift/guide/mcp#registering-the-provider">Registering the
+/// provider</see>.
 /// </summary>
 public interface IMcpToolProvider
 {

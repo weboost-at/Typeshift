@@ -26,6 +26,9 @@ public sealed class TypeshiftBuilder
     /// settings and another of conversations. A store interface has one store: a call whose store implements an
     /// interface another call's store is registered as throws. Without any store, Typeshift keeps everything in memory
     /// until the app stops.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/implementing-a-store#register-your-store">Register your
+    /// store</see>.
     /// </summary>
     /// <param name="replace">
     /// True when the store takes over each interface it implements from the store registered as it before, as a test

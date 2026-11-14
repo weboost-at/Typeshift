@@ -10,6 +10,7 @@ namespace Typeshift;
 /// The base of a partial class that declares an agent in its constructor: chat options, tools and their settings. The
 /// generator adds the agent's <c>Settings</c> record, a <c>Configure{Tool}()</c> per offered tool with settings, and
 /// its typed members on <see cref="AgentHost{TAgent}"/>.
+/// More in the guide: <see href="https://weboost-at.github.io/Typeshift/guide/defining-agents">Agents</see>.
 /// </summary>
 public abstract class Agent
 {

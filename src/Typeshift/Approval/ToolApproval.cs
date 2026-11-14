@@ -5,6 +5,8 @@ namespace Typeshift;
 /// <summary>
 /// Decides tool calls before your app is asked: approves what your app trusts, rejects what it never allows (the
 /// guard of auto mode). Registered with <c>WithApprovalRule&lt;T&gt;()</c>, resolved from the run's services.
+/// More in the guide:
+/// <see href="https://weboost-at.github.io/Typeshift/guide/tool-approval#approval-rules">Approval rules</see>.
 /// </summary>
 public interface IToolApprovalRule
 {

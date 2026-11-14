@@ -340,7 +340,9 @@ All notable changes to this project are documented here. The format follows
   `DecisionUnavailableException`, an `InvalidOperationException` for a conversation with a run going on or for a
   chat client or store that is not registered, and a `JsonException` for stored settings of a newer schema version.
   The answer, resume and settings members list theirs, and so do `WithSettingsId`, `WithConversationId`,
-  `WithModel`, `WithStore`, `WithChatClientProvider`, `WithOptions` and `NewConversationIds`.
+  `WithModel`, `WithStore`, `WithChatClientProvider`, `WithOptions` and `NewConversationIds`. The summaries of
+  these host members, of `Agent`, `Toolset`, `AgentHost<TAgent>`, `AddTypeshift()` and `TypeshiftRuntime.Create`,
+  and of the interfaces an app implements end with a link to their section of the guide.
 
 ### Fixed
 

@@ -4,6 +4,8 @@ namespace Typeshift;
 /// Keeps the agents' settings: a JSON document per settings id and kind, guarded by a version. It receives the
 /// settings ids of <typeparamref name="TId"/> that <c>WithSettingsId</c> gives a host. Implement it alone when
 /// conversations live elsewhere, or <see cref="ITypeshiftStore{TId}"/> for both.
+/// More in the guide:
+/// <see href="https://weboost-at.github.io/Typeshift/guide/implementing-a-store">Implementing a store</see>.
 /// </summary>
 /// <typeparam name="TId">The id type of settings; the library never creates ids, it passes on the host's.</typeparam>
 public interface ISettingsStore<TId> where TId : notnull

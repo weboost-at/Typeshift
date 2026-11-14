@@ -15,6 +15,8 @@
 //   - in AGENTS.md, the playbooks and the contributing pages: every repository path in backticks exists, and every
 //     `page.md#anchor` reaches a heading or anchor of that page
 //   - every test docs/contributing/status.md names is a test under tests/
+//   - every link from the XML docs to the docs site, in src/ and in the generator's snapshots, reaches a page and,
+//     with a #fragment, a heading or anchor on it
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { basename, dirname, join, relative, resolve } from 'node:path'
@@ -446,6 +448,20 @@ for (const [file, content] of contributing) {
     else if (!page && segments.length === 1 && !existsSync(join(root, path)))
       fail(file, line, `\`${text}\` names no page of the docs`)
   }
+}
+
+// The XML docs link the guide, and an editor shows the link in a tooltip: in the library and the generator, and in
+// what the generator writes, as the snapshots hold it. GuideLinks.cs checks the same links for a change of the code
+const documented = [
+  ...find(join(root, 'src'), name => name.endsWith('.cs')),
+  ...find(join(root, 'tests/Typeshift.Generators.Tests/Snapshots'), name => name.endsWith('.verified.txt'))
+]
+
+for (const file of documented) {
+  textOf(file).split('\n').forEach((line, index) => {
+    for (const [address] of line.matchAll(new RegExp(`${site}[\\w/-]+(?:#[\\w-]*)?`, 'g')))
+      checkLink(file, index + 1, address.replace(/#$/, ''))
+  })
 }
 
 // status.md names a test as `Class.Method`, as `..._Method` for another test of the class before it, or by its class

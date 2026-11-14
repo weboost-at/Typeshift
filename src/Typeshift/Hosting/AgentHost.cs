@@ -15,6 +15,8 @@ namespace Typeshift;
 /// <c>AnswerStreamingAsync</c>, <c>AnswerStreamingAsync&lt;T&gt;</c>, <c>ResumeAsync</c>,
 /// <c>ResumeStreamingAsync</c>, <c>ResolveOptionsAsync</c>, <c>LoadSettingsAsync</c>, <c>SaveSettingsAsync</c> and
 /// <c>ConfigureAsync</c>.
+/// More in the guide:
+/// <see href="https://weboost-at.github.io/Typeshift/guide/generated-members#the-agent-host">The agent host</see>.
 /// </summary>
 /// <typeparam name="TAgent">The agent.</typeparam>
 public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposable where TAgent : Agent

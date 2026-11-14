@@ -8,6 +8,7 @@ namespace Typeshift;
 /// The conversations under ids of <typeparamref name="TId"/> running in this process. Inject the tracker of your
 /// conversation ids' type, such as <c>ConversationTracker&lt;int&gt;</c>; the container has one for every id type, a
 /// singleton.
+/// More in the guide: <see href="https://weboost-at.github.io/Typeshift/guide/conversations#live-runs">Live runs</see>.
 /// </summary>
 /// <typeparam name="TId">The type of the conversation ids, as <c>WithConversationId</c> gave them.</typeparam>
 public sealed class ConversationTracker<TId> where TId : notnull

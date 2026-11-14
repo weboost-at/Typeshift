@@ -4,6 +4,9 @@ namespace Typeshift;
 /// Keeps conversations: the entries runs append, keyed by the conversation's id. It receives the conversation ids of
 /// <typeparamref name="TId"/> that <c>WithConversationId</c> gives a host. Implement it alone when settings live
 /// elsewhere, or <see cref="ITypeshiftStore{TId}"/> for both.
+/// More in the guide:
+/// <see href="https://weboost-at.github.io/Typeshift/guide/implementing-a-store#append-to-a-conversation">Append to a
+/// conversation</see>.
 /// </summary>
 /// <typeparam name="TId">
 /// The id type of conversations. The library passes on the host's ids, and creates one only for a conversation a run

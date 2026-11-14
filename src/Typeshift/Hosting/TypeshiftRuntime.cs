@@ -27,6 +27,8 @@ public sealed class TypeshiftRuntime : IAsyncDisposable, IDisposable
     /// Creates the runtime of an app without a container, with every toolset and agent of this project and of the
     /// projects it references, and with <paramref name="client"/> serving every agent's runs. The runtime owns the
     /// container it builds. The generator intercepts the call; one it did not intercept throws, saying what to check.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/registration#the-runtime">The runtime</see>.
     /// </summary>
     /// <param name="client">The chat client of every run; the runtime never disposes it.</param>
     /// <param name="configure">

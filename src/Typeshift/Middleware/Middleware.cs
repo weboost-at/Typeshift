@@ -5,6 +5,8 @@ namespace Typeshift;
 /// <summary>
 /// Middleware around every run, streaming or not; registered with <c>WithRunMiddleware&lt;T&gt;()</c>, resolved from
 /// the run's services.
+/// More in the guide:
+/// <see href="https://weboost-at.github.io/Typeshift/guide/middleware#wrap-every-run">Wrap every run</see>.
 /// </summary>
 public interface IRunMiddleware
 {
@@ -21,6 +23,8 @@ public interface IRunMiddleware
 /// <summary>
 /// Middleware around every tool call; registered with <c>WithToolMiddleware&lt;T&gt;()</c>, resolved from the run's
 /// services.
+/// More in the guide:
+/// <see href="https://weboost-at.github.io/Typeshift/guide/middleware#wrap-every-tool-call">Wrap every tool call</see>.
 /// </summary>
 public interface IToolMiddleware
 {

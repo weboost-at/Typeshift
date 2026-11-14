@@ -35,6 +35,8 @@ internal static class AgentEmitter
         "something the run needs is not registered: a chat client for the agent's model, a store for the type of one "
         + "of the host's ids, or an <c>IMcpToolProvider</c> for the agent's MCP servers";
 
+    private static readonly string AgentSettings = Docs.Guide("settings-and-stores#agent-settings", "Agent settings");
+
     private const string NoSettingsStore =
         "No store keeps these settings: stores are registered, and none of them is an <c>IAgentSettingsStore</c>, "
         + "for the agent's own, or an <c>ISettingsStore</c> of the id's type, for those under the host's id.";
@@ -611,7 +613,8 @@ internal static class AgentEmitter
                 writer,
                 "Resolves the options of a run, for the raw path: <c>CreateChatClientAsync</c>, then the client. The "
                 + "options carry the host's conversation; on a host without one, <c>ChatOptions.ConversationId</c> "
-                + "names a conversation under a <see cref=\"string\"/> id.");
+                + "names a conversation under a <see cref=\"string\"/> id."
+                + Docs.Guide("running-agents#the-raw-path", "The raw path"));
             Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
             Docs.WriteParam(writer, "ct", "Cancels the resolution.");
             Docs.WriteReturns(writer, "The options, with the agent's tools.");
@@ -635,7 +638,8 @@ internal static class AgentEmitter
             Docs.WriteSummary(
                 writer,
                 "Loads the agent's own settings, which every run applies, or, on a host from <c>WithSettingsId</c>, "
-                + "the settings stored under its id.");
+                + "the settings stored under its id."
+                + AgentSettings);
             Docs.WriteParam(writer, "ct", "Cancels the load.");
             Docs.WriteReturns(
                 writer,
@@ -654,7 +658,8 @@ internal static class AgentEmitter
             Docs.WriteSummary(
                 writer,
                 "Saves the agent's own settings, or, on a host from <c>WithSettingsId</c>, those under its id, unless "
-                + "another save came since they were loaded.");
+                + "another save came since they were loaded."
+                + AgentSettings);
             Docs.WriteParam(writer, "settings", "The settings.");
             Docs.WriteParam(
                 writer,
@@ -677,7 +682,8 @@ internal static class AgentEmitter
             Docs.WriteSummary(
                 writer,
                 "Changes the agent's own settings, or, on a host from <c>WithSettingsId</c>, those under its id, "
-                + "reloading and changing them again whenever another save came first, up to ten times.");
+                + "reloading and changing them again whenever another save came first, up to ten times."
+                + AgentSettings);
             Docs.WriteParam(writer, "configure", "Returns the changed settings; called again after a lost save.");
             Docs.WriteParam(writer, "ct", "Cancels the change.");
             Docs.WriteReturns(writer, "The settings saved.");
@@ -711,7 +717,8 @@ internal static class AgentEmitter
             writer,
             "Continues the host's conversation, from <c>WithConversationId</c>, without new input: the run that was "
             + "interrupted, from its last stored step, or the decisions your app answered. While decisions are still "
-            + "open it calls no model, and what it returns lists them.");
+            + "open it calls no model, and what it returns lists them."
+            + Docs.Guide("conversations#resuming", "Resuming"));
         Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
         Docs.WriteParam(writer, "ct", "Cancels the run.");
         Docs.WriteReturns(
@@ -748,7 +755,8 @@ internal static class AgentEmitter
             Docs.WriteSummary(
                 writer,
                 "Records your app's answers to decisions of the host's conversation, from <c>WithConversationId</c>, "
-                + $"and, once no decision is left open, carries them out and continues the run{how}.{note}");
+                + $"and, once no decision is left open, carries them out and continues the run{how}.{note}"
+                + Docs.Guide("tool-approval#approving-or-rejecting", "Approving or rejecting"));
             if (name.EndsWith("<TResult>", StringComparison.Ordinal))
                 Docs.WriteTypeParam(writer, "TResult", "The result's type.");
 
@@ -806,7 +814,8 @@ internal static class AgentEmitter
             Docs.WriteSummary(
                 writer,
                 $"{summary}, in the host's conversation if it has one, with the stored and the run's settings over the "
-                + $"agent's code.{note}");
+                + $"agent's code.{note}"
+                + Docs.Guide("running-agents", "Running an agent"));
             if (name.EndsWith("<TResult>", StringComparison.Ordinal))
                 Docs.WriteTypeParam(writer, "TResult", "The result's type.");
 

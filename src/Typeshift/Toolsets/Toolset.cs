@@ -4,6 +4,7 @@ namespace Typeshift;
 /// The base of a partial class that declares its tools in its constructor. The generator turns each tool into a
 /// reflection-free <c>AIFunction</c>, its configurable settings into a <c>{Tool}Overrides</c> record, and its tools
 /// into properties of <see cref="ToolList{TToolset}"/>.
+/// More in the guide: <see href="https://weboost-at.github.io/Typeshift/guide/toolsets">Toolsets</see>.
 /// </summary>
 public abstract class Toolset
 {

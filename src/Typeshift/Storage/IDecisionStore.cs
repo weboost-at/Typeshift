@@ -6,6 +6,8 @@ namespace Typeshift;
 /// approved for the conversation. It receives the conversation ids of <typeparamref name="TId"/> that
 /// <c>WithConversationId</c> gives a host. Implement it beside <see cref="IConversationStore{TId}"/>, or
 /// <see cref="ITypeshiftStore{TId}"/> for settings, conversations and decisions in one.
+/// More in the guide:
+/// <see href="https://weboost-at.github.io/Typeshift/guide/implementing-a-store#keep-decisions">Keep decisions</see>.
 /// </summary>
 /// <typeparam name="TId">
 /// The id type of conversations. The library passes on the host's ids, and creates one only for a conversation a run

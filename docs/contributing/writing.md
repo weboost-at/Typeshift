@@ -257,7 +257,9 @@ The docs rules check what a machine can:
 - Getting started has at most five numbered steps;
 - every repository path and every anchor of a docs page that `AGENTS.md`, the playbooks and the contributing pages
   name in backticks exists;
-- every test that [Status](./status.md) names exists.
+- every test that [Status](./status.md) names exists;
+- every link from the XML docs to this site reaches its page and its anchor: those in `src/`, which an editor shows
+  in a tooltip, and those the generator writes, as its snapshots hold them.
 
 The `docs` workflow runs `docs:snippets:check`, `docs:lint` and the build on every pull request, and deploys the site
 from `main`. Everything else on this page is for the reviewer, because no pattern can tell it: a "just" that softens,

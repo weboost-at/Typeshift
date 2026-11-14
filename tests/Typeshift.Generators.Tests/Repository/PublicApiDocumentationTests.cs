@@ -78,6 +78,16 @@ public class PublicApiDocumentationTests
         unnamed.Should().BeEmpty("a caller finds an exception in the docs of what throws it, generated members too");
     }
 
+    [Fact]
+    public void Every_Guide_Link_In_The_Xml_Docs_Reaches_A_Page_And_An_Anchor()
+    {
+        // Act
+        var dead = GuideLinks.Dead;
+
+        // Assert
+        dead.Should().BeEmpty(Listing.Of(dead));
+    }
+
     private static bool IsException(INamedTypeSymbol type) =>
         type.BaseType is { } parent && (parent.ToDisplayString() == "System.Exception" || IsException(parent));
 

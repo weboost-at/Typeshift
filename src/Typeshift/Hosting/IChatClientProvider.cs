@@ -6,6 +6,8 @@ namespace Typeshift;
 /// Returns the client of a provider's model. Resolved scoped from the run's services, so it may serve each customer
 /// with their own credentials. A run asks the provider of its agent's provider type; without one, it takes the
 /// <see cref="IChatClient"/> registered under its provider, or the one registered for every agent.
+/// More in the guide:
+/// <see href="https://weboost-at.github.io/Typeshift/guide/models#your-own-provider">Your own provider</see>.
 /// </summary>
 /// <typeparam name="TProviderId">
 /// The type of the providers it serves, as the agents name them in <c>WithModel(provider, model)</c>. When an agent's

@@ -3,6 +3,8 @@ namespace Typeshift;
 /// <summary>
 /// A failed tool call whose message is written for the model. The model reads the message as the call's result and
 /// can correct its call. Of any other exception a tool throws the model reads only that the call failed.
+/// More in the guide:
+/// <see href="https://weboost-at.github.io/Typeshift/guide/toolsets#when-a-tool-fails">When a tool fails</see>.
 /// </summary>
 public class ToolException : Exception
 {

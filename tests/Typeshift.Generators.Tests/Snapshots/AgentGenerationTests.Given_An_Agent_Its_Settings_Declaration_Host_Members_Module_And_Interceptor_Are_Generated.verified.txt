@@ -16,7 +16,8 @@ public static class TypeshiftHost_4Demo12SupportAgent
     {
         /// <summary>
         /// Runs the agent on a message, in the host's conversation if it has one, with the stored and the run's
-        /// settings over the agent's code.
+        /// settings over the agent's code. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/running-agents">Running an agent</see>.
         /// </summary>
         /// <param name="input">The user's message.</param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
@@ -41,7 +42,8 @@ public static class TypeshiftHost_4Demo12SupportAgent
 
         /// <summary>
         /// Runs the agent on a message, which may carry images, in the host's conversation if it has one, with the
-        /// stored and the run's settings over the agent's code.
+        /// stored and the run's settings over the agent's code. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/running-agents">Running an agent</see>.
         /// </summary>
         /// <param name="input">The user's message.</param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
@@ -66,7 +68,8 @@ public static class TypeshiftHost_4Demo12SupportAgent
 
         /// <summary>
         /// Runs the agent on a message, asking the model for JSON of <typeparamref name="TResult"/>'s schema, in the
-        /// host's conversation if it has one, with the stored and the run's settings over the agent's code.
+        /// host's conversation if it has one, with the stored and the run's settings over the agent's code. More in the
+        /// guide: <see href="https://weboost-at.github.io/Typeshift/guide/running-agents">Running an agent</see>.
         /// </summary>
         /// <typeparam name="TResult">The result's type.</typeparam>
         /// <param name="input">The user's message.</param>
@@ -93,7 +96,8 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <summary>
         /// Runs the agent on a message, which may carry images, asking the model for JSON of
         /// <typeparamref name="TResult"/>'s schema, in the host's conversation if it has one, with the stored and the
-        /// run's settings over the agent's code.
+        /// run's settings over the agent's code. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/running-agents">Running an agent</see>.
         /// </summary>
         /// <typeparam name="TResult">The result's type.</typeparam>
         /// <param name="input">The user's message.</param>
@@ -119,7 +123,8 @@ public static class TypeshiftHost_4Demo12SupportAgent
 
         /// <summary>
         /// Runs the agent on a message, streaming the updates, in the host's conversation if it has one, with the
-        /// stored and the run's settings over the agent's code.
+        /// stored and the run's settings over the agent's code. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/running-agents">Running an agent</see>.
         /// </summary>
         /// <param name="input">The user's message.</param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
@@ -144,7 +149,8 @@ public static class TypeshiftHost_4Demo12SupportAgent
 
         /// <summary>
         /// Runs the agent on a message, which may carry images, streaming the updates, in the host's conversation if it
-        /// has one, with the stored and the run's settings over the agent's code.
+        /// has one, with the stored and the run's settings over the agent's code. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/running-agents">Running an agent</see>.
         /// </summary>
         /// <param name="input">The user's message.</param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
@@ -171,7 +177,8 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// Runs the agent on a message, streaming the updates and asking the model for JSON of
         /// <typeparamref name="TResult"/>'s schema, in the host's conversation if it has one, with the stored and the
         /// run's settings over the agent's code. Once its updates are read to the end, its <c>Response</c> holds the
-        /// result.
+        /// result. More in the guide: <see href="https://weboost-at.github.io/Typeshift/guide/running-agents">Running
+        /// an agent</see>.
         /// </summary>
         /// <typeparam name="TResult">The result's type.</typeparam>
         /// <param name="input">The user's message.</param>
@@ -199,7 +206,8 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// Runs the agent on a message, which may carry images, streaming the updates and asking the model for JSON of
         /// <typeparamref name="TResult"/>'s schema, in the host's conversation if it has one, with the stored and the
         /// run's settings over the agent's code. Once its updates are read to the end, its <c>Response</c> holds the
-        /// result.
+        /// result. More in the guide: <see href="https://weboost-at.github.io/Typeshift/guide/running-agents">Running
+        /// an agent</see>.
         /// </summary>
         /// <typeparam name="TResult">The result's type.</typeparam>
         /// <param name="input">The user's message.</param>
@@ -226,7 +234,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <summary>
         /// Records your app's answers to decisions of the host's conversation, from <c>WithConversationId</c>, and,
         /// once no decision is left open, carries them out and continues the run. With decisions left open it calls no
-        /// model, and what it returns lists them.
+        /// model, and what it returns lists them. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/tool-approval#approving-or-rejecting">Approving or
+        /// rejecting</see>.
         /// </summary>
         /// <param name="answers">
         /// The answers, each made from its decision, as <c>decision.Approve()</c> makes one, or by its id.
@@ -263,7 +273,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// Records your app's answers to decisions of the host's conversation, from <c>WithConversationId</c>, and,
         /// once no decision is left open, carries them out and continues the run, asking the model for JSON of
         /// <typeparamref name="TResult"/>'s schema. With decisions left open it calls no model, and what it returns
-        /// lists them.
+        /// lists them. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/tool-approval#approving-or-rejecting">Approving or
+        /// rejecting</see>.
         /// </summary>
         /// <typeparam name="TResult">The result's type.</typeparam>
         /// <param name="answers">
@@ -301,7 +313,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// Records your app's answers to decisions of the host's conversation, from <c>WithConversationId</c>, and,
         /// once no decision is left open, carries them out and continues the run, streaming the updates. With decisions
         /// left open it calls no model, and what it returns lists them. The answers are recorded when the updates are
-        /// read.
+        /// read. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/tool-approval#approving-or-rejecting">Approving or
+        /// rejecting</see>.
         /// </summary>
         /// <param name="answers">
         /// The answers, each made from its decision, as <c>decision.Approve()</c> makes one, or by its id.
@@ -338,7 +352,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// Records your app's answers to decisions of the host's conversation, from <c>WithConversationId</c>, and,
         /// once no decision is left open, carries them out and continues the run, streaming the updates and asking the
         /// model for JSON of <typeparamref name="TResult"/>'s schema. Once its updates are read to the end, its
-        /// <c>Response</c> holds the result. The answers are recorded when the updates are read.
+        /// <c>Response</c> holds the result. The answers are recorded when the updates are read. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/tool-approval#approving-or-rejecting">Approving or
+        /// rejecting</see>.
         /// </summary>
         /// <typeparam name="TResult">The result's type.</typeparam>
         /// <param name="answers">
@@ -375,7 +391,8 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <summary>
         /// Continues the host's conversation, from <c>WithConversationId</c>, without new input: the run that was
         /// interrupted, from its last stored step, or the decisions your app answered. While decisions are still open
-        /// it calls no model, and what it returns lists them.
+        /// it calls no model, and what it returns lists them. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/conversations#resuming">Resuming</see>.
         /// </summary>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
@@ -394,7 +411,8 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <summary>
         /// Continues the host's conversation, from <c>WithConversationId</c>, without new input: the run that was
         /// interrupted, from its last stored step, or the decisions your app answered. While decisions are still open
-        /// it calls no model, and what it returns lists them.
+        /// it calls no model, and what it returns lists them. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/conversations#resuming">Resuming</see>.
         /// </summary>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
@@ -413,7 +431,8 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <summary>
         /// Resolves the options of a run, for the raw path: <c>CreateChatClientAsync</c>, then the client. The options
         /// carry the host's conversation; on a host without one, <c>ChatOptions.ConversationId</c> names a conversation
-        /// under a <see cref="string"/> id.
+        /// under a <see cref="string"/> id. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/running-agents#the-raw-path">The raw path</see>.
         /// </summary>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the resolution.</param>
@@ -432,7 +451,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
 
         /// <summary>
         /// Loads the agent's own settings, which every run applies, or, on a host from <c>WithSettingsId</c>, the
-        /// settings stored under its id.
+        /// settings stored under its id. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/settings-and-stores#agent-settings">Agent
+        /// settings</see>.
         /// </summary>
         /// <param name="ct">Cancels the load.</param>
         /// <returns>
@@ -452,7 +473,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
 
         /// <summary>
         /// Saves the agent's own settings, or, on a host from <c>WithSettingsId</c>, those under its id, unless another
-        /// save came since they were loaded.
+        /// save came since they were loaded. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/settings-and-stores#agent-settings">Agent
+        /// settings</see>.
         /// </summary>
         /// <param name="settings">The settings.</param>
         /// <param name="loadedVersion">The version <c>LoadSettingsAsync</c> returned, 0 when it loaded none.</param>
@@ -471,7 +494,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
 
         /// <summary>
         /// Changes the agent's own settings, or, on a host from <c>WithSettingsId</c>, those under its id, reloading
-        /// and changing them again whenever another save came first, up to ten times.
+        /// and changing them again whenever another save came first, up to ten times. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/settings-and-stores#agent-settings">Agent
+        /// settings</see>.
         /// </summary>
         /// <param name="configure">Returns the changed settings; called again after a lost save.</param>
         /// <param name="ct">Cancels the change.</param>

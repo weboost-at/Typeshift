@@ -167,7 +167,7 @@ style; the essentials:
 
 | Change | Touch |
 |---|---|
-| New public API a user calls | Its feature's guide page (a sample region, then mdsnippets), its reference page, the glossary if it adds a term. When it changes the first run: the quick start of `src/Typeshift/PACKAGE.md` and, as a proposal to the owner, of `README.md` |
+| New public API a user calls | Its feature's guide page (a sample region, then mdsnippets), its reference page, the glossary if it adds a term, and the guide link in the summary of a new entry point. When it changes the first run: the quick start of `src/Typeshift/PACKAGE.md` and, as a proposal to the owner, of `README.md` |
 | New builder or `AddTypeshift()` chain call | `builders.md` or `registration.md#the-chain`, the guide page that teaches it |
 | New or changed diagnostic | `diagnostics.md` row and section with its failing example, a region of `DiagnosticSources.cs` (guard tests check both), the guide page that states the rule |
 | Changed default or limit | The reference table, then every page that states it: grep for the old value |
@@ -195,7 +195,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | Test | Enforces |
 |---|---|
 | `tests/Typeshift.Tests/Testing/Conventions/TestConventionTests` | The test rules below, for every project under `tests/` that sets `IsTestProject`: names, files and folders, comments, an assertion in every test, and the banned calls (`Task.Delay`, a wait with a time of its own, `#region`, `new Faker`, a raw token, a chained assertion, a test switched off). |
-| `Repository/PublicApiDocumentationTests` (generator tests) | Every documented public member, a delegate included, has its `param`, `typeparam` and `returns` tags. A public member of `src/Typeshift` names in an `<exception>` tag each exception its code throws: a `throw new`, a guard such as `ArgumentNullException.ThrowIfNull`, and what a member of the same type that is not public throws when the public one names it. Every exception type the library declares is named by such a tag, of a library member or of a generated one in the snapshots. |
+| `Repository/PublicApiDocumentationTests` (generator tests) | Every documented public member, a delegate included, has its `param`, `typeparam` and `returns` tags. A public member of `src/Typeshift` names in an `<exception>` tag each exception its code throws: a `throw new`, a guard such as `ArgumentNullException.ThrowIfNull`, and what a member of the same type that is not public throws when the public one names it. Every exception type the library declares is named by such a tag, of a library member or of a generated one in the snapshots. Every link from XML docs to the docs site, in `src` and in the generator's snapshots, reaches a page and, with a fragment, a heading or anchor of it; `lint.mjs` checks the same links, for a change of the docs alone. |
 | `AgentGenerationTests.Given_A_Host_Member_That_Throws_Its_Docs_Name_The_Exception` (generator tests) | The docs the generator writes for an agent's host members name the exceptions a run, an answer, a resume and the settings members throw. |
 | `Repository/PublicApiSurfaceTests.The_Public_Surface_Matches_Its_Snapshot` (generator tests) | Every change of the public API is a reviewed diff of `Snapshots/PublicApi.verified.txt`. |
 | `Repository/PublicApiSurfaceTests.The_Surface_Generated_Code_Binds_To_Changes_Only_With_The_Stamp_Version` (generator tests) | `Typeshift.Generated`, `IStorable<TSelf>` and `Agent.Declaration`, kept in `Snapshots/GeneratedContract.verified.txt`, change only together with `ReferenceReader.StampVersion` (D7). |
@@ -262,7 +262,9 @@ The code must read as if the owner wrote it: terse, intention-revealing, comment
 - Comments only where they earn their place: one thought, a few lines at most, saying why, never what.
 - XML docs on every public member and none on private or internal ones: a `<summary>` of what it is or does, plus
   every `<typeparam>`, `<param>`, `<returns>` and the `<exception>`s a caller can act on, in plain sentences a reader
-  takes in at a glance. Anything that needs more than a few sentences goes to the docs site.
+  takes in at a glance. Anything that needs more than a few sentences goes to the docs site, and a type or member
+  a user starts from ends its summary with the link an editor shows in the tooltip:
+  `More in the guide: <see href="https://weboost-at.github.io/Typeshift/guide/toolsets">Toolsets</see>.`
 - No guard for a state that cannot occur, no duplicated helper, no dead code, no TODOs (open items go to
   `docs/contributing/status.md`).
 - Never read the clock: inject `TimeProvider` (`GetTimestamp`, `GetElapsedTime`, `Task.Delay(span, time)`,

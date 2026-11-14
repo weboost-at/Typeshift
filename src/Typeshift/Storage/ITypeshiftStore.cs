@@ -4,6 +4,8 @@ namespace Typeshift;
 /// A store of settings, conversations and decisions in one: <see cref="ISettingsStore{TId}"/>,
 /// <see cref="IConversationStore{TId}"/> and <see cref="IDecisionStore{TId}"/>, all under ids of
 /// <typeparamref name="TId"/>.
+/// More in the guide:
+/// <see href="https://weboost-at.github.io/Typeshift/guide/implementing-a-store">Implementing a store</see>.
 /// </summary>
 /// <typeparam name="TId">
 /// The id type of settings and conversations. The library passes on the host's ids, and creates one only for a

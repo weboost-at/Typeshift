@@ -7,6 +7,8 @@ namespace Typeshift.Generators.Emitting;
 
 internal static class Docs
 {
+    private const string Site = "https://weboost-at.github.io/Typeshift/";
+
     public static void WriteSummary(SourceWriter writer, string text) => WriteTag(writer, "summary", "summary", text);
 
     public static void WriteTypeParam(SourceWriter writer, string name, string text) =>
@@ -21,6 +23,10 @@ internal static class Docs
         WriteTag(writer, $"exception cref=\"{type}\"", "exception", text);
 
     public static void WriteInheritDoc(SourceWriter writer) => writer.Line("/// <inheritdoc />");
+
+    // The last sentence of a summary: where the guide goes on, as a link an editor shows in the tooltip
+    public static string Guide(string section, string title) =>
+        $" More in the guide: <see href=\"{Site}guide/{section}\">{title}</see>.";
 
     // Docs and descriptions are read as plain text; put back into XML they need escaping, and lose the characters
     // XML has no form for, such as the control characters a description may hold
