@@ -118,10 +118,10 @@ Runs that fail or stop early are stored too:
 - A cancelled run is stored too, because Typeshift stores without the run's cancellation token.
 - A run cut off by a crash has no ending entry, and [resuming](#resuming) continues it.
 
-When the store fails to save, the failure is logged and recorded on the run's span, and the run still returns its
-answer. The step it failed to save is missing from later runs. One step is different: a run that asks your app
-throws the store's exception when it could not store the model's response or the decision, because a prompt your app
-shows must be one it can answer.
+When the store fails to save, the failure is [logged](./observability.md#logs) and recorded on the run's span, and
+the run still returns its answer. The step it failed to save is missing from later runs. One step is different: a
+run that asks your app throws the store's exception when it could not store the model's response or the decision,
+because a prompt your app shows must be one it can answer.
 
 Whenever a run loads the conversation, it builds what the model sees so that a provider accepts it. Each tool result
 follows the message that made its call, even when the store holds input or an end of a run between the two. A call

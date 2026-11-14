@@ -1,9 +1,12 @@
 using Typeshift.Tests.Agents.Support;
+using Typeshift.Tests.Conversations.Support;
 using Typeshift.Tests.Hosting.Support;
 using Typeshift.Tests.MultiAgent.Support;
+using Typeshift.Tests.Testing.Fakes;
 using Typeshift.Tests.Tools.Support;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Typeshift.Tests.Hosting;
 
@@ -158,6 +161,96 @@ public class TypeshiftRuntimeTests : AgentTestBase
 
         // Assert
         create.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public async Task Given_A_Service_Added_Through_The_Chain_A_Tool_Resolves_It()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        await using var runtime = TypeshiftRuntime.Create(
+            ChatClient,
+            typeshift => typeshift.Services.AddScoped<CallScope>());
+
+        await using var probe = runtime.Agent<ProbeAgent>();
+
+        // Act
+        var response = await probe.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.Assert.ToolResult<ProbeResult>(Data.Tool.CallId, Json).Scope.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task Given_A_Logger_Added_Through_The_Chain_A_Failed_Append_Is_Logged()
+    {
+        // Arrange
+        var log = new ErrorLog();
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        await using var runtime = TypeshiftRuntime.Create(
+            ChatClient,
+            typeshift =>
+            {
+#pragma warning disable TSH036 // the store fails every append, and the run never asks
+                typeshift.WithStore<FailingAppendStore>();
+#pragma warning restore TSH036
+                typeshift.Services.AddSingleton<ILoggerFactory>(log);
+            });
+
+        await using var probe = runtime.Agent<ProbeAgent>();
+
+        // Act
+        await probe.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        log.Errors.Should().Contain(error => error.Exception is IOException);
+    }
+
+    [Fact]
+    public async Task Given_A_Logger_Added_Through_The_Chain_A_Tools_Exception_Is_Logged()
+    {
+        // Arrange
+        var log = new ErrorLog();
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "crash", ("message", Data.Agent.Reason)))
+            .Reply(Text(Data.Tool.Answer));
+
+        await using var runtime = TypeshiftRuntime.Create(
+            ChatClient,
+            typeshift => typeshift.Services.AddSingleton<ILoggerFactory>(log));
+
+        await using var failing = runtime.Agent<FailingAgent>();
+
+        // Act
+        await failing.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        log.Errors.Should().ContainSingle(error => error.Exception.Message == Data.Agent.Reason);
+    }
+
+    [Fact]
+    public async Task Given_A_Logger_Added_Through_The_Chain_The_First_Save_Without_A_Store_Warns()
+    {
+        // Arrange
+        var log = new WarningLog();
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        await using var runtime = TypeshiftRuntime.Create(
+            ChatClient,
+            typeshift => typeshift.Services.AddSingleton<ILoggerFactory>(log));
+
+        await using var probe = runtime.Agent<ProbeAgent>();
+
+        // Act
+        await probe.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        log.Warnings.Should().ContainSingle(warning => warning.Contains("WithStore"));
     }
 
     [Fact]

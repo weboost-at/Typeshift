@@ -162,6 +162,28 @@ public class ConversationStoreTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Store_That_Fails_To_Append_The_Failure_Is_Logged_As_An_Error()
+    {
+        // Arrange
+        var log = new ErrorLog();
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithStore<FailingAppendStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models).AddSingleton<ILoggerFactory>(log);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        log.Errors.Should().Contain(error => error.Exception is IOException);
+    }
+
+    [Fact]
     public async Task Given_A_Content_Of_A_Type_The_Contract_Does_Not_Know_The_Rest_Of_The_Step_Is_Stored()
     {
         // Arrange

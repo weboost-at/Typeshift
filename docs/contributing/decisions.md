@@ -1203,12 +1203,20 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   a method group and a `dynamic` argument. The generator's pass binds the call to its sole candidate when the
   `configure` lambda names code it has not written yet. The library references
   `Microsoft.Extensions.DependencyInjection`, the container, which it did not before.
+- **The chain's services:** `TypeshiftBuilder.Services` is the service collection the chain registers into, public
+  as on the builders of Microsoft.Extensions, at the owner's choice. An app on `Create` registers its logging there,
+  so a tool's exception, a failed save and the warning of D69 have somewhere to go, and the services its tools
+  resolve (D15). A package writes a `With...` call of its own over it, for which `WithStore(create)`, the factory
+  `WithFileStore` registers through, is public too.
 - **Where:** `Hosting/TypeshiftRuntime.cs`, `Generated/ModuleRegistration.cs`, `Parsing/InterceptParser.cs`,
-  `Emitting/InterceptorEmitter.cs`.
+  `Emitting/InterceptorEmitter.cs`, `DependencyInjection/TypeshiftBuilder.cs`.
 - **Alternatives:** a generated `Create` on each agent, which the owner turned down, and whose agents would not share
   a store or a tracker; a library `Create` that registers nothing, since only the generator knows the project's
   modules; a container of the library's own, which would serve neither scoped services nor the app's;
-  `AddChatClient(client)`, whose factory makes the container own the client and dispose it with the runtime.
+  `AddChatClient(client)`, whose factory makes the container own the client and dispose it with the runtime; a
+  private service collection, with `services.AddTypeshift()` for an app that needs services of its own, which left
+  a runtime from `Create` without a logger and its tools without services; `WithLoggerFactory(factory)` alone, which
+  leaves the tools' services out.
 
 ### D76. The runtime is the root, and its hosts are units of work
 

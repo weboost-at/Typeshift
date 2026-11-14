@@ -82,6 +82,7 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 |---|---|---|
 | `WithStore<TStore>()` | `TStore`, as each store interface it implements | Singleton |
 | `WithStore(store)` | A store you created yourself, as each store interface its declared type implements | Singleton, your app's |
+| `WithStore(provider => ...)` | A store the container builds with your factory, as each store interface the factory's return type implements | Singleton |
 | `WithFileStore(configure)` | The file store, as `IAgentSettingsStore` | Singleton |
 | `WithChatClientProvider<TProvider>()` | `TProvider`, as each `IChatClientProvider<T>` it implements | Scoped |
 | `WithOptions(options => ...)` | `TypeshiftOptions`, such as `PersistAllConversations` | Singleton |
@@ -149,7 +150,7 @@ var answer = await research.RunAsync("Vienna");
 
 Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/NoContainer.cs#L11-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-typeshift-runtime' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/NoContainer.cs#L14-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-typeshift-runtime' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - `TypeshiftRuntime.Create(client, typeshift => typeshift.WithStore<MyStore>())` takes the rest of the chain, as
@@ -158,8 +159,28 @@ Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
   ([TSH040](./diagnostics.md#tsh040)).
 - Create the runtime once and keep it while your app runs. Disposing it disposes its singletons, such as your
   store, but not the client. A host's scoped services are disposed only with the host, so dispose each host as well.
-- An app whose tools or stores need services of its own calls `services.AddTypeshift()` instead, so it can register
-  them.
+
+The chain's `Services` are the service collection of the container the runtime builds. Register there what the
+chain has no call for, such as logging and the services your tools resolve:
+
+<!-- snippet: typeshift-runtime-services -->
+<a id='snippet-typeshift-runtime-services'></a>
+```cs
+await using var runtime = TypeshiftRuntime.Create(client, typeshift =>
+{
+    typeshift.Services.AddLogging(logging => logging.AddConsole());
+    typeshift.Services.AddSingleton<ITicketClient>(new InMemoryTicketClient(TimeProvider.System));
+});
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/NoContainer.cs#L32-L38' title='Snippet source file'>snippet source</a> | <a href='#snippet-typeshift-runtime-services' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- `AddLogging` gives the runtime a logger. Without one it logs nothing, so a tool's exception, a save that failed
+  and the warning that nothing is stored leave no trace ([Logs](./observability.md#logs)). `AddConsole` comes with
+  the `Microsoft.Extensions.Logging.Console` package.
+- A tool finds `ITicketClient` in the `IServiceProvider` it takes, in the scope of its host.
+- After `services.AddTypeshift()`, the chain's `Services` are the `services` you called it on, so a `With...` call of
+  your own, written as an extension of `TypeshiftBuilder`, registers into either kind of app.
 
 An app with a container gets the runtime from `services.AddTypeshift()`, which registers it as a singleton. Inject it
 where no request's scope is at hand, such as in a background service, and take a host from it for each job, as

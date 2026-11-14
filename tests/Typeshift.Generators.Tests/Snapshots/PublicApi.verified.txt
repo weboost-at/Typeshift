@@ -595,6 +595,7 @@ public sealed class Typeshift.ToolsetUse<TToolset> where TToolset : Typeshift.To
 public Typeshift.ToolExclusion<TToolset> Typeshift.ToolsetUse<TToolset>.Exclude(System.Func<Typeshift.ToolList<TToolset>, Typeshift.ToolName> tool)
 public Typeshift.ToolInclusion<TToolset> Typeshift.ToolsetUse<TToolset>.Include(System.Func<Typeshift.ToolList<TToolset>, Typeshift.ToolName> tool)
 public sealed class Typeshift.TypeshiftBuilder
+public Microsoft.Extensions.DependencyInjection.IServiceCollection Typeshift.TypeshiftBuilder.Services { get; }
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithApprovalRule<TRule>() where TRule : class, Typeshift.IToolApprovalRule
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithChatClientProvider<TProvider>() where TProvider : class
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithConversationTracker<TId>() where TId : notnull
@@ -603,6 +604,7 @@ public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithOptions(System.
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithRealtimeTracking(Typeshift.RealtimeTrackingOptions? options = null)
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithRunMiddleware<TMiddleware>() where TMiddleware : class, Typeshift.IRunMiddleware
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithStore<TStore>() where TStore : class
+public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithStore<TStore>(System.Func<System.IServiceProvider, TStore> create) where TStore : class
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithStore<TStore>(TStore store) where TStore : class
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithToolMiddleware<TMiddleware>() where TMiddleware : class, Typeshift.IToolMiddleware
 public sealed class Typeshift.TypeshiftOptions

@@ -14,6 +14,13 @@ public sealed class TypeshiftBuilder
     internal TypeshiftBuilder(IServiceCollection services) => _services = services;
 
     /// <summary>
+    /// The services the chain registers into: your app's own after <c>services.AddTypeshift()</c>, and those of the
+    /// container <c>TypeshiftRuntime.Create</c> builds. Register here what the chain has no call for, such as logging
+    /// or a service your tools resolve.
+    /// </summary>
+    public IServiceCollection Services => _services;
+
+    /// <summary>
     /// Registers a store, a singleton, and turns persistence on for what it keeps: agents' own settings, stored
     /// settings, conversations, their decisions or several of them. Call it once per class, for example for a store of
     /// settings and another of conversations; for each store interface, the last call wins. Without any store,
@@ -56,14 +63,32 @@ public sealed class TypeshiftBuilder
         return this;
     }
 
-    // A store the container builds, as WithStore<TStore>() does, from a factory: WithFileStore's over its folder
-    internal TypeshiftBuilder WithStore<
+    /// <summary>
+    /// Registers a store the container builds with your factory, a singleton, as each store interface
+    /// <typeparamref name="TStore"/> implements: for a store whose constructor takes what the container cannot give
+    /// it, such as a folder or a connection string.
+    /// </summary>
+    /// <param name="create">Creates the store, once, from the root services.</param>
+    /// <typeparam name="TStore">
+    /// The store's type as the factory returns it: an <c>IAgentSettingsStore</c>, an
+    /// <c>ISettingsStore&lt;TId&gt;</c>, an <c>IConversationStore&lt;TId&gt;</c>, an <c>IDecisionStore&lt;TId&gt;</c>,
+    /// or several of them, of any id types (TSH028).
+    /// </typeparam>
+    /// <returns>The same chain.</returns>
+    public TypeshiftBuilder WithStore<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] TStore>(
         Func<IServiceProvider, TStore> create)
         where TStore : class
     {
+        ArgumentNullException.ThrowIfNull(create);
         _services.AddSingleton(create);
-        AddStore(typeof(TStore), contract => _services.AddSingleton(contract, Resolve<TStore>));
+
+        // A store declared as one of the interfaces is registered as that one by the line above
+        AddStore(typeof(TStore), contract =>
+        {
+            if (contract != typeof(TStore)) _services.AddSingleton(contract, Resolve<TStore>);
+        });
+
         return this;
     }
 

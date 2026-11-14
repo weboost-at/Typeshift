@@ -35,9 +35,10 @@ call each.
 ### Which store serves a call
 
 Without any store, Typeshift keeps settings, conversations and decisions in memory, under ids of every type, so
-everything works from the first run on. The first save, or the first run that stores a conversation, logs a warning
-that names `WithStore<T>()`, and `WithFileStore()` for agents' own settings. The memory is gone when the app stops, so
-register a store before your app keeps anything it must not lose.
+everything works from the first run on. The first save, or the first run that stores a conversation,
+[logs a warning](./observability.md#logs) that names `WithStore<T>()`, and `WithFileStore()` for agents' own
+settings. The memory is gone when the app stops, so register a store before your app keeps anything it must not
+lose.
 
 Once you register a store, with the chain or in the container yourself, Typeshift uses only the stores you
 registered:

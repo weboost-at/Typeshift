@@ -229,8 +229,8 @@ it may hold a server's name, a query or a connection string. It stays in your ap
   `Microsoft.Extensions.AI.FunctionInvokingChatClient`, when your app registers logging.
 - The call's `execute_tool` span carries its type and its message ([Spans](./observability.md#spans)).
 - In the run's response, the call's `FunctionResultContent` holds the exception in its `Exception` property, which
-  is never serialized. An app without logging and tracing, such as a console app on
-  [`TypeshiftRuntime.Create`](./registration.md#the-runtime), reads it there.
+  is never serialized. An app without logging and tracing reads it there. A console app on
+  [`TypeshiftRuntime.Create`](./registration.md#the-runtime) is one until it registers logging in the chain.
 - A [tool middleware](./middleware.md#wrap-every-tool-call) sees it first, and can throw a `ToolException` in its
   place, for example for a timeout the model may retry.
 

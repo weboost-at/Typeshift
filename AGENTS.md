@@ -129,7 +129,7 @@ style; the essentials:
 | What Typeshift is for, what it builds on and leaves to you, how its pieces fit, that it is in alpha and that the site describes `main` | `guide/what-is-typeshift.md` | `index.md`, `README.md` and `src/Typeshift/PACKAGE.md`, the package's README on nuget.org (the pitch) |
 | What an app must do itself before it ships | `guide/what-is-typeshift.md#before-you-ship` | each duty's own page, which the checklist links |
 | Package setup, requirements, ids | `guide/registration.md` | `getting-started.md` (the steps) |
-| The runtime: `TypeshiftRuntime.Create` without a container, injecting it, its hosts as units of work | `guide/registration.md#the-runtime` | `getting-started.md` (step 4), `using-an-agent.md#run-from-a-console-app` (the snippet), `using-an-agent.md#run-from-a-background-job` (the job's host), `generated-members.md` (`DisposeAsync`) |
+| The runtime: `TypeshiftRuntime.Create` without a container, the chain's `Services`, injecting it, its hosts as units of work | `guide/registration.md#the-runtime` | `getting-started.md` (step 4), `using-an-agent.md#run-from-a-console-app` (the snippet), `using-an-agent.md#run-from-a-background-job` (the job's host), `generated-members.md` (`DisposeAsync`) |
 | `AddTypeshift()` chain calls and lifetimes | `guide/registration.md#the-chain` | each feature page shows its own `With...` call |
 | Builder calls of toolsets and agents | `guide/builders.md` | `toolsets.md`, `tool-settings.md`, `defining-agents.md` |
 | Why declarations are read at compile time: what the generator reads, the rules and limits that follow | `guide/how-typeshift-reads-your-code.md` | `builders.md#rules-for-every-chain` (the rules), `what-is-typeshift.md#why-agents-in-code` (agents in code) |

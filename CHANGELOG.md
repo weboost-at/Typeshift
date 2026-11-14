@@ -60,6 +60,13 @@ All notable changes to this project are documented here. The format follows
   enum travels, and without the option the model reads `integer` in the tool's schema, gets numbers back, and fails
   the call when it sends the enum's name, as it does in an app that keeps JSON reflection. Add
   `[JsonSourceGenerationOptions(UseStringEnumConverter = true)]` to the context.
+- `TypeshiftBuilder.Services` is the service collection the chain registers into. An app on
+  `TypeshiftRuntime.Create` registers its logging and the services its tools resolve there, as in
+  `TypeshiftRuntime.Create(client, typeshift => typeshift.Services.AddLogging(logging => logging.AddConsole()))`.
+  Before, such a runtime had no logger and no way to get one, so a tool's exception, a save that failed and the
+  warning that nothing is stored were written nowhere, and a tool could not resolve a service of the app.
+- `WithStore(provider => new MyStore(...))` registers a store the container builds with your factory, for a store
+  whose constructor takes a folder or a connection string.
 - `ToolException`: a tool throws it to tell the model why a call failed. The model reads its message as the call's
   result, so write it as a hint, such as "No ticket 4711 exists. Search for it first."
 - `host.SetModeAsync(mode)` switches a conversation's mode without a run, and the agent needs no

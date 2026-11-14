@@ -105,6 +105,14 @@ decision's id in `typeshift.decision.id`, the id your app answers by, and its ki
 An `unknown` outcome is worth an alert, because nobody knows whether that call took effect
 ([When a decision closes](./tool-approval.md#when-a-decision-closes)).
 
+## Logs
+
+Typeshift writes its warnings and errors to the `ILoggerFactory` of your app's container, so an ASP.NET Core app or a
+generic host sees them without any setup. A runtime that `TypeshiftRuntime.Create` made has no logger until you
+register one in the chain, with `typeshift.Services.AddLogging(...)`
+([The runtime](./registration.md#the-runtime)). Without a logger nothing is logged, and the spans above are the only
+trace of a failed save or a tool's exception.
+
 ## Metrics
 
 The meter records one measurement per model call and none per run, so a run that calls the model three times
