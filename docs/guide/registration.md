@@ -54,7 +54,7 @@ and `anthropic`, and a run takes the client registered under its provider
 |---|---|
 | Each toolset | Singleton |
 | Each agent | Singleton |
-| `AgentHost<TAgent>` per agent | Transient, so it runs with the services of the scope it was resolved from ([Using an agent](./using-an-agent.md)) |
+| `AgentHost<TAgent>` per agent | Transient, so it runs with the services of the scope it was resolved from. Resolving it from the root provider throws ([Using an agent](./using-an-agent.md#run-from-a-console-app)) |
 | `TypeshiftRuntime`, which gives each host a scope of its own ([The runtime](#the-runtime)) | Singleton |
 | The JSON contexts of each assembly, which tools ask before the defaults | Singleton |
 | `ConversationTracker<TId>` of each id type your app asks for ([Live runs](./conversations.md#live-runs)), and the core services runs need | Singleton |

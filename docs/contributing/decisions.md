@@ -400,8 +400,18 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** `AgentHost<TAgent>` is transient and keeps the provider it was resolved from, or the scope
   `TypeshiftRuntime.Agent<TAgent>()` created for it (D76). Tools, context providers, middleware, the MCP tool provider
   and the chat client provider resolve from it. Agents and toolsets stay singletons, the store too.
+- **Never the root's:** a host the container resolves from the root provider, as one injected into a singleton or
+  a `BackgroundService` is, throws an `InvalidOperationException` that names the runtime and a scope. The guide
+  only warned up to 0.1.0-alpha.6: with scope validation such a host failed at its first scoped service with the
+  container's message, and without it, as in ASP.NET Core outside Development, every customer's run got one
+  customer's scoped services, the key of its chat client provider among them, and the root kept each host until
+  the app stopped. The transient registration's factory tells the root by reference: the root hands it the
+  provider the runtime holds (D76), a scope another. A container that hands the root's factories some other
+  object is not recognized, and resolves as before. The hosts the library builds itself, for sub-agents and
+  handoffs, take the run's services and pass no such check.
 - **Alternatives:** a run-context tool parameter carrying the typed id, which built-in toolsets compiled before the
-  host cannot type; per-call scopes, which lose the request.
+  host cannot type; per-call scopes, which lose the request; a logged warning for a host from the root, which
+  leaves one customer's services with all the others in production.
 - **Where:** `AgentHost.cs`.
 
 ### D26. Runs return Microsoft.Extensions.AI's types

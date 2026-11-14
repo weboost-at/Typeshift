@@ -89,20 +89,19 @@ Console.WriteLine($"{answer.Messages[^1].AuthorName}: {answer.Text}");
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L14-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-run' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-::: warning Resolve the host from a scope, never from the root provider
-A host resolved from the root provider, such as `app.Services` or what `BuildServiceProvider()` returns, runs with the
-root's services. With
-[scope validation](https://learn.microsoft.com/dotnet/core/extensions/dependency-injection#scope-validation)
-on, as in ASP.NET Core's development environment, the run fails as soon as it resolves a scoped service, such as your
-chat client provider. Without it, every run shares one instance of each scoped service, so one customer's
-`ICurrentCustomer` reaches the tools of another. The root also keeps every host it creates until your app stops,
-since a host is disposable, so each one you resolve there is never released.
+::: warning A host resolved from the root provider throws
+Resolving `AgentHost<TAgent>` from the root provider, such as `app.Services` or what `BuildServiceProvider()`
+returns, throws an `InvalidOperationException` that names the two ways out: a scope, or the runtime. A host injected
+into a singleton comes from the root as well, so the singleton fails when your app creates it. Typeshift refuses such
+a host because its runs would share one instance of each scoped service, so one customer's `ICurrentCustomer` would
+reach the tools of another, and because the root keeps every host it creates until your app stops.
 :::
 
 ## Run from a background job
 
-A `BackgroundService` is a singleton, so a host it took in its constructor would come from the root provider. Take
-the `TypeshiftRuntime` in its place, which `AddTypeshift()` registers, and get a host from it for each job:
+A `BackgroundService` is a singleton, so a host it took in its constructor would come from the root provider, which
+throws. Take the `TypeshiftRuntime` in its place, which `AddTypeshift()` registers, and get a host from it for each
+job:
 
 <!-- snippet: background-host -->
 <a id='snippet-background-host'></a>

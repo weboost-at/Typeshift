@@ -42,6 +42,19 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     internal static AgentHost<TAgent> In(IServiceProvider services) =>
         new(services.GetRequiredService<TAgent>(), services);
 
+    // D25: the host the container resolves. From the root it would run every customer on one instance of each scoped
+    // service, where scopes are not validated, and the root would keep it until the app stops, so it is refused.
+    // The root hands a factory the provider the runtime holds, a scope another
+    internal static AgentHost<TAgent> Resolved(IServiceProvider services) =>
+        ReferenceEquals(services, services.GetRequiredService<TypeshiftRuntime>().Services)
+            ? throw new InvalidOperationException(
+                $"AgentHost<{typeof(TAgent).Name}> was resolved from the root provider, as a host injected into a "
+                + "singleton is. Its runs would share one instance of each scoped service, such as the chat client "
+                + "provider of one customer, and the root would keep every host until the app stops: inject "
+                + $"TypeshiftRuntime and call Agent<{typeof(TAgent).Name}>() for each unit of work, or resolve the "
+                + "host from a scope.")
+            : In(services);
+
     /// <summary>
     /// The agent as its code declares it.
     /// </summary>

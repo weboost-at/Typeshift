@@ -100,8 +100,8 @@ public static class ModuleRegistration
     {
         services.AddSingleton(_ => create());
 
-        // D25: transient, so the host keeps the provider of the scope it is resolved from
-        services.AddTransient(AgentHost<TAgent>.In);
+        // D25: transient, so the host keeps the provider of the scope it is resolved from, and never the root's
+        services.AddTransient(AgentHost<TAgent>.Resolved);
     }
 
     /// <summary>

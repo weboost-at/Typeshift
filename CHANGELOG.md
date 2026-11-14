@@ -125,6 +125,12 @@ All notable changes to this project are documented here. The format follows
 - TSH020 is titled "Referenced assembly was built with another Typeshift version or without the generator", and its
   message names both causes. It read as if the reference had never run the generator, also when it was built with
   another Typeshift version.
+- **Breaking:** resolving `AgentHost<TAgent>` from the root provider throws an `InvalidOperationException`, with
+  scope validation on or off. A host injected into a singleton, such as a `BackgroundService`, comes from the root:
+  inject `TypeshiftRuntime` there and call `runtime.Agent<TAgent>()` for each job. A console app that resolved the
+  host from what `BuildServiceProvider()` returned creates a scope first, or moves to `TypeshiftRuntime.Create`.
+  Before, such a host ran every request on one instance of each scoped service where scopes are not validated, so
+  one customer's chat client provider and its key served all customers.
 - **Breaking:** a store interface has one store. A chain call whose store implements an interface that another
   call's store is registered as throws an `InvalidOperationException` when the app registers it, naming both stores
   and the interface. Before, the last call won without a word: `WithFileStore()` followed by

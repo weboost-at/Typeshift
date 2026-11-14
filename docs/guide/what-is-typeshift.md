@@ -122,8 +122,6 @@ you ship, your app has to do these things itself:
 - Watch your logs or spans for saves that failed ([Spans](./observability.md#spans)).
 - Capture message content in traces only where your tracing backend may keep it
   ([Message content](./observability.md#message-content)).
-- Resolve each host from a scope or take it from the runtime, never from the root provider
-  ([Run from a console app](./using-an-agent.md#run-from-a-console-app)).
 
 ## Related
 
