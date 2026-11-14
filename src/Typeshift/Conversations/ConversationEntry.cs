@@ -32,6 +32,12 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
     public string? Model { get; init; }
 
     /// <summary>
+    /// The provider whose client wrote the messages, as text, for a model response of a run that names a provider;
+    /// null for one on the default client, and on entries stored before entries named their provider.
+    /// </summary>
+    public string? Provider { get; init; }
+
+    /// <summary>
     /// The tokens of the model call, for a model response.
     /// </summary>
     public UsageDetails? Usage { get; init; }
@@ -91,6 +97,7 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
         writer.WriteString("agent", Agent);
         writer.WriteString("at", At);
         if (Model is not null) writer.WriteString("model", Model);
+        if (Provider is not null) writer.WriteString("provider", Provider);
 
         if (Usage is not null)
         {
@@ -152,6 +159,7 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
             StorableJson.TryRead(StorableJson.Member(root, "at"), out DateTimeOffset at) ? at : default)
         {
             Model = StorableJson.TryRead(StorableJson.Member(root, "model"), out string model) ? model : null,
+            Provider = StorableJson.TryRead(StorableJson.Member(root, "provider"), out string named) ? named : null,
             Usage = StorableJson.Member(root, "usage") is { ValueKind: JsonValueKind.Object } usage
                 ? usage.Deserialize(Contract<UsageDetails>())
                 : null,

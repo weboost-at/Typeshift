@@ -117,6 +117,42 @@ public class ConversationRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Run_That_Names_A_Provider_The_Entries_Of_Its_Model_Responses_Carry_It()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        var entries = await EntriesAsync(Data.Agent.ConversationId);
+
+        // Assert
+        entries.Select(entry => entry.Provider)
+            .Should()
+            .Equal(null, ProbeAgent.ModelProvider, null, ProbeAgent.ModelProvider, null);
+    }
+
+    [Fact]
+    public async Task Given_Settings_That_Name_Another_Provider_The_Response_Entry_Carries_That_Provider()
+    {
+        // Arrange
+        var settings = new ProbeAgent.Settings { Provider = Data.Agent.Provider };
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ProbeAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, settings, Ct);
+
+        var response = (await EntriesAsync(Data.Agent.ConversationId))[1];
+
+        // Assert
+        response.Provider.Should().Be(Data.Agent.Provider);
+    }
+
+    [Fact]
     public async Task Given_A_Conversation_The_Provider_Never_Receives_Its_Id()
     {
         // Arrange

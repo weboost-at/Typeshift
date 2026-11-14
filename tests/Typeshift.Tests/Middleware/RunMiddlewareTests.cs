@@ -1,4 +1,5 @@
 using Typeshift.Tests.Middleware.Support;
+using Typeshift.Tests.MultiAgent.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
 
@@ -40,6 +41,51 @@ public class RunMiddlewareTests : MiddlewareTestBase
 
         // Assert
         ChatClient.Requests[0].Select(message => message.Text).Should().Equal(Data.Tool.Question, Data.Agent.FollowUp);
+    }
+
+    [Fact]
+    public async Task Given_A_Run_That_Names_A_Provider_Run_Middleware_Sees_The_Provider()
+    {
+        // Arrange
+        object? provider = null;
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        Script.Runs[0] = (run, next) =>
+        {
+            provider = run.Provider;
+            return next();
+        };
+
+        // Act
+        await RunAsync(Data.Tool.Question);
+
+        // Assert
+        provider.Should().Be("scripted");
+    }
+
+    [Fact]
+    public async Task Given_A_Handoff_To_An_Agent_Of_Another_Provider_Run_Middleware_Sees_Each_Agents_Provider()
+    {
+        // Arrange
+        var providers = new List<object?>();
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, BackOfficeAgent.Handoff))
+            .Reply(Text(Data.Tool.Answer));
+
+        Script.Runs[0] = (run, next) =>
+        {
+            providers.Add(run.Provider);
+            return next();
+        };
+
+        // Act
+        await Host<FrontDeskAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        providers.Should().Equal(FrontDeskAgent.ModelProvider, BackOfficeAgent.ModelProvider);
     }
 
     [Fact]

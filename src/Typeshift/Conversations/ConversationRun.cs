@@ -353,7 +353,8 @@ internal sealed class ConversationRun(
             [.. response.Messages],
             response.ModelId ?? options?.ModelId,
             response.Usage,
-            run.Compaction?.SentEstimate);
+            run.Compaction?.SentEstimate,
+            provider: run.ResolvedProvider?.ToString());
 
         if (streamed) _streamedUnmatched = response.Messages.Count;
     }
@@ -367,7 +368,8 @@ internal sealed class ConversationRun(
         long? estimated = null,
         bool endsRun = false,
         bool summary = false,
-        string? answering = null)
+        string? answering = null,
+        string? provider = null)
     {
         foreach (var message in messages)
         {
@@ -383,6 +385,7 @@ internal sealed class ConversationRun(
         var entry = new ConversationEntry(answering ?? Agent, Writable(messages), time.GetUtcNow())
         {
             Model = model,
+            Provider = provider,
             Usage = usage,
             EstimatedInputTokens = estimated,
             EndsRun = endsRun,

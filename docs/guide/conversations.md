@@ -89,7 +89,8 @@ decisions: the decisions that wait, with the calls they stand for, the answers y
 and, once it ran or was rejected, its result, and never a request for approval or its answer.
 
 Each entry is a `ConversationEntry`: the name of its agent in `Agent`, its `Messages` and the time it was stored in
-`At`, plus the `Model` and `Usage` of a model response, and `EndsRun` on the entry that ends a run. `IsSummary` is true
+`At`, plus the `Model` and `Usage` of a model response, and `EndsRun` on the entry that ends a run. A model response
+also has the `Provider` its agent ran on, as text, unless that was the default client. `IsSummary` is true
 on the entry [compaction](#compaction) appends when it summarizes, which is how your code and your store tell a summary
 apart ([Start from the last summary](./implementing-a-store.md#start-from-the-last-summary)). A model response of a run
 with a maximum of input tokens also has `EstimatedInputTokens`, what compaction estimated its call at.

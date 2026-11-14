@@ -796,6 +796,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   come from data, and gave all the clients under one provider id the metadata of the first. No entry is removed or
   capped, since that would dispose a meter; the backends an app talks to bound them. Each is made once, under a
   `Lazy`, so two runs that reach a new backend together leave no second meter behind.
+- **The provider a run resolved (owner: traps are loud):** a chat span names its backend as the client describes
+  itself, which says nothing of the provider id the agent's code or its settings named. The run's span carries that
+  id as `typeshift.provider`, `AgentRun.Provider` hands run middleware its value, and the entry of each model
+  response keeps it as text beside the model (D50), written the same in every culture. A run on the default client
+  (D63) names none, so the tag and the entry's member are absent, as on entries stored before.
 - **Streaming:** an async iterator resumes in its caller's context (dotnet/runtime#47802), so after a streaming run's
   first update its span was no longer the current one, and the later chat and tool spans hung under the caller's span
   or started traces of their own. The run makes its span current again before it asks for each update, as
@@ -1550,8 +1555,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - **Status:** approved.
 - **Context:** the first draft stored a run when it ended, so a run that died after an hour of work lost all of it.
-- **Decision:** a conversation is a log of `ConversationEntry`s: a run's input, each model response (with model and
-  usage), each tool result, compaction summaries; the run's last entry has `EndsRun`. Checkpoints append each step
+- **Decision:** a conversation is a log of `ConversationEntry`s: a run's input, each model response (with model,
+  provider and usage), each tool result, compaction summaries; the run's last entry has `EndsRun`. Checkpoints append each step
   the moment it exists, tool results before the next model call. A run without an ending entry was interrupted:
   `ResumeAsync()` (and `ResumeStreamingAsync`) on the conversation's host continues it without new input, leaving
   out a call that was in flight; a new run on the conversation also starts from its steps. Resuming also carries

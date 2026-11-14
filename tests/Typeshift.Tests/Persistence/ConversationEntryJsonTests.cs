@@ -81,6 +81,40 @@ public class ConversationEntryJsonTests : UnitTestBase
     }
 
     [Fact]
+    public void Given_A_Model_Response_Stored_Before_Entries_Named_Their_Provider_It_Reads_With_Its_Model_And_None()
+    {
+        // Arrange
+        const string json =
+            """
+            {"agent":"support_agent","at":"2026-11-14T09:00:00+00:00","model":"gpt-5-mini",
+            "usage":{"inputTokenCount":2000,"outputTokenCount":12},"estimatedInputTokens":1900,
+            "messages":[{"authorName":"support_agent","role":"assistant",
+            "contents":[{"$type":"text","text":"Done."}]}]}
+            """;
+
+        // Act
+        var entry = ConversationEntry.Deserialize(json);
+
+        // Assert
+        entry.Model.Should().Be("gpt-5-mini");
+        entry.Provider.Should().BeNull();
+        entry.Serialize().Should().Be(json.ReplaceLineEndings(""));
+    }
+
+    [Fact]
+    public void Given_An_Entry_Without_A_Provider_Its_Json_Has_No_Member_For_It()
+    {
+        // Arrange
+        var entry = Data.Persistence.Entry with { Provider = null };
+
+        // Act
+        var json = entry.Serialize();
+
+        // Assert
+        json.Should().NotContain("\"provider\"");
+    }
+
+    [Fact]
     public void Given_An_Entry_Without_An_Estimate_Its_Json_Has_No_Member_For_It()
     {
         // Arrange

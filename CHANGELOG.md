@@ -107,6 +107,11 @@ All notable changes to this project are documented here. The format follows
 - `WithChatOptions().WithModel(model)` names a model and no provider, as in `WithModel("gpt-5-mini")`. The run takes
   the client registered for every agent, with `services.AddChatClient(client)` or `TypeshiftRuntime.Create(client)`,
   and sends it the model. An app with one client no longer needs a provider name that nothing reads.
+- A run says which provider it resolved. Its `invoke_agent` span carries the tag `typeshift.provider`,
+  `AgentRun.Provider` gives run middleware, context providers and approval rules the provider's value, and
+  `ConversationEntry.Provider` keeps it as text on each model response, next to `Model`. A run on the default client
+  names none. Entries stored before load as they are, and a store that keeps an entry's JSON needs no change; one
+  that maps an entry's members to columns of its own adds a column to keep the provider.
 
 ### Changed
 

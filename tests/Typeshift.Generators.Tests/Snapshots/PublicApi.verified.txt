@@ -54,6 +54,7 @@ public Typeshift.Agent Typeshift.AgentRun.Agent { get; }
 public System.Collections.Generic.IList<Microsoft.Extensions.AI.ChatMessage> Typeshift.AgentRun.Messages { get; }
 public Typeshift.AgentMode Typeshift.AgentRun.Mode { get; }
 public Microsoft.Extensions.AI.ChatOptions Typeshift.AgentRun.Options { get; }
+public object? Typeshift.AgentRun.Provider { get; }
 public Microsoft.Extensions.AI.ChatResponse? Typeshift.AgentRun.Response { get; set; }
 public System.IServiceProvider Typeshift.AgentRun.Services { get; }
 public sealed class Typeshift.AgentUse
@@ -135,6 +136,7 @@ public static string Typeshift.ConversationEntry.Kind { get; }
 public System.Collections.Generic.IReadOnlyList<Microsoft.Extensions.AI.ChatMessage> Typeshift.ConversationEntry.Messages { get; init; }
 public Typeshift.AgentMode? Typeshift.ConversationEntry.Mode { get; init; }
 public string? Typeshift.ConversationEntry.Model { get; init; }
+public string? Typeshift.ConversationEntry.Provider { get; init; }
 public static int Typeshift.ConversationEntry.SchemaVersion { get; }
 public string Typeshift.ConversationEntry.Serialize()
 public override string Typeshift.ConversationEntry.ToString()

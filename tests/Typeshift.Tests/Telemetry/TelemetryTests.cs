@@ -559,6 +559,102 @@ public sealed class TelemetryTests : AgentTestBase
         Activities.Inside(run).Select(activity => activity.DisplayName).Should().Equal($"chat {Data.Agent.Model}");
     }
 
+    [Fact]
+    public async Task Given_A_Run_That_Names_A_Provider_Its_Span_Carries_The_Provider()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync();
+
+        // Assert
+        var run = Activities.Run(Data.Agent.ConversationId);
+        run.GetTagItem("typeshift.provider").Should().Be(ProbeAgent.ModelProvider);
+    }
+
+    [Fact]
+    public async Task Given_Settings_That_Name_Another_Provider_The_Runs_Span_Carries_That_Provider()
+    {
+        // Arrange
+        var settings = new ProbeAgent.Settings { Provider = Data.Agent.Provider };
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ProbeAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, settings, Ct);
+
+        // Assert
+        var run = Activities.Run(Data.Agent.ConversationId);
+        run.GetTagItem("typeshift.provider").Should().Be(Data.Agent.Provider);
+    }
+
+    [Fact]
+    public async Task Given_A_Run_On_The_Default_Client_Its_Span_Carries_No_Provider()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithStore<InMemoryTypeshiftStore<Guid>>();
+        services.AddChatClient(ChatClient);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await scope.ServiceProvider.GetRequiredService<AgentHost<SchemaAgent>>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        var run = Activities.Run(Data.Agent.ConversationId);
+        run.GetTagItem("typeshift.provider").Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Given_A_Handoff_To_An_Agent_Of_Another_Provider_Each_Agents_Span_Carries_Its_Own_Provider()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, BackOfficeAgent.Handoff))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<FrontDeskAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        Activities.Runs(Data.Agent.ConversationId)
+            .Select(run => $"{run.GetTagItem("gen_ai.agent.name")} on {run.GetTagItem("typeshift.provider")}")
+            .Should()
+            .BeEquivalentTo(
+                $"{FrontDeskAgent.AgentName} on {FrontDeskAgent.ModelProvider}",
+                $"{BackOfficeAgent.AgentName} on {BackOfficeAgent.ModelProvider}");
+    }
+
+    [Fact]
+    public async Task Given_A_Run_Passed_On_To_The_Agent_That_Answered_Last_Its_Span_Carries_That_Agents_Provider()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, BackOfficeAgent.Handoff))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason));
+
+        var front = Host<FrontDeskAgent>().WithConversationId(Data.Agent.ConversationId);
+        await front.RunAsync(Data.Tool.Question, ct: Ct);
+        var before = Activities.Runs(Data.Agent.ConversationId).Count;
+
+        // Act
+        await front.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        var later = Activities.Runs(Data.Agent.ConversationId).Skip(before);
+
+        // Assert
+        later.Select(run => run.GetTagItem("typeshift.provider")).Should().Equal(BackOfficeAgent.ModelProvider);
+    }
+
     private Task<ChatResponse> RunAsync() =>
         Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
 

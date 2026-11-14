@@ -51,6 +51,47 @@ public class HandoffTests : MultiAgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Handoff_To_An_Agent_Of_Another_Provider_Each_Response_Entry_Names_Its_Agents_Provider()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, BackOfficeAgent.Handoff))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<FrontDeskAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        var responses = (await EntriesAsync(Data.Agent.ConversationId)).Where(entry => entry.Model is not null);
+
+        // Assert
+        responses.Select(entry => (entry.Agent, entry.Provider)).Should().Equal(
+            (FrontDeskAgent.AgentName, FrontDeskAgent.ModelProvider),
+            (BackOfficeAgent.AgentName, BackOfficeAgent.ModelProvider));
+    }
+
+    [Fact]
+    public async Task Given_A_Run_Passed_On_To_The_Agent_That_Answered_Last_Its_Response_Entry_Names_That_Provider()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, BackOfficeAgent.Handoff))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason));
+
+        var front = Host<FrontDeskAgent>().WithConversationId(Data.Agent.ConversationId);
+        await front.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await front.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        var last = (await EntriesAsync(Data.Agent.ConversationId)).Last(entry => entry.Model is not null);
+
+        // Assert
+        (last.Agent, last.Provider).Should().Be((BackOfficeAgent.AgentName, BackOfficeAgent.ModelProvider));
+    }
+
+    [Fact]
     public async Task Given_A_Conversation_Handed_On_Twice_Its_Next_Run_Goes_To_The_Last_Agent()
     {
         // Arrange

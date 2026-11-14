@@ -372,7 +372,9 @@ of each round of calls, steering input and the entry that ends a run
   A database client that serializes with `System.Text.Json` or Newtonsoft.Json may take the entry as it is
   ([What is stored](./conversations.md#what-is-stored)). Keep that JSON whole: later runs read members from it that
   your store never looks at, such as `EstimatedInputTokens`, which
-  [compaction](./conversations.md#compaction) keeps on a model response.
+  [compaction](./conversations.md#compaction) keeps on a model response. An entry may gain a member with a new
+  version, as a model response gained its `Provider`: entries stored without it still load, and a store that
+  keeps the JSON as it is needs no change. A store that maps an entry's members to columns of its own adds one.
 - **Keep the append cheap.** Runs append while they work, so `AppendConversationAsync` is the hot path, and a row per
   entry suits it.
 

@@ -1,6 +1,7 @@
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Compaction.Support;
 using Typeshift.Tests.Hosting.Support;
+using Typeshift.Tests.Middleware.Support;
 using Typeshift.Tests.Persistence.Support;
 using Typeshift.Tests.Testing.Fakes;
 using FluentAssertions;
@@ -215,6 +216,52 @@ public class ChatClientResolutionTests : HostTestBase
             .WithMessage($"*the summary of the agent*'{Data.Agent.Model}' of '{Data.Agent.Provider}'*");
 
         ChatClient.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Run_On_The_Default_Client_It_Names_No_Provider_To_Run_Middleware()
+    {
+        // Arrange
+        var providers = SeenBy(services => services.AddChatClient(ChatClient));
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ModelOnlyAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        providers.Should().Equal([null]);
+    }
+
+    [Fact]
+    public async Task Given_A_Run_On_A_Provider_Of_An_Enum_It_Names_The_Enums_Value_To_Run_Middleware()
+    {
+        // Arrange
+        var providers = SeenBy(services => services.AddKeyedChatClient(Vendor.Probe, ChatClient));
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<VendorAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        providers.Should().Equal(Vendor.Probe);
+    }
+
+    [Fact]
+    public async Task Given_A_Run_On_The_Default_Client_Its_Response_Entry_Carries_The_Model_And_No_Provider()
+    {
+        // Arrange
+        _register = services => services.AddChatClient(ChatClient);
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ModelOnlyAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        var response = (await Store.LoadConversationAsync(Data.Agent.ConversationId, Ct))[1];
+
+        // Assert
+        (response.Model, response.Provider).Should().Be((ModelOnlyAgent.Model, null));
     }
 
     [Fact]
@@ -509,4 +556,26 @@ public class ChatClientResolutionTests : HostTestBase
     }
 
     private AgentHost<TAgent> Host<TAgent>() where TAgent : Agent => Scope.GetRequiredService<AgentHost<TAgent>>();
+
+    // The provider each run names to run middleware, over the clients a test registers
+    private List<object?> SeenBy(Action<IServiceCollection> register)
+    {
+        var script = new MiddlewareScript();
+        var providers = new List<object?>();
+
+        script.Runs[0] = (run, next) =>
+        {
+            providers.Add(run.Provider);
+            return next();
+        };
+
+        _register = services =>
+        {
+            register(services);
+            services.AddSingleton(script);
+            services.AddTypeshift().WithRunMiddleware<FirstRunMiddleware>();
+        };
+
+        return providers;
+    }
 }

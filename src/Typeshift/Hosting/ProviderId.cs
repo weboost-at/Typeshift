@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -21,7 +22,8 @@ internal abstract record ProviderId
         string model,
         CancellationToken ct);
 
-    public sealed override string ToString() => Value.ToString() ?? "";
+    // The provider as a span and a conversation entry name it, the same whatever the culture
+    public sealed override string ToString() => Convert.ToString(Value, CultureInfo.InvariantCulture) ?? "";
 }
 
 internal sealed record ProviderId<TProviderId>(TProviderId Id) : ProviderId where TProviderId : notnull

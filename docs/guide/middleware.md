@@ -42,6 +42,7 @@ An `IRunMiddleware` receives the run as an `AgentRun`:
 | `Agent` | The agent that runs, such as its `Name`. |
 | `Messages` | What the model receives: the resumed conversation, then the input. |
 | `Options` | The run's resolved `ChatOptions`, with every layer of settings applied. |
+| `Provider` | The [provider](./models.md#registering-clients) that serves the run, as the agent's code or its settings name it; null on the default client. Read-only: the run's client is taken before middleware runs, so a model your middleware sets in `Options` goes to this provider. |
 | `Mode` | The mode the run is in. |
 | `Services` | The run's services. |
 | `Response` | The answer, once `next` returns. |

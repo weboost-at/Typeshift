@@ -37,6 +37,13 @@ public sealed class AgentRun
     public ChatOptions Options { get; }
 
     /// <summary>
+    /// The provider that serves the run, as the agent's code or its settings name it: a string, an enum value or
+    /// another value of the agent's provider id type. Null for a run that names none and runs on the default
+    /// client. The run's client was taken for it before the run began, so it does not change.
+    /// </summary>
+    public object? Provider => ResolvedProvider?.Value;
+
+    /// <summary>
     /// The run's services.
     /// </summary>
     public IServiceProvider Services { get; }
@@ -51,6 +58,9 @@ public sealed class AgentRun
     /// of the model.
     /// </summary>
     public ChatResponse? Response { get; set; }
+
+    // D77: the provider with its type, which the entries of the run's model responses name as text
+    internal ProviderId? ResolvedProvider => (Options as ResolvedChatOptions)?.Provider;
 
     // The run's invoke_agent span, when one is recorded (D36)
     internal System.Diagnostics.Activity? Activity { get; init; }
