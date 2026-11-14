@@ -1206,6 +1206,19 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_An_Enum_Tool_Type_Whose_Context_Names_Its_Converter_TSH033_Is_Not_Reported()
+    {
+        // Arrange
+        var compilation = Compile(ShapeSources.EnumToolTypeWhoseContextNamesItsConverter);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.PublishingAot());
+
+        // Assert
+        run.Assert.DoesNotReport("TSH033");
+    }
+
+    [Fact]
     public void Given_An_Enum_Tool_Type_Where_Json_Reflects_TSH033_Is_Not_Reported()
     {
         // Act

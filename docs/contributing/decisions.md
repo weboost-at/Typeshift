@@ -1246,10 +1246,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   over every context, so a tool's enum is its name in the schema, the arguments and the result. Where it does not,
   the defaults carry none, the context that lists the type decides, and its default is the number: the model reads
   `integer`, and a name it sends fails the call. TSH033 warns about a context that lists a tool type with an enum
-  and has no `UseStringEnumConverter = true`, and skips an enum, and a property, with a `[JsonConverter]` of its
-  own. It is a warning, since the tool still works with numbers, and it shares TSH027's condition. The generator
-  registers no converters itself: that would need every enum of every tool and typed-run type found at build time,
-  nested ones included, where one line on the context does it.
+  and has no `UseStringEnumConverter = true`. It skips an enum, and a property, with a `[JsonConverter]` of its
+  own, and an enum the context's `Converters` name a converter for. It is a warning, since the tool still works
+  with numbers, and it shares TSH027's condition. The generator registers no converters itself: that would need
+  every enum of every tool and typed-run type found at build time, nested ones included, where one line on the
+  context does it.
 - **As built:** TSH027 knows the types Microsoft.Extensions.AI's own context lists (strings, numbers, `bool`, dates,
   `TimeSpan`, JSON elements) and the contexts of the compilation; a tool returning `IAsyncEnumerable<T>` returns a
   `List<T>`, which it checks. The console sample publishes as Native AOT in CI, where a trim or AOT warning fails the

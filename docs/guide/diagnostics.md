@@ -371,7 +371,8 @@ writes an enum as a number unless you tell it otherwise. The model then reads `i
 guess the numbers, and a name it sends fails the call.
 
 Add `[JsonSourceGenerationOptions(UseStringEnumConverter = true)]` to the context, or give the enum a converter of
-its own, `[JsonConverter(typeof(JsonStringEnumConverter<TEnum>))]`.
+its own, `[JsonConverter(typeof(JsonStringEnumConverter<TEnum>))]`. A context that names the converter in the
+`Converters` of its options is not reported for that enum either.
 [Native AOT](./native-aot.md#tool-parameter-and-result-types) shows such a context.
 
 The analyzer reports a context once, with one of the enums and one of the tools, in the projects

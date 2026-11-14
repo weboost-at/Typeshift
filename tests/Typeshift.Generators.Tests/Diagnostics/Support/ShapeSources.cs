@@ -38,6 +38,40 @@ public static class ShapeSources
         }
         """;
 
+    public const string EnumToolTypeWhoseContextNamesItsConverter =
+        """
+        using System.Text.Json.Serialization;
+        using Typeshift;
+
+        internal enum Mode
+        {
+            Fast,
+            Thorough
+        }
+
+        internal partial class PickToolset : Toolset
+        {
+            public PickToolset()
+            {
+                AddTool(Pick).WithDescription("Picks how to search.");
+            }
+
+            public static string Pick(Mode mode) => mode.ToString();
+        }
+
+        // The System.Text.Json generator does not run here; what it would write is stubbed
+        [JsonSourceGenerationOptions(Converters = [typeof(JsonStringEnumConverter<Mode>)])]
+        [JsonSerializable(typeof(Mode))]
+        internal partial class PickJson() : JsonSerializerContext(null)
+        {
+            public static PickJson Default { get; } = new();
+
+            protected override System.Text.Json.JsonSerializerOptions? GeneratedSerializerOptions => null;
+
+            public override System.Text.Json.Serialization.Metadata.JsonTypeInfo? GetTypeInfo(System.Type type) => null;
+        }
+        """;
+
     public const string EnumToolTypeWithAConverterOfItsOwn =
         """
         using System.Text.Json.Serialization;

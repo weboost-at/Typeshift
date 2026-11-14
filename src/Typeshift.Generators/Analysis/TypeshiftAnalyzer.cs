@@ -754,13 +754,14 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         var written = listings.FirstOrDefault()?.ApplicationSyntaxReference?.SyntaxTree;
         var location = type.Locations.FirstOrDefault(location => location.SourceTree == written) ?? Location.None;
         var names = JsonEnums.AreNames(type);
+        var converted = JsonEnums.GetConverted(type);
 
         foreach (var json in listed)
         {
             var listedType = json.ToTypeOf();
             found.JsonTypes[listedType] = true;
 
-            if (!names && JsonEnums.FindNumeric(json) is { } numeric)
+            if (!names && JsonEnums.FindNumeric(json, converted) is { } numeric)
                 found.NumericEnums.Add(new NumericEnum(type.Name, location, listedType, numeric.Name));
         }
     }

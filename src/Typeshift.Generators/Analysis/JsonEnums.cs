@@ -22,10 +22,22 @@ internal static class JsonEnums
             .SelectMany(attribute => attribute.NamedArguments)
             .Any(argument => argument is { Key: "UseStringEnumConverter", Value.Value: true });
 
-    // The first enum in a type's JSON that has no converter of its own: the type itself, a type argument, an array's
-    // element or the type of a property, however deep
-    public static INamedTypeSymbol? FindNumeric(ITypeSymbol type) =>
-        Find(type, new HashSet<ISymbol>(SymbolEqualityComparer.Default));
+    // The types the context's own converters write: Converters = [typeof(JsonStringEnumConverter<Mode>)]
+    public static IReadOnlyList<ISymbol> GetConverted(INamedTypeSymbol context) =>
+        context.GetAttributes()
+            .Where(attribute => attribute.AttributeClass.Is(Options))
+            .SelectMany(attribute => attribute.NamedArguments)
+            .Where(argument => argument is { Key: "Converters", Value.Kind: TypedConstantKind.Array })
+            .SelectMany(argument => argument.Value.Values)
+            .Select(converter => converter.Value)
+            .OfType<INamedTypeSymbol>()
+            .SelectMany(converter => converter.TypeArguments)
+            .ToList();
+
+    // The first enum in a type's JSON that no converter writes, neither one of its own nor one of the context's: the
+    // type itself, a type argument, an array's element or the type of a property, however deep
+    public static INamedTypeSymbol? FindNumeric(ITypeSymbol type, IReadOnlyList<ISymbol> converted) =>
+        Find(type, new HashSet<ISymbol>(converted, SymbolEqualityComparer.Default));
 
     private static INamedTypeSymbol? Find(ITypeSymbol type, HashSet<ISymbol> seen)
     {
