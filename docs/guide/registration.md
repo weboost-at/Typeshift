@@ -80,7 +80,7 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 
 | Call | Registers | Lifetime |
 |---|---|---|
-| `WithStore<TStore>()` | `TStore`, as each store interface it implements | Singleton |
+| `WithStore<TStore>()` | `TStore`, as each store interface it implements; `replace: true` on any store call takes an interface over from another store | Singleton |
 | `WithStore(store)` | A store you created yourself, as each store interface its declared type implements | Singleton, your app's |
 | `WithStore(provider => ...)` | A store the container builds with your factory, as each store interface the factory's return type implements | Singleton |
 | `WithFileStore(configure)` | The file store, as `IAgentSettingsStore` | Singleton |
@@ -96,9 +96,13 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 - A store keeps agents' own settings, settings ids, conversations and their decisions across restarts. Without any
   store, they are kept in memory, and the first save logs a warning. `WithStore<TStore>()` registers your class as
   each of `IAgentSettingsStore`, `ISettingsStore<TId>`, `IConversationStore<TId>`, `IDecisionStore<TId>` and
-  `ITypeshiftStore<TId>` it implements, of any id type, so call it once for each class. All of them resolve to one instance, a singleton, so a store takes
-  no scoped services ([Implementing a store](./implementing-a-store.md#register-your-store)). The container never
-  disposes a store you pass to `WithStore(store)`.
+  `ITypeshiftStore<TId>` it implements, of any id type, so call it once for each class. All of them resolve to one
+  instance, a singleton, so a store takes no scoped services
+  ([Implementing a store](./implementing-a-store.md#register-your-store)). The container never disposes a store you
+  pass to `WithStore(store)`.
+- A store interface has one store. A second store call for an interface throws when your app registers it, unless
+  it passes `replace: true`, and the memory store leaves agents' own settings to any other store
+  ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call)).
 - The file store keeps agents' own settings in files
   ([Keep them in a file](./settings-and-stores.md#keep-them-in-a-file)). `WithFileStore` takes an optional
   `Action<FileStoreOptions>`, and the container builds the store with your app's `TimeProvider`. By default,

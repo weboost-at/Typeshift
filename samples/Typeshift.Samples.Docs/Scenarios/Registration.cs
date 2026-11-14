@@ -47,6 +47,14 @@ internal static class Registration
         // end-snippet
     }
 
+    public static void ShowTestHost(IServiceCollection services)
+    {
+        // begin-snippet: store-replace
+        services.AddTypeshift()
+            .WithStore<InMemoryTypeshiftStore<int>>(replace: true);
+        // end-snippet
+    }
+
     public static void ShowRealtimeOptions(IServiceCollection services)
     {
         // begin-snippet: realtime-options

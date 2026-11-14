@@ -174,6 +174,8 @@ folder, since a save takes a lock file of its kind first.
   `InvalidDataException` that names the file and the shape.
 - Registering the file store, as registering any store does, ends the memory: settings under ids and conversations
   then need a store of their own ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call)).
+  `InMemoryTypeshiftStore<TId>` beside the file store keeps those in memory and leaves the agents' own settings to
+  the files, whichever of the two you register first.
 
 ### Settings under an id, such as per customer
 
@@ -234,7 +236,7 @@ these serves it:
 
 | Stored | Without a store | `InMemoryTypeshiftStore<TId>` | `WithFileStore` |
 |---|---|---|---|
-| An agent's own settings, through `IAgentSettingsStore` | In memory | In memory | In files |
+| An agent's own settings, through `IAgentSettingsStore` | In memory | In memory, while no other store keeps them | In files |
 | Settings under an id, through `ISettingsStore<TId>` | In memory, under ids of every type | In memory, under ids of `TId` | Needs another store |
 | Conversations, through `IConversationStore<TId>` | In memory, under ids of every type | In memory, under ids of `TId` | Needs another store |
 

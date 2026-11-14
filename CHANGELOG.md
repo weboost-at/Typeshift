@@ -119,6 +119,22 @@ All notable changes to this project are documented here. The format follows
   the generator, whatever the cause.
 - TSH024 says that a sub-agent cannot ask "your app". It said "the host", which the guide uses for
   `AgentHost<TAgent>` alone.
+- TSH020 is titled "Referenced assembly was built with another Typeshift version or without the generator", and its
+  message names both causes. It read as if the reference had never run the generator, also when it was built with
+  another Typeshift version.
+- **Breaking:** a store interface has one store. A chain call whose store implements an interface that another
+  call's store is registered as throws an `InvalidOperationException` when the app registers it, naming both stores
+  and the interface. Before, the last call won without a word: `WithFileStore()` followed by
+  `WithStore<InMemoryTypeshiftStore<Guid>>()` kept the agents' own settings in memory, and a memory store added
+  after a database store of the same id type took its settings and conversations. Remove one of the two calls, or
+  pass `replace: true` to the later one when its store is meant to take over, as in a test host:
+  `WithStore<InMemoryTypeshiftStore<Guid>>(replace: true)`. A store your app registers in the container itself,
+  with `AddSingleton`, still follows the container's rule.
+- `InMemoryTypeshiftStore<TId>` keeps agents' own settings only while no other store does, in either order of the
+  two calls, so `WithFileStore()` beside it keeps them in files. Of several memory stores the first registered
+  keeps them, where the last did.
+- The message for a missing store ends with the store interfaces the app registered, and the one for agents' own
+  settings names `WithFileStore()` or a store of your own instead of `InMemoryTypeshiftStore<TId>`.
 - **Breaking:** `store.VerifyAsync(id)` is now `store.VerifyAsync(id, otherId)`. The check stores a document and an
   entry under the second id first and fails when they changed, or when they load under the first id, so a store that
   forgets the id in a query no longer passes. Such a store served one customer's settings or conversation to another.

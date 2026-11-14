@@ -55,7 +55,8 @@ public abstract class DecisionTestBase : ApprovalTestBase
     {
         base.ConfigureServices(services);
 
-        services.AddTypeshift().WithStore(Store);
+        // In place of the base's store in memory
+        services.AddTypeshift().WithStore(Store, replace: true);
         services.AddSingleton(Hold);
     }
 

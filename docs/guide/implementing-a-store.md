@@ -30,7 +30,8 @@ services.AddDbContextFactory<TypeshiftDb>(options => options.UseSqlite("Data Sou
 
 `WithStore<T>()` registers your class as each store interface it implements, of any id type. An
 `ITypeshiftStore<TId>` takes one call, and a store of settings and one of conversations and their decisions take a
-call each.
+call each. A store whose constructor takes what the container cannot give it, such as a folder, registers with a
+factory, `WithStore(provider => new MyStore(folder))`, or as an instance your app created, `WithStore(store)`.
 
 ### Which store serves a call
 
@@ -43,13 +44,19 @@ lose.
 Once you register a store, with the chain or in the container yourself, Typeshift uses only the stores you
 registered:
 
-- For each store interface, the store registered last wins. Each `InMemoryTypeshiftStore<TId>` keeps agents' own
-  settings too, so of several, the last one registered keeps them.
+- A store interface has one store. A chain call whose store implements an interface that another call's store is
+  registered as throws an `InvalidOperationException` right there, when your app registers it. The message names
+  both stores and the interface, so the order of two calls never decides where your data goes.
 - A run applies agents' own settings only when a registered store implements `IAgentSettingsStore`, as
   `InMemoryTypeshiftStore<TId>` and the file store of `WithFileStore()` do.
+- `InMemoryTypeshiftStore<TId>` keeps agents' own settings only while no other store does, whichever of the two you
+  register first. So `WithFileStore()` and `WithStore<InMemoryTypeshiftStore<Guid>>()` together keep agents' own
+  settings in files and everything under a `Guid` id in memory. Of several memory stores, the first one registered
+  keeps them.
 - A call that needs an interface none of your stores implements throws an `InvalidOperationException` that names
-  `WithStore<T>()` and the interface. A run with a conversation id and a store of settings alone throws, and so does
-  an id of a type none of your stores keeps, such as a settings id of `long` beside an `ISettingsStore<int>`.
+  `WithStore<T>()` and the interface, and lists the store interfaces your app did register. A run with a
+  conversation id and a store of settings alone throws, and so does an id of a type none of your stores keeps, such
+  as a settings id of `long` beside an `ISettingsStore<int>`.
 - Decisions are the one exception to that rule, so that a conversation that never has one costs nothing. Without an
   `IDecisionStore<TId>` of the conversation id's type, loading a conversation's decisions finds none and calls no
   store. The first thing Typeshift has to keep there, a decision, an approval for the conversation or the
@@ -60,7 +67,21 @@ registered:
   ([TSH036](./diagnostics.md#tsh036)).
 - A store you register in the container yourself is a singleton too ([Plan for one instance](#plan-for-one-instance)).
   One registered with `AddScoped` or `AddTransient` fails the first run with an `InvalidOperationException` that
-  names it, because Typeshift takes its stores from the root container, not from a request's scope.
+  names it, because Typeshift takes its stores from the root container, not from a request's scope. The container's
+  own rule holds for these registrations: of two for one interface the last one serves, and nothing throws.
+
+A store that is meant to take over says so with `replace: true`. It then serves each interface it implements in
+place of the store registered before, which keeps the interfaces the new one does not implement. A test host that
+swaps your app's database store for one in memory registers it this way:
+
+<!-- snippet: store-replace -->
+<a id='snippet-store-replace'></a>
+```cs
+services.AddTypeshift()
+    .WithStore<InMemoryTypeshiftStore<int>>(replace: true);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L52-L55' title='Snippet source file'>snippet source</a> | <a href='#snippet-store-replace' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
 
 ### Plan for one instance
 

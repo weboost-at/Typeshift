@@ -817,6 +817,27 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   type that implements none of the store interfaces, of any id type (D72), and registration throws for the same types.
   Registration reads the interfaces of the store's declared type, which `DynamicallyAccessedMembers` keeps under
   trimming, a store your app created included.
+- **One store per interface:** up to 0.1.0-alpha.6 the last call won for each interface. With D69, where any store
+  ends the memory, that made the order of two calls decide where data went, without a word: `WithFileStore()` and
+  then `WithStore<InMemoryTypeshiftStore<Guid>>()`, the natural repair for "no conversation store", moved the
+  agents' own settings back into memory, and the memory store added after a database store of the same id type
+  took its settings and conversations. The owner chose the throw: a chain call whose store implements an interface
+  that another call's store is registered as throws an `InvalidOperationException` at registration, naming both
+  stores and the interfaces, and registers nothing. `replace: true` on a store call says the store takes over each
+  interface it implements, for a test host that swaps a database store for one in memory; the replaced store keeps
+  the interfaces the new one does not implement. A store is its declared type and what tells it from another of
+  that type: the instance, the factory, the file store's folder, nothing for one the container builds, so the same
+  store registered twice is one store. The chain's claims live among the registrations, as an instance
+  (`StoreClaims`), so every chain `AddTypeshift()` returns for one service collection sees them. A store your app
+  registers in the container itself is no chain call and follows the container's rule, the last registration
+  wins, which a test host's `ConfigureTestServices` relies on.
+- **The memory store yields agents' own settings:** `InMemoryTypeshiftStore<TId>` implements `IAgentSettingsStore`
+  for every id type, so it would collide with every other store of them. It is registered as that interface only
+  while no other store is, a chain's or one the app registered before, and a store registered later takes the
+  interface from it without `replace`. So the file store and the memory store compose in either order, and of
+  several memory stores the first keeps agents' own settings. With `replace: true` it takes them like any store.
+- **Where:** `Storage/ISettingsStore.cs`, `Storage/IConversationStore.cs`, `Storage/ITypeshiftStore.cs`,
+  `Storage/StoreClaims.cs`, `DependencyInjection/TypeshiftBuilder.cs`.
 - **Alternatives:** v0's load and save only, which rewrote a whole conversation per turn; a generic append for any kind,
   a concept with one user; `LoadAsync<TData>` and `SaveAsync<TData>` over `IStorable` documents (up to 0.1.0-alpha.3),
   which made every store call `TData.Kind`, `Serialize` and `Deserialize` itself; one document per settings id holding
@@ -824,7 +845,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   interface for both (up to 0.1.0-alpha.4), which made a store of conversations implement settings methods it does not
   keep; `WithSettingsStore<T>()` and `WithConversationStore<T>()`, two calls where the interfaces already say what a
   store keeps; renaming the conversation methods (`LoadAsync`, `AppendAsync`), which would clash with the settings
-  methods in a class that implements both.
+  methods in a class that implements both; keeping the last call as the winner and logging a warning when a memory
+  store displaces another, which compiles an order that loses data down to a log line; taking
+  `IAgentSettingsStore` off `InMemoryTypeshiftStore<TId>` into a store of its own, a third type where the two
+  built-in stores can compose.
 
 ### D66. Each agent has settings of its own, under no id
 
@@ -835,7 +859,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)` are the members of D41 without the id. Every
   run of the agent applies its own settings, over its code and under the settings of a settings id, so they are the
   stored layer of an app without settings ids and the defaults of every id in one with them. `InMemoryTypeshiftStore`
-  implements the interface, and `WithStore<T>()` registers it as it does the other two (D38). A run loads them only
+  implements the interface, and `WithStore<T>()` registers it as it does the other two, the memory store only while
+  no other store keeps them (D38). A run loads them only
   when a store of them is registered, so a store without them leaves runs as they were. Loading or saving them
   without one throws, naming `IAgentSettingsStore`. They have paths of their own down to the store, and the members
   that take an id throw on a null one, so a missing id never writes every id's defaults.
@@ -876,9 +901,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   service finds whatever its current directory, resolves at registration, and a blank one throws there, naming the
   option. The settings get the fixed `settings` folder in it, so a store of other data can take a folder beside it. The
   container builds the internal `FileAgentSettingsStore` over that folder with the app's `TimeProvider`,
-  through the registration `WithStore<T>()` uses, so the last call wins for each interface. `WithStore(store)`
-  registers a store your code created, as each interface the instance implements, and the container leaves it
-  undisposed.
+  through the registration `WithStore<T>()` uses, so another store of agents' own settings beside it throws (D38):
+  a file store of another folder too, while the same folder twice is one store, and the memory store leaves them
+  to the files. `WithStore(store)` registers a store your code created, as each interface the instance implements,
+  and the container leaves it undisposed.
 - **Where:** `Storage/FileAgentSettingsStore.cs`, `Storage/FileStoreExtensions.cs`, `Storage/FileStoreOptions.cs`,
   `DependencyInjection/TypeshiftBuilder.cs`.
 - **Alternatives:** one lock per store instance, which two instances or processes on one folder pass through, tearing
@@ -1067,7 +1093,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   where scopes are validated and elsewhere hands out one instance for every request, with whatever scoped services
   it took. The store access reads the registrations before it asks the container, so the message is Typeshift's
   either way. Its lookup of the agent settings store keeps no failed creation, so a store whose database was down at
-  the first run is asked for again by the next.
+  the first run is asked for again by the next. A message for a missing store ends with the interfaces the app
+  did register, and says that nothing is kept in memory beside them, since an app that registered only the file
+  store finds its runs with ids throwing. The message for missing agent settings names `WithFileStore()` and a
+  store of the app's own; it named `InMemoryTypeshiftStore<TId>`, which keeps nothing across a restart.
 - **Where:** `Storage/StoreAccess.cs`, `Generated/ModuleRegistration.cs`.
 - **Alternatives:** throwing as before, ceremony every first run hits; memory for each interface no registered store
   implements, which hides a forgotten store in an app that chose one; a warning at startup, which an app that never

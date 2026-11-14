@@ -253,4 +253,26 @@ public class AgentSettingsTests : AgentTestBase
         // Assert
         await configure.Should().ThrowAsync<InvalidOperationException>().WithMessage("*IAgentSettingsStore*");
     }
+
+    [Fact]
+    public async Task Given_A_Store_Without_Agent_Settings_The_Message_Names_The_File_Store()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithStore<SettingsOnlyStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+
+        // Act
+        var configure = () => host.ConfigureAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
+
+        // Assert
+        await configure.Should().ThrowAsync<InvalidOperationException>().WithMessage(
+            "No IAgentSettingsStore is registered, so nothing keeps an agent's own settings: call WithFileStore() "
+            + "after AddTypeshift() to keep them in files, or WithStore<T>() with a store of yours that implements "
+            + "it. The stores your app registered keep ISettingsStore<Guid> only, and beside a registered store "
+            + "Typeshift keeps nothing in memory.");
+    }
 }

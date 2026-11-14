@@ -388,10 +388,13 @@ public class PersistAllConversationsTests : MultiAgentTestBase
         return services.BuildServiceProvider(validateScopes: true);
     }
 
-    // The store registered last serves the Guid ids, so a test sees each conversation a run stored
+    // The recording store serves the Guid ids in place of the base's, so a test sees each conversation a run stored
     protected override void ConfigureServices(IServiceCollection services)
     {
         base.ConfigureServices(services);
-        services.AddTypeshift().WithStore(Store).WithOptions(options => options.PersistAllConversations = true);
+
+        services.AddTypeshift()
+            .WithStore(Store, replace: true)
+            .WithOptions(options => options.PersistAllConversations = true);
     }
 }

@@ -1,7 +1,7 @@
 public static class Microsoft.Extensions.DependencyInjection.FileStoreExtensions
-public static Typeshift.TypeshiftBuilder Microsoft.Extensions.DependencyInjection.FileStoreExtensions.WithFileStore(Typeshift.TypeshiftBuilder builder, System.Action<Typeshift.FileStoreOptions>? configure = null)
+public static Typeshift.TypeshiftBuilder Microsoft.Extensions.DependencyInjection.FileStoreExtensions.WithFileStore(Typeshift.TypeshiftBuilder builder, System.Action<Typeshift.FileStoreOptions>? configure = null, bool replace = false)
 public static Microsoft.Extensions.DependencyInjection.FileStoreExtensions.extension(Typeshift.TypeshiftBuilder)
-public Typeshift.TypeshiftBuilder Microsoft.Extensions.DependencyInjection.FileStoreExtensions.extension(Typeshift.TypeshiftBuilder).WithFileStore(System.Action<Typeshift.FileStoreOptions>? configure = null)
+public Typeshift.TypeshiftBuilder Microsoft.Extensions.DependencyInjection.FileStoreExtensions.extension(Typeshift.TypeshiftBuilder).WithFileStore(System.Action<Typeshift.FileStoreOptions>? configure = null, bool replace = false)
 public static class Microsoft.Extensions.DependencyInjection.TypeshiftServiceCollectionExtensions
 public static Typeshift.TypeshiftBuilder Microsoft.Extensions.DependencyInjection.TypeshiftServiceCollectionExtensions.AddTypeshift(Microsoft.Extensions.DependencyInjection.IServiceCollection services)
 public static Microsoft.Extensions.DependencyInjection.TypeshiftServiceCollectionExtensions.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection)
@@ -603,9 +603,9 @@ public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithMcpToolProvider
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithOptions(System.Action<Typeshift.TypeshiftOptions> configure)
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithRealtimeTracking(Typeshift.RealtimeTrackingOptions? options = null)
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithRunMiddleware<TMiddleware>() where TMiddleware : class, Typeshift.IRunMiddleware
-public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithStore<TStore>() where TStore : class
-public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithStore<TStore>(System.Func<System.IServiceProvider, TStore> create) where TStore : class
-public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithStore<TStore>(TStore store) where TStore : class
+public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithStore<TStore>(System.Func<System.IServiceProvider, TStore> create, bool replace = false) where TStore : class
+public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithStore<TStore>(TStore store, bool replace = false) where TStore : class
+public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithStore<TStore>(bool replace = false) where TStore : class
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithToolMiddleware<TMiddleware>() where TMiddleware : class, Typeshift.IToolMiddleware
 public sealed class Typeshift.TypeshiftOptions
 public void Typeshift.TypeshiftOptions.NewConversationIds<TId>(System.Func<TId> create) where TId : notnull

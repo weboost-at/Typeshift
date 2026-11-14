@@ -78,7 +78,7 @@ Register the provider with `WithMcpToolProvider<T>()`:
 services.AddTypeshift()
     .WithMcpToolProvider<McpToolProvider>();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L81-L84' title='Snippet source file'>snippet source</a> | <a href='#snippet-mcp-registration' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L89-L92' title='Snippet source file'>snippet source</a> | <a href='#snippet-mcp-registration' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The provider is scoped, and Typeshift resolves it from the run's services, so each scope, such as a web request, gets

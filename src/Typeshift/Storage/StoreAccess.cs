@@ -77,7 +77,7 @@ internal sealed class StoreAccess(IServiceProvider services, IServiceCollection 
         ?? throw new InvalidOperationException(
             $"No ISettingsStore<{TypeNames.Of<TId>()}> is registered for a settings id of that type: call "
             + "WithStore<T>() after AddTypeshift() with a store that implements it, or pass an id of your store's "
-            + "type.");
+            + $"type. {Registered}");
 
     // D73: a conversation PersistAllConversations starts is under a Guid unless NewConversationIds gives other ids
     public IConversationStore<TId> ConversationStore<TId>() where TId : notnull =>
@@ -87,7 +87,7 @@ internal sealed class StoreAccess(IServiceProvider services, IServiceCollection 
             $"No IConversationStore<{TypeNames.Of<TId>()}> is registered for a conversation id of that type: call "
             + "WithStore<T>() after AddTypeshift() with a store that implements it, or give ids of your store's "
             + "type, to WithConversationId and, for the conversations PersistAllConversations starts, with "
-            + "NewConversationIds.");
+            + $"NewConversationIds. {Registered}");
 
     // D79: null when stores are registered and none keeps decisions for the id type. Nothing is kept in memory
     // beside a real store, so what a run asked would not vanish with the process while its conversation stays
@@ -104,8 +104,24 @@ internal sealed class StoreAccess(IServiceProvider services, IServiceCollection 
     private IAgentSettingsStore AgentSettingsStore =>
         (_inMemory.Value ? _agentSettingsMemory : _agentSettingsStore.Value)
         ?? throw new InvalidOperationException(
-            "No agent settings store is registered: call WithStore<T>() after AddTypeshift() with an "
-            + "IAgentSettingsStore, such as InMemoryTypeshiftStore<TId>, to load or save an agent's own settings.");
+            "No IAgentSettingsStore is registered, so nothing keeps an agent's own settings: call WithFileStore() "
+            + "after AddTypeshift() to keep them in files, or WithStore<T>() with a store of yours that implements "
+            + $"it. {Registered}");
+
+    // D69: what the app did register, since one store ends the memory for everything, also for what it does not
+    // keep. ITypeshiftStore<TId> is its three parts in one, which the list names
+    private string Registered =>
+        "The stores your app registered keep "
+        + string.Join(
+            ", ",
+            registrations
+                .Where(IsStoreRegistration)
+                .Select(store => store.ServiceType)
+                .Where(contract => !StoreClaims.IsCombined(contract))
+                .Select(TypeNames.Of)
+                .Distinct()
+                .Order(StringComparer.Ordinal))
+        + " only, and beside a registered store Typeshift keeps nothing in memory.";
 
     // One store per id type, made the first time an id of the type comes
     private InMemoryTypeshiftStore<TId>? Memory<TId>() where TId : notnull =>

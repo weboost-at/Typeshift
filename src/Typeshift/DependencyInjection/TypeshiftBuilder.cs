@@ -23,44 +23,68 @@ public sealed class TypeshiftBuilder
     /// <summary>
     /// Registers a store, a singleton, and turns persistence on for what it keeps: agents' own settings, stored
     /// settings, conversations, their decisions or several of them. Call it once per class, for example for a store of
-    /// settings and another of conversations; for each store interface, the last call wins. Without any store,
-    /// Typeshift keeps everything in memory until the app stops.
+    /// settings and another of conversations. A store interface has one store: a call whose store implements an
+    /// interface another call's store is registered as throws. Without any store, Typeshift keeps everything in memory
+    /// until the app stops.
     /// </summary>
+    /// <param name="replace">
+    /// True when the store takes over each interface it implements from the store registered as it before, as a test
+    /// host's does.
+    /// </param>
     /// <typeparam name="TStore">
     /// An <c>IAgentSettingsStore</c>, an <c>ISettingsStore&lt;TId&gt;</c>, an <c>IConversationStore&lt;TId&gt;</c>, an
     /// <c>IDecisionStore&lt;TId&gt;</c>, or several of them, of any id types (TSH028). A run's ids pick the store of
     /// their type.
     /// </typeparam>
     /// <returns>The same chain.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// <typeparamref name="TStore"/> is no store, or another store is registered as one of its interfaces and
+    /// <paramref name="replace"/> is false.
+    /// </exception>
     public TypeshiftBuilder WithStore<
         [DynamicallyAccessedMembers(
-            DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.Interfaces)] TStore>()
-        where TStore : class
-    {
-        _services.AddSingleton<TStore>();
-        AddStore(typeof(TStore), contract => _services.AddSingleton(contract, Resolve<TStore>));
-        return this;
-    }
+            DynamicallyAccessedMemberTypes.PublicConstructors | DynamicallyAccessedMemberTypes.Interfaces)] TStore>(
+        bool replace = false)
+        where TStore : class =>
+        AddStore(
+            typeof(TStore),
+            new StoreClaim(typeof(TStore), null, TypeNames.Of<TStore>()),
+            replace,
+            ServiceDescriptor.Singleton<TStore, TStore>(),
+            contract => ServiceDescriptor.Singleton(contract, Resolve<TStore>));
 
     /// <summary>
     /// Registers a store you created yourself, as each store interface <typeparamref name="TStore"/> implements. Your
     /// app owns the instance, so the container never disposes it.
     /// </summary>
     /// <param name="store">The store, a singleton.</param>
+    /// <param name="replace">
+    /// True when the store takes over each interface it implements from the store registered as it before.
+    /// </param>
     /// <typeparam name="TStore">
     /// The store's type as your code declares it: an <c>IAgentSettingsStore</c>, an <c>ISettingsStore&lt;TId&gt;</c>,
     /// an <c>IConversationStore&lt;TId&gt;</c>, an <c>IDecisionStore&lt;TId&gt;</c>, or several of them, of any id
     /// types (TSH028).
     /// </typeparam>
     /// <returns>The same chain.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// <typeparamref name="TStore"/> is no store, or another store is registered as one of its interfaces and
+    /// <paramref name="replace"/> is false.
+    /// </exception>
     public TypeshiftBuilder WithStore<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] TStore>(TStore store)
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] TStore>(
+        TStore store,
+        bool replace = false)
         where TStore : class
     {
         ArgumentNullException.ThrowIfNull(store);
-        if (!typeof(TStore).IsInterface) _services.AddSingleton(store);
-        AddStore(typeof(TStore), contract => _services.AddSingleton(contract, store));
-        return this;
+
+        return AddStore(
+            typeof(TStore),
+            new StoreClaim(typeof(TStore), store, TypeNames.Of(store.GetType())),
+            replace,
+            typeof(TStore).IsInterface ? null : new ServiceDescriptor(typeof(TStore), store),
+            contract => new ServiceDescriptor(contract, store));
     }
 
     /// <summary>
@@ -69,35 +93,56 @@ public sealed class TypeshiftBuilder
     /// it, such as a folder or a connection string.
     /// </summary>
     /// <param name="create">Creates the store, once, from the root services.</param>
+    /// <param name="replace">
+    /// True when the store takes over each interface it implements from the store registered as it before.
+    /// </param>
     /// <typeparam name="TStore">
     /// The store's type as the factory returns it: an <c>IAgentSettingsStore</c>, an
     /// <c>ISettingsStore&lt;TId&gt;</c>, an <c>IConversationStore&lt;TId&gt;</c>, an <c>IDecisionStore&lt;TId&gt;</c>,
     /// or several of them, of any id types (TSH028).
     /// </typeparam>
     /// <returns>The same chain.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// <typeparamref name="TStore"/> is no store, or another store is registered as one of its interfaces and
+    /// <paramref name="replace"/> is false.
+    /// </exception>
     public TypeshiftBuilder WithStore<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] TStore>(
-        Func<IServiceProvider, TStore> create)
+        Func<IServiceProvider, TStore> create,
+        bool replace = false)
         where TStore : class
     {
         ArgumentNullException.ThrowIfNull(create);
-        _services.AddSingleton(create);
 
-        // A store declared as one of the interfaces is registered as that one by the line above
-        AddStore(typeof(TStore), contract =>
-        {
-            if (contract != typeof(TStore)) _services.AddSingleton(contract, Resolve<TStore>);
-        });
-
-        return this;
+        return AddStore(create, new StoreClaim(typeof(TStore), create, TypeNames.Of<TStore>()), replace);
     }
+
+    // A store the container builds with a factory, under its declared type and behind each interface it implements.
+    // One declared as an interface is that registration, and its other interfaces resolve it
+    internal TypeshiftBuilder AddStore<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] TStore>(
+        Func<IServiceProvider, TStore> create,
+        StoreClaim store,
+        bool replace)
+        where TStore : class =>
+        AddStore(
+            typeof(TStore),
+            store,
+            replace,
+            typeof(TStore).IsInterface ? null : ServiceDescriptor.Singleton(create),
+            contract => contract == typeof(TStore)
+                ? ServiceDescriptor.Singleton(contract, create)
+                : ServiceDescriptor.Singleton(contract, Resolve<TStore>));
 
     // D38, D72: a store is registered as each store interface its declared type implements, of any id type; the type
     // check reads no members. A store your app created is registered as that instance, which the container never
-    // disposes
-    private static void AddStore(
+    // disposes. A store interface another store holds is not taken over unless the call says so
+    private TypeshiftBuilder AddStore(
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.Interfaces)] Type type,
-        Action<Type> register)
+        StoreClaim store,
+        bool replace,
+        ServiceDescriptor? own,
+        Func<Type, ServiceDescriptor> describe)
     {
         var contracts = Contracts(type);
 
@@ -106,10 +151,9 @@ public sealed class TypeshiftBuilder
                 $"{type.Name} is no store: implement ISettingsStore<TId>, IConversationStore<TId>, "
                 + "IDecisionStore<TId> or IAgentSettingsStore (TSH028).");
 
-        foreach (var contract in contracts)
-        {
-            register(contract);
-        }
+        StoreClaims.Of(_services).Add(_services, store, contracts, replace, own, describe);
+
+        return this;
     }
 
     // The store the container built, behind each interface it is registered as

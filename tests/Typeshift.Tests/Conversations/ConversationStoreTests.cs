@@ -383,6 +383,33 @@ public class ConversationStoreTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_The_File_Store_Alone_A_Run_With_A_Conversation_Fails_Naming_What_Is_Registered()
+    {
+        // Arrange
+        var folder = Path.Combine(Path.GetTempPath(), $"typeshift-{Guid.NewGuid():N}");
+        var services = new ServiceCollection();
+
+        services.AddTypeshift()
+            .WithFileStore(store => store.Folder = folder)
+            .WithChatClientProvider<ScriptedChatClientProvider>();
+
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+
+        // Act
+        var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(
+            "No IConversationStore<Guid> is registered*The stores your app registered keep IAgentSettingsStore only, "
+            + "and beside a registered store Typeshift keeps nothing in memory.");
+    }
+
+    [Fact]
     public async Task Given_A_Store_Of_Conversations_Alone_A_Run_That_Must_Ask_Fails_Naming_IDecisionStore()
     {
         // Arrange
