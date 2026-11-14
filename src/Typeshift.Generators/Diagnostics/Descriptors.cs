@@ -101,12 +101,12 @@ internal static class Descriptors
 
     public static readonly DiagnosticDescriptor NotGenerated = Error(
         "TSH019",
-        "Toolset was not compiled with the generator",
+        "Toolset of a referenced assembly cannot be used",
         "'{0}' {1}: {2}");
 
     public static readonly DiagnosticDescriptor UnstampedReference = Warning(
         "TSH020",
-        "Referenced assembly was built with another Typeshift version or without the generator",
+        "Toolsets and agents of a referenced assembly cannot be registered",
         "'{0}' declares toolsets or agents but {1}, so AddTypeshift() cannot register them: {2}");
 
     public static readonly DiagnosticDescriptor SharedKind = Error(

@@ -509,7 +509,9 @@ internal static class AgentParser
         }
 
         return ReferenceReader.GetModule(toolset.ContainingAssembly) is null
-            ? ("was not compiled with the Typeshift generator", "reference the Typeshift package in its project")
+            ? (
+                "was built with another Typeshift version or without the Typeshift package",
+                "reference the Typeshift package in its project, at this version, and build it again")
             : null;
     }
 

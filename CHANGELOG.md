@@ -80,9 +80,10 @@ All notable changes to this project are documented here. The format follows
 - TSH025 also reports a sub-agent named like one of the agent's tools, two sub-agents of one name and two handoff
   targets of one name, at the `UseAgent<T>()` or `UseHandoff<T>()` that brings the name a second time. TSH023 reports
   a sub-agent whose name is one a run offers itself, such as `ask_user`.
-- TSH020 is titled "Referenced assembly was built with another Typeshift version or without the generator", and its
-  message names both causes. It read as if the reference had never run the generator, also when it was built with
-  another Typeshift version.
+- TSH019 is titled "Toolset of a referenced assembly cannot be used" and TSH020 "Toolsets and agents of a referenced
+  assembly cannot be registered", and each message names its cause: a build with another Typeshift version or
+  without the generator, or a reference under an `extern alias` only. Both read as if the reference had never run
+  the generator, whatever the cause.
 - **Breaking:** `store.VerifyAsync(id)` is now `store.VerifyAsync(id, otherId)`. The check stores a document and an
   entry under the second id first and fails when they changed, or when they load under the first id, so a store that
   forgets the id in a query no longer passes. Such a store served one customer's settings or conversation to another.

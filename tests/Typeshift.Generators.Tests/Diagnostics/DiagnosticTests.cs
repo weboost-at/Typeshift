@@ -1002,8 +1002,8 @@ public class DiagnosticTests : GeneratorTestBase
             "TSH019",
             DiagnosticSeverity.Error,
             "UseToolset<PlainToolset>",
-            message: "'PlainToolset' was not compiled with the Typeshift generator: reference the Typeshift package "
-                + "in its project",
+            message: "'PlainToolset' was built with another Typeshift version or without the Typeshift package: "
+                + "reference the Typeshift package in its project, at this version, and build it again",
             also: "TSH020");
     }
 
@@ -2502,7 +2502,11 @@ public class DiagnosticTests : GeneratorTestBase
         var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.AliasedToolsetAgent));
 
         // Assert
-        run.Assert.Reports("TSH019", DiagnosticSeverity.Error, "UseToolset<TicketToolset>", also: "TSH020");
+        run.Assert.Reports("TSH019", DiagnosticSeverity.Error, "UseToolset<TicketToolset>", also: "TSH020")
+            .GetMessage()
+            .Should()
+            .Be("'TicketToolset' is in a reference under an extern alias, which generated code cannot name: "
+                + "reference its assembly without an alias");
     }
 
     [Fact]
@@ -2531,7 +2535,23 @@ public class DiagnosticTests : GeneratorTestBase
         run.Assert.ReportsOnTheCompilation("TSH020", DiagnosticSeverity.Warning, also: "TSH019")
             .GetMessage()
             .Should()
-            .Contain("alias");
+            .Be("'Lib' declares toolsets or agents but is referenced under an extern alias only, which generated "
+                + "code cannot name, so AddTypeshift() cannot register them: reference it without an alias");
+    }
+
+    [Theory]
+    [InlineData("TSH019", "Toolset of a referenced assembly cannot be used")]
+    [InlineData("TSH020", "Toolsets and agents of a referenced assembly cannot be registered")]
+    public void Given_A_Reference_Under_An_Extern_Alias_The_Title_Names_No_Other_Cause(string id, string title)
+    {
+        // Arrange
+        var reference = CompileReference("Lib", AgentSources.Tickets).WithAliases(["lib"]);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.AliasedToolsetAgent));
+
+        // Assert
+        run.Reported.Single(diagnostic => diagnostic.Id == id).Descriptor.Title.ToString().Should().Be(title);
     }
 
     [Fact]

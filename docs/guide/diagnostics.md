@@ -29,8 +29,8 @@ a compiler error inside generated code.
 | [TSH016](#tsh016) | Error | Toolset or agent is out of the generated code's reach |
 | [TSH017](#tsh017) | Error | Toolset or agent does not derive from its base directly |
 | [TSH018](#tsh018) | Error | Member clashes with a generated member |
-| [TSH019](#tsh019) | Error | Toolset was not compiled with the generator |
-| [TSH020](#tsh020) | Warning | Referenced assembly was built with another Typeshift version or without the generator |
+| [TSH019](#tsh019) | Error | Toolset of a referenced assembly cannot be used |
+| [TSH020](#tsh020) | Warning | Toolsets and agents of a referenced assembly cannot be registered |
 | [TSH022](#tsh022) | Error | Two agents share a settings kind |
 | [TSH023](#tsh023) | Error | Agent cannot be a tool or a handoff target |
 | [TSH024](#tsh024) | Warning | Sub-agent offers tools that need approval |
@@ -265,25 +265,27 @@ name with `WithName("...")`.
 
 ## TSH019
 
-**Toolset was not compiled with the generator.** It is reported on `UseToolset<T>()`. The toolset's project builds
-without the generator when it reaches Typeshift through a compiled DLL, or through a reference that leaves out the
-package's analyzers, such as one with `PrivateAssets="all"`. A project built with another Typeshift version is
-reported too. Reference the package in the toolset's project, at the version the rest of the build uses.
+**Toolset of a referenced assembly cannot be used.** It is reported on `UseToolset<T>()`, and the message names
+which of three causes applies:
 
-A toolset of a reference under an `extern alias` is reported as well. Generated code names every type from
-`global::`, which such a reference is no part of, so reference the assembly without an alias, or give it the
-`global` alias beside its own.
+- The toolset's project was built without the generator. That happens when it reaches Typeshift through a compiled
+  DLL, or through a reference that leaves out the package's analyzers, such as one with `PrivateAssets="all"`.
+- It was built with another Typeshift version, whose generated code does not fit this one.
+- Its assembly is referenced under an `extern alias` only. Generated code names every type from `global::`, which
+  such a reference is no part of.
+
+For the first two, reference the package in the toolset's project, at the version the rest of the build uses, and
+build it again. For the third, reference the assembly without an alias, or give it the `global` alias beside its
+own.
 
 ## TSH020
 
-**Referenced assembly was built with another Typeshift version or without the generator.** It declares toolsets or
-agents, but the code generated for them does not fit this Typeshift version, or its build ran no generator at all,
-so `AddTypeshift()` cannot register them. The causes are those of [TSH019](#tsh019): a compiled DLL, a reference that
-leaves out the package's analyzers, or a library built with another Typeshift version. Reference the package in its
-project, at the version the rest of the build uses, and build it again.
-
-A reference under an `extern alias` alone is reported too, although its build ran the generator: the generated
-registration cannot name its module. Reference it without an alias, or give it the `global` alias beside its own.
+**Toolsets and agents of a referenced assembly cannot be registered.** The assembly declares toolsets or agents
+that `AddTypeshift()` cannot register, for one of the causes of [TSH019](#tsh019), which the message names. Either
+the code generated for them does not fit this Typeshift version or its build ran no generator at all: reference the
+package in its project, at the version the rest of the build uses, and build it again. Or the assembly is
+referenced under an `extern alias` only, so the generated registration cannot name its module, although its build
+ran the generator: reference it without an alias, or give it the `global` alias beside its own.
 
 ## TSH022
 

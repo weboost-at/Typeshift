@@ -23,8 +23,8 @@ TSH015 | Typeshift | Error | Chain the generator cannot read
 TSH016 | Typeshift | Error | Toolset or agent is out of the generated code's reach
 TSH017 | Typeshift | Error | Toolset or agent does not derive from its base directly
 TSH018 | Typeshift | Error | Member clashes with a generated member
-TSH019 | Typeshift | Error | Toolset was not compiled with the generator
-TSH020 | Typeshift | Warning | Referenced assembly was built with another Typeshift version or without the generator
+TSH019 | Typeshift | Error | Toolset of a referenced assembly cannot be used
+TSH020 | Typeshift | Warning | Toolsets and agents of a referenced assembly cannot be registered
 TSH022 | Typeshift | Error | Two agents share a settings kind
 TSH023 | Typeshift | Error | Agent cannot be a tool or a handoff target
 TSH024 | Typeshift | Warning | Sub-agent offers tools that need approval
