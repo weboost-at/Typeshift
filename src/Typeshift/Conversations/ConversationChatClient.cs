@@ -547,7 +547,13 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             ]);
 
         await run.AppendHandoffAsync(result, target.Agent.Name);
-        await run.CloseAsync(target.Agent.Name);
+
+        // D33: the sub-agents this agent left working stop with its turn, and the agent handed to hears of each
+        var lost = await run.StopBackgroundAsync();
+
+        await run.CloseAsync(
+            target.Agent.Name,
+            [.. lost.Select(call => Lost(call.CallId, call.Agent, "the conversation was handed off"))]);
 
         var handed = new RunHandover(options.SettingsId, run.Conversation, Runs.HandOff(run), options.ResultFormat);
 
@@ -801,12 +807,15 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
         foreach (var call in lost)
         {
-            yield return new ChatMessage(
-                ChatRole.User,
-                $"The background agent {call.Agent} was lost when the run stopped; call it again if you need it.")
-            {
-                AdditionalProperties = new() { [ConversationRun.BackgroundCall] = call.CallId }
-            };
+            yield return Lost(call.CallId, call.Agent, "the run stopped");
         }
     }
+
+    // D33: what the model reads of a background sub-agent that never answered. The call id it carries keeps a
+    // later run from telling it again
+    private static ChatMessage Lost(string callId, string agent, string when) =>
+        new(ChatRole.User, $"The background agent {agent} was lost when {when}; call it again if you need it.")
+        {
+            AdditionalProperties = new() { [ConversationRun.BackgroundCall] = callId }
+        };
 }

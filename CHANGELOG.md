@@ -267,6 +267,9 @@ All notable changes to this project are documented here. The format follows
 - A tool call the model makes in the same response as a handoff gets a result: it reads that it did not run
   because the conversation was handed off, and the agent that takes over reads the call with it. Such a call was
   dropped without a trace. It never ran, nothing failed, and neither agent saw it again.
+- A handoff stops the background sub-agents the handing agent left working, and waits until they have stopped,
+  before the other agent takes over. That agent reads which of them were lost. They kept calling their model and
+  running tools after the run had returned, in a scope the request had disposed, and their answers were dropped.
 - A mode named in a run's settings reaches the agent that answers after a handoff. It was dropped there: on a
   conversation in auto mode that had been handed off, a run with `Mode = AgentMode.Default` asked for nothing, and
   the tools behind `RequiresApproval()` kept running. A plan approved into auto mode before a handoff put the agent

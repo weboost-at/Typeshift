@@ -45,10 +45,10 @@ internal sealed class ConversationRun(
     // D81: the calls of an answered batch, handed to the tool loop once in place of a model response
     private ChatResponse? _replay;
 
-    // D33: the background sub-agents still working by call id, the work of each, and a signal for each answer or
-    // steering input
+    // D33: the background sub-agents still working by call id, the work of each, which ends with its call when the
+    // run never took its answer, and a signal for each answer or steering input
     private readonly ConcurrentDictionary<string, string> _background = [];
-    private readonly ConcurrentBag<Task> _work = [];
+    private readonly ConcurrentBag<Task<(string CallId, string Agent)?>> _work = [];
     private readonly SemaphoreSlim _arrived = new(0);
     private readonly CancellationTokenSource _stopping = new();
 
@@ -127,15 +127,15 @@ internal sealed class ConversationRun(
     }
 
     // The input the run took and no model received, stored for the agent that answers next, after a handoff the one
-    // handed to; the run takes no more
-    public async Task CloseAsync(string? answering = null)
+    // handed to, behind what that agent has to hear of this run; the run takes no more
+    public async Task CloseAsync(string? answering = null, IReadOnlyList<ChatMessage>? notes = null)
     {
         List<ChatMessage> waiting;
 
         lock (_steering)
         {
             _closed = true;
-            waiting = [.. _steering];
+            waiting = [.. notes ?? [], .. _steering];
             _steering.Clear();
         }
 
@@ -148,22 +148,21 @@ internal sealed class ConversationRun(
     {
         _background[callId] = agent;
 
-        _work.Add(Task.Run(async () =>
+        _work.Add(Task.Run<(string CallId, string Agent)?>(async () =>
         {
             try
             {
                 var answer = await AnswerAsync(agent, work);
 
-                if (answer is not null && !_stopping.IsCancellationRequested)
-                {
-                    var message = new ChatMessage(ChatRole.User, answer)
-                    {
-                        AdditionalProperties = new() { [BackgroundCall] = callId }
-                    };
+                // A run already ending stops its sub-agents, and whoever answers next hears they were lost
+                if (answer is null || _stopping.IsCancellationRequested) return (callId, agent);
 
-                    // A run already ending stops its sub-agents, the next run hears they were lost
-                    _ = Steer(message);
-                }
+                var message = new ChatMessage(ChatRole.User, answer)
+                {
+                    AdditionalProperties = new() { [BackgroundCall] = callId }
+                };
+
+                return Steer(message) ? null : (callId, agent);
             }
             finally
             {
@@ -171,6 +170,15 @@ internal sealed class ConversationRun(
                 _arrived.Release();
             }
         }));
+    }
+
+    // D33: the sub-agents still working stop, and the run waits until they have: none works on after its run or
+    // after a handoff, in a scope disposed meanwhile. The calls whose answer the run never took, each with its agent
+    public async Task<IReadOnlyList<(string CallId, string Agent)>> StopBackgroundAsync()
+    {
+        _stopping.Cancel();
+
+        return [.. (await Task.WhenAll(_work)).OfType<(string CallId, string Agent)>()];
     }
 
     // The history and the input a run starts from are stored already
@@ -317,10 +325,7 @@ internal sealed class ConversationRun(
     // and input no model received is stored ahead of it
     public async Task EndAsync(string? error)
     {
-        _stopping.Cancel();
-
-        // D33: a stopped sub-agent finishes before its run ends, so none works on in a scope disposed after the run
-        await Task.WhenAll(_work);
+        await StopBackgroundAsync();
         await CloseAsync();
 
         await AppendAsync(

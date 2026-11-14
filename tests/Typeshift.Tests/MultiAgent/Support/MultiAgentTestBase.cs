@@ -142,6 +142,21 @@ public partial class BackgroundLeadAgent : Agent
     }
 }
 
+// Hands the conversation off while its helper works in the background
+public partial class BackgroundFrontAgent : Agent
+{
+    public BackgroundFrontAgent()
+    {
+        WithDescription("Finds out what the customer needs.");
+
+        WithChatOptions().WithModel("scripted", "front-model");
+
+        UseAgent<HelperAgent>().InBackground();
+
+        UseHandoff<BackAgent>();
+    }
+}
+
 // Asks for approval while its helper works in the background
 public partial class GuardedBackgroundLeadAgent : Agent
 {

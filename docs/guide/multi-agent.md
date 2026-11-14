@@ -146,6 +146,8 @@ When the sub-agent finishes, its answer reaches the calling run as a message bef
 - A run that ends some other way, for example with an error or a cancellation, stops the sub-agents still working
   and waits until they have stopped, so none of them works on after the run. A sub-agent stops once its model call
   or tool call sees the cancellation, so a tool that ignores its `CancellationToken` holds up the end of the run.
+- A [handoff](#handoff) stops them the same way: the sub-agents the handing agent left working stop before the
+  other agent takes over, and that agent reads which of them were lost.
 - When a background sub-agent never answered, because the calling run ended first or the process crashed, the
   conversation's next run tells the model it was lost, so the model can call it again.
 - A background sub-agent that fails tells the calling model so in its message, without the exception's message.

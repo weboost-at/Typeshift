@@ -352,6 +352,85 @@ public class SubAgentTests : MultiAgentTestBase
         _ends.Should().Contain("helper_agent");
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Handoff_While_A_Background_Sub_Agent_Works_It_Stops_Before_The_Agent_Handed_To_Answers(
+        bool streaming)
+    {
+        // Arrange
+        var handingOff = ScriptAHandoffWhileTheHelperWorks();
+        var chat = Host<BackgroundFrontAgent>().WithConversationId(Data.Agent.ConversationId);
+
+        Task running = streaming
+            ? chat.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct).AsTask()
+            : chat.RunAsync(Data.Tool.Question, ct: Ct);
+
+        await HelperClient.Requested;
+
+        // Act
+        handingOff.SetResult();
+        await running;
+
+        // Assert
+        _ends.Should().ContainInOrder("helper_agent", "back_agent");
+        HelperClient.Requests.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Given_A_Handoff_While_A_Background_Sub_Agent_Works_The_Agent_Handed_To_Hears_It_Was_Lost()
+    {
+        // Arrange
+        var handingOff = ScriptAHandoffWhileTheHelperWorks();
+
+        var running = Host<BackgroundFrontAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        await HelperClient.Requested;
+
+        // Act
+        handingOff.SetResult();
+        var response = await running;
+
+        // Assert
+        response.Messages[^1].AuthorName.Should().Be("back_agent");
+        ChatClient.Requests[2]
+            .Select(message => message.Text)
+            .Should()
+            .ContainSingle(text => text.Contains("helper_agent was lost when the conversation was handed off"));
+    }
+
+    [Fact]
+    public async Task Given_A_Background_Sub_Agent_That_Answered_Before_A_Handoff_The_Agent_Handed_To_Hears_Of_No_Loss()
+    {
+        // Arrange
+        var helper = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Agent.Steering))
+            .Reply(Call(Data.Tool.SecondCallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer));
+
+        HelperClient.Reply(helper, Text(Data.Agent.Reason));
+
+        var running = Host<BackgroundFrontAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        await ChatClient.RequestedAsync(2);
+
+        // Act
+        helper.SetResult();
+        await running;
+        var sent = ChatClient.Requests[3].Select(message => message.Text).ToList();
+
+        // Assert
+        sent.Should().NotContain(text => text.Contains("was lost"));
+        sent.Should().Contain(text => text.EndsWith(Data.Agent.Reason));
+    }
+
     [Fact]
     public async Task Given_A_Compaction_While_A_Background_Sub_Agent_Works_Its_Summary_Keeps_The_Call()
     {
@@ -441,6 +520,21 @@ public class SubAgentTests : MultiAgentTestBase
 
         // Assert
         ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
+    }
+
+    // The front agent starts its helper, whose model never answers, and hands off once the gate opens
+    private TaskCompletionSource ScriptAHandoffWhileTheHelperWorks()
+    {
+        var handingOff = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(handingOff, Call(Data.Tool.SecondCallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer));
+
+        HelperClient.Reply(new TaskCompletionSource(), Text(Data.Agent.Reason));
+
+        return handingOff;
     }
 
     private static string? Result(IEnumerable<ChatMessage> request) =>

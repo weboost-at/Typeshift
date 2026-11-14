@@ -607,8 +607,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   every run has a `ConversationRun`, which stores only with a conversation; the run's end cancels the sub-agents
   still working and awaits them, so none outlives its run or the scope of a host disposed after it (D76), and the
   next run tells the model which ones it lost, after a crash, a cancellation or a failure,
-  including the ones a summary left working. A sub-agent that fails tells the calling model only that it failed,
-  unless it failed with a `ToolException` (D53). TSH023 and TSH024 check the agents a compilation uses, a reference's
+  including the ones a summary left working. A handoff ends the handing agent's part of the run, so it stops them
+  the same way (`StopBackgroundAsync`) and stores, for the agent handed to, a message for each one that never
+  answered; an answer that arrived before the handoff is stored for that agent as steering input is. A sub-agent
+  that fails tells the calling model only that it failed, unless it failed with a `ToolException` (D53). TSH023 and
+  TSH024 check the agents a compilation uses, a reference's
   through its module stamp, which carries the agent's name, whether it has a description and the tools it offers that
   require approval; tool stamps carry `RequiresApproval` for that list. TSH026 checks the compilation's own agents,
   since assemblies cannot reference each other in a circle.
