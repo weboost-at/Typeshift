@@ -1437,7 +1437,7 @@ public class DiagnosticTests : GeneratorTestBase
             "TSH024",
             DiagnosticSeverity.Warning,
             "UseAgent<HelpAgent>",
-            message: "'HelpAgent' offers tools that need approval (close), and a sub-agent cannot ask the host: in "
+            message: "'HelpAgent' offers tools that need approval (close), and a sub-agent cannot ask your app: in "
                 + "the default mode those calls are rejected unless a rule or a standing approval allows them; add a "
                 + "rule, or hand off to the agent");
     }

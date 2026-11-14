@@ -84,6 +84,8 @@ All notable changes to this project are documented here. The format follows
   assembly cannot be registered", and each message names its cause: a build with another Typeshift version or
   without the generator, or a reference under an `extern alias` only. Both read as if the reference had never run
   the generator, whatever the cause.
+- TSH024 says that a sub-agent cannot ask "your app". It said "the host", which the guide uses for
+  `AgentHost<TAgent>` alone.
 - **Breaking:** `store.VerifyAsync(id)` is now `store.VerifyAsync(id, otherId)`. The check stores a document and an
   entry under the second id first and fails when they changed, or when they load under the first id, so a store that
   forgets the id in a query no longer passes. Such a store served one customer's settings or conversation to another.

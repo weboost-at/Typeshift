@@ -122,7 +122,7 @@ internal static class Descriptors
     public static readonly DiagnosticDescriptor SubAgentNeedsApproval = Warning(
         "TSH024",
         "Sub-agent offers tools that need approval",
-        "'{0}' offers tools that need approval ({1}), and a sub-agent cannot ask the host: in the default mode those "
+        "'{0}' offers tools that need approval ({1}), and a sub-agent cannot ask your app: in the default mode those "
         + "calls are rejected unless a rule or a standing approval allows them; add a rule, or hand off to the agent");
 
     public static readonly DiagnosticDescriptor AgentCircle = Error(
