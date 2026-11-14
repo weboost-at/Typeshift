@@ -9,7 +9,7 @@ internal enum Provider
     Scripted
 }
 
-// A real host maps each provider to its client here
+// A real app maps each provider to its client here
 internal sealed class ScriptedChatClientProvider : IChatClientProvider<Provider>
 {
     private static readonly ScriptedChatClient Client = new();

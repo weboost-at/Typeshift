@@ -156,7 +156,7 @@ internal partial class EndpointJsonContext : JsonSerializerContext;
 ## Related
 
 - [Toolsets](./toolsets.md#results): how a tool's result reaches the model as JSON.
-- [Running an agent](./running-agents.md#structured-output): structured output with `RunAsync<T>` and
+- [Running an agent](./running-agents.md#structured-output): typed runs, `RunAsync<T>` and
   `RunStreamingAsync<T>`.
 - [Registration](./registration.md#what-addtypeshift-registers): what the generated modules register.
 - [Conversations](./conversations.md#live-runs): the tracker, and the runs it lists.

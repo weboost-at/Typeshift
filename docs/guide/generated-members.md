@@ -479,7 +479,7 @@ assemblies read it to offer the tool.
 - [Toolsets](./toolsets.md): the declarations behind the per-toolset members.
 - [Agents](./defining-agents.md): the declarations behind the per-agent members.
 - [Using an agent](./using-an-agent.md): getting a host from a request's or a job's scope.
-- [Running an agent](./running-agents.md): runs with settings, typed output or streaming.
+- [Running an agent](./running-agents.md): runs with settings, typed runs and streaming.
 - [Conversations](./conversations.md): storing, resuming and steering a conversation.
 - [Settings and stores](./settings-and-stores.md#agent-settings): loading, saving and configuring an agent's
   settings.

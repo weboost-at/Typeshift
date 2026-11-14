@@ -161,7 +161,7 @@ foreach (var provider in configuration.GetSection("Providers").GetChildren())
 
 - The entry's name, such as `openai`, is the provider your agents name in `WithModel` and your users pick in their
   settings, so a run finds each client by it.
-- Keep real keys out of `appsettings.json`. The .NET host reads `Providers:openai:ApiKey` from
+- Keep real keys out of `appsettings.json`. Your app's configuration reads `Providers:openai:ApiKey` from
   [user secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) in development and from the
   environment variable `Providers__openai__ApiKey` in every environment.
 - A provider without a key fails at startup, so a missing secret never surfaces in the middle of a run.
@@ -308,7 +308,7 @@ internal enum Provider
     Scripted
 }
 
-// A real host maps each provider to its client here
+// A real app maps each provider to its client here
 internal sealed class ScriptedChatClientProvider : IChatClientProvider<Provider>
 {
     private static readonly ScriptedChatClient Client = new();
