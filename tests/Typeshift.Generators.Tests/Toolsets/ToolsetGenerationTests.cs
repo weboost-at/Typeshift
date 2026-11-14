@@ -227,6 +227,30 @@ public class ToolsetGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Tool_Method_In_Another_Class_Its_Hidden_Parameters_Need_No_Docs()
+    {
+        // Act
+        var run = Run(ShapeSources.HiddenParametersOfToolsInAnotherClass);
+
+        // Assert
+        run.Assert.Suppresses("CS1573");
+    }
+
+    [Fact]
+    public void Given_A_Helper_That_Is_No_Tool_The_Missing_Docs_Of_Its_Parameters_Are_Reported()
+    {
+        // Act
+        var run = Run(ShapeSources.HelperOfAToolsetThatIsNoTool);
+
+        // Assert
+        run.Reported
+            .Where(diagnostic => diagnostic.Id == "CS1573")
+            .Select(diagnostic => diagnostic.Location.SourceTree!.GetText(Ct).ToString(diagnostic.Location.SourceSpan))
+            .Should()
+            .Equal("helperToken");
+    }
+
+    [Fact]
     public void Given_A_Method_Outside_A_Toolset_The_Missing_Docs_Of_Its_Parameters_Are_Reported()
     {
         // Act

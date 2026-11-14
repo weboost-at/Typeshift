@@ -1,7 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Threading;
+using Typeshift.Generators.Emitting;
 using Typeshift.Generators.Parsing;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -24,6 +25,9 @@ public sealed class ParameterDocsSuppressor : DiagnosticSuppressor
     {
         var ct = context.CancellationToken;
 
+        // Read once, and only for a compilation that has such a warning at all
+        var tools = new Lazy<Dictionary<ISymbol, HashSet<ITypeSymbol>>>(() => FindTools(context));
+
         foreach (var diagnostic in context.ReportedDiagnostics)
         {
             if (diagnostic.Location.SourceTree is not { } tree) continue;
@@ -32,35 +36,119 @@ public sealed class ParameterDocsSuppressor : DiagnosticSuppressor
 
             if (node.FirstAncestorOrSelf<ParameterSyntax>() is { } syntax
                 && context.GetSemanticModel(tree).GetDeclaredSymbol(syntax, ct) is IParameterSymbol parameter
-                && IsHidden(parameter, context.GetSemanticModel, ct))
+                && IsHidden(parameter, tools.Value))
             {
                 context.ReportSuppression(Suppression.Create(HiddenParameter, diagnostic));
             }
         }
     }
 
-    private static bool IsHidden(
-        IParameterSymbol parameter,
-        Func<SyntaxTree, SemanticModel> models,
-        CancellationToken ct) =>
-        parameter.ContainingSymbol is IMethodSymbol { IsStatic: true, ContainingType: { } owner }
-        && (owner.DerivesFrom(KnownTypes.Toolset) || owner.DerivesFrom(KnownTypes.Agent))
-        && (parameter.Type.Is(KnownTypes.ServiceProvider)
-            || parameter.Type.Is(KnownTypes.CancellationToken)
-            || parameter.Type.Is(KnownTypes.FunctionArguments)
-            || IsSettingsOf(owner, parameter.Type, models, ct));
+    // What the call fills is told by the type, nullable or not, as the parser tells it. The method's class decides
+    // nothing: a tool's method may live in any class (D23), and a toolset's other methods are no tools
+    private static bool IsHidden(IParameterSymbol parameter, Dictionary<ISymbol, HashSet<ITypeSymbol>> tools)
+    {
+        if (!tools.TryGetValue(parameter.ContainingSymbol.OriginalDefinition, out var settings)) return false;
 
-    // A type the toolset's or the agent's constructor names in WithSettings<T>() or WithConfigurableSettings<T>()
-    private static bool IsSettingsOf(
-        INamedTypeSymbol owner,
-        ITypeSymbol type,
-        Func<SyntaxTree, SemanticModel> models,
-        CancellationToken ct) =>
-        owner.InstanceConstructors
-            .SelectMany(constructor => constructor.DeclaringSyntaxReferences)
-            .SelectMany(reference => reference.GetSyntax(ct).DescendantNodes().OfType<GenericNameSyntax>())
-            .Where(name => name.Identifier.ValueText is "WithSettings" or "WithConfigurableSettings")
-            .Where(name => name.TypeArgumentList.Arguments.Count == 1)
-            .Select(name => models(name.SyntaxTree).GetTypeInfo(name.TypeArgumentList.Arguments[0], ct).Type)
-            .Any(settings => SymbolEqualityComparer.Default.Equals(settings, type));
+        var type = parameter.Type is INamedTypeSymbol
+        {
+            OriginalDefinition.SpecialType: SpecialType.System_Nullable_T
+        } nullable
+            ? nullable.TypeArguments[0]
+            : parameter.Type;
+
+        return type.Is(KnownTypes.ServiceProvider)
+            || type.Is(KnownTypes.CancellationToken)
+            || type.Is(KnownTypes.FunctionArguments)
+            || settings.Contains(type);
+    }
+
+    // The method of every AddTool, each with the settings types its chains name. A suppressor gets no operations,
+    // so the calls are found by their name and bound from syntax, as far as the code binds while it is typed
+    private static Dictionary<ISymbol, HashSet<ITypeSymbol>> FindTools(SuppressionAnalysisContext context)
+    {
+        var ct = context.CancellationToken;
+        var tools = new Dictionary<ISymbol, HashSet<ITypeSymbol>>(SymbolEqualityComparer.Default);
+
+        foreach (var tree in context.Compilation.SyntaxTrees.Where(tree => !Names.IsGenerated(tree)))
+        {
+            var addTools = tree.GetRoot(ct)
+                .DescendantNodes()
+                .OfType<InvocationExpressionSyntax>()
+                .Where(call => call.ArgumentList.Arguments.Count == 1 && GetName(call.Expression) == "AddTool")
+                .ToList();
+
+            if (addTools.Count == 0) continue;
+
+            var model = context.GetSemanticModel(tree);
+
+            foreach (var addTool in addTools)
+            {
+                // Another class's AddTool declares no tool
+                if (!Binds(model.GetSymbolInfo(addTool, ct)).Any(ToolsetParser.IsAddTool)) continue;
+
+                var settings = GetSettings(addTool)
+                    .Select(type => model.GetTypeInfo(type, ct).Type)
+                    .OfType<ITypeSymbol>()
+                    .ToList();
+
+                foreach (var method in Binds(model.GetSymbolInfo(GetMethod(addTool), ct)))
+                {
+                    if (!tools.TryGetValue(method.OriginalDefinition, out var named))
+                    {
+                        named = new HashSet<ITypeSymbol>(SymbolEqualityComparer.Default);
+                        tools[method.OriginalDefinition] = named;
+                    }
+
+                    named.UnionWith(settings);
+                }
+            }
+        }
+
+        return tools;
+    }
+
+    private static IEnumerable<IMethodSymbol> Binds(SymbolInfo info) =>
+        info.Symbol is IMethodSymbol method ? [method] : info.CandidateSymbols.OfType<IMethodSymbol>();
+
+    private static string? GetName(ExpressionSyntax called) =>
+        called switch
+        {
+            SimpleNameSyntax name => name.Identifier.ValueText,
+            MemberAccessExpressionSyntax access => access.Name.Identifier.ValueText,
+            _ => null
+        };
+
+    // The method group AddTool names, under the cast that picks one of two overloads
+    private static ExpressionSyntax GetMethod(InvocationExpressionSyntax addTool)
+    {
+        var argument = addTool.ArgumentList.Arguments[0].Expression;
+
+        while (argument is CastExpressionSyntax or ParenthesizedExpressionSyntax)
+        {
+            argument = argument is CastExpressionSyntax cast
+                ? cast.Expression
+                : ((ParenthesizedExpressionSyntax)argument).Expression;
+        }
+
+        return argument;
+    }
+
+    // AddTool(x).WithDescription(..).WithSettings<T>(): the type arguments of the settings calls chained onto it
+    private static IEnumerable<TypeSyntax> GetSettings(InvocationExpressionSyntax addTool)
+    {
+        SyntaxNode current = addTool;
+
+        while (current.Parent is MemberAccessExpressionSyntax { Parent: InvocationExpressionSyntax outer } access
+            && access.Expression == current)
+        {
+            if (access.Name is GenericNameSyntax
+                {
+                    Identifier.ValueText: "WithSettings" or "WithConfigurableSettings",
+                    TypeArgumentList.Arguments: { Count: 1 } arguments
+                })
+                yield return arguments[0];
+
+            current = outer;
+        }
+    }
 }

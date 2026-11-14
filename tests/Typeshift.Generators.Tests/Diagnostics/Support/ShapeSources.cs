@@ -581,6 +581,80 @@ public static class ShapeSources
         }
         """;
 
+    // Public and documented, as the compiler checks it: the parameters the call fills have no <param>, in a class
+    // that is no toolset, under a cast that picks an overload, and as a nullable token
+    public const string HiddenParametersOfToolsInAnotherClass =
+        """
+        using System;
+        using System.Threading;
+        using Typeshift;
+
+        namespace Demo;
+
+        /// <summary>What a search may return.</summary>
+        public record SearchSettings
+        {
+            /// <summary>The most results.</summary>
+            public int Limit { get; init; } = 5;
+        }
+
+        /// <summary>The tools.</summary>
+        public partial class SearchToolset : Toolset
+        {
+            /// <summary>Declares the tools.</summary>
+            public SearchToolset()
+            {
+                AddTool(Searches.Find).WithSettings<SearchSettings>();
+                AddTool((Func<string, CancellationToken?, string>)Searches.Count);
+            }
+        }
+
+        /// <summary>Tool methods that toolsets share.</summary>
+        public static class Searches
+        {
+            /// <summary>Finds what a text names.</summary>
+            /// <param name="text">The text.</param>
+            /// <returns>What it found.</returns>
+            public static string Find(string text, SearchSettings settings, IServiceProvider services) => text;
+
+            /// <summary>Counts what a text names.</summary>
+            /// <param name="text">The text.</param>
+            /// <returns>The count.</returns>
+            public static string Count(string text, CancellationToken? ct) => text;
+
+            /// <summary>Counts what a number names.</summary>
+            /// <param name="number">The number.</param>
+            /// <returns>The count.</returns>
+            public static string Count(int number) => "";
+        }
+        """;
+
+    // A public method of a toolset that no AddTool names is the developer's own, and so are its missing docs
+    public const string HelperOfAToolsetThatIsNoTool =
+        """
+        using System.Threading;
+        using Typeshift;
+
+        namespace Demo;
+
+        /// <summary>The tools.</summary>
+        public partial class EchoToolset : Toolset
+        {
+            /// <summary>Declares the tools.</summary>
+            public EchoToolset() => AddTool(Echo);
+
+            /// <summary>Echoes a text.</summary>
+            /// <param name="text">The text.</param>
+            /// <returns>The text.</returns>
+            public static string Echo(string text, CancellationToken ct) => text;
+
+            /// <summary>Trims a text, for the tools.</summary>
+            /// <param name="text">The text.</param>
+            /// <returns>The text.</returns>
+            public static string Trim(string text, CancellationToken helperToken) => text.Trim();
+        }
+        """;
+
     public const string EveryAgentDeclaration =
         """
         using Typeshift;

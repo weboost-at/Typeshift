@@ -482,6 +482,10 @@ All notable changes to this project are documented here. The format follows
 - A declaration stored in a variable and continued there, as in `var tool = AddTool(Echo);` followed by
   `tool.WithDescription(...)`, gets one TSH015, on the declaration. It got a second one on the call that continues
   the chain.
+- The compiler's CS1573, a missing `<param>`, is suppressed for the parameters the call fills of every tool method,
+  also one that lives in another class than its toolset, as shared tool methods do, and for a nullable
+  `CancellationToken?`. Such a method warned for each of them, which failed a build that treats warnings as errors.
+  A public method of a toolset or an agent that is no tool keeps its CS1573. It was hidden there.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 
