@@ -62,7 +62,9 @@ Read `docs/contributing/architecture.md`, "The generator and the analyzer", firs
      it is typed.
 
    Add a `CompilesCleanly` test of its own where the user's code must compile too, a call to a generated member for
-   example.
+   example. When the change makes an emitter name a type in a place it did not before, give
+   `ShapeSources.NamespacesNamedLikeTheFrameworks` the declaration that reaches that place: the fixture compiles
+   only while every generated name starts at `global::`.
 4. Keep `IncrementalTests` green: an edit outside a toolset or agent keeps every output cached, and an agent's output
    stays cached while what it offers is unchanged.
 5. Debug the output of a real project: no project keeps the generated files, so build it with

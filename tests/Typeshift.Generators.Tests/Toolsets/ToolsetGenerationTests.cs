@@ -291,10 +291,30 @@ public class ToolsetGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_Stored_Collections_A_Stream_Tool_And_A_Json_Context_Their_Code_Is_Generated()
+    {
+        // Act
+        var run = Run(ShapeSources.StoredCollectionsAStreamAndAJsonContext);
+
+        // Assert
+        Snapshot.Verify(run.Result, ["Demo.CrawlToolset.g.cs", "Typeshift.Generated.SubjectModule.g.cs"]);
+    }
+
+    [Fact]
     public void Given_Stored_Collections_A_Stream_Tool_And_A_Json_Context_The_Code_Compiles_Without_Warnings()
     {
         // Act
         var run = Run(ShapeSources.StoredCollectionsAStreamAndAJsonContext);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
+    public void Given_Namespaces_Named_Like_The_Frameworks_The_Generated_Code_Compiles()
+    {
+        // Act
+        var run = Run(ShapeSources.NamespacesNamedLikeTheFrameworks);
 
         // Assert
         run.Assert.CompilesCleanly();

@@ -834,6 +834,156 @@ public static class ShapeSources
         }
         """;
 
+    // Every name a type's full name starts with means something else here. Demo.System, Demo.Microsoft and
+    // Demo.Typeshift are namespaces of the project's, beside its toolset and its agent, and a global alias of each
+    // of the names, Demo among them, reaches the files in every other namespace. Generated code that names a type
+    // without global:: finds one of these instead, so the fixture holds what makes the generator name types:
+    // settings of every stored kind, a default, every kind of parameter and result, approval, options, a provider
+    // id type, a tool of the agent's own and both intercepted calls. The mode is configurable in an agent of its own,
+    // since beside a tool that requires approval it is TSH037
+    public const string NamespacesNamedLikeTheFrameworks =
+        """
+        global using Demo = Elsewhere.Marker;
+        global using Microsoft = Elsewhere.Marker;
+        global using System = Elsewhere.Marker;
+        global using Typeshift = Elsewhere.Marker;
+
+        using System;
+        using System.Collections.Generic;
+        using System.Runtime.CompilerServices;
+        using System.Runtime.InteropServices;
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Microsoft.Extensions.AI;
+        using Microsoft.Extensions.DependencyInjection;
+        using Typeshift;
+
+        namespace Elsewhere
+        {
+            internal class Marker;
+        }
+
+        namespace Demo.System
+        {
+            internal class Marker;
+        }
+
+        namespace Demo.Microsoft
+        {
+            internal class Marker;
+        }
+
+        namespace Demo.Typeshift
+        {
+            internal class Marker;
+        }
+
+        namespace Demo
+        {
+            internal enum Vendor
+            {
+                OpenAi
+            }
+
+            internal record Endpoint
+            {
+                public string Host { get; init; } = "localhost";
+            }
+
+            internal record FindSettings
+            {
+                public int Limit { get; init; } = 1;
+
+                public TimeSpan Wait { get; init; }
+
+                public Vendor Preferred { get; init; }
+
+                public Endpoint Primary { get; init; } = new();
+
+                public List<string> Names { get; init; } = [];
+
+                public string[] Tags { get; init; } = [];
+
+                public HashSet<int> Ports { get; init; } = [];
+
+                public Dictionary<string, Endpoint> Mirrors { get; init; } = [];
+
+                public Dictionary<Vendor, int> Weights { get; init; } = [];
+            }
+
+            internal partial class HostileToolset : Toolset
+            {
+                public HostileToolset()
+                {
+                    AddTool(Find).WithDescription("Finds.").RequiresApproval().WithConfigurableSettings<FindSettings>();
+                    AddTool(List).WithDescription("Lists.").ReadOnly();
+                    AddTool(Wait).WithDescription("Waits.");
+                    AddTool(Reset).WithDescription("Resets.");
+                }
+
+                public static string Find(
+                    string query,
+                    FindSettings settings,
+                    IServiceProvider services,
+                    CancellationToken ct,
+                    [Optional, DateTimeConstant(0L)] DateTime since,
+                    int limit = 3) =>
+                    query;
+
+                public static async IAsyncEnumerable<string> List(string query)
+                {
+                    await Task.Yield();
+                    yield return query;
+                }
+
+                public static ValueTask<int> Wait(AIFunctionArguments arguments) => new(1);
+
+                public static Task Reset() => Task.CompletedTask;
+            }
+
+            internal partial class HostileAgent : Agent
+            {
+                public HostileAgent()
+                {
+                    WithDescription("Finds.");
+
+                    WithChatOptions()
+                        .WithModel(Vendor.OpenAi, "fast-model")
+                        .Configurable(o => o.ModelId)
+                        .Configurable(o => o.StopSequences)
+                        .Configurable(o => o.Reasoning);
+
+                    WithRunOptions().Configurable(r => r.SummaryModel);
+
+                    UseToolset<HostileToolset>();
+
+                    ConfigureFind().WithLimit(2);
+
+                    AddTool(Own).WithDescription("Is the agent's own.").WithConfigurableSettings<FindSettings>();
+                }
+
+                private static string Own(string query, FindSettings settings) => query;
+            }
+
+            internal partial class ModeAgent : Agent
+            {
+                public ModeAgent()
+                {
+                    WithDescription("Plans.");
+
+                    WithRunOptions().Configurable(r => r.Mode);
+                }
+            }
+
+            internal static class Startup
+            {
+                public static void Register(IServiceCollection services) => services.AddTypeshift();
+
+                public static TypeshiftRuntime Start(IChatClient client) => TypeshiftRuntime.Create(client);
+            }
+        }
+        """;
+
     // The compiler tells the classes apart by case; a generator's hint names are compared without it
     public const string NamesThatDifferByCase =
         """
