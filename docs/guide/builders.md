@@ -73,7 +73,7 @@ member needs a public `set` or `init` accessor ([TSH013](./diagnostics.md#tsh013
 | `WithDescription(string description)` | Says what the agent does, in place of its `<summary>`. A sub-agent or a handoff target needs one of the two ([TSH023](./diagnostics.md#tsh023)). |
 | `WithInstructions(string instructions)` | Sets the instructions, the agent's system prompt, for every run. |
 | `WithStorageKind(string kind)` | Sets the kind a store keys the agent's `Settings` by, in place of its class name, so renaming the class keeps its stored settings. An empty kind is [TSH039](./diagnostics.md#tsh039). |
-| `WithSchemaVersion(int version)` | Sets the schema version of the stored `Settings`, 1 unless raised. Raise it after you rename or remove a configurable member, so you can [migrate older documents](./implementing-a-store.md#migrate-older-settings). |
+| `WithSchemaVersion(int version)` | Sets the schema version of the stored `Settings`, 1 unless raised. Raise it after you rename or remove a configurable member, so you can [migrate older documents](./implementing-a-store.md#migrate-older-settings). A version below 1 is [TSH039](./diagnostics.md#tsh039). |
 | `WithChatOptions()` | Returns the [`ChatOptionsBuilder`](#chatoptionsbuilder). |
 | `WithRunOptions()` | Returns the [`RunOptionsBuilder`](#runoptionsbuilder). |
 | `UseToolset<TToolset>()` | Offers every tool of the toolset. `.Include(t => t.X)` offers only the tools picked, in that order, and `.Exclude(t => t.X)` all but those. One use includes or excludes, never both. For a toolset used twice or a tool picked twice, the analyzer reports [TSH025](./diagnostics.md#tsh025). |
