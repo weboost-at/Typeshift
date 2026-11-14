@@ -4,6 +4,7 @@ using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Approval.Support;
 using Typeshift.Tests.Compaction.Support;
 using Typeshift.Tests.Conversations.Support;
+using Typeshift.Tests.MultiAgent.Support;
 using Typeshift.Tests.Telemetry.Support;
 using Typeshift.Tests.Tools.Support;
 using FluentAssertions;
@@ -61,6 +62,55 @@ public sealed class TelemetryTests : AgentTestBase
         Activities.Under(run).Select(activity => activity.DisplayName)
             .Should()
             .Equal($"chat {ProbeAgent.Model}", "execute_tool probe", $"chat {ProbeAgent.Model}");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Handoff_The_Span_Of_The_Agent_Handed_To_Hangs_Under_The_Handing_Agents(bool streaming)
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer));
+
+        var front = Host<FrontAgent>().WithConversationId(Data.Agent.ConversationId);
+
+        // Act
+        if (streaming) await front.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
+        else await front.RunAsync(Data.Tool.Question, ct: Ct);
+
+        var handing = Activities.Runs(Data.Agent.ConversationId)
+            .Single(run => run.DisplayName == "invoke_agent front_agent");
+
+        // Assert
+        Activities.Under(handing).Select(activity => activity.DisplayName).Should().Contain("invoke_agent back_agent");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Later_Run_Of_A_Handed_Off_Conversation_Its_One_Span_Is_The_Answering_Agents(
+        bool streaming)
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason));
+
+        var front = Host<FrontAgent>().WithConversationId(Data.Agent.ConversationId);
+        await front.RunAsync(Data.Tool.Question, ct: Ct);
+        var before = Activities.Runs(Data.Agent.ConversationId).Count;
+
+        // Act
+        if (streaming) await front.RunStreamingAsync(Data.Agent.FollowUp, ct: Ct).ToListAsync(Ct);
+        else await front.RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        var later = Activities.Runs(Data.Agent.ConversationId).Skip(before);
+
+        // Assert
+        later.Select(run => run.DisplayName).Should().Equal("invoke_agent back_agent");
     }
 
     [Fact]

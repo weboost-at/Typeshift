@@ -38,6 +38,11 @@ A run's `chat` and `execute_tool` spans are children of its `invoke_agent` span,
 streaming run is where it reads the first update. A run inside a web request therefore shows up as one subtree of
 that request's trace, and a run in a background job is a trace of its own.
 
+A [handoff](./multi-agent.md#handoff) shows as a second `invoke_agent` span, of the agent handed to, inside the span
+of the agent that handed off. A later run of that conversation has one `invoke_agent` span, of the agent that
+answers, whichever agent's host your app started it on. A host loads the conversation before the span opens, so a
+span your store writes for that load is not its child.
+
 The `invoke_agent` span carries these tags:
 
 | Tag | Holds |

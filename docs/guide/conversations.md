@@ -149,10 +149,12 @@ var resumed = await support.WithSettingsId(settingsId).WithConversationId(interr
 
 `ResumeAsync` also continues a conversation whose decisions your app answered with `RecordAnswersAsync`: it carries
 the answers out and goes on. While decisions are still open, it calls no model and returns them
-([Approving or rejecting](./tool-approval.md#approving-or-rejecting)).
+([Approving or rejecting](./tool-approval.md#approving-or-rejecting)). After your app withdrew them with
+`CancelDecisionsAsync`, the model reads that the request was withdrawn and goes on
+([When a decision closes](./tool-approval.md#when-a-decision-closes)).
 
 `ResumeAsync` throws an `InvalidOperationException` on a host without a conversation id, or when the conversation's last
-run ended and no answered decision waits. A new run with input works on an interrupted conversation too: it starts
+run ended and no answered or withdrawn decision waits. A new run with input works on an interrupted conversation too: it starts
 from the interrupted run's steps and adds its own input.
 
 After a restart, the entries tell you which conversations to resume. A run stores its ending entry only when it ends,

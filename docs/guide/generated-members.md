@@ -405,7 +405,7 @@ running between them. The updates of a run with a conversation are also publishe
 ### `ResumeAsync` and `ResumeStreamingAsync`
 
 Both continue the host's conversation, the one `WithConversationId(id)` gave it, without new input: the interrupted
-run from its last stored step, or the decisions your app answered. They layer like `RunAsync` and store the
+run from its last stored step, or the decisions your app answered or withdrew. They layer like `RunAsync` and store the
 continuation in the same conversation. A tool call that was still running when the run stopped is left out, so the
 model decides again and may call the tool a second time ([Resuming](./conversations.md#resuming)). While decisions
 are still open, they call no model and return them. They throw an `InvalidOperationException` when the host has no
