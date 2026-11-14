@@ -725,8 +725,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **The exception is never lost:** `ToolLoop` derives from `FunctionInvokingChatClient` and overrides
   `CreateResponseMessages`. After the base wrote the results, it replaces the result of each call whose exception is
   no `ToolException`. Nothing is caught, wrapped or thrown again, so the loop logs the exception the tool threw as
-  an error, sets its type and message on the call's `execute_tool` span, counts it for `MaxConsecutiveToolErrors`
-  and, past that limit, ends the run with it as it is.
+  an error, sets its type and message on the call's `execute_tool` span, keeps it on the call's
+  `FunctionResultContent.Exception`, which is never serialized, counts it for `MaxConsecutiveToolErrors` and, past
+  that limit, ends the run with it as it is.
 - **Arguments:** a call the model got wrong fails before the method runs, with a message that names the tool and
   the argument. An argument holds what its schema requires: a required one may not be missing or, unless the
   parameter is nullable or a union (D62), null, and a record's member may not be left out without a default or be

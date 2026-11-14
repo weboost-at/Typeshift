@@ -136,7 +136,37 @@ public class ToolFailureTests : AgentTestBase
         await Host<FailingAgent>().RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
-        Log.Exceptions.Should().ContainSingle(exception => exception.Message == Data.Agent.Reason);
+        Log.Errors.Should().ContainSingle(error => error.Exception.Message == Data.Agent.Reason);
+    }
+
+    [Fact]
+    public async Task Given_A_Tool_That_Throws_The_Error_Is_Logged_Under_The_Category_Of_The_Tool_Loop()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "crash", ("message", Data.Agent.Reason)))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<FailingAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        Log.Errors.Select(error => error.Category).Should().Equal(typeof(FunctionInvokingChatClient).FullName);
+    }
+
+    [Fact]
+    public async Task Given_A_Tool_That_Throws_Any_Other_Exception_The_Responses_Result_Holds_The_Exception_Itself()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "crash", ("message", Data.Agent.Reason)))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await Host<FailingAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.Assert.ToolResult(Data.Tool.CallId).Exception!.Message.Should().Be(Data.Agent.Reason);
     }
 
     [Fact]
