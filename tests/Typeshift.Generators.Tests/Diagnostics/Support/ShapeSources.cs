@@ -1254,6 +1254,64 @@ public static class ShapeSources
         }
         """;
 
+    // Parentheses and the ! operator are syntax without an operation of their own: the picks are still read
+    public const string PicksOnAWrappedReceiver =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class FirstToolset : Toolset
+        {
+            public FirstToolset()
+            {
+                AddTool(OpenFirst).WithDescription("Opens.");
+                AddTool(CloseFirst).WithDescription("Closes.");
+            }
+
+            public static string OpenFirst(int number) => "open";
+
+            public static string CloseFirst(int number) => "closed";
+        }
+
+        internal partial class SecondToolset : Toolset
+        {
+            public SecondToolset()
+            {
+                AddTool(OpenSecond).WithDescription("Opens.");
+                AddTool(CloseSecond).WithDescription("Closes.");
+            }
+
+            public static string OpenSecond(int number) => "open";
+
+            public static string CloseSecond(int number) => "closed";
+        }
+
+        internal partial class ThirdToolset : Toolset
+        {
+            public ThirdToolset()
+            {
+                AddTool(OpenThird).WithDescription("Opens.");
+                AddTool(CloseThird).WithDescription("Closes.");
+            }
+
+            public static string OpenThird(int number) => "open";
+
+            public static string CloseThird(int number) => "closed";
+        }
+
+        internal partial class PickAgent : Agent
+        {
+            public PickAgent()
+            {
+                WithDescription("Picks.");
+                (UseToolset<FirstToolset>()).Include(t => t.OpenFirst);
+                UseToolset<SecondToolset>()!.Include(t => t.OpenSecond);
+                ((UseToolset<ThirdToolset>())!).Exclude(t => t.OpenThird);
+            }
+        }
+        """;
+
     // A context written by hand has no Default unless it declares one, so the module has nothing to register
     public const string JsonContextWithoutDefault =
         """

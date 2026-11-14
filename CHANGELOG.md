@@ -309,6 +309,9 @@ All notable changes to this project are documented here. The format follows
 - An `AddTool` whose argument the compiler rejects, such as a name that does not exist or the instance property
   in `AddTool(List<int>.Capacity)`, gets the compiler's error alone. TSH015 was reported on the chain beside it,
   with advice about a chain that was fine.
+- `UseToolset<T>()` in parentheses or followed by `!`, as in `(UseToolset<TicketToolset>()).Include(t => t.Close)`
+  or `UseToolset<TicketToolset>()!.Exclude(t => t.Close)`, is read with its picks. The agent offered none of the
+  toolset's tools, and nothing reported it.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

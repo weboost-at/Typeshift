@@ -59,6 +59,7 @@ rewrite.
 | 12 | A call the generator did not intercept throws, saying what to check | `AddTypeshiftTests.Given_A_Call_The_Generator_Did_Not_Intercept_It_Fails_Saying_What_To_Check` |
 | 13 | A run gets the agent's code options; run settings override the configurable ones, null keeps the code | `AgentRunTests.Given_A_Run_The_Model_Receives_The_Agents_Code_Options`, `..._Given_Run_Settings_They_Override_The_Configurable_Options`, `..._Given_Run_Settings_That_Leave_An_Option_Null_The_Agents_Code_Holds` |
 | 14 | An agent offers its toolsets' tools, included in pick order or all but the excluded, then its own | `AgentRunTests.Given_The_Agents_Toolsets_The_Model_Is_Offered_Their_Tools_Then_Its_Own`, `..._Given_Exclude_Every_Other_Tool_Is_Offered_In_Declaration_Order` |
+| new | A `UseToolset<T>()` in parentheses or followed by `!` is read with its picks (D4) | `AgentGenerationTests.Given_Picks_On_A_Receiver_In_Parentheses_Or_With_A_Suppression_The_Agent_Offers_What_They_Say` |
 | 15 | Tool settings layer: code defaults, `Configure{Tool}()`, the run's overrides | `AgentRunTests.Given_Configure_The_Tool_Runs_With_The_Agents_Settings`, `..._Given_Run_Overrides_Of_A_Tool_They_Apply_Over_The_Agents_Settings` |
 | new | A failed tool call reaches the model with its exception's message (D53) | `AgentRunTests.Given_A_Failing_Tool_Call_The_Model_Reads_Why_It_Failed` |
 | new | A run's tools resolve from the scope its host came from (D25) | `AgentRunTests.Given_Two_Tool_Calls_Of_A_Run_Both_Resolve_From_The_Hosts_Scope` |

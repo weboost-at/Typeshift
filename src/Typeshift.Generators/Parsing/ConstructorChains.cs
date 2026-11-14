@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 
@@ -118,7 +119,17 @@ internal static class ConstructorChains
             {
                 Expression: MemberAccessExpressionSyntax access
             }
-            && access.Expression == receiver.Syntax,
+            && Strip(access.Expression) == receiver.Syntax,
             _ => false
+        };
+
+    // (x) and x! are syntax without an operation of their own, so the receiver's operation is that of x
+    private static ExpressionSyntax Strip(ExpressionSyntax expression) =>
+        expression switch
+        {
+            ParenthesizedExpressionSyntax parenthesized => Strip(parenthesized.Expression),
+            PostfixUnaryExpressionSyntax suppressed when suppressed.IsKind(SyntaxKind.SuppressNullableWarningExpression)
+                => Strip(suppressed.Operand),
+            _ => expression
         };
 }

@@ -279,6 +279,24 @@ public class AgentGenerationTests : GeneratorTestBase
             .Contain("AddJsonContext(services, global::Demo.HandWritten.Default);");
     }
 
+    [Theory]
+    [InlineData("CreateOpenFirst", true)]
+    [InlineData("CreateCloseFirst", false)]
+    [InlineData("CreateOpenSecond", true)]
+    [InlineData("CreateCloseSecond", false)]
+    [InlineData("CreateOpenThird", false)]
+    [InlineData("CreateCloseThird", true)]
+    public void Given_Picks_On_A_Receiver_In_Parentheses_Or_With_A_Suppression_The_Agent_Offers_What_They_Say(
+        string factory,
+        bool offered)
+    {
+        // Act
+        var run = Run(ShapeSources.PicksOnAWrappedReceiver);
+
+        // Assert
+        run.Source("Demo.PickAgent.g.cs").Contains(factory).Should().Be(offered);
+    }
+
     [Fact]
     public void Given_A_Toolset_Of_A_Reference_The_Generated_Code_Compiles_Without_Warnings()
     {
