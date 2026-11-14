@@ -1312,6 +1312,43 @@ public static class ShapeSources
         }
         """;
 
+    // Methods of the project's own that are named like the library's, called in every way the analyzer has a rule
+    // for when the library's are: in a local function, on a variable, outside a constructor
+    public const string MethodsNamedLikeTheLibrarys =
+        """
+        using System.Collections.Generic;
+        using System.Text;
+
+        namespace Demo;
+
+        internal sealed class Registry
+        {
+            private readonly List<string> _names = [];
+
+            public Registry AddTool(string name)
+            {
+                _names.Add(name);
+                return this;
+            }
+
+            public Registry WithName(string name) => AddTool(name);
+
+            public Registry WithStore<T>() => this;
+
+            public string Describe()
+            {
+                void Add() => AddTool("local").WithName("named").WithStore<int>();
+
+                Add();
+
+                var registry = WithStore<string>();
+                registry.WithName("later");
+
+                return new StringBuilder().Append(_names.Count).ToString();
+            }
+        }
+        """;
+
     // A context written by hand has no Default unless it declares one, so the module has nothing to register
     public const string JsonContextWithoutDefault =
         """

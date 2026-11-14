@@ -148,6 +148,8 @@ All notable changes to this project are documented here. The format follows
   it wrote nothing for such a class: the build passed, a toolset's tools were missing from every agent, and an agent
   failed at run time with "was not compiled with the Typeshift generator". Name the base itself, with its namespace
   where your app has an `Agent` of its own: `class DeskAgent : Typeshift.Agent`.
+- The analyzer checks only the calls of Typeshift's own methods. It ran its rules over every method call of the
+  project, building several strings for each, which cost build and editor time in a project with many calls.
 
 ### Fixed
 

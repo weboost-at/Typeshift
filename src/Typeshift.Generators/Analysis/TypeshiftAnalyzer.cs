@@ -237,6 +237,10 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         var invocation = (IInvocationOperation)context.Operation;
         var target = invocation.TargetMethod;
 
+        // Every call checked here is one of the library's methods, and a project makes few of those among all its
+        // calls: comparing the assembly's name costs nothing, each check below a string per call
+        if (target.ContainingAssembly?.Name != KnownTypes.LibraryAssembly) return;
+
         if (InterceptParser.IsIntercepted(target)) found.NeedsGeneratedCode = true;
 
         // D77: a chat client provider may serve providers of any type, but it must serve some. A type parameter is

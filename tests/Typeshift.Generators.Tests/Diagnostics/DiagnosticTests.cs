@@ -1585,6 +1585,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Compilation_That_Calls_Nothing_Of_The_Library_Nothing_Is_Reported()
+    {
+        // Act
+        var run = Run(ShapeSources.MethodsNamedLikeTheLibrarys);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
     public void Given_A_Static_Virtual_Member_Of_An_Interface_As_Tool_Only_The_Compiler_Reports_It()
     {
         // Act
