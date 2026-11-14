@@ -662,7 +662,15 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **As built:** the servers' tools are asked for when a run's options are resolved, after the agent's own;
   `ReadOnly()` marks them for plan mode, `RequiresApproval()` wraps them in `ApprovalRequiredAIFunction`. A tool
   named like the agent's own fails the run.
-- **Where:** `Mcp/Mcp.cs`, `Hosting/AgentHost.cs`.
+- **Names at run time:** a run's tools come from more places than a declaration shows: the chat options
+  (`WithTools`), MCP servers and context providers, beside the toolsets, the agent's own tools, its sub-agents and
+  its handoffs. Before each pass, where the list is complete, `OfferedTools.Check` fails the run when two functions
+  share a name, naming where each comes from, and when a tool has a name the run offers itself: `ask_user`,
+  `exit_plan_mode`, or one that starts with `handoff_to_` and is no handoff of the agent. The analyzer reports the
+  same for what declarations show: TSH035 for a toolset's or an agent's tool of such a name, TSH025 for a sub-agent
+  named like a tool or like another sub-agent, TSH023 for a sub-agent of such a name. The generator holds the three
+  literals itself, and `ReservedToolNameTests` compares them with the runtime's.
+- **Where:** `Mcp/Mcp.cs`, `Hosting/AgentHost.cs`, `Hosting/OfferedTools.cs`, `Parsing/ToolNames.cs`.
 
 ### D36. OpenTelemetry is always on
 
@@ -1034,7 +1042,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   against it (D58). With no store at all, the memory of D69 keeps decisions too. With stores registered and none of
   decisions for the conversation's id type, a load answers "none" without a store call, so an agent that never asks
   pays nothing, and the first write throws, naming `IDecisionStore<TId>` and `WithStore<T>()`. Nothing is kept in
-  memory beside a real store.
+  memory beside a real store. TSH036 warns at build time about a `WithStore<T>()` whose store keeps conversations
+  of an id type no store of the same chain keeps decisions for, when an agent the project sees can ask: one with a
+  tool or an MCP server that requires approval, with plan mode in code or a configurable mode, or with
+  `UseQuestions()`, a referenced agent by its stamp. It reads one chain, a fluent one or the calls on one variable,
+  so a store registered elsewhere is unknown to it, and the run-time exception stays.
 - **Where:** `Storage/IDecisionStore.cs`, `Storage/StoreAccess.cs`, `Storage/StoreId.cs`,
   `Storage/StoreExtensions.cs`.
 - **Alternatives:** a kind of their own on `ISettingsStore<TId>`, which needs nothing new from a full store but

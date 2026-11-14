@@ -146,6 +146,19 @@ public class SubAgentTests : MultiAgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Tool_Of_The_Chat_Options_Named_Like_A_Sub_Agent_The_Run_Fails_Naming_Both()
+    {
+        // Act
+        var run = () => Host<ShadowedLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage("*'helper_agent' twice, through its sub-agents and through its chat options or a context*");
+        ChatClient.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Given_A_Caller_In_Plan_Mode_Its_Sub_Agents_Are_Offered()
     {
         // Arrange

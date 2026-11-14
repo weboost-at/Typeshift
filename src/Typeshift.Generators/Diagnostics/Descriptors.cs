@@ -185,6 +185,18 @@ internal static class Descriptors
         "'{0}' declares UseQuestions(), and a sub-agent cannot ask the user: as a sub-agent it is not offered "
         + "ask_user; declare UseQuestions() on the agent that calls it, or hand off to the agent");
 
+    public static readonly DiagnosticDescriptor ReservedToolName = Error(
+        "TSH035",
+        "Tool name is reserved",
+        "The tool name '{0}' is reserved for {1}: name the tool with WithName(\"...\")");
+
+    public static readonly DiagnosticDescriptor ConversationsWithoutDecisions = Warning(
+        "TSH036",
+        "Conversation store keeps no decisions",
+        "'{0}' keeps conversations under {1} ids, and no store of this chain keeps their decisions, so a run of "
+        + "'{2}' that asks your app fails: implement IDecisionStore<{1}> in the store, or add a store that does with "
+        + "WithStore<T>()");
+
     private static DiagnosticDescriptor Error(string id, string title, string message) =>
         Create(id, title, message, DiagnosticSeverity.Error);
 

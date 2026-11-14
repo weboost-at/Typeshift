@@ -75,8 +75,9 @@ npm run docs:snippets:check
   does not stop the others. An environment's own setup script has to install the same SDK.
 - `global.json` pins the .NET 11 SDK, and every project targets `net11.0` (D61).
 - The build is warning-free with `TreatWarningsAsErrors`. CS1591 is switched off in `tests/.editorconfig` and
-  `demos/.editorconfig`, and by the package for a consumer that never chose XML docs (D68). Three test files disable
-  TSH024, TSH028 and TSH030 by pragma, each with its reason beside it.
+  `demos/.editorconfig`, and by the package for a consumer that never chose XML docs (D68). A test file that sets up
+  what a diagnostic reports disables it by pragma, with its reason beside it: TSH024, TSH028, TSH030, TSH034 and
+  TSH036.
 - Generator snapshots live in `tests/Typeshift.Generators.Tests/Snapshots`. A mismatch writes `.received.txt`; review
   it, then rerun with `ACCEPT_SNAPSHOTS=1` to accept. An accept run rewrites every snapshot, so read
   `git diff tests/Typeshift.Generators.Tests/Snapshots` before you commit. A snapshot holds the generated files its

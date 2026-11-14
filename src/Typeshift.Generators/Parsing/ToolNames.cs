@@ -6,10 +6,28 @@ namespace Typeshift.Generators.Parsing;
 
 internal static class ToolNames
 {
+    // D35, D82: the tools a run offers itself, which a tool of a toolset or an agent may not be named like. The
+    // runtime holds the same literals, and a test compares the two
+    public const string AskUser = "ask_user";
+
+    public const string ExitPlanMode = "exit_plan_mode";
+
+    public const string HandoffPrefix = "handoff_to_";
+
     // \z, since $ also matches before a line break that ends the name
     private static readonly Regex LowerSnakeCase = new(@"^[a-z][a-z0-9]*(_[a-z0-9]+)*\z");
 
     public static bool IsLowerSnakeCase(string name) => LowerSnakeCase.IsMatch(name);
+
+    // What a run offers under the name itself, or null for a name a tool may have
+    public static string? GetReservedFor(string name) =>
+        name switch
+        {
+            AskUser => "the tool that asks the user, which UseQuestions() offers",
+            ExitPlanMode => "the tool that presents a plan in plan mode",
+            _ when name.StartsWith(HandoffPrefix, StringComparison.Ordinal) => "the tools UseHandoff<T>() offers",
+            _ => null
+        };
 
     // D13: SearchTickets is search_tickets, CloseTicketAsync is close_ticket, ParseHTMLPage is parse_html_page
     public static string FromMethod(string method) =>

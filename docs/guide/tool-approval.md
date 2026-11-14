@@ -351,7 +351,8 @@ To reject the plan, answer with `Reject(reason)`. The model receives the reason 
 
 `exit_plan_mode` works only while the conversation plans. In the default and the auto mode the model is not offered
 it, and a call of it anyway asks nobody: the model reads that it is not planning and goes on with the task. So
-nothing the model read can raise a plan prompt in a conversation that never planned.
+nothing the model read can raise a plan prompt in a conversation that never planned. The name is the built-in
+tool's alone, as `ask_user` is: a tool of yours cannot have it ([TSH035](./diagnostics.md#tsh035)).
 
 ::: warning Plan mode hides every tool without the mark
 A tool without `ReadOnly()` is hidden in plan mode, whatever it does. Mark every tool that only reads, so the model can

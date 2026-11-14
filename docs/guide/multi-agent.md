@@ -72,8 +72,10 @@ var report = await reports.RunAsync("Compare the robotics scenes of Vienna and G
 <!-- endSnippet -->
 
 A sub-agent needs a description and a lower_snake_case name ([TSH023](./diagnostics.md#tsh023)), because its name
-becomes the tool's and the model reads its description to decide when to call it. The analyzer rejects agents that
-call each other in a circle through `UseAgent` ([TSH026](./diagnostics.md#tsh026)), but handoffs may form circles.
+becomes the tool's and the model reads its description to decide when to call it. That name is the agent's alone:
+no tool of the calling agent and no other sub-agent of it may have it ([TSH025](./diagnostics.md#tsh025)). The
+analyzer rejects agents that call each other in a circle through `UseAgent` ([TSH026](./diagnostics.md#tsh026)),
+but handoffs may form circles.
 
 ::: warning A sub-agent cannot ask for approval
 A sub-agent cannot stop to ask your app for approval. In the default mode, each of its calls that needs approval is
@@ -183,7 +185,8 @@ internal partial class ExploreAgent : Agent
 `BillingAgent` it is `handoff_to_billing_agent`. When the model calls
 it, the other agent takes over and answers in the same run, with the whole conversation and its own instructions,
 tools and stored settings. Like a sub-agent, it needs a description and a lower_snake_case name
-([TSH023](./diagnostics.md#tsh023)):
+([TSH023](./diagnostics.md#tsh023)). Names that start with `handoff_to_` belong to these tools, so no tool of a
+toolset or an agent may have one ([TSH035](./diagnostics.md#tsh035)):
 
 <!-- snippet: handoff -->
 <a id='snippet-handoff'></a>

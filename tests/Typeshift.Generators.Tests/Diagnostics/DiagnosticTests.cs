@@ -1097,6 +1097,170 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Tool_Named_Like_The_Question_Tool_TSH035_Is_Reported_On_Its_Method()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToolNamedLikeTheQuestionTool);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH035",
+            DiagnosticSeverity.Error,
+            "AskUser",
+            message: "The tool name 'ask_user' is reserved for the tool that asks the user, which UseQuestions() "
+                + "offers: name the tool with WithName(\"...\")");
+    }
+
+    [Fact]
+    public void Given_A_Tool_Named_Exit_Plan_Mode_TSH035_Is_Reported_On_The_Name()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToolNamedExitPlanMode);
+
+        // Assert
+        run.Assert.Reports("TSH035", DiagnosticSeverity.Error, "\"exit_plan_mode\"")
+            .GetMessage()
+            .Should()
+            .Contain("the tool that presents a plan in plan mode");
+    }
+
+    [Fact]
+    public void Given_An_Agents_Tool_Named_Like_A_Handoff_TSH035_Is_Reported_On_Its_Method()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentToolNamedLikeAHandoff);
+
+        // Assert
+        run.Assert.Reports("TSH035", DiagnosticSeverity.Error, "HandoffToBilling")
+            .GetMessage()
+            .Should()
+            .Contain("'handoff_to_billing' is reserved for the tools UseHandoff<T>() offers");
+    }
+
+    [Fact]
+    public void Given_A_Tool_Named_Like_A_Sub_Agent_TSH025_Is_Reported_On_The_Use()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ToolNamedLikeASubAgent);
+
+        // Assert
+        run.Assert.Reports("TSH025", DiagnosticSeverity.Error, "UseAgent<BillingAgent>")
+            .GetMessage()
+            .Should()
+            .StartWith("The tool name 'billing_agent' is offered twice");
+    }
+
+    [Fact]
+    public void Given_Two_Sub_Agents_Of_One_Name_TSH025_Is_Reported_On_The_Second_Use()
+    {
+        // Act
+        var run = Run(DiagnosticSources.TwoSubAgentsOfOneName);
+
+        // Assert
+        run.Assert.Reports("TSH025", DiagnosticSeverity.Error, "UseAgent<HelperTwo>")
+            .GetMessage()
+            .Should()
+            .StartWith("The tool name 'helper' is offered twice");
+    }
+
+    [Fact]
+    public void Given_Two_Handoff_Targets_Of_One_Name_TSH025_Is_Reported_On_The_Second_Use()
+    {
+        // Act
+        var run = Run(DiagnosticSources.TwoHandoffTargetsOfOneName);
+
+        // Assert
+        run.Assert.Reports("TSH025", DiagnosticSeverity.Error, "UseHandoff<HelperTwo>")
+            .GetMessage()
+            .Should()
+            .StartWith("The tool name 'handoff_to_helper' is offered twice");
+    }
+
+    [Fact]
+    public void Given_A_Sub_Agent_Named_Like_The_Question_Tool_TSH023_Is_Reported_On_The_Use()
+    {
+        // Act
+        var run = Run(DiagnosticSources.SubAgentNamedLikeTheQuestionTool);
+
+        // Assert
+        run.Assert.Reports("TSH023", DiagnosticSeverity.Error, "UseAgent<HelpAgent>")
+            .GetMessage()
+            .Should()
+            .Be("'HelpAgent' cannot be a sub-agent: its name 'ask_user' is reserved for the tool that asks the user, "
+                + "which UseQuestions() offers");
+    }
+
+    [Fact]
+    public void Given_A_Store_Of_Conversations_Alone_And_An_Agent_That_Asks_TSH036_Is_Reported_On_The_Store()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ConversationStoreWithoutDecisions);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH036",
+            DiagnosticSeverity.Warning,
+            "WithStore<ChatStore>",
+            message: "'ChatStore' keeps conversations under int ids, and no store of this chain keeps their "
+                + "decisions, so a run of 'DeskAgent' that asks your app fails: implement IDecisionStore<int> in the "
+                + "store, or add a store that does with WithStore<T>()");
+    }
+
+    [Theory]
+    [InlineData(nameof(DiagnosticSources.ConversationStoreWithoutDecisionsForQuestions))]
+    [InlineData(nameof(DiagnosticSources.ConversationStoreWithoutDecisionsForAServer))]
+    [InlineData(nameof(DiagnosticSources.ConversationStoreWithoutDecisionsForPlanMode))]
+    [InlineData(nameof(DiagnosticSources.ConversationStoreWithoutDecisionsForAConfigurableMode))]
+    public void Given_A_Store_Of_Conversations_Alone_And_An_Agent_That_Can_Ask_TSH036_Is_Reported(string source)
+    {
+        // Act
+        var run = Run(SourceCatalogs.Read(typeof(DiagnosticSources), source));
+
+        // Assert
+        run.Assert.Reports("TSH036", DiagnosticSeverity.Warning, "WithStore<ChatStore>");
+    }
+
+    [Fact]
+    public void Given_A_Store_Of_Conversations_Alone_And_An_Asking_Agent_Of_A_Reference_TSH036_Is_Reported()
+    {
+        // Arrange
+        var reference = CompileReference("Help", ReferenceSources.QuestioningHelpAgent);
+        var source = DiagnosticSources.ConversationStoreWithoutDecisionsUsedByReference;
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], source));
+
+        // Assert
+        run.Assert.Reports("TSH036", DiagnosticSeverity.Warning, "WithStore<ChatStore>")
+            .GetMessage()
+            .Should()
+            .Contain("a run of 'HelpAgent' that asks");
+    }
+
+    [Fact]
+    public void Given_A_Store_Of_Conversations_Alone_And_No_Agent_That_Asks_TSH036_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(DiagnosticSources.ConversationStoreWithoutDecisionsUsedByReference);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH036");
+    }
+
+    [Theory]
+    [InlineData(nameof(ShapeSources.ConversationAndDecisionStoresInOneChain))]
+    [InlineData(nameof(ShapeSources.ConversationAndDecisionStoresOnOneBuilder))]
+    [InlineData(nameof(ShapeSources.StoreOfEverythingForAnAgentThatAsks))]
+    public void Given_A_Store_Of_Decisions_In_The_Chain_TSH036_Is_Not_Reported(string source)
+    {
+        // Act
+        var run = Run(SourceCatalogs.Read(typeof(ShapeSources), source));
+
+        // Assert
+        run.Assert.DoesNotReport("TSH036");
+    }
+
+    [Fact]
     public void Given_Two_Agents_Calling_Each_Other_TSH026_Is_Reported_On_Both_Uses()
     {
         // Act

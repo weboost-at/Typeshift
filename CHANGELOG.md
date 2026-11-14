@@ -34,6 +34,10 @@ All notable changes to this project are documented here. The format follows
   conversation, in every mode, and never to a sub-agent.
 - TSH034 warns at the `UseAgent<T>()` of an agent that declares `UseQuestions()`: a sub-agent cannot ask the user,
   so it is not offered `ask_user`.
+- TSH035 reports a tool of a toolset or an agent named `ask_user`, `exit_plan_mode` or `handoff_to_...`, the names
+  of the tools a run offers itself. The model saw two tools of one name, or the tool never ran.
+- TSH036 warns about a `WithStore<T>()` whose store keeps conversations while no store of the same chain keeps
+  their decisions, when an agent of the project can ask your app. The first run that asked failed at run time.
 - `host.GetDecisionsAsync()` loads what a conversation waits for without a run, for a page that was reloaded: the
   open decisions, whether the answered ones wait to be carried out, and the tools approved for the conversation,
   each with the time the approval took effect. `host.RecordAnswersAsync(answers)` records answers without a run,
@@ -56,6 +60,9 @@ All notable changes to this project are documented here. The format follows
 - `ITypeshiftStore<TId>` includes `IDecisionStore<TId>`, so a class that implements it needs two more methods,
   `LoadDecisionsAsync` and `SaveDecisionsAsync`. "Keep decisions" in the guide's page on implementing a store shows
   them over a table of their own.
+- TSH025 also reports a sub-agent named like one of the agent's tools, two sub-agents of one name and two handoff
+  targets of one name, at the `UseAgent<T>()` or `UseHandoff<T>()` that brings the name a second time. TSH023 reports
+  a sub-agent whose name is one a run offers itself, such as `ask_user`.
 - TSH020 is titled "Referenced assembly was built with another Typeshift version or without the generator", and its
   message names both causes. It read as if the reference had never run the generator, also when it was built with
   another Typeshift version.
@@ -208,6 +215,11 @@ All notable changes to this project are documented here. The format follows
   deliver it. Only a .NET string was read that way. A text that starts with `[` or `{` binds a `string` case of a
   union, where it failed as invalid JSON.
 
+- A run fails with an `InvalidOperationException` before its first model call when two of its tools share a name
+  or one is named `ask_user`, `exit_plan_mode` or `handoff_to_...`, and the message names where each tool comes
+  from. That held only for an MCP server's tool named like one of the agent's. A tool of a context provider or of
+  `WithTools(...)` named like another tool reached the provider as a second tool of that name, and a server's tool
+  named `exit_plan_mode` stood beside the built-in one in plan mode.
 - `RuleVerdict.Reject(reason)` throws an `ArgumentException` for a null or blank reason. Such a rejection counted as
   no opinion, so a rule that built its reason from data let the call run in auto mode whenever the reason was
   missing.

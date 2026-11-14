@@ -38,3 +38,5 @@ TSH031 | Typeshift | Error | C# language version is below 14
 TSH032 | Typeshift | Warning | Generator read the declaration differently
 TSH033 | Typeshift | Warning | Enum of a tool is a number for Native AOT or a trimmed app
 TSH034 | Typeshift | Warning | Sub-agent cannot ask the user
+TSH035 | Typeshift | Error | Tool name is reserved
+TSH036 | Typeshift | Warning | Conversation store keeps no decisions

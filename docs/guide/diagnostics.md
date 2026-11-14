@@ -44,6 +44,8 @@ a compiler error inside generated code.
 | [TSH032](#tsh032) | Warning | Generator read the declaration differently |
 | [TSH033](#tsh033) | Warning | Enum of a tool is a number for Native AOT or a trimmed app |
 | [TSH034](#tsh034) | Warning | Sub-agent cannot ask the user |
+| [TSH035](#tsh035) | Error | Tool name is reserved |
+| [TSH036](#tsh036) | Warning | Conversation store keeps no decisions |
 
 TSH021 is retired: the diagnostic it named is gone, and ids are never reused.
 
@@ -271,6 +273,9 @@ to call it by: its class name in snake_case, unless `WithName(...)` sets another
 `WithDescription(...)` in its constructor, or fix its name. An empty summary or description counts as none. An agent
 of a referenced project is checked too.
 
+A sub-agent is offered as a tool of its own name, so that name may be none of those a run offers itself
+([TSH035](#tsh035)): an agent named `ask_user` cannot be a sub-agent.
+
 ## TSH024
 
 **Sub-agent offers tools that need approval.** A sub-agent cannot stop and ask your app for approval, so in `Default`
@@ -288,6 +293,10 @@ mode its calls of such tools are rejected unless a standing approval or a rule a
 - uses two toolsets that each have a tool of the same name. Leave one of the two tools out, for example with
   `Exclude(...)`;
 - has a tool of its own named like a tool of a toolset it uses. Rename its own tool with `WithName("...")`.
+- uses a sub-agent named like one of its tools, or two sub-agents of one name. A sub-agent is offered as a tool of
+  the agent's name, so rename the tool or one of the agents with `WithName("...")`. The diagnostic sits on the
+  `UseAgent<T>()` that brings the name a second time.
+- hands off to two agents of one name, which would both be `handoff_to_{name}`.
 
 ## TSH026
 
@@ -388,6 +397,34 @@ a question could wait, so it is not offered `ask_user` while another agent calls
 `UseQuestions()` on the calling agent, which can [ask the user](./tool-approval.md#asking-the-user) and pass the
 answer on, or offer the agent with `UseHandoff<T>()`, since an agent handed the conversation can ask. Run on its own
 host, the agent asks as declared.
+
+## TSH035
+
+**Tool name is reserved.** A run offers some tools itself, and a tool of a toolset or of an agent may not have their
+names, because the model would see two tools of one name or yours in the built-in tool's place:
+
+| Name | Is the tool that |
+|---|---|
+| `ask_user` | asks the user, which [`UseQuestions()`](./tool-approval.md#asking-the-user) offers |
+| `exit_plan_mode` | presents the plan in [plan mode](./tool-approval.md#plan-mode) |
+| `handoff_to_...` | hands the conversation to another agent, one for each [`UseHandoff<T>()`](./multi-agent.md#handoff) |
+
+Give your tool another name with `WithName("...")`, or rename its method. The tools a run gets from elsewhere, such
+as an [MCP server's](./mcp.md#how-the-agent-offers-the-tools) or a context provider's, are checked when the run
+starts, which fails with an `InvalidOperationException` that names the tool and where it comes from.
+
+## TSH036
+
+**Conversation store keeps no decisions.** The store you register with `WithStore<T>()` keeps conversations, and
+neither it nor another store of the same `AddTypeshift()` chain keeps the
+[decisions](./implementing-a-store.md#keep-decisions) of those conversations, while an agent the project sees can
+ask your app: it offers a tool or an MCP server that requires approval, can run in plan mode, or declares
+`UseQuestions()`. The first run that asks would throw an `InvalidOperationException`, since Typeshift never keeps
+decisions in memory beside a store you registered. Implement `IDecisionStore<TId>` of the same id type in the store,
+or `ITypeshiftStore<TId>`, which includes it, or add a store of decisions to the chain.
+
+The analyzer sees the `WithStore<T>()` calls of one chain only. When another part of your app registers the store
+of decisions, in the container or in another chain, disable the warning where it is reported.
 
 ## Related
 

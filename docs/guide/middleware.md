@@ -176,6 +176,11 @@ is registered, so its constructor can take scoped services.
 Context tools, the tools a provider returns in `AgentContext.Tools`, are offered like the agent's own. Wrap one in
 `ApprovalRequiredAIFunction`, and its calls wait for [approval](./tool-approval.md).
 
+A context tool needs a name no other tool of the run has. The run fails with an `InvalidOperationException` when a
+context tool is named like a tool of the agent, of its sub-agents or of an MCP server, or has a name the run offers
+itself, such as `ask_user` ([TSH035](./diagnostics.md#tsh035) lists them). The same holds for the tools of
+`WithTools(...)`.
+
 ::: warning Plan mode hides context tools
 Context tools carry no `ReadOnly()` mark, so [plan mode](./tool-approval.md#plan-mode) hides them. To offer a tool in
 plan mode, declare it in a toolset and mark it `ReadOnly()`.

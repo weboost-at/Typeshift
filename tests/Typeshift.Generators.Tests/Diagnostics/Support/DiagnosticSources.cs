@@ -833,6 +833,251 @@ public static class DiagnosticSources
         }
         """;
 
+    public const string ToolNamedLikeTheQuestionTool =
+        """
+        using Typeshift;
+
+        internal partial class DeskToolset : Toolset
+        {
+            public DeskToolset() => AddTool(AskUser).WithDescription("Asks the user.");
+
+            public static string AskUser(string question) => question;
+        }
+        """;
+
+    public const string ToolNamedExitPlanMode =
+        """
+        using Typeshift;
+
+        internal partial class DeskToolset : Toolset
+        {
+            public DeskToolset() => AddTool(Leave).WithName("exit_plan_mode").WithDescription("Leaves.");
+
+            public static string Leave() => "";
+        }
+        """;
+
+    public const string AgentToolNamedLikeAHandoff =
+        """
+        using Typeshift;
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => AddTool(HandoffToBilling).WithDescription("Hands off.");
+
+            private static string HandoffToBilling() => "";
+        }
+        """;
+
+    public const string ToolNamedLikeASubAgent =
+        """
+        using Typeshift;
+
+        internal partial class BillingAgent : Agent
+        {
+            public BillingAgent() => WithDescription("Answers billing questions.");
+        }
+
+        internal partial class DeskToolset : Toolset
+        {
+            public DeskToolset() => AddTool(FindAgent).WithName("billing_agent").WithDescription("Finds an agent.");
+
+            public static string FindAgent() => "";
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseToolset<DeskToolset>();
+                UseAgent<BillingAgent>();
+            }
+        }
+        """;
+
+    // Two agents of one name; each source below adds the agent that uses both
+    private const string TwoAgentsOfOneName =
+        """
+        using Typeshift;
+
+        internal partial class HelperOne : Agent
+        {
+            public HelperOne()
+            {
+                WithName("helper");
+                WithDescription("Helps.");
+            }
+        }
+
+        internal partial class HelperTwo : Agent
+        {
+            public HelperTwo()
+            {
+                WithName("helper");
+                WithDescription("Helps too.");
+            }
+        }
+
+        """;
+
+    public const string TwoSubAgentsOfOneName = TwoAgentsOfOneName +
+        """
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseAgent<HelperOne>();
+                UseAgent<HelperTwo>();
+            }
+        }
+        """;
+
+    public const string TwoHandoffTargetsOfOneName = TwoAgentsOfOneName +
+        """
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseHandoff<HelperOne>();
+                UseHandoff<HelperTwo>();
+            }
+        }
+        """;
+
+    public const string SubAgentNamedLikeTheQuestionTool =
+        """
+        using Typeshift;
+
+        internal partial class HelpAgent : Agent
+        {
+            public HelpAgent()
+            {
+                WithName("ask_user");
+                WithDescription("Asks the user.");
+            }
+        }
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent() => UseAgent<HelpAgent>();
+        }
+        """;
+
+    // A store of conversations alone and the chain that registers it; each source below adds an agent that can ask
+    private const string ChatStoreAlone =
+        """
+        using System;
+        using System.Collections.Generic;
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal sealed class ChatStore : IConversationStore<int>
+        {
+            public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+                int conversation,
+                CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
+                int conversation,
+                CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct) =>
+                throw new NotSupportedException();
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithStore<ChatStore>();
+        }
+
+        """;
+
+    public const string ConversationStoreWithoutDecisions = ChatStoreAlone +
+        """
+        internal partial class TicketToolset : Toolset
+        {
+            public TicketToolset() => AddTool(Close).WithDescription("Closes a ticket.").RequiresApproval();
+
+            public static void Close(int number)
+            {
+            }
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => UseToolset<TicketToolset>();
+        }
+        """;
+
+    public const string ConversationStoreWithoutDecisionsForQuestions = ChatStoreAlone +
+        """
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => UseQuestions();
+        }
+        """;
+
+    public const string ConversationStoreWithoutDecisionsForAServer = ChatStoreAlone +
+        """
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => UseMcpServer("deploy").RequiresApproval();
+        }
+        """;
+
+    public const string ConversationStoreWithoutDecisionsForPlanMode = ChatStoreAlone +
+        """
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => WithRunOptions().WithMode(AgentMode.Plan);
+        }
+        """;
+
+    public const string ConversationStoreWithoutDecisionsForAConfigurableMode = ChatStoreAlone +
+        """
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => WithRunOptions().Configurable(r => r.Mode);
+        }
+        """;
+
+    public const string ConversationStoreWithoutDecisionsUsedByReference =
+        """
+        using System;
+        using System.Collections.Generic;
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal sealed class ChatStore : IConversationStore<int>
+        {
+            public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+                int conversation,
+                CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
+                int conversation,
+                CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct) =>
+                throw new NotSupportedException();
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithStore<ChatStore>();
+        }
+        """;
+
     public const string AgentToolNamedLikeAToolsets =
         """
         using Typeshift;

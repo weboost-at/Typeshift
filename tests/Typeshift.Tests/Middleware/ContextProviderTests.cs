@@ -227,6 +227,43 @@ public class ContextProviderTests : MiddlewareTestBase
     }
 
     [Fact]
+    public async Task Given_A_Context_Tool_Named_Like_One_Of_The_Agents_The_Run_Fails_Naming_Both()
+    {
+        // Arrange
+        Script.Context = new AgentContext { Tools = [AIFunctionFactory.Create(() => Data.Tool.Answer, "note")] };
+
+        // Act
+        var run = () => RunAsync(Data.Tool.Question);
+
+        // Assert
+        await run.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage("*'note' twice, through its toolsets or its own tools and through its chat options or a*");
+        ChatClient.Requests.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("ask_user", "the tool that asks the user")]
+    [InlineData("exit_plan_mode", "the tool that presents a plan")]
+    [InlineData("handoff_to_billing", "the handoffs of UseHandoff<T>()")]
+    public async Task Given_A_Context_Tool_Of_A_Name_A_Run_Offers_Itself_The_Run_Fails_Naming_What_It_Is_Reserved_For(
+        string name,
+        string reserved)
+    {
+        // Arrange
+        Script.Context = new AgentContext { Tools = [AIFunctionFactory.Create(() => Data.Tool.Answer, name)] };
+
+        // Act
+        var run = () => RunAsync(Data.Tool.Question);
+
+        // Assert
+        await run.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage($"*'{name}' through its chat options or a context provider*reserved for {reserved}*");
+        ChatClient.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Given_A_Context_Tool_That_Requires_Approval_The_Run_Asks_For_It()
     {
         // Arrange

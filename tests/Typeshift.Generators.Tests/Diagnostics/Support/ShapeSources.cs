@@ -458,6 +458,93 @@ public static class ShapeSources
         }
         """;
 
+    // A store of conversations and one of decisions, each alone, for an agent that asks; each source below adds the
+    // registration that names both
+    private const string ChatAndDecisionStores =
+        """
+        using System;
+        using System.Collections.Generic;
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal sealed class ChatStore : IConversationStore<int>
+        {
+            public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(
+                int conversation,
+                CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
+                int conversation,
+                CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct) =>
+                throw new NotSupportedException();
+        }
+
+        internal sealed class WaitingStore : IDecisionStore<int>
+        {
+            public Task<StoredDocument?> LoadDecisionsAsync(int conversation, CancellationToken ct) =>
+                throw new NotSupportedException();
+
+            public Task<long> SaveDecisionsAsync(
+                int conversation,
+                string json,
+                long loadedVersion,
+                CancellationToken ct) =>
+                throw new NotSupportedException();
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => UseQuestions();
+        }
+
+        """;
+
+    public const string ConversationAndDecisionStoresInOneChain = ChatAndDecisionStores +
+        """
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithStore<ChatStore>().WithStore<WaitingStore>();
+        }
+        """;
+
+    public const string ConversationAndDecisionStoresOnOneBuilder = ChatAndDecisionStores +
+        """
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services)
+            {
+                var typeshift = services.AddTypeshift();
+
+                typeshift.WithStore<ChatStore>();
+                typeshift.WithStore<WaitingStore>();
+            }
+        }
+        """;
+
+    public const string StoreOfEverythingForAnAgentThatAsks =
+        """
+        using Typeshift;
+        using Microsoft.Extensions.DependencyInjection;
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent() => UseQuestions();
+        }
+
+        internal static class Startup
+        {
+            public static void Register(IServiceCollection services) =>
+                services.AddTypeshift().WithStore<InMemoryTypeshiftStore<int>>();
+        }
+        """;
+
     public const string DescriptionOfMarkup =
         """
         using Typeshift;

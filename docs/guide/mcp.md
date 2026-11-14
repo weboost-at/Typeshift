@@ -106,8 +106,10 @@ only. `ReadOnly()` marks every tool of the server as reading only, so
 [plan mode](./tool-approval.md#plan-mode) offers them all. Use it only for a server whose tools change nothing.
 
 The run fails when a server's tool is named like one of the agent's own tools or like a tool of another server it
-uses, because the model would otherwise see only one of them. The error names the server and the tool. An agent that
-uses servers also fails its run when no provider is registered.
+uses, because the model would otherwise see only one of them. The error names the server and the tool. It also fails
+when a server's tool has a name the run offers itself: `ask_user`, `exit_plan_mode`, or one that starts with
+`handoff_to_` ([TSH035](./diagnostics.md#tsh035) lists them). A server picks its tools' names, so check what a
+server you do not control offers. An agent that uses servers also fails its run when no provider is registered.
 
 A server's tool whose call throws, for example because the server is down, fails like any other tool. The model
 reads only that the call failed, and the exception is in your log and on the call's span

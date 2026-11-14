@@ -9,6 +9,9 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
+// Stores that keep conversations alone are what these tests register, for runs that ask nobody
+#pragma warning disable TSH036
+
 namespace Typeshift.Tests.Conversations;
 
 public class ConversationStoreTests : AgentTestBase

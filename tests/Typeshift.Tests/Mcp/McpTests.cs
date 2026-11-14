@@ -116,6 +116,22 @@ public class McpTests : McpTestBase
     }
 
     [Fact]
+    public async Task Given_A_Server_Tool_Named_Exit_Plan_Mode_The_Run_Fails_Naming_The_Server_And_Calls_No_Model()
+    {
+        // Arrange
+        Servers["status"] = [Tool("exit_plan_mode")];
+
+        // Act
+        var run = () => RunAsync(new McpAgent.Settings { Mode = AgentMode.Plan });
+
+        // Assert
+        await run.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage("*'exit_plan_mode' through the MCP server 'status'*reserved for the tool that presents*");
+        ChatClient.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Given_No_Mcp_Tool_Provider_A_Run_Fails_Naming_The_Registration()
     {
         // Arrange

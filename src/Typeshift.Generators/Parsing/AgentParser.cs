@@ -23,7 +23,7 @@ internal static class AgentParser
         bool documented,
         Reporter reporter,
         CancellationToken ct) =>
-        Parse(agent, constructors, documented, reporter, ct, out _, out _);
+        Parse(agent, constructors, documented, reporter, ct, out _, out _, out _);
 
     // The analyzer also needs the agents an agent uses, to check them against each other (D33, D34), and each of its
     // own tools' declaration, to report names that clash across the host
@@ -34,7 +34,8 @@ internal static class AgentParser
         Reporter reporter,
         CancellationToken ct,
         out IReadOnlyList<AgentUseDeclaration> agents,
-        out IReadOnlyList<(ToolModel Tool, IInvocationOperation AddTool)> tools)
+        out IReadOnlyList<(ToolModel Tool, IInvocationOperation AddTool)> tools,
+        out AgentAsks asks)
     {
         var notPartial = agent.GetNotPartial(ct);
 
@@ -81,6 +82,7 @@ internal static class AgentParser
         }
 
         agents = declarations.Agents;
+        asks = new AgentAsks(declarations.ServersAsk, declarations.Plans, declarations.ModePick);
         tools = ToolsetParser.ParseTools(agent, constructors, documented, reporter, ct);
 
         // D14: as a tool's, an agent's summary describes it unless WithDescription says otherwise; without generated
@@ -175,6 +177,14 @@ internal static class AgentParser
 
             case "WithRunOptions":
                 ReadPicks(call, OptionMembers.Run, declarations.RunOptions, declarations.ProviderPicks, reporter);
+                ReadMode(call, declarations);
+                break;
+
+            // D35: a server whose tools require approval makes the agent ask your app
+            case "UseMcpServer":
+                declarations.ServersAsk |= ConstructorChains.GetChainedCalls(call)
+                    .Any(next => next.TargetMethod.Name == "RequiresApproval");
+
                 break;
 
             case "UseToolset":
@@ -228,6 +238,21 @@ internal static class AgentParser
 
             var argument = model.Arguments.First(passed => passed.Parameter?.Ordinal == 0).Syntax;
             declarations.Models.Add((type, argument));
+        }
+    }
+
+    // D52: an agent plans when its code starts runs in plan mode, or when settings may put them there
+    private static void ReadMode(IInvocationOperation call, Declarations declarations)
+    {
+        foreach (var next in ConstructorChains.GetChainedCalls(call))
+        {
+            if (next.TargetMethod.Name == "WithMode"
+                && ConstructorChains.Unwrap(next.Arguments[0].Value) is IFieldReferenceOperation { Field.Name: "Plan" })
+                declarations.Plans = true;
+
+            if (next.TargetMethod.Name == "Configurable"
+                && ConstructorChains.GetPickedProperty(next) is { Name: "Mode" })
+                declarations.ModePick = next.Arguments[0].Syntax;
         }
     }
 
@@ -476,6 +501,12 @@ internal static class AgentParser
         public List<AgentUseDeclaration> Agents { get; } = [];
 
         public bool AsksUser { get; set; }
+
+        public bool ServersAsk { get; set; }
+
+        public bool Plans { get; set; }
+
+        public SyntaxNode? ModePick { get; set; }
     }
 
     private static bool Same(ISymbol one, ISymbol other) => SymbolEqualityComparer.Default.Equals(one, other);
@@ -483,3 +514,7 @@ internal static class AgentParser
 
 // An agent another one offers as a sub-agent, or hands off to
 internal sealed record AgentUseDeclaration(INamedTypeSymbol Target, bool SubAgent, SyntaxNode Syntax);
+
+// What can make an agent ask your app beside its tools and UseQuestions(), for the analyzer alone: an MCP server
+// whose tools require approval, plan mode set in code, and the pick that makes its mode configurable
+internal sealed record AgentAsks(bool ServersAsk, bool Plans, SyntaxNode? ModePick);

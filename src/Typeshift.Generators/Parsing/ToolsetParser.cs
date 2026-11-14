@@ -202,6 +202,18 @@ internal static class ToolsetParser
             return null;
         }
 
+        // D35, D82: a run offers these names itself, and the model would see one of two tools
+        if (ToolNames.GetReservedFor(name) is { } reserved)
+        {
+            reporter.Report(
+                Descriptors.ReservedToolName,
+                chain.NameCall?.Arguments[0].Syntax ?? addTool.Arguments[0].Syntax,
+                name,
+                reserved);
+
+            return null;
+        }
+
         var settings = chain.SettingsCall is null ? null : ParseSettings(chain, owner, reporter, ct);
         if (chain.SettingsCall is not null && settings is null) return null;
 

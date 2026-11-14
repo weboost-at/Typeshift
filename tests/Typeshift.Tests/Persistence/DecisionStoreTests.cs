@@ -4,6 +4,9 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
+// A store of conversations without one of decisions is what these tests register
+#pragma warning disable TSH036
+
 namespace Typeshift.Tests.Persistence;
 
 public class DecisionStoreTests : UnitTestBase

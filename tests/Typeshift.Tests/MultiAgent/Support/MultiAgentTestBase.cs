@@ -71,6 +71,19 @@ public partial class LeadAgent : Agent
     }
 }
 
+// A tool of its chat options under its sub-agent's name, which no declaration shows and only a run sees
+public partial class ShadowedLeadAgent : Agent
+{
+    public ShadowedLeadAgent()
+    {
+        WithChatOptions()
+            .WithModel("scripted", "lead-model")
+            .WithTools(AIFunctionFactory.Create(() => "", "helper_agent"));
+
+        UseAgent<HelperAgent>();
+    }
+}
+
 // Asks the helper for a finding in a type of its own
 public partial class TypedLeadAgent : Agent
 {

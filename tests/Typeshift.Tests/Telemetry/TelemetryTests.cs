@@ -315,7 +315,9 @@ public sealed class TelemetryTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
+#pragma warning disable TSH036 // the store fails every append, and the run never asks
         services.AddTypeshift().WithStore<FailingAppendStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+#pragma warning restore TSH036
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider();

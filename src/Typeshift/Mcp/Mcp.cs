@@ -53,14 +53,14 @@ public sealed class McpServerUse
 
     private AIFunction Reading(AIFunction function) => OnlyReads ? new ReadOnlyFunction(function) : function;
 
-    // D35: the server's tools as this use offers them. One that requires approval knows its server, which its
-    // decision and its standing approval name (D80)
+    // D35: the server's tools as this use offers them. Each knows its server, which a clash of names reports, and
+    // which the decision and the standing approval of a tool that requires approval name (D80)
     internal AITool Offer(AITool tool) =>
         tool switch
         {
             AIFunction function when AsksFirst =>
                 new ApprovalRequiredAIFunction(new McpServerFunction(Reading(function), Server)),
-            AIFunction function => Reading(function),
+            AIFunction function => new McpServerFunction(Reading(function), Server),
             _ => tool
         };
 }

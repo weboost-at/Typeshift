@@ -53,7 +53,9 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.NoChatClientProvider,
         Descriptors.LanguageVersionTooLow,
         Descriptors.ReadDifferently,
-        Descriptors.SubAgentAsksUser
+        Descriptors.SubAgentAsksUser,
+        Descriptors.ReservedToolName,
+        Descriptors.ConversationsWithoutDecisions
     ];
 
     public override void Initialize(AnalysisContext context)
@@ -91,6 +93,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             ReportUnstampedReferences(end);
             ReportSharedKinds(end, kinds);
             ReportAgentUses(end, found);
+            ReportConversationsWithoutDecisions(end, found);
             if (needsJsonMetadata) ReportMissingJsonMetadata(end, found);
             if (needsJsonMetadata) ReportNumericEnums(end, found);
         });
@@ -188,12 +191,20 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Found found,
         CancellationToken ct)
     {
-        var agent = AgentParser.Parse(type, constructors, documented, reporter, ct, out var uses, out var tools);
+        var agent = AgentParser.Parse(
+            type,
+            constructors,
+            documented,
+            reporter,
+            ct,
+            out var uses,
+            out var tools,
+            out var asks);
 
         if (agent is null) return tools;
 
         kinds.Add((agent.Kind, type));
-        found.Agents.Add(new FoundAgent(type, agent, uses));
+        found.Agents.Add(new FoundAgent(type, agent, uses, asks));
         return tools;
     }
 
@@ -269,13 +280,12 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         // type that does not resolve the compiler's
         if (target is { Name: "WithStore", TypeArguments.Length: 1 }
             && target.ContainingType.Is(KnownTypes.TypeshiftBuilder)
-            && target.TypeArguments[0] is { TypeKind: not (TypeKind.TypeParameter or TypeKind.Error) } store
-            && !IsStore(store))
+            && target.TypeArguments[0] is { TypeKind: not (TypeKind.TypeParameter or TypeKind.Error) } store)
         {
-            context.ReportDiagnostic(Diagnostic.Create(
-                Descriptors.NoStore,
-                ConstructorChains.GetCalledName(invocation).GetLocation(),
-                store.Name));
+            var name = ConstructorChains.GetCalledName(invocation).GetLocation();
+
+            if (IsStore(store)) found.Stores.Add(new RegisteredStore(store, name, GetChain(invocation)));
+            else context.ReportDiagnostic(Diagnostic.Create(Descriptors.NoStore, name, store.Name));
 
             return;
         }
@@ -306,17 +316,97 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
     }
 
     // D38, D66, D72, D79: a store keeps settings, conversations or decisions, of any id type, or agents' own settings
-    private static bool IsStore(ITypeSymbol store)
-    {
-        // A store your code holds as one of the interfaces is that interface too
-        IEnumerable<ITypeSymbol> implemented = store.TypeKind == TypeKind.Interface
-            ? [store, .. store.AllInterfaces]
-            : store.AllInterfaces;
-
-        return implemented.Any(contract => contract.Is(KnownTypes.SettingsStore)
+    private static bool IsStore(ITypeSymbol store) =>
+        GetContracts(store).Any(contract => contract.Is(KnownTypes.SettingsStore)
             || contract.Is(KnownTypes.ConversationStore)
             || contract.Is(KnownTypes.DecisionStore)
             || contract.Is(KnownTypes.AgentSettingsStore));
+
+    // A store your code holds as one of the interfaces is that interface too
+    private static IEnumerable<INamedTypeSymbol> GetContracts(ITypeSymbol store) =>
+        store is INamedTypeSymbol { TypeKind: TypeKind.Interface } contract
+            ? [contract, .. store.AllInterfaces]
+            : store.AllInterfaces;
+
+    // The chain a builder call belongs to: where its first call stands, or the variable that holds the builder
+    private static Location? GetChain(IInvocationOperation invocation)
+    {
+        var start = invocation.Instance;
+
+        while (start is IInvocationOperation { Instance: { } earlier }) start = earlier;
+
+        return start switch
+        {
+            ILocalReferenceOperation { Local: var local } => local.Locations.FirstOrDefault(),
+            IParameterReferenceOperation { Parameter: var parameter } => parameter.Locations.FirstOrDefault(),
+            IFieldReferenceOperation { Field: var field } => field.Locations.FirstOrDefault(),
+            IPropertyReferenceOperation { Property: var property } => property.Locations.FirstOrDefault(),
+            _ => start?.Syntax.GetLocation()
+        };
+    }
+
+    // D79: a store of conversations whose chain registers no store of their decisions loads none and fails the
+    // first run that asks, which is known here when an agent the project sees can ask
+    private static void ReportConversationsWithoutDecisions(CompilationAnalysisContext context, Found found)
+    {
+        var asking = new System.Lazy<string?>(() => GetAskingAgent(context, found));
+
+        foreach (var chain in found.Stores.GroupBy(store => store.Chain))
+        {
+            var decided = new HashSet<ITypeSymbol>(
+                chain.SelectMany(store => GetIds(store.Type, KnownTypes.DecisionStore)),
+                SymbolEqualityComparer.Default);
+
+            var open = chain
+                .OrderBy(store => store.Name.SourceSpan.Start)
+                .SelectMany(store => GetIds(store.Type, KnownTypes.ConversationStore).Select(id => (store, id)))
+                .Where(kept => !decided.Contains(kept.id));
+
+            foreach (var (store, id) in open)
+            {
+                if (asking.Value is not { } agent) return;
+
+                context.ReportDiagnostic(Diagnostic.Create(
+                    Descriptors.ConversationsWithoutDecisions,
+                    store.Name,
+                    store.Type.Name,
+                    id.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
+                    agent));
+            }
+        }
+    }
+
+    private static IEnumerable<ITypeSymbol> GetIds(ITypeSymbol store, string contract) =>
+        GetContracts(store)
+            .Where(implemented => implemented.Is(contract))
+            .Select(implemented => implemented.TypeArguments[0]);
+
+    // An agent that can ask your app, of this compilation or of a reference, as far as its declarations and its
+    // module stamp say: a tool or an MCP server that requires approval, plan mode, or UseQuestions()
+    private static string? GetAskingAgent(CompilationAnalysisContext context, Found found)
+    {
+        List<ToolsetSummary> toolsets =
+        [
+            .. found.Toolsets,
+            .. ReferenceReader.Read(context.Compilation, context.CancellationToken).Toolsets
+        ];
+
+        var own = found.Agents
+            .Where(agent => agent.Model.AsksUser
+                || agent.Asks.ServersAsk
+                || agent.Asks.Plans
+                || agent.Asks.ModePick is not null
+                || Catalog.Summarize(Catalog.Resolve(agent.Model, toolsets)).ApprovalTools.Count > 0)
+            .Select(agent => agent.Type.Name);
+
+        // A stamp names its agent's type in full, from global:: on
+        var referenced = ReferenceReader.GetAgents(context.Compilation)
+            .Where(agent => agent.AsksUser || agent.ApprovalTools.Count > 0)
+            .Select(agent => agent.Type.Substring(agent.Type.LastIndexOfAny(['.', ':']) + 1));
+
+        return own.OrderBy(name => name, System.StringComparer.Ordinal)
+            .Concat(referenced.OrderBy(name => name, System.StringComparer.Ordinal))
+            .FirstOrDefault();
     }
 
     private static readonly string[] Builders =
@@ -474,7 +564,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             .GetAgents(context.Compilation)
             .ToLookup(agent => agent.Type);
 
-        foreach (var (type, _, uses) in found.Agents)
+        foreach (var (type, _, uses, _) in found.Agents)
         {
             foreach (var use in uses)
             {
@@ -482,7 +572,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
                 var role = use.SubAgent ? "a sub-agent" : "a handoff target";
 
-                if (GetUnusableReason(target) is { } reason)
+                if (GetUnusableReason(target, use.SubAgent) is { } reason)
                 {
                     Report(context, Descriptors.NotUsableAgent, use, use.Target.Name, role, reason);
                 }
@@ -505,7 +595,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
                 }
             }
 
-            ReportNamesOfferedTwice(context, agents[type], toolsets);
+            ReportNamesOfferedTwice(context, agents[type], toolsets, ResolveTarget);
         }
 
         ReportClashesAcrossHandoffs(context, agents, ResolveTarget, [.. found.OwnTools]);
@@ -555,12 +645,15 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    // Null for an agent that can be a tool or a handoff target
-    private static string? GetUnusableReason(ModuleAgent agent) =>
+    // Null for an agent that can be a tool or a handoff target. A sub-agent's tool has the agent's name, which is
+    // none of those a run offers itself (D82)
+    private static string? GetUnusableReason(ModuleAgent agent, bool subAgent) =>
         agent switch
         {
             { Described: false } => "it has no description, neither from WithDescription nor from a <summary>",
             _ when !ToolNames.IsLowerSnakeCase(agent.Name) => $"its name '{agent.Name}' is not lower_snake_case",
+            _ when subAgent && ToolNames.GetReservedFor(agent.Name) is { } reserved =>
+                $"its name '{agent.Name}' is reserved for {reserved}",
             _ => null
         };
 
@@ -569,23 +662,40 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
     private static void ReportNamesOfferedTwice(
         CompilationAnalysisContext context,
         FoundAgent agent,
-        IReadOnlyList<ToolsetSummary> toolsets)
+        IReadOnlyList<ToolsetSummary> toolsets,
+        System.Func<INamedTypeSymbol, ModuleAgent?> resolve)
     {
-        var offered = agent.Model.Toolsets
+        var tools = agent.Model.Toolsets
             .SelectMany(use => toolsets.Where(toolset => toolset.Type == use.Toolset)
                 .Take(1)
                 .SelectMany(toolset => Catalog.Offered(use, toolset)))
             .Select(tool => tool.Name)
             .Concat(agent.Model.Tools.Select(tool => tool.Name))
-            .GroupBy(name => name)
-            .Where(group => group.Count() > 1);
+            .ToList();
 
-        foreach (var name in offered)
+        foreach (var name in tools.GroupBy(name => name).Where(group => group.Count() > 1))
         {
             context.ReportDiagnostic(Diagnostic.Create(
                 Descriptors.OfferedTwice,
                 agent.Type.Locations.FirstOrDefault(),
                 $"The tool name '{name.Key}'"));
+        }
+
+        // D33, D34: a sub-agent is offered as a tool of its name and a handoff target as handoff_to_{name}, beside
+        // the agent's tools, so the use that brings a name a second time is the one reported
+        var taken = new HashSet<string>(tools);
+
+        foreach (var use in agent.Uses)
+        {
+            if (resolve(use.Target) is not { } target) continue;
+
+            var name = use.SubAgent ? target.Name : ToolNames.HandoffPrefix + target.Name;
+            if (taken.Add(name)) continue;
+
+            context.ReportDiagnostic(Diagnostic.Create(
+                Descriptors.OfferedTwice,
+                use.Syntax.GetLocation(),
+                $"The tool name '{name}'"));
         }
     }
 
@@ -842,10 +952,19 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
         // The toolsets whose generated part lacks a tool (TSH032), by their full names
         public ConcurrentDictionary<string, bool> Misread { get; } = [];
+
+        public ConcurrentBag<RegisteredStore> Stores { get; } = [];
     }
 
-    private sealed record FoundAgent(INamedTypeSymbol Type, AgentModel Model, IReadOnlyList<AgentUseDeclaration> Uses);
+    private sealed record FoundAgent(
+        INamedTypeSymbol Type,
+        AgentModel Model,
+        IReadOnlyList<AgentUseDeclaration> Uses,
+        AgentAsks Asks);
 
     // A type a JSON context lists whose JSON holds an enum the context writes as a number
     private sealed record NumericEnum(string Context, Location Location, string Type, string Enum);
+
+    // A WithStore<T>() call: the store, where the call names it, and the chain it belongs to
+    private sealed record RegisteredStore(ITypeSymbol Type, Location Name, Location? Chain);
 }

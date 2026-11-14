@@ -53,7 +53,9 @@ registered:
   `IDecisionStore<TId>` of the conversation id's type, loading a conversation's decisions finds none and calls no
   store. The first decision Typeshift has to keep throws the exception above, naming `IDecisionStore<TId>`. Typeshift
   never keeps decisions in memory beside a store you registered, because they would vanish with the process while
-  the conversation they belong to stays ([Keep decisions](#keep-decisions)).
+  the conversation they belong to stays ([Keep decisions](#keep-decisions)). The analyzer warns about a chain that
+  registers a store of conversations and none of their decisions, when an agent of your project can ask
+  ([TSH036](./diagnostics.md#tsh036)).
 - A store you register in the container yourself is a singleton too ([Plan for one instance](#plan-for-one-instance)).
   One registered with `AddScoped` or `AddTransient` fails the first run with an `InvalidOperationException` that
   names it, because Typeshift takes its stores from the root container, not from a request's scope.

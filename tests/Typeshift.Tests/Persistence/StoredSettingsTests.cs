@@ -282,7 +282,9 @@ public class StoredSettingsTests : AgentTestBase
     {
         // Arrange
         var services = new ServiceCollection();
+#pragma warning disable TSH036 // a store of conversations alone is the point, and the run never asks
         services.AddTypeshift().WithStore<CountingLoadStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+#pragma warning restore TSH036
 
         await using var provider = services.BuildServiceProvider();
         await using var scope = provider.CreateAsyncScope();
