@@ -532,6 +532,40 @@ public class ConversationRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Run_That_Is_Ending_Steering_Returns_False_And_The_Input_Is_Not_Stored()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithStore<GatedEndStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
+        var store = provider.GetRequiredService<GatedEndStore>();
+        var tracker = provider.GetRequiredService<ConversationTracker<Guid>>();
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var run = host.RunAsync(Data.Tool.Question, ct: Ct);
+        await store.Ending.Task.WaitAsync(Ct);
+
+        // Act
+        var steered = tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+        store.Gate.SetResult();
+        await run;
+
+        var entries = await store.LoadConversationAsync(Data.Agent.ConversationId, Ct);
+
+        // Assert
+        steered.Should().BeFalse();
+        entries.SelectMany(entry => entry.Messages).Select(message => message.Text)
+            .Should()
+            .Equal(Data.Tool.Question, Data.Tool.Answer);
+    }
+
+    [Fact]
     public void Given_No_Run_Going_On_Steering_Returns_False()
     {
         // Act

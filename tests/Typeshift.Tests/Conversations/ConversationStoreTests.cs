@@ -141,6 +141,65 @@ public class ConversationStoreTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Store_Whose_Load_Failed_The_Next_Run_Of_The_Conversation_Runs()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithStore<FailingLoadStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        var failed = await Record.ExceptionAsync(() => host.RunAsync(Data.Tool.Question, ct: Ct));
+
+        // Act
+        var response = await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Assert
+        failed.Should().BeOfType<IOException>();
+        response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_A_Run_Waiting_For_A_Conversation_That_Loads_Cancelling_It_Ends_The_Wait()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithStore<GatedLoadStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
+        var store = provider.GetRequiredService<GatedLoadStore>();
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        store.HoldNextLoad();
+        var first = host.RunAsync(Data.Tool.Question, ct: Ct);
+        await store.Loading.Task.WaitAsync(Ct);
+
+        using var cancel = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        var second = host.RunAsync(Data.Agent.FollowUp, ct: cancel.Token);
+
+        // Act
+        await cancel.CancelAsync();
+        var waited = await Record.ExceptionAsync(() => second);
+        var loading = !first.IsCompleted;
+
+        // Assert
+        waited.Should().BeAssignableTo<OperationCanceledException>();
+        loading.Should().BeTrue();
+        store.Gate.SetResult();
+        await first;
+    }
+
+    [Fact]
     public async Task Given_A_Store_That_Fails_To_Append_The_Run_Still_Answers()
     {
         // Arrange
@@ -568,6 +627,47 @@ public class ConversationStoreTests : AgentTestBase
         // Assert
         (await next).Should().BeTrue();
         watch.Current.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_A_Watcher_Behind_By_More_Than_The_Limit_It_Receives_The_Newest_Updates()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+        var realtime = new RealtimeTrackingOptions { PublishInterval = TimeSpan.Zero, MaxPendingUpdates = 2 };
+
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithRealtimeTracking(realtime).WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        await using var watch = provider.GetRequiredService<ConversationTracker<Guid>>()
+            .WatchAsync(Data.Agent.ConversationId, watching.Token)
+            .GetAsyncEnumerator(Ct);
+
+        ChatClient.Reply(Text("a"), gate, Text("b"), Text("c"), Text("d"));
+
+        var first = watch.MoveNextAsync();
+
+        var run = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunStreamingAsync(Data.Tool.Question, ct: Ct)
+            .ToListAsync(Ct);
+
+        await first;
+
+        // Act
+        gate.SetResult();
+        await run;
+
+        // Assert
+        (await watch.MoveNextAsync()).Should().BeTrue();
+        watch.Current.Text.Should().Be("c");
+        (await watch.MoveNextAsync()).Should().BeTrue();
+        watch.Current.Text.Should().Be("d");
     }
 
     private static ChatResponseUpdate Answer(params AIContent[] contents) => new(ChatRole.Assistant, contents);

@@ -384,6 +384,31 @@ public class CompactionTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Watcher_A_Compaction_Publishes_Nothing_Of_Its_Summary()
+    {
+        // Arrange
+        var settings = new CompactingAgent.Settings { MaxInputTokens = 1_000, SummaryModel = SummaryModel };
+
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Agent.CompanyName));
+
+        await RunAsync(new string('x', Page), settings);
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        await using var watch = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token).GetAsyncEnumerator(Ct);
+        var first = watch.MoveNextAsync();
+
+        // Act
+        await RunAsync(Data.Agent.FollowUp, settings);
+
+        // Assert
+        (await first).Should().BeTrue();
+        watch.Current.Text.Should().Be(Data.Agent.CompanyName);
+    }
+
+    [Fact]
     public async Task Given_A_Steered_Streaming_Run_Its_Later_Pass_Starts_From_The_Summary()
     {
         // Arrange
