@@ -90,6 +90,43 @@ public static class HalfTypedSources
         }
         """;
 
+    // The toolset again, public and documented, with tools whose hidden parameters have no <param>: the compiler's
+    // CS1573 makes the suppressor bind every AddTool of the file, the one being typed included
+    private const string DocumentedToolset =
+        """
+        using System.Threading;
+        using Typeshift;
+
+        namespace Demo;
+
+        /// <summary>What an echo may do.</summary>
+        public record S
+        {
+            /// <summary>The most echoes.</summary>
+            public int Limit { get; init; }
+        }
+
+        /// <summary>The tools.</summary>
+        public partial class EchoToolset : Toolset
+        {
+            /// <summary>Declares the tools.</summary>
+            public EchoToolset()
+            {
+                BODY
+            }
+
+            /// <summary>Echoes a text.</summary>
+            /// <param name="text">The text.</param>
+            /// <returns>The text.</returns>
+            public static string Echo(string text, CancellationToken ct) => text;
+
+            /// <summary>Echoes a text again.</summary>
+            /// <param name="text">The text.</param>
+            /// <returns>The text.</returns>
+            public static string Echo2(string text, S s) => text;
+        }
+        """;
+
     private const string Registration =
         """
         using Typeshift;
@@ -335,6 +372,7 @@ public static class HalfTypedSources
     [
         .. AgentBodies.Select(body => (nameof(Agent), body)),
         .. ToolsetBodies.Select(body => (nameof(Toolset), body)),
+        .. ToolsetBodies.Select(body => (nameof(DocumentedToolset), body)),
         .. RegistrationBodies.Select(body => (nameof(Registration), body))
     ];
 
@@ -345,6 +383,7 @@ public static class HalfTypedSources
         {
             nameof(Agent) => Agent,
             nameof(Toolset) => Toolset,
+            nameof(DocumentedToolset) => DocumentedToolset,
             _ => Registration
         };
 
