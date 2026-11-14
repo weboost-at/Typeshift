@@ -500,7 +500,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   the last `WithModel` of that constructor, or else of the constructors it chains to with `this(...)`, nearest
   first. `WithModel(model)` (owner) names a model and no provider, so an agent can mean the client registered for
   every agent (D63): it sets `ModelId` alone, keeps a provider an earlier `WithModel` named, and the parser passes
-  it by, so an agent with no other `WithModel` has `string` providers. Gone with the build's type: `TypeshiftProviderIdType`, the
+  it by, so an agent with no other `WithModel` has `string` providers. A stored provider that is no value of the
+  type, such as a member an enum no longer has, throws when the settings load, naming the stored text
+  (`StorableJson.EnsureProvider`, which raised the stamp version): read as absent, like any other member that does not read
+  (D44), it left the model stored beside it to the provider of the layer below. Gone with the build's type: `TypeshiftProviderIdType`, the
   `IChatClientProvider` alias, the type parameter of `AddCoreServices`, `ChatClients<TProviderId>`, the module
   stamps' provider id type (stamp version 6), TSH021, and the build-wide parts of TSH029 and TSH030.
 - **Where:** `Hosting/ProviderId.cs`, `Hosting/ChatClients.cs`, `Hosting/IChatClientProvider.cs`,
@@ -1372,7 +1375,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   entries to either library as they are.
 - **Details:** each overrides record writes and reads itself (`IJsonStorable<T>`), so an agent's `Settings` in
   another assembly than the toolset delegates to it. A member that does not read, missing or mistyped, reads as
-  null and keeps the layer below; a document that is no JSON object throws. Enums are stored by name, so reordering
+  null and keeps the layer below; a document that is no JSON object throws, and so does one whose stored provider
+  does not read (D77). Enums are stored by name, so reordering
   an enum keeps them. A value without a name, such as `[Flags]` with none set, a combination with a bit no member
   names, or a cast number, is stored as its number, in digits whatever the culture, and as those digits where it is
   a dictionary's key. A string of digits reads as the number too, which is how versions up to 0.1.0-alpha.6 wrote

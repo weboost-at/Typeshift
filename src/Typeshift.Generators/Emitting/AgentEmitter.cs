@@ -288,7 +288,8 @@ internal static class AgentEmitter
                         $"{SettingsMember(output, tool)} = {tool.Overrides}.TryReadJson("
                         + $"{Json}.Member({Json}.Member(element, \"tools\"), {Names.Literal(tool.Name)}), "
                         + $"out var tool{index}) ? tool{index} : new()")
-                ]);
+                ],
+                chat.Concat(run).Select(option => option.Provider).OfType<string>());
         }
 
         string ProviderDeclaration(string provider) =>

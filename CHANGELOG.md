@@ -197,7 +197,7 @@ All notable changes to this project are documented here. The format follows
   every record has from `object`, which is CS0108. Settings stored under the tool's name are not affected.
 - The module of an assembly whose name holds other characters than letters, digits and dots carries a hash of the
   name, as `Acme_Tools_1a2b3c4dModule` for `Acme-Tools`. The generated registration names it for you.
-- Module stamps are at version 9, so a referenced project built with an earlier Typeshift is TSH020 until it is
+- Module stamps are at version 11, so a referenced project built with an earlier Typeshift is TSH020 until it is
   rebuilt.
 - The class that holds a toolset's picks for `Include` and `Exclude` lives in the global namespace, as the classes
   of the host members do. It was `{Toolset}ToolList` in the toolset's namespace and is `TypeshiftTools_` followed by
@@ -389,6 +389,12 @@ All notable changes to this project are documented here. The format follows
 - **Breaking:** a `SummaryProvider` in settings that no client is registered for fails a run that can compact when
   it starts. Before, the client for every agent wrote the summary, or the failure was a warning and the run's own
   model wrote it. A summary call that fails is still a warning.
+- **Breaking:** stored settings whose `provider` or `summaryProvider` is no value of the agent's provider id type
+  fail to load, with a `JsonException` that names the stored text, as in "The 'SupportAgent' settings store the
+  provider "Anthropic", which is no Vendor". That fails the runs that apply them and `LoadSettingsAsync`. Before,
+  such a provider read as missing, so after a member of an enum of providers was renamed, the model stored beside
+  it went to the provider of the layer below. Change the stored values when you rename or remove a provider, in
+  your store's `LoadAsync` or with a script over your database.
 
 ### Fixed
 

@@ -1,4 +1,4 @@
-StampVersion = 10
+StampVersion = 11
 protected virtual Typeshift.Generated.AgentDeclaration Typeshift.Agent.Declaration { get; }
 public abstract class Typeshift.Generated.AgentDeclaration
 public abstract string? Typeshift.Generated.AgentDeclaration.Description { get; }
@@ -73,6 +73,7 @@ public sealed class Typeshift.Generated.ModuleToolsetAttribute : System.Attribut
 public Typeshift.Generated.ModuleToolsetAttribute.ModuleToolsetAttribute(System.Type toolset)
 public System.Type Typeshift.Generated.ModuleToolsetAttribute.Toolset { get; }
 public static class Typeshift.Generated.StorableJson
+public static void Typeshift.Generated.StorableJson.EnsureProvider<TProviderId>(System.Text.Json.JsonElement element, string name, Typeshift.Generated.StorableReader<TProviderId> read, string kind)
 public static void Typeshift.Generated.StorableJson.EnsureSchemaVersion(System.Text.Json.JsonElement element, int version, string kind)
 public static System.Text.Json.JsonElement Typeshift.Generated.StorableJson.Member(System.Text.Json.JsonElement element, string name)
 public static T Typeshift.Generated.StorableJson.Read<T>(string json, Typeshift.Generated.StorableReader<T> read)

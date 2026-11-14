@@ -19,17 +19,20 @@ internal sealed class StorageEmitter
 
     private readonly List<StorageModel> _helpers = [];
 
-    // WriteJson and TryReadJson of an IJsonStorable record; writeMore and readMore add what is not a stored member
+    // WriteJson and TryReadJson of an IJsonStorable record; writeMore and readMore add what is not a stored member,
+    // and providers names the members that are refused when their stored value does not read (D77)
     public static void WriteRecordJson(
         SourceWriter writer,
         string type,
         bool versioned,
         IEnumerable<(string Property, string JsonName, StorageModel Storage)> members,
         System.Action<SourceWriter>? writeMore = null,
-        IReadOnlyList<string>? readMore = null)
+        IReadOnlyList<string>? readMore = null,
+        IEnumerable<string>? providers = null)
     {
         var storage = new StorageEmitter();
         var list = members.ToList();
+        var ensured = list.Where(member => providers?.Contains(member.Property) is true).ToList();
 
         writer.Line();
         Docs.WriteInheritDoc(writer);
@@ -64,6 +67,13 @@ internal sealed class StorageEmitter
             writer.Line("value = null!;");
             writer.Line("if (element.ValueKind is not global::System.Text.Json.JsonValueKind.Object) return false;");
             if (versioned) writer.Line($"{Json}.EnsureSchemaVersion(element, SchemaVersion, Kind);");
+
+            foreach (var (_, name, model) in ensured)
+            {
+                var provider = $"{Json}.EnsureProvider<{model.Type}>";
+                writer.Line($"{provider}(element, {Names.Literal(name)}, {storage.Reader(model)}, Kind);");
+            }
+
             writer.Line();
 
             var assignments = storage.ReadMembers(list, "element", _ => "null").Concat(readMore ?? []).ToList();

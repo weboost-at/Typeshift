@@ -673,6 +673,7 @@ partial class SupportAgent
             value = null!;
             if (element.ValueKind is not global::System.Text.Json.JsonValueKind.Object) return false;
             global::Typeshift.Generated.StorableJson.EnsureSchemaVersion(element, SchemaVersion, Kind);
+            global::Typeshift.Generated.StorableJson.EnsureProvider<string>(element, "provider", global::Typeshift.Generated.StorableJson.TryRead, Kind);
 
             value = new()
             {
@@ -848,7 +849,7 @@ namespace System.Runtime.CompilerServices
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 10)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 11)]
 
 namespace Typeshift.Generated;
 

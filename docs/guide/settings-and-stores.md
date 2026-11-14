@@ -295,6 +295,13 @@ unknown, counts as missing, so the layer below applies. When a configurable memb
 stored value replaces the whole object, so members missing from its stored JSON take that type's defaults, not the
 values of the layer below.
 
+A stored `provider` or `summaryProvider` is the exception. One that cannot be read as the agent's
+[provider id type](./models.md#the-provider-id-type), such as the name of an enum member you renamed, fails the
+load with a `JsonException` that names the stored text. Read as missing, it would send the model stored next to it
+to the provider of the layer below. So the runs that load such settings fail, and so does `LoadSettingsAsync`, until
+the stored value is one the type has: change it in your store, as you would
+[migrate older settings](./implementing-a-store.md#migrate-older-settings). A JSON `null` still counts as missing.
+
 Dates and times are strings of one format each. Keep to it when you edit stored JSON by hand, because a value in
 another format counts as missing too:
 

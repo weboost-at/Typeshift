@@ -346,6 +346,9 @@ internal sealed class ScriptedChatClientProvider : IChatClientProvider<Provider>
 - With `Configurable(o => o.ModelId)`, the agent's `Settings` store its provider, so a user's pick is a `Provider`
   too. An agent that makes its model configurable and names no provider in code, with `WithModel(model)` or without
   `WithModel`, stores providers as strings.
+- A stored provider that the type no longer has, such as an enum member you renamed or removed, fails the load of
+  its settings and every run that applies them, naming the stored text
+  ([The stored JSON](./settings-and-stores.md#the-stored-json)). Change the stored values before you ship the rename.
 - `Settings` store a provider as a single value, so an agent whose `Settings` store one needs a string, a number, a
   `Guid` or an enum ([TSH029](./diagnostics.md#tsh029)). The generated `Settings` name the type in a file of their
   own, so it may not be nested as `private` or `protected` or be a `file` type, and a public agent's must be public

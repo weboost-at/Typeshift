@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Typeshift.Generated;
 using Typeshift.Tests.Agents.Support;
+using Typeshift.Tests.Compaction.Support;
 using Typeshift.Tests.Hosting.Support;
 using Typeshift.Tests.Persistence.Support;
 using FluentAssertions;
@@ -96,6 +97,58 @@ public class SettingsJsonTests : UnitTestBase
 
         // Assert
         json.Should().Be("""{"provider":"Other"}""");
+    }
+
+    [Fact]
+    public void Given_A_Stored_Provider_Its_Enum_No_Longer_Has_Reading_Throws_Naming_The_Stored_Text()
+    {
+        // Act
+        var read = () => VendorAgent.Settings.Deserialize("""{"provider":"Anthropic","model":"claude"}""");
+
+        // Assert
+        read.Should()
+            .Throw<JsonException>()
+            .WithMessage($"*'{VendorAgent.Settings.Kind}'*provider \"Anthropic\"*no Vendor*");
+    }
+
+    [Fact]
+    public void Given_A_Stored_Provider_Of_Another_Json_Type_Reading_Throws_Naming_The_Stored_Text()
+    {
+        // Act
+        var read = () => ProbeAgent.Settings.Deserialize("""{"provider":42}""");
+
+        // Assert
+        read.Should().Throw<JsonException>().WithMessage("*provider 42*no string*");
+    }
+
+    [Fact]
+    public void Given_A_Stored_Summary_Provider_That_Does_Not_Read_Reading_Throws_Naming_It()
+    {
+        // Act
+        var read = () => CompactingAgent.Settings.Deserialize("""{"summaryProvider":["openai"]}""");
+
+        // Assert
+        read.Should().Throw<JsonException>().WithMessage("*summaryProvider [\"openai\"]*");
+    }
+
+    [Fact]
+    public void Given_A_Stored_Provider_Of_Null_It_Reads_As_Absent()
+    {
+        // Act
+        var read = VendorAgent.Settings.Deserialize("""{"provider":null,"model":"claude"}""");
+
+        // Assert
+        read.Should().Be(new VendorAgent.Settings { Model = "claude" });
+    }
+
+    [Fact]
+    public void Given_A_Provider_That_Does_Not_Read_System_Text_Json_Refuses_The_Settings_Too()
+    {
+        // Act
+        var read = () => JsonSerializer.Deserialize<VendorAgent.Settings>("""{"provider":"Anthropic"}""");
+
+        // Assert
+        read.Should().Throw<JsonException>().WithMessage("*provider \"Anthropic\"*");
     }
 
     [Fact]

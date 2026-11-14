@@ -1,5 +1,7 @@
+using System.Text.Json;
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Conversations.Support;
+using Typeshift.Tests.Hosting.Support;
 using Typeshift.Tests.Persistence.Support;
 using Typeshift.Tests.Testing.Fakes;
 using Typeshift.Tests.Tools.Support;
@@ -26,6 +28,33 @@ public class StoredSettingsTests : AgentTestBase
 
         // Assert
         Models.Should().Equal(new ProvidedModel(Data.Agent.Provider, Data.Agent.Model));
+    }
+
+    [Fact]
+    public async Task Given_A_Stored_Provider_That_No_Longer_Reads_A_Run_With_Its_Settings_Id_Throws_Naming_It()
+    {
+        // Arrange
+        var host = await StoreAsync("""{"provider":"Anthropic","model":"claude"}""");
+
+        // Act
+        var run = () => host.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<JsonException>().WithMessage("*provider \"Anthropic\"*");
+        Models.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Stored_Provider_That_No_Longer_Reads_Loading_The_Settings_Throws_Naming_It()
+    {
+        // Arrange
+        var host = await StoreAsync("""{"provider":"Anthropic","model":"claude"}""");
+
+        // Act
+        var load = () => host.LoadSettingsAsync(Ct);
+
+        // Assert
+        await load.Should().ThrowAsync<JsonException>().WithMessage("*provider \"Anthropic\"*");
     }
 
     [Fact]
@@ -296,5 +325,14 @@ public class StoredSettingsTests : AgentTestBase
 
         // Assert
         await load.Should().ThrowAsync<InvalidOperationException>().WithMessage("*ISettingsStore*");
+    }
+
+    // The vendor agent's host over settings stored as the JSON reads, as an earlier version of the app wrote them
+    private async Task<AgentHost<VendorAgent>> StoreAsync(string json)
+    {
+        var store = Services.GetRequiredService<ITypeshiftStore<Guid>>();
+        await store.SaveAsync(Data.Persistence.SettingsId, VendorAgent.Settings.Kind, json, 0, Ct);
+
+        return Host<VendorAgent>().WithSettingsId(Data.Persistence.SettingsId);
     }
 }

@@ -534,6 +534,10 @@ row holds, or migrate the rows with a script over your database. Each save write
 migrated document reaches it in your database with its next save. Typeshift reads a schema version you leave as it
 is, so a renamed or removed member reads as missing ([The stored JSON](./settings-and-stores.md#the-stored-json)).
 
+One stored value needs the migration: a `provider` or `summaryProvider` whose value the agent's provider id type no
+longer has, after you renamed a member of an enum of providers. It fails the load where a member reads as missing,
+so rewrite it the same way, in `LoadAsync` or with a script.
+
 ## Check your store
 
 `VerifyAsync` runs this page's rules for keys, versions, conversation entries and decisions against your store. Call

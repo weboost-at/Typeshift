@@ -22,7 +22,8 @@ public delegate bool StorableReader<T>(JsonElement element, out T value);
 
 /// <summary>
 /// Writes and reads the JSON of generated settings, value by value and without reflection. Generated code calls it; a
-/// missing or mistyped value reads as absent, so it keeps the layer below.
+/// missing or mistyped value reads as absent, so it keeps the layer below. A stored provider that does not read is
+/// refused instead, since the model beside it would go to the provider of the layer below.
 /// </summary>
 // D44: source generators do not see each other's output, so no JsonSerializerContext can cover generated settings
 [EditorBrowsable(EditorBrowsableState.Never)]
@@ -101,6 +102,32 @@ public static class StorableJson
             { ValueKind: JsonValueKind.Number } stored when stored.TryGetInt32(out var written) => written,
             _ => throw new JsonException($"The {SchemaVersionMember} of '{kind}' must be a whole number.")
         };
+
+    /// <summary>
+    /// Refuses a document whose stored provider is no value of the agent's provider id type, such as the name of an
+    /// enum member the enum no longer has. A missing provider and a JSON null keep the layer below.
+    /// </summary>
+    /// <typeparam name="TProviderId">The agent's provider id type.</typeparam>
+    /// <param name="element">The document's object.</param>
+    /// <param name="name">The provider's JSON name.</param>
+    /// <param name="read">Reads a provider of the type.</param>
+    /// <param name="kind">The document's kind, for the message.</param>
+    /// <exception cref="JsonException">The stored provider is no value of the type.</exception>
+    // D77: read as absent, the provider would leave the model stored beside it to the provider of the layer below
+    public static void EnsureProvider<TProviderId>(
+        JsonElement element,
+        string name,
+        StorableReader<TProviderId> read,
+        string kind)
+    {
+        var stored = Member(element, name);
+        if (stored.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null || read(stored, out _)) return;
+
+        throw new JsonException(
+            $"The '{kind}' settings store the {name} {stored.GetRawText()}, which is no "
+            + $"{TypeNames.Of<TProviderId>()}, the type the agent names its providers by: change the stored value to "
+            + "a provider of that type.");
+    }
 
     /// <summary>
     /// Finds a member of an object.
