@@ -194,7 +194,7 @@ internal sealed class StorageEmitter
                 break;
 
             case StorageKind.Map or StorageKind.EnumMap:
-                // ToString would put the build machine's minus sign before a negative key without a name
+                // ToString would put the current culture's minus sign before a negative key without a name
                 var key = model.Kind == StorageKind.Map
                     ? "writer.WritePropertyName(entry.Key);"
                     : $"{Json}.WriteEnumKey(writer, entry.Key);";
