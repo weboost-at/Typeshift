@@ -613,7 +613,7 @@ internal partial class EchoToolset : Toolset
 <!-- endSnippet -->
 
 The generator writes a factory `CreateEcho` for the tool `echo`. Rename your member.
-[Generated members](./generated-members.md) lists the names.
+[Generated members](./generated-members.md#names-and-hidden-members) lists the names, the hidden ones included.
 
 The class itself is reported when it has such a name, since a class cannot hold a member of its own name: an agent
 named `Settings`, or a toolset named `EchoFunction` with a tool `echo`. Rename the class, or give the tool another
