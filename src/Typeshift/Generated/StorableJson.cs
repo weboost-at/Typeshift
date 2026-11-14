@@ -345,11 +345,13 @@ public static class StorableJson
     // means, so a text reads only when it is what the value is written as
     public static bool TryRead(JsonElement element, out TimeSpan value)
     {
-        value = default;
-
-        return TryRead(element, out string text)
+        if (TryRead(element, out string text)
             && TimeSpan.TryParseExact(text, "c", CultureInfo.InvariantCulture, out value)
-            && value.ToString("c", CultureInfo.InvariantCulture) == text;
+            && value.ToString("c", CultureInfo.InvariantCulture) == text)
+            return true;
+
+        value = default;
+        return false;
     }
 
     /// <summary>

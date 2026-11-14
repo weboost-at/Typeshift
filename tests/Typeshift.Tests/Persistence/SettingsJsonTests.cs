@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Typeshift.Generated;
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Hosting.Support;
 using Typeshift.Tests.Persistence.Support;
@@ -273,6 +274,16 @@ public class SettingsJsonTests : UnitTestBase
 
         // Assert
         read.Inspect.Span.Should().BeNull();
+    }
+
+    [Fact]
+    public void Given_A_Time_Span_In_Another_Form_Than_Settings_Write_Reading_It_Yields_No_Value()
+    {
+        // Act
+        StorableJson.TryRead(JsonElement.Parse("\"30\""), out TimeSpan span);
+
+        // Assert
+        span.Should().Be(default);
     }
 
     [Theory]
