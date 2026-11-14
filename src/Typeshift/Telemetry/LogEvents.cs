@@ -106,4 +106,7 @@ internal static partial class LogEvents
 
     [LoggerMessage(13, LogLevel.Debug, "Waiting for {LockFile}, which another save holds.")]
     public static partial void FileStoreWaiting(ILogger logger, string lockFile);
+
+    [LoggerMessage(14, LogLevel.Information, "The file store keeps agents' own settings in {Folder}.")]
+    public static partial void FileStoreFolder(ILogger logger, string folder);
 }

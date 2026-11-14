@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Persistence.Support;
+using Typeshift.Tests.Testing.Fakes;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -377,6 +378,23 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
 
         // Assert
         log.Messages.Should().ContainSingle(message => message.Contains($"{OnlyFile()}.lock"));
+    }
+
+    [Fact]
+    public async Task Given_Two_Saves_The_Store_Logs_The_Folder_It_Keeps_The_Settings_In_Once()
+    {
+        // Arrange
+        var log = new EventLog();
+        var store = new FileAgentSettingsStore(_folder, Time, log.CreateLogger("Typeshift"));
+
+        // Act
+        await store.SaveAsync(Data.Persistence.Kind, "{}", 0, Ct);
+        await store.SaveAsync(Data.Persistence.Kind, "{}", 1, Ct);
+
+        // Assert
+        log.Of("FileStoreFolder").Select(logged => logged.Message)
+            .Should()
+            .Equal($"The file store keeps agents' own settings in {_folder}.");
     }
 
     [Fact]

@@ -132,6 +132,7 @@ Filter and alert on those, since the text of a message may change:
 | 11 | `Compacted` | Debug | [Compaction](./conversations.md#compaction) shrank a model call. The entry holds the messages and the estimated tokens before and after. |
 | 12 | `RuleDecided` | Debug | An [approval rule](./tool-approval.md#approval-rules) approved or rejected a call. The entry holds the rule's type, the tool and the call's id. |
 | 13 | `FileStoreWaiting` | Debug | A save of the [file store](./settings-and-stores.md#keep-them-in-a-file) waits for a lock file that another save holds. |
+| 14 | `FileStoreFolder` | Information | The file store saved for the first time. The entry holds the folder that keeps the settings. |
 
 The `Debug` events answer why a run used a model or ran a tool without asking. Turn them on for the category, for
 example in `appsettings.json`:

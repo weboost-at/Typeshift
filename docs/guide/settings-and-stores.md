@@ -161,6 +161,7 @@ folder, since a save takes a lock file of its kind first.
 - Without a `Folder`, the store lies in a `typeshift` folder under `AppContext.BaseDirectory`, beside your app's
   assemblies, so a service finds it whatever its current directory is. Set one when your app may not write there, as
   is usual for an install folder under Program Files.
+- The first save logs the folder, at `Information` ([Logs](./observability.md#logs)).
 - A relative `Folder` resolves against the current directory when you register the store, which for a service may be
   the system's folder.
 - Characters other than ASCII letters, digits, `_` and `-` are escaped in the file name, so any kind has a file of its
@@ -178,6 +179,13 @@ folder, since a save takes a lock file of its kind first.
   then need a store of their own ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call)).
   `InMemoryTypeshiftStore<TId>` beside the file store keeps those in memory and leaves the agents' own settings to
   the files, whichever of the two you register first.
+
+::: warning The default folder does not outlive a deployment
+`AppContext.BaseDirectory` is the output of your build or your publish. A build in another configuration, a cleaned
+`bin` folder, a publish to a new folder and a new container image each start with an empty `typeshift` folder, so
+your agents run on the settings in their code again, and nothing fails. An app you deploy sets `Folder` to a place
+outside its output that the deployment keeps, such as a mounted volume or a data directory.
+:::
 
 ### Settings under an id, such as per customer
 

@@ -899,7 +899,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   unfinished when their process died. `WithFileStore(configure)`, a member of the chain like every other call,
   and `FileStoreOptions` are the only public parts, and `Folder` the only option. It defaults to `typeshift` under
   `AppContext.BaseDirectory`, which a service finds whatever its current directory, resolves at registration, and a
-  blank one throws there, naming the option. The settings get the fixed `settings` folder in it, so a store of other data can take a folder beside it. The
+  blank one throws there, naming the option. That default lies in the output of the build or the publish, so
+  another configuration, a cleaned `bin` folder, a publish to a new folder and a new container image start
+  without the saved settings: the owner kept it, the guide says so in a warning, and the store logs its folder at
+  the first save. The settings get the fixed `settings` folder in it, so a store of other data can take a folder beside it. The
   container builds the internal `FileAgentSettingsStore` over that folder with the app's `TimeProvider`,
   through the registration `WithStore<T>()` uses, so another store of agents' own settings beside it throws (D38):
   a file store of another folder too, while the same folder twice is one store, and the memory store leaves them
@@ -916,9 +919,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `FileSettingsOptions`, which exposed the settings outside the file store's configuration; a settings folder of its
   own option, relative to `Folder` or absolute, a second setting where one folder is enough; a relative default
   folder, which a service resolves against the system's folder; a public `FileAgentSettingsStore` registered with
-  `WithStore(store)`, which made every app create a class of Typeshift's and hand it the clock itself;
-  `WithFileStore` as an extension method in `Microsoft.Extensions.DependencyInjection` (up to 0.1.0-alpha.6),
-  which a file around `TypeshiftRuntime.Create` with a `using` of Typeshift alone did not find (CS1061).
+  `WithStore(store)`, which made every app create a class of Typeshift's and hand it the clock itself; a default
+  under `LocalApplicationData` and the entry assembly's name, which the owner turned down: it moves the settings of
+  apps that rely on today's place, and a container loses either folder without a volume; `WithFileStore` as an
+  extension method in `Microsoft.Extensions.DependencyInjection` (up to 0.1.0-alpha.6), which a file around
+  `TypeshiftRuntime.Create` with a `using` of Typeshift alone did not find (CS1061).
 
 ### D68. The package turns XML docs on
 

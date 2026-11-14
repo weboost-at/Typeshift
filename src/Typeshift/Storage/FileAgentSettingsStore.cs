@@ -31,6 +31,8 @@ internal sealed class FileAgentSettingsStore : IAgentSettingsStore
 
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _saves = [];
 
+    private int _announced;
+
     // The folder is absolute, and the first save creates it when it is missing
     public FileAgentSettingsStore(string directory, TimeProvider? time = null, ILogger? logger = null)
     {
@@ -56,6 +58,11 @@ internal sealed class FileAgentSettingsStore : IAgentSettingsStore
         try
         {
             Directory.CreateDirectory(_directory);
+
+            // D67: the default folder lies in the app's output, which a new build or deployment leaves behind, so
+            // the first save says where the settings are
+            if (Interlocked.Exchange(ref _announced, 1) == 0) LogEvents.FileStoreFolder(_logger, _directory);
+
             await using var held = await LockAsync($"{path}.lock", ct);
             DeleteUnfinished(path);
 
