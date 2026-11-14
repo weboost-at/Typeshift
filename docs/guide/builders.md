@@ -16,7 +16,10 @@ Every chain follows these rules, and [How Typeshift reads your code](./how-types
 - Every declaration sits directly in the constructor ([TSH014](./diagnostics.md#tsh014)).
 - Each declaration is one chain in one statement ([TSH015](./diagnostics.md#tsh015)).
 - Names, descriptions, the storage kind and the schema version are constants ([TSH002](./diagnostics.md#tsh002)).
-- Each toolset derives from `Toolset` and each agent from `Agent` directly ([TSH017](./diagnostics.md#tsh017)).
+- A declaration names constants, methods and types of your own code, not ones a source generator writes
+  ([TSH032](./diagnostics.md#tsh032)).
+- Each toolset derives from `Toolset` and each agent from `Agent` directly, and names that base itself, not through a
+  using alias ([TSH017](./diagnostics.md#tsh017)).
 - Each toolset and agent is a `partial` class, and so is every class it is nested in
   ([TSH001](./diagnostics.md#tsh001)).
 - Each has a public or internal parameterless constructor, is not nested as `private` or `protected` and is no

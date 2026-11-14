@@ -31,6 +31,10 @@ Read `docs/contributing/architecture.md`, "The generator and the analyzer", firs
   `Names.ToolsetMembers` and `AgentParser.Members` as the lists of those names.
 - An agent's picks from a tool list do not bind in the generator, whose own output the list is: read them from
   syntax, walking the chain with `ConstructorChains.GetChain`, never from symbols.
+- The generator parses a compilation without any source generator's output, its own included, and the analyzer one
+  with all of it. A declaration that names such code is dropped by the generator alone, so the analyzer compares
+  its model with the stamps of the generated code (TSH032, `TypeshiftAnalyzer.ReportAgentsReadDifferently` and
+  `ParseToolset`). What a declaration can lose that way and a stamp holds belongs in that comparison.
 - What an agent needs of a toolset goes through `ToolsetSummary`, built from the model in the compilation and from the
   `[GeneratedTool]` stamps of a reference; a new field goes into both, and a stamp change raises
   `ReferenceReader.StampVersion` (D7).
