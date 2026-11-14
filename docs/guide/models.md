@@ -244,10 +244,12 @@ Wrap what concerns a single request, such as logging or a policy of your own wri
 the `Trace` level, `UseLogging()` logs every message and answer in full, and those are your customers' data
 ([Message content](./observability.md#message-content)). Two wrappers repeat what Typeshift already does:
 
-- `UseFunctionInvocation()` runs a second tool loop inside the one Typeshift runs. Its tool calls bypass your
-  [tool middleware](./middleware.md) and the run's limits, such as `WithMaxToolIterations`, and a tool that
-  [requires approval](./tool-approval.md) never runs there: the model reads that the call was not approved, and your
-  app is not asked.
+- `UseFunctionInvocation()` puts a second tool loop inside the one Typeshift runs, where tool calls would bypass
+  your [tool middleware](./middleware.md) and the run's limits, such as `WithMaxToolIterations`. A run on such a
+  client fails before it calls the model, with an `InvalidOperationException` that says to register the client
+  without it. A wrapper of your own that hides the loop from `GetService` goes unnoticed. A tool that
+  [requires approval](./tool-approval.md) still never runs there: the model reads that the call was not approved,
+  your app is not asked, and Typeshift logs the event `CallWithoutVerdict` ([Logs](./observability.md#logs)).
 - `UseOpenTelemetry()` records every model call again, on Microsoft.Extensions.AI's own source and meter. Typeshift
   already writes a `chat {model}` span and the metrics for each call ([Spans](./observability.md#spans)), so an app that
   listens to both sees every call twice.

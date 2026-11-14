@@ -227,6 +227,17 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
 
         var client = await ChatClients.GetAsync(_services, provider, model, ct)
             ?? throw new InvalidOperationException(ChatClients.NoClient($"the agent '{Agent.Name}'", provider, model));
+
+        // D29: a tool loop below Typeshift's own would run tools past the gate, the tool middleware and the run's
+        // limits, so the client that brings one is refused before it is called
+        if (client.GetService<FunctionInvokingChatClient>() is not null)
+        {
+            throw new InvalidOperationException(
+                $"The chat client that serves the agent '{Agent.Name}' runs a tool loop of its own, as one registered "
+                + "with UseFunctionInvocation() does. Typeshift runs the tool loop of a run itself, with approval, "
+                + "tool middleware and the run's limits in it: register the client without UseFunctionInvocation().");
+        }
+
         var run = resolved?.RunOptions ?? Agent.RunOptions;
 
         // D29: outermost the conversation, then run middleware, context and the mode above the tool loop, the gate

@@ -1,4 +1,5 @@
 using Typeshift.Tests.Approval.Support;
+using Typeshift.Tests.Decisions.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -119,13 +120,13 @@ public class ToolLoopGuardTests : ApprovalTestBase
     }
 
     [Fact]
-    public async Task Given_A_Provider_Client_With_A_Tool_Loop_Of_Its_Own_A_Tool_That_Requires_Approval_Does_Not_Run()
+    public async Task Given_A_Provider_Client_That_Hides_Its_Own_Tool_Loop_A_Tool_That_Requires_Approval_Does_Not_Run()
     {
         // Arrange
         var calls = new ToolCalls();
         var services = new ServiceCollection();
         services.AddTypeshift().WithStore<InMemoryTypeshiftStore<Guid>>();
-        services.AddChatClient(ChatClient.AsBuilder().UseFunctionInvocation().Build());
+        services.AddChatClient(new OpaqueChatClient(ChatClient.AsBuilder().UseFunctionInvocation().Build()));
         services.AddSingleton(calls);
 
         await using var provider = services.BuildServiceProvider();

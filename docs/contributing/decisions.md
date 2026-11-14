@@ -528,6 +528,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   never share a limit.
   The layers below the conversation's run only inside a run it began: the tool loop taken out of the created client
   with `GetService` and called on its own throws at the gate, where it would store nothing and count no model call.
+  A provider's client that runs a tool loop of its own, as one registered with `UseFunctionInvocation()` does, is
+  refused when the run's client is created, with an `InvalidOperationException` that names the call: its loop sits
+  below the gate, the tool middleware and the run's limits, so tools ran past all three, and a tool that requires
+  approval read "not approved" (D81). The check asks the client for a `FunctionInvokingChatClient`; a wrapper that
+  answers no `GetService` hides the loop, and there the gate's refusal stays the last line. A summary's client is
+  not checked, since a summary call offers no tools.
 - **Where:** `AgentHost.cs`.
 
 ### D30. Middleware: one interface around runs, one around tool calls

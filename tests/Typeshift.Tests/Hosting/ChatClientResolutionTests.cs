@@ -242,6 +242,36 @@ public class ChatClientResolutionTests : HostTestBase
     }
 
     [Fact]
+    public async Task Given_A_Registered_Client_With_Its_Own_Tool_Loop_The_Run_Throws_Naming_It()
+    {
+        // Arrange
+        _register = services => services.AddChatClient(ChatClient).UseFunctionInvocation();
+
+        // Act
+        var run = () => Host<SchemaAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(
+            $"The chat client that serves the agent '{SchemaAgent.AgentName}' runs a tool loop of its own, as one "
+            + "registered with UseFunctionInvocation() does. Typeshift runs the tool loop of a run itself, with "
+            + "approval, tool middleware and the run's limits in it: register the client without "
+            + "UseFunctionInvocation().");
+    }
+
+    [Fact]
+    public async Task Given_A_Registered_Client_With_Its_Own_Tool_Loop_The_Run_Calls_No_Model()
+    {
+        // Arrange
+        _register = services => services.AddChatClient(ChatClient).UseFunctionInvocation();
+
+        // Act
+        await Record.ExceptionAsync(() => Host<SchemaAgent>().RunAsync(Data.Tool.Question, ct: Ct));
+
+        // Assert
+        ChatClient.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Given_No_Model_And_No_Chat_Client_The_Run_Fails_Saying_How_To_Serve_It()
     {
         // Act

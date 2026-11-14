@@ -131,6 +131,11 @@ All notable changes to this project are documented here. The format follows
   host from what `BuildServiceProvider()` returned creates a scope first, or moves to `TypeshiftRuntime.Create`.
   Before, such a host ran every request on one instance of each scoped service where scopes are not validated, so
   one customer's chat client provider and its key served all customers.
+- **Breaking:** a run fails before its first model call when its chat client runs a tool loop of its own, as one
+  registered with `services.AddChatClient(client).UseFunctionInvocation()` does. Register the client without
+  `UseFunctionInvocation()`: Typeshift runs the tool loop. Before, the tools of such a run ran outside tool
+  middleware and the run's limits, and a tool that requires approval read "not approved" without your app being
+  asked.
 - **Breaking:** a store interface has one store. A chain call whose store implements an interface that another
   call's store is registered as throws an `InvalidOperationException` when the app registers it, naming both stores
   and the interface. Before, the last call won without a word: `WithFileStore()` followed by

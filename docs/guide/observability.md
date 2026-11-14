@@ -126,7 +126,7 @@ Filter and alert on those, since the text of a message may change:
 | 5 | `ContentNotRead` | Warning | A run loaded a conversation with contents this version of Microsoft.Extensions.AI cannot read, and goes on without them. The entry holds their number. |
 | 6 | `BackgroundAgentFailed` | Error | A [background sub-agent](./multi-agent.md#in-the-background) failed with an exception the model does not read. The entry holds the exception. |
 | 7 | `SummaryFailed` | Warning | A call that writes a compaction summary failed. The entry holds the exception, the model and what the run does next ([The summary model](./models.md#the-summary-model)). |
-| 8 | `CallWithoutVerdict` | Error | A call of a tool that requires approval reached the tool loop without a decision about it, so it did not run. |
+| 8 | `CallWithoutVerdict` | Error | A call of a tool that requires approval reached the tool loop without a decision about it, so it did not run. A chat client that hides a tool loop of its own causes it ([Wrapping a client](./models.md#wrapping-a-client)). |
 | 9 | `UpdatesDropped` | Warning | A watcher of [live updates](./conversations.md#live-updates) fell behind and lost its oldest updates. Logged once for each watcher. |
 | 10 | `RunResolved` | Debug | A run got its chat client. The entry holds the agent, the model and the provider it resolved, the client's type, and the settings that applied, in their order. |
 | 11 | `Compacted` | Debug | [Compaction](./conversations.md#compaction) shrank a model call. The entry holds the messages and the estimated tokens before and after. |
