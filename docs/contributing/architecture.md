@@ -172,8 +172,10 @@ open-generic registration, and `WithConversationTracker<TId>()` closes one for N
 `ModeChatClient` sits above `FunctionInvokingChatClient`, around each pass of a run. It hands the loop the run's
 tools, those that require approval inside a `GatedFunction`, which hides the mark the loop would pause on. In plan
 mode it offers only the read-only tools and `exit_plan_mode`, and appends the planning instruction. In every mode it
-adds `ask_user` for an agent that declares `UseQuestions()`, in a host's run with a conversation (D82). It builds
-the loop of the pass with what is left of the run's limit.
+adds `ask_user` for an agent that declares `UseQuestions()`, in a host's run with a conversation (D82). The run's
+tools are complete here, the context providers' included, so this is where `OfferedTools` fails a run whose tools
+share a name or take one the run offers itself (D35). It builds the loop of the pass with what is left of the run's
+limit.
 
 `DecisionChatClient`, the gate, sits below the loop and above the checkpoints, so it reads each model response
 before the loop does. It gives every call that needs one a verdict on `ConversationRun`: the approval rules first,
