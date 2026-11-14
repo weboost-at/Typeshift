@@ -313,6 +313,9 @@ of a referenced project is checked too.
 A sub-agent is offered as a tool of its own name, so that name may be none of those a run offers itself
 ([TSH035](#tsh035)): an agent named `ask_user` cannot be a sub-agent.
 
+An abstract agent is reported too. The generator writes nothing for an abstract class and no class may derive from
+an agent ([TSH017](#tsh017)), so the use would name an agent that does not exist.
+
 ## TSH024
 
 **Sub-agent offers tools that need approval.** A sub-agent cannot stop and ask your app for approval, so in `Default`

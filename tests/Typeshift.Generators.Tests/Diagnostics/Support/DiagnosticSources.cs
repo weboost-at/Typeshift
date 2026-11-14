@@ -1265,6 +1265,28 @@ public static class DiagnosticSources
         }
         """;
 
+    // No class may derive from an agent (TSH017), so an abstract one is never generated
+    public const string AbstractAgentUsedAsASubAgent =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal abstract partial class BaseAgent : Agent
+        {
+            protected BaseAgent() => WithDescription("Is the base of nothing.");
+        }
+
+        internal partial class LeadAgent : Agent
+        {
+            public LeadAgent()
+            {
+                WithDescription("Leads.");
+                UseAgent<BaseAgent>();
+            }
+        }
+        """;
+
     public const string SubAgentWithoutDescription =
         """
         using Typeshift;

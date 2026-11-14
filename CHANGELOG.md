@@ -281,6 +281,8 @@ All notable changes to this project are documented here. The format follows
   TSH023, TSH024, TSH026, TSH027, TSH033, TSH034, TSH036 and TSH037, beside TSH031. They compare classes or
   projects, which an editor does on a build and not while you type. The table of the diagnostics page says for each
   diagnostic when it is reported.
+- TSH023 also reports `UseAgent<T>()` and `UseHandoff<T>()` of an abstract agent. The generator writes nothing for
+  an abstract class, so such a use compiled and had no agent behind it.
 
 ### Fixed
 

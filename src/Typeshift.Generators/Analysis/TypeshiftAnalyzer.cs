@@ -751,9 +751,24 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         {
             foreach (var use in uses)
             {
-                if (ResolveTarget(use.Target) is not { } target) continue;
-
                 var role = use.SubAgent ? "a sub-agent" : "a handoff target";
+
+                // The generator writes nothing for an abstract class, Agent itself included, so the use names an
+                // agent that nothing registers
+                if (use.Target.IsAbstract)
+                {
+                    Report(
+                        context,
+                        Descriptors.NotUsableAgent,
+                        use,
+                        use.Target.Name,
+                        role,
+                        "it is abstract, so no agent is generated for it; use an agent that is not abstract");
+
+                    continue;
+                }
+
+                if (ResolveTarget(use.Target) is not { } target) continue;
 
                 if (GetUnusableReason(target, use.SubAgent) is { } reason)
                 {

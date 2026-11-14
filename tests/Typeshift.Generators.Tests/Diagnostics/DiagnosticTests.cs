@@ -1527,6 +1527,20 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_An_Abstract_Agent_Used_As_A_Sub_Agent_TSH023_Is_Reported_On_The_Use()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AbstractAgentUsedAsASubAgent);
+
+        // Assert
+        run.Assert.Reports("TSH023", DiagnosticSeverity.Error, "UseAgent<BaseAgent>")
+            .GetMessage()
+            .Should()
+            .Be("'BaseAgent' cannot be a sub-agent: it is abstract, so no agent is generated for it; use an agent "
+                + "that is not abstract");
+    }
+
+    [Fact]
     public void Given_A_Sub_Agent_Described_By_Its_Summary_No_TSH023_Is_Reported()
     {
         // Act
