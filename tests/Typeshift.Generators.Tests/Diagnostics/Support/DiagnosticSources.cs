@@ -711,6 +711,71 @@ public static class DiagnosticSources
         }
         """;
 
+    // A document saved under version 0 is read back as version 1, which this code would refuse as newer
+    public const string SchemaVersionOfZero =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class VersionedAgent : Agent
+        {
+            public VersionedAgent()
+            {
+                WithDescription("Has a version.");
+                WithSchemaVersion(0);
+            }
+        }
+        """;
+
+    public const string NegativeSchemaVersion =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class VersionedAgent : Agent
+        {
+            public VersionedAgent()
+            {
+                WithDescription("Has a version.");
+                WithSchemaVersion(-2);
+            }
+        }
+        """;
+
+    public const string EmptyStorageKind =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class StoredAgent : Agent
+        {
+            public StoredAgent()
+            {
+                WithDescription("Stores.");
+                WithStorageKind("");
+            }
+        }
+        """;
+
+    public const string BlankStorageKind =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class StoredAgent : Agent
+        {
+            public StoredAgent()
+            {
+                WithDescription("Stores.");
+                WithStorageKind("  ");
+            }
+        }
+        """;
+
     public const string UnstorableOption =
         """
         using Typeshift;

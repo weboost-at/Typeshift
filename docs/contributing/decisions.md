@@ -939,7 +939,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Decision:** `IStorable.Kind`: for an agent's `Settings` its `WithStorageKind("...")` if it has one, or else its
   class name; `conversation_entry` for conversation entries. Moving an agent to another namespace keeps its data;
-  renaming the class keeps it once `WithStorageKind` pins the old name. Two agents of one kind are TSH022.
+  renaming the class keeps it once `WithStorageKind` pins the old name. Two agents of one kind are TSH022, and a
+  kind that is empty or blank is TSH039, since a store keeps the settings under it.
 - **Alternatives:** the agent's name, which would need unique names (out of scope); the full type name (v0).
 
 ### D40. A schema version per document
@@ -947,7 +948,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Decision:** `IStorable.SchemaVersion`, 1 for `Settings` until `WithSchemaVersion(n)` raises it. The JSON carries it
   as `"$schemaVersion"`, left out at 1, and `Deserialize` refuses a newer one; migrating older documents is the app's
-  job, in its store or its database.
+  job, in its store or its database. A version below 1 is TSH039: its documents would name none, read back as
+  version 1 and be refused as newer than the code that wrote them.
 - **Details:** a store keeps the JSON and a version and nothing next to them. A schema version beside the JSON gave
   every store a column and every save a parameter, and a JSON library that read the JSON alone never saw it.
   `ConversationEntry` carries its schema version the same way, and `System.Text.Json` and Newtonsoft.Json check it too,

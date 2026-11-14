@@ -48,6 +48,7 @@ a compiler error inside generated code.
 | [TSH036](#tsh036) | Warning | Conversation store keeps no decisions |
 | [TSH037](#tsh037) | Warning | Configurable mode can turn approval off |
 | [TSH038](#tsh038) | Warning | Model fills a settings or service parameter |
+| [TSH039](#tsh039) | Error | Declared value cannot be used |
 
 TSH021 is retired: the diagnostic it named is gone, and ids are never reused.
 
@@ -493,6 +494,20 @@ A type that JSON reads is not reported: a collection interface such as `IReadOnl
 System.Text.Json such as `JsonNode`, and a type that carries `[JsonConverter]`, `[JsonPolymorphic]` or
 `[JsonDerivedType]`. When the model is meant to fill the parameter, for example through a converter that your JSON
 options register, disable the warning at the parameter.
+
+## TSH039
+
+**Declared value cannot be used.** The value is a constant, as [TSH002](#tsh002) asks, but no store could keep
+settings under it:
+
+- `WithSchemaVersion(n)` with `n` below 1. A stored document that names no schema version counts as version 1, so
+  settings saved under version 0 would read back as newer than your code, and every later run would fail to load
+  them. Start at 1, which an agent has without the call, and raise it from there.
+- `WithStorageKind("")`, or a kind of spaces. A store keeps the agent's settings under the kind, so it has to name
+  something. Pass a name, or remove the call to keep the class name.
+
+The agent keeps its default in the generated code, schema version 1 or the kind of its class, until you fix the
+value.
 
 ## Related
 

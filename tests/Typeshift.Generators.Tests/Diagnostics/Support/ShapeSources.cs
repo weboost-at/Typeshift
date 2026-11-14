@@ -1083,22 +1083,6 @@ public static class ShapeSources
         }
         """;
 
-    public const string NegativeSchemaVersion =
-        """
-        using Typeshift;
-
-        namespace Demo;
-
-        internal partial class VersionedAgent : Agent
-        {
-            public VersionedAgent()
-            {
-                WithDescription("Has a version.");
-                WithSchemaVersion(-2);
-            }
-        }
-        """;
-
     public const string ConstructorWithOtherStatements =
         """
         using System.Collections.Generic;

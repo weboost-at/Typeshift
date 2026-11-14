@@ -163,16 +163,46 @@ internal static class AgentParser
                     ?? declarations.Description;
                 break;
 
-            // D39, D40: what every stored document of the agent names, so both are read as constants
+            // D39, D40: what every stored document of the agent names, so both are read as constants. A value no
+            // store could keep is reported, and the agent keeps its default, so the generated code stays valid
             case "WithStorageKind":
-                declarations.Kind = ReadConstant(call, "storage kind", reporter) ?? declarations.Kind;
+                if (ReadConstant(call, "storage kind", reporter) is not { } kind) break;
+
+                if (string.IsNullOrWhiteSpace(kind))
+                {
+                    reporter.Report(
+                        Descriptors.UnusableValue,
+                        call.Arguments[0].Syntax,
+                        "storage kind",
+                        "not be empty",
+                        "a store keeps the agent's settings under it");
+                }
+                else
+                {
+                    declarations.Kind = kind;
+                }
+
                 break;
 
             case "WithSchemaVersion":
-                if (call.Arguments[0].Value.ConstantValue is { HasValue: true, Value: int version })
-                    declarations.SchemaVersion = version;
-                else
+                if (call.Arguments[0].Value.ConstantValue is not { HasValue: true, Value: int version })
+                {
                     reporter.Report(Descriptors.NotConstant, call.Arguments[0].Syntax, "schema version");
+                }
+                else if (version < 1)
+                {
+                    reporter.Report(
+                        Descriptors.UnusableValue,
+                        call.Arguments[0].Syntax,
+                        "schema version",
+                        "be 1 or more",
+                        "a stored document that names none counts as version 1, and would read as newer than this "
+                        + "code");
+                }
+                else
+                {
+                    declarations.SchemaVersion = version;
+                }
 
                 break;
 

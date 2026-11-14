@@ -258,8 +258,9 @@ What is stored is the record's JSON: camelCase, with the tools nested under `"to
 }
 ```
 
-An agent whose `WithSchemaVersion(n)` raised its schema version above 1 also writes `"$schemaVersion": n` first.
-`System.Text.Json` writes and reads the same JSON, so an endpoint that binds `SupportAgent.Settings` accepts and returns
+An agent whose `WithSchemaVersion(n)` raised its schema version above 1 also writes `"$schemaVersion": n` first. A
+document without that member counts as version 1, which is why a version below 1 does not build
+([TSH039](./diagnostics.md#tsh039)). `System.Text.Json` writes and reads the same JSON, so an endpoint that binds `SupportAgent.Settings` accepts and returns
 the JSON the store keeps. A stored member that cannot be read, because its value has the wrong type or its name is
 unknown, counts as missing, so the layer below applies. When a configurable member is itself a record or a class, a
 stored value replaces the whole object, so members missing from its stored JSON take that type's defaults, not the

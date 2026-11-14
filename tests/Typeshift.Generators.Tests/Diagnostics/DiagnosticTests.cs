@@ -926,6 +926,69 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Schema_Version_Below_1_TSH039_Is_Reported_On_The_Argument()
+    {
+        // Act
+        var run = Run(DiagnosticSources.SchemaVersionOfZero);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH039",
+            DiagnosticSeverity.Error,
+            "0",
+            message: "The schema version must be 1 or more: a stored document that names none counts as version 1, "
+                + "and would read as newer than this code");
+    }
+
+    [Fact]
+    public void Given_A_Negative_Schema_Version_TSH039_Is_Reported_On_The_Argument()
+    {
+        // Act
+        var run = Run(DiagnosticSources.NegativeSchemaVersion);
+
+        // Assert
+        run.Assert.Reports("TSH039", DiagnosticSeverity.Error, "-2");
+    }
+
+    [Fact]
+    public void Given_A_Schema_Version_Below_1_The_Agents_Settings_Keep_Version_1()
+    {
+        // Act
+        var run = Run(DiagnosticSources.NegativeSchemaVersion);
+
+        // Assert
+        run.Source("Demo.VersionedAgent.g.cs").Should().Contain("public static int SchemaVersion => 1;");
+    }
+
+    [Theory]
+    [InlineData(nameof(DiagnosticSources.EmptyStorageKind), "\"\"")]
+    [InlineData(nameof(DiagnosticSources.BlankStorageKind), "\"  \"")]
+    public void Given_An_Empty_Storage_Kind_TSH039_Is_Reported_On_The_Argument(string mistake, string argument)
+    {
+        // Arrange
+        var source = SourceCatalogs.Read(typeof(DiagnosticSources), mistake);
+
+        // Act
+        var run = Run(source);
+
+        // Assert
+        run.Assert.Reports("TSH039", DiagnosticSeverity.Error, argument)
+            .GetMessage()
+            .Should()
+            .Be("The storage kind must not be empty: a store keeps the agent's settings under it");
+    }
+
+    [Fact]
+    public void Given_An_Empty_Storage_Kind_The_Agents_Settings_Keep_The_Class_Name()
+    {
+        // Act
+        var run = Run(DiagnosticSources.EmptyStorageKind);
+
+        // Assert
+        run.Source("Demo.StoredAgent.g.cs").Should().Contain("public static string Kind => \"StoredAgent\";");
+    }
+
+    [Fact]
     public void Given_A_Configurable_Chat_Option_Settings_Cannot_Store_TSH012_Is_Reported_On_The_Pick()
     {
         // Act

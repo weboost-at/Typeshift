@@ -66,6 +66,23 @@ public class ToolsetGenerationTests : GeneratorTestBase
         run.Assert.CompilesCleanly();
     }
 
+    [Theory]
+    [InlineData("sv-SE")]
+    [InlineData("nb-NO")]
+    [InlineData("fi-FI")]
+    public void Given_A_Build_Machine_Whose_Culture_Writes_Another_Minus_Sign_Negative_Defaults_Compile(
+        string culture)
+    {
+        // Arrange
+        using var machine = new BuildCulture(culture);
+
+        // Act
+        var run = Run(ToolsetSources.Defaults);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
     [Fact]
     public void Given_A_Nested_Toolset_And_A_Class_Named_Like_Its_Flat_Name_Both_Compile()
     {

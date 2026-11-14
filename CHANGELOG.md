@@ -75,6 +75,11 @@ All notable changes to this project are documented here. The format follows
   tool whose `AddTool` lacks `WithSettings<T>()`, and a service such as `ITicketRepository` or `ILogger<T>`, an
   interface, an abstract class or a delegate that JSON cannot create. Both built without a word. The settings
   became arguments the model set, and a tool with a service parameter failed on every call.
+- TSH039 reports `WithSchemaVersion(n)` below 1 and an empty or blank `WithStorageKind("...")`. Both built and failed
+  at run time: an agent with schema version 0 saved its settings once and could never load them again, since the
+  document read back as version 1, "newer than this code's 0", and an empty kind threw an `ArgumentException` in
+  the file store that named no agent. A negative version also failed to compile under cultures that write another
+  minus sign, such as Swedish, Norwegian and Finnish.
 
 ### Changed
 
@@ -348,8 +353,6 @@ All notable changes to this project are documented here. The format follows
   `EnableMFAAsync`, kept the suffix and became `enable_mfa_async`, while every other machine built `enable_mfa`. A
   project built only under one of those cultures now gets the name without the suffix. Stored settings and standing
   approvals are kept under the tool's name, so pin the old one with `WithName("enable_mfa_async")` or let it change.
-- A negative `WithSchemaVersion` compiles under cultures that write another minus sign, such as Swedish, Norwegian
-  and Finnish.
 - Two toolsets or agents whose full names differ only by case, such as `TicketTools` and `Tickettools` in one
   namespace, no longer stop the generator with CS8785.
 - A type that does not resolve yet, as while you type its name, is left to the compiler. Generated code no longer

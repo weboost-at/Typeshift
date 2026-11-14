@@ -58,7 +58,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.ReservedToolName,
         Descriptors.ConversationsWithoutDecisions,
         Descriptors.ConfigurableModeBesideApproval,
-        Descriptors.ModelFilledParameter
+        Descriptors.ModelFilledParameter,
+        Descriptors.UnusableValue
     ];
 
     public override void Initialize(AnalysisContext context)

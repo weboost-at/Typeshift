@@ -210,6 +210,11 @@ internal static class Descriptors
         "Model fills a settings or service parameter",
         "The parameter '{0}' of the tool '{1}' is an argument the model fills, {2}");
 
+    public static readonly DiagnosticDescriptor UnusableValue = Error(
+        "TSH039",
+        "Declared value cannot be used",
+        "The {0} must {1}: {2}");
+
     private static DiagnosticDescriptor Error(string id, string title, string message) =>
         Create(id, title, message, DiagnosticSeverity.Error);
 
