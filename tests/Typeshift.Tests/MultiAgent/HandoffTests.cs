@@ -31,8 +31,27 @@ public class HandoffTests : MultiAgentTestBase
             .ContainSingle(result => result.CallId == Data.Tool.CallId);
     }
 
-    [Fact]
-    public async Task Given_A_Conversation_Handed_Off_Its_Next_Run_Goes_To_The_Agent_That_Answered()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Handoff_The_Response_Carries_Its_Result(bool streaming)
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await RunAsync(Data.Tool.Question, streaming);
+
+        // Assert
+        ResultsOf(response.Messages).Keys.Should().Equal(Data.Tool.CallId);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Conversation_Handed_Off_Its_Next_Run_Goes_To_The_Agent_That_Answered(bool streaming)
     {
         // Arrange
         ChatClient
@@ -43,7 +62,7 @@ public class HandoffTests : MultiAgentTestBase
         await RunAsync(Data.Tool.Question);
 
         // Act
-        var response = await RunAsync(Data.Agent.FollowUp);
+        var response = await RunAsync(Data.Agent.FollowUp, streaming);
 
         // Assert
         Models[^1].Model.Should().Be("back-model");

@@ -86,14 +86,16 @@ public class ConversationRunTests : AgentTestBase
                 options => options.WithStrictOrdering());
     }
 
-    [Fact]
-    public async Task Given_A_Run_Only_Its_Last_Entry_Ends_It()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Run_Only_Its_Last_Entry_Ends_It(bool streaming)
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        await RunAsync(Data.Tool.Question, streaming, Ct);
         var entries = await EntriesAsync(Data.Agent.ConversationId);
 
         // Assert
@@ -165,22 +167,45 @@ public class ConversationRunTests : AgentTestBase
         ChatClient.Options[0]!.ConversationId.Should().BeNull();
     }
 
-    [Fact]
-    public async Task Given_A_Failing_Run_It_Ends_With_Its_Error_And_The_Exception_Surfaces()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Failing_Run_It_Ends_With_Its_Error_And_The_Exception_Surfaces(bool streaming)
     {
         // Arrange
         ChatClient.Reply(new InvalidOperationException(Data.Tool.Answer));
 
-        var host = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
-
         // Act
-        var run = () => host.RunAsync(Data.Tool.Question, ct: Ct);
+        var run = () => RunAsync(Data.Tool.Question, streaming, Ct);
 
         // Assert
         await run.Should().ThrowAsync<InvalidOperationException>();
         (await EntriesAsync(Data.Agent.ConversationId))[^1].Messages[0].Contents
             .Should()
             .ContainSingle(content => content is ErrorContent);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Cancelled_Run_It_Ends_With_An_Error_And_The_Cancellation_Surfaces(bool streaming)
+    {
+        // Arrange
+        ChatClient.Reply(new TaskCompletionSource(), Text(Data.Tool.Answer));
+
+        using var cancel = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        var run = RunAsync(Data.Tool.Question, streaming, cancel.Token);
+        await ChatClient.Requested;
+
+        // Act
+        await cancel.CancelAsync();
+        var cancelled = await Record.ExceptionAsync(() => run);
+        var entries = await EntriesAsync(Data.Agent.ConversationId);
+
+        // Assert
+        cancelled.Should().BeAssignableTo<OperationCanceledException>();
+        entries[^1].EndsRun.Should().BeTrue();
+        entries[^1].Messages[0].Contents.Should().ContainSingle(content => content is ErrorContent);
     }
 
     [Fact]
@@ -245,6 +270,31 @@ public class ConversationRunTests : AgentTestBase
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
+        ChatClient.Requests[0].Select(message => message.Text).Should().Equal(Data.Tool.Question);
+    }
+
+    [Fact]
+    public async Task Given_An_Interrupted_Run_Resuming_It_Streaming_Continues_From_Its_Last_Step()
+    {
+        // Arrange
+        var store = Services.GetRequiredService<ITypeshiftStore<Guid>>();
+        var input = new ChatMessage(ChatRole.User, Data.Tool.Question);
+
+        await store.AppendConversationAsync(
+            Data.Agent.ConversationId,
+            new("probe_agent", [input], Time.GetUtcNow()),
+            Ct);
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var updates = await Host<ProbeAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .ResumeStreamingAsync(ct: Ct)
+            .ToListAsync(Ct);
+
+        // Assert
+        updates.ToChatResponse().Text.Should().Be(Data.Tool.Answer);
         ChatClient.Requests[0].Select(message => message.Text).Should().Equal(Data.Tool.Question);
     }
 
@@ -326,8 +376,10 @@ public class ConversationRunTests : AgentTestBase
         await run;
     }
 
-    [Fact]
-    public async Task Given_A_Run_Watcher_It_Hears_The_Run_Start_And_End()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Run_Watcher_It_Hears_The_Run_Start_And_End(bool streaming)
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
@@ -335,7 +387,7 @@ public class ConversationRunTests : AgentTestBase
         var changes = Tracker.WatchRunsAsync(Ct).Take(2).ToListAsync(Ct);
 
         // Act
-        await Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        await RunAsync(Data.Tool.Question, streaming, Ct);
 
         // Assert
         (await changes).Select(run => (run.Conversation, run.Ended))
@@ -449,6 +501,37 @@ public class ConversationRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Steered_Streaming_Run_Of_Two_Answers_Each_Is_Stored_Once()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(Text("a"), Text("b"), Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(gate, Text("c"), Text("d"))
+            .Reply(Text(Data.Agent.FollowUp));
+
+        var run = Host<ProbeAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunStreamingAsync(Data.Tool.Question, ct: Ct)
+            .ToListAsync(Ct);
+
+        await ChatClient.RequestedAsync(2);
+
+        // Act
+        Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+        gate.SetResult();
+        await run;
+
+        var entries = await EntriesAsync(Data.Agent.ConversationId);
+
+        // Assert
+        entries.SelectMany(entry => entry.Messages).Select(message => message.Text)
+            .Should()
+            .Equal(Data.Tool.Question, "ab", "", "cd", Data.Agent.Steering, Data.Agent.FollowUp);
+    }
+
+    [Fact]
     public void Given_No_Run_Going_On_Steering_Returns_False()
     {
         // Act
@@ -552,5 +635,15 @@ public class ConversationRunTests : AgentTestBase
         (await watch.MoveNextAsync()).Should().BeTrue();
         watch.Current.Text.Should().Be("bc");
         watch.Current.MessageId.Should().Be(Data.Tool.CallId);
+    }
+
+    // The same run on either path, a streamed one as the response its updates make
+    private async Task<ChatResponse> RunAsync(string input, bool streaming, CancellationToken ct)
+    {
+        var chat = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+
+        return streaming
+            ? (await chat.RunStreamingAsync(input, ct: ct).ToListAsync(ct)).ToChatResponse()
+            : await chat.RunAsync(input, ct: ct);
     }
 }

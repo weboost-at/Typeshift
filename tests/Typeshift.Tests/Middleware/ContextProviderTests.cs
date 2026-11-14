@@ -6,22 +6,26 @@ namespace Typeshift.Tests.Middleware;
 
 public class ContextProviderTests : MiddlewareTestBase
 {
-    [Fact]
-    public async Task Given_A_Context_Provider_Its_Instructions_Follow_The_Agents()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Context_Provider_Its_Instructions_Follow_The_Agents(bool streaming)
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
         Script.Context = new AgentContext { Instructions = Data.Agent.Instructions };
 
         // Act
-        await RunAsync(Data.Tool.Question);
+        await RunAsync(Data.Tool.Question, settings: null, streaming);
 
         // Assert
         ChatClient.Options[0]!.Instructions.Should().Be($"{ContextAgent.Prompt}\n\n{Data.Agent.Instructions}");
     }
 
-    [Fact]
-    public async Task Given_A_Context_Provider_Its_Messages_Go_Ahead_Of_The_Input_And_Are_Not_Stored()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Context_Provider_Its_Messages_Go_Ahead_Of_The_Input_And_Are_Not_Stored(bool streaming)
     {
         // Arrange
         ChatClient
@@ -30,10 +34,10 @@ public class ContextProviderTests : MiddlewareTestBase
 
         Script.Context = new AgentContext { Messages = [new ChatMessage(ChatRole.User, Data.Agent.CompanyName)] };
 
-        await RunAsync(Data.Tool.Question);
+        await RunAsync(Data.Tool.Question, settings: null, streaming);
 
         // Act
-        await RunAsync(Data.Agent.FollowUp);
+        await RunAsync(Data.Agent.FollowUp, settings: null, streaming);
 
         // Assert
         ChatClient.Requests[1].Select(message => message.Text).Should().Equal(
@@ -175,8 +179,11 @@ public class ContextProviderTests : MiddlewareTestBase
         ChatClient.Requests.Should().ContainSingle();
     }
 
-    [Fact]
-    public async Task Given_Steering_And_Context_That_Grows_The_Steering_Input_Stays_After_The_Tool_Result()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_Steering_And_Context_That_Grows_The_Steering_Input_Stays_After_The_Tool_Result(
+        bool streaming)
     {
         // Arrange
         var first = new TaskCompletionSource();
@@ -188,7 +195,7 @@ public class ContextProviderTests : MiddlewareTestBase
             .Reply(second, Text(Data.Tool.Answer))
             .Reply(Text(Data.Tool.Answer));
 
-        var run = RunAsync(Data.Tool.Question);
+        var run = RunAsync(Data.Tool.Question, settings: null, streaming);
         await ChatClient.Requested;
         Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
         first.SetResult();
@@ -210,15 +217,17 @@ public class ContextProviderTests : MiddlewareTestBase
         last[result + 1].Text.Should().Be(Data.Agent.Steering);
     }
 
-    [Fact]
-    public async Task Given_A_Context_Provider_Its_Tools_Are_Offered_After_The_Agents()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Context_Provider_Its_Tools_Are_Offered_After_The_Agents(bool streaming)
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
         Script.Context = new AgentContext { Tools = [AIFunctionFactory.Create(() => Data.Tool.Answer, "lookup")] };
 
         // Act
-        await RunAsync(Data.Tool.Question);
+        await RunAsync(Data.Tool.Question, settings: null, streaming);
 
         // Assert
         ChatClient.Options[0]!.Tools!.Select(tool => tool.Name)
@@ -263,8 +272,10 @@ public class ContextProviderTests : MiddlewareTestBase
         ChatClient.Requests.Should().BeEmpty();
     }
 
-    [Fact]
-    public async Task Given_A_Context_Tool_That_Requires_Approval_The_Run_Asks_For_It()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Context_Tool_That_Requires_Approval_The_Run_Asks_For_It(bool streaming)
     {
         // Arrange
         ChatClient.Reply(Call(Data.Tool.CallId, "lookup"));
@@ -273,7 +284,7 @@ public class ContextProviderTests : MiddlewareTestBase
         Script.Context = new AgentContext { Tools = [lookup] };
 
         // Act
-        var response = await RunAsync(Data.Tool.Question);
+        var response = await RunAsync(Data.Tool.Question, settings: null, streaming);
 
         // Assert
         response.Decisions.OfType<ApprovalDecision>().Select(decision => decision.Tool).Should().Equal("lookup");

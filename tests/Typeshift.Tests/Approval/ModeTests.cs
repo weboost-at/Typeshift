@@ -105,14 +105,16 @@ public class ModeTests : ApprovalTestBase
         ToolCalls.Should().BeEmpty();
     }
 
-    [Fact]
-    public async Task Given_Plan_Mode_Only_The_Read_Only_Tools_And_Exit_Plan_Mode_Are_Offered()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_Plan_Mode_Only_The_Read_Only_Tools_And_Exit_Plan_Mode_Are_Offered(bool streaming)
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await RunAsync(Data.Tool.Question, AgentMode.Plan);
+        await RunAsync(Data.Tool.Question, AgentMode.Plan, streaming);
 
         // Assert
         ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal("read_ticket", "exit_plan_mode");

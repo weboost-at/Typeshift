@@ -29,12 +29,16 @@ public abstract class MiddlewareTestBase : AgentTestBase
     protected Task<ChatResponse> RunAsync(string input, ContextAgent.Settings? settings = null) =>
         Host<ContextAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(input, settings: settings, ct: Ct);
 
-    protected async Task<ChatResponse> StreamAsync(string input) =>
+    protected async Task<ChatResponse> StreamAsync(string input, ContextAgent.Settings? settings = null) =>
         (await Host<ContextAgent>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunStreamingAsync(input, ct: Ct)
+            .RunStreamingAsync(input, settings: settings, ct: Ct)
             .ToListAsync(Ct))
         .ToChatResponse();
+
+    // The same run on either path, a streamed one as the response its updates make
+    protected Task<ChatResponse> RunAsync(string input, ContextAgent.Settings? settings, bool streaming) =>
+        streaming ? StreamAsync(input, settings) : RunAsync(input, settings);
 }
 
 // The guarded tools, with a context provider, compacting once a test's run settings turn it on

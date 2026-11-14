@@ -88,8 +88,10 @@ public class RunMiddlewareTests : MiddlewareTestBase
         providers.Should().Equal(FrontDeskAgent.ModelProvider, BackOfficeAgent.ModelProvider);
     }
 
-    [Fact]
-    public async Task Given_Run_Middleware_That_Adds_A_Message_The_Conversation_Does_Not_Store_It()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_Run_Middleware_That_Adds_A_Message_The_Conversation_Does_Not_Store_It(bool streaming)
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
@@ -101,7 +103,7 @@ public class RunMiddlewareTests : MiddlewareTestBase
         };
 
         // Act
-        await RunAsync(Data.Tool.Question);
+        await RunAsync(Data.Tool.Question, settings: null, streaming);
 
         // Assert
         (await EntriesAsync(Data.Agent.ConversationId))
@@ -236,22 +238,21 @@ public class RunMiddlewareTests : MiddlewareTestBase
     public async Task Given_A_Streaming_Run_Left_Early_The_Run_Ends_With_What_Arrived()
     {
         // Arrange
-        ChatClient.Reply(Text(Data.Tool.Answer), Text(Data.Agent.FollowUp));
+        ChatClient.Reply(Text(Data.Tool.Answer), new TaskCompletionSource(), Text(Data.Agent.FollowUp));
 
-        var stream = Host<ContextAgent>().WithConversationId(Data.Agent.ConversationId).RunStreamingAsync(
-            Data.Tool.Question,
-            ct: Ct);
+        var updates = Host<ContextAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunStreamingAsync(Data.Tool.Question, ct: Ct)
+            .GetAsyncEnumerator(Ct);
+
+        await updates.MoveNextAsync();
 
         // Act
-        await foreach (var _ in stream)
-        {
-            break;
-        }
-
+        await updates.DisposeAsync().AsTask().WaitAsync(Ct);
         var entries = await EntriesAsync(Data.Agent.ConversationId);
 
         // Assert
-        entries[1].Messages[0].Text.Should().StartWith(Data.Tool.Answer);
+        entries[1].Messages[0].Text.Should().Be(Data.Tool.Answer);
         entries[^1].EndsRun.Should().BeTrue();
     }
 

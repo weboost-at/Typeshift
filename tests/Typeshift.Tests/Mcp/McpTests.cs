@@ -9,8 +9,10 @@ namespace Typeshift.Tests.Mcp;
 
 public class McpTests : McpTestBase
 {
-    [Fact]
-    public async Task Given_Mcp_Servers_Their_Tools_Are_Offered_After_The_Agents_Own()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_Mcp_Servers_Their_Tools_Are_Offered_After_The_Agents_Own(bool streaming)
     {
         // Arrange
         Servers["status"] = [Tool("service_status")];
@@ -18,7 +20,7 @@ public class McpTests : McpTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await RunAsync();
+        await RunAsync(streaming: streaming);
 
         // Assert
         ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal("note", "service_status", "deploy");
@@ -241,9 +243,14 @@ public class McpTests : McpTestBase
         return chat;
     }
 
-    private Task<ChatResponse> RunAsync(McpAgent.Settings? settings = null) =>
-        Host<McpAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
-            Data.Tool.Question,
-            settings: settings,
-            ct: Ct);
+    // The run on either path, a streamed one as the response its updates make
+    private async Task<ChatResponse> RunAsync(McpAgent.Settings? settings = null, bool streaming = false)
+    {
+        var chat = Host<McpAgent>().WithConversationId(Data.Agent.ConversationId);
+
+        return streaming
+            ? (await chat.RunStreamingAsync(Data.Tool.Question, settings: settings, ct: Ct).ToListAsync(Ct))
+            .ToChatResponse()
+            : await chat.RunAsync(Data.Tool.Question, settings: settings, ct: Ct);
+    }
 }

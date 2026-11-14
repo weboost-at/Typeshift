@@ -6,8 +6,10 @@ namespace Typeshift.Tests.Middleware;
 
 public class ToolMiddlewareTests : MiddlewareTestBase
 {
-    [Fact]
-    public async Task Given_Tool_Middleware_It_Wraps_Each_Call_The_First_Registered_Outermost()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_Tool_Middleware_It_Wraps_Each_Call_The_First_Registered_Outermost(bool streaming)
     {
         // Arrange
         ChatClient
@@ -15,7 +17,7 @@ public class ToolMiddlewareTests : MiddlewareTestBase
             .Reply(Text(Data.Tool.Answer));
 
         // Act
-        await RunAsync(Data.Tool.Question);
+        await RunAsync(Data.Tool.Question, settings: null, streaming);
 
         // Assert
         Script.Log.Where(entry => entry.StartsWith("tool")).Should().Equal(

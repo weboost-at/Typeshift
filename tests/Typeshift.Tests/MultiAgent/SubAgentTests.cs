@@ -61,8 +61,10 @@ public class SubAgentTests : MultiAgentTestBase
         HelperClient.Options[0]!.Temperature.Should().Be(Data.Agent.Temperature);
     }
 
-    [Fact]
-    public async Task Given_A_Sub_Agent_It_Answers_In_A_Fresh_Context_And_Its_Answer_Is_The_Result()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Sub_Agent_It_Answers_In_A_Fresh_Context_And_Its_Answer_Is_The_Result(bool streaming)
     {
         // Arrange
         ChatClient
@@ -72,7 +74,9 @@ public class SubAgentTests : MultiAgentTestBase
         HelperClient.Reply(Text(Data.Agent.Reason));
 
         // Act
-        var response = await Host<LeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        var response = streaming
+            ? (await Host<LeadAgent>().RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct)).ToChatResponse()
+            : await Host<LeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
