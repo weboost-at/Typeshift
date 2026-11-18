@@ -801,6 +801,23 @@ partial class SupportAgent
             return true;
         }
 
+        /// <inheritdoc />
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public static void CheckJson(global::System.Text.Json.JsonElement element, string path)
+        {
+            global::Typeshift.Generated.StorableJson.CheckMembers(element, path, ["$schemaVersion", "provider", "model", "temperature", "stopSequences", "reasoning", "maxToolIterations", "tools"]);
+            global::Typeshift.Generated.StorableJson.Check<string>(global::Typeshift.Generated.StorableJson.Member(element, "provider"), global::Typeshift.Generated.StorableJson.Path(path, "provider"), global::Typeshift.Generated.StorableJson.TryRead);
+            global::Typeshift.Generated.StorableJson.Check<string>(global::Typeshift.Generated.StorableJson.Member(element, "model"), global::Typeshift.Generated.StorableJson.Path(path, "model"), global::Typeshift.Generated.StorableJson.TryRead);
+            global::Typeshift.Generated.StorableJson.Check<float>(global::Typeshift.Generated.StorableJson.Member(element, "temperature"), global::Typeshift.Generated.StorableJson.Path(path, "temperature"), global::Typeshift.Generated.StorableJson.TryReadNumber<float>);
+            CheckStored0(global::Typeshift.Generated.StorableJson.Member(element, "stopSequences"), global::Typeshift.Generated.StorableJson.Path(path, "stopSequences"));
+            global::Typeshift.Generated.StorableJson.CheckReasoning(global::Typeshift.Generated.StorableJson.Member(element, "reasoning"), global::Typeshift.Generated.StorableJson.Path(path, "reasoning"));
+            global::Typeshift.Generated.StorableJson.Check<int>(global::Typeshift.Generated.StorableJson.Member(element, "maxToolIterations"), global::Typeshift.Generated.StorableJson.Path(path, "maxToolIterations"), global::Typeshift.Generated.StorableJson.TryReadNumber<int>);
+
+            var tools = global::Typeshift.Generated.StorableJson.Member(element, "tools");
+            global::Typeshift.Generated.StorableJson.CheckMembers(tools, global::Typeshift.Generated.StorableJson.Path(path, "tools"), ["search_tickets"]);
+            global::Demo.TicketToolset.SearchTicketsOverrides.CheckJson(global::Typeshift.Generated.StorableJson.Member(tools, "search_tickets"), global::Typeshift.Generated.StorableJson.Path(path, "tools.search_tickets"));
+        }
+
         private static void WriteStored0(global::System.Text.Json.Utf8JsonWriter writer, global::System.Collections.Generic.IReadOnlyList<string> value, string member)
         {
             writer.WriteStartArray();
@@ -821,6 +838,11 @@ partial class SupportAgent
 
             value = items;
             return true;
+        }
+
+        private static void CheckStored0(global::System.Text.Json.JsonElement element, string path)
+        {
+            global::Typeshift.Generated.StorableJson.CheckItems(element, path, static (value, at) => global::Typeshift.Generated.StorableJson.Check<string>(value, at, global::Typeshift.Generated.StorableJson.TryRead));
         }
     }
 
@@ -961,7 +983,7 @@ namespace System.Runtime.CompilerServices
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 11)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 12)]
 
 namespace Typeshift.Generated;
 

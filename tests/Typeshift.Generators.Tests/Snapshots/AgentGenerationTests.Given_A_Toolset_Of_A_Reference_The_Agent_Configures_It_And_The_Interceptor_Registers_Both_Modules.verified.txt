@@ -85,6 +85,18 @@ partial class ResearchAgent
 
             return true;
         }
+
+        /// <inheritdoc />
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public static void CheckJson(global::System.Text.Json.JsonElement element, string path)
+        {
+            global::Typeshift.Generated.StorableJson.CheckMembers(element, path, ["$schemaVersion", "temperature", "tools"]);
+            global::Typeshift.Generated.StorableJson.Check<float>(global::Typeshift.Generated.StorableJson.Member(element, "temperature"), global::Typeshift.Generated.StorableJson.Path(path, "temperature"), global::Typeshift.Generated.StorableJson.TryReadNumber<float>);
+
+            var tools = global::Typeshift.Generated.StorableJson.Member(element, "tools");
+            global::Typeshift.Generated.StorableJson.CheckMembers(tools, global::Typeshift.Generated.StorableJson.Path(path, "tools"), ["find_companies"]);
+            global::Companies.CompanyToolset.FindCompaniesOverrides.CheckJson(global::Typeshift.Generated.StorableJson.Member(tools, "find_companies"), global::Typeshift.Generated.StorableJson.Path(path, "tools.find_companies"));
+        }
     }
 
     /// <inheritdoc />
@@ -217,7 +229,7 @@ namespace System.Runtime.CompilerServices
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 11)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 12)]
 
 namespace Typeshift.Generated;
 

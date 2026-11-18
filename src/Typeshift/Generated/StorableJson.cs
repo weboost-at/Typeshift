@@ -21,6 +21,15 @@ namespace Typeshift.Generated;
 public delegate bool StorableReader<T>(JsonElement element, out T value);
 
 /// <summary>
+/// Checks a value of JSON from outside a store, such as a request's body.
+/// </summary>
+/// <param name="element">The JSON.</param>
+/// <param name="path">Where the value lies in the JSON, for the message.</param>
+/// <exception cref="JsonException">The value does not read.</exception>
+[EditorBrowsable(EditorBrowsableState.Never)]
+public delegate void StorableCheck(JsonElement element, string path);
+
+/// <summary>
 /// Writes and reads the JSON of generated settings, value by value and without reflection. Generated code calls it; a
 /// missing or mistyped value reads as absent, so it keeps the layer below. A stored provider that does not read is
 /// refused instead, since the model beside it would go to the provider of the layer below.
@@ -515,6 +524,199 @@ public static class StorableJson
 
         return true;
     }
+
+    /// <summary>
+    /// The path of a member, for a message: its name after the path of its object.
+    /// </summary>
+    /// <param name="path">The object's path, empty at the top.</param>
+    /// <param name="name">The member's JSON name.</param>
+    /// <returns>The member's path.</returns>
+    public static string Path(string path, string name) => path.Length == 0 ? name : $"{path}.{name}";
+
+    /// <summary>
+    /// Refuses an object of JSON from outside a store that holds a member besides <paramref name="members"/>, which
+    /// a store's read would pass over. A missing object and a JSON null pass.
+    /// </summary>
+    /// <param name="element">The JSON.</param>
+    /// <param name="path">Where the object lies in the JSON, for the message.</param>
+    /// <param name="members">The JSON names of the members it may hold.</param>
+    /// <exception cref="JsonException">The JSON is no object, or holds another member.</exception>
+    // D44: a request's body is refused where a stored document reads as missing, so a PUT cannot erase settings
+    public static void CheckMembers(JsonElement element, string path, ReadOnlySpan<string> members)
+    {
+        if (IsMissing(element)) return;
+        if (element.ValueKind is not JsonValueKind.Object) throw Unread(element, path, "JSON object");
+
+        foreach (var member in element.EnumerateObject())
+        {
+            if (!members.Contains(member.Name)) throw Unknown(path, member.Name, members);
+        }
+    }
+
+    /// <summary>
+    /// Refuses a value of JSON from outside a store that does not read, which a store's read takes for missing. A
+    /// missing value and a JSON null pass.
+    /// </summary>
+    /// <typeparam name="T">The value's type.</typeparam>
+    /// <param name="element">The JSON.</param>
+    /// <param name="path">Where the value lies in the JSON, for the message.</param>
+    /// <param name="read">Reads a value of the type.</param>
+    /// <exception cref="JsonException">The value does not read.</exception>
+    public static void Check<T>(JsonElement element, string path, StorableReader<T> read)
+    {
+        if (!IsMissing(element) && !read(element, out _)) throw Unread(element, path, TypeNames.Of<T>());
+    }
+
+    /// <summary>
+    /// Refuses an enum value of JSON from outside a store that names no member of the enum and is no whole number.
+    /// A missing value and a JSON null pass.
+    /// </summary>
+    /// <typeparam name="TEnum">The enum's type.</typeparam>
+    /// <param name="element">The JSON.</param>
+    /// <param name="path">Where the value lies in the JSON, for the message.</param>
+    /// <exception cref="JsonException">The value does not read.</exception>
+    public static void CheckEnum<TEnum>(JsonElement element, string path) where TEnum : struct, Enum
+    {
+        if (IsMissing(element) || TryReadEnum(element, out TEnum _)) return;
+
+        throw new JsonException(
+            $"{GetUnread(element, path, TypeNames.Of<TEnum>())} Its names are {Quote(Enum.GetNames<TEnum>())}.");
+    }
+
+    /// <summary>
+    /// Refuses reasoning options of JSON from outside a store with a member besides <c>effort</c> and
+    /// <c>output</c>, or with one that names no value. Missing options and a JSON null pass.
+    /// </summary>
+    /// <param name="element">The JSON.</param>
+    /// <param name="path">Where the options lie in the JSON, for the message.</param>
+    /// <exception cref="JsonException">The options do not read.</exception>
+    public static void CheckReasoning(JsonElement element, string path)
+    {
+        CheckMembers(element, path, ["effort", "output"]);
+        CheckEnum<ReasoningEffort>(Member(element, "effort"), Path(path, "effort"));
+        CheckEnum<ReasoningOutput>(Member(element, "output"), Path(path, "output"));
+    }
+
+    /// <summary>
+    /// Refuses an array of JSON from outside a store with an item that does not read, which a store's read leaves
+    /// out. A missing array and a JSON null pass.
+    /// </summary>
+    /// <param name="element">The JSON.</param>
+    /// <param name="path">Where the array lies in the JSON, for the message.</param>
+    /// <param name="check">Checks an item.</param>
+    /// <exception cref="JsonException">The JSON is no array, or an item is null or does not read.</exception>
+    public static void CheckItems(JsonElement element, string path, StorableCheck check)
+    {
+        if (IsMissing(element)) return;
+        if (element.ValueKind is not JsonValueKind.Array) throw Unread(element, path, "JSON array");
+
+        var index = 0;
+
+        foreach (var item in element.EnumerateArray())
+        {
+            CheckValue(item, $"{path}[{index++}]", check);
+        }
+    }
+
+    /// <summary>
+    /// Refuses an object of JSON from outside a store, read as a dictionary, with a value that does not read, which a
+    /// store's read leaves out. A missing object and a JSON null pass.
+    /// </summary>
+    /// <param name="element">The JSON.</param>
+    /// <param name="path">Where the object lies in the JSON, for the message.</param>
+    /// <param name="check">Checks a value.</param>
+    /// <exception cref="JsonException">The JSON is no object, or a value is null or does not read.</exception>
+    public static void CheckValues(JsonElement element, string path, StorableCheck check)
+    {
+        if (IsMissing(element)) return;
+        if (element.ValueKind is not JsonValueKind.Object) throw Unread(element, path, "JSON object");
+
+        foreach (var member in element.EnumerateObject())
+        {
+            CheckValue(member.Value, Path(path, member.Name), check);
+        }
+    }
+
+    /// <summary>
+    /// Refuses an object of JSON from outside a store, read as a dictionary keyed by an enum, with a key that names no
+    /// value or a value that does not read, both of which a store's read leaves out. A missing object and a JSON null
+    /// pass.
+    /// </summary>
+    /// <typeparam name="TKey">The keys' enum type.</typeparam>
+    /// <param name="element">The JSON.</param>
+    /// <param name="path">Where the object lies in the JSON, for the message.</param>
+    /// <param name="check">Checks a value.</param>
+    /// <exception cref="JsonException">
+    /// The JSON is no object, a key names no value of the enum, or a value is null or does not read.
+    /// </exception>
+    public static void CheckEnumKeys<TKey>(JsonElement element, string path, StorableCheck check)
+        where TKey : struct, Enum
+    {
+        CheckValues(element, path, check);
+        if (IsMissing(element)) return;
+
+        foreach (var member in element.EnumerateObject())
+        {
+            if (TryParseEnum(member.Name, out TKey _)) continue;
+
+            throw new JsonException(
+                $"The key '{member.Name}' of '{path}' is no {TypeNames.Of<TKey>()}. Its names are "
+                + $"{Quote(Enum.GetNames<TKey>())}.");
+        }
+    }
+
+    private static void CheckValue(JsonElement element, string path, StorableCheck check)
+    {
+        if (element.ValueKind is JsonValueKind.Null)
+            throw new JsonException($"'{path}' is null, which an item of settings cannot be.");
+
+        check(element, path);
+    }
+
+    private static bool IsMissing(JsonElement element) =>
+        element.ValueKind is JsonValueKind.Undefined or JsonValueKind.Null;
+
+    private static JsonException Unread(JsonElement element, string path, string type) =>
+        new(GetUnread(element, path, type));
+
+    private static string GetUnread(JsonElement element, string path, string type)
+    {
+        var value = element.ValueKind switch
+        {
+            JsonValueKind.Object => "an object",
+            JsonValueKind.Array => "an array",
+            _ => element.GetRawText()
+        };
+
+        return $"'{path}' holds {value}, which is no {type}.";
+    }
+
+    // Names are case-sensitive, while ASP.NET binds its other bodies without regard to case, so a name that differs
+    // only in case is the likely mistake
+    private static JsonException Unknown(string path, string name, ReadOnlySpan<string> members)
+    {
+        List<string> names = [];
+
+        foreach (var member in members)
+        {
+            if (!member.StartsWith('$')) names.Add(member);
+        }
+
+        var unknown = $"'{Path(path, name)}' is no settings member";
+        var cased = names.Find(member => string.Equals(member, name, StringComparison.OrdinalIgnoreCase));
+        var owner = path.Length == 0 ? "the settings" : $"'{path}'";
+
+        return new JsonException(
+            cased is not null ? $"{unknown}: member names are camelCase, such as '{Path(path, cased)}'."
+            : names.Count == 0 ? $"{unknown}: these settings have no members."
+            : $"{unknown}. The members of {owner} are {Quote(names)}.");
+    }
+
+    // 'a', 'b' and 'c'
+    private static string Quote(IReadOnlyList<string> names) =>
+        names.Count == 1
+            ? $"'{names[0]}'"
+            : $"{string.Join(", ", names.Take(names.Count - 1).Select(name => $"'{name}'"))} and '{names[^1]}'";
 
     // Names, each a member's, or a whole number, so text that is neither reads as absent
     private static bool TryParseEnum<TEnum>(string text, out TEnum value) where TEnum : struct, Enum

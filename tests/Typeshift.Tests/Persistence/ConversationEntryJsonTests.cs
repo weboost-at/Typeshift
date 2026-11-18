@@ -48,6 +48,20 @@ public class ConversationEntryJsonTests : UnitTestBase
     }
 
     [Fact]
+    public void Given_Stored_Json_With_A_Member_The_Entry_Lacks_System_Text_Json_Reads_The_Entry()
+    {
+        // Arrange
+        var json = Data.Persistence.Entry.Serialize();
+        var unknown = json.Insert(1, "\"renamed\":1,");
+
+        // Act
+        var read = JsonSerializer.Deserialize<ConversationEntry>(unknown);
+
+        // Assert
+        read!.Serialize().Should().Be(json);
+    }
+
+    [Fact]
     public void Given_An_Entry_Newtonsoft_Json_Reads_Back_The_Same()
     {
         // Arrange

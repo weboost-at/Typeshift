@@ -73,6 +73,17 @@ partial class DeskAgent
 
             return true;
         }
+
+        /// <inheritdoc />
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public static void CheckJson(global::System.Text.Json.JsonElement element, string path)
+        {
+            global::Typeshift.Generated.StorableJson.CheckMembers(element, path, ["$schemaVersion", "tools"]);
+
+            var tools = global::Typeshift.Generated.StorableJson.Member(element, "tools");
+            global::Typeshift.Generated.StorableJson.CheckMembers(tools, global::Typeshift.Generated.StorableJson.Path(path, "tools"), ["look_up_customer"]);
+            global::Demo.DeskAgent.LookUpCustomerOverrides.CheckJson(global::Typeshift.Generated.StorableJson.Member(tools, "look_up_customer"), global::Typeshift.Generated.StorableJson.Path(path, "tools.look_up_customer"));
+        }
     }
 
     /// <inheritdoc />
@@ -205,6 +216,14 @@ partial class DeskAgent
 
             return true;
         }
+
+        /// <inheritdoc />
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public static void CheckJson(global::System.Text.Json.JsonElement element, string path)
+        {
+            global::Typeshift.Generated.StorableJson.CheckMembers(element, path, ["limit"]);
+            global::Typeshift.Generated.StorableJson.Check<int>(global::Typeshift.Generated.StorableJson.Member(element, "limit"), global::Typeshift.Generated.StorableJson.Path(path, "limit"), global::Typeshift.Generated.StorableJson.TryReadNumber<int>);
+        }
     }
 
     /// <summary>
@@ -300,7 +319,7 @@ partial class DeskAgent
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 11)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 12)]
 
 namespace Typeshift.Generated;
 

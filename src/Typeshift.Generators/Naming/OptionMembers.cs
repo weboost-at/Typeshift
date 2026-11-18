@@ -14,6 +14,9 @@ internal sealed record OptionMember(
 
 internal static class OptionMembers
 {
+    // A scalar to StorableJson, whose members a request's body is checked for (D44)
+    public const string Reasoning = "global::Microsoft.Extensions.AI.ReasoningOptions";
+
     private static readonly StorageModel Text = new(StorageKind.Scalar, "string") { IsReference = true };
 
     private static readonly StorageModel Flag = new(StorageKind.Scalar, "bool");
@@ -50,9 +53,9 @@ internal static class OptionMembers
         new(
             "Reasoning",
             "Reasoning",
-            "global::Microsoft.Extensions.AI.ReasoningOptions?",
+            Reasoning + "?",
             "{0}",
-            new(StorageKind.Scalar, "global::Microsoft.Extensions.AI.ReasoningOptions") { IsReference = true })
+            new(StorageKind.Scalar, Reasoning) { IsReference = true })
     ];
 
     public static readonly OptionMember[] Run =

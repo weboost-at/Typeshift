@@ -1927,6 +1927,36 @@ public static class ShapeSources
         }
         """;
 
+    // The overrides and the agent's Settings have a CheckJson of their own, so the member and the tool get a suffix
+    public const string SettingsMemberAndToolNamedLikeTheCheck =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record Checks
+        {
+            public int CheckJson { get; init; } = 1;
+        }
+
+        internal partial class CheckToolset : Toolset
+        {
+            public CheckToolset() =>
+                AddTool(Check).WithName("check_json").WithDescription("Checks.").WithConfigurableSettings<Checks>();
+
+            public static string Check(string text, Checks checks) => text;
+        }
+
+        internal partial class CheckAgent : Agent
+        {
+            public CheckAgent()
+            {
+                WithDescription("Checks.");
+                UseToolset<CheckToolset>();
+            }
+        }
+        """;
+
     // A class cannot hold a member of its own name, so this agent gets no Configure{Tool}() for the tool
     public const string AgentNamedLikeAConfigureMethod =
         """

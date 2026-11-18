@@ -103,6 +103,15 @@ partial class KnowledgeToolset
 
             return true;
         }
+
+        /// <inheritdoc />
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public static void CheckJson(global::System.Text.Json.JsonElement element, string path)
+        {
+            global::Typeshift.Generated.StorableJson.CheckMembers(element, path, ["language", "fuzzy"]);
+            global::Typeshift.Generated.StorableJson.Check<string>(global::Typeshift.Generated.StorableJson.Member(element, "language"), global::Typeshift.Generated.StorableJson.Path(path, "language"), global::Typeshift.Generated.StorableJson.TryRead);
+            global::Typeshift.Generated.StorableJson.Check<bool>(global::Typeshift.Generated.StorableJson.Member(element, "fuzzy"), global::Typeshift.Generated.StorableJson.Path(path, "fuzzy"), global::Typeshift.Generated.StorableJson.TryRead);
+        }
     }
 
     /// <summary>
@@ -156,7 +165,7 @@ partial class KnowledgeToolset
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 11)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 12)]
 
 namespace Typeshift.Generated;
 

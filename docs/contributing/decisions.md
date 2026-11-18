@@ -1411,16 +1411,31 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 ### D44. Settings records serialize themselves
 
-- **Status:** carried (v0 D27), extended.
+- **Status:** carried (v0 D27), extended; the strict read of a request came with the audit of November 2026, in the
+  breaking changes the owner allowed before the next release.
 - **Decision:** member by member through hidden helpers, no reflection; camelCase, tools under `"tools"` by name, nulls
   left out, the schema version as `"$schemaVersion"` above 1 (D40). The generator also writes a `JsonConverter` on the
   record, so `System.Text.Json` (an ASP.NET endpoint) writes the stored shape too. `ConversationEntry` carries the same
   converter, and a `TypeConverter` to `string` that Newtonsoft.Json writes the stored JSON through, so a store hands
   entries to either library as they are.
+- **Stored documents are read leniently:** `Deserialize`, which every load from a store goes through, reads a
+  member that does not read, missing or mistyped, as null, so it keeps the layer below. A member renamed or removed
+  since the document was saved then costs its value and not every run of the settings; `WithSchemaVersion` and a
+  migration bring the value back (D40).
+- **A request's JSON is read strictly:** the `JsonConverter` reads the same way and then checks the JSON through a
+  generated `CheckJson` per record. A member the record does not have, a value that does not read, an item or a
+  dictionary's value that does not read or is null, and a key no member of its enum names throw a `JsonException`
+  that names the member's path, which ASP.NET answers with 400. A JSON null passes, as missing, so a form can clear
+  a field. Bound as leniently as a stored document, a PUT with PascalCase names, a number sent as a string or one
+  misspelled member bound to empty settings, answered 200 and erased what the customer had stored. Code that reads
+  stored JSON calls `Deserialize`, not `System.Text.Json`. `ConversationEntry` and the decisions take the interface's
+  default `CheckJson`, which refuses nothing, since a store hands them to `System.Text.Json` as they are.
+- **Alternatives:** a generated `TryDeserialize(json, out settings, out unread)` that an endpoint calls in place of
+  binding, which leaves the endpoint the guide shows erasing settings until it changes; a warning in the docs alone;
+  a strict flag through the readers, which would change the read every stored document goes through.
 - **Details:** each overrides record writes and reads itself (`IJsonStorable<T>`), so an agent's `Settings` in
-  another assembly than the toolset delegates to it. A member that does not read, missing or mistyped, reads as
-  null and keeps the layer below; a document that is no JSON object throws, and so does one whose stored provider
-  does not read (D77). Enums are stored by name, so reordering
+  another assembly than the toolset delegates to it. A document that is no JSON object throws, and so does one whose
+  stored provider does not read (D77). Enums are stored by name, so reordering
   an enum keeps them. A value without a name, such as `[Flags]` with none set, a combination with a bit no member
   names, or a cast number, is stored as its number, in digits whatever the culture, and as those digits where it is
   a dictionary's key. A string of digits reads as the number too, which is how versions up to 0.1.0-alpha.6 wrote
@@ -1430,6 +1445,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   Chinese, Japanese and Korean text and hid it from a database's search. Quotes, `<`, `>`, `&` and characters beyond
   the Basic Multilingual Plane stay escaped, since an API may pass stored JSON on to a page as it is; the relaxed
   encoder, which leaves them, lost for that reason. Readers take either form, so JSON stored before reads as it did.
+- **Where:** `Emitting/StorageEmitter.cs`, `Generated/StorableJson.cs`, `Generated/IJsonStorable.cs`,
+  `Generated/StorableJsonConverter.cs`.
 
 ### D78. Stored contents follow Microsoft.Extensions.AI's content contract
 

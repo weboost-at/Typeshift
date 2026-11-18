@@ -19,8 +19,9 @@ internal sealed class StorageEmitter
 
     private readonly List<StorageModel> _helpers = [];
 
-    // WriteJson and TryReadJson of an IJsonStorable record; writeMore and readMore add what is not a stored member,
-    // and providers names the members that are refused when their stored value does not read (D77)
+    // WriteJson, TryReadJson and CheckJson of an IJsonStorable record; writeMore and readMore add what is not a
+    // stored member, tools the overrides an agent's Settings keeps under "tools" by name, and providers names the
+    // members that are refused when their stored value does not read (D77)
     public static void WriteRecordJson(
         SourceWriter writer,
         string type,
@@ -28,7 +29,8 @@ internal sealed class StorageEmitter
         IEnumerable<(string Property, string JsonName, StorageModel Storage)> members,
         System.Action<SourceWriter>? writeMore = null,
         IReadOnlyList<string>? readMore = null,
-        IEnumerable<string>? providers = null)
+        IEnumerable<string>? providers = null,
+        IReadOnlyList<(string Name, string Overrides)>? tools = null)
     {
         var storage = new StorageEmitter();
         var list = members.ToList();
@@ -96,8 +98,79 @@ internal sealed class StorageEmitter
             writer.Line("return true;");
         }
 
+        storage.WriteCheck(writer, versioned, list, tools ?? []);
         storage.WriteHelpers(writer);
     }
+
+    // D44: what a request's body binds through the record's JsonConverter is checked after the read, so a member the
+    // record does not have or a value that does not read throws instead of reading as missing
+    private void WriteCheck(
+        SourceWriter writer,
+        bool versioned,
+        IReadOnlyList<(string Property, string JsonName, StorageModel Storage)> members,
+        IReadOnlyList<(string Name, string Overrides)> tools)
+    {
+        var names = members.Select(member => member.JsonName).ToList();
+        if (versioned) names.Insert(0, "$schemaVersion");
+        if (tools.Count > 0) names.Add("tools");
+
+        writer.Line();
+        Docs.WriteInheritDoc(writer);
+        writer.Line(Names.Hidden);
+
+        using (writer.Block("public static void CheckJson(global::System.Text.Json.JsonElement element, string path)"))
+        {
+            writer.Line($"{Json}.CheckMembers(element, path, {NameList(names)});");
+            WriteMemberChecks(writer, members);
+
+            if (tools.Count == 0) return;
+
+            var toolNames = NameList(tools.Select(tool => tool.Name));
+
+            writer.Line();
+            writer.Line($"var tools = {Json}.Member(element, \"tools\");");
+            writer.Line($"{Json}.CheckMembers(tools, {Json}.Path(path, \"tools\"), {toolNames});");
+
+            foreach (var (name, overrides) in tools)
+            {
+                var path = $"{Json}.Path(path, {Names.Literal($"tools.{name}")})";
+                writer.Line($"{overrides}.CheckJson({Json}.Member(tools, {Names.Literal(name)}), {path});");
+            }
+        }
+    }
+
+    // Each member's check, on its value and at its path under the object's
+    private void WriteMemberChecks(
+        SourceWriter writer,
+        IEnumerable<(string Property, string JsonName, StorageModel Storage)> members)
+    {
+        foreach (var (_, jsonName, storage) in members)
+        {
+            var name = Names.Literal(jsonName);
+            writer.Line(Check(storage, $"{Json}.Member(element, {name})", $"{Json}.Path(path, {name})") + ";");
+        }
+    }
+
+    // An expression that checks element, a value of the model, at path
+    private string Check(StorageModel model, string element, string path) =>
+        model.Kind switch
+        {
+            StorageKind.Scalar when model.Type == OptionMembers.Reasoning =>
+                $"{Json}.CheckReasoning({element}, {path})",
+            StorageKind.Scalar or StorageKind.Number =>
+                $"{Json}.Check<{model.Type}>({element}, {path}, {Reader(model)})",
+            StorageKind.Enum => $"{Json}.CheckEnum<{model.Type}>({element}, {path})",
+            _ => $"CheckStored{Helper(model)}({element}, {path})"
+        };
+
+    // The StorableCheck of an item or a dictionary's value
+    private string Checker(StorageModel model) =>
+        model.Kind is StorageKind.Scalar or StorageKind.Number or StorageKind.Enum
+            ? $"static (value, at) => {Check(model, "value", "at")}"
+            : $"CheckStored{Helper(model)}";
+
+    private static string NameList(IEnumerable<string> names) =>
+        $"[{string.Join(", ", names.Select(Names.Literal))}]";
 
 
     // A statement that writes value; member is an expression for the name of the settings member it belongs to,
@@ -172,6 +245,39 @@ internal sealed class StorageEmitter
             {
                 ReadValue(writer, model);
             }
+
+            writer.Line();
+
+            using (writer.Block($"private static void CheckStored{index}({Element} element, string path)"))
+            {
+                CheckValue(writer, model);
+            }
+        }
+    }
+
+    private void CheckValue(SourceWriter writer, StorageModel model)
+    {
+        switch (model.Kind)
+        {
+            case StorageKind.Object:
+                var names = NameList(model.Members.Select(member => member.JsonName));
+
+                writer.Line($"{Json}.CheckMembers(element, path, {names});");
+                WriteMemberChecks(writer, model.Members.Select(member =>
+                    (member.Property, member.JsonName, member.Storage)));
+                break;
+
+            case StorageKind.Map:
+                writer.Line($"{Json}.CheckValues(element, path, {Checker(model.Element!)});");
+                break;
+
+            case StorageKind.EnumMap:
+                writer.Line($"{Json}.CheckEnumKeys<{model.Key}>(element, path, {Checker(model.Element!)});");
+                break;
+
+            default:
+                writer.Line($"{Json}.CheckItems(element, path, {Checker(model.Element!)});");
+                break;
         }
     }
 

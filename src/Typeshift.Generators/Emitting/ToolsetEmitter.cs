@@ -20,7 +20,7 @@ internal static class ToolsetEmitter
     private static readonly string[] RecordMembers =
     [
         .. Names.ObjectMembers,
-        "ApplyTo", "Clone", "Deconstruct", "EqualityContract", "PrintMembers", "TryReadJson", "WriteJson"
+        "ApplyTo", "CheckJson", "Clone", "Deconstruct", "EqualityContract", "PrintMembers", "TryReadJson", "WriteJson"
     ];
 
     public static string Emit(ToolsetModel toolset) =>

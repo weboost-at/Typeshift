@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Typeshift.Generated;
 using Typeshift.Tests.Agents.Support;
+using Typeshift.Tests.Approval.Support;
 using Typeshift.Tests.Compaction.Support;
 using Typeshift.Tests.Hosting.Support;
 using Typeshift.Tests.Persistence.Support;
@@ -160,6 +161,142 @@ public class SettingsJsonTests : UnitTestBase
 
         // Assert
         read.Should().BeEquivalentTo(new EveryKindAgent.Settings());
+    }
+
+    [Fact]
+    public void Given_A_Stored_Document_With_A_Renamed_Member_Deserialize_Reads_The_Others_And_Leaves_It_Out()
+    {
+        // Act
+        var read = EveryKindAgent.Settings.Deserialize(
+            """{"$schemaVersion":2,"model":"m","temperature":0.4,"tools":{"inspect":{"count":3,"colour":"Dark"}}}""");
+
+        // Assert
+        read.Should().BeEquivalentTo(new EveryKindAgent.Settings
+        {
+            Model = "m",
+            Temperature = 0.4f,
+            Inspect = new() { Count = 3 }
+        });
+    }
+
+    [Fact]
+    public void Given_A_Stored_Document_With_A_Renamed_Member_System_Text_Json_Refuses_It_Naming_The_Member()
+    {
+        // Act
+        var read = () => JsonSerializer.Deserialize<EveryKindAgent.Settings>(
+            """{"$schemaVersion":2,"model":"m","temperature":0.4,"tools":{"inspect":{"count":3,"colour":"Dark"}}}""");
+
+        // Assert
+        read.Should().Throw<JsonException>().WithMessage("'tools.inspect.colour' is no settings member*");
+    }
+
+    [Theory]
+    [InlineData("""{"Mode":"Auto"}""")]
+    [InlineData("""{"mode":"Automatic"}""")]
+    [InlineData("""{"maxToolIterations":"7"}""")]
+    [InlineData("""{"mod":"Auto"}""")]
+    public void Given_A_Request_Body_With_A_Member_That_Does_Not_Read_Binding_Throws(string body)
+    {
+        // Act
+        var bind = () => JsonSerializer.Deserialize<GuardedAgent.Settings>(body, JsonSerializerOptions.Web);
+
+        // Assert
+        bind.Should().Throw<JsonException>();
+    }
+
+    [Fact]
+    public void Given_A_Request_Body_With_A_Member_In_Another_Case_Binding_Throws_Naming_It_In_Camel_Case()
+    {
+        // Act
+        var bind = () => JsonSerializer.Deserialize<GuardedAgent.Settings>("""{"Mode":"Auto"}""");
+
+        // Assert
+        bind.Should()
+            .Throw<JsonException>()
+            .WithMessage("'Mode' is no settings member: member names are camelCase, such as 'mode'.");
+    }
+
+    [Fact]
+    public void Given_A_Request_Body_With_A_Member_The_Settings_Lack_Binding_Throws_Naming_Their_Members()
+    {
+        // Act
+        var bind = () => JsonSerializer.Deserialize<GuardedAgent.Settings>("""{"mod":"Auto"}""");
+
+        // Assert
+        bind.Should()
+            .Throw<JsonException>()
+            .WithMessage(
+                "'mod' is no settings member. The members of the settings are 'mode', 'maxToolIterations' and "
+                + "'maxInputTokens'.");
+    }
+
+    [Fact]
+    public void Given_A_Request_Body_With_A_Value_Of_Another_Type_Binding_Throws_Naming_The_Type()
+    {
+        // Act
+        var bind = () => JsonSerializer.Deserialize<GuardedAgent.Settings>("""{"maxToolIterations":"7"}""");
+
+        // Assert
+        bind.Should().Throw<JsonException>().WithMessage("""'maxToolIterations' holds "7", which is no int.""");
+    }
+
+    [Fact]
+    public void Given_A_Request_Body_With_A_Name_The_Enum_Lacks_Binding_Throws_Naming_Its_Names()
+    {
+        // Act
+        var bind = () => JsonSerializer.Deserialize<GuardedAgent.Settings>("""{"mode":"Automatic"}""");
+
+        // Assert
+        bind.Should()
+            .Throw<JsonException>()
+            .WithMessage(
+                """'mode' holds "Automatic", which is no AgentMode. Its names are 'Default', 'Plan' and 'Auto'.""");
+    }
+
+    [Theory]
+    [InlineData("""{"stopSequences":"END"}""", "'stopSequences'")]
+    [InlineData("""{"reasoning":{"effort":"Highest"}}""", "'reasoning.effort'")]
+    [InlineData("""{"reasoning":{"depth":1}}""", "'reasoning.depth'")]
+    [InlineData("""{"tools":{"inspekt":{}}}""", "'tools.inspekt'")]
+    [InlineData("""{"tools":{"inspect":{"Count":3}}}""", "'tools.inspect.Count'")]
+    [InlineData("""{"tools":{"inspect":{"span":"30"}}}""", "'tools.inspect.span'")]
+    [InlineData("""{"tools":{"inspect":{"address":{"town":"Graz"}}}}""", "'tools.inspect.address.town'")]
+    [InlineData("""{"tools":{"inspect":{"home":{"latitude":"north"}}}}""", "'tools.inspect.home.latitude'")]
+    [InlineData("""{"tools":{"inspect":{"tags":["a",1]}}}""", "'tools.inspect.tags[1]'")]
+    [InlineData("""{"tools":{"inspect":{"tags":["a",null]}}}""", "'tools.inspect.tags[1]'")]
+    [InlineData("""{"tools":{"inspect":{"history":[{"city":7}]}}}""", "'tools.inspect.history[0].city'")]
+    [InlineData("""{"tools":{"inspect":{"scores":{"a":"1"}}}}""", "'tools.inspect.scores.a'")]
+    [InlineData("""{"tools":{"inspect":{"places":{"Purple":{}}}}}""", "'Purple' of 'tools.inspect.places'")]
+    public void Given_A_Request_Body_With_A_Nested_Value_That_Does_Not_Read_Binding_Throws_Naming_It(
+        string body,
+        string named)
+    {
+        // Act
+        var bind = () => JsonSerializer.Deserialize<EveryKindAgent.Settings>(body);
+
+        // Assert
+        bind.Should().Throw<JsonException>().WithMessage($"*{named}*");
+    }
+
+    [Fact]
+    public void Given_A_Request_Body_With_Nulls_Binding_Reads_Them_As_Missing()
+    {
+        // Act
+        var bound = JsonSerializer.Deserialize<EveryKindAgent.Settings>(
+            """{"temperature":null,"stopSequences":null,"tools":{"inspect":{"address":null,"tags":null}}}""");
+
+        // Assert
+        bound.Should().BeEquivalentTo(new EveryKindAgent.Settings());
+    }
+
+    [Fact]
+    public void Given_A_Tools_Overrides_Bound_Alone_Binding_Refuses_A_Member_They_Lack()
+    {
+        // Act
+        var bind = () => JsonSerializer.Deserialize<EveryKindToolset.InspectOverrides>("""{"cuont":3}""");
+
+        // Assert
+        bind.Should().Throw<JsonException>().WithMessage("'cuont' is no settings member*");
     }
 
     [Fact]

@@ -173,6 +173,22 @@ partial class CrawlToolset
             return true;
         }
 
+        /// <inheritdoc />
+        [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
+        public static void CheckJson(global::System.Text.Json.JsonElement element, string path)
+        {
+            global::Typeshift.Generated.StorableJson.CheckMembers(element, path, ["names", "tags", "ports", "mirrors", "weights", "starts", "primary", "window", "reach"]);
+            CheckStored0(global::Typeshift.Generated.StorableJson.Member(element, "names"), global::Typeshift.Generated.StorableJson.Path(path, "names"));
+            CheckStored1(global::Typeshift.Generated.StorableJson.Member(element, "tags"), global::Typeshift.Generated.StorableJson.Path(path, "tags"));
+            CheckStored2(global::Typeshift.Generated.StorableJson.Member(element, "ports"), global::Typeshift.Generated.StorableJson.Path(path, "ports"));
+            CheckStored3(global::Typeshift.Generated.StorableJson.Member(element, "mirrors"), global::Typeshift.Generated.StorableJson.Path(path, "mirrors"));
+            CheckStored4(global::Typeshift.Generated.StorableJson.Member(element, "weights"), global::Typeshift.Generated.StorableJson.Path(path, "weights"));
+            CheckStored5(global::Typeshift.Generated.StorableJson.Member(element, "starts"), global::Typeshift.Generated.StorableJson.Path(path, "starts"));
+            CheckStored6(global::Typeshift.Generated.StorableJson.Member(element, "primary"), global::Typeshift.Generated.StorableJson.Path(path, "primary"));
+            CheckStored7(global::Typeshift.Generated.StorableJson.Member(element, "window"), global::Typeshift.Generated.StorableJson.Path(path, "window"));
+            global::Typeshift.Generated.StorableJson.CheckEnum<global::Demo.Depth>(global::Typeshift.Generated.StorableJson.Member(element, "reach"), global::Typeshift.Generated.StorableJson.Path(path, "reach"));
+        }
+
         private static void WriteStored0(global::System.Text.Json.Utf8JsonWriter writer, global::System.Collections.Generic.List<string> value, string member)
         {
             writer.WriteStartArray();
@@ -193,6 +209,11 @@ partial class CrawlToolset
 
             value = items;
             return true;
+        }
+
+        private static void CheckStored0(global::System.Text.Json.JsonElement element, string path)
+        {
+            global::Typeshift.Generated.StorableJson.CheckItems(element, path, static (value, at) => global::Typeshift.Generated.StorableJson.Check<string>(value, at, global::Typeshift.Generated.StorableJson.TryRead));
         }
 
         private static void WriteStored1(global::System.Text.Json.Utf8JsonWriter writer, string[] value, string member)
@@ -217,6 +238,11 @@ partial class CrawlToolset
             return true;
         }
 
+        private static void CheckStored1(global::System.Text.Json.JsonElement element, string path)
+        {
+            global::Typeshift.Generated.StorableJson.CheckItems(element, path, static (value, at) => global::Typeshift.Generated.StorableJson.Check<string>(value, at, global::Typeshift.Generated.StorableJson.TryRead));
+        }
+
         private static void WriteStored2(global::System.Text.Json.Utf8JsonWriter writer, global::System.Collections.Generic.HashSet<int> value, string member)
         {
             writer.WriteStartArray();
@@ -234,6 +260,11 @@ partial class CrawlToolset
 
             value = new global::System.Collections.Generic.HashSet<int>(items);
             return true;
+        }
+
+        private static void CheckStored2(global::System.Text.Json.JsonElement element, string path)
+        {
+            global::Typeshift.Generated.StorableJson.CheckItems(element, path, static (value, at) => global::Typeshift.Generated.StorableJson.Check<int>(value, at, global::Typeshift.Generated.StorableJson.TryReadNumber<int>));
         }
 
         private static void WriteStored3(global::System.Text.Json.Utf8JsonWriter writer, global::System.Collections.Generic.IReadOnlyList<global::Demo.Endpoint> value, string member)
@@ -258,6 +289,11 @@ partial class CrawlToolset
             return true;
         }
 
+        private static void CheckStored3(global::System.Text.Json.JsonElement element, string path)
+        {
+            global::Typeshift.Generated.StorableJson.CheckItems(element, path, CheckStored6);
+        }
+
         private static void WriteStored4(global::System.Text.Json.Utf8JsonWriter writer, global::System.Collections.Generic.Dictionary<string, int> value, string member)
         {
             writer.WriteStartObject();
@@ -276,6 +312,11 @@ partial class CrawlToolset
 
             value = items;
             return true;
+        }
+
+        private static void CheckStored4(global::System.Text.Json.JsonElement element, string path)
+        {
+            global::Typeshift.Generated.StorableJson.CheckValues(element, path, static (value, at) => global::Typeshift.Generated.StorableJson.Check<int>(value, at, global::Typeshift.Generated.StorableJson.TryReadNumber<int>));
         }
 
         private static void WriteStored5(global::System.Text.Json.Utf8JsonWriter writer, global::System.Collections.Generic.IReadOnlyDictionary<global::Demo.Depth, global::Demo.Endpoint> value, string member)
@@ -299,6 +340,11 @@ partial class CrawlToolset
 
             value = items;
             return true;
+        }
+
+        private static void CheckStored5(global::System.Text.Json.JsonElement element, string path)
+        {
+            global::Typeshift.Generated.StorableJson.CheckEnumKeys<global::Demo.Depth>(element, path, CheckStored6);
         }
 
         private static void WriteStored6(global::System.Text.Json.Utf8JsonWriter writer, global::Demo.Endpoint value)
@@ -348,6 +394,15 @@ partial class CrawlToolset
             return true;
         }
 
+        private static void CheckStored6(global::System.Text.Json.JsonElement element, string path)
+        {
+            global::Typeshift.Generated.StorableJson.CheckMembers(element, path, ["host", "port", "paths", "contact"]);
+            global::Typeshift.Generated.StorableJson.Check<string>(global::Typeshift.Generated.StorableJson.Member(element, "host"), global::Typeshift.Generated.StorableJson.Path(path, "host"), global::Typeshift.Generated.StorableJson.TryRead);
+            global::Typeshift.Generated.StorableJson.Check<int>(global::Typeshift.Generated.StorableJson.Member(element, "port"), global::Typeshift.Generated.StorableJson.Path(path, "port"), global::Typeshift.Generated.StorableJson.TryReadNumber<int>);
+            CheckStored0(global::Typeshift.Generated.StorableJson.Member(element, "paths"), global::Typeshift.Generated.StorableJson.Path(path, "paths"));
+            CheckStored8(global::Typeshift.Generated.StorableJson.Member(element, "contact"), global::Typeshift.Generated.StorableJson.Path(path, "contact"));
+        }
+
         private static void WriteStored7(global::System.Text.Json.Utf8JsonWriter writer, global::Demo.Size value)
         {
             writer.WriteStartObject();
@@ -381,6 +436,13 @@ partial class CrawlToolset
             return true;
         }
 
+        private static void CheckStored7(global::System.Text.Json.JsonElement element, string path)
+        {
+            global::Typeshift.Generated.StorableJson.CheckMembers(element, path, ["width", "height"]);
+            global::Typeshift.Generated.StorableJson.Check<int>(global::Typeshift.Generated.StorableJson.Member(element, "width"), global::Typeshift.Generated.StorableJson.Path(path, "width"), global::Typeshift.Generated.StorableJson.TryReadNumber<int>);
+            global::Typeshift.Generated.StorableJson.Check<int>(global::Typeshift.Generated.StorableJson.Member(element, "height"), global::Typeshift.Generated.StorableJson.Path(path, "height"), global::Typeshift.Generated.StorableJson.TryReadNumber<int>);
+        }
+
         private static void WriteStored8(global::System.Text.Json.Utf8JsonWriter writer, global::Demo.Mail.Endpoint value)
         {
             writer.WriteStartObject();
@@ -405,6 +467,12 @@ partial class CrawlToolset
             };
 
             return true;
+        }
+
+        private static void CheckStored8(global::System.Text.Json.JsonElement element, string path)
+        {
+            global::Typeshift.Generated.StorableJson.CheckMembers(element, path, ["address"]);
+            global::Typeshift.Generated.StorableJson.Check<string>(global::Typeshift.Generated.StorableJson.Member(element, "address"), global::Typeshift.Generated.StorableJson.Path(path, "address"), global::Typeshift.Generated.StorableJson.TryRead);
         }
     }
 
@@ -456,7 +524,7 @@ partial class CrawlToolset
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 11)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 12)]
 
 namespace Typeshift.Generated;
 

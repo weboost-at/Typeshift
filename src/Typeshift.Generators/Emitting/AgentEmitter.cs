@@ -49,7 +49,7 @@ internal static class AgentEmitter
     private static readonly string[] RecordMembers =
     [
         .. Names.ObjectMembers,
-        "Clone", "Deconstruct", "Deserialize", "EqualityContract", "Kind", "PrintMembers", "SchemaVersion",
+        "CheckJson", "Clone", "Deconstruct", "Deserialize", "EqualityContract", "Kind", "PrintMembers", "SchemaVersion",
         "Serialize", "Settings", "TryReadJson", "WriteJson"
     ];
 
@@ -289,7 +289,8 @@ internal static class AgentEmitter
                         + $"{Json}.Member({Json}.Member(element, \"tools\"), {Names.Literal(tool.Name)}), "
                         + $"out var tool{index}) ? tool{index} : new()")
                 ],
-                chat.Concat(run).Select(option => option.Provider).OfType<string>());
+                chat.Concat(run).Select(option => option.Provider).OfType<string>(),
+                [.. tools.Select(tool => (tool.Name, tool.Overrides!))]);
         }
 
         string ProviderDeclaration(string provider) =>

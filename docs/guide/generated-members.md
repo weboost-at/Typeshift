@@ -303,8 +303,8 @@ The record is also the document a store keeps under a settings id:
 | `static string Kind` | The name a store keys it by, which the store's methods receive as `kind`: `WithStorageKind("...")`, or else the class name, so moving the agent to another namespace keeps its data. For two agents of the same kind, the analyzer reports [TSH022](./diagnostics.md#tsh022). |
 | `static int SchemaVersion` | 1, or what `WithSchemaVersion(n)` sets, which `Serialize()` writes into the JSON ([The stored JSON](./settings-and-stores.md#the-stored-json)). |
 | `Serialize()` | Writes the record as JSON. |
-| `static Deserialize(json)` | Reads the JSON. Throws a `JsonException` for a `"$schemaVersion"` newer than the code's. |
-| `WriteJson`, `TryReadJson` (hidden) | What `Serialize`, `Deserialize` and the record's `JsonConverter` use. |
+| `static Deserialize(json)` | Reads the JSON as a store's load does, a member that does not read as missing. Throws a `JsonException` for a `"$schemaVersion"` newer than the code's. |
+| `WriteJson`, `TryReadJson`, `CheckJson` (hidden) | What `Serialize`, `Deserialize` and the record's `JsonConverter` use. The converter checks a request's JSON with `CheckJson` too, so `System.Text.Json` refuses a member the record does not have or a value that does not read. |
 
 [The stored JSON](./settings-and-stores.md#the-stored-json) covers the JSON's shape, how it reads back, and what to
 do when a configurable member is renamed.
@@ -385,7 +385,7 @@ AddTool(SearchArticlesAsync)
 |---|---|
 | One `init` property per configurable member | The member's type, nullable. Null keeps the layer below. A member named like the record or one of its own members, such as `ApplyTo`, gets a `Value` suffix, so its property is `ApplyToValue`; the JSON keeps the member's own name. |
 | `ApplyTo(TSettings)` (hidden) | Returns the settings of the layer below, with every value this layer sets applied over them. |
-| `WriteJson`, `TryReadJson` (hidden) | Write and read the record's JSON, in camelCase with nulls left out. A `JsonConverter` on the record makes `System.Text.Json` read and write the same shape. |
+| `WriteJson`, `TryReadJson`, `CheckJson` (hidden) | Write, read and check the record's JSON, in camelCase with nulls left out. A `JsonConverter` on the record makes `System.Text.Json` read and write the same shape, and refuse a member the record does not have or a value that does not read. |
 
 An agent's `Settings` holds the overrides of every tool it offers. So a toolset with configurable settings must be as
 accessible as a public agent that offers it ([TSH006](./diagnostics.md#tsh006)).

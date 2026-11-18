@@ -306,11 +306,19 @@ What is stored is the record's JSON: camelCase, with the tools nested under `"to
 
 An agent whose `WithSchemaVersion(n)` raised its schema version above 1 also writes `"$schemaVersion": n` first. A
 document without that member counts as version 1, which is why a version below 1 does not build
-([TSH039](./diagnostics.md#tsh039)). `System.Text.Json` writes and reads the same JSON, so an endpoint that binds `SupportAgent.Settings` accepts and returns
-the JSON the store keeps. A stored member that cannot be read, because its value has the wrong type or its name is
-unknown, counts as missing, so the layer below applies. When a configurable member is itself a record or a class, a
-stored value replaces the whole object, so members missing from its stored JSON take that type's defaults, not the
-values of the layer below.
+([TSH039](./diagnostics.md#tsh039)). When a configurable member is itself a record or a class, a stored value
+replaces the whole object, so members missing from its stored JSON take that type's defaults, not the values of the
+layer below.
+
+A store's load reads the JSON with `Settings.Deserialize(json)`. There a member that cannot be read, because its
+value has the wrong type or its name is unknown, counts as missing, so the layer below applies. `System.Text.Json`
+writes the same JSON, so an endpoint that binds `SupportAgent.Settings` returns and accepts the JSON the store keeps,
+but it reads a request strictly. A member the settings do not have, or a value that does not read, fails the binding
+with a `JsonException` that names it, such as "'Temperature' is no settings member: member names are camelCase, such
+as 'temperature'.", and ASP.NET answers 400. Read as missing, a body with PascalCase names or a number sent as a
+string would bind to empty settings and erase the stored ones once saved. A JSON `null` counts as missing on both
+paths, so a form clears a field with it. Read the JSON your store keeps with `Deserialize`, so that a member renamed
+since it was stored keeps the layer below instead of failing the read.
 
 A stored `provider` or `summaryProvider` is the exception. One that cannot be read as the agent's
 [provider id type](./models.md#the-provider-id-type), such as the name of an enum member you renamed, fails the
@@ -320,7 +328,7 @@ the stored value is one the type has: change it in your store, as you would
 [migrate older settings](./implementing-a-store.md#migrate-older-settings). A JSON `null` still counts as missing.
 
 Dates and times are strings of one format each. Keep to it when you edit stored JSON by hand, because a value in
-another format counts as missing too:
+another format counts as missing too, and fails a request's binding:
 
 | Type | Format | Example |
 |---|---|---|
@@ -337,9 +345,10 @@ it with `LIKE`. That holds for settings and for conversation entries. Quotes and
 escaped as `\uXXXX`, because your app may pass the JSON on to a page as it is.
 
 ::: warning A renamed member loses its stored value
-A configurable member that is renamed or removed reads as missing, so its stored value no longer applies. When that
-matters, raise the agent's schema version with `WithSchemaVersion(2)` and migrate the documents of the older
-schema version ([Migrate older settings](./implementing-a-store.md#migrate-older-settings)).
+A configurable member that is renamed or removed reads as missing from stored settings, so its stored value no
+longer applies, and a request that still sends it is refused. When the stored value matters, raise the agent's
+schema version with `WithSchemaVersion(2)` and migrate the documents of the older schema version
+([Migrate older settings](./implementing-a-store.md#migrate-older-settings)).
 :::
 
 ## Related

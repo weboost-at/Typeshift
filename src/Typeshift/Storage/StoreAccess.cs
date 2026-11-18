@@ -166,7 +166,7 @@ internal sealed class StoreAccess(IServiceProvider services, IServiceCollection 
     }
 }
 
-// The C# names an error message gives the common id types, and the store interfaces of them
+// The C# names an error message gives the common id types, the store interfaces of them and stored values
 internal static class TypeNames
 {
     public static string Of<T>() => Of(typeof(T));
@@ -182,6 +182,11 @@ internal static class TypeNames
                 TypeCode.Int32 => "int",
                 TypeCode.Int64 => "long",
                 TypeCode.Int16 => "short",
+                TypeCode.Byte => "byte",
+                TypeCode.Single => "float",
+                TypeCode.Double => "double",
+                TypeCode.Decimal => "decimal",
+                TypeCode.Boolean => "bool",
                 TypeCode.String => "string",
                 _ => type.Name
             }

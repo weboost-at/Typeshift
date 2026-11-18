@@ -1,4 +1,4 @@
-StampVersion = 11
+StampVersion = 12
 protected virtual Typeshift.Generated.AgentDeclaration Typeshift.Agent.Declaration { get; }
 public abstract class Typeshift.Generated.AgentDeclaration
 public abstract string? Typeshift.Generated.AgentDeclaration.Description { get; }
@@ -49,6 +49,7 @@ public override System.Text.Json.JsonElement Typeshift.Generated.GeneratedToolFu
 public override System.Text.Json.JsonSerializerOptions Typeshift.Generated.GeneratedToolFunction.JsonSerializerOptions { get; }
 protected abstract System.Collections.Generic.IReadOnlyList<Typeshift.Generated.ToolParameter> Typeshift.Generated.GeneratedToolFunction.Parameters { get; }
 public interface Typeshift.Generated.IJsonStorable<TSelf> where TSelf : class, Typeshift.Generated.IJsonStorable<TSelf>
+static void Typeshift.Generated.IJsonStorable<TSelf>.CheckJson(System.Text.Json.JsonElement element, string path)
 static abstract bool Typeshift.Generated.IJsonStorable<TSelf>.TryReadJson(System.Text.Json.JsonElement element, out TSelf value)
 abstract void Typeshift.Generated.IJsonStorable<TSelf>.WriteJson(System.Text.Json.Utf8JsonWriter writer)
 public sealed class Typeshift.Generated.ModuleAgentAttribute : System.Attribute
@@ -72,10 +73,19 @@ public static bool Typeshift.Generated.ModuleRegistration.TryAddModule(Microsoft
 public sealed class Typeshift.Generated.ModuleToolsetAttribute : System.Attribute
 public Typeshift.Generated.ModuleToolsetAttribute.ModuleToolsetAttribute(System.Type toolset)
 public System.Type Typeshift.Generated.ModuleToolsetAttribute.Toolset { get; }
+public delegate void Typeshift.Generated.StorableCheck(System.Text.Json.JsonElement element, string path)
 public static class Typeshift.Generated.StorableJson
+public static void Typeshift.Generated.StorableJson.Check<T>(System.Text.Json.JsonElement element, string path, Typeshift.Generated.StorableReader<T> read)
+public static void Typeshift.Generated.StorableJson.CheckEnum<TEnum>(System.Text.Json.JsonElement element, string path) where TEnum : struct, System.Enum
+public static void Typeshift.Generated.StorableJson.CheckEnumKeys<TKey>(System.Text.Json.JsonElement element, string path, Typeshift.Generated.StorableCheck check) where TKey : struct, System.Enum
+public static void Typeshift.Generated.StorableJson.CheckItems(System.Text.Json.JsonElement element, string path, Typeshift.Generated.StorableCheck check)
+public static void Typeshift.Generated.StorableJson.CheckMembers(System.Text.Json.JsonElement element, string path, System.ReadOnlySpan<string> members)
+public static void Typeshift.Generated.StorableJson.CheckReasoning(System.Text.Json.JsonElement element, string path)
+public static void Typeshift.Generated.StorableJson.CheckValues(System.Text.Json.JsonElement element, string path, Typeshift.Generated.StorableCheck check)
 public static void Typeshift.Generated.StorableJson.EnsureProvider<TProviderId>(System.Text.Json.JsonElement element, string name, Typeshift.Generated.StorableReader<TProviderId> read, string kind)
 public static void Typeshift.Generated.StorableJson.EnsureSchemaVersion(System.Text.Json.JsonElement element, int version, string kind)
 public static System.Text.Json.JsonElement Typeshift.Generated.StorableJson.Member(System.Text.Json.JsonElement element, string name)
+public static string Typeshift.Generated.StorableJson.Path(string path, string name)
 public static T Typeshift.Generated.StorableJson.Read<T>(string json, Typeshift.Generated.StorableReader<T> read)
 public static bool Typeshift.Generated.StorableJson.TryRead(System.Text.Json.JsonElement element, out Microsoft.Extensions.AI.ReasoningOptions value)
 public static bool Typeshift.Generated.StorableJson.TryRead(System.Text.Json.JsonElement element, out System.DateOnly value)

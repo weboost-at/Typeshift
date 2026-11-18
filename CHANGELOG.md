@@ -459,6 +459,14 @@ All notable changes to this project are documented here. The format follows
   `AddTypeshift().WithOptions(options => options.StoreFailure = StoreFailure.ContinueRun)`, and read
   `response.ConversationIncomplete` to tell the user. "When the store fails" on the guide's conversations page has
   both.
+- **Breaking:** an agent's `Settings` and a tool's overrides read through `System.Text.Json`, as an ASP.NET endpoint
+  binds its body, refuse a member they do not have and a value that does not read, with a `JsonException` that
+  names it, as in "'Temperature' is no settings member: member names are camelCase, such as 'temperature'.", which
+  ASP.NET answers with 400. Before, such members read as missing, so a body with PascalCase names, a number sent as
+  a string or one misspelled member bound to empty settings, and saving them erased the customer's stored values. A
+  JSON `null` still reads as missing. `Settings.Deserialize(json)`, the read of a store's load, is as lenient as
+  before: code that read stored JSON with `JsonSerializer.Deserialize<SupportAgent.Settings>(json)` writes
+  `SupportAgent.Settings.Deserialize(json)` instead, so a member renamed since the save keeps reading as missing.
 
 ### Fixed
 

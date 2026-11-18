@@ -6,7 +6,7 @@ internal static class KnownTypes
 {
     // D7: raised whenever the stamps change shape or a member generated code binds to changes; a reference with
     // another version is TSH020
-    public const int StampVersion = 11;
+    public const int StampVersion = 12;
 
     public const string Toolset = "Typeshift.Toolset";
 
