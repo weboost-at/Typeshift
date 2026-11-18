@@ -804,6 +804,74 @@ public class ConversationRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Raw_Call_That_Failed_To_Begin_The_Next_Call_Of_The_Conversation_Runs()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+        await Record.ExceptionAsync(() => client.GetResponseAsync([], options, Ct));
+
+        // Act
+        var response = await client.GetResponseAsync(Data.Tool.Question, options, Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Provider_That_Keeps_The_Conversation_A_Call_Id_It_Uses_Again_Stays_Its_Own(bool streaming)
+    {
+        // Arrange
+        var again = Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query));
+        again.ConversationId = Data.Persistence.ChatName;
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(again)
+            .Reply(Text(Data.Tool.Answer));
+
+        await RunAsync(Data.Tool.Question, streaming, Ct);
+
+        // Act
+        await RunAsync(Data.Agent.FollowUp, streaming, Ct);
+
+        // Assert
+        (await EntriesAsync(Data.Agent.ConversationId))
+            .SelectMany(entry => entry.Messages)
+            .SelectMany(message => message.Contents)
+            .OfType<FunctionCallContent>()
+            .Select(call => call.CallId)
+            .Should()
+            .Equal(Data.Tool.CallId, Data.Tool.CallId);
+    }
+
+    [Fact]
+    public async Task Given_An_Interrupted_Response_Of_Text_And_A_Call_Resuming_Keeps_The_Text_And_Drops_The_Call()
+    {
+        // Arrange
+        var answer = new ChatMessage(
+            ChatRole.Assistant,
+            [new TextContent(Data.Agent.Reason), new FunctionCallContent(Data.Tool.CallId, "probe")]);
+
+        await StoreAsync(new ChatMessage(ChatRole.User, Data.Tool.Question));
+        await StoreAsync(answer);
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).ResumeAsync(ct: Ct);
+
+        // Assert
+        ChatClient.Assert.Request(0).Texts.Should().Equal(Data.Tool.Question, Data.Agent.Reason);
+        ChatClient.Assert.Request(0).Calls.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Given_A_Run_Going_On_A_Second_Run_Of_The_Conversation_Fails()
     {
         // Arrange

@@ -681,6 +681,27 @@ public sealed class TelemetryTests : AgentTestBase
         later.Select(run => run.GetTagItem("typeshift.provider")).Should().Equal(BackOfficeAgent.ModelProvider);
     }
 
+    [Fact]
+    public async Task Given_A_Container_Disposed_The_Meters_Of_The_Backends_Its_Runs_Called_End()
+    {
+        // Arrange
+        using var meters = new RecordedMeters(Data.Telemetry.Backend.ProviderUri!.Host);
+        await using var provider = ServicesOf(Data.Telemetry.Backend);
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        await using (var scope = provider.CreateAsyncScope())
+        {
+            var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+            await host.RunAsync(Data.Tool.Question, ct: Ct);
+        }
+
+        // Act
+        await provider.DisposeAsync();
+
+        // Assert
+        meters.Ended.Should().Contain("gen_ai.client.operation.duration");
+    }
+
     protected override ValueTask DisposeCoreAsync()
     {
         Activities.Dispose();

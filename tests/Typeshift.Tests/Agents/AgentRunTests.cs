@@ -320,6 +320,66 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Result_Held_Under_Data_Its_Schema_Allows_Nothing_Else()
+    {
+        // Arrange
+        var answer = new { data = Data.Tool.Limit.Default };
+        ChatClient.Reply(Text(JsonSerializer.Serialize(answer, Json.SerializerOptions)));
+
+        // Act
+        await Host<ProbeAgent>().RunAsync<int>(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ResponseSchema().GetProperty("additionalProperties").GetBoolean().Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Given_A_Recursive_Result_Held_Under_Data_Its_References_Point_Into_Data()
+    {
+        // Arrange
+        var answer = new { data = new[] { new Category(Data.Tool.Query, []) } };
+        ChatClient.Reply(Text(JsonSerializer.Serialize(answer, Json.SerializerOptions)));
+
+        // Act
+        await Host<ProbeAgent>().RunAsync<Category[]>(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ResponseSchema().Assert.ReferencesResolve();
+    }
+
+    [Fact]
+    public async Task Given_A_Result_Type_With_A_Display_Name_And_A_Description_Its_Schema_Carries_Both()
+    {
+        // Arrange
+        var finding = new NamedFinding(Data.Agent.Reason);
+        ChatClient.Reply(Text(JsonSerializer.Serialize(finding, Json.GetTypeInfo<NamedFinding>())));
+
+        // Act
+        await Host<ProbeAgent>().RunAsync<NamedFinding>(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Assert.Request(0).Options!.ResponseFormat.Should().BeEquivalentTo(new
+        {
+            SchemaName = NamedFinding.Name,
+            SchemaDescription = NamedFinding.About
+        });
+    }
+
+    [Fact]
+    public async Task Given_An_Answer_That_Is_No_Object_Reading_The_Result_Fails_Naming_Data()
+    {
+        // Arrange
+        ChatClient.Reply(Text($"{Data.Tool.Lives}"));
+        var response = await Host<ProbeAgent>().RunAsync<int>(Data.Tool.Question, ct: Ct);
+
+        // Act
+        var read = () => response.Result;
+
+        // Assert
+        read.Should().Throw<JsonException>().WithMessage("*no JSON object holding a data property*");
+    }
+
+    [Fact]
     public async Task Given_A_Result_Type_With_An_Exception_The_Run_Fails_Naming_The_Member()
     {
         // Act
