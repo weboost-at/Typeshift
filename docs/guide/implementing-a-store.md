@@ -502,8 +502,9 @@ public async Task AppendConversationAsync(int conversation, ConversationEntry en
 - **Keep ordering by your own row number.** A number can be skipped after an append that failed, and the numbers of
   entries stored before entries had one are 0. Order and the last summary stay with the row number, as above.
 - **Leave older rows without a number.** Add the column so that it allows NULL, which a unique key allows any number
-  of times, and fill in nothing for the rows that were there before. A run counts such entries one by one and numbers
-  its first entry after them, so numbers you wrote into the column would collide with its own.
+  of times, and leave it NULL for the rows that were there before. A run reads the numbers from the entries' JSON,
+  where those rows have none, counts them and numbers its first entry after them, so a number a migration wrote
+  into the column can collide with the run's own.
 - **Tell your own retry from a second run.** A database client that retries an insert that had succeeded, as EF Core's
   retry on failure can, finds the number taken by its own row. Compare that row's JSON with the entry, and return
   without an exception when they are the same.
