@@ -522,14 +522,18 @@ internal sealed class ConversationRun(
             response.ModelId ?? options?.ModelId,
             response.Usage,
             run.Compaction?.SentEstimate,
-            provider: run.ResolvedProvider?.ToString());
+            provider: run.ResolvedProvider?.ToString(),
+            answered: true);
 
         if (streamed) _streamedUnmatched = response.Messages.Count;
     }
 
     // D46: storing never observes the run's token, and a store that fails is logged while the run goes on. The
     // store's exception when it did not take the step, for the steps a decision depends on (D80). D50: a store that
-    // refuses the step's number stops the run, which stores nothing more
+    // refuses the step's number stops the run, which stores nothing more. D33, D32: a model response holds the usage
+    // its provider reported, and any other entry what the run spent beside its model calls since the last such
+    // entry, on sub-agents and summaries, so the entries add up to what the run reports. Compaction reads only an
+    // entry that holds an estimate too, a model response's, as a call's report
     public async Task<Exception?> AppendAsync(
         IReadOnlyList<ChatMessage> messages,
         string? model = null,
@@ -538,7 +542,8 @@ internal sealed class ConversationRun(
         bool endsRun = false,
         bool summary = false,
         string? answering = null,
-        string? provider = null)
+        string? provider = null,
+        bool answered = false)
     {
         foreach (var message in messages)
         {
@@ -559,7 +564,7 @@ internal sealed class ConversationRun(
             Sequence = Interlocked.Increment(ref _sequence),
             Model = model,
             Provider = provider,
-            Usage = usage,
+            Usage = answered ? usage : run.TakeUnstoredUsage(),
             EstimatedInputTokens = estimated,
             EndsRun = endsRun,
 

@@ -328,6 +328,8 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                     // Published as the run stored it, so a watcher pairs the handoff's call with its result
                     yield return Made(run, handoff.Result, streaming);
 
+                    if (Spent(run, options, streaming) is { } spent) yield return spent;
+
                     await foreach (var part in RunOn(target, [], handed, streaming, ct))
                     {
                         yield return part;
@@ -360,6 +362,8 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         }
 
         await run.EndAsync(null);
+
+        if (Spent(run, options, streaming) is { } beside) yield return beside;
 
         // D80: the decisions come last, once the run stored its end, so each one your app sees can be answered and
         // a reader that stops there leaves nothing half done
@@ -403,6 +407,21 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         }
     }
 
+    // D33, D32: what the run spent beside its model calls, on its sub-agents and compaction's summaries, joins what it
+    // reports once it is all spent. A run that does not stream adds it to its response; a streaming run sends it in
+    // an update of its own, ahead of its decisions, which the response its updates make adds up as it adds the
+    // model's. Null when the run spent nothing beside
+    private static RunPart? Spent(ConversationRun run, ResolvedChatOptions options, bool streaming)
+    {
+        if (options.AgentRun!.SpentBeside() is not { } spent) return null;
+        if (!streaming) return new(Usage: spent);
+
+        var update = new ChatResponseUpdate { Contents = [new UsageContent(spent)] };
+
+        run.Publisher?.Add(update);
+        return new(update);
+    }
+
     // A message the run made itself, as its caller gets it. A streaming run publishes it here, with its update; a
     // run that does not stream published it when it stored it (D47)
     private static RunPart Made(ConversationRun run, ChatMessage message, bool streaming)
@@ -416,17 +435,30 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     }
 
     // What a run hands its caller next. A streaming run hands on updates. A run that does not stream hands on whole
-    // responses, each pass's and that of an agent it handed off to, which its caller merges into one; the decisions
-    // it asks join that response as they are, in a message of their own. Last, a run whose conversation lacks a step
-    // hands on the store's exception (D46)
+    // responses, each pass's and that of an agent it handed off to, which its caller merges into one; what it spent
+    // beside its model calls and the decisions it asks join that response as they are, the decisions in a message
+    // of their own. Last, a run whose conversation lacks a step hands on the store's exception (D46)
     private readonly record struct RunPart(
         ChatResponseUpdate? Update = null,
         ChatResponse? Response = null,
         ChatMessage? Asking = null,
-        Exception? NotStored = null)
+        Exception? NotStored = null,
+        UsageDetails? Usage = null)
     {
         public ChatResponse JoinedTo(ChatResponse? response)
         {
+            // A sum of its own, since the stored entry of the run's model call may hold the usage it reported
+            if (Usage is not null)
+            {
+                var usage = new UsageDetails();
+
+                if (response!.Usage is { } own) usage.Add(own);
+                usage.Add(Usage);
+
+                response.Usage = usage;
+                return response;
+            }
+
             if (Asking is null) return response is null ? Response! : ChatResponses.Merge(response, Response!);
 
             response!.Messages.Add(Asking);

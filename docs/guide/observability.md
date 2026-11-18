@@ -53,7 +53,7 @@ The `invoke_agent` span carries these tags:
 | `gen_ai.request.model` | The model the run asks for |
 | `typeshift.provider` | The provider the span's agent runs on, as its code or its settings name it, as text: `openai`, or an enum member's name. After a handoff, each agent's span has its own. A run on the [default client](./models.md#registering-clients) has no such tag. |
 | `gen_ai.conversation.id` | The conversation's id, when the run has one |
-| `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens` | The run's token usage |
+| `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens` | The run's token usage, as its response reports it: its model calls', its sub-agents' and those of compaction's summaries. Each `chat` span carries its own call's. |
 | `typeshift.decisions.asked` | The number of [decisions](#decisions) the run asked your app, when it asked any |
 | `error.type` | The exception's type, when the run fails; the span's status is then an error |
 

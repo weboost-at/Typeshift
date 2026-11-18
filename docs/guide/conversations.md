@@ -138,6 +138,12 @@ is true on the entry [compaction](#compaction) appends when it summarizes, which
 a summary apart ([Start from the last summary](./implementing-a-store.md#start-from-the-last-summary)). A model response of a run
 with a maximum of input tokens also has `EstimatedInputTokens`, what compaction estimated its call at.
 
+Any other entry may have a `Usage` too: the tokens the run spent beside its own model calls since its last entry, on
+the runs of its [sub-agents](./multi-agent.md#sub-agents) and on the calls that write a [compaction](#compaction)
+summary. The entry that stores a sub-agent's result, its background answer or the summary holds them, or the
+run's next entry. So the entries' `Usage` adds up to everything the conversation's runs spent, as the response of
+each run reports it, and the sum below counts every token your providers reported for the conversation.
+
 Not every message in the user's role is the user's. A
 [background sub-agent's answer](./multi-agent.md#in-the-background) joins a run as one, with the sub-agent's name as
 its `AuthorName`, and so does the note that such a sub-agent failed or was lost. `message.IsBackgroundAnswer` is true

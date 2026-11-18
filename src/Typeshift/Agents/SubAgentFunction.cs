@@ -39,7 +39,14 @@ internal sealed class SubAgentFunction(AgentUse use, Agent agent) : AIFunction
         // D33: the caller's settings id and the caller itself, and no conversation of its own
         var handover = new RunHandover(options.SettingsId, Conversation: null, Claim: null, format, Caller: caller);
 
-        Task<ChatResponse> RunAsync(CancellationToken token) => host.RunAsync([input], handover, token);
+        // D33: what the sub-agent spent, its own sub-agents' included, counts as the caller's, whatever its answer
+        async Task<ChatResponse> RunAsync(CancellationToken token)
+        {
+            var response = await host.RunAsync([input], handover, token);
+            caller.AddUsage(response.Usage);
+
+            return response;
+        }
 
         if (!use.Background) return Answer(await RunAsync(ct), json);
 

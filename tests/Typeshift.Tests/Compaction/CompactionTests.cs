@@ -171,6 +171,47 @@ public class CompactionTests : AgentTestBase
         Texts(2)[1..].Should().Equal(Data.Tool.Answer, Data.Agent.FollowUp);
     }
 
+    [Fact]
+    public async Task Given_A_Summary_Call_The_Response_Reports_Its_Tokens_Too()
+    {
+        // Arrange
+        var settings = new CompactingAgent.Settings { MaxInputTokens = 1_000, SummaryModel = SummaryModel };
+
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason), Reported())
+            .Reply(Text(Data.Tool.Answer), Reported());
+
+        await RunAsync(new string('x', Page), settings);
+
+        // Act
+        var response = await RunAsync(Data.Agent.FollowUp, settings);
+
+        // Assert
+        response.Usage!.InputTokenCount.Should().Be(2 * Data.Agent.InputTokens);
+    }
+
+    [Fact]
+    public async Task Given_A_Summary_Call_The_Summarys_Entry_Holds_Its_Tokens()
+    {
+        // Arrange
+        var settings = new CompactingAgent.Settings { MaxInputTokens = 1_000, SummaryModel = SummaryModel };
+
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason), Reported())
+            .Reply(Text(Data.Tool.Answer), Reported());
+
+        await RunAsync(new string('x', Page), settings);
+
+        // Act
+        await RunAsync(Data.Agent.FollowUp, settings);
+
+        // Assert
+        var summary = (await EntriesAsync(Data.Agent.ConversationId)).Single(entry => entry.IsSummary);
+        summary.Usage!.InputTokenCount.Should().Be(Data.Agent.InputTokens);
+    }
+
     [Theory]
     [InlineData(2_000)]
     [InlineData(1_000)]
@@ -732,6 +773,10 @@ public class CompactionTests : AgentTestBase
     }
 
     private ChatResponseUpdate Read(string callId, int length) => Call(callId, "read", ("length", length));
+
+    // A model call's report of the tokens it took
+    private ChatResponseUpdate Reported() =>
+        new(ChatRole.Assistant, [new UsageContent(new UsageDetails { InputTokenCount = Data.Agent.InputTokens })]);
 
     // What compaction estimates a request at, before any report corrects it
     private int Estimate(int request) => Tokens.Estimate(ChatClient.Requests[request], ChatClient.Options[request]);

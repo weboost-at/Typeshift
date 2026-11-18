@@ -301,6 +301,9 @@ internal sealed class Compaction(ReportedCall? last)
             new ChatOptions { ModelId = model },
             ct);
 
+        // D32: the summary is the run's cost too, which its response reports and the summary's entry holds
+        run.AddUsage(response.Usage);
+
         return new ChatMessage(ChatRole.User, $"A summary of the conversation so far:\n\n{response.Text}");
     }
 

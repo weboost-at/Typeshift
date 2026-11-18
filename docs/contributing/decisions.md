@@ -686,8 +686,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   run's model. What a context provider added (D31), and what run middleware added to the messages it received (D30),
   is the pass's own, like the instructions: it stays in every call and counts toward the target, the summary model
   never reads it, and no summary stores it. A message middleware put in place of another is summarized like the
-  message it stands for, since compaction sees no other; pinning it would leave that turn in no summary. A summary is
-  best effort (owner): a summary call that fails is logged as a warning and recorded on the run's span, the run's own
+  message it stands for, since compaction sees no other; pinning it would leave that turn in no summary. A summary
+  call's tokens are the run's, which its response reports and the summary's entry holds, as a sub-agent's are
+  (D33); a model response's entry keeps its provider's report alone, so compaction's first estimate reads no
+  summary's tokens as a call's. A summary is best effort (owner): a summary call that fails is logged as a warning
+  and recorded on the run's span, the run's own
   provider and model write the summary when another was named (D77), and when that fails too the call goes out with
   its results cleared and no summary, for the provider to answer or reject. Before, the failure ended the run ahead of
   its own model call, and every later run of the conversation, since each summarizes first. The run's cancellation
@@ -742,7 +745,13 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   including the ones a summary left working. A handoff ends the handing agent's part of the run, so it stops them
   the same way (`StopBackgroundAsync`) and stores, for the agent handed to, a message for each one that never
   answered; an answer that arrived before the handoff is stored for that agent as steering input is. A sub-agent
-  that fails tells the calling model only that it failed, unless it failed with a `ToolException` (D53). TSH023 and
+  that fails tells the calling model only that it failed, unless it failed with a `ToolException` (D53). What a
+  sub-agent's run spent counts as its caller's (owner: everything a run spent): the caller's `AgentRun` adds the
+  usage of each sub-agent's response, which holds that sub-agent's own sub-agents', and the caller's response
+  reports it beside its model calls', a streaming run in an update of its own before its decisions. The caller's
+  next entry that is no model response holds it, so the entries add up to what the responses report. Before, the
+  response and the entries counted the caller's own model calls only, 20 of 140 input tokens in a measurement, while
+  an app billed from them. TSH023 and
   TSH024 check the agents a compilation uses, a reference's
   through its module stamp, which carries the agent's name, whether it has a description and the tools it offers that
   require approval; tool stamps carry `RequiresApproval` for that list. TSH026 checks the compilation's own agents,

@@ -58,7 +58,10 @@ A sub-agent that fails, for example because no client serves its provider, fails
 why, the exception is logged and set on the call's span, and the calling run goes on.
 
 Its tool calls and tokens stay out of the caller's history, which keeps a long run's context small. A sub-agent can
-read twenty files and answer in one paragraph, and only the paragraph reaches the caller. When the calling agent's run
+read twenty files and answer in one paragraph, and only the paragraph reaches the caller. What it spent counts all
+the same: the `Usage` of the caller's response adds the tokens of the sub-agent's model calls to the caller's own,
+those of the sub-agent's own sub-agents too, and the caller's stored entries hold them
+([What is stored](./conversations.md#what-is-stored)). A background sub-agent's tokens count once it answered. When the calling agent's run
 options set `WithConcurrentToolCalls(true)`, the sub-agents the model calls in one response work at the same time, in
 the caller's scope ([Tool calls at the same time](./defining-agents.md#tool-calls-at-the-same-time)).
 

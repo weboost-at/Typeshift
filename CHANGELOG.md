@@ -550,6 +550,13 @@ All notable changes to this project are documented here. The format follows
   where your endpoint steers and answer that the chat is busy; steer again once the run's next model call took the
   input. `TrySteer` with a `ChatMessage` throws an `ArgumentException` for a message that carries the mark of a
   background sub-agent's answer, which run middleware lets pass unseen.
+- **Breaking:** a run's `ChatResponse.Usage`, the usage of a streamed run's updates and the `invoke_agent` span count
+  everything the run spent: its own model calls, the runs of its sub-agents, theirs included, and the calls that
+  write a compaction summary. They counted the run's own model calls only, so an app that billed from them missed its
+  sub-agents' share, 120 of 140 input tokens in a measurement. A stored entry that is no model response, such as the
+  one with a sub-agent's result, a background answer or a summary, holds in `Usage` what the run spent beside its
+  model calls, so the entries' usage adds up to the responses'. An app that wants the model calls of one agent alone
+  sums the `chat` spans, or the entries that have a `Model`.
 
 ### Fixed
 

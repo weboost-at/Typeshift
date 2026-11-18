@@ -145,4 +145,51 @@ public sealed class AgentRun
 
     // The model calls the run made so far, which the tool loop's rounds share (D32)
     internal int ModelCalls { get; set; }
+
+    // D33, D32: the tokens the run spent beside its own model calls, on its sub-agents' runs and compaction's summary
+    // calls, in all and those no entry holds yet. Sub-agents called in one response finish side by side, and
+    // background ones on threads of their own
+    private readonly Lock _spending = new();
+    private UsageDetails? _spent;
+    private UsageDetails? _unstored;
+
+    internal void AddUsage(UsageDetails? usage)
+    {
+        if (usage is null) return;
+
+        lock (_spending)
+        {
+            (_spent ??= new()).Add(usage);
+            (_unstored ??= new()).Add(usage);
+        }
+    }
+
+    // What the response reports beside its model calls' usage
+    internal UsageDetails? SpentBeside()
+    {
+        lock (_spending)
+        {
+            return _spent is null ? null : Copy(_spent);
+        }
+    }
+
+    // What the run's next entry that is no model response holds, so the entries add up to what the run reports
+    internal UsageDetails? TakeUnstoredUsage()
+    {
+        lock (_spending)
+        {
+            var unstored = _unstored;
+            _unstored = null;
+
+            return unstored;
+        }
+    }
+
+    private static UsageDetails Copy(UsageDetails usage)
+    {
+        var copy = new UsageDetails();
+        copy.Add(usage);
+
+        return copy;
+    }
 }
