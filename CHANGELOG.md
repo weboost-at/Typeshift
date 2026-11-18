@@ -131,6 +131,10 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- `runtime.Agent<TAgent>()`, and a run that calls a sub-agent or hands over to an agent, throw an
+  `InvalidOperationException` that names an agent no module registered and the likely causes: `AddTypeshift()`
+  called only in a library the app references, an abstract agent, a base named through a using alias, a project
+  built with another Typeshift version. They threw the container's "No service for type" for the agent's class.
 - Once your app registers stores, a `ConversationTracker<TId>` whose id type none of them keeps conversations under
   throws an `InvalidOperationException` at its first call, naming the `IConversationStore<TId>` it needs, as a run
   under such an id does. It answered as if no conversation ran, forever: a `ConversationTracker<long>` in an app whose

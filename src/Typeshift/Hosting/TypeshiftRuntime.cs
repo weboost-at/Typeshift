@@ -57,8 +57,12 @@ public sealed class TypeshiftRuntime : IAsyncDisposable, IDisposable
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <returns>The host, with the agent's typed members.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// No module registered the agent: the app's <c>AddTypeshift()</c> lies only in a library it references, or the
+    /// agent is abstract or of a project the generator did not write code for.
+    /// </exception>
     public AgentHost<TAgent> Agent<TAgent>() where TAgent : Agent =>
-        new(Services.GetRequiredService<TAgent>(), Services.CreateAsyncScope());
+        new(AgentHost<TAgent>.Registered(Services), Services.CreateAsyncScope());
 
     // D76: disposing the container disposes this runtime again, which then finds nothing to dispose
     /// <summary>

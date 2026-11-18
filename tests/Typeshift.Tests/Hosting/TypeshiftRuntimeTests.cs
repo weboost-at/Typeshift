@@ -344,6 +344,21 @@ public class TypeshiftRuntimeTests : AgentTestBase
     }
 
     [Fact]
+    public void Given_An_Agent_No_Module_Registered_Taking_Its_Host_Fails_Naming_AddTypeshift()
+    {
+        // Act
+        var host = () => Runtime.Agent<Agent>();
+
+        // Assert
+        host.Should().Throw<InvalidOperationException>().WithMessage(
+            "The agent 'Agent' is not registered. AddTypeshift() and TypeshiftRuntime.Create(...) register the agents "
+            + "of the project that calls them and of the projects it references: call one in your app, not only in a "
+            + "library it references. The generator also leaves out an agent that is abstract, one that names its "
+            + "base through a using alias (TSH017) and one of a project built with another Typeshift version "
+            + "(TSH020).");
+    }
+
+    [Fact]
     public async Task Given_A_Runtime_From_The_Container_An_Agent_Runs_On_Its_Host()
     {
         // Arrange

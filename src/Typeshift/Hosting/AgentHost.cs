@@ -44,8 +44,17 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
 
     // D76: built rather than resolved where the library makes a host, since a scope keeps every disposable the
     // container builds until it ends
-    internal static AgentHost<TAgent> In(IServiceProvider services) =>
-        new(services.GetRequiredService<TAgent>(), services);
+    internal static AgentHost<TAgent> In(IServiceProvider services) => new(Registered(services), services);
+
+    // D1: a module registers the agents the generator wrote code for; the container's own message names no cause
+    internal static TAgent Registered(IServiceProvider services) =>
+        services.GetService<TAgent>()
+        ?? throw new InvalidOperationException(
+            $"The agent '{typeof(TAgent).Name}' is not registered. AddTypeshift() and TypeshiftRuntime.Create(...) "
+            + "register the agents of the project that calls them and of the projects it references: call one in "
+            + "your app, not only in a library it references. The generator also leaves out an agent that is "
+            + "abstract, one that names its base through a using alias (TSH017) and one of a project built with "
+            + "another Typeshift version (TSH020).");
 
     // D25: the host the container resolves. From the root it would run every customer on one instance of each scoped
     // service, where scopes are not validated, and the root would keep it until the app stops, so it is refused.

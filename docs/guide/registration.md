@@ -73,7 +73,9 @@ the spellings it cannot intercept, such as a method group ([TSH040](./diagnostic
 
 ::: warning A library's call registers the library's agents, not your app's
 A library that calls `AddTypeshift()` in its own `AddX()` registers its own toolsets and agents and those of its
-references. Your app's own toolsets and agents need a call to `AddTypeshift()` in your app.
+references. Your app's own toolsets and agents need a call to `AddTypeshift()` in your app. Without one,
+`runtime.Agent<TAgent>()`, and a run that calls the agent as a sub-agent or hands over to it, throw an
+`InvalidOperationException` that names the agent and this cause.
 :::
 
 ## The chain
