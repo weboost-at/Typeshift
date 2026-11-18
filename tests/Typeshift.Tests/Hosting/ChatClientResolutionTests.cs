@@ -14,7 +14,7 @@ public class ChatClientResolutionTests : HostTestBase
 {
     private Action<IServiceCollection> _register = _ => { };
 
-    public ChatClientResolutionTests() => Other = new(Ct);
+    public ChatClientResolutionTests() => Other = CreateScriptedClient();
 
     private ScriptedChatClient Other { get; }
 

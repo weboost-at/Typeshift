@@ -141,7 +141,7 @@ public class ConversationStoreTests : AgentTestBase
         store.Gate.SetResult();
 
         // Assert
-        await FluentActions.Awaiting(() => resume).Should().ThrowAsync<InvalidOperationException>();
+        await FluentActions.Awaiting(() => resume).Should().ThrowAsync<NothingToResumeException>();
         (await second).Text.Should().Be(Data.Agent.Reason);
     }
 

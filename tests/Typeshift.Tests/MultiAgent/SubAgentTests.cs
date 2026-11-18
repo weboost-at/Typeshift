@@ -84,7 +84,7 @@ public class SubAgentTests : MultiAgentTestBase
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
         HelperClient.Requests[0].Select(message => message.Text).Should().Equal(Data.Agent.FollowUp);
-        Result(ChatClient.Requests[1]).Should().Be(Data.Agent.Reason);
+        ChatClient.Assert.Request(1).Result.Should().Be(Data.Agent.Reason);
     }
 
     [Fact]
@@ -104,7 +104,7 @@ public class SubAgentTests : MultiAgentTestBase
 
         // Assert
         ToolCalls.Should().BeEmpty();
-        Result(HelperClient.Requests[1]).Should().Contain("sub-agent");
+        HelperClient.Assert.Request(1).Result.Should().Contain("sub-agent");
     }
 
     [Fact]
@@ -315,25 +315,31 @@ public class SubAgentTests : MultiAgentTestBase
         await Host<LeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
-        Result(ChatClient.Requests[1]).Should().Be($"Error: Function failed. {Undisclosed}");
+        ChatClient.Assert.Request(1).Result.Should().Be($"Error: Function failed. {Undisclosed}");
     }
 
     [Fact]
     public async Task Given_A_Background_Sub_Agent_Whose_Run_Fails_Its_Caller_Reads_Only_That_It_Failed()
     {
         // Arrange
+        var failing = new TaskCompletionSource();
+
         ChatClient
             .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
             .Reply(Text(Data.Agent.Steering))
             .Reply(Text(Data.Tool.Answer));
 
-        HelperClient.Reply(new InvalidOperationException(Data.Agent.Reason));
+        HelperClient.Reply(failing, new InvalidOperationException(Data.Agent.Reason));
+
+        var running = Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await ChatClient.RequestedAsync(2);
 
         // Act
-        await Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        failing.SetResult();
+        await running;
 
         // Assert
-        ChatClient.Requests[^1][^1].Text.Should().Be($"The background agent helper_agent failed. {Undisclosed}");
+        ChatClient.Assert.Request(2).Texts[^1].Should().Be($"The background agent helper_agent failed. {Undisclosed}");
     }
 
     [Fact]
@@ -625,7 +631,4 @@ public class SubAgentTests : MultiAgentTestBase
 
         return handingOff;
     }
-
-    private static string? Result(IEnumerable<ChatMessage> request) =>
-        request.SelectMany(message => message.Contents).OfType<FunctionResultContent>().Single().Result?.ToString();
 }

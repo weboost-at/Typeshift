@@ -147,7 +147,7 @@ public class ToolApprovalTests : ApprovalTestBase
 
         // Assert
         ToolCalls.Should().BeEmpty();
-        ResultSentToModel(1).Should().Be($"The user rejected this call. {Data.Agent.Reason}");
+        ChatClient.Assert.Request(1).Result.Should().Be($"The user rejected this call. {Data.Agent.Reason}");
     }
 
     [Fact]
@@ -318,7 +318,7 @@ public class ToolApprovalTests : ApprovalTestBase
 
         // Assert
         ToolCalls.Should().BeEmpty();
-        ResultSentToModel(1).Should().Be(Data.Agent.Reason);
+        ChatClient.Assert.Request(1).Result.Should().Be(Data.Agent.Reason);
     }
 
     [Fact]
@@ -339,7 +339,7 @@ public class ToolApprovalTests : ApprovalTestBase
         await RunAsync(Data.Tool.Question);
 
         // Assert
-        ResultSentToModel(1).Should().Be(Data.Agent.Reason);
+        ChatClient.Assert.Request(1).Result.Should().Be(Data.Agent.Reason);
     }
 
     [Theory]

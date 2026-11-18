@@ -55,16 +55,4 @@ public abstract class ApprovalTestBase : AgentTestBase
         Call(callId, "close_ticket", ("number", number));
 
     protected ChatResponseUpdate Note(string callId, string text) => Call(callId, "note", ("text", text));
-
-    // The tool results a request carried to the model, each as its text
-    protected IReadOnlyList<string> ResultsSentToModel(int request) =>
-    [
-        .. ChatClient.Requests[request]
-            .SelectMany(message => message.Contents)
-            .OfType<FunctionResultContent>()
-            .Select(result => result.Result?.ToString() ?? "")
-    ];
-
-    // The one tool result a request carried to the model
-    protected string ResultSentToModel(int request) => ResultsSentToModel(request).Single();
 }

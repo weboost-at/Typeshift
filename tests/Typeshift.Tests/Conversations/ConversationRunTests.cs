@@ -181,7 +181,7 @@ public class ConversationRunTests : AgentTestBase
         var run = () => RunAsync(Data.Tool.Question, streaming, Ct);
 
         // Assert
-        await run.Should().ThrowAsync<InvalidOperationException>();
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(Data.Tool.Answer);
         (await EntriesAsync(Data.Agent.ConversationId))[^1].Messages[0].Contents
             .Should()
             .ContainSingle(content => content is ErrorContent);
@@ -264,7 +264,7 @@ public class ConversationRunTests : AgentTestBase
 
         var host = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
         var failed = () => host.RunAsync(Data.Tool.Question, ct: Ct);
-        await failed.Should().ThrowAsync<InvalidOperationException>();
+        await failed.Should().ThrowAsync<InvalidOperationException>().WithMessage(Data.Tool.Answer);
 
         // Act
         await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
@@ -763,8 +763,6 @@ public class ConversationRunTests : AgentTestBase
     public async Task Given_A_Cancelled_Token_A_Run_Throws_Before_It_Calls_The_Model(bool streaming)
     {
         // Arrange
-        ChatClient.Reply(Text(Data.Tool.Answer));
-
         using var cancel = new CancellationTokenSource();
         await cancel.CancelAsync();
 
@@ -786,9 +784,7 @@ public class ConversationRunTests : AgentTestBase
     public async Task Given_A_Cancelled_Token_A_Run_Stores_Nothing_And_Leaves_The_Conversation_Free()
     {
         // Arrange
-        ChatClient
-            .Reply(Text(Data.Tool.Answer))
-            .Reply(Text(Data.Agent.Reason));
+        ChatClient.Reply(Text(Data.Tool.Answer));
 
         using var cancel = new CancellationTokenSource();
         await cancel.CancelAsync();

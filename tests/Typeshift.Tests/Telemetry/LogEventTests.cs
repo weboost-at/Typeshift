@@ -88,15 +88,21 @@ public class LogEventTests : MultiAgentTestBase
     public async Task Given_A_Background_Sub_Agent_That_Fails_The_Failure_Is_Logged_With_Its_Exception()
     {
         // Arrange
+        var failing = new TaskCompletionSource();
+
         ChatClient
             .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
             .Reply(Text(Data.Agent.Steering))
             .Reply(Text(Data.Tool.Answer));
 
-        HelperClient.Reply(new InvalidOperationException(Data.Agent.Reason));
+        HelperClient.Reply(failing, new InvalidOperationException(Data.Agent.Reason));
+
+        var running = Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await ChatClient.RequestedAsync(2);
 
         // Act
-        await Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        failing.SetResult();
+        await running;
 
         // Assert
         _log.Of("BackgroundAgentFailed").Should().ContainSingle(logged =>

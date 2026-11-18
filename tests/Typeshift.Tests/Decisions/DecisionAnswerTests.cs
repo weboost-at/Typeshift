@@ -35,7 +35,7 @@ public class DecisionAnswerTests : ApprovalTestBase
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
         ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
-        ResultsSentToModel(1).Should().Contain($"The user rejected this call. {Data.Agent.Reason}");
+        ChatClient.Assert.Request(1).Results.Should().Contain($"The user rejected this call. {Data.Agent.Reason}");
     }
 
     [Fact]

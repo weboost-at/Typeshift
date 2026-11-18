@@ -39,7 +39,7 @@ public class SubAgentResultTests : MultiAgentTestBase
         await Host<TypedLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
-        var result = JsonSerializer.Deserialize($"{Result(ChatClient.Requests[1])}", Json.GetTypeInfo<HelperFinding>());
+        var result = JsonSerializer.Deserialize(ChatClient.Assert.Request(1).Result, Json.GetTypeInfo<HelperFinding>());
         result.Should().Be(Expected());
     }
 
@@ -57,7 +57,7 @@ public class SubAgentResultTests : MultiAgentTestBase
         await Host<TypedLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
-        Result(ChatClient.Requests[1])!.ToString().Should().Contain("did not answer in the JSON schema it was given");
+        ChatClient.Assert.Request(1).Result.Should().Contain("did not answer in the JSON schema it was given");
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public class SubAgentResultTests : MultiAgentTestBase
         await Host<CountingLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
-        var result = (JsonElement)Result(ChatClient.Requests[1])!;
+        var result = (JsonElement)ChatClient.Assert.Request(1).ResultValue!;
         result.GetInt32().Should().Be(Data.Tool.Lives);
     }
 
@@ -82,42 +82,51 @@ public class SubAgentResultTests : MultiAgentTestBase
     public async Task Given_A_Background_Sub_Agent_With_A_Result_Type_Its_Answer_Arrives_As_The_Json()
     {
         // Arrange
+        var answering = new TaskCompletionSource();
+
         ChatClient
             .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
             .Reply(Text(Data.Agent.Steering))
             .Reply(Text(Data.Tool.Answer));
 
-        HelperClient.Reply(Text(Finding()));
+        HelperClient.Reply(answering, Text(Finding()));
+
+        var run = Host<BackgroundTypedLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await ChatClient.RequestedAsync(2);
 
         // Act
-        await Host<BackgroundTypedLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        answering.SetResult();
+        await run;
 
         // Assert
-        ChatClient.Requests[^1][^1].Text.Should().EndWith(Finding());
+        ChatClient.Assert.Request(2).Texts[^1].Should().EndWith(Finding());
     }
 
     [Fact]
     public async Task Given_A_Background_Sub_Agent_Answering_Outside_Its_Result_Type_Its_Caller_Reads_Why()
     {
         // Arrange
+        var answering = new TaskCompletionSource();
+
         ChatClient
             .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
             .Reply(Text(Data.Agent.Steering))
             .Reply(Text(Data.Tool.Answer));
 
-        HelperClient.Reply(Text(Data.Agent.Reason));
+        HelperClient.Reply(answering, Text(Data.Agent.Reason));
+
+        var run = Host<BackgroundTypedLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await ChatClient.RequestedAsync(2);
 
         // Act
-        await Host<BackgroundTypedLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        answering.SetResult();
+        await run;
 
         // Assert
-        ChatClient.Requests[^1][^1].Text.Should().Contain("did not answer in the JSON schema it was given");
+        ChatClient.Assert.Request(2).Texts[^1].Should().Contain("did not answer in the JSON schema it was given");
     }
 
     private HelperFinding Expected() => new(Data.Agent.Ticket.Default, Data.Agent.Reason);
 
     private string Finding() => JsonSerializer.Serialize(Expected(), Json.GetTypeInfo<HelperFinding>());
-
-    private static object? Result(IEnumerable<ChatMessage> request) =>
-        request.SelectMany(message => message.Contents).OfType<FunctionResultContent>().Single().Result;
 }

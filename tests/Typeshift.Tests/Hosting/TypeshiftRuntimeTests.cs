@@ -64,7 +64,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
     public async Task Given_A_Client_Added_Under_A_Provider_Through_The_Chain_The_Agent_That_Names_It_Runs_On_It()
     {
         // Arrange
-        var keyed = new ScriptedChatClient(Ct);
+        var keyed = CreateScriptedClient();
         keyed.Reply(Text(Data.Tool.Answer));
 
         await using var runtime = TypeshiftRuntime.Create(

@@ -10,7 +10,7 @@ namespace Typeshift.Tests.Decisions.Support;
 // its own
 public abstract class QuestionTestBase : ApprovalTestBase
 {
-    protected QuestionTestBase() => HelperClient = new(Ct);
+    protected QuestionTestBase() => HelperClient = CreateScriptedClient();
 
     protected ScriptedChatClient HelperClient { get; }
 

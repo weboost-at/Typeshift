@@ -692,7 +692,7 @@ public class HandoffTests : MultiAgentTestBase
     public async Task Given_A_Model_That_Hands_Off_Whatever_It_Reads_The_Run_Ends_At_Its_Agents_Limit_Of_Model_Calls()
     {
         // Arrange
-        ScriptHandoffsBackAndForth(60);
+        ScriptHandoffsBackAndForth(51);
 
         // Act
         await RunAsync(Data.Tool.Question);

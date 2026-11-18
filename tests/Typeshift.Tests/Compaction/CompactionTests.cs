@@ -28,8 +28,8 @@ public class CompactionTests : AgentTestBase
         await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 2_000, TargetInputTokens = 1_500 });
 
         // Assert
-        Results(2).Should().Equal(Cleared, new string('x', Page));
-        Calls(2).Should().Equal(Data.Tool.CallId, Data.Tool.SecondCallId);
+        ChatClient.Assert.Request(2).Results.Should().Equal(Cleared, new string('x', Page));
+        ChatClient.Assert.Request(2).Calls.Should().Equal(Data.Tool.CallId, Data.Tool.SecondCallId);
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public class CompactionTests : AgentTestBase
         await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 2_000, TargetInputTokens = 1_500 });
 
         // Assert
-        Results(3).Should().StartWith(Cleared);
+        ChatClient.Assert.Request(3).Results.Should().StartWith(Cleared);
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public class CompactionTests : AgentTestBase
         await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 2_000, TargetInputTokens = 1_500 });
 
         // Assert
-        Results(4).Should().Equal("xx", "xx", Cleared, new string('x', Page));
+        ChatClient.Assert.Request(4).Results.Should().Equal("xx", "xx", Cleared, new string('x', Page));
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public class CompactionTests : AgentTestBase
         await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 2_000, TargetInputTokens = 1_500 });
 
         // Assert
-        Results(2).Should().Equal("[Cleared to save context.]", new string('y', Page));
+        ChatClient.Assert.Request(2).Results.Should().Equal("[Cleared to save context.]", new string('y', Page));
     }
 
     [Fact]
@@ -97,7 +97,7 @@ public class CompactionTests : AgentTestBase
         await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 3_000 });
 
         // Assert
-        Results(3).Should().Equal(Cleared, Cleared, new string('x', Page));
+        ChatClient.Assert.Request(3).Results.Should().Equal(Cleared, Cleared, new string('x', Page));
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public class CompactionTests : AgentTestBase
         await ReadTwoPagesAsync(new() { MaxInputTokens = estimate, TargetInputTokens = estimate - 500 });
 
         // Assert
-        Results(5)[0].Should().Be(Cleared);
+        ChatClient.Assert.Request(5).Results[0].Should().Be(Cleared);
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public class CompactionTests : AgentTestBase
         await ReadTwoPagesAsync(new() { MaxInputTokens = estimate + 1, TargetInputTokens = estimate - 500 });
 
         // Assert
-        Results(5)[0].Should().Be(new string('x', Page));
+        ChatClient.Assert.Request(5).Results[0].Should().Be(new string('x', Page));
     }
 
     [Fact]
@@ -145,7 +145,7 @@ public class CompactionTests : AgentTestBase
         await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 2_000, TargetInputTokens = 1_500 });
 
         // Assert
-        Results(3).Should().Equal($"InProgress: {title}", Cleared, new string('x', Page));
+        ChatClient.Assert.Request(3).Results.Should().Equal($"InProgress: {title}", Cleared, new string('x', Page));
     }
 
     [Fact]
@@ -166,9 +166,9 @@ public class CompactionTests : AgentTestBase
 
         // Assert
         Models.Should().Contain(new ProvidedModel(CompactingAgent.ModelProvider, SummaryModel));
-        Texts(2).Should().HaveCount(3);
-        Texts(2)[0].Should().EndWith(Data.Agent.Reason);
-        Texts(2)[1..].Should().Equal(Data.Tool.Answer, Data.Agent.FollowUp);
+        ChatClient.Assert.Request(2).Texts.Should().HaveCount(3);
+        ChatClient.Assert.Request(2).Texts[0].Should().EndWith(Data.Agent.Reason);
+        ChatClient.Assert.Request(2).Texts[1..].Should().Equal(Data.Tool.Answer, Data.Agent.FollowUp);
     }
 
     [Fact]
@@ -264,7 +264,7 @@ public class CompactionTests : AgentTestBase
 
         // Assert
         Models.Should().AllBeEquivalentTo(new ProvidedModel(CompactingAgent.ModelProvider, CompactingAgent.Model));
-        Texts(2)[0].Should().EndWith(Data.Agent.Reason);
+        ChatClient.Assert.Request(2).Texts[0].Should().EndWith(Data.Agent.Reason);
     }
 
     [Fact]
@@ -311,7 +311,7 @@ public class CompactionTests : AgentTestBase
 
         // Assert
         Models.Select(asked => asked.Model).Should().EndWith([SummaryModel, CompactingAgent.Model]);
-        Texts(3)[0].Should().EndWith(Data.Agent.Reason);
+        ChatClient.Assert.Request(3).Texts[0].Should().EndWith(Data.Agent.Reason);
     }
 
     [Fact]
@@ -337,8 +337,8 @@ public class CompactionTests : AgentTestBase
 
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
-        Texts(4)[0].Should().Be(Data.Tool.Question);
-        Results(4).Should().Equal(Cleared, new string('x', Page));
+        ChatClient.Assert.Request(4).Texts[0].Should().Be(Data.Tool.Question);
+        ChatClient.Assert.Request(4).Results.Should().Equal(Cleared, new string('x', Page));
     }
 
     [Fact]
@@ -356,7 +356,7 @@ public class CompactionTests : AgentTestBase
 
         // Assert
         ChatClient.Requests.Should().HaveCount(4);
-        Results(3).Should().Equal(Cleared, new string('x', Page));
+        ChatClient.Assert.Request(3).Results.Should().Equal(Cleared, new string('x', Page));
     }
 
     [Fact]
@@ -368,9 +368,7 @@ public class CompactionTests : AgentTestBase
 
         ChatClient
             .Reply(Text(Data.Tool.Answer))
-            .Reply(new TaskCompletionSource())
-            .Reply(Text(Data.Agent.Reason))
-            .Reply(Text(Data.Tool.Answer));
+            .Reply(new TaskCompletionSource());
 
         await RunAsync(new string('x', Page), settings);
 
@@ -439,8 +437,11 @@ public class CompactionTests : AgentTestBase
         await RunAsync(Data.Agent.Steering);
 
         // Assert
-        Texts(3)[0].Should().EndWith(Data.Agent.Reason);
-        Texts(3)[1..].Should().Equal(Data.Tool.Answer, Data.Agent.FollowUp, Data.Tool.Answer, Data.Agent.Steering);
+        ChatClient.Assert.Request(3).Texts[0].Should().EndWith(Data.Agent.Reason);
+        ChatClient.Assert.Request(3)
+            .Texts[1..]
+            .Should()
+            .Equal(Data.Tool.Answer, Data.Agent.FollowUp, Data.Tool.Answer, Data.Agent.Steering);
         (await EntriesAsync(Data.Agent.ConversationId)).Should().ContainSingle(entry => entry.IsSummary);
     }
 
@@ -498,7 +499,7 @@ public class CompactionTests : AgentTestBase
         await run;
 
         // Assert
-        Texts(3)[0].Should().EndWith(Data.Agent.Reason);
+        ChatClient.Assert.Request(3).Texts[0].Should().EndWith(Data.Agent.Reason);
     }
 
     [Fact]
@@ -516,7 +517,7 @@ public class CompactionTests : AgentTestBase
         await RunAsync(Data.Agent.FollowUp, new() { MaxInputTokens = 1_000, TargetInputTokens = 600 });
 
         // Assert
-        Texts(2)[1..].Should().Equal(Data.Agent.FollowUp);
+        ChatClient.Assert.Request(2).Texts[1..].Should().Equal(Data.Agent.FollowUp);
     }
 
     [Fact]
@@ -540,7 +541,7 @@ public class CompactionTests : AgentTestBase
             new() { MaxInputTokens = fitting + 500, TargetInputTokens = fitting + (fitting / 20) });
 
         // Assert
-        Texts(2)[1..].Should().Equal(Data.Agent.FollowUp);
+        ChatClient.Assert.Request(2).Texts[1..].Should().Equal(Data.Agent.FollowUp);
     }
 
     [Fact]
@@ -565,7 +566,7 @@ public class CompactionTests : AgentTestBase
         ChatClient.Requests[3].Select(message => message.Role.Value)
             .Should()
             .Equal("user", "assistant", "tool", "user");
-        Calls(3).Should().Equal(Data.Tool.CallId);
+        ChatClient.Assert.Request(3).Calls.Should().Equal(Data.Tool.CallId);
     }
 
     [Fact]
@@ -581,9 +582,9 @@ public class CompactionTests : AgentTestBase
         await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 1_000 });
 
         // Assert
-        Roles(2).Should().Equal("user", "assistant", "tool");
-        Calls(2).Should().Equal(Data.Tool.CallId, Data.Tool.SecondCallId);
-        Results(2).Should().Equal(new string('x', Page), new string('x', Page));
+        ChatClient.Assert.Request(2).Roles.Should().Equal("user", "assistant", "tool");
+        ChatClient.Assert.Request(2).Calls.Should().Equal(Data.Tool.CallId, Data.Tool.SecondCallId);
+        ChatClient.Assert.Request(2).Results.Should().Equal(new string('x', Page), new string('x', Page));
     }
 
     [Fact]
@@ -606,7 +607,10 @@ public class CompactionTests : AgentTestBase
         // Assert
         ChatClient.Requests[4][1].Text.Should().Contain(new string('s', Page));
         ChatClient.Requests[4][1].Text.Should().Contain("write_todos");
-        Roles(5).Should().Equal("user", "assistant", "tool", "assistant", "tool", "assistant", "tool");
+        ChatClient.Assert.Request(5)
+            .Roles
+            .Should()
+            .Equal("user", "assistant", "tool", "assistant", "tool", "assistant", "tool");
     }
 
     [Fact]
@@ -627,7 +631,7 @@ public class CompactionTests : AgentTestBase
         await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 1_500, TargetInputTokens = 1_000 });
 
         // Assert
-        Results(3)[0].Should().Be(Cleared);
+        ChatClient.Assert.Request(3).Results[0].Should().Be(Cleared);
     }
 
     [Fact]
@@ -648,7 +652,7 @@ public class CompactionTests : AgentTestBase
         await RunAsync(Data.Agent.FollowUp, settings);
 
         // Assert
-        Results(2)[0].Should().Be(Cleared);
+        ChatClient.Assert.Request(2).Results[0].Should().Be(Cleared);
     }
 
     [Fact]
@@ -708,7 +712,7 @@ public class CompactionTests : AgentTestBase
         await RunAsync(Data.Agent.FollowUp, new() { MaxInputTokens = 1_500, TargetInputTokens = 1_000 });
 
         // Assert
-        Results(0)[0].Should().Be(new string('x', Page / 2));
+        ChatClient.Assert.Request(0).Results[0].Should().Be(new string('x', Page / 2));
     }
 
     [Fact]
@@ -730,7 +734,7 @@ public class CompactionTests : AgentTestBase
         await RunAsync(Data.Agent.FollowUp, new() { MaxInputTokens = 1_500, TargetInputTokens = 1_000 });
 
         // Assert
-        Results(0)[0].Should().Be(new string('x', Page / 2));
+        ChatClient.Assert.Request(0).Results[0].Should().Be(new string('x', Page / 2));
     }
 
     [Fact]
@@ -757,7 +761,7 @@ public class CompactionTests : AgentTestBase
             .ToListAsync(Ct);
 
         // Assert
-        Results(3)[0].Should().Be(Cleared);
+        ChatClient.Assert.Request(3).Results[0].Should().Be(Cleared);
     }
 
     [Fact]
@@ -799,27 +803,9 @@ public class CompactionTests : AgentTestBase
         new(ChatRole.Assistant, [new UsageContent(new UsageDetails { InputTokenCount = Data.Agent.InputTokens })]);
 
     // What compaction estimates a request at, before any report corrects it
-    private int Estimate(int request) => Tokens.Estimate(ChatClient.Requests[request], ChatClient.Options[request]);
-
-    private List<string> Roles(int request) =>
-        [.. ChatClient.Requests[request].Select(message => message.Role.Value)];
-
-    private List<string> Results(int request) =>
-    [
-        .. ChatClient.Requests[request]
-            .SelectMany(message => message.Contents)
-            .OfType<FunctionResultContent>()
-            .Select(result => result.Result is JsonElement json ? json.GetString()! : $"{result.Result}")
-    ];
-
-    private List<string> Calls(int request) =>
-    [
-        .. ChatClient.Requests[request]
-            .SelectMany(message => message.Contents)
-            .OfType<FunctionCallContent>()
-            .Select(call => call.CallId)
-    ];
-
-    private List<string> Texts(int request) =>
-        [.. ChatClient.Requests[request].Select(message => message.Text)];
+    private int Estimate(int index)
+    {
+        var request = ChatClient.Assert.Request(index);
+        return Tokens.Estimate(request.Messages, request.Options);
+    }
 }

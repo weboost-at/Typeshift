@@ -10,7 +10,7 @@ namespace Typeshift.Tests.MultiAgent.Support;
 // its caller answers from its own script
 public abstract class MultiAgentTestBase : AgentTestBase
 {
-    protected MultiAgentTestBase() => HelperClient = new(Ct);
+    protected MultiAgentTestBase() => HelperClient = CreateScriptedClient();
 
     protected ScriptedChatClient HelperClient { get; }
 

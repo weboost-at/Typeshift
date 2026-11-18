@@ -378,8 +378,7 @@ public class AgentRunTests : AgentTestBase
         // Arrange
         ChatClient
             .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
-            .Reply(Call(Data.Tool.SecondCallId, "probe", ("query", Data.Tool.Query)))
-            .Reply(Text(Data.Tool.Answer));
+            .Reply(Call(Data.Tool.SecondCallId, "probe", ("query", Data.Tool.Query)));
 
         // Act
         await Host<ProbeAgent>().RunAsync(Data.Tool.Question, settings: new() { MaxToolIterations = 1 }, ct: Ct);
@@ -570,9 +569,7 @@ public class AgentRunTests : AgentTestBase
     public async Task Given_The_Untyped_Stream_Read_Twice_The_Second_Read_Throws()
     {
         // Arrange
-        ChatClient
-            .Reply(Text(Data.Tool.Answer))
-            .Reply(Text(Data.Agent.FollowUp));
+        ChatClient.Reply(Text(Data.Tool.Answer));
 
         var chat = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
         var run = chat.RunStreamingAsync(Data.Tool.Question, Ct);
@@ -819,8 +816,7 @@ public class AgentRunTests : AgentTestBase
         ChatClient
             .Reply(first, Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
             .Reply(second, Text(Data.Tool.Answer))
-            .Reply(Call(Data.Tool.SecondCallId, "probe", ("query", Data.Tool.Query)))
-            .Reply(Text(Data.Tool.Answer));
+            .Reply(Call(Data.Tool.SecondCallId, "probe", ("query", Data.Tool.Query)));
 
         var host = Host<ProbeAgent>();
         var unlimited = await host.ResolveOptionsAsync(ct: Ct);

@@ -22,7 +22,7 @@ public class ExpiredDecisionTests : ApprovalTestBase
         await RunAsync(Data.Agent.FollowUp);
 
         // Assert
-        ResultsSentToModel(1).Should().Equal(DecisionResults.Expired, DecisionResults.Expired);
+        ChatClient.Assert.Request(1).Results.Should().Equal(DecisionResults.Expired, DecisionResults.Expired);
         ChatClient.Requests[1][^1].Text.Should().Be(Data.Agent.FollowUp);
     }
 
@@ -122,7 +122,7 @@ public class ExpiredDecisionTests : ApprovalTestBase
         // Assert
         response.Decisions.Should().BeEmpty();
         response.Text.Should().Be(Data.Tool.Answer);
-        ResultSentToModel(1).Should().Be(DecisionResults.Expired);
+        ChatClient.Assert.Request(1).Result.Should().Be(DecisionResults.Expired);
         ChatClient.Requests[1][^1].Text.Should().Be(Data.Agent.Steering);
     }
 

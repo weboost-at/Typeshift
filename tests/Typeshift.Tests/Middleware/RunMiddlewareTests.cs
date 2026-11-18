@@ -461,9 +461,7 @@ public class RunMiddlewareTests : MiddlewareTestBase
         Script.Runs[0] = (run, next) => run.Messages[^1].Text.Contains("password") ? Refuse(run) : next();
         Script.Steering[0] = input => input.Text.Contains("password") ? null : input;
 
-        ChatClient
-            .Reply(gate, Text(Data.Tool.Answer))
-            .Reply(Text(Data.Agent.FollowUp));
+        ChatClient.Reply(gate, Text(Data.Tool.Answer));
 
         var run = RunAsync(Data.Tool.Question);
         await ChatClient.Requested;

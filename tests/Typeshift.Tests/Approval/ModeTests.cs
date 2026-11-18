@@ -26,12 +26,10 @@ public class ModeTests : ApprovalTestBase
     public async Task Given_Auto_Mode_The_Calls_It_Approves_Count_Toward_The_Runs_Limit()
     {
         // Arrange
-        foreach (var call in Enumerable.Range(1, 4))
+        foreach (var call in Enumerable.Range(1, 3))
         {
             ChatClient.Reply(CloseTicket($"{Data.Tool.CallId}_{call}", Data.Agent.Ticket));
         }
-
-        ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
         await Host<GuardedAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(
@@ -54,8 +52,7 @@ public class ModeTests : ApprovalTestBase
             .Reply(Note(Data.Tool.CallId, Data.Tool.Query))
             .Reply(gate, Text(Data.Tool.Answer))
             .Reply(Note(Data.Tool.SecondCallId, Data.Tool.Query))
-            .Reply(Note($"{Data.Tool.SecondCallId}_left", Data.Tool.Query))
-            .Reply(Text(Data.Tool.Answer));
+            .Reply(Note($"{Data.Tool.SecondCallId}_left", Data.Tool.Query));
 
         var run = Chat.RunAsync(Data.Tool.Question, settings: new() { MaxToolIterations = 2 }, ct: Ct);
         await ChatClient.RequestedAsync(2).WaitAsync(Ct);
@@ -93,9 +90,7 @@ public class ModeTests : ApprovalTestBase
         // Arrange
         Rules.Verdicts.Add(_ => RuleVerdict.Reject(null!));
 
-        ChatClient
-            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
-            .Reply(Text(Data.Tool.Answer));
+        ChatClient.Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket));
 
         // Act
         var run = () => RunAsync(Data.Tool.Question, AgentMode.Auto);
@@ -214,7 +209,7 @@ public class ModeTests : ApprovalTestBase
         response.Decisions.Should().BeEmpty();
         ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
         ChatClient.Options[1]!.Tools!.Select(tool => tool.Name).Should().Contain("close_ticket");
-        ResultSentToModel(1).Should().Be("The user approved the plan. Carry it out now.");
+        ChatClient.Assert.Request(1).Result.Should().Be("The user approved the plan. Carry it out now.");
     }
 
     [Fact]
@@ -232,7 +227,7 @@ public class ModeTests : ApprovalTestBase
 
         // Assert
         ChatClient.Options[1]!.Tools!.Select(tool => tool.Name).Should().Equal("read_ticket", "exit_plan_mode");
-        ResultSentToModel(1).Should().Be($"The user rejected the plan. {Data.Agent.Reason}");
+        ChatClient.Assert.Request(1).Result.Should().Be($"The user rejected the plan. {Data.Agent.Reason}");
     }
 
     [Fact]
@@ -476,7 +471,7 @@ public class ModeTests : ApprovalTestBase
 
         // Assert
         response.Decisions.Should().BeEmpty();
-        ResultSentToModel(1).Should().Be("You are not in plan mode: go on with the task.");
+        ChatClient.Assert.Request(1).Result.Should().Be("You are not in plan mode: go on with the task.");
     }
 
     [Fact]

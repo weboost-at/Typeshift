@@ -34,7 +34,7 @@ public class CancelledDecisionTests : DecisionTestBase
         await RunAsync(Data.Agent.FollowUp);
 
         // Assert
-        ResultsSentToModel(1).Should().Equal(DecisionResults.Cancelled, DecisionResults.Cancelled);
+        ChatClient.Assert.Request(1).Results.Should().Equal(DecisionResults.Cancelled, DecisionResults.Cancelled);
         ChatClient.Requests[1][^1].Text.Should().Be(Data.Agent.FollowUp);
         ToolCalls.Should().BeEmpty();
     }
@@ -51,7 +51,7 @@ public class CancelledDecisionTests : DecisionTestBase
         var response = await StreamAsync(Data.Agent.FollowUp);
 
         // Assert
-        ResultsSentToModel(1).Should().Equal(DecisionResults.Cancelled, DecisionResults.Cancelled);
+        ChatClient.Assert.Request(1).Results.Should().Equal(DecisionResults.Cancelled, DecisionResults.Cancelled);
         response.Text.Should().Be(Data.Tool.Answer);
         ToolCalls.Should().BeEmpty();
     }
@@ -69,7 +69,7 @@ public class CancelledDecisionTests : DecisionTestBase
 
         // Assert
         resumed.Text.Should().Be(Data.Tool.Answer);
-        ResultsSentToModel(1).Should().Equal(DecisionResults.Cancelled, DecisionResults.Cancelled);
+        ChatClient.Assert.Request(1).Results.Should().Equal(DecisionResults.Cancelled, DecisionResults.Cancelled);
     }
 
     [Fact]
@@ -180,7 +180,7 @@ public class CancelledDecisionTests : DecisionTestBase
         // Assert
         response.Decisions.Should().BeEmpty();
         response.Text.Should().Be(Data.Tool.Answer);
-        ResultSentToModel(1).Should().Be(DecisionResults.Cancelled);
+        ChatClient.Assert.Request(1).Result.Should().Be(DecisionResults.Cancelled);
     }
 
     [Fact]

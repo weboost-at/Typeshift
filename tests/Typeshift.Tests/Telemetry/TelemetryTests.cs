@@ -299,7 +299,7 @@ public sealed class TelemetryTests : AgentTestBase
         var run = () => RunAsync();
 
         // Assert
-        await run.Should().ThrowAsync<InvalidOperationException>();
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage(Data.Agent.Reason);
         var span = Activities.Run(Data.Agent.ConversationId);
         span.Status.Should().Be(ActivityStatusCode.Error);
         span.GetTagItem("error.type").Should().Be(typeof(InvalidOperationException).FullName);
@@ -371,7 +371,7 @@ public sealed class TelemetryTests : AgentTestBase
         var run = () => client.GetStreamingResponseAsync(Data.Tool.Question, options, Ct).ToListAsync(Ct).AsTask();
 
         // Assert
-        await run.Should().ThrowAsync<InvalidOperationException>();
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("No IConversationStore<string>*");
         Activities.Run(Data.Persistence.ChatName).Status.Should().Be(ActivityStatusCode.Error);
     }
 

@@ -120,7 +120,7 @@ public class StreamingResultTests : AgentTestBase
         var read = () => run.Response;
 
         // Assert
-        read.Should().Throw<InvalidOperationException>();
+        read.Should().Throw<InvalidOperationException>().WithMessage("*once its updates are read to the end*");
     }
 
     [Fact]
@@ -133,7 +133,7 @@ public class StreamingResultTests : AgentTestBase
         var read = () => run.Response;
 
         // Assert
-        read.Should().Throw<InvalidOperationException>();
+        read.Should().Throw<InvalidOperationException>().WithMessage("*once its updates are read to the end*");
     }
 
     [Fact]
@@ -148,6 +148,6 @@ public class StreamingResultTests : AgentTestBase
         var again = () => run.ToListAsync(Ct).AsTask();
 
         // Assert
-        await again.Should().ThrowAsync<InvalidOperationException>();
+        await again.Should().ThrowAsync<InvalidOperationException>().WithMessage("*streams its updates once*");
     }
 }

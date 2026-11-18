@@ -1,7 +1,6 @@
 using System.Text.Json;
 using Typeshift.Tests.Approval.Support;
 using Typeshift.Tests.Decisions.Support;
-using Typeshift.Tests.Testing.Fakes;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
 
@@ -24,7 +23,7 @@ public class QuestionTests : QuestionTestBase
         await Asking.RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
-        OfferedTo(ChatClient, 0).Should().Equal("close_ticket", "read_ticket", "note", "ask_user");
+        ChatClient.Assert.Request(0).Tools.Should().Equal("close_ticket", "read_ticket", "note", "ask_user");
     }
 
     [Fact]
@@ -37,7 +36,7 @@ public class QuestionTests : QuestionTestBase
         await RunAsync(Data.Tool.Question);
 
         // Assert
-        OfferedTo(ChatClient, 0).Should().NotContain("ask_user");
+        ChatClient.Assert.Request(0).Tools.Should().NotContain("ask_user");
     }
 
     [Fact]
@@ -52,8 +51,8 @@ public class QuestionTests : QuestionTestBase
         var response = await Host<AskingAgent>().RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
-        OfferedTo(ChatClient, 0).Should().NotContain("ask_user");
-        ResultSentToModel(1).Should().Be(NotAvailable);
+        ChatClient.Assert.Request(0).Tools.Should().NotContain("ask_user");
+        ChatClient.Assert.Request(1).Result.Should().Be(NotAvailable);
         response.Text.Should().Be(Data.Tool.Answer);
     }
 
@@ -75,8 +74,8 @@ public class QuestionTests : QuestionTestBase
             .RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
-        OfferedTo(HelperClient, 0).Should().BeEmpty();
-        ResultsSentTo(HelperClient, 1).Should().Equal(NotAvailable);
+        HelperClient.Assert.Request(0).Tools.Should().BeEmpty();
+        HelperClient.Assert.Request(1).Results.Should().Equal(NotAvailable);
         response.Decisions.Should().BeEmpty();
     }
 
@@ -106,8 +105,8 @@ public class QuestionTests : QuestionTestBase
         var response = await running;
 
         // Assert
-        OfferedTo(HelperClient, 0).Should().BeEmpty();
-        ResultsSentTo(HelperClient, 1).Should().Equal(NotAvailable);
+        HelperClient.Assert.Request(0).Tools.Should().BeEmpty();
+        HelperClient.Assert.Request(1).Results.Should().Equal(NotAvailable);
         response.Decisions.Should().BeEmpty();
     }
 
@@ -141,7 +140,7 @@ public class QuestionTests : QuestionTestBase
         var response = await AnswerQuestionsAsync(asked.Answer(new QuestionAnswer([Label]), Data.Questions.OwnWords));
 
         // Assert
-        ResultSentToModel(1).Should().Be(
+        ChatClient.Assert.Request(1).Result.Should().Be(
             $$"""{"answers":[{"header":"{{Header}}","selected":["{{Label.Default}}"]},"""
             + $$"""{"header":"{{Data.Questions.SecondHeader}}","text":"{{Data.Questions.OwnWords}}"}]}""");
         response.Text.Should().Be(Data.Tool.Answer);
@@ -159,7 +158,7 @@ public class QuestionTests : QuestionTestBase
         await AnswerQuestionsAsync(asked.Answer(Label.Updated));
 
         // Assert
-        ResultSentToModel(1).Should().Be(Selected(Label.Updated));
+        ChatClient.Assert.Request(1).Result.Should().Be(Selected(Label.Updated));
     }
 
     [Fact]
@@ -174,7 +173,7 @@ public class QuestionTests : QuestionTestBase
         var selected = $$"""["{{Label.Default}}","{{Label.Updated}}"]""";
 
         // Assert
-        ResultSentToModel(1).Should().Be(
+        ChatClient.Assert.Request(1).Result.Should().Be(
             $$"""{"answers":[{"header":"{{Header}}","selected":{{selected}},"text":"{{Data.Questions.OwnWords}}"}]}""");
     }
 
@@ -189,7 +188,7 @@ public class QuestionTests : QuestionTestBase
         await AnswerQuestionsAsync(asked.Reject(Data.Agent.Reason));
 
         // Assert
-        ResultSentToModel(1).Should().Be($"The user declined to answer. {Data.Agent.Reason}");
+        ChatClient.Assert.Request(1).Result.Should().Be($"The user declined to answer. {Data.Agent.Reason}");
     }
 
     [Theory]
@@ -238,7 +237,7 @@ public class QuestionTests : QuestionTestBase
 
         // Assert
         response.Decisions.Should().BeEmpty();
-        ResultSentToModel(1).Should().Be($"The user was not asked: {wrong} {CallAgain}");
+        ChatClient.Assert.Request(1).Result.Should().Be($"The user was not asked: {wrong} {CallAgain}");
         (await StoredDecisionsAsync()).Should().BeNull();
     }
 
@@ -255,7 +254,10 @@ public class QuestionTests : QuestionTestBase
 
         // Assert
         response.Decisions.Should().BeEmpty();
-        ResultSentToModel(1).Should().Contain("questions must hold one to four questions, and it holds 5.");
+        ChatClient.Assert.Request(1)
+            .Result
+            .Should()
+            .Contain("questions must hold one to four questions, and it holds 5.");
     }
 
     [Fact]
@@ -273,7 +275,7 @@ public class QuestionTests : QuestionTestBase
 
         // Assert
         asked.Decisions.Should().ContainSingle();
-        ResultsSentToModel(1).Should().Contain(result => result.StartsWith("The user was not asked:"));
+        ChatClient.Assert.Request(1).Results.Should().Contain(result => result.StartsWith("The user was not asked:"));
     }
 
     [Fact]
@@ -397,7 +399,7 @@ public class QuestionTests : QuestionTestBase
         await Asking.RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, ct: Ct);
 
         // Assert
-        OfferedTo(ChatClient, 0).Should().Equal("read_ticket", "ask_user", "exit_plan_mode");
+        ChatClient.Assert.Request(0).Tools.Should().Equal("read_ticket", "ask_user", "exit_plan_mode");
     }
 
     [Fact]
@@ -450,7 +452,7 @@ public class QuestionTests : QuestionTestBase
         // Assert
         waiting.Decisions.Select(decision => decision.Id).Should().Equal(approval.Id);
         ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}");
-        ResultsSentToModel(1).Should().HaveCount(2);
+        ChatClient.Assert.Request(1).Results.Should().HaveCount(2);
         response.Text.Should().Be(Data.Tool.Answer);
     }
 
@@ -546,10 +548,10 @@ public class QuestionTests : QuestionTestBase
         var response = await front.AnswerAsync([question.Answer(Label.Default)], ct: Ct);
 
         // Assert
-        OfferedTo(ChatClient, 0).Should().NotContain("ask_user");
+        ChatClient.Assert.Request(0).Tools.Should().NotContain("ask_user");
         question.Agent.Should().Be("asking_agent");
         ChatClient.Options[2]!.ModelId.Should().Be("asking-model");
-        ResultsSentToModel(2)[^1].Should().Be(Selected(Label));
+        ChatClient.Assert.Request(2).Results[^1].Should().Be(Selected(Label));
         response.Text.Should().Be(Data.Tool.Answer);
     }
 
@@ -572,13 +574,4 @@ public class QuestionTests : QuestionTestBase
                         .EnumerateObject()
                         .ToDictionary(member => member.Name, object? (member) => member.Value))
             ]);
-
-    private static IEnumerable<string> OfferedTo(ScriptedChatClient client, int request) =>
-        client.Options[request]!.Tools?.Select(tool => tool.Name) ?? [];
-
-    private static IEnumerable<string> ResultsSentTo(ScriptedChatClient client, int request) =>
-        client.Requests[request]
-            .SelectMany(message => message.Contents)
-            .OfType<FunctionResultContent>()
-            .Select(result => result.Result?.ToString() ?? "");
 }

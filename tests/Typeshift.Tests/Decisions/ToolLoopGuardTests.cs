@@ -144,7 +144,7 @@ public class ToolLoopGuardTests : ApprovalTestBase
 
         // Assert
         calls.Should().BeEmpty();
-        ResultSentToModel(1).Should().Be(DecisionResults.NotApproved);
+        ChatClient.Assert.Request(1).Result.Should().Be(DecisionResults.NotApproved);
     }
 
     [Fact]
