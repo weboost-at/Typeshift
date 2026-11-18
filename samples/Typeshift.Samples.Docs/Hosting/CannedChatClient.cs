@@ -76,6 +76,8 @@ internal sealed class CannedChatClient : IChatClient
                 Call("ask_user", ("questions", Questions)),
             (false, _) when offers.Contains("run_command") && input.StartsWith("Run ") =>
                 Call("run_command", ("command", input["Run ".Length..])),
+            (false, _) when offers.Contains("search_tickets") && input.StartsWith("Search tickets for ") =>
+                Call("search_tickets", ("query", input["Search tickets for ".Length..])),
             (false, _) when offers.Contains("search_articles") && input.StartsWith("Search the help center for ") =>
                 Call("search_articles", ("query", input["Search the help center for ".Length..])),
             (false, _) when offers.Contains("find_ticket") && input.StartsWith("Find ticket ") =>

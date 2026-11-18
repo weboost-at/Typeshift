@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Typeshift.Samples.Agents;
 using Typeshift.Samples.Hosting;
 using Typeshift.Samples.Knowledge;
+using Typeshift.Samples.Tickets;
 
 namespace Typeshift.Samples.Scenarios;
 
@@ -28,6 +29,26 @@ internal static class Toolsets
         var missing = await desk.RunAsync("Escalate ticket 4711");
         var hint = "Error: Function failed. Exception: No ticket 4711 exists. Search for it first.";
         Expect(Results(missing).Single() == hint, "the model to read the ToolException's message");
+
+        await SettingsAsync(scope.ServiceProvider, support);
+    }
+
+    // The settings a tool reads: the code's defaults unless a run's settings change a configurable member
+    private static async Task SettingsAsync(IServiceProvider services, AgentHost<SupportAgent> support)
+    {
+        var ticket = await services.GetRequiredService<ITicketClient>().GetAsync(1234, CancellationToken.None);
+        Expect(ticket is { Closed: true }, "the approval scenario to have closed ticket 1234");
+
+        var open = await support.RunAsync("Search tickets for Refund");
+        Expect(Results(open).Single() == "[]", "the search to leave closed tickets out by default");
+
+        var closed = new SupportAgent.Settings
+        {
+            SearchTickets = new TicketToolset.SearchTicketsOverrides { IncludeClosed = true }
+        };
+
+        var all = await support.RunAsync("Search tickets for Refund", settings: closed);
+        Expect(Results(all).Single().Contains("Refund for order 77"), "a run's settings to include closed tickets");
 
         var english = await support.RunAsync("Search the help center for Refunds");
         Expect(Results(english).Single().Contains("refunds"), "the search in the settings' language");
