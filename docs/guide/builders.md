@@ -47,9 +47,8 @@ Every chain follows these rules, and [How Typeshift reads your code](./how-types
 | `WithSettings<TSettings>()` | Gives the tool a settings record that stays in code, except the members `Configurable` names. Returns `ToolBuilder<TSettings>`. |
 | `WithConfigurableSettings<TSettings>()` | Gives the tool a settings record whose settable members may all change, except those `NotConfigurable` names. Returns `ConfigurableSettingsBuilder<TSettings>`. |
 
-Put the settings call last in the tool's chain, because it returns `ToolBuilder<TSettings>` or
-`ConfigurableSettingsBuilder<TSettings>`, which offer only the calls below: `ReadOnly()` after it is a compiler error
-(CS1061). `TSettings` is a record whose
+The calls of a tool's chain come in any order: after a settings call the chain offers the calls above as well as
+those below, so `RequiresApproval()` may follow `Configurable(s => s.Limit)`. `TSettings` is a record whose
 parameterless constructor sets the code defaults ([TSH005](./diagnostics.md#tsh005)), and the tool's method takes a
 parameter of that type ([TSH010](./diagnostics.md#tsh010)).
 

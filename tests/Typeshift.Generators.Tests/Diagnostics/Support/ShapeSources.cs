@@ -559,6 +559,83 @@ public static class ShapeSources
         }
         """;
 
+    // D17: a tool's chain in any order, its flags, name and description after the settings call and between picks
+    public const string ToolFlagsAfterTheSettingsCall =
+        """
+        using Typeshift;
+
+        namespace Demo;
+
+        internal record LimitSettings
+        {
+            public int Limit { get; init; } = 5;
+
+            public bool Archived { get; init; }
+        }
+
+        internal partial class TicketToolset : Toolset
+        {
+            public TicketToolset()
+            {
+                AddTool(SearchTickets)
+                    .WithSettings<LimitSettings>()
+                    .Configurable(s => s.Limit)
+                    .ReadOnly()
+                    .WithDescription("Searches tickets.");
+
+                AddTool(ListTickets)
+                    .WithSettings<LimitSettings>()
+                    .WithName("list_open_tickets")
+                    .ReadOnly()
+                    .Configurable(s => s.Archived)
+                    .WithDescription("Lists the open tickets.");
+
+                AddTool(CloseTicket)
+                    .WithConfigurableSettings<LimitSettings>()
+                    .NotConfigurable(s => s.Archived)
+                    .RequiresApproval()
+                    .WithDescription("Closes a ticket.");
+
+                AddTool(DeleteTicket)
+                    .WithConfigurableSettings<LimitSettings>()
+                    .RequiresApproval()
+                    .WithName("remove_ticket")
+                    .NotConfigurable(s => s.Limit)
+                    .WithDescription("Deletes a ticket.");
+            }
+
+            public static string SearchTickets(string query, LimitSettings settings) => query;
+
+            public static string ListTickets(LimitSettings settings) => "";
+
+            public static void CloseTicket(int number, LimitSettings settings)
+            {
+            }
+
+            public static void DeleteTicket(int number, LimitSettings settings)
+            {
+            }
+        }
+
+        internal partial class DeskAgent : Agent
+        {
+            public DeskAgent()
+            {
+                UseToolset<TicketToolset>();
+
+                AddTool(Escalate)
+                    .WithSettings<LimitSettings>()
+                    .Configurable(s => s.Limit)
+                    .RequiresApproval()
+                    .WithDescription("Escalates a ticket.");
+            }
+
+            public static void Escalate(int number, LimitSettings settings)
+            {
+            }
+        }
+        """;
+
     // A cast names one of two methods of a name, and the generated call passes arguments of its parameter types
     public const string OverloadsPickedByACast =
         """

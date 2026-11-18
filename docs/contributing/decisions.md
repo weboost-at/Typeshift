@@ -305,7 +305,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D17. One flat chain per declaration
 
 - **Status:** carried (v0 D41), brief. No builder inside a lambda anywhere: toolsets, agents,
-  registration. Metadata goes through `With...` calls, capabilities through `Use...` calls.
+  registration. Metadata goes through `With...` calls, capabilities through `Use...` calls. A tool's chain takes its
+  calls in any order: the generator reads them by name, and the builders do nothing at run time, so the settings
+  builders offer `WithName`, `WithDescription`, `RequiresApproval` and `ReadOnly` too, and `RequiresApproval()` after
+  `WithSettings<T>()` is no compiler error that reads as a rule.
 
 ### D18. Configurable members are an allow list unless `WithConfigurableSettings` says otherwise
 

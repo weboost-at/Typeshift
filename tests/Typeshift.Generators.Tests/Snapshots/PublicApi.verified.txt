@@ -104,6 +104,10 @@ public static System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Types
 public static System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.get_Decisions(Microsoft.Extensions.AI.ChatResponseUpdate update)
 public sealed class Typeshift.ConfigurableSettingsBuilder<TSettings> where TSettings : class
 public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ConfigurableSettingsBuilder<TSettings>.NotConfigurable<TMember>(System.Func<TSettings, TMember> member)
+public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ConfigurableSettingsBuilder<TSettings>.ReadOnly()
+public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ConfigurableSettingsBuilder<TSettings>.RequiresApproval()
+public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ConfigurableSettingsBuilder<TSettings>.WithDescription(string description)
+public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ConfigurableSettingsBuilder<TSettings>.WithName(string name)
 public sealed record Typeshift.ConversationDecisions : System.IEquatable<Typeshift.ConversationDecisions>
 public bool Typeshift.ConversationDecisions.CanResume { get; init; }
 public Typeshift.ConversationDecisions.ConversationDecisions(System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Open, bool CanResume, System.Collections.Generic.IReadOnlyList<Typeshift.StandingApproval> Standing, Typeshift.AgentMode? Mode)
@@ -567,6 +571,10 @@ public Typeshift.ToolBuilder Typeshift.ToolBuilder.WithName(string name)
 public Typeshift.ToolBuilder<TSettings> Typeshift.ToolBuilder.WithSettings<TSettings>() where TSettings : class
 public sealed class Typeshift.ToolBuilder<TSettings> where TSettings : class
 public Typeshift.ToolBuilder<TSettings> Typeshift.ToolBuilder<TSettings>.Configurable<TMember>(System.Func<TSettings, TMember> member)
+public Typeshift.ToolBuilder<TSettings> Typeshift.ToolBuilder<TSettings>.ReadOnly()
+public Typeshift.ToolBuilder<TSettings> Typeshift.ToolBuilder<TSettings>.RequiresApproval()
+public Typeshift.ToolBuilder<TSettings> Typeshift.ToolBuilder<TSettings>.WithDescription(string description)
+public Typeshift.ToolBuilder<TSettings> Typeshift.ToolBuilder<TSettings>.WithName(string name)
 public class Typeshift.ToolException : System.Exception
 public Typeshift.ToolException.ToolException(string message)
 public Typeshift.ToolException.ToolException(string message, System.Exception innerException)

@@ -123,6 +123,11 @@ All notable changes to this project are documented here. The format follows
   request often holds, and name what its value names. Without a value they throw an `ArgumentNullException`. Before,
   such an id compiled with a nullable warning and was an id of its own type, `Guid?`: a store of `Guid` ids did not
   keep it, and in memory it was another conversation than the same `Guid`.
+- A tool's chain takes its calls in any order: `RequiresApproval()`, `ReadOnly()`, `WithName(...)` and
+  `WithDescription(...)` may follow `WithSettings<T>()`, `WithConfigurableSettings<T>()` and their picks, as in
+  `AddTool(CloseTicket).WithSettings<CloseSettings>().Configurable(s => s.Notify).RequiresApproval()`. After a
+  settings call they were a compiler error, CS1061, which read as if a tool with settings could not require
+  approval.
 
 ### Changed
 

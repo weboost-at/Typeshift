@@ -129,6 +129,22 @@ public class ToolsetGenerationTests : GeneratorTestBase
         run.Source("Demo.FindToolset.g.cs").Should().Contain(call);
     }
 
+    [Theory]
+    [InlineData("public override string Name => \"list_open_tickets\";")]
+    [InlineData("public override string Name => \"remove_ticket\";")]
+    [InlineData("public override bool IsReadOnly => true;")]
+    [InlineData("\"Lists the open tickets.\"")]
+    [InlineData("RequiresApproval = true")]
+    public void Given_A_Tools_Flags_After_Its_Settings_Call_They_Are_Read(string generated)
+    {
+        // Act
+        var run = Run(ShapeSources.ToolFlagsAfterTheSettingsCall);
+
+        // Assert
+        run.Assert.CompilesCleanly();
+        run.Source("Demo.TicketToolset.g.cs").Should().Contain(generated);
+    }
+
     [Fact]
     public void Given_Names_Spelled_Like_Keywords_The_Generated_Code_Compiles_Without_Warnings()
     {

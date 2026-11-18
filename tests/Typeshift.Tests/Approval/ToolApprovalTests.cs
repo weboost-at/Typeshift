@@ -25,6 +25,25 @@ public class ToolApprovalTests : ApprovalTestBase
     }
 
     [Fact]
+    public async Task Given_A_Tool_With_Settings_Marked_After_Them_It_Asks()
+    {
+        // Arrange
+        ChatClient.Reply(Call(Data.Tool.CallId, "archive_ticket", ("number", Data.Agent.Ticket.Default)));
+
+        // Act
+        var response = await Host<ArchiveAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.Decisions.OfType<ApprovalDecision>()
+            .Select(decision => decision.Tool)
+            .Should()
+            .Equal("archive_ticket");
+        ToolCalls.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Given_A_Decision_It_Carries_The_Arguments_The_Model_Sent_And_The_Agent_That_Asked()
     {
         // Arrange
