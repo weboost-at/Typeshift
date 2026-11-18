@@ -226,7 +226,8 @@ The link under a snippet names the lines of its region, so a line added above a 
 1. Copy a [template](#templates): a guide, a concept or a reference page.
 2. Add it to the sidebar in `docs/.vitepress/config.mts`, in reading order. A new group of the guide sidebar gets `collapsed: true`, like every group except the Introduction.
 3. Link it from the `## Related` of its neighbours.
-4. When it becomes the home of a kind of fact, add a row to the fact map in `AGENTS.md`.
+4. A guide page gets a row in the fact map of `AGENTS.md` for the facts it owns, and the docs rules fail on one
+   that no row names as canonical.
 
 Before you add one, check whether the topic fits as a section of an existing page. Fewer, fuller pages are easier
 to find than many thin ones.
@@ -259,6 +260,7 @@ The docs rules check what a machine can:
 - Getting started has at most five numbered steps;
 - every repository path and every anchor of a docs page that `AGENTS.md`, the playbooks and the contributing pages
   name in backticks exists;
+- every guide page is the canonical page of a row of the fact map in `AGENTS.md`;
 - every test that [Status](./status.md) names exists;
 - every link from the XML docs to this site reaches its page and its anchor: those in `src/`, which an editor shows
   in a tooltip, and those the generator writes, as its snapshots hold them.

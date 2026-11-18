@@ -14,6 +14,7 @@
 //     two readmes no "plain C#"; the tutorial has at most five numbered steps
 //   - in AGENTS.md, the playbooks and the contributing pages: every repository path in backticks exists, and every
 //     `page.md#anchor` reaches a heading or anchor of that page
+//   - every guide page is the canonical page of a row of the fact map in AGENTS.md
 //   - every test docs/contributing/status.md names is a test under tests/
 //   - every link from the XML docs to the docs site, in src/ and in the generator's snapshots, reaches a page and,
 //     with a #fragment, a heading or anchor on it
@@ -441,7 +442,8 @@ for (const [file, content] of contributing) {
 
     if (!fragment || !path.endsWith('.md')) continue
 
-    const page = [join(docs, path), join(docs, 'guide', path)].find(candidate => anchors.has(candidate))
+    const page = [join(root, path), join(docs, path), join(docs, 'guide', path)]
+      .find(candidate => anchors.has(candidate))
 
     if (page && !anchors.get(page).has(fragment))
       fail(file, line, `\`${text}\` reaches no heading or anchor on ${relative(docs, page)}`)
@@ -449,6 +451,22 @@ for (const [file, content] of contributing) {
       fail(file, line, `\`${text}\` names no page of the docs`)
   }
 }
+
+// The fact map of AGENTS.md names the canonical page of each kind of fact, and review-docs compares each row's pages,
+// so a guide page that no row names would escape that comparison. A cell is split at the pipes outside code spans
+const map = contributing.get(join(root, 'AGENTS.md'))
+const head = map.lines.findIndex(line => /^\| Fact \| Canonical page \|/.test(line))
+const cellsOf = row => row.replace(/^\||\|$/g, '').split(/\|(?=(?:[^`]*`[^`]*`)*[^`]*$)/)
+const canonical = new Set()
+
+for (let index = head + 2; head >= 0 && map.lines[index]?.startsWith('|'); index++)
+  for (const [, path] of (cellsOf(map.lines[index])[1] ?? '').matchAll(/`([^`#]+)(?:#[^`]*)?`/g))
+    canonical.add(join(docs, path))
+
+if (head < 0) errors.push('AGENTS.md: no fact map, a table whose header starts with | Fact | Canonical page |')
+
+for (const page of pages.filter(file => head >= 0 && dirname(file) === join(docs, 'guide')))
+  canonical.has(page) || fail(page, 0, 'no row of the fact map in AGENTS.md names it as canonical: add one')
 
 // The XML docs link the guide, and an editor shows the link in a tooltip: in the library and the generator, and in
 // what the generator writes, as the snapshots hold it. GuideLinks.cs checks the same links for a change of the code

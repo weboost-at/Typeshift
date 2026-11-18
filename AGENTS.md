@@ -140,6 +140,7 @@ style; the essentials:
 | The runtime: `TypeshiftRuntime.Create` without a container, the chain's `Services`, injecting it, its hosts as units of work | `guide/registration.md#the-runtime` | `getting-started.md` (step 4), `using-an-agent.md#run-from-a-console-app` (the snippet), `using-an-agent.md#run-from-a-background-job` (the job's host), `generated-members.md` (`DisposeAsync`) |
 | `AddTypeshift()` chain calls and lifetimes | `guide/registration.md#the-chain` | each feature page shows its own `With...` call |
 | Builder calls of toolsets and agents | `guide/builders.md` | `toolsets.md`, `tool-settings.md`, `defining-agents.md` |
+| Declaring an agent: its constructor, the toolsets and tools it offers, a tool of its own, what it makes configurable, its generated `Settings` | `guide/defining-agents.md` | `getting-started.md` (step 3), `builders.md` (the calls), `toolsets.md#design-your-toolsets` (picking tools) |
 | Why declarations are read at compile time: what the generator reads, the rules and limits that follow | `guide/how-typeshift-reads-your-code.md` | `builders.md#rules-for-every-chain` (the rules), `what-is-typeshift.md#why-agents-in-code` (agents in code) |
 | Parameters the call fills, tool results | `guide/toolsets.md` | `builders.md` (link) |
 | Storable types of configurable members | `guide/tool-settings.md#storable-types` | `builders.md` (link) |
@@ -149,7 +150,11 @@ style; the essentials:
 | Questions the model asks the user (`UseQuestions()`, `ask_user`, answering, where the tool is offered) | `guide/tool-approval.md#asking-the-user` | `builders.md` (the row), `defining-agents.md` (the row), `chat-endpoint.md#answer-a-decision` (the JSON), `multi-agent.md#sub-agents` (a sub-agent cannot ask), `diagnostics.md#tsh034` |
 | Settings layers and precedence | `guide/settings-and-stores.md#settings-layering` | `tool-settings.md`, `defining-agents.md`, `running-agents.md` |
 | Getting an agent's host: injecting it, resolving it from a scope, or taking it from the runtime in a console app or a job | `guide/using-an-agent.md` | `getting-started.md` (step 4), `registration.md` (the lifetime), `running-agents.md` (lead) |
+| Running an agent through its host: stored and run settings, structured output, streaming, and the raw path through its chat client | `guide/running-agents.md` | `getting-started.md` (step 4), `generated-members.md` (signatures), `chat-endpoint.md` (streaming to a UI), `how-a-run-works.md` (where the raw path's steps differ) |
 | The order of a run's steps | `guide/how-a-run-works.md` | `contributing/architecture.md#a-run` (the code's side) |
+| Run and tool middleware, context providers and the tools they add | `guide/middleware.md` | `how-a-run-works.md` (steps 4 and 5), `toolsets.md#when-a-tool-fails` (a tool middleware sees the exception first), `tool-approval.md` (what a rule never sees), `conversations.md#compaction` (what compaction keeps) |
+| Sub-agents, their typed answers and background runs, and handoffs | `guide/multi-agent.md` | `builders.md` (`UseAgent`, `UseHandoff`), `tool-approval.md` (approvals across agents, plan mode), `observability.md` (spans and events), `how-a-run-works.md` (a handed-off conversation) |
+| MCP servers: tools of a server your app connects or the model's provider connects, how an agent offers them | `guide/mcp.md` | `builders.md` (`UseMcpServer`), `tool-approval.md` (approving a server's tools), `what-is-typeshift.md#before-you-ship` (servers you do not control) |
 | Registering a store, the memory without one, which store serves a call; the store's lifetime and contract, kinds, schema versions, versions, conversation entries and summaries, the decisions document, checking a store | `guide/implementing-a-store.md` | `settings-and-stores.md` (links), `registration.md#the-chain` (the `WithStore` rows), `conversations.md#what-is-stored` |
 | The `Settings` JSON, an agent's own settings and those under a settings id | `guide/settings-and-stores.md` | `generated-members.md#settings` |
 | Keeping every conversation (`WithOptions`, `PersistAllConversations`, `NewConversationIds`) | `guide/conversations.md#keeping-every-conversation` | `registration.md#the-chain`, `generated-members.md#runasync`, `multi-agent.md#handoff`, `tool-approval.md#when-a-call-needs-approval` (what a run without a conversation id cannot do) |
@@ -173,7 +178,7 @@ style; the essentials:
 | Changed default or limit | The reference table, then every page that states it: grep for the old value |
 | New duty for the app: a default that is open, a check the app must make | A line of `what-is-typeshift.md#before-you-ship` that links the section, and a callout on the feature's page |
 | Change in the run pipeline | `how-a-run-works.md` and its diagram, `contributing/architecture.md#a-run`, D29 |
-| New page | First a section of an existing page; otherwise a template from `docs/contributing/templates/`, the sidebar, the neighbours' `## Related` |
+| New page | First a section of an existing page; otherwise a template from `docs/contributing/templates/`, the sidebar, the neighbours' `## Related`, a row of the fact map above |
 
 Docs passes that went back for another round taught these:
 
@@ -226,7 +231,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `release.yml`, for a tag | The tag sits on `main`, has its section in `CHANGELOG.md` and is the version MinVer packed, or nothing is published. |
 | CI: the Windows and macOS legs | The build and the tests pass where the file system ignores case, and on a Windows checkout with Git's default `core.autocrlf`. |
 | CI: two more runs of the suite, on `main` and for a release | A test that depends on the order of concurrent work fails before a tag, also when nobody ran the suite three times. |
-| CI: docs workflow | The Markdown matches its snippets (`npm run docs:snippets:check`) and passes markdownlint and the docs rules (`docs/.vitepress/lint.mjs`): page anatomy, the words `writing.md` bans by name, the names mdsnippets skips, and links and anchors from the pages, the home page, the nav, README.md and PACKAGE.md. The site builds without a dead link. |
+| CI: docs workflow | The Markdown matches its snippets (`npm run docs:snippets:check`) and passes markdownlint and the docs rules (`docs/.vitepress/lint.mjs`): page anatomy, the words `writing.md` bans by name, the names mdsnippets skips, and links and anchors from the pages, the home page, the nav, README.md and PACKAGE.md; every guide page is the canonical page of a row of the fact map. The site builds without a dead link. |
 | CI: the `demos` workflow, on `main`, once a day and by hand | The demos build without a warning, and each one runs offline to its end. No pull request waits for it. |
 
 ## Layout

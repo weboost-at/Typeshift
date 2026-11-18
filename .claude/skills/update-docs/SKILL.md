@@ -23,8 +23,9 @@ Read `docs/contributing/writing.md` first: the voice, the page anatomy, and the 
    skill over the prose you changed, with the Voice section of `writing.md` as its voice sample, and keep an edit only
    where `writing.md` agrees.
 5. A new page starts from `docs/contributing/templates/`, goes into the sidebar in `docs/.vitepress/config.mts` and
-   into the `## Related` of its neighbours. No page may be named `agents.md`, `claude.md`, `gemini.md` or
-   `copilot-instructions.md`: mdsnippets skips files of these names.
+   into the `## Related` of its neighbours, and a guide page gets a row of the fact map in `AGENTS.md`, which the docs
+   rules check. No page may be named `agents.md`, `claude.md`, `gemini.md` or `copilot-instructions.md`: mdsnippets
+   skips files of these names.
 6. Run `npm ci` once, then `npm run docs:check`: the snippets against their sources, markdownlint, the docs rules
    (frontmatter, headings, sidebar, links and anchors, code blocks, callouts, the words `writing.md` bans by name)
    and a build that fails on dead links.
