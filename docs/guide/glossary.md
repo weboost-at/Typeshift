@@ -46,7 +46,7 @@ Every app meets these words. They name agents and toolsets, runs, settings and c
 | <a id="tool-exception"></a>**Tool exception** | A `ToolException`, which a tool throws to tell the model why a call failed. The model reads its message, and of any other exception only that the call failed. See [When a tool fails](./toolsets.md#when-a-tool-fails). |
 | <a id="tool-settings"></a>**Tool settings** | The record a tool receives its settings in, also called its settings record, declared with `WithSettings<T>()` or `WithConfigurableSettings<T>()`. The model never sees it. See [Tool settings](./tool-settings.md). |
 | <a id="toolset"></a>**Toolset** | A `partial` class deriving from `Toolset` that declares the tools of one domain. See [Toolsets](./toolsets.md). |
-| <a id="tracker"></a>**Tracker** | `ConversationTracker<TId>`, which knows the runs going on in this process for conversations of one id type. Your app lists them through it, steers a run, and follows a run's live updates, the updates the run publishes while it works. See [Live runs](./conversations.md#live-runs). |
+| <a id="tracker"></a>**Tracker** | `ConversationTracker<TId>`, which knows the runs going on in this container for conversations of one id type. Your app lists them through it, steers a run, and follows a run's live updates, the updates the run publishes while it works. See [Live runs](./conversations.md#live-runs). |
 | <a id="typed-run"></a>**Typed run** | `RunAsync<T>` or `RunStreamingAsync<T>`: a run that asks the model for JSON of `T`'s schema and returns it typed, in `Result`. Also called structured output. See [Structured output](./running-agents.md#structured-output). |
 
 ## Words for store authors and for how Typeshift works

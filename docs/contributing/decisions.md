@@ -1672,7 +1672,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** runs publish their updates from the start (D74), and `TypeshiftOptions.LiveUpdates` tunes them;
   `ConversationTracker.WatchAsync(conversation)` reads a bounded feed that drops its oldest updates when the watcher falls behind. A run never waits
   for a watcher. `PublishInterval` (100 ms) and `MaxPendingUpdates` (256) are options. `Runs` lists the runs of
-  conversations going on in this process.
+  conversations going on in this container.
 - **Alternatives:** v0's process-wide events, awaited up to 5 s per model call.
 - **Details:** merged text waits for the next update or the end of the model's stream, so no timer runs per
   watcher, and an update of another message, response, role or author starts a merge of its own, as

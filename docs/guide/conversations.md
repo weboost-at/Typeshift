@@ -192,9 +192,9 @@ that is still going on.
 With one instance of your app, nothing else can be running the conversation after a restart, so such an entry means
 the run was interrupted. With several instances, or during a rolling deploy, another instance may be answering that
 chat at this moment. A store that refuses a second run's entries stops whichever of the two runs appends second
-([One run at a time](#one-run-at-a-time)), but a resume calls the model before it stores anything, so that call is
-paid for, and the run it stops may be the one that was answering. There, resume only when the last entry's `At` is
-older than a limit your app chooses, or behind a lease of your own.
+([Running on several instances](#running-on-several-instances)), but a resume calls the model before it stores
+anything, so that call is paid for, and the run it stops may be the one that was answering. There, resume only when
+the last entry's `At` is older than a limit your app chooses, or behind a lease of your own.
 
 ::: warning A tool can be called twice
 A call interrupted while its tool ran is left out on resume. The model decides again and may call the tool a second
@@ -214,30 +214,19 @@ Two moments of a run take no steering input and throw no `ConversationBusyExcept
 while another is still loading the conversation waits until that run has begun, and a run that starts while
 another is ending, storing its end, waits until it has ended.
 
-Across containers, such as two instances of your app behind a load balancer, neither knows the other's runs. There
-your store keeps the runs of a conversation apart when it refuses a second run's entries
-([Refuse a second run](./implementing-a-store.md#refuse-a-second-run)), as the store in memory and the EF Core store
-of these docs do:
-
-- Of two runs that loaded the conversation at the same point, the one that appends second stops with a
-  `ConversationBusyException` before its next model call or tool call. What it stored before stays, and its
-  `InnerException` is the store's `StoreConflictException`.
-- A tool the refused run called before it stopped has run, and its result is not stored, so the model of the other
-  run never reads it. The other run's answer is the conversation's.
-- A run whose end alone the store refused answered already and returns its answer: the other run's entries follow it.
-
-With a store that does not refuse them, the entries of the two runs interleave. Steering and live updates stay in
-their container either way ([Live updates](#live-updates)).
+Across containers, such as two instances of your app behind a load balancer, your store keeps a conversation's runs
+apart ([Running on several instances](#running-on-several-instances)).
 
 ## Live runs
 
-`ConversationTracker<TId>` tells your app which conversations under ids of `TId` have a run going on in this process.
+`ConversationTracker<TId>` tells your app which conversations under ids of `TId` have a run going on in this
+container.
 It also hands out each run's updates, so a second tab or a support dashboard can follow a chat that another request
 is answering ([Live updates](#live-updates)).
 
 Inject the tracker of your conversation ids' type, or resolve it: the container has one for every id type, a
 singleton, so the docs samples, whose conversations are `int`s, take `ConversationTracker<int>`. Its `Runs` lists the
-runs going on in this process under ids of that type, each with its conversation, the agent that answers, its model
+runs going on in this container under ids of that type, each with its conversation, the agent that answers, its model
 and when it started:
 
 <!-- snippet: live-sessions -->
@@ -283,7 +272,7 @@ conversation's next run reads it.
 `TrySteer` takes text, or a user's `ChatMessage` that carries images or files, as a run's input does. A message of
 another role, or one with Microsoft.Extensions.AI's approval contents, throws an `ArgumentException`.
 
-`TrySteer` returns false when no run of the conversation takes input in this process: none is going on, one is
+`TrySteer` returns false when no run of the conversation takes input in this container: none is going on, one is
 still loading the conversation, or it is ending. Start a run with the input instead. A run that started in the
 meantime throws a `ConversationBusyException`, and then takes the input when you steer again:
 
@@ -338,7 +327,7 @@ results, and the decisions a run asks, with its last update. That leaves out fou
 - **An end.** The loop goes on across runs until you cancel its token. `WatchRunsAsync` tells your app when a run
   ends, with `Ended` set.
 - **Other containers.** A watcher sees only the runs of its own container. With several instances of your app, watch
-  in the one that runs the conversation.
+  in the one that runs the conversation ([Running on several instances](#running-on-several-instances)).
 
 Text, reasoning and usage updates are merged and published at most every 100 ms, and other updates go out at once.
 Merged text never spans two messages: text of another message goes out as an update of its own, and the last of an
@@ -365,6 +354,41 @@ services.AddTypeshift()
 An app published with Native AOT that injects `ConversationTracker<Guid>`, or the tracker of another value type,
 registers it with `WithConversationTracker<Guid>()` ([Trackers of value-type ids](./native-aot.md#trackers-of-value-type-ids)).
 :::
+
+## Running on several instances
+
+Behind a load balancer, or during a rolling deploy, two instances of your app can serve the same chat. Each instance
+has a container of its own, so what Typeshift keeps in memory stays in that instance, and only what it keeps in your
+store reaches the other. Through your store, these hold across instances:
+
+- **One run at a time**, when your store refuses an entry under a number its conversation holds already
+  ([Refuse a second run](./implementing-a-store.md#refuse-a-second-run)), as the store in memory and the EF Core store
+  of these docs do. Of two runs that loaded the conversation at the same point, the one that appends second stops
+  with a `ConversationBusyException` before its next model call or tool call. What it stored before stays, and its
+  `InnerException` is the store's `StoreConflictException`.
+- **Decisions.** Each change of a conversation's decisions is saved against the version it loaded
+  ([Keep decisions](./implementing-a-store.md#keep-decisions)), so a decision is answered once and the calls it
+  approves start once, whichever instance answers or carries them out, as with a second tab
+  ([When a decision closes](./tool-approval.md#when-a-decision-closes)).
+- **The conversation's mode and its standing approvals**, which are stored with its decisions.
+
+A run the store refused keeps what it did before: a tool it called has run, and its result is not stored, so the
+model of the other run never reads it. The other run's answer is the conversation's, and a run whose end alone the
+store refused answered already and returns its answer. With a store that does not refuse a taken number, the entries
+of the two runs interleave.
+
+These stay in the container that runs the conversation:
+
+- The `ConversationBusyException` a second run throws before it stores anything. Another instance starts its run at
+  once, and the store stops one of the two only once it appends, after that run may have called the model.
+- Steering: `TrySteer` returns false in an instance where no run of the conversation goes on.
+- The tracker's `Runs`, `WatchRunsAsync` and live updates.
+- Knowing whether a run goes on. Nothing leases a conversation, so after a restart an interrupted run and one that
+  another instance is answering look the same.
+
+So route each conversation to one instance, for example with sticky sessions keyed by the conversation id. A second
+message then throws at once, and steering input and watchers reach the run. Resume a conversation only when no other
+instance can be running it ([Resuming](#resuming)).
 
 ## Compaction
 

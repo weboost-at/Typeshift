@@ -281,8 +281,8 @@ A conversation has one run at a time in a container ([One run at a time](./conve
 second run of a chat throws a `ConversationBusyException` before it stores anything. That happens to a message posted
 while an answer still streams, to a double click on send, and to a retry. With several instances of your app, a
 store that refuses a second run's entries throws the same exception from the run that appends second, at its first
-step after the other run's. A filter on the group answers it with 409 Conflict, where ASP.NET Core would answer 500
-and log an error:
+step after the other run's ([Running on several instances](./conversations.md#running-on-several-instances)). A
+filter on the group answers it with 409 Conflict, where ASP.NET Core would answer 500 and log an error:
 
 <!-- snippet: chat-busy-filter -->
 <a id='snippet-chat-busy-filter'></a>
@@ -353,11 +353,6 @@ private static async IAsyncEnumerable<ChatResponseUpdate> Rest(
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L88-L119' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-start' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
-
-::: warning Several instances of your app
-A run in another instance of your app is no run of this process, so nothing throws there. Route each chat to one
-instance, or keep its runs apart yourself.
-:::
 
 ## Related
 

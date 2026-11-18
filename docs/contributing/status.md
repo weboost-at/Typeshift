@@ -307,10 +307,10 @@ rewrite.
   from where it joined until the run has ended. Keeping the updates of the response in flight on the run and
   handing them to a new watcher first would close it.
 - **A run going on keeps its mode and its standing approvals.** `SetModeAsync` and `RevokeStandingApprovalAsync`
-  change the conversation's decisions, which a run reads when it begins. A run going on, in this process or another,
-  ends in the mode and with the approvals it began with; cancelling the run's token stops it at once.
+  change the conversation's decisions, which a run reads when it begins. A run going on, in this container or
+  another, ends in the mode and with the approvals it began with; cancelling the run's token stops it at once.
 - **The last answer during a run.** `AnswerAsync` records and then resumes. While a run of the conversation goes
-  on in the process, the answers are recorded and the resume throws as any second run does, so the app answers
+  on in the container, the answers are recorded and the resume throws as any second run does, so the app answers
   again or calls `ResumeAsync` once that run ended.
 - **A stopped run and the calls it had not begun.** A batch counts as started from the moment a run begins to
   carry it out (D80), so after a run stopped, the approved calls it had not reached are not run either: the model

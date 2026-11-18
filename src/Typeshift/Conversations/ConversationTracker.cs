@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Typeshift;
 
 /// <summary>
-/// The conversations under ids of <typeparamref name="TId"/> running in this process. Inject the tracker of your
+/// The conversations under ids of <typeparamref name="TId"/> running in this container. Inject the tracker of your
 /// conversation ids' type, such as <c>ConversationTracker&lt;int&gt;</c>; the container has one for every id type, a
 /// singleton.
 /// More in the guide: <see href="https://weboost-at.github.io/Typeshift/guide/conversations#live-runs">Live runs</see>.
@@ -73,7 +73,7 @@ public sealed class ConversationTracker<TId> where TId : notnull
         _runs.Value.WatchAsync(new StoreId<TId>(conversation), ct);
 
     /// <summary>
-    /// Hands input to the conversation's run going on in this process. The run's middleware sees it first and may
+    /// Hands input to the conversation's run going on in this container. The run's middleware sees it first and may
     /// drop it. The model receives it with its next call, and the run answers it before it ends, unless the run
     /// fails, is cancelled or has spent its limit of model calls: the input is then stored with the run's end, and
     /// the conversation's next run reads it.
@@ -91,7 +91,7 @@ public sealed class ConversationTracker<TId> where TId : notnull
         _runs.Value.TrySteer(new StoreId<TId>(conversation), new ChatMessage(ChatRole.User, input));
 
     /// <summary>
-    /// Hands a message to the conversation's run going on in this process, as
+    /// Hands a message to the conversation's run going on in this container, as
     /// <see cref="TrySteer(TId, string)"/> does with text: a user message that may carry images or files, as a run's
     /// input may.
     /// </summary>
@@ -133,7 +133,7 @@ public sealed class ConversationTracker<TId> where TId : notnull
 }
 
 /// <summary>
-/// A run of a conversation in this process.
+/// A run of a conversation in this container.
 /// </summary>
 /// <param name="Conversation">The conversation's id.</param>
 /// <param name="Agent">The name of the agent that answers.</param>
