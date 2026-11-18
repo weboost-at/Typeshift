@@ -10,8 +10,9 @@ public sealed class JsonFileStore(string directory) : ITypeshiftStore<Guid>
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    // One writer at a time keeps versions honest; a demo has no second process to guard against
-    private readonly SemaphoreSlim _writing = new(1, 1);
+    // One file operation at a time keeps versions honest and no read meets a write; a demo has no second process to
+    // guard against
+    private readonly SemaphoreSlim _files = new(1, 1);
 
     public Task<StoredDocument?> LoadAsync(Guid id, string kind, CancellationToken ct) =>
         LoadDocumentAsync(DocumentPath(kind, id), ct);
@@ -28,16 +29,35 @@ public sealed class JsonFileStore(string directory) : ITypeshiftStore<Guid>
     public async Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(Guid conversation, CancellationToken ct)
     {
         var path = ConversationPath(conversation);
-        if (!File.Exists(path)) return [];
+        string[] lines;
 
-        var lines = await File.ReadAllLinesAsync(path, ct);
+        await _files.WaitAsync(ct);
 
-        return
-        [
-            .. lines
-                .Where(line => line.Length > 0)
-                .Select(ConversationEntry.Deserialize)
-        ];
+        try
+        {
+            if (!File.Exists(path)) return [];
+            lines = [.. (await File.ReadAllLinesAsync(path, ct)).Where(line => line.Length > 0)];
+        }
+        finally
+        {
+            _files.Release();
+        }
+
+        var entries = new List<ConversationEntry>(lines.Length);
+
+        foreach (var (line, index) in lines.Select((line, index) => (line, index)))
+        {
+            try
+            {
+                entries.Add(ConversationEntry.Deserialize(line));
+            }
+            catch (JsonException) when (index == lines.Length - 1)
+            {
+                // A crash in the middle of an append cuts the last line off: that entry was never stored
+            }
+        }
+
+        return entries;
     }
 
     // A file of lines reads whole, so the entries from the last summary on are kept after the read
@@ -49,17 +69,25 @@ public sealed class JsonFileStore(string directory) : ITypeshiftStore<Guid>
     public async Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct)
     {
         var path = ConversationPath(conversation);
-        var line = entry.Serialize();
-        await _writing.WaitAsync(ct);
+        var line = System.Text.Encoding.UTF8.GetBytes(entry.Serialize() + "\n");
+        await _files.WaitAsync(ct);
 
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            await File.AppendAllTextAsync(path, line + Environment.NewLine, ct);
+            await using var file = new FileStream(
+                path,
+                FileMode.OpenOrCreate,
+                FileAccess.ReadWrite,
+                FileShare.Read,
+                bufferSize: 1);
+
+            DropTornLine(file);
+            await file.WriteAsync(line, ct);
         }
         finally
         {
-            _writing.Release();
+            _files.Release();
         }
     }
 
@@ -69,12 +97,21 @@ public sealed class JsonFileStore(string directory) : ITypeshiftStore<Guid>
                 .Select(file => Guid.Parse(Path.GetFileNameWithoutExtension(file)))
             : [];
 
-    private static async Task<StoredDocument?> LoadDocumentAsync(string path, CancellationToken ct)
+    private async Task<StoredDocument?> LoadDocumentAsync(string path, CancellationToken ct)
     {
-        if (!File.Exists(path)) return null;
+        await _files.WaitAsync(ct);
 
-        var row = JsonSerializer.Deserialize<DocumentRow>(await File.ReadAllTextAsync(path, ct), Json)!;
-        return new StoredDocument(row.Json, row.Version);
+        try
+        {
+            if (!File.Exists(path)) return null;
+
+            var row = JsonSerializer.Deserialize<DocumentRow>(await File.ReadAllTextAsync(path, ct), Json)!;
+            return new StoredDocument(row.Json, row.Version);
+        }
+        finally
+        {
+            _files.Release();
+        }
     }
 
     private async Task<long> SaveDocumentAsync(
@@ -84,7 +121,7 @@ public sealed class JsonFileStore(string directory) : ITypeshiftStore<Guid>
         long loadedVersion,
         CancellationToken ct)
     {
-        await _writing.WaitAsync(ct);
+        await _files.WaitAsync(ct);
 
         try
         {
@@ -97,13 +134,35 @@ public sealed class JsonFileStore(string directory) : ITypeshiftStore<Guid>
 
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             var row = new DocumentRow(loadedVersion + 1, json);
-            await File.WriteAllTextAsync(path, JsonSerializer.Serialize(row, Json), ct);
+
+            // Written beside it, then moved over it: a crash leaves the old document or the new one, never half
+            var written = $"{path}.{Guid.NewGuid():N}.tmp";
+            await File.WriteAllTextAsync(written, JsonSerializer.Serialize(row, Json), ct);
+            File.Move(written, path, overwrite: true);
+
             return row.Version;
         }
         finally
         {
-            _writing.Release();
+            _files.Release();
         }
+    }
+
+    // Cuts the file back to its last line break, past what a crash in the middle of an append left; the stream reads
+    // unbuffered, a byte at a time from the end
+    private static void DropTornLine(FileStream file)
+    {
+        var end = file.Length;
+
+        while (end > 0)
+        {
+            file.Position = end - 1;
+            if (file.ReadByte() == '\n') break;
+            end--;
+        }
+
+        file.SetLength(end);
+        file.Position = end;
     }
 
     private string DocumentPath(string kind, Guid id) => Path.Combine(directory, "documents", kind, $"{id}.json");
