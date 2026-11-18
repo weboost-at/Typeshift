@@ -54,7 +54,10 @@ what does not parse (D2).
 2. **Parsing** (`Parsing/ToolsetParser.cs`) reads the constructors through `IOperation`: each
    `AddTool(...).WithName(...).ReadOnly().WithSettings<T>().Configurable(...)` chain, only directly in a constructor
    and only as one statement (D4). The analyzer receives the constructors as operation blocks, and the generator
-   reads them through the semantic model.
+   reads them through the semantic model. A description comes from the doc comment where it is written
+   (`XmlDocs.ReadWritten`), and from the compiler's XML for a reference and wherever the compiler writes what the
+   comment alone does not say, such as a cref that names no definition; `XmlDocsTests` reads every comment of the
+   catalogs both ways.
 3. **Models** are records that hold only strings, bools, ints, enums, other models and `EquatableArray<T>` of
    those, which `ModelShapeTests` checks. They carry no locations, so code that moves within the file of a toolset
    or an agent leaves its output cached.

@@ -107,7 +107,8 @@ rewrite.
 | new | An agent's output is generated again only when what it offers changes | `IncrementalTests` |
 | new | Code that moves within an agent's file leaves the agent, its outputs and the module cached, as within a toolset's; a step of the pipeline that produced nothing does not pass as cached | `IncrementalTests.Given_Code_Moved_Within_An_Agents_File_Its_Outputs_Stay_Cached`, `..._Given_Code_Moved_Within_A_Toolset_Its_Output_Stays_Cached`, `..._Given_A_Step_Without_An_Output_It_Does_Not_Pass_As_Cached` |
 | new | An unrelated edit leaves every output cached in a project with a referenced toolset, JSON contexts and a schema annotations class as well; so do a reference recompiled from the same source and a comment in an agent's constructor, and a toolset that is added generates the module again and no agent | `IncrementalTests.Given_An_Edit_Outside_The_Agents_With_A_Referenced_Toolset_Every_Output_Stays_Cached`, `..._Given_A_Reference_Recompiled_From_The_Same_Source_Every_Output_Stays_Cached`, `..._Given_A_Comment_In_An_Agents_Constructor_Every_Output_Stays_Cached`, `..._Given_A_Toolset_Added_The_Module_Is_Generated_Again_And_The_Agents_Stay_Cached` |
-| new | A generator run after an unrelated edit allocates less than 450,000 bytes for each toolset-and-agent pair, at 25 pairs (D3) | `IncrementalCostTests.Given_An_Unrelated_Edit_The_Generator_Runs_Again_Within_Its_Budget_For_Each_Toolset_And_Agent` |
+| new | A generator run after an unrelated edit allocates less than 360,000 bytes for each toolset-and-agent pair, at 25 pairs (D3) | `IncrementalCostTests.Given_An_Unrelated_Edit_The_Generator_Runs_Again_Within_Its_Budget_For_Each_Toolset_And_Agent` |
+| new | A description reads the same from the doc comment where it is written as from the compiler's XML, for every documented declaration of the catalogs (D3) | `XmlDocsTests.Given_The_Comments_Of_A_Catalog_Read_Where_They_Are_Written_They_Read_As_The_Compilers_Xml` |
 | new | The generator's models compare by their values: records of strings, bools, ints, enums, other models and `EquatableArray<T>` of those | `ModelShapeTests` |
 | new | The syntax predicates pass the classes whose base list names `Toolset`, `Agent` or `JsonSerializerContext` and the calls spelled like `AddTypeshift()` or `TypeshiftRuntime.Create`, and no others (D3, D75) | `DiscoveryTests`, `InterceptParserTests` |
 | new | Generated code names every type from `global::`: it compiles where `System`, `Microsoft`, `Typeshift` and the project's root namespace each name a namespace of the project's or a global alias as well | `ToolsetGenerationTests.Given_Namespaces_Named_Like_The_Frameworks_The_Generated_Code_Compiles` |
@@ -256,14 +257,14 @@ rewrite.
 
   | Pairs | CPU per run | Allocated per run | Per pair |
   |---|---|---|---|
-  | 0 | 0.7 ms | 81 KB | |
-  | 5 | 20 ms | 2.0 MB | 396 KB |
-  | 10 | 35 ms | 3.7 MB | 373 KB |
-  | 50 | 152 ms | 17.8 MB | 355 KB |
-  | 100 | 284 ms | 35.3 MB | 353 KB |
+  | 0 | 0.8 ms | 80 KB | |
+  | 5 | 20 ms | 1.6 MB | 323 KB |
+  | 10 | 35 ms | 3.0 MB | 299 KB |
+  | 50 | 138 ms | 14.0 MB | 280 KB |
+  | 100 | 194 ms | 27.8 MB | 278 KB |
 
-  A toolset of ten tools that share one settings type costs about 1.0 MB per pair. Binding only what each chain names
-  would cut about half of it, and waits for projects that need it.
+  A toolset of ten tools that share one settings type costs about 830 KB per pair. Binding the constructors is two
+  thirds of a pair's cost; binding only what each chain names would cut into it, and waits for projects that need it.
 - **Sub-agents cannot ask.** A call of a sub-agent that would wait for your app is rejected, and a sub-agent is not
   offered `ask_user` (D33, D82). Passing its decision up to the caller's conversation would pause the calling run
   inside a tool call.

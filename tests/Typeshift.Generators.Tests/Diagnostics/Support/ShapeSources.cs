@@ -2291,4 +2291,63 @@ public static class ShapeSources
         {
         }
         """;
+
+    // Docs of every kind a description reads: crefs to a type, a keyword type, a generic type, a constructor, a method
+    // and an alias, entities, CDATA, blocks, links, adjacent elements and a /** */ comment. A comment of the
+    // compilation is read where it is written, and XmlDocsTests compares that reading with the compiler's XML
+    public const string DocsOfEveryKind =
+        """
+        using System.Collections.Generic;
+        using Typeshift;
+        using Numbers = System.Collections.Generic.List<int>;
+
+        namespace Demo;
+
+        /// <summary>Kept as <see cref="Kept"/>, made with <see cref="Kept()"/>.</summary>
+        public record Kept
+        {
+            /// <summary>The <see langword="null"/> case, &lt;none&gt; &amp; more.</summary>
+            public int Limit { get; init; } = 1;
+
+            /// <summary><![CDATA[a < b]]> as <c>code</c><para>A block.</para>then <c> spaced </c>text.</summary>
+            public string Name { get; init; } = "";
+        }
+
+        /// <summary>Tools documented <b>every</b> way.</summary>
+        public partial class DocumentedToolset : Toolset
+        {
+            /// <summary>Declares the tools.</summary>
+            public DocumentedToolset()
+            {
+                AddTool(Find).WithSettings<Kept>().Configurable(s => s.Limit).Configurable(s => s.Name);
+                AddTool(Count);
+                AddTool(Link);
+            }
+
+            /// <summary>
+            /// Finds a <see cref="string"/> in a <see cref="List{T}"/> of <see cref="Numbers"/>, as
+            /// <see cref="System.Linq.Enumerable.Count{TSource}(IEnumerable{TSource})"/> or
+            /// <see cref="Count(int[])"/> do.
+            /// </summary>
+            /// <param name="query">The <paramref name="query"/> <paramref name="settings"/> read.</param>
+            /// <param name="settings">How <see cref="Find"/> runs.</param>
+            /// <returns>The query.</returns>
+            public static string Find(string query, Kept settings) => query;
+
+            /**
+             * <summary>Counts <see cref="int"/> values,
+             * <list type="bullet"><item>each</item><item>once</item></list>.</summary>
+             * <param name="values">The values<br/>to count.</param>
+             * <returns>How many.</returns>
+             */
+            public static int Count(int[] values) => values.Length;
+
+            /// <summary>
+            /// See <see href="https://example.com"/> or <see href="https://example.com">the site</see>.
+            /// </summary>
+            /// <param name="text"> </param>
+            /// <returns>The text.</returns>
+            public static string Link(string text) => text;
+        }
+        """;
 }
