@@ -20,8 +20,9 @@ namespace Typeshift.Samples.Scenarios;
 
 // Serves the chat endpoints and the hub on a local port and calls them as a chat UI would: a message, another
 // customer's chat, a decision loaded again and answered by its id, questions answered by label and in words, a
-// streamed answer, a second message while the answer to the first is under way, and the hub's negotiation. Then the
-// customer's settings form, and a staff endpoint that binds the whole Settings record
+// streamed answer, a second message while the answer to the first is under way, the hub's negotiation, and a chat
+// loaded again, one compaction summarized included. Then the customer's settings form, and a staff endpoint that binds
+// the whole Settings record
 internal static class ChatEndpoint
 {
     public static async Task RunAsync(IChatClient client, string database)
@@ -144,6 +145,8 @@ internal static class ChatEndpoint
         if (hub.StatusCode != HttpStatusCode.OK)
             throw new InvalidOperationException($"Expected the hub to be mapped: {hub.StatusCode}");
 
+        await CheckHistoryAsync(app.Services, http);
+
         await CheckSettingsAsync(app.Services, http);
         await app.StopAsync();
     }
@@ -169,6 +172,41 @@ internal static class ChatEndpoint
 
             return await base.GetResponseAsync(messages, options, cancellationToken);
         }
+    }
+
+    // Chat 41 holds two answers. Chat 46 holds one, a summary that kept it, and the answer of a run after it, so the
+    // page reads each line once and none of the summary
+    private static async Task CheckHistoryAsync(IServiceProvider services, HttpClient http)
+    {
+        var lines = await http.GetFromJsonAsync<ChatLine[]>("/chats/41/messages");
+        if (lines is not [{ Role: "user" }, { Role: "assistant" }, { Role: "user" }, { Role: "assistant" }])
+            throw new InvalidOperationException("Expected the chat's two questions and answers.");
+
+        var store = services.GetRequiredService<IConversationStore<int>>();
+        var at = TimeProvider.System.GetUtcNow();
+        var question = new ChatMessage(ChatRole.User, "Where is my refund?");
+        var answer = new ChatMessage(ChatRole.Assistant, CannedChatClient.Answer);
+        var summary = new ChatMessage(ChatRole.User, "A summary of the conversation so far: the refund was approved.");
+
+        ConversationEntry[] entries =
+        [
+            new("support_agent", [question], at) { Sequence = 1 },
+            new("support_agent", [answer], at) { Sequence = 2 },
+            new("support_agent", [], at) { Sequence = 3, EndsRun = true },
+            new("support_agent", [summary, answer], at) { Sequence = 4, IsSummary = true }
+        ];
+
+        foreach (var entry in entries)
+        {
+            await store.AppendConversationAsync(46, entry, default);
+        }
+
+        await PostAsync<ChatReply>(http, "/chats/46/messages", new ChatInput("When will it arrive?"));
+
+        var compactedLines = await http.GetFromJsonAsync<ChatLine[]>("/chats/46/messages");
+        if (compactedLines?.Select(line => line.Text).ToArray() is not
+            ["Where is my refund?", CannedChatClient.Answer, "When will it arrive?", CannedChatClient.Answer])
+            throw new InvalidOperationException("Expected each line of a compacted chat once, and no summary.");
     }
 
     private static async Task CheckSettingsAsync(IServiceProvider services, HttpClient http)

@@ -52,6 +52,11 @@ internal static class ChatEndpoints
             });
             // end-snippet
 
+            // begin-snippet: chat-history-endpoint
+            chat.MapGet("/messages", async (int chatId, AgentHost<SupportAgent> support, CancellationToken ct) =>
+                ChatLine.From(await support.WithConversationId(chatId).LoadConversationAsync(ct)));
+            // end-snippet
+
             // begin-snippet: chat-decisions-endpoint
             chat.MapGet("/decisions", async (int chatId, AgentHost<SupportAgent> support, CancellationToken ct) =>
                 (await support.WithConversationId(chatId).GetDecisionsAsync(ct)).Open);

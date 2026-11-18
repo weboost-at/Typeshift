@@ -153,7 +153,7 @@ private static async IAsyncEnumerable<SseItem<object>> Events(IAsyncEnumerable<C
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L121-L135' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-events' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L126-L140' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-events' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - Both events carry JSON, written with your app's JSON options: a `text` event holds its text as a JSON string, and a
@@ -196,7 +196,8 @@ internal sealed class ConversationHub(ConversationTracker<int> tracker, IChats c
 - In a hub, the current customer comes from the connection's user, so `ICurrentCustomer` reads it from there.
 - The browser calls `connection.stream("Watch", chatId)`. SignalR cancels `ct` when the browser disposes its
   subscription or the connection drops, which ends the loop.
-- A watch replays nothing, so a page that opens a chat shows its stored history first and then watches. An answer
+- A watch replays nothing, so a page that opens a chat shows its stored history first
+  ([Load the chat](#load-the-chat)) and then watches. An answer
   that was streaming when the page opened shows from where the page joined, and the stored history holds it whole
   once its run has ended.
 
@@ -211,10 +212,46 @@ await using var app = builder.Build();
 
 app.MapHub<ConversationHub>("/hub");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/ChatEndpoint.cs#L37-L43' title='Snippet source file'>snippet source</a> | <a href='#snippet-conversation-hub-map' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/ChatEndpoint.cs#L38-L44' title='Snippet source file'>snippet source</a> | <a href='#snippet-conversation-hub-map' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Map it behind your authentication, as the endpoints are, for example with `RequireAuthorization()` after `MapHub`.
+
+## Load the chat
+
+A page that opens a chat, or reloads, shows the lines the chat holds so far. `LoadConversationAsync` reads the chat's
+entries without a run, and the endpoint returns what the user reads of them:
+
+<!-- snippet: chat-history-endpoint -->
+<a id='snippet-chat-history-endpoint'></a>
+```cs
+chat.MapGet("/messages", async (int chatId, AgentHost<SupportAgent> support, CancellationToken ct) =>
+    ChatLine.From(await support.WithConversationId(chatId).LoadConversationAsync(ct)));
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L55-L58' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-history-endpoint' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+<!-- snippet: chat-line -->
+<a id='snippet-chat-line'></a>
+```cs
+// A line of the chat as its user reads it: the user's messages and the agents' answers, each once
+internal sealed record ChatLine(string Role, string Text)
+{
+    public static IEnumerable<ChatLine> From(IReadOnlyList<ConversationEntry> entries) =>
+        entries
+            .Where(entry => !entry.IsSummary)
+            .SelectMany(entry => entry.Messages)
+            .Where(message => message.Role == ChatRole.User || message.Role == ChatRole.Assistant)
+            .Where(message => message.Text.Length > 0)
+            .Select(message => new ChatLine(message.Role.Value, message.Text));
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatContracts.cs#L15-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-line' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+`ChatLine` is a record of your own, as the reply is, and `From` keeps the lines a chat page shows
+([What a chat page shows](./conversations.md#what-a-chat-page-shows)). What the last answer asked comes from the
+next endpoint.
 
 ## Load the decisions
 
@@ -227,7 +264,7 @@ decisions alone, without a run:
 chat.MapGet("/decisions", async (int chatId, AgentHost<SupportAgent> support, CancellationToken ct) =>
     (await support.WithConversationId(chatId).GetDecisionsAsync(ct)).Open);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L55-L58' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-decisions-endpoint' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L60-L63' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-decisions-endpoint' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The endpoint returns the open decisions, as the reply and the stream do. What it loaded also lists the tools
@@ -265,7 +302,7 @@ chat.MapPost("/decisions", async Task<IResult> (
     }
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L60-L84' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-answer-endpoint' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L65-L89' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-answer-endpoint' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - The body is a `DecisionAnswer`. `{"decisionId":"...","approved":true}` approves, `"approved":false` with a
@@ -365,7 +402,7 @@ private static async IAsyncEnumerable<ChatResponseUpdate> Rest(
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L88-L119' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-start' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L93-L124' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-start' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Related

@@ -176,6 +176,20 @@ Some providers, such as local servers with an OpenAI-compatible API, number thei
 call can get an id the conversation holds already. Typeshift renames such a call, as `call_1_2`, before it stores or
 runs it, so the stored entries, the decision that waits for the call and the tool's result all carry the new id.
 
+### What a chat page shows
+
+The entries hold what the model reads, which is more than the user of a chat reads. A chat page that loads them
+shows:
+
+- **The entries without `IsSummary`.** The entry that compaction appends repeats the messages it kept after its
+  summary, which the entries before it hold already, and the summary itself is written for the model.
+- **The text of the user's messages and of the agents' answers**, the messages of `ChatRole.User` and
+  `ChatRole.Assistant`. Tool calls, their results and the `ErrorContent` that ends a failed run hold no text.
+
+[Load the chat](./chat-endpoint.md#load-the-chat) shows an endpoint that returns these lines. An answer the model is
+still writing is in no entry until its model call ends, so the page follows it through the
+[live updates](#live-updates).
+
 ### When the store fails
 
 When the store fails to save a step, the run goes on to its end, storing what it can, and then throws a

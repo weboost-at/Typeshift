@@ -306,6 +306,9 @@ rewrite.
   store holds a model response once its call ends, so a page that opens while the model writes shows the answer
   from where it joined until the run has ended. Keeping the updates of the response in flight on the run and
   handing them to a new watcher first would close it.
+- **A background answer among the user's messages.** A background sub-agent's answer joins its run as a message of
+  the user's role, marked only by an entry of its `AdditionalProperties` that no public member names, so a chat page
+  that shows the user's messages from the stored entries shows it among them.
 - **A run going on keeps its mode and its standing approvals.** `SetModeAsync` and `RevokeStandingApprovalAsync`
   change the conversation's decisions, which a run reads when it begins. A run going on, in this container or
   another, ends in the mode and with the approvals it began with; cancelling the run's token stops it at once.
