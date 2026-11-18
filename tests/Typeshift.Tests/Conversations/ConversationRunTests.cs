@@ -871,6 +871,61 @@ public class ConversationRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Call_Left_In_Flight_Whose_Id_The_Model_Uses_Again_The_New_Call_Gets_Another_Id()
+    {
+        // Arrange
+        await StoreAsync(new ChatMessage(ChatRole.User, Data.Tool.Question));
+        await StoreAsync(new ChatMessage(ChatRole.Assistant, [new FunctionCallContent(Data.Tool.CallId, "probe")]));
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).ResumeAsync(ct: Ct);
+
+        // Assert
+        (await EntriesAsync(Data.Agent.ConversationId))
+            .SelectMany(entry => entry.Messages)
+            .SelectMany(message => message.Contents)
+            .OfType<FunctionCallContent>()
+            .Select(call => call.CallId)
+            .Should()
+            .Equal(Data.Tool.CallId, $"{Data.Tool.CallId}_2");
+    }
+
+    [Fact]
+    public async Task Given_A_Reused_Call_Id_A_Result_The_Provider_Returned_With_The_Call_Follows_Its_New_Id()
+    {
+        // Arrange
+        var searched = new ChatResponseUpdate(
+            ChatRole.Assistant,
+            [
+                new FunctionCallContent(Data.Tool.CallId, "web_search") { InformationalOnly = true },
+                new FunctionResultContent(Data.Tool.CallId, Data.Tool.Answer)
+            ]);
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(searched);
+
+        await RunAsync(Data.Tool.Question, streaming: false, Ct);
+
+        // Act
+        await RunAsync(Data.Agent.FollowUp, streaming: false, Ct);
+
+        // Assert
+        (await EntriesAsync(Data.Agent.ConversationId))
+            .SelectMany(entry => entry.Messages)
+            .SelectMany(message => message.Contents)
+            .OfType<FunctionResultContent>()
+            .Select(result => result.CallId)
+            .Should()
+            .Equal(Data.Tool.CallId, $"{Data.Tool.CallId}_2");
+    }
+
+    [Fact]
     public async Task Given_An_Interrupted_Response_Of_Text_And_A_Call_Resuming_Keeps_The_Text_And_Drops_The_Call()
     {
         // Arrange

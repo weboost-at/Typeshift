@@ -435,6 +435,25 @@ public class ModeTests : ApprovalTestBase
     }
 
     [Fact]
+    public async Task Given_Raw_Path_Options_Of_Settings_That_Name_No_Mode_The_Conversation_Keeps_Its_Mode()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer));
+
+        await RunAsync(Data.Tool.Question, AgentMode.Plan);
+        var options = await Chat.ResolveOptionsAsync(settings: new() { MaxToolIterations = 5 }, ct: Ct);
+        using var client = await Chat.CreateChatClientAsync(options, Ct);
+
+        // Act
+        await client.GetResponseAsync(Data.Agent.FollowUp, options, Ct);
+
+        // Assert
+        ChatClient.Assert.Request(1).Tools.Should().Equal("read_ticket", "exit_plan_mode");
+    }
+
+    [Fact]
     public async Task Given_An_Approved_Plan_A_Later_Run_Naming_Plan_Mode_Plans_Again()
     {
         // Arrange

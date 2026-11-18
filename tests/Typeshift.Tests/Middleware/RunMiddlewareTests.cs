@@ -229,6 +229,31 @@ public class RunMiddlewareTests : MiddlewareTestBase
     }
 
     [Fact]
+    public async Task Given_The_One_Middleware_Setting_The_Response_After_Next_The_Run_Fails_Saying_What_To_Do_Instead()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        services.AddTypeshift()
+            .WithStore<InMemoryTypeshiftStore<Guid>>()
+            .WithChatClientProvider<ScriptedChatClientProvider>()
+            .WithRunMiddleware<LateAnswerMiddleware>();
+
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should().ThrowAsync<InvalidOperationException>().WithMessage("*after next was called*");
+    }
+
+    [Fact]
     public async Task Given_An_Outer_Middleware_That_Sets_The_Response_After_An_Inner_One_Answered_The_Run_Fails()
     {
         // Arrange

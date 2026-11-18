@@ -460,6 +460,7 @@ public class SettingsJsonTests : UnitTestBase
 
     [Theory]
     [InlineData("\"Fax\"")]
+    [InlineData("\" Email\"")]
     [InlineData("\"Email, 4\"")]
     [InlineData("1.5")]
     [InlineData("true")]

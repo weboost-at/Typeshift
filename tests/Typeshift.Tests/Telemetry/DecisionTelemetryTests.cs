@@ -222,6 +222,28 @@ public sealed class DecisionTelemetryTests : QuestionTestBase
     }
 
     [Fact]
+    public async Task Given_A_Run_That_Asks_Again_After_Steering_Its_Span_Counts_The_Decisions_Of_Both_Batches()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(gate, CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(CloseTicket(Data.Tool.SecondCallId, Data.Agent.Ticket.Updated));
+
+        var running = Asking.RunAsync(Data.Tool.Question, ct: Ct);
+        await ChatClient.Requested.WaitAsync(Ct);
+        Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+
+        // Act
+        gate.SetResult();
+        await running;
+
+        // Assert
+        Activities.Run(Data.Agent.ConversationId).GetTagItem("typeshift.decisions.asked").Should().Be(2);
+    }
+
+    [Fact]
     public async Task Given_A_Store_That_Fails_To_Save_What_A_Run_Asks_The_Runs_Span_Carries_The_Error()
     {
         // Arrange
