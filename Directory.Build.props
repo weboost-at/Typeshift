@@ -30,8 +30,9 @@
     <PackageReference Include="MinVer" PrivateAssets="all" />
   </ItemGroup>
 
-  <!-- The code style of AGENTS.md as far as the build can hold it, for src, samples and tests. The demos are apps
-       of their own outside CI, where a failing guard would go unseen. -->
+  <!-- The code style of AGENTS.md as far as the build can hold it, for src, samples, tests and tools. The tools
+       measure CPU time and the compiler's own count, which the clock rule leaves alone. The demos are apps of their
+       own outside CI, where a failing guard would go unseen. -->
   <PropertyGroup>
     <PathFromRepository>$([MSBuild]::MakeRelative('$(MSBuildThisFileDirectory)', '$(MSBuildProjectDirectory)').Replace('\', '/'))</PathFromRepository>
     <HoldsCodeStyle>true</HoldsCodeStyle>

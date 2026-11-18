@@ -10,7 +10,7 @@ public partial class DecisionCitationTests
     // and hooks. The Markdown pages cite in prose, which the docs lint reads
     private static readonly IReadOnlyList<(string File, int Line, string Id)> Cited =
     [
-        .. RepositoryFiles.Find("*", "src", "samples", "tests", "build", "demos", ".github", ".claude/hooks")
+        .. RepositoryFiles.Find("*", "src", "samples", "tests", "build", "demos", "tools", ".github", ".claude/hooks")
             .Concat(["Directory.Build.props", "Directory.Packages.props", ".editorconfig"])
             .SelectMany(Citations)
     ];

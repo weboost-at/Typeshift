@@ -7,13 +7,13 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Typeshift.Generators.Tests.Repository;
 
-// The code style rules of AGENTS.md a check can decide, for the library, the generator, the samples and the tests.
-// A rule about code reads the syntax tree, so a string or a comment that names the pattern passes and an uncommon
-// spelling does not; a violation reads "<file>:<line>: <what to do>". The clock is banned by symbol in the build
-// (BannedSymbols.txt)
+// The code style rules of AGENTS.md a check can decide, for the library, the generator, the samples, the tests and
+// the tools. A rule about code reads the syntax tree, so a string or a comment that names the pattern passes and an
+// uncommon spelling does not; a violation reads "<file>:<line>: <what to do>". The clock is banned by symbol in the
+// build (BannedSymbols.txt)
 public partial class SourceConventionTests
 {
-    private static readonly string[] Code = ["src", "samples", "tests"];
+    private static readonly string[] Code = ["src", "samples", "tests", "tools"];
 
     // What only generated code calls is hidden from editors (D10), so its docs may name the decision behind a member
     private const string HiddenFromEditors = "src/Typeshift/Generated/";

@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Run by hand, outside Typeshift.slnx and its tests: what the generator and the analyzer cost, and whether they
+       survive code cut at every token (docs/contributing/releasing.md). -->
+  <PropertyGroup>
+    <TargetFramework>net11.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <!-- A collection on another thread would count toward the CPU time of the run it interrupts. -->
+    <ConcurrentGarbageCollection>false</ConcurrentGarbageCollection>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/Typeshift.Generators/Typeshift.Generators.csproj" />
+    <ProjectReference Include="../../src/Typeshift/Typeshift.csproj" />
+  </ItemGroup>
+
+  <!-- The generator tests' catalogs of sources: the pairs the allocation budget measures, and every shape the
+       suite compiles, which the fuzz cuts. -->
+  <ItemGroup>
+    <Compile Include="../../tests/Typeshift.Generators.Tests/**/Support/*Sources.cs" LinkBase="Catalogs" />
+  </ItemGroup>
+
+</Project>
