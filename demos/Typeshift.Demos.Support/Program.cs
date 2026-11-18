@@ -124,13 +124,16 @@ return await Demo.RunAsync(async () =>
 
     Demo.Heading("The raw path: the options a run resolves, and the tools the support agent offers");
     var options = await support.ResolveOptionsAsync();
-    Demo.Note($"model {options.ModelId}, temperature {options.Temperature}, tools: {string.Join(", ", options.Tools!.Select(tool => tool.Name))}");
+    var tools = string.Join(", ", options.Tools!.Select(tool => tool.Name));
+    Demo.Note($"model {options.ModelId}, temperature {options.Temperature}, tools: {tools}");
     Demo.Note($"instructions: {options.Instructions}");
 
     Demo.Heading("A typed summary of the conversation");
     var store = provider.GetRequiredService<JsonFileStore>();
     var entries = await store.LoadConversationAsync(conversation, CancellationToken.None);
-    var transcript = string.Join("\n", entries.SelectMany(entry => entry.Messages).Where(message => message.Text.Length > 0)
+    var transcript = string.Join("\n", entries
+        .SelectMany(entry => entry.Messages)
+        .Where(message => message.Text.Length > 0)
         .Select(message => $"{message.AuthorName ?? message.Role.Value}: {message.Text}"));
 
     var summary = await report.RunAsync<TicketSummary>($"Summarize this conversation:\n{transcript}");

@@ -83,7 +83,12 @@ public sealed class ScriptedChatClient(Func<ScriptedCall, ChatMessage> respond) 
         var input = characters / 4;
         var output = Characters(answer) / 4;
 
-        return new UsageDetails { InputTokenCount = input, OutputTokenCount = output, TotalTokenCount = input + output };
+        return new UsageDetails
+        {
+            InputTokenCount = input,
+            OutputTokenCount = output,
+            TotalTokenCount = input + output
+        };
     }
 
     private static int Characters(AITool tool) =>

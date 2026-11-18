@@ -42,7 +42,9 @@ public sealed partial class SafeWebFetch : IDisposable
 
     public void Dispose() => _http.Dispose();
 
-    private static async ValueTask<Stream> ConnectPublicOnlyAsync(SocketsHttpConnectionContext context, CancellationToken ct)
+    private static async ValueTask<Stream> ConnectPublicOnlyAsync(
+        SocketsHttpConnectionContext context,
+        CancellationToken ct)
     {
         var addresses = await Dns.GetHostAddressesAsync(context.DnsEndPoint.Host, ct);
         var address = addresses.FirstOrDefault(IsPublic)

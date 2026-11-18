@@ -106,7 +106,7 @@ internal partial class ShellToolset : Toolset
         }
 
         return skipped == 0
-            ? start.Append(end.ToArray()).ToString()
+            ? start.Append([.. end]).ToString()
             : $"{start}\n[{skipped} characters left out]\n{new string([.. end])}";
     }
 

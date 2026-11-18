@@ -29,7 +29,9 @@ public sealed partial class ProviderCatalog
     public ProviderCatalog(string path)
     {
         _path = path;
-        _file = File.Exists(path) ? JsonSerializer.Deserialize<ProviderFile>(File.ReadAllText(path), Json)! : new("", []);
+        _file = File.Exists(path)
+            ? JsonSerializer.Deserialize<ProviderFile>(File.ReadAllText(path), Json)!
+            : new("", []);
     }
 
     public string DefaultModel => _file.Default;

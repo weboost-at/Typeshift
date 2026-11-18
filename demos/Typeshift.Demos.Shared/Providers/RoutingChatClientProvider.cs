@@ -55,7 +55,8 @@ public sealed class RoutingChatClientProvider(ProviderCatalog catalog, ClientCac
             "anthropic" => new AnthropicClient { ApiKey = key }.AsIChatClient(model.Model),
             "canned" => canned.GetValueOrDefault(model.Model)
                 ?? throw new DemoException($"No canned model '{model.Model}' exists in this demo."),
-            _ => throw new DemoException($"The provider kind '{provider.Kind}' is unknown: use openai, anthropic or canned.")
+            _ => throw new DemoException(
+                $"The provider kind '{provider.Kind}' is unknown: use openai, anthropic or canned.")
         };
     }
 

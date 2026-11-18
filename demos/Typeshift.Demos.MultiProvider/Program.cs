@@ -10,7 +10,8 @@ using Typeshift.Demos.Providers;
 //
 //   dotnet run --project demos/Typeshift.Demos.MultiProvider -- [provider/model] [--trace]
 //   dotnet run --project demos/Typeshift.Demos.MultiProvider -- --list lmstudio
-//   dotnet run --project demos/Typeshift.Demos.MultiProvider -- --add groq openai https://api.groq.com/openai/v1 '${GROQ_API_KEY}'
+//   dotnet run --project demos/Typeshift.Demos.MultiProvider -- \
+//     --add groq openai https://api.groq.com/openai/v1 '${GROQ_API_KEY}'
 //
 // Every "CLUNKY n" comment marks a place where the current library makes this harder than it should be.
 return await Demo.RunAsync(async () =>
@@ -21,7 +22,10 @@ return await Demo.RunAsync(async () =>
     Demo.Heading("The providers the user defined");
 
     foreach (var definition in catalog.Providers)
-        Demo.Note($"{definition.Name,-10} {definition.Kind,-10} {definition.Endpoint ?? "(the provider's own endpoint)"}");
+    {
+        var endpoint = definition.Endpoint ?? "(the provider's own endpoint)";
+        Demo.Note($"{definition.Name,-10} {definition.Kind,-10} {endpoint}");
+    }
 
     Demo.Note($"default model: {catalog.DefaultModel}");
 
@@ -35,7 +39,10 @@ return await Demo.RunAsync(async () =>
             .ToArray();
 
         if (added is not [var name, var kind, ..] || kind is not ("openai" or "anthropic" or "canned"))
-            throw new DemoException("Add a provider with --add <name> openai|anthropic|canned [endpoint] [key or ${VAR}].");
+        {
+            throw new DemoException(
+                "Add a provider with --add <name> openai|anthropic|canned [endpoint] [key or ${VAR}].");
+        }
 
         catalog.Add(new ProviderDefinition(name, kind, added.ElementAtOrDefault(2), added.ElementAtOrDefault(3)));
         Demo.Note($"added provider '{name}'");

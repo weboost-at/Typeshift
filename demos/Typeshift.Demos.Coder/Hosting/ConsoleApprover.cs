@@ -66,7 +66,9 @@ public static class ConsoleApprover
         foreach (var (option, index) in question.Options.Select((option, index) => (option, index)))
             Console.WriteLine($"  {index + 1}. {option.Label}: {option.Description}");
 
-        Console.Write(question.MultiSelect ? "Numbers such as 1,3, or your own answer: " : "A number, or your own answer: ");
+        Console.Write(question.MultiSelect
+            ? "Numbers such as 1,3, or your own answer: "
+            : "A number, or your own answer: ");
         var reply = pickFirst ? "1" : readLine();
 
         var picked = reply

@@ -6,7 +6,9 @@ internal partial class KnowledgeToolset : Toolset
 {
     private static readonly Article[] Articles =
     [
-        new("Logging in after an update", "Clear the browser's site data, then log in again; the session format changed."),
+        new(
+            "Logging in after an update",
+            "Clear the browser's site data, then log in again; the session format changed."),
         new("Exporting to CSV", "Exports hold only the columns shown; add columns before you export."),
         new("Refunds", "Refunds go back to the original payment method within five business days.")
     ];

@@ -46,16 +46,16 @@ public static class Demo
 
     // FRICTION: this library cannot call AddTypeshift() for its hosts, since only the generator of the calling project
     // intercepts the call (D1), so each demo calls it next to this and names the provider and the store itself
-    public static IServiceCollection AddDemoServices(
-        this IServiceCollection services,
-        ProviderCatalog catalog,
-        CannedModels canned)
+    extension(IServiceCollection services)
     {
-        services.AddSingleton(catalog);
-        services.AddSingleton(canned);
-        services.AddSingleton<ClientCache>();
+        public IServiceCollection AddDemoServices(ProviderCatalog catalog, CannedModels canned)
+        {
+            services.AddSingleton(catalog);
+            services.AddSingleton(canned);
+            services.AddSingleton<ClientCache>();
 
-        return services;
+            return services;
+        }
     }
 
     // The store on disk the demos share, for the chain's WithStore
@@ -163,7 +163,8 @@ public static class Demo
         {
             DemoException failed => failed.Message,
             HttpRequestException unreachable => $"The provider could not be reached: {unreachable.Message}",
-            ClientResultException { Status: > 0 } refused => $"The provider refused the call: {Shorten(refused.Message)}",
+            ClientResultException { Status: > 0 } refused =>
+                $"The provider refused the call: {Shorten(refused.Message)}",
             AnthropicApiException refused => $"Anthropic refused the call: {Shorten(refused.Message)}",
             { InnerException: { } inner } => Explain(inner),
             _ => null

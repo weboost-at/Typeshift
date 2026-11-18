@@ -38,7 +38,9 @@ public sealed class ConsoleSpans : IDisposable
 
         var error = activity.Status == ActivityStatusCode.Error ? $" ERROR {activity.StatusDescription}" : "";
 
-        Console.Error.WriteLine(
-            $"  [span] {new string(' ', depth * 2)}{activity.DisplayName} {activity.Duration.TotalMilliseconds:F0}ms{tokens}{error}");
+        var indent = new string(' ', depth * 2);
+        var duration = $"{activity.Duration.TotalMilliseconds:F0}ms";
+
+        Console.Error.WriteLine($"  [span] {indent}{activity.DisplayName} {duration}{tokens}{error}");
     }
 }

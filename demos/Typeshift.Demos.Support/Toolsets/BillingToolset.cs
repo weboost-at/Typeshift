@@ -40,7 +40,10 @@ internal partial class BillingToolset : Toolset
             ?? throw new ToolException($"The customer has no invoice {invoice}; list the invoices first.");
 
         if (amountCents <= 0 || amountCents > found.AmountCents - found.RefundedCents)
-            throw new ToolException($"The refund must be between 1 and {found.AmountCents - found.RefundedCents} cents.");
+        {
+            throw new ToolException(
+                $"The refund must be between 1 and {found.AmountCents - found.RefundedCents} cents.");
+        }
 
         data.Invoices[data.Invoices.IndexOf(found)] = found with { RefundedCents = found.RefundedCents + amountCents };
         data.Log.Add($"refund {amountCents} on {invoice}: {reason}");

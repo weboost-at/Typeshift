@@ -48,7 +48,13 @@ internal static class ScriptedCoder
             return ScriptedCall.Call("explorer_agent", ("input", "Which line of which file prints the greeting?"));
 
         if (call.CallsOf("edit_file") == 0)
-            return ScriptedCall.Call("edit_file", ("path", "greet.sh"), ("oldText", "echo \"Hello, $name\""), ("newText", "echo \"Hello, $name!\""));
+        {
+            return ScriptedCall.Call(
+                "edit_file",
+                ("path", "greet.sh"),
+                ("oldText", "echo \"Hello, $name\""),
+                ("newText", "echo \"Hello, $name!\""));
+        }
 
         if (call.CallsOf("run_command") == 0) return ScriptedCall.Call("run_command", ("command", "sh test.sh"));
 
