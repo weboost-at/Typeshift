@@ -11,6 +11,8 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
 
     public DbSet<DecisionsRow> Decisions => Set<DecisionsRow>();
 
+    public DbSet<AgentDocumentRow> AgentDocuments => Set<AgentDocumentRow>();
+
     protected override void OnModelCreating(ModelBuilder model)
     {
         model.Entity<DocumentRow>()
@@ -31,6 +33,10 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
         model.Entity<DecisionsRow>()
             .Property(decisions => decisions.Conversation)
             .ValueGeneratedNever();
+
+        // An agent's own settings have no id, so a table of their own keeps them apart from those under an id
+        model.Entity<AgentDocumentRow>()
+            .HasKey(document => document.Kind);
     }
 }
 
@@ -61,6 +67,15 @@ internal sealed class EntryRow
 internal sealed class DecisionsRow
 {
     public required int Conversation { get; init; }
+
+    public required long Version { get; init; }
+
+    public required string Json { get; init; }
+}
+
+internal sealed class AgentDocumentRow
+{
+    public required string Kind { get; init; }
 
     public required long Version { get; init; }
 

@@ -54,6 +54,12 @@ internal static class AgentSettings
         if (after.Version != saved.Version || after.Data.Instructions is not null)
             throw new InvalidOperationException("Expected a conflict to leave the settings as they were.");
 
+        // The EF Core store keeps agents' own settings too, so a host without a settings id saves them there
+        var own = await support.UpdateSettingsAsync(settings => settings);
+
+        if (own.Version != 1 || (await support.LoadSettingsAsync()).Version != 1)
+            throw new InvalidOperationException("Expected the agent's own settings in the database.");
+
         static async Task ExpectConflictAsync(Func<Task> save, string message)
         {
             try

@@ -343,6 +343,7 @@ these serves it:
 | An agent's own settings, through `IAgentSettingsStore` | In memory | In memory, while no other store keeps them | In files |
 | Settings under an id, through `ISettingsStore<TId>` | In memory, under ids of every type | In memory, under ids of `TId` | Needs another store |
 | Conversations, through `IConversationStore<TId>` | In memory, under ids of every type | In memory, under ids of `TId` | Needs another store |
+| A conversation's decisions, through `IDecisionStore<TId>` | In memory, under ids of every type | In memory, under ids of `TId` | Needs another store |
 
 [Which store serves a call](./implementing-a-store.md#which-store-serves-a-call) says which of them answers once you
 register one, and [Implementing a store](./implementing-a-store.md) shows a store of your own.

@@ -103,29 +103,136 @@ requests, which `DbContext` does not allow. Register `IDbContextFactory<T>` with
 registration above does, and create a context in each method.
 :::
 
+## A minimal store
+
+A store first has to keep the rules Typeshift relies on, and those fit in a few lines a method. This store keeps
+everything in dictionaries in memory, so each method shows only what its interface asks of it:
+
+<!-- snippet: minimal-store -->
+<a id='snippet-minimal-store'></a>
+```cs
+internal sealed class MinimalStore : ITypeshiftStore<int>, IAgentSettingsStore
+{
+    // One lock around every call, so a save checks the version and writes in one step
+    private readonly Lock _gate = new();
+
+    private readonly Dictionary<(int Id, string Kind), StoredDocument> _settings = [];
+    private readonly Dictionary<string, StoredDocument> _agentSettings = [];
+    private readonly Dictionary<int, StoredDocument> _decisions = [];
+    private readonly Dictionary<int, List<string>> _conversations = [];
+
+    public Task<StoredDocument?> LoadAsync(int id, string kind, CancellationToken ct) =>
+        Load(_settings, (id, kind));
+
+    public Task<long> SaveAsync(int id, string kind, string json, long loadedVersion, CancellationToken ct) =>
+        Save(_settings, (id, kind), json, loadedVersion);
+
+    public Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct) =>
+        Load(_agentSettings, kind);
+
+    public Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct) =>
+        Save(_agentSettings, kind, json, loadedVersion);
+
+    public Task<StoredDocument?> LoadDecisionsAsync(int conversation, CancellationToken ct) =>
+        Load(_decisions, conversation);
+
+    public Task<long> SaveDecisionsAsync(int conversation, string json, long loadedVersion, CancellationToken ct) =>
+        Save(_decisions, conversation, json, loadedVersion);
+
+    public Task AppendConversationAsync(int conversation, ConversationEntry entry, CancellationToken ct)
+    {
+        lock (_gate)
+        {
+            _conversations.TryAdd(conversation, []);
+            _conversations[conversation].Add(entry.Serialize());
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(int conversation, CancellationToken ct)
+    {
+        lock (_gate)
+        {
+            IReadOnlyList<ConversationEntry> entries =
+                [.. _conversations.GetValueOrDefault(conversation, []).Select(ConversationEntry.Deserialize)];
+
+            return Task.FromResult(entries);
+        }
+    }
+
+    // The whole conversation, cut at its last summary
+    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
+        int conversation,
+        CancellationToken ct) =>
+        (await LoadConversationAsync(conversation, ct)).SinceLastSummary();
+
+    private Task<StoredDocument?> Load<TKey>(Dictionary<TKey, StoredDocument> documents, TKey key)
+        where TKey : notnull
+    {
+        lock (_gate)
+        {
+            return Task.FromResult(documents.GetValueOrDefault(key));
+        }
+    }
+
+    private Task<long> Save<TKey>(Dictionary<TKey, StoredDocument> documents, TKey key, string json, long loadedVersion)
+        where TKey : notnull
+    {
+        lock (_gate)
+        {
+            // 0 when nothing is stored, so a first save inserts and any later one updates the version it loaded
+            if ((documents.GetValueOrDefault(key)?.Version ?? 0) != loadedVersion)
+                throw new StoreConflictException($"{key} was saved after version {loadedVersion}.");
+
+            documents[key] = new StoredDocument(json, loadedVersion + 1);
+
+            return Task.FromResult(loadedVersion + 1);
+        }
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/MinimalStore.cs#L3-L84' title='Snippet source file'>snippet source</a> | <a href='#snippet-minimal-store' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- A save compares the version it is given with the stored one, 0 when nothing is stored, and writes under the same
+  lock. Of two saves that loaded one version, the first wins and the second throws a `StoreConflictException`
+  ([Save with a version](#save-with-a-version)).
+- An entry is kept as the JSON of `entry.Serialize()`, in the order runs append it, and read back with
+  `ConversationEntry.Deserialize`.
+- `LoadConversationSinceCompactionAsync` loads the whole conversation and returns what `SinceLastSummary()` keeps of
+  it: the last summary and the entries after it, or every entry of a conversation that has no summary.
+- `IAgentSettingsStore` keeps [each agent's own settings](./settings-and-stores.md#agent-settings), in a dictionary of
+  their own. Leave it out when your app keeps settings only under ids.
+- It passes [`VerifyAsync`](#check-your-store), as the docs sample checks. It does not refuse a second run's entries,
+  which a store may leave out ([Refuse a second run](#refuse-a-second-run)).
+
+Memory is gone when the app stops, so your store puts a table of your database where each dictionary is. The rest of
+this page builds that store on EF Core, and makes it fast and safe under load: each save checks and writes in one
+statement, runs load a conversation from its last summary on, and a unique key refuses a second run.
+
 ## Implement the interfaces
 
-A store has seven methods in three interfaces. `ISettingsStore<TId>` keeps settings under a settings id with the
-first two, `IConversationStore<TId>` keeps conversations with the next three, and `IDecisionStore<TId>` keeps each
-conversation's decisions with the last two. The store on this page implements `ITypeshiftStore<int>`, which is all
-three, for `int` ids. When settings and conversations live in different databases, implement the interfaces in
-classes of their own and [register each](#register-your-store). Keep a conversation's decisions where its entries
-live.
+A store has nine methods in four interfaces, and implements the interfaces your app needs. `ISettingsStore<TId>`
+keeps settings under a settings id with two, `IConversationStore<TId>` keeps conversations with three,
+`IDecisionStore<TId>` keeps each conversation's decisions with two, and `IAgentSettingsStore` keeps
+[each agent's own settings](./settings-and-stores.md#agent-settings) with the last two. `ITypeshiftStore<TId>` is the
+first three in one. The store on this page implements it for `int` ids, and `IAgentSettingsStore`. When settings and
+conversations live in different databases, implement the interfaces in classes of their own and
+[register each](#register-your-store). Keep a conversation's decisions where its entries live.
 
-An app that keeps [each agent's own settings](./settings-and-stores.md#agent-settings) implements `IAgentSettingsStore`
-too, or alone when it has no settings ids. Its `LoadAsync(kind)` and `SaveAsync(kind, json, loadedVersion)` work as
-the settings methods below, keyed by the kind alone. Every run of every agent calls `LoadAsync(kind)`, so keep it
-cheap, for example with a cache.
+An app without settings ids implements `IAgentSettingsStore` alone for its settings. Its `LoadAsync(kind)` and
+`SaveAsync(kind, json, loadedVersion)` work as the settings methods below, keyed by the kind alone. Every run of every
+agent calls `LoadAsync(kind)`, so keep it cheap, for example with a cache.
 
 ::: warning Keep an agent's own documents apart from an id's
 In a table that holds both, an agent's own document has no id. A load that forgets to ask for that returns a
 customer's document as every customer's defaults. `VerifyAsync` checks for this.
 :::
 
-You implement all seven. Every id has your store's id type, the type argument of its interfaces, and the samples on
-this page use `int`: a host's ids of that type reach your store, as
-[Ids of your own types](./settings-and-stores.md#ids-of-your-own-types) shows. Each method takes a `CancellationToken`
-last.
+Every id has your store's id type, the type argument of its interfaces, and the samples on this page use `int`: a
+host's ids of that type reach your store, as [Ids of your own types](./settings-and-stores.md#ids-of-your-own-types)
+shows. Each method takes a `CancellationToken` last:
 
 | Method | Does |
 |---|---|
@@ -136,11 +243,16 @@ last.
 | `AppendConversationAsync(conversation, entry)` | Appends one entry to a conversation. The first entry creates the conversation. Throws a `StoreConflictException`, in a store that checks, when the conversation holds an entry of the entry's number already ([Refuse a second run](#refuse-a-second-run)). |
 | `LoadDecisionsAsync(conversation)` | Returns the conversation's decisions document as a `StoredDocument`, or null when none is stored ([Keep decisions](#keep-decisions)). |
 | `SaveDecisionsAsync(conversation, json, loadedVersion)` | Saves the conversation's decisions document if its stored version still equals `loadedVersion`, as `SaveAsync` does, and returns the new version. |
+| `LoadAsync(kind)` | Returns an agent's own document of a kind, as `LoadAsync(id, kind)` does under an id. |
+| `SaveAsync(kind, json, loadedVersion)` | Saves an agent's own document of a kind, as `SaveAsync(id, kind, json, loadedVersion)` does under an id. |
+
+`IConversationStore<TId>` also has a property, `RefusesTakenSequences`, which is false unless your store refuses a
+second run's entries and says so ([Refuse a second run](#refuse-a-second-run)).
 
 The database on this page has a table for settings, keyed by id and kind together
 ([Key settings by id and kind](#key-settings-by-id-and-kind)), one for conversations, keyed by a number the database
-assigns and with a unique key on each entry's own number ([Refuse a second run](#refuse-a-second-run)), and one for
-decisions, keyed by the conversation:
+assigns and with a unique key on each entry's own number ([Refuse a second run](#refuse-a-second-run)), one for
+decisions, keyed by the conversation, and one for agents' own settings, keyed by the kind alone:
 
 <!-- snippet: ef-core-db -->
 <a id='snippet-ef-core-db'></a>
@@ -152,6 +264,8 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
     public DbSet<EntryRow> Entries => Set<EntryRow>();
 
     public DbSet<DecisionsRow> Decisions => Set<DecisionsRow>();
+
+    public DbSet<AgentDocumentRow> AgentDocuments => Set<AgentDocumentRow>();
 
     protected override void OnModelCreating(ModelBuilder model)
     {
@@ -173,6 +287,10 @@ internal sealed class TypeshiftDb(DbContextOptions<TypeshiftDb> options) : DbCon
         model.Entity<DecisionsRow>()
             .Property(decisions => decisions.Conversation)
             .ValueGeneratedNever();
+
+        // An agent's own settings have no id, so a table of their own keeps them apart from those under an id
+        model.Entity<AgentDocumentRow>()
+            .HasKey(document => document.Kind);
     }
 }
 
@@ -208,8 +326,17 @@ internal sealed class DecisionsRow
 
     public required string Json { get; init; }
 }
+
+internal sealed class AgentDocumentRow
+{
+    public required string Kind { get; init; }
+
+    public required long Version { get; init; }
+
+    public required string Json { get; init; }
+}
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/TypeshiftDb.cs#L5-L69' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-db' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/TypeshiftDb.cs#L5-L84' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-db' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Typeshift creates no tables. The docs sample creates them with `EnsureCreatedAsync` at startup, and your app creates
@@ -235,7 +362,8 @@ Loading reads the row by its id and kind and returns its JSON and version as a `
 <!-- snippet: ef-core-load -->
 <a id='snippet-ef-core-load'></a>
 ```cs
-internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) : ITypeshiftStore<int>
+internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts)
+    : ITypeshiftStore<int>, IAgentSettingsStore
 {
     public async Task<StoredDocument?> LoadAsync(int id, string kind, CancellationToken ct)
     {
@@ -246,7 +374,7 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
             : null;
     }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L5-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-load' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L5-L17' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-load' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Save with a version
@@ -362,7 +490,51 @@ private static Task<int> UpdateAsync(
                 .SetProperty(row => row.Version, loadedVersion + 1),
             ct);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L18-L56' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-save' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L19-L57' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-save' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Agents' own settings take the same two statements without the id, in a table of their own keyed by the kind alone.
+No load of an agent's own document can then return one saved under an id, which the warning in
+[Implement the interfaces](#implement-the-interfaces) is about:
+
+<!-- snippet: ef-agent-settings -->
+<a id='snippet-ef-agent-settings'></a>
+```cs
+public async Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct)
+{
+    await using var db = await contexts.CreateDbContextAsync(ct);
+
+    return await db.AgentDocuments.FindAsync([kind], ct) is { } row
+        ? new StoredDocument(row.Json, row.Version)
+        : null;
+}
+
+public async Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct)
+{
+    await using var db = await contexts.CreateDbContextAsync(ct);
+
+    var rows = loadedVersion == 0
+        ? await db.Database.ExecuteSqlAsync(
+            $"""
+            INSERT INTO "AgentDocuments" ("Kind", "Version", "Json")
+            VALUES ({kind}, 1, {json})
+            ON CONFLICT ("Kind") DO NOTHING
+            """,
+            ct)
+        : await db.AgentDocuments
+            .Where(row => row.Kind == kind && row.Version == loadedVersion)
+            .ExecuteUpdateAsync(
+                set => set
+                    .SetProperty(row => row.Json, json)
+                    .SetProperty(row => row.Version, loadedVersion + 1),
+                ct);
+
+    return rows == 1
+        ? loadedVersion + 1
+        : throw new StoreConflictException($"The agent's {kind} was saved after version {loadedVersion}.");
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L59-L93' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-agent-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Append to a conversation
@@ -437,7 +609,7 @@ public async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompact
     return [.. rows.Select(row => ConversationEntry.Deserialize(row.Json))];
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L58-L90' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-conversations' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L95-L127' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-conversations' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `LoadConversationAsync` still returns every entry, summaries included, for your app's own use, such as showing the whole
@@ -494,7 +666,7 @@ public async Task AppendConversationAsync(int conversation, ConversationEntry en
         throw new StoreConflictException($"Conversation {conversation} holds entry {entry.Sequence} already.");
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L92-L111' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-append' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L129-L148' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-append' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - **Say so with `RefusesTakenSequences`.** It is false unless your store returns true, and
@@ -571,7 +743,7 @@ public async Task<long> SaveDecisionsAsync(int conversation, string json, long l
 }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L113-L150' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-decisions' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Stores/EfCore/EfTypeshiftStore.cs#L150-L187' title='Snippet source file'>snippet source</a> | <a href='#snippet-ef-core-decisions' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Keep decisions in a table of their own, as the sample does, or under a key no settings id can take. Settings ids and
@@ -613,7 +785,7 @@ var store = new EfTypeshiftStore(contexts);
 
 await store.VerifyAsync(9001, 9002);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/StoreVerification.cs#L13-L17' title='Snippet source file'>snippet source</a> | <a href='#snippet-store-check' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/StoreVerification.cs#L14-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-store-check' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - It runs the rules of every interface your store implements for the id type you pass: the settings rules for an

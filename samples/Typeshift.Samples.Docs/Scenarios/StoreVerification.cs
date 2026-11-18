@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Typeshift.Samples.Stores;
 using Typeshift.Samples.Stores.EfCore;
 
 namespace Typeshift.Samples.Scenarios;
@@ -15,5 +16,8 @@ internal static class StoreVerification
 
         await store.VerifyAsync(9001, 9002);
         // end-snippet
+
+        // The minimal store passes every rule too, all four interfaces of it
+        await new MinimalStore().VerifyAsync(1, 2);
     }
 }

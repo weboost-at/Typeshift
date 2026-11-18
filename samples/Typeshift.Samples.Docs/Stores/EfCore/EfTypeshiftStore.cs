@@ -3,7 +3,8 @@ using Microsoft.EntityFrameworkCore;
 namespace Typeshift.Samples.Stores.EfCore;
 
 // begin-snippet: ef-core-load
-internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) : ITypeshiftStore<int>
+internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts)
+    : ITypeshiftStore<int>, IAgentSettingsStore
 {
     public async Task<StoredDocument?> LoadAsync(int id, string kind, CancellationToken ct)
     {
@@ -53,6 +54,42 @@ internal sealed class EfTypeshiftStore(IDbContextFactory<TypeshiftDb> contexts) 
                     .SetProperty(row => row.Json, json)
                     .SetProperty(row => row.Version, loadedVersion + 1),
                 ct);
+    // end-snippet
+
+    // begin-snippet: ef-agent-settings
+    public async Task<StoredDocument?> LoadAsync(string kind, CancellationToken ct)
+    {
+        await using var db = await contexts.CreateDbContextAsync(ct);
+
+        return await db.AgentDocuments.FindAsync([kind], ct) is { } row
+            ? new StoredDocument(row.Json, row.Version)
+            : null;
+    }
+
+    public async Task<long> SaveAsync(string kind, string json, long loadedVersion, CancellationToken ct)
+    {
+        await using var db = await contexts.CreateDbContextAsync(ct);
+
+        var rows = loadedVersion == 0
+            ? await db.Database.ExecuteSqlAsync(
+                $"""
+                INSERT INTO "AgentDocuments" ("Kind", "Version", "Json")
+                VALUES ({kind}, 1, {json})
+                ON CONFLICT ("Kind") DO NOTHING
+                """,
+                ct)
+            : await db.AgentDocuments
+                .Where(row => row.Kind == kind && row.Version == loadedVersion)
+                .ExecuteUpdateAsync(
+                    set => set
+                        .SetProperty(row => row.Json, json)
+                        .SetProperty(row => row.Version, loadedVersion + 1),
+                    ct);
+
+        return rows == 1
+            ? loadedVersion + 1
+            : throw new StoreConflictException($"The agent's {kind} was saved after version {loadedVersion}.");
+    }
     // end-snippet
 
     // begin-snippet: ef-core-conversations
