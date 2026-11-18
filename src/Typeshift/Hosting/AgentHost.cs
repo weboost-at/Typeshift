@@ -167,10 +167,12 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The response; its messages carry the agent's name as their author.</returns>
     /// <exception cref="DecisionUnavailableException">
-    /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+    /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
+    /// before it calls the model, or, with approval rules registered, at a call no rule decided.
     /// </exception>
     /// <exception cref="ConversationBusyException">
-    /// A run of the host's conversation is going on in this process.
+    /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+    /// because a run in another container appended first.
     /// </exception>
     /// <exception cref="ConversationStoreException">
     /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
@@ -195,10 +197,12 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// The message carries approval contents, which a run does not take: answers go through <c>AnswerAsync</c>.
     /// </exception>
     /// <exception cref="DecisionUnavailableException">
-    /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+    /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
+    /// before it calls the model, or, with approval rules registered, at a call no rule decided.
     /// </exception>
     /// <exception cref="ConversationBusyException">
-    /// A run of the host's conversation is going on in this process.
+    /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+    /// because a run in another container appended first.
     /// </exception>
     /// <exception cref="ConversationStoreException">
     /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
@@ -221,10 +225,12 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The response, with the result.</returns>
     /// <exception cref="DecisionUnavailableException">
-    /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+    /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
+    /// before it calls the model, or, with approval rules registered, at a call no rule decided.
     /// </exception>
     /// <exception cref="ConversationBusyException">
-    /// A run of the host's conversation is going on in this process.
+    /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+    /// because a run in another container appended first.
     /// </exception>
     /// <exception cref="ConversationStoreException">
     /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
@@ -250,10 +256,12 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// The message carries approval contents, which a run does not take: answers go through <c>AnswerAsync</c>.
     /// </exception>
     /// <exception cref="DecisionUnavailableException">
-    /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+    /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
+    /// before it calls the model, or, with approval rules registered, at a call no rule decided.
     /// </exception>
     /// <exception cref="ConversationBusyException">
-    /// A run of the host's conversation is going on in this process.
+    /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+    /// because a run in another container appended first.
     /// </exception>
     /// <exception cref="ConversationStoreException">
     /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
@@ -277,7 +285,8 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// The run, which streams its updates, each with the agent's name as its author, and then holds its response.
     /// </returns>
     /// <exception cref="ConversationBusyException">
-    /// A run of the host's conversation is going on in this process, when the updates are read.
+    /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+    /// because a run in another container appended first. A stream throws it when its updates are read.
     /// </exception>
     /// <exception cref="ConversationStoreException">
     /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
@@ -298,7 +307,8 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// The run, which streams its updates, each with the agent's name as its author, and then holds its response.
     /// </returns>
     /// <exception cref="ConversationBusyException">
-    /// A run of the host's conversation is going on in this process, when the updates are read.
+    /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+    /// because a run in another container appended first. A stream throws it when its updates are read.
     /// </exception>
     /// <exception cref="ConversationStoreException">
     /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
@@ -319,7 +329,8 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds the result.</returns>
     /// <exception cref="ConversationBusyException">
-    /// A run of the host's conversation is going on in this process, when the updates are read.
+    /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+    /// because a run in another container appended first. A stream throws it when its updates are read.
     /// </exception>
     /// <exception cref="ConversationStoreException">
     /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
@@ -339,7 +350,8 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds the result.</returns>
     /// <exception cref="ConversationBusyException">
-    /// A run of the host's conversation is going on in this process, when the updates are read.
+    /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+    /// because a run in another container appended first. A stream throws it when its updates are read.
     /// </exception>
     /// <exception cref="ConversationStoreException">
     /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
@@ -372,8 +384,9 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// Other saves of the conversation's decisions came first ten times in a row.
     /// </exception>
     /// <exception cref="ConversationBusyException">
-    /// A run of the host's conversation is going on in this process. The answers are recorded: continue with
-    /// <see cref="ResumeAsync(CancellationToken)"/> once it ended.
+    /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+    /// because a run in another container appended first. The answers are recorded: continue with
+    /// <see cref="ResumeAsync(CancellationToken)"/>.
     /// </exception>
     /// <exception cref="ConversationStoreException">
     /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
@@ -401,7 +414,8 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// Other saves of the conversation's decisions came first ten times in a row.
     /// </exception>
     /// <exception cref="ConversationBusyException">
-    /// A run of the host's conversation is going on in this process. The answers are recorded.
+    /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+    /// because a run in another container appended first. The answers are recorded.
     /// </exception>
     /// <exception cref="ConversationStoreException">
     /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
@@ -428,7 +442,8 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// them.
     /// </returns>
     /// <exception cref="ConversationBusyException">
-    /// A run of the host's conversation is going on in this process. The answers are recorded.
+    /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+    /// because a run in another container appended first. The answers are recorded.
     /// </exception>
     /// <exception cref="ConversationStoreException">
     /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
@@ -452,7 +467,8 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds the result.</returns>
     /// <exception cref="ConversationBusyException">
-    /// A run of the host's conversation is going on in this process. The answers are recorded.
+    /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+    /// because a run in another container appended first. The answers are recorded.
     /// </exception>
     /// <exception cref="ConversationStoreException">
     /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
@@ -481,7 +497,8 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// waits.
     /// </exception>
     /// <exception cref="ConversationBusyException">
-    /// A run of the host's conversation is going on in this process.
+    /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+    /// because a run in another container appended first.
     /// </exception>
     /// <exception cref="ConversationStoreException">
     /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
@@ -504,7 +521,8 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// The conversation has nothing to continue, when the updates are read.
     /// </exception>
     /// <exception cref="ConversationBusyException">
-    /// A run of the host's conversation is going on in this process, when the updates are read.
+    /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+    /// because a run in another container appended first. A stream throws it when its updates are read.
     /// </exception>
     /// <exception cref="ConversationStoreException">
     /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
@@ -529,7 +547,8 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// waits.
     /// </exception>
     /// <exception cref="ConversationBusyException">
-    /// A run of the host's conversation is going on in this process.
+    /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+    /// because a run in another container appended first.
     /// </exception>
     /// <exception cref="ConversationStoreException">
     /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
@@ -555,7 +574,8 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// The conversation has nothing to continue, when the updates are read.
     /// </exception>
     /// <exception cref="ConversationBusyException">
-    /// A run of the host's conversation is going on in this process, when the updates are read.
+    /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+    /// because a run in another container appended first. A stream throws it when its updates are read.
     /// </exception>
     /// <exception cref="ConversationStoreException">
     /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.

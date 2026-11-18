@@ -21,7 +21,10 @@ public static class AgentRuns
     /// <param name="settings">The run's settings, over the stored ones.</param>
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The response.</returns>
-    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on, or the store refused the run because another container extends
+    /// the conversation.
+    /// </exception>
     /// <exception cref="ConversationStoreException">The store failed to append a step of the run.</exception>
     public static Task<ChatResponse> RunAsync<TAgent>(
         AgentHost<TAgent> host,
@@ -41,7 +44,10 @@ public static class AgentRuns
     /// <param name="settings">The run's settings, over the stored ones.</param>
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The response, with the result.</returns>
-    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on, or the store refused the run because another container extends
+    /// the conversation.
+    /// </exception>
     /// <exception cref="ConversationStoreException">The store failed to append a step of the run.</exception>
     public static Task<ChatResponse<TResult>> RunAsync<TAgent, TResult>(
         AgentHost<TAgent> host,
@@ -62,7 +68,10 @@ public static class AgentRuns
     /// <param name="settings">The run's settings, over the stored ones.</param>
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds the result.</returns>
-    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on, or the store refused the run because another container extends
+    /// the conversation.
+    /// </exception>
     /// <exception cref="ConversationStoreException">The store failed to append a step of the run.</exception>
     public static StreamingRun<TResult> RunStreamingAsync<TAgent, TResult>(
         AgentHost<TAgent> host,
@@ -81,7 +90,10 @@ public static class AgentRuns
     /// <param name="settings">The run's settings, over the stored ones.</param>
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds its response.</returns>
-    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on, or the store refused the run because another container extends
+    /// the conversation.
+    /// </exception>
     /// <exception cref="ConversationStoreException">The store failed to append a step of the run.</exception>
     public static StreamingRun RunStreamingAsync<TAgent>(
         AgentHost<TAgent> host,
@@ -104,7 +116,10 @@ public static class AgentRuns
     /// <exception cref="DecisionClosedException">An answer names a decision that is not open.</exception>
     /// <exception cref="ArgumentException">An answer does not fit its decision, or there is none.</exception>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
-    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on, or the store refused the run because another container extends
+    /// the conversation.
+    /// </exception>
     /// <exception cref="ConversationStoreException">The store failed to append a step of the run.</exception>
     public static Task<ChatResponse> AnswerAsync<TAgent>(
         AgentHost<TAgent> host,
@@ -128,7 +143,10 @@ public static class AgentRuns
     /// <exception cref="DecisionClosedException">An answer names a decision that is not open.</exception>
     /// <exception cref="ArgumentException">An answer does not fit its decision, or there is none.</exception>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
-    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on, or the store refused the run because another container extends
+    /// the conversation.
+    /// </exception>
     /// <exception cref="ConversationStoreException">The store failed to append a step of the run.</exception>
     public static Task<ChatResponse<TResult>> AnswerAsync<TAgent, TResult>(
         AgentHost<TAgent> host,
@@ -148,7 +166,10 @@ public static class AgentRuns
     /// <param name="settings">The run's settings, over the stored ones.</param>
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The run; with decisions left open, one update that lists them.</returns>
-    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on, or the store refused the run because another container extends
+    /// the conversation.
+    /// </exception>
     /// <exception cref="ConversationStoreException">The store failed to append a step of the run.</exception>
     public static StreamingRun AnswerStreamingAsync<TAgent>(
         AgentHost<TAgent> host,
@@ -170,7 +191,10 @@ public static class AgentRuns
     /// <param name="settings">The run's settings, over the stored ones.</param>
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds the result.</returns>
-    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on, or the store refused the run because another container extends
+    /// the conversation.
+    /// </exception>
     /// <exception cref="ConversationStoreException">The store failed to append a step of the run.</exception>
     public static StreamingRun<TResult> AnswerStreamingAsync<TAgent, TResult>(
         AgentHost<TAgent> host,
@@ -191,7 +215,10 @@ public static class AgentRuns
     /// <returns>The response.</returns>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
     /// <exception cref="NothingToResumeException">The conversation has nothing to continue.</exception>
-    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on, or the store refused the run because another container extends
+    /// the conversation.
+    /// </exception>
     /// <exception cref="ConversationStoreException">The store failed to append a step of the run.</exception>
     public static Task<ChatResponse> ResumeAsync<TAgent>(
         AgentHost<TAgent> host,
@@ -212,7 +239,10 @@ public static class AgentRuns
     /// <returns>The run, which streams its updates and then holds its response.</returns>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
     /// <exception cref="NothingToResumeException">The conversation has nothing to continue.</exception>
-    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on, or the store refused the run because another container extends
+    /// the conversation.
+    /// </exception>
     /// <exception cref="ConversationStoreException">The store failed to append a step of the run.</exception>
     public static StreamingRun ResumeStreamingAsync<TAgent>(
         AgentHost<TAgent> host,
@@ -233,7 +263,10 @@ public static class AgentRuns
     /// <returns>The response, with the result.</returns>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
     /// <exception cref="NothingToResumeException">The conversation has nothing to continue.</exception>
-    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on, or the store refused the run because another container extends
+    /// the conversation.
+    /// </exception>
     /// <exception cref="ConversationStoreException">The store failed to append a step of the run.</exception>
     public static Task<ChatResponse<TResult>> ResumeAsync<TAgent, TResult>(
         AgentHost<TAgent> host,
@@ -254,7 +287,10 @@ public static class AgentRuns
     /// <returns>The run, which streams its updates and then holds the result.</returns>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
     /// <exception cref="NothingToResumeException">The conversation has nothing to continue.</exception>
-    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on, or the store refused the run because another container extends
+    /// the conversation.
+    /// </exception>
     /// <exception cref="ConversationStoreException">The store failed to append a step of the run.</exception>
     public static StreamingRun<TResult> ResumeStreamingAsync<TAgent, TResult>(
         AgentHost<TAgent> host,
