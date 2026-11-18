@@ -564,6 +564,32 @@ public class ConversationStoreTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_Entries_Whose_Numbers_Are_Not_In_Order_The_Next_Run_Numbers_On_From_The_Highest()
+    {
+        // Arrange
+        var store = Services.GetRequiredService<ITypeshiftStore<Guid>>();
+
+        foreach (var sequence in new long[] { 1, 3, 2 })
+        {
+            var entry = new ConversationEntry("probe_agent", [], Time.GetUtcNow())
+            {
+                EndsRun = true,
+                Sequence = sequence
+            };
+
+            await store.AppendConversationAsync(Data.Agent.ConversationId, entry, Ct);
+        }
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        (await EntriesAsync(Data.Agent.ConversationId))[3].Sequence.Should().Be(4);
+    }
+
+    [Fact]
     public async Task Given_A_Conversation_Stored_Before_Entries_Were_Numbered_Its_Next_Entry_Follows_Their_Count()
     {
         // Arrange

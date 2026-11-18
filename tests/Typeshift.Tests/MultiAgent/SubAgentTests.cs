@@ -64,6 +64,26 @@ public class SubAgentTests : MultiAgentTestBase
         HelperClient.Options[0]!.Temperature.Should().Be(Data.Agent.Temperature);
     }
 
+    [Fact]
+    public async Task Given_A_Caller_With_A_Settings_Id_Its_Sub_Agent_Runs_With_The_Settings_Under_It()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Tool.Answer));
+
+        HelperClient.Reply(Text(Data.Agent.Reason));
+        await Host<HelperAgent>()
+            .WithSettingsId(Data.Persistence.SettingsId)
+            .UpdateSettingsAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+
+        // Act
+        await Host<LeadAgent>().WithSettingsId(Data.Persistence.SettingsId).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        HelperClient.Assert.Request(0).Options!.Temperature.Should().Be(Data.Agent.Temperature);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

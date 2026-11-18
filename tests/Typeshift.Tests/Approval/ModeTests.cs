@@ -1,3 +1,4 @@
+using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Approval.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
@@ -176,6 +177,22 @@ public class ModeTests : ApprovalTestBase
 
         // Assert
         ChatClient.Options[0]!.Instructions.Should().Contain("exit_plan_mode");
+    }
+
+    [Fact]
+    public async Task Given_Plan_Mode_The_Agents_Own_Instructions_Come_Ahead_Of_The_Plans()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var probe = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+        await probe.SetModeAsync(AgentMode.Plan, Ct);
+
+        // Act
+        await probe.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Assert.Request(0).Options!.Instructions.Should().StartWith(ProbeAgent.Prompt);
     }
 
     [Fact]

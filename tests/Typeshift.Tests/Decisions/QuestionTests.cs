@@ -201,6 +201,13 @@ public class QuestionTests : QuestionTestBase
         "questions[0].options must hold two to four options, and it holds 1.")]
     [InlineData(
         """
+        {"questions":[{"question":"Which?","header":"Pick","options":[{"label":"A","description":"a"},
+          {"label":"B","description":"b"},{"label":"C","description":"c"},{"label":"D","description":"d"},
+          {"label":"E","description":"e"}]}]}
+        """,
+        "questions[0].options must hold two to four options, and it holds 5.")]
+    [InlineData(
+        """
         {"questions":[{"question":"Which?","options":[
           {"label":"A","description":"a"},{"label":"B","description":"b"}]}]}
         """,

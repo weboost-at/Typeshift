@@ -80,6 +80,40 @@ public class ToolApprovalTests : ApprovalTestBase
     }
 
     [Fact]
+    public async Task Given_A_Limit_Of_One_The_Answering_Run_Runs_A_Call_Its_Model_Makes_After_The_Approved_One()
+    {
+        // Arrange
+        var settings = new GuardedAgent.Settings { MaxToolIterations = 1 };
+
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Note(Data.Tool.SecondCallId, Data.Tool.Query))
+            .Reply(Text(Data.Tool.Answer));
+
+        var asked = await Chat.RunAsync(Data.Tool.Question, settings: settings, ct: Ct);
+
+        // Act
+        await Chat.AnswerAsync([DecisionAnswer.Approve(asked.Decisions[0].Id)], settings, Ct);
+
+        // Assert
+        ToolCalls.Should().Equal($"close_ticket {Data.Agent.Ticket.Default}", $"note {Data.Tool.Query}");
+    }
+
+    [Fact]
+    public async Task Given_A_Call_The_Provider_Ran_Itself_Of_A_Tool_That_Requires_Approval_Nothing_Is_Asked()
+    {
+        // Arrange
+        var ran = new FunctionCallContent(Data.Tool.CallId, "close_ticket") { InformationalOnly = true };
+        ChatClient.Reply(new ChatResponseUpdate(ChatRole.Assistant, [ran]), Text(Data.Tool.Answer));
+
+        // Act
+        var response = await RunAsync(Data.Tool.Question);
+
+        // Assert
+        response.Decisions.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Given_An_Approval_The_Call_Runs_With_The_Stored_Arguments_And_The_Run_Goes_On()
     {
         // Arrange
@@ -469,6 +503,20 @@ public class ToolApprovalTests : ApprovalTestBase
         await run.Should().ThrowAsync<ArgumentException>().WithMessage("*AnswerAsync*");
         ChatClient.Requests.Should().BeEmpty();
         (await EntriesAsync(Data.Agent.ConversationId)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_Steering_Input_That_Carries_An_Approval_Answer_Steering_Throws_Naming_AnswerAsync()
+    {
+        // Arrange
+        var call = new FunctionCallContent(Data.Tool.CallId, "close_ticket");
+        var answer = new ToolApprovalRequestContent(Data.Tool.CallId, call).CreateResponse(approved: true);
+
+        // Act
+        var steer = () => Tracker.TrySteer(Data.Agent.ConversationId, new ChatMessage(ChatRole.User, [answer]));
+
+        // Assert
+        steer.Should().Throw<ArgumentException>().WithMessage("*AnswerAsync*");
     }
 
     [Fact]

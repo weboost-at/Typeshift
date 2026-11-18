@@ -155,6 +155,25 @@ public sealed class DecisionTelemetryTests : QuestionTestBase
     }
 
     [Fact]
+    public async Task Given_Message_Capture_The_Event_Of_An_Expired_Call_Carries_No_Result()
+    {
+        // Arrange
+        await CaptureMessagesAsync(true);
+
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer));
+
+        await Asking.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await Asking.RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Assert
+        Tags(Activities.Runs(Data.Agent.ConversationId)[^1], Settled, "gen_ai.tool.call.result").Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Given_Decisions_Your_App_Withdrew_The_Next_Runs_Span_Names_Each_Call_Cancelled()
     {
         // Arrange

@@ -609,6 +609,27 @@ public class HandoffTests : MultiAgentTestBase
         Models[^1].Model.Should().Be("back-model");
     }
 
+    [Fact]
+    public async Task Given_A_Streamed_Handoff_Called_Next_To_A_Call_That_Waits_For_Approval_Its_Refusal_Is_Streamed()
+    {
+        // Arrange
+        var handingBack = $"{Data.Tool.SecondCallId}_back";
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_guarded_back_agent"))
+            .Reply(Calls(
+                Call(Data.Tool.SecondCallId, "close_ticket", ("number", Data.Agent.Ticket.Default)),
+                Call(handingBack, "handoff_to_guarded_front_agent")));
+
+        var front = Host<GuardedFrontAgent>().WithConversationId(Data.Agent.ConversationId);
+
+        // Act
+        var updates = await front.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
+
+        // Assert
+        ResultsOf(updates.ToChatResponse().Messages)[handingBack].Should().Be(DecisionResults.NotHandedOff);
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]

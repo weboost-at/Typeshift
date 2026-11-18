@@ -69,6 +69,33 @@ public class DecisionConcurrencyTests : DecisionTestBase
     }
 
     [Fact]
+    public async Task Given_An_Answered_Batch_Another_Process_Carried_Out_And_Followed_With_A_New_One_The_First_Throws()
+    {
+        // Arrange
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(CloseTicket(Data.Tool.SecondCallId, Data.Agent.Ticket.Updated));
+
+        var other = OtherProcess<GuardedAgent>();
+        var asked = await Chat.RunAsync(Data.Tool.Question, ct: Ct);
+        await Chat.RecordAnswersAsync([DecisionAnswer.Approve(asked.Decisions[0].Id)], Ct);
+
+        Store.BeforeNextSave(async () =>
+        {
+            await other.ResumeAsync(ct: Ct);
+            var next = await other.RunAsync(Data.Agent.FollowUp, ct: Ct);
+            await other.RecordAnswersAsync([DecisionAnswer.Approve(next.Decisions[0].Id)], Ct);
+        });
+
+        // Act
+        var resume = () => Chat.ResumeAsync(ct: Ct);
+
+        // Assert
+        await resume.Should().ThrowAsync<DecisionClosedException>();
+    }
+
+    [Fact]
     public async Task Given_A_Started_Batch_Another_Process_Repairs_The_Process_Carrying_It_Out_Stops_As_Busy()
     {
         // Arrange
