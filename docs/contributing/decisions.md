@@ -672,7 +672,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   Instructions, the latest `write_todos` call and call/result pairs stay; the summary is stored as an entry later
   runs start from. Without reported usage, tokens are estimated from the text.
 - **As built:** the estimate counts characters (four to a token) over the messages, the instructions and the tool
-  schemas, calibrated by the tokens the provider reported for the run's last call against the estimate of that call
+  schemas, each call, JSON result and schema written out once a run and its length kept by reference, since a run
+  estimates its whole history before each model call (7.9 MB for one estimate of 2,000 messages before), calibrated by the tokens the provider reported for the run's last call against the estimate of that call
   as it was sent. A model response's entry keeps that estimate (`EstimatedInputTokens`) beside its usage, and a run's
   first call is calibrated by the conversation's last entry that holds both. A report without an estimate, of a run
   without a maximum or of an earlier version, calibrates nothing: the stored history keeps the results a run cleared,
@@ -1121,7 +1122,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   every run, however long compaction had let the conversation grow.
 - **Decision:** `LoadConversationSinceCompactionAsync` has no default, so a store that leaves it out fails to build,
   and the IDE's fix inserts it with the XML docs that say what it returns. `entries.SinceLastSummary()`, an extension
-  on the entries, is the one-line body of a store that can only read whole conversations.
+  on the entries, is the one-line body of a store that can only read whole conversations. The store in memory, the
+  default of an app without a store (D69), keeps where its last summary is as it appends it and reads from there: it
+  read every entry before, 15.7 MB to return 3 entries of 5,000.
 - **Where:** `Storage/IConversationStore.cs`, `Storage/ConversationEntries.cs`, `Storage/InMemoryTypeshiftStore.cs`.
 - **Alternatives:** the default with an analyzer warning on `WithStore<T>()`, which can be suppressed, and whose "does
   any agent compact" a compilation cannot always answer for agents of other projects; only the docs, which the owner

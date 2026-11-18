@@ -59,7 +59,9 @@ internal sealed class StoreAccess(IServiceProvider services, IServiceCollection 
     // The store a write goes to; a load of nothing loses nothing, so the first write to the memory says where it goes
     public T Written<T>(T store) where T : class
     {
-        if (_inMemory.Value
+        // Every write asks, and the stores in memory are listed only until the first said so
+        if (Volatile.Read(ref _warned) == 0
+            && _inMemory.Value
             && (ReferenceEquals(store, _agentSettingsMemory) || _memory.Values.Contains(store))
             && Interlocked.Exchange(ref _warned, 1) == 0)
         {

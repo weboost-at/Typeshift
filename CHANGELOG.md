@@ -560,6 +560,10 @@ All notable changes to this project are documented here. The format follows
 - A run on a long conversation allocates a third less for each stored entry, 1,303 bytes where it took 2,061: it
   builds the history it starts from without a list and an enumerator for each message. Steering input goes back
   into each later model call of a run in one pass over the call, where each input was searched for on its own.
+- `InMemoryTypeshiftStore<TId>`, the store of an app without one, loads a conversation for a run from its last
+  summary without reading the entries before it: it deserialized every entry, 15.7 MB to return 3 of 5,000. A run
+  with compaction on writes out the JSON of each call, result and tool schema once to estimate its tokens, where each
+  estimate before each model call wrote out the whole history again, 7.9 MB for 2,000 messages.
 
 ### Fixed
 

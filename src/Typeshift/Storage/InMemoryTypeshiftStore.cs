@@ -37,23 +37,15 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId>, IAgentSe
     public bool RefusesTakenSequences => true;
 
     /// <inheritdoc />
-    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(TId conversation, CancellationToken ct)
-    {
-        if (!_conversations.TryGetValue(conversation, out var entries))
-            return Task.FromResult<IReadOnlyList<ConversationEntry>>([]);
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationAsync(TId conversation, CancellationToken ct) =>
+        Task.FromResult(Load(conversation, sinceSummary: false));
 
-        lock (entries)
-        {
-            return Task.FromResult<IReadOnlyList<ConversationEntry>>(
-                [.. entries.Json.Select(ConversationEntry.Deserialize)]);
-        }
-    }
-
+    // D71: from the last summary on, as its index was kept when it was appended, so the rest is not read
     /// <inheritdoc />
-    public async Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
+    public Task<IReadOnlyList<ConversationEntry>> LoadConversationSinceCompactionAsync(
         TId conversation,
         CancellationToken ct) =>
-        (await LoadConversationAsync(conversation, ct)).SinceLastSummary();
+        Task.FromResult(Load(conversation, sinceSummary: true));
 
     /// <inheritdoc />
     public Task AppendConversationAsync(TId conversation, ConversationEntry entry, CancellationToken ct)
@@ -70,6 +62,7 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId>, IAgentSe
                     $"Conversation {conversation} holds an entry numbered {entry.Sequence} already.");
             }
 
+            if (entry.IsSummary) entries.LastSummary = entries.Json.Count;
             entries.Json.Add(entry.Serialize());
         }
 
@@ -83,6 +76,24 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId>, IAgentSe
     /// <inheritdoc />
     public Task<long> SaveDecisionsAsync(TId conversation, string json, long loadedVersion, CancellationToken ct) =>
         Save(_decisions, conversation, json, loadedVersion, $"The decisions of {conversation}");
+
+    private IReadOnlyList<ConversationEntry> Load(TId conversation, bool sinceSummary)
+    {
+        if (!_conversations.TryGetValue(conversation, out var entries)) return [];
+
+        lock (entries)
+        {
+            var start = sinceSummary ? entries.LastSummary : 0;
+            var loaded = new ConversationEntry[entries.Json.Count - start];
+
+            for (var i = 0; i < loaded.Length; i++)
+            {
+                loaded[i] = ConversationEntry.Deserialize(entries.Json[start + i]);
+            }
+
+            return loaded;
+        }
+    }
 
     private static Task<long> Save<TKey>(
         ConcurrentDictionary<TKey, StoredDocument> documents,
@@ -105,11 +116,14 @@ public sealed class InMemoryTypeshiftStore<TId> : ITypeshiftStore<TId>, IAgentSe
             : throw new StoreConflictException($"{what} was saved since version {loadedVersion}.");
     }
 
-    // A conversation's entries as their JSON, in the order appended, and the numbers they hold
+    // A conversation's entries as their JSON, in the order appended, the numbers they hold and where the last summary
+    // is, or 0 without one
     private sealed class Entries
     {
         public List<string> Json { get; } = [];
 
         public HashSet<long> Sequences { get; } = [];
+
+        public int LastSummary { get; set; }
     }
 }

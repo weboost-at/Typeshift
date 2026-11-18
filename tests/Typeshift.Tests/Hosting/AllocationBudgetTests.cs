@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Testing;
 using FluentAssertions;
@@ -20,6 +21,10 @@ public class AllocationBudgetTests : AgentTestBase
 
     // 2,047 B when set, 1,303 B since the history is built without a list for each of its messages
     private const int EntryBudget = 1_950;
+
+    // An estimate of a long history once the run's first wrote out its JSON: no text of a call, a result or a schema
+    // again, where each estimate allocated 7.9 MB before
+    private const int EstimateBudget = 64 * 1024;
 
     private const int Rounds = 4;
 
@@ -101,6 +106,45 @@ public class AllocationBudgetTests : AgentTestBase
         many.Should().BeLessThan(6 * few);
     }
 
+    [Fact]
+    public async Task Given_A_Long_History_A_Runs_Later_Estimate_Allocates_Within_Its_Budget()
+    {
+        // Arrange
+        var (messages, options) = LongHistory();
+        var lengths = Tokens.Lengths();
+        Tokens.Estimate(messages, options, lengths);
+
+        // Act
+        var allocated = await Allocations.OfAsync(() =>
+        {
+            Tokens.Estimate(messages, options, lengths);
+            return Task.CompletedTask;
+        });
+
+        // Assert
+        allocated.Should().BeLessThan(EstimateBudget);
+    }
+
+    [Fact]
+    public async Task Given_A_Summary_The_Memory_Store_Loads_From_It_Without_Reading_What_Came_Before()
+    {
+        // Arrange
+        var shortStore = await SummarizedAsync(before: 10);
+        var longStore = await SummarizedAsync(before: Entries);
+        await shortStore.LoadConversationSinceCompactionAsync(Data.Agent.ConversationId, Ct);
+        await longStore.LoadConversationSinceCompactionAsync(Data.Agent.ConversationId, Ct);
+
+        var fromShort = await Allocations.OfAsync(() =>
+            shortStore.LoadConversationSinceCompactionAsync(Data.Agent.ConversationId, Ct));
+
+        // Act
+        var fromLong = await Allocations.OfAsync(() =>
+            longStore.LoadConversationSinceCompactionAsync(Data.Agent.ConversationId, Ct));
+
+        // Assert
+        fromLong.Should().BeLessThan(2 * fromShort);
+    }
+
     protected override ValueTask DisposeCoreAsync()
     {
         _listener.Dispose();
@@ -126,6 +170,43 @@ public class AllocationBudgetTests : AgentTestBase
         await foreach (var _ in host.RunStreamingAsync(Data.Tool.Question, ct: Ct))
         {
         }
+    }
+
+    // A conversation in memory with a summary after the entries before it and three entries after it
+    private async Task<InMemoryTypeshiftStore<Guid>> SummarizedAsync(int before)
+    {
+        var store = new InMemoryTypeshiftStore<Guid>();
+
+        for (var entry = 0; entry < before + 4; entry++)
+        {
+            var stored = Entry(ChatRole.User) with { IsSummary = entry == before };
+            await store.AppendConversationAsync(Data.Agent.ConversationId, stored, Ct);
+        }
+
+        return store;
+    }
+
+    // A thousand calls, each with its JSON result, and forty tools with a schema each
+    private (List<ChatMessage> Messages, ChatOptions Options) LongHistory()
+    {
+        var payload = JsonElement.Parse($$"""{ "text": "{{new string('x', 2_000)}}" }""");
+        var schema = JsonElement.Parse($$"""{ "type": "object", "description": "{{new string('d', 1_000)}}" }""");
+        List<ChatMessage> messages = [new(ChatRole.User, Data.Tool.Question)];
+
+        for (var call = 0; call < 1_000; call++)
+        {
+            var id = $"{Data.Tool.CallId}_{call}";
+            var arguments = new Dictionary<string, object?> { ["query"] = payload };
+
+            messages.Add(new(ChatRole.Assistant, [new FunctionCallContent(id, "read", arguments)]));
+            messages.Add(new(ChatRole.Tool, [new FunctionResultContent(id, payload)]));
+        }
+
+        var tools = Enumerable.Range(0, 40)
+            .Select(tool => AIFunctionFactory.CreateDeclaration($"tool_{tool}", "", schema));
+        var options = new ChatOptions { Tools = [.. tools] };
+
+        return (messages, options);
     }
 
     // Static state and caches fill on the first passes

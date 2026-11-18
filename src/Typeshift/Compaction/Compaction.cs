@@ -36,6 +36,9 @@ internal sealed class Compaction(ReportedCall? last)
     private AIContent? _keptFrom;
     private double _calibration = last?.Calibration ?? 1;
 
+    // The length of each call, result and tool schema the run's estimates wrote out, so the next ones do not
+    private readonly Dictionary<object, int> _lengths = Tokens.Lengths();
+
     // The estimate of the run's last call as it went to the model, with the results cleared and the summary in
     // place: what the provider's report is compared with, and what the response's entry keeps for the next run
     public int SentEstimate { get; private set; }
@@ -48,13 +51,13 @@ internal sealed class Compaction(ReportedCall? last)
     {
         var history = Apply(messages, options);
         List<ChatMessage> call = [.. history.Select(Clear)];
-        SentEstimate = Tokens.Estimate(call, options);
+        SentEstimate = Tokens.Estimate(call, options, _lengths);
         if (SentEstimate * _calibration < max) return call;
 
         var target = options.RunOptions.TargetInputTokens ?? max / 2;
         var (count, estimate) = (call.Count, SentEstimate);
         call = await CompactAsync(history, SentEstimate, options, target / _calibration, ct);
-        SentEstimate = Tokens.Estimate(call, options);
+        SentEstimate = Tokens.Estimate(call, options, _lengths);
 
         // A call with nothing left to clear or to summarize goes out as it came, and says nothing
         if (SentEstimate >= estimate) return call;
@@ -117,7 +120,7 @@ internal sealed class Compaction(ReportedCall? last)
 
             // A result no longer than its placeholder stays: clearing it would save nothing and cost its value
             var placeholder = Placeholder(tools[result.CallId].FirstOrDefault(), options);
-            var saved = Tokens.Estimate(result) - (placeholder.Length / 4);
+            var saved = Tokens.Estimate(result, _lengths) - (placeholder.Length / 4);
             if (saved <= 0) continue;
 
             _cleared[result.CallId] = placeholder;
@@ -164,12 +167,12 @@ internal sealed class Compaction(ReportedCall? last)
     // added, and only with a turn to summarize ahead. What the pass added ahead stays, so it counts as the tools do
     private int? Cut(List<ChatMessage> call, ResolvedChatOptions options, double limit)
     {
-        var stays = (double)Tokens.Estimate([], options);
+        var stays = (double)Tokens.Estimate([], options, _lengths);
         var tail = new double[call.Count + 1];
 
         for (var i = call.Count - 1; i >= 0; i--)
         {
-            tail[i] = tail[i + 1] + call[i].Contents.Sum(Tokens.Estimate);
+            tail[i] = tail[i + 1] + call[i].Contents.Sum(content => Tokens.Estimate(content, _lengths));
         }
 
         var open = new HashSet<string>();
