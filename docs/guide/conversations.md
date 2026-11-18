@@ -327,6 +327,19 @@ await foreach (var update in tracker.WatchAsync(conversationId, ct))
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L85-L88' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
+A watcher receives what the runs write from the moment it subscribes: the model's updates, the tool calls and their
+results, and the decisions a run asks, with its last update. That leaves out four things:
+
+- **What came before.** A watcher that joins while the model writes an answer gets the answer from that point on,
+  and the store holds it only once its model call ends. So a page that opens a chat loads what is stored, watches for
+  what follows, and loads the conversation again once the run has ended to show that answer whole.
+- **Input.** The user's message, steering input and a background sub-agent's answer go to the model and the store
+  but not to the watchers. Neither does the error a failed run ends with, which only the store keeps.
+- **An end.** The loop goes on across runs until you cancel its token. `WatchRunsAsync` tells your app when a run
+  ends, with `Ended` set.
+- **Other containers.** A watcher sees only the runs of its own container. With several instances of your app, watch
+  in the one that runs the conversation.
+
 Text, reasoning and usage updates are merged and published at most every 100 ms, and other updates go out at once.
 Merged text never spans two messages: text of another message goes out as an update of its own, and the last of an
 answer goes out as its model call ends, so a watcher has the whole answer while the run waits for steering input or
@@ -347,11 +360,6 @@ services.AddTypeshift()
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L67-L74' title='Snippet source file'>snippet source</a> | <a href='#snippet-live-update-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
-
-::: warning Live updates stay in their process
-A watcher sees only the runs of its own process. When your app runs in several processes, watch in the process that
-runs the conversation.
-:::
 
 ::: tip Native AOT needs the tracker of a value type registered
 An app published with Native AOT that injects `ConversationTracker<Guid>`, or the tracker of another value type,

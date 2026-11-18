@@ -302,6 +302,10 @@ rewrite.
 - **No feed of decisions for watchers.** A watcher receives a run's decisions with the run's last update, as the
   caller does. An answer recorded from another request or process reaches no watcher, so a page that shows a
   chat's prompts in two places loads them with `GetDecisionsAsync`.
+- **A watcher that joins during an answer.** `WatchAsync` reads the updates published after it subscribed, and the
+  store holds a model response once its call ends, so a page that opens while the model writes shows the answer
+  from where it joined until the run has ended. Keeping the updates of the response in flight on the run and
+  handing them to a new watcher first would close it.
 - **A run going on keeps its mode and its standing approvals.** `SetModeAsync` and `RevokeStandingApprovalAsync`
   change the conversation's decisions, which a run reads when it begins. A run going on, in this process or another,
   ends in the mode and with the approvals it began with; cancelling the run's token stops it at once.
