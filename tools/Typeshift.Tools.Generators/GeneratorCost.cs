@@ -3,6 +3,7 @@ using Typeshift.Generators.Tests.Incremental.Support;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Typeshift.Tools.Generators;
 
@@ -28,6 +29,38 @@ internal static class GeneratorCost
         Print("A toolset of three tools, one with settings, and an agent of two toolsets", ScaleSources.Pair);
         Print("A toolset of ten tools that share one settings type, and an agent", TenToolSources.Pair);
         PrintStages(pairs: 50);
+        PrintSize(pairs: 50);
+    }
+
+    // What a pair of the first shape writes into a project: the generated C#, and what the assembly weighs with it
+    private static void PrintSize(int pairs)
+    {
+        var compilation = Compile(ScaleSources.Pair, pairs);
+        Subject.CreateDriver().RunGeneratorsAndUpdateCompilation(compilation, out var output, out _);
+
+        var written = compilation.SyntaxTrees.Take(pairs).Select(tree => tree.GetText()).ToList();
+        var generated = output.SyntaxTrees.Skip(pairs + 1).Select(tree => tree.GetText()).ToList();
+
+        var docs = generated
+            .SelectMany(text => text.Lines)
+            .Where(line => line.ToString().TrimStart().StartsWith("///", StringComparison.Ordinal))
+            .Sum(line => line.Span.Length);
+
+        using var image = new MemoryStream();
+        var compiles = output.Emit(image).Success ? "" : ", though it does not compile";
+
+        Console.WriteLine();
+
+        Console.WriteLine(string.Create(
+            Invariant,
+            $"What a pair of the first shape writes, at {pairs} pairs: {Lines(written) / pairs:N0} lines and "
+            + $"{Bytes(written) / pairs:N0} B of C# written, {Lines(generated) / pairs:N0} lines and "
+            + $"{Bytes(generated) / pairs:N0} B generated, {docs * 100 / Bytes(generated)}% of it XML docs, "
+            + $"and {image.Length / pairs:N0} B of the assembly{compiles}."));
+
+        static int Lines(IEnumerable<SourceText> texts) => texts.Sum(text => text.Lines.Count);
+
+        static int Bytes(IEnumerable<SourceText> texts) => texts.Sum(text => text.Length);
     }
 
     private static void Print(string shape, Func<int, int, string> pair)
