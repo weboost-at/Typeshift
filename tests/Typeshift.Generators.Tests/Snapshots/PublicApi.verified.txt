@@ -147,10 +147,12 @@ public TId Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.Ch
 public static Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate)
 public bool Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate).ConversationIncomplete { get; }
 public System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate).Decisions { get; }
+public bool Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate).EndsRun { get; }
 public static bool Typeshift.ChatResponseExtensions.get_ConversationIncomplete(Microsoft.Extensions.AI.ChatResponse response)
 public static bool Typeshift.ChatResponseExtensions.get_ConversationIncomplete(Microsoft.Extensions.AI.ChatResponseUpdate update)
 public static System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.get_Decisions(Microsoft.Extensions.AI.ChatResponse response)
 public static System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.get_Decisions(Microsoft.Extensions.AI.ChatResponseUpdate update)
+public static bool Typeshift.ChatResponseExtensions.get_EndsRun(Microsoft.Extensions.AI.ChatResponseUpdate update)
 public static bool Typeshift.ChatResponseExtensions.get_IsBackgroundAnswer(Microsoft.Extensions.AI.ChatMessage message)
 public sealed class Typeshift.ConfigurableSettingsBuilder<TSettings> where TSettings : class
 public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ConfigurableSettingsBuilder<TSettings>.NotConfigurable<TMember>(System.Func<TSettings, TMember> member)

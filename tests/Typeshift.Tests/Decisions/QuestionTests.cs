@@ -517,7 +517,7 @@ public class QuestionTests : QuestionTestBase
             .Reply(Text(Data.Tool.Answer));
 
         using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
-        var watched = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token).Take(5).ToListAsync(Ct);
+        var watched = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token).Take(6).ToListAsync(Ct);
         var asked = await Asking.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
 
         // Act

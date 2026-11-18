@@ -320,7 +320,7 @@ Cancelling ends the loop with an `OperationCanceledException`, so catch it where
 await foreach (var run in tracker.WatchRunsAsync(ct))
     Console.WriteLine($"Conversation {run.Conversation} is {(run.Ended ? "idle" : "running")}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L100-L103' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-runs' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L97-L100' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-runs' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ::: warning The tracker lists every customer's runs
@@ -386,33 +386,46 @@ To stop a run, cancel its token. It is stored up to where it stopped.
 
 ## Live updates
 
-Typeshift publishes the updates of runs as they happen, and `WatchAsync` reads one conversation's updates until you
-cancel its token, which ends the loop with an `OperationCanceledException`, as with
+Typeshift publishes the updates of runs as they happen, and `WatchAsync` reads one conversation's updates, across
+its runs, until you cancel its token, which ends the loop with an `OperationCanceledException`, as with
 `WatchRunsAsync`. A streaming run publishes its updates as they stream; a run that does not stream publishes each
-model response and tool result as it stores it. A browser can follow them over SignalR, as
+model response and tool result as it stores it. Each run ends with an update whose `EndsRun` is true, so a watcher
+that waits for one answer stops there. A browser can follow the updates over SignalR, as
 [Follow a chat from elsewhere](./chat-endpoint.md#follow-a-chat-from-elsewhere) shows:
 
 <!-- snippet: watch-conversation -->
 <a id='snippet-watch-conversation'></a>
 ```cs
 await foreach (var update in tracker.WatchAsync(conversationId, ct))
+{
     Console.Write(update.Text);
+
+    if (update.EndsRun) break;
+}
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L85-L88' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L83-L90' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A watcher receives what the runs write from the moment it subscribes: the model's updates, the tool calls and their
-results, and the decisions a run asks, with its last update. That leaves out four things:
+results, the decisions a run asks, and the run's end:
 
-- **What came before.** A watcher that joins while the model writes an answer gets the answer from that point on,
-  and the store holds it only once its model call ends. So a page that opens a chat loads what is stored, watches for
-  what follows, and loads the conversation again once the run has ended to show that answer whole.
+- **What the store does not hold yet.** A watcher that joins while a run goes on first receives what the run
+  published since its last stored step, such as the answer the model is writing, merged into one update per
+  message. The store holds that answer only once its model call ends, so a page that opens a chat loads what is
+  stored, then watches, and shows the answer from its start.
+- **The end.** A run's last update has `EndsRun` set, after its other updates. A run that answered carries the
+  `FinishReason` of its last model call, and one that failed or stopped carries the error its stored end holds, as
+  an `ErrorContent`. A handoff ends once, after the answer of the agent handed to.
+
+That leaves out two things:
+
 - **Input.** The user's message, steering input and a background sub-agent's answer go to the model and the store
-  but not to the watchers. Neither does the error a failed run ends with, which only the store keeps.
-- **An end.** The loop goes on across runs until you cancel its token. `WatchRunsAsync` tells your app when a run
-  ends, with `Ended` set.
+  but not to the watchers.
 - **Other containers.** A watcher sees only the runs of its own container. With several instances of your app, watch
   in the one that runs the conversation ([Running on several instances](#running-on-several-instances)).
+
+A step the run stores between the page's load and its watch is in neither, so a page that shows a whole chat loads
+it again when it sees `EndsRun`.
 
 Text, reasoning and usage updates are merged and published at most every 100 ms, and other updates go out at once.
 Merged text never spans two messages: text of another message goes out as an update of its own, and the last of an

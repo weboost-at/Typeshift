@@ -212,6 +212,13 @@ All notable changes to this project are documented here. The format follows
   false })` leaves `search_tickets` out of that customer's runs only. Only the tools an agent picks get a switch.
 - TSH043 reports a `RequiresApproval(t => t.X)` or `Configurable(t => t.X)` on a use that excludes the tool or
   includes others only, which would have no effect.
+- A watcher that joins while a run goes on first receives what the run published that the store does not hold yet,
+  such as the answer the model is writing, merged. Before, a page that opened during an answer showed it from the
+  middle, since the store holds a response once its model call ends.
+- Each run ends its watchers' feed with an update whose `update.EndsRun` is true, after its other updates: with the
+  finish reason of its last model call, or the error a failed run's end stores. A handoff ends once, after the
+  answer of the agent handed to. Before, `WatchAsync` gave no sign that a run ended, so a watcher waiting for one
+  answer had nothing to stop at.
 
 ### Changed
 

@@ -43,8 +43,8 @@ internal static class Conversations
             Console.Write(update.Text);
 
         Console.WriteLine();
-        await watching.CancelAsync();
         await watcher;
+        await watching.CancelAsync();
         await runWatcher;
 
         // begin-snippet: steering
@@ -77,20 +77,17 @@ internal static class Conversations
         if (resumed.Text.Length == 0) throw new InvalidOperationException("Expected the resumed run to answer.");
     }
 
-    // Watches until the scenario stops it, as a UI would until its user leaves
+    // Watches until the run ends, as a page that waits for one answer would
     private static async Task WatchAsync(ConversationTracker<int> tracker, int conversationId, CancellationToken ct)
     {
-        try
+        // begin-snippet: watch-conversation
+        await foreach (var update in tracker.WatchAsync(conversationId, ct))
         {
-            // begin-snippet: watch-conversation
-            await foreach (var update in tracker.WatchAsync(conversationId, ct))
-                Console.Write(update.Text);
-            // end-snippet
+            Console.Write(update.Text);
+
+            if (update.EndsRun) break;
         }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            Console.WriteLine();
-        }
+        // end-snippet
     }
 
     private static async Task WatchRunsAsync(ConversationTracker<int> tracker, CancellationToken ct)

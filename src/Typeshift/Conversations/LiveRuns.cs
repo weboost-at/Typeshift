@@ -11,7 +11,7 @@ internal sealed class LiveRuns(LiveUpdateOptions realtime, ILoggerFactory? logge
 {
     private readonly ILogger _logger = LogEvents.For(loggers);
     private readonly ConcurrentDictionary<StoreId, RunClaim> _runs = new();
-    private readonly ConcurrentDictionary<StoreId, ImmutableList<Channel<ChatResponseUpdate>>> _watchers = new();
+    private readonly ConcurrentDictionary<StoreId, LiveConversation> _live = new();
     private ImmutableList<Channel<(ConversationRun Run, bool Ended)>> _runWatchers = [];
 
     public IReadOnlyCollection<ConversationRun> Runs =>
@@ -70,17 +70,34 @@ internal sealed class LiveRuns(LiveUpdateOptions realtime, ILoggerFactory? logge
         return handed;
     }
 
-    // A handoff replaces its run's claim before the run's own end, which then finds it gone
+    // A handoff replaces its run's claim before the run's own end, which then finds it gone. D54: the run's watchers
+    // hear its end before a run that waits for the conversation begins
     public void End(ConversationRun run)
     {
         if (run.Conversation is not { } conversation
             || !_runs.TryGetValue(conversation, out var claim)
-            || claim.Run != run
-            || !_runs.TryRemove(new KeyValuePair<StoreId, RunClaim>(conversation, claim)))
+            || claim.Run != run)
             return;
+
+        run.Publisher?.End(Ended(run));
+
+        if (!_runs.TryRemove(new KeyValuePair<StoreId, RunClaim>(conversation, claim))) return;
 
         claim.End();
         PublishRun(run, ended: true);
+    }
+
+    // D54: a run's last update to its watchers, with the error its end stores, or the finish reason of its last model
+    // call
+    private static ChatResponseUpdate Ended(ConversationRun run)
+    {
+        var ended = run.EndError is { } error
+            ? new ChatResponseUpdate(ChatRole.Assistant, [new ErrorContent(error)])
+            : new ChatResponseUpdate { FinishReason = run.FinishReason };
+
+        ended.AuthorName = run.Agent;
+        ended.AdditionalProperties = new() { [ChatResponseExtensions.RunEnded] = true };
+        return ended;
     }
 
     // D51: a claimed conversation whose run has not begun takes no steering
@@ -95,7 +112,18 @@ internal sealed class LiveRuns(LiveUpdateOptions realtime, ILoggerFactory? logge
     {
         var feed = CreateFeed<ChatResponseUpdate>($"conversation {conversation}");
 
-        _watchers.AddOrUpdate(conversation, [feed], (_, feeds) => feeds.Add(feed));
+        // D47: a watcher that joins while a run goes on reads first what the store does not hold yet, merged, and
+        // then every update the run publishes after it, none twice
+        var live = Enter(conversation, live =>
+        {
+            live.Publisher?.FlushPending();
+            live.Feeds.Add(feed);
+
+            foreach (var update in LivePublisher.Merged(live.Unstored))
+            {
+                feed.Writer.TryWrite(update);
+            }
+        });
 
         try
         {
@@ -106,23 +134,38 @@ internal sealed class LiveRuns(LiveUpdateOptions realtime, ILoggerFactory? logge
         }
         finally
         {
-            // The last watcher to leave takes the conversation's entry with it
-            var left = _watchers.AddOrUpdate(conversation, [], (_, feeds) => feeds.Remove(feed));
-
-            if (left.IsEmpty) _watchers.TryRemove(KeyValuePair.Create(conversation, left));
+            live.Leave(left => left.Feeds.Remove(feed));
         }
     }
 
-    // D74: whether anyone reads the conversation's updates, which a run asks before it merges any
-    public bool IsWatched(StoreId conversation) => _watchers.ContainsKey(conversation);
-
-    public void Publish(StoreId conversation, ChatResponseUpdate update)
+    // D47: a watcher or a run's publisher joins the conversation's live state under its lock; a state that is going
+    // away is left to go, and a new one taken
+    public LiveConversation Enter(StoreId conversation, Action<LiveConversation> join)
     {
-        if (!_watchers.TryGetValue(conversation, out var feeds)) return;
-
-        foreach (var feed in feeds)
+        while (true)
         {
-            feed.Writer.TryWrite(update);
+            var live = _live.GetOrAdd(conversation, static (id, runs) => new LiveConversation(runs, id), this);
+
+            lock (live)
+            {
+                if (live.Removed) continue;
+
+                join(live);
+                return live;
+            }
+        }
+    }
+
+    // The last to leave, of the watchers and the run, takes the conversation's state with it
+    public void Leave(StoreId conversation, LiveConversation live, Action<LiveConversation> leave)
+    {
+        lock (live)
+        {
+            leave(live);
+            if (live.Feeds.Count > 0 || live.Publisher is not null) return;
+
+            live.Removed = true;
+            _live.TryRemove(KeyValuePair.Create(conversation, live));
         }
     }
 
@@ -209,4 +252,19 @@ internal sealed class RunClaim(StoreId conversation)
     public Task Ended => _ended.Task;
 
     public void End() => _ended.TrySetResult();
+}
+
+// D47: what a conversation shows its watchers, under its own lock: their feeds, the publisher of the run going on,
+// and what that run published that the store does not hold yet. It lives while a watcher or a run holds it
+internal sealed class LiveConversation(LiveRuns runs, StoreId conversation)
+{
+    public List<Channel<ChatResponseUpdate>> Feeds { get; } = [];
+
+    public List<ChatResponseUpdate> Unstored { get; } = [];
+
+    public LivePublisher? Publisher { get; set; }
+
+    public bool Removed { get; set; }
+
+    public void Leave(Action<LiveConversation> leave) => runs.Leave(conversation, this, leave);
 }

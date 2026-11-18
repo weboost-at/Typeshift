@@ -937,7 +937,7 @@ public class ConversationStoreTests : AgentTestBase
             .WithOptions(options =>
             {
                 options.LiveUpdates.PublishInterval = TimeSpan.Zero;
-                options.LiveUpdates.MaxPendingUpdates = 2;
+                options.LiveUpdates.MaxPendingUpdates = 3;
             })
             .WithChatClientProvider<ScriptedChatClientProvider>();
 

@@ -197,6 +197,8 @@ rewrite.
 | new | A steered streaming run stores each answer of its earlier pass once, also when the pass made two model calls (D46, D51) | `ConversationRunTests.Given_A_Steered_Streaming_Run_Of_Two_Answers_Each_Is_Stored_Once` |
 | new | Run watchers hear the runs going on, then each start and end (D54) | `ConversationRunTests.Given_A_Run_Watcher_It_Hears_The_Run_Start_And_End`, `..._Given_A_Run_Going_On_A_Run_Watcher_Hears_It_Once_Then_Its_End` |
 | new | Watchers receive streamed updates (D47) | `ConversationRunTests.Given_A_Watcher_It_Receives_The_Updates_Of_A_Streaming_Run` |
+| new | A watcher that joins while a run goes on first receives what the run published that the store does not hold yet, merged, and nothing the store holds (D47) | `ConversationRunTests.Given_A_Watcher_That_Joins_Late_It_Receives_The_Text_So_Far_First`, `..._Given_A_Watcher_That_Joins_Late_It_Receives_Nothing_The_Store_Holds` |
+| new | A run's last update to its watchers has `EndsRun` set: with the finish reason of its last model call when it answered, streaming or not, with the error its end stores when it failed, and once for a handoff, after the answer of the agent handed to (D54) | `ConversationRunTests.Given_A_Run_That_Answers_Its_Watchers_Receive_Its_End_With_The_Finish_Reason`, `..._Given_A_Run_That_Fails_Its_Watchers_Last_Update_Holds_The_Error_Its_End_Stores`, `HandoffTests.Given_A_Handoff_Its_Watcher_Hears_The_Run_End_Once_After_The_Answer` |
 | new | Text of two messages streamed within the publish interval reaches watchers apart, and a steered run's answer reaches them whole before its next model call answers, streaming or not; a handoff's watcher receives its call, its result and the answer, streaming or not (D47) | `ConversationRunTests.Given_Text_Of_Two_Messages_Within_The_Interval_A_Watcher_Receives_Each_Apart`, `..._Given_A_Steered_Run_A_Watcher_Receives_The_First_Answer_Before_The_Next_Call_Answers`, `HandoffTests.Given_A_Handoff_A_Watcher_Receives_Its_Call_Its_Result_And_The_Answer` |
 | new | Text streamed within the publish interval reaches watchers merged, ahead of the next call (D47) | `ConversationRunTests.Given_Text_Within_The_Interval_A_Watcher_Receives_It_Merged_Ahead_Of_The_Next_Call` |
 | new | A run that does not stream publishes each response and tool result to watchers (D47) | `ConversationRunTests.Given_A_Watcher_It_Receives_Each_Step_Of_A_Run_That_Does_Not_Stream` |
@@ -324,10 +326,6 @@ rewrite.
 - **No feed of decisions for watchers.** A watcher receives a run's decisions with the run's last update, as the
   caller does. An answer recorded from another request or process reaches no watcher, so a page that shows a
   chat's prompts in two places loads them with `GetDecisionsAsync`.
-- **A watcher that joins during an answer.** `WatchAsync` reads the updates published after it subscribed, and the
-  store holds a model response once its call ends, so a page that opens while the model writes shows the answer
-  from where it joined until the run has ended. Keeping the updates of the response in flight on the run and
-  handing them to a new watcher first would close it.
 - **A run going on keeps its mode and its standing approvals.** `SetModeAsync` and `RevokeStandingApprovalAsync`
   change the conversation's decisions, which a run reads when it begins. A run going on, in this container or
   another, ends in the mode and with the approvals it began with; cancelling the run's token stops it at once.

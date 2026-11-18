@@ -1482,9 +1482,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   from the get-go", and chose live updates on by default. `WatchAsync` threw until `WithRealtimeTracking()` was called.
 - **Decision:** runs with a conversation publish their updates and `WatchAsync` reads them without a call.
   `TypeshiftOptions.LiveUpdates`, set through `WithOptions`, only tunes the interval and the limit, and refuses a
-  negative interval and a limit below 1 where it is set. With no watcher an update costs one dictionary lookup:
-  nothing is cloned or merged. Merged text waits for the next update or the end of the model's stream, so no timer
-  runs (D47).
+  negative interval and a limit below 1 where it is set. With no watcher an update costs a lock nobody else holds
+  and a place in the list a watcher that joins late reads (D47), which the run's next stored step empties: nothing
+  is cloned or merged. Merged text waits for the next update or the end of the model's stream, so no timer runs.
 - **One place for options:** up to 0.1.0-alpha.6, `WithRealtimeTracking(options)` replaced a
   `RealtimeTrackingOptions` record, and without an argument only reset the defaults, since the updates are on anyway.
   It was a third shape of options beside `WithOptions(Action<TypeshiftOptions>)` and `WithFileStore`'s action, and
@@ -1819,7 +1819,16 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `ToChatResponse` tells messages apart. A run that does not stream publishes each response and tool result as it
   stores them, through the same publisher; a streaming run publishes each update it hands its caller, the results
   the run writes itself, such as a handoff's, included.
+- **A watcher that joins late:** the run keeps what it published since the store last took a step of it, and a
+  watcher that subscribes while the run goes on reads that first, merged into one update per message, then what
+  follows. A page that loads the stored conversation and then watches sees an answer in flight from its start; the
+  model's response reached the store only once its call ended. The watchers' feeds, the run's publisher and that
+  list share one lock per conversation (`LiveConversation`), so a watcher that joins between two updates reads each
+  once: in what it reads first or in its feed. Merged text keeps the finish reason of the update that ends it.
+  Before, a watcher that joined while the model wrote read the answer from the middle.
 - **Where:** `Conversations/LiveRuns.cs`, `Conversations/LivePublisher.cs`.
+- **Alternatives, for the late watcher:** a replay of the whole run, which the store holds already; keeping the
+  updates only while someone watches, which leaves nothing for the one who joins.
 
 ### D50. A conversation is stored step by step and resumes after a crash
 
@@ -1959,6 +1968,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   without a setting, as `Runs` does.
 - **As built:** the watch subscribes before it lists the runs going on, so a run starting at that moment is listed or
   fed, and its start is not reported twice.
+- **The end in the conversation's feed:** `WatchAsync` loops across runs, so a watcher that waited for one answer had
+  no update to stop at. A run's last update to the conversation's watchers has `update.EndsRun` set, after its
+  other updates and before a run that waits for the conversation begins. It holds the finish reason of the run's
+  last model response, or, for a run that failed or stopped, the error its stored end holds as an `ErrorContent`.
+  A handoff publishes no end for the agent that handed on, so the conversation's watchers hear one end, after the
+  answer of the agent handed to. The run's own caller gets no such update: its stream ends.
 - **Where:** `Conversations/LiveRuns.cs`, `Conversations/ConversationTracker.cs`.
 - **Alternatives:** C# events, where a slow or throwing handler runs inside the run; a separate change record, which
   needs one more id-type alias.

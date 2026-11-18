@@ -118,6 +118,12 @@ internal sealed class ConversationRun(
 
     public bool HasReplay => _replay is not null;
 
+    // D54: how the run ended, for its watchers' last update: the error its end stores, and the finish reason of its
+    // last model response
+    public string? EndError { get; private set; }
+
+    public ChatFinishReason? FinishReason { get; private set; }
+
     // D51: a run that is ending takes no steering input, and a run started with that input waits for its end
     public bool IsEnding => Volatile.Read(ref _closed);
 
@@ -510,6 +516,7 @@ internal sealed class ConversationRun(
         if (_ended) return;
 
         _ended = true;
+        EndError = error;
         await StopBackgroundAsync();
 
         if (_refused is not null) return;
@@ -569,6 +576,7 @@ internal sealed class ConversationRun(
             answered: true);
 
         if (streamed) _streamedUnmatched = response.Messages.Count;
+        FinishReason = response.FinishReason;
     }
 
     // D46: storing never observes the run's token, and a store that fails is logged while the run goes on. The
@@ -646,6 +654,9 @@ internal sealed class ConversationRun(
 
             return exception;
         }
+
+        // D47: a watcher that joins from here on reads the step from the store
+        Publisher?.Stored();
 
         await SettleCarriedAsync(messages);
         return null;

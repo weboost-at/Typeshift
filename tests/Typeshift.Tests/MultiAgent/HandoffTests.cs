@@ -202,6 +202,26 @@ public class HandoffTests : MultiAgentTestBase
         watch.Current.Text.Should().Be(Data.Tool.Answer);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Handoff_Its_Watcher_Hears_The_Run_End_Once_After_The_Answer(bool streaming)
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer));
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        var watched = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token).Take(4).ToListAsync(Ct);
+
+        // Act
+        await RunAsync(Data.Tool.Question, streaming);
+
+        // Assert
+        (await watched).Select(update => update.EndsRun).Should().Equal(false, false, false, true);
+    }
+
     [Fact]
     public async Task Given_A_Run_Watcher_A_Handoff_Reports_The_First_Agents_Run_As_Ended()
     {

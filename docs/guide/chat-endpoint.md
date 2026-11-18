@@ -163,6 +163,10 @@ private static async IAsyncEnumerable<SseItem<object>> Events(IAsyncEnumerable<C
 - A run that asks sends its `decision` events last, once it has ended, so the UI can post an answer the moment it
   shows the prompt. A reader that left the stream before then gets the decisions from the
   [endpoint below](#load-the-decisions).
+- The response reads the run's stream, so when the user leaves the page, ASP.NET stops reading and the run stops at
+  its next update, stored up to there, with or without a token. A run that has to finish either way runs as a
+  [background job](./using-an-agent.md#run-from-a-background-job), and the page follows it as below: a page that
+  joins while it answers receives the answer from its start, and `EndsRun` tells it the run ended.
 
 ## Follow a chat from elsewhere
 
@@ -196,9 +200,10 @@ internal sealed class ConversationHub(ConversationTracker<int> tracker, IChats c
 - In a hub, the current customer comes from the connection's user, so `ICurrentCustomer` reads it from there.
 - The browser calls `connection.stream("Watch", chatId)`. SignalR cancels `ct` when the browser disposes its
   subscription or the connection drops, which ends the loop.
-- A watch replays nothing, so a page that opens a chat shows its stored history first
-  ([Load the chat](#load-the-chat)) and then watches. An answer that was streaming when the page opened shows from
-  where the page joined, and the stored history holds it whole once its run has ended.
+- A page that opens a chat shows its stored history first ([Load the chat](#load-the-chat)) and then watches. A
+  watch begins with what the run going on published that the store does not hold yet, so an answer that was
+  streaming when the page opened shows from its start
+  ([Live updates](./conversations.md#live-updates)).
 
 Your app registers SignalR with its services and maps the hub next to the chat endpoints:
 

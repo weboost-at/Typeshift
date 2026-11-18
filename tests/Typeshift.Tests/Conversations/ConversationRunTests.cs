@@ -1098,6 +1098,103 @@ public class ConversationRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Watcher_That_Joins_Late_It_Receives_The_Text_So_Far_First()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+        ChatClient.Reply(Text("a"), Text("b"), gate, Text("c"));
+
+        await using var run = Host<ProbeAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunStreamingAsync(Data.Tool.Question, ct: Ct)
+            .GetAsyncEnumerator(Ct);
+
+        await run.MoveNextAsync();
+        await run.MoveNextAsync();
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        await using var watch = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token).GetAsyncEnumerator(Ct);
+
+        // Act
+        await watch.MoveNextAsync();
+
+        // Assert
+        watch.Current.Text.Should().Be("ab");
+    }
+
+    [Fact]
+    public async Task Given_A_Watcher_That_Joins_Late_It_Receives_Nothing_The_Store_Holds()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text("a"), gate, Text("b"));
+
+        await using var run = Host<ProbeAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunStreamingAsync(Data.Tool.Question, ct: Ct)
+            .GetAsyncEnumerator(Ct);
+
+        while (await run.MoveNextAsync() && run.Current.Text != "a")
+        {
+        }
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        await using var watch = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token).GetAsyncEnumerator(Ct);
+
+        // Act
+        await watch.MoveNextAsync();
+
+        // Assert
+        watch.Current.Contents.Should().ContainSingle(content => content is TextContent);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Run_That_Answers_Its_Watchers_Receive_Its_End_With_The_Finish_Reason(bool streaming)
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer), new ChatResponseUpdate { FinishReason = ChatFinishReason.Stop });
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        var watched = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token)
+            .Where(update => update.EndsRun)
+            .Take(1)
+            .ToListAsync(Ct);
+
+        var host = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+
+        // Act
+        if (streaming) await host.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
+        else await host.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        (await watched).Single().FinishReason.Should().Be(ChatFinishReason.Stop);
+    }
+
+    [Fact]
+    public async Task Given_A_Run_That_Fails_Its_Watchers_Last_Update_Holds_The_Error_Its_End_Stores()
+    {
+        // Arrange
+        ChatClient.Reply(new InvalidOperationException(Data.Agent.Reason));
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        var watched = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token).Take(1).ToListAsync(Ct);
+        var host = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+
+        // Act
+        await Record.ExceptionAsync(() => host.RunAsync(Data.Tool.Question, ct: Ct));
+
+        // Assert
+        (await watched).Single().Contents.OfType<ErrorContent>().Select(error => error.Message)
+            .Should()
+            .Equal(Data.Agent.Reason);
+    }
+
+    [Fact]
     public async Task Given_Text_Within_The_Interval_A_Watcher_Receives_It_Merged_Ahead_Of_The_Next_Call()
     {
         // Arrange

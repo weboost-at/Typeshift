@@ -60,8 +60,12 @@ public sealed class ConversationTracker<TId> where TId : notnull
             .Select(change => Live(change.Run) with { Ended = change.Ended });
 
     /// <summary>
-    /// The updates of a conversation's runs as they happen, until cancelled. A watcher that falls behind loses its
+    /// The updates of a conversation's runs as they happen, until cancelled. A watcher that joins while a run goes on
+    /// first receives what the run published that the store does not hold yet, such as the answer the model is
+    /// writing, and each run ends with an update whose <c>EndsRun</c> is true. A watcher that falls behind loses its
     /// oldest updates.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/conversations#live-updates">Live updates</see>.
     /// </summary>
     /// <param name="conversation">The conversation's id.</param>
     /// <param name="ct">Ends the watch.</param>

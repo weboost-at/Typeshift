@@ -81,6 +81,17 @@ public static class ChatResponseExtensions
         /// updates make has <c>ConversationIncomplete</c> set then.
         /// </summary>
         public bool ConversationIncomplete => IsIncomplete(update.AdditionalProperties);
+
+        /// <summary>
+        /// Whether the update is the last one a watcher of the conversation receives of a run, after the run's other
+        /// updates: the run answered, waits for your app, failed, or stopped. A run that failed or stopped holds the
+        /// error its stored end holds, as an <see cref="ErrorContent"/>; one that answered has the
+        /// <see cref="ChatResponseUpdate.FinishReason"/> of its last model call. The run's own stream has no such
+        /// update: it ends.
+        /// More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/conversations#live-updates">Live updates</see>.
+        /// </summary>
+        public bool EndsRun => update.AdditionalProperties?.ContainsKey(RunEnded) is true;
     }
 
     extension(ChatMessage message)
@@ -99,6 +110,9 @@ public static class ChatResponseExtensions
 
     // D46: the mark a run that was not stored whole puts on what it returns
     internal const string Incomplete = "typeshift.conversation_incomplete";
+
+    // D54: the mark of a run's last update to its watchers
+    internal const string RunEnded = "typeshift.run_ended";
 
     private static IEnumerable<Decision> DecisionsIn(IEnumerable<AIContent> contents) =>
         contents.OfType<DecisionRequestContent>().Select(request => request.Decision);
