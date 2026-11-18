@@ -138,6 +138,11 @@ is true on the entry [compaction](#compaction) appends when it summarizes, which
 a summary apart ([Start from the last summary](./implementing-a-store.md#start-from-the-last-summary)). A model response of a run
 with a maximum of input tokens also has `EstimatedInputTokens`, what compaction estimated its call at.
 
+Not every message in the user's role is the user's. A
+[background sub-agent's answer](./multi-agent.md#in-the-background) joins a run as one, with the sub-agent's name as
+its `AuthorName`, and so does the note that such a sub-agent failed or was lost. `message.IsBackgroundAnswer` is true
+for those, so a chat view built from the entries shows them as the sub-agent's.
+
 An entry serializes itself with `Serialize()` and `ConversationEntry.Deserialize(json)`, and JSON libraries handle it as
 it is. `System.Text.Json` writes and reads that same JSON, and Newtonsoft.Json writes it as a string, so a store or an
 API can pass entries on with either library and no settings.

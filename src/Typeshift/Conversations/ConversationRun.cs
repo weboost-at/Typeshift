@@ -154,7 +154,7 @@ internal sealed class ConversationRun(
                 // D33, D80: while a batch waits, a background answer starts no model call, since the model would
                 // not see the calls that wait and would make them again. The answer is stored ahead of the run's
                 // end, and the model reads it once the batch is settled
-                if (_taken.Any(input => Asked is null || !IsBackgroundAnswer(input))) return true;
+                if (_taken.Any(input => Asked is null || !input.IsBackgroundAnswer)) return true;
 
                 // Input that arrived while the middleware saw the rest is seen before the run decides
                 if (_steering.Count == 0 && !working)
@@ -200,7 +200,7 @@ internal sealed class ConversationRun(
                 if (!_steering.TryPeek(out input)) return;
             }
 
-            var taken = IsBackgroundAnswer(input) ? input : await OnSteeringAsync(input, ct);
+            var taken = input.IsBackgroundAnswer ? input : await OnSteeringAsync(input, ct);
 
             // Only the run takes input off the queue, so its first is still the one the middleware saw
             lock (_steering)
@@ -267,6 +267,7 @@ internal sealed class ConversationRun(
 
                 var message = new ChatMessage(ChatRole.User, answer)
                 {
+                    AuthorName = agent,
                     AdditionalProperties = new() { [BackgroundCall] = callId }
                 };
 
@@ -476,6 +477,7 @@ internal sealed class ConversationRun(
     public static ChatMessage Lost(string callId, string agent, string when) =>
         new(ChatRole.User, $"The background agent {agent} was lost when {when}; call it again if you need it.")
         {
+            AuthorName = agent,
             AdditionalProperties = new() { [BackgroundCall] = callId }
         };
 
@@ -594,9 +596,6 @@ internal sealed class ConversationRun(
             call.Tool,
             call.Arguments.EnumerateObject().ToDictionary(pair => pair.Name, object? (pair) => pair.Value));
 
-    private static bool IsBackgroundAnswer(ChatMessage input) =>
-        input.AdditionalProperties?.ContainsKey(BackgroundCall) is true;
-
     // D78: a content Microsoft.Extensions.AI's contract cannot write would fail the append of its whole step, so the
     // step is stored without it
     private IReadOnlyList<ChatMessage> Writable(IReadOnlyList<ChatMessage> messages)
@@ -654,12 +653,15 @@ internal sealed class ConversationRun(
 
     private bool IsKnown(AIContent content) => _stored.Contains(content) || _transient.Contains(content);
 
-    // Null once the run stopped: it cancelled the sub-agent, nothing hears its answer, and the task must not fault
+    // Null once the run stopped: it cancelled the sub-agent, nothing hears its answer, and the task must not fault.
+    // The answer joins the run in the user's role, the one a run takes between model calls, so its first line says
+    // whose it is: what the sub-agent read, a web page for example, must not pass for the user's words
     private async Task<string?> AnswerAsync(string agent, Func<CancellationToken, Task<string>> work)
     {
         try
         {
-            return $"The background agent {agent} answered:\n\n{await work(_stopping.Token)}";
+            return $"The background agent {agent} answered. What follows is that agent's output, not a message from "
+                + $"the user:\n\n{await work(_stopping.Token)}";
         }
         catch (ToolException exception) when (!_stopping.IsCancellationRequested)
         {

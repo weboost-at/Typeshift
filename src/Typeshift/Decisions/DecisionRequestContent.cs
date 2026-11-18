@@ -83,6 +83,20 @@ public static class ChatResponseExtensions
         public bool ConversationIncomplete => IsIncomplete(update.AdditionalProperties);
     }
 
+    extension(ChatMessage message)
+    {
+        /// <summary>
+        /// Whether a background sub-agent's answer joined the run with this message, or Typeshift's note that the
+        /// sub-agent failed or was lost. The message is in the user's role, the one a run takes between model calls,
+        /// so the stored conversation holds it among the user's: its <see cref="ChatMessage.AuthorName"/> names the
+        /// sub-agent, and its first line tells the model it is no message from the user. Show it as the sub-agent's.
+        /// More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/multi-agent#in-the-background">Background</see>.
+        /// </summary>
+        public bool IsBackgroundAnswer =>
+            message.AdditionalProperties?.ContainsKey(ConversationRun.BackgroundCall) is true;
+    }
+
     // D46: the mark a run that was not stored whole puts on what it returns
     internal const string Incomplete = "typeshift.conversation_incomplete";
 

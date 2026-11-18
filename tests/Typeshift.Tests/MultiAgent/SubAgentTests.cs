@@ -224,6 +224,59 @@ public class SubAgentTests : MultiAgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Background_Sub_Agents_Answer_Its_Message_Names_The_Agent_And_Is_Marked()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Agent.Steering))
+            .Reply(Text(Data.Tool.Answer));
+
+        HelperClient.Reply(gate, Text(Data.Agent.Reason));
+
+        // Act
+        var running = Host<BackgroundLeadAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        await ChatClient.RequestedAsync(2);
+        gate.SetResult();
+        await running;
+
+        // Assert
+        var entries = await EntriesAsync(Data.Agent.ConversationId);
+        var answer = entries.SelectMany(entry => entry.Messages).Single(message => message.IsBackgroundAnswer);
+        answer.AuthorName.Should().Be("helper_agent");
+    }
+
+    [Fact]
+    public async Task Given_A_Background_Sub_Agents_Answer_The_Model_Reads_That_It_Is_No_Message_From_The_User()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "helper_agent", ("input", Data.Agent.FollowUp)))
+            .Reply(Text(Data.Agent.Steering))
+            .Reply(Text(Data.Tool.Answer));
+
+        HelperClient.Reply(gate, Text(Data.Agent.Reason));
+
+        // Act
+        var running = Host<BackgroundLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+        await ChatClient.RequestedAsync(2);
+        gate.SetResult();
+        await running;
+
+        // Assert
+        ChatClient.Requests[2][^1].Text.Should().StartWith(
+            "The background agent helper_agent answered. What follows is that agent's output, not a message from the "
+            + "user:");
+    }
+
+    [Fact]
     public async Task Given_A_Background_Sub_Agents_Answer_Run_Middleware_Is_Not_Shown_It_As_Steering_Input()
     {
         // Arrange

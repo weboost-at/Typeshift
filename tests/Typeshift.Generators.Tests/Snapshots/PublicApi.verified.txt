@@ -119,6 +119,8 @@ public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithTopK(int to
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithTopP(float topP)
 public static class Typeshift.ChatResponseExtensions
 public static TId Typeshift.ChatResponseExtensions.GetConversationId<TId>(Microsoft.Extensions.AI.ChatResponse response) where TId : notnull, System.IParsable<TId>
+public static Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatMessage)
+public bool Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatMessage).IsBackgroundAnswer { get; }
 public static Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponse)
 public bool Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponse).ConversationIncomplete { get; }
 public System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponse).Decisions { get; }
@@ -130,6 +132,7 @@ public static bool Typeshift.ChatResponseExtensions.get_ConversationIncomplete(M
 public static bool Typeshift.ChatResponseExtensions.get_ConversationIncomplete(Microsoft.Extensions.AI.ChatResponseUpdate update)
 public static System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.get_Decisions(Microsoft.Extensions.AI.ChatResponse response)
 public static System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.get_Decisions(Microsoft.Extensions.AI.ChatResponseUpdate update)
+public static bool Typeshift.ChatResponseExtensions.get_IsBackgroundAnswer(Microsoft.Extensions.AI.ChatMessage message)
 public sealed class Typeshift.ConfigurableSettingsBuilder<TSettings> where TSettings : class
 public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ConfigurableSettingsBuilder<TSettings>.NotConfigurable<TMember>(System.Func<TSettings, TMember> member)
 public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ConfigurableSettingsBuilder<TSettings>.ReadOnly()

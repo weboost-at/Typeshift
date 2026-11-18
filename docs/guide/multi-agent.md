@@ -144,6 +144,11 @@ UseAgent<ExploreAgent>()
 <!-- endSnippet -->
 
 When the sub-agent finishes, its answer reaches the calling run as a message before the run's next model call.
+A run takes no other kind of message between two model calls, so it is in the user's role. Its `AuthorName` names
+the sub-agent, and its first line tells the model that what follows is that agent's output and not a message from
+the user, since the answer may repeat what the sub-agent read, a web page for example. The conversation stores it
+too, and `message.IsBackgroundAnswer` tells it apart from what the user wrote, so a chat view can show it as the
+sub-agent's.
 
 - A run does not end while its sub-agents work. Once the model stops calling tools, the run waits for the next
   answer and continues with it.

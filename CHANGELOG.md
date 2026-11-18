@@ -776,6 +776,11 @@ All notable changes to this project are documented here. The format follows
 - `ResumeAsync` on a conversation whose last entry is the model's answer, with the entry that ends the run missing
   after a crash or a failed save, stores the end and returns that answer. It called the model again, with the
   answer as the last message, and stored a second answer.
+- A background sub-agent's answer joins the calling run with the sub-agent's name as its `AuthorName` and a first
+  line that tells the model it is that agent's output, not a message from the user, and `message.IsBackgroundAnswer`
+  tells such a message, and the note that a sub-agent failed or was lost, from the user's. It came as an unmarked
+  user message, so what the sub-agent read, a web page for example, reached the calling model in the user's role,
+  and a chat view built from the stored conversation showed it as something the user wrote.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

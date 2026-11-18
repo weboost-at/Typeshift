@@ -730,7 +730,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **As built:** the sub-agent's tool is a runtime `AIFunction` that builds the agent's `AgentHost<T>` over the
   caller's services through a factory `UseAgent<T>()` captured (D76), so no generated code is needed; it finds its caller's run through
   `FunctionInvokingChatClient.CurrentContext`. Background answers join the run through the steering queue, so
-  every run has a `ConversationRun`, which stores only with a conversation; the run's end cancels the sub-agents
+  every run has a `ConversationRun`, which stores only with a conversation. Such an answer is a message in the
+  user's role, the one a run takes between model calls, with the sub-agent's name as its author, a first line that
+  tells the model it is no message from the user, and a mark that `IsBackgroundAnswer` reads, since what the
+  sub-agent read must not pass for the user's words, to the model or in a chat view built from the store; the run's end cancels the sub-agents
   still working and awaits them, so none outlives its run or the scope of a host disposed after it (D76), and the
   next run tells the model which ones it lost, after a crash, a cancellation or a failure,
   including the ones a summary left working. A handoff ends the handing agent's part of the run, so it stops them
