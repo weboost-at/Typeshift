@@ -8,8 +8,8 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Typeshift.Generators.Parsing;
 
 // D3: attribute-free; the syntax check passes only classes whose base list names Toolset, Agent or
-// JsonSerializerContext, so an edit re-binds just those, and the semantic check confirms the direct base. A base
-// named through a using alias is not found, which the analyzer reports (TSH017)
+// JsonSerializerContext, so each edit binds those classes alone, though all of them, and the semantic check confirms
+// the direct base. A base named through a using alias is not found, which the analyzer reports (TSH017)
 internal static class Discovery
 {
     public static bool IsToolset(SyntaxNode node, CancellationToken ct) => HasBase(node, "Toolset");

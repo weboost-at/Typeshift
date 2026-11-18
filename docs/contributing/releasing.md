@@ -61,7 +61,22 @@ nuget.org keeps later packages under the name.
    a broken demo shows only there. A demo that broke gets fixed before the tag, or the release notes say so. Without
    access to the runs, do what the workflow does: `dotnet build demos/Typeshift.Demos.slnx -c Release -warnaserror`,
    then run each demo offline as its README shows.
-5. Commit, then tag and push the tag:
+5. Measure the generator and cut its input apart, with the tool outside the solution:
+
+   ```shell
+   dotnet run --project tools/Typeshift.Tools.Generators -c Release -- measure
+   dotnet run --project tools/Typeshift.Tools.Generators -c Release -- fuzz
+   ```
+
+   `measure` prints what a generator run costs after an unrelated edit, by the number of toolsets and agents, and
+   what the analyzer costs in code that uses nothing of the library. Compare it with the table in
+   [Status](./status.md#known-gaps), and update the table when a number moved for a reason the changelog names.
+   `fuzz` runs the generator and the analyzer over every source of the generator tests and the docs samples, cut
+   after each token of each constructor, as the code stands while it is typed, and must end with no cut that made
+   either throw; it takes a few minutes, and `fuzz 4` runs it on four threads. A cut that does becomes an entry of
+   `HalfTypedSources` with its fix. Run both also after a change to the parsers or to `ConstructorChains`.
+
+6. Commit, then tag and push the tag:
 
    ```shell
    git tag -a v0.2.0 -m "Typeshift 0.2.0"
@@ -72,7 +87,7 @@ nuget.org keeps later packages under the name.
    `-alpha.1`. The workflow fails for a tag on any other commit. It also fails for any other `v` tag, such as `v0.2`:
    MinVer cannot read one, and would pack the version that follows the last tag it can read.
 
-6. Approve the `release` environment if it asks, then check the package on nuget.org and the GitHub release. If the
+7. Approve the `release` environment if it asks, then check the package on nuget.org and the GitHub release. If the
    GitHub release fails, rerun the failed job. The push skips packages nuget.org already has.
 
 A tag with a hyphen, such as `v0.2.0-alpha.1`, creates a prerelease on GitHub, and nuget.org marks it prerelease

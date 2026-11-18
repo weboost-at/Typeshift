@@ -47,7 +47,10 @@ the same code. The analyzer passes a `Reporter` that reports, while the generato
 what does not parse (D2).
 
 1. **Discovery** (`Parsing/Discovery.cs`) is attribute-free. The syntax predicate passes classes whose base list
-   names `Toolset`, `Agent` or `JsonSerializerContext`, and the semantic check confirms the direct base (D3).
+   names `Toolset`, `Agent` or `JsonSerializerContext`, and the semantic check confirms the direct base (D3). The
+   predicate decides which classes are bound, not when: after any edit the transforms bind and parse every toolset
+   and agent again, and what stays cached are the outputs, as long as the models compare equal.
+   `IncrementalCostTests` keeps what that costs under a budget per toolset and agent.
 2. **Parsing** (`Parsing/ToolsetParser.cs`) reads the constructors through `IOperation`: each
    `AddTool(...).WithName(...).ReadOnly().WithSettings<T>().Configurable(...)` chain, only directly in a constructor
    and only as one statement (D4). The analyzer receives the constructors as operation blocks, and the generator

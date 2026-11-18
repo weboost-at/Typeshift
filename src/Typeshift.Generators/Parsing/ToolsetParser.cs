@@ -68,9 +68,12 @@ internal static class ToolsetParser
                 .Select(call => call.TargetMethod.TypeArguments[0]),
             SymbolEqualityComparer.Default);
 
+        // D3: each edit parses every toolset again, and the tools of one often share their settings type
+        var read = new Dictionary<ITypeSymbol, SettingsType>(SymbolEqualityComparer.Default);
+
         foreach (var addTool in addTools)
         {
-            if (ParseTool(addTool, owner, settingsTypes, documented, reporter, ct) is not { } tool) continue;
+            if (ParseTool(addTool, owner, settingsTypes, read, documented, reporter, ct) is not { } tool) continue;
 
             var clash = declared
                 .Select(other => (
@@ -142,6 +145,7 @@ internal static class ToolsetParser
         IInvocationOperation addTool,
         INamedTypeSymbol owner,
         ISet<ITypeSymbol> ownerSettings,
+        IDictionary<ITypeSymbol, SettingsType> read,
         bool documented,
         Reporter reporter,
         CancellationToken ct)
@@ -228,7 +232,7 @@ internal static class ToolsetParser
             return null;
         }
 
-        var settings = chain.SettingsCall is null ? null : ParseSettings(chain, owner, reporter, ct);
+        var settings = chain.SettingsCall is null ? null : ParseSettings(chain, owner, read, reporter, ct);
         if (chain.SettingsCall is not null && settings is null) return null;
 
         // WithDescription("") describes as little as no call
@@ -409,6 +413,7 @@ internal static class ToolsetParser
     private static SettingsModel? ParseSettings(
         ToolChain chain,
         INamedTypeSymbol owner,
+        IDictionary<ITypeSymbol, SettingsType> read,
         Reporter reporter,
         CancellationToken ct)
     {
@@ -445,22 +450,25 @@ internal static class ToolsetParser
         }
 
         // D18: allowed one by one, or all but the excluded and the obsolete ones
-        bool IsConfigurable(IPropertySymbol property) =>
+        bool IsConfigurable(SettingsMember member) =>
             chain.ConfigurableByDefault
-                ? excluded.All(pick => pick.Property.Name != property.Name) && !property.IsObsolete
-                : picked.Any(pick => pick.Property.Name == property.Name);
+                ? excluded.All(pick => pick.Property.Name != member.Property.Name) && !member.IsObsolete
+                : picked.Any(pick => pick.Property.Name == member.Property.Name);
+
+        if (!read.TryGetValue(type, out var settings)) read[type] = settings = new SettingsType(type, ct);
 
         // An obsolete member that is not configurable stays out, so no generated member uses it and the consumer
         // gets no CS0618
         var properties = new List<SettingsPropertyModel>();
 
-        foreach (var property in type.GetPublicProperties().Where(property => property.IsSettable))
+        foreach (var member in settings.Members)
         {
-            var configurable = IsConfigurable(property);
-            if (!configurable && property.IsObsolete) continue;
+            var property = member.Property;
+            var configurable = IsConfigurable(member);
+            if (!configurable && member.IsObsolete) continue;
 
             // D19: what a store keeps; a pick names the member, a deny list the call that allowed it
-            var storage = configurable ? Storage.Of(property.Type) : null;
+            var storage = configurable ? settings.GetStorage(property) : null;
 
             if (configurable && storage is null)
             {
@@ -485,13 +493,13 @@ internal static class ToolsetParser
 
             properties.Add(new SettingsPropertyModel(
                 Name: property.Name,
-                Type: property.Type.ToFullyQualified(),
-                NullableType: property.Type.ToNullableFullyQualified(),
+                Type: member.Type,
+                NullableType: member.NullableType,
                 Storage: storage,
-                Summary: XmlDocs.Read(property, ct).Summary));
+                Summary: member.Summary));
         }
 
-        return new SettingsModel(type.ToTypeOf(), properties.ToEquatableArray(), type.GetSettingsExperimentalIds());
+        return new SettingsModel(settings.Name, properties.ToEquatableArray(), settings.ExperimentalIds);
     }
 
     // A layer applies to a copy of the code defaults, made with `with`, and the generated code of every agent that
@@ -665,6 +673,51 @@ internal static class ToolsetParser
         };
 
     private static string TypeArgument(ITypeSymbol type) => ((INamedTypeSymbol)type).TypeArguments[0].ToTypeOf();
+
+    // What a settings type declares and its docs say, read once for every tool of a toolset or an agent that
+    // names it; what a tool picks of it is that tool's own
+    private sealed class SettingsType
+    {
+        private readonly Dictionary<IPropertySymbol, StorageModel?> storage = new(SymbolEqualityComparer.Default);
+
+        public SettingsType(ITypeSymbol type, CancellationToken ct)
+        {
+            Name = type.ToTypeOf();
+            ExperimentalIds = type.GetSettingsExperimentalIds();
+
+            Members =
+            [
+                .. type.GetPublicProperties()
+                    .Where(property => property.IsSettable)
+                    .Select(property => new SettingsMember(
+                        property,
+                        property.IsObsolete,
+                        property.Type.ToFullyQualified(),
+                        property.Type.ToNullableFullyQualified(),
+                        XmlDocs.Read(property, ct).Summary))
+            ];
+        }
+
+        public string Name { get; }
+
+        public EquatableArray<string> ExperimentalIds { get; }
+
+        public IReadOnlyList<SettingsMember> Members { get; }
+
+        public StorageModel? GetStorage(IPropertySymbol property)
+        {
+            if (!storage.TryGetValue(property, out var model)) storage[property] = model = Storage.Of(property.Type);
+
+            return model;
+        }
+    }
+
+    private sealed record SettingsMember(
+        IPropertySymbol Property,
+        bool IsObsolete,
+        string Type,
+        string NullableType,
+        string? Summary);
 
     // What one AddTool chain declares, before it is checked
     private sealed class ToolChain

@@ -248,6 +248,22 @@ rewrite.
 
 ## Known gaps
 
+- **Every edit parses every toolset and agent.** The outputs stay cached after an edit of an unrelated file, but the
+  generator binds the constructors of each toolset and agent and parses them again (D3). Measured with
+  `dotnet run --project tools/Typeshift.Tools.Generators -c Release -- measure`, the least CPU time of 15 runs on a
+  shared machine of 4 cores and the median bytes; a pair is a toolset of three tools and an agent that uses two
+  toolsets:
+
+  | Pairs | CPU per run | Allocated per run | Per pair |
+  |---|---|---|---|
+  | 0 | 0.7 ms | 81 KB | |
+  | 5 | 20 ms | 2.0 MB | 396 KB |
+  | 10 | 35 ms | 3.7 MB | 373 KB |
+  | 50 | 152 ms | 17.8 MB | 355 KB |
+  | 100 | 284 ms | 35.3 MB | 353 KB |
+
+  A toolset of ten tools that share one settings type costs about 1.0 MB per pair. Binding only what each chain names
+  would cut about half of it, and waits for projects that need it.
 - **Sub-agents cannot ask.** A call of a sub-agent that would wait for your app is rejected, and a sub-agent is not
   offered `ask_user` (D33, D82). Passing its decision up to the caller's conversation would pause the calling run
   inside a tool call.

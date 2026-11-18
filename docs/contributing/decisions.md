@@ -66,14 +66,24 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Context:** v0 re-bound every class with a base list on each edit (about 170 ms per keystroke for 50 toolsets).
 - **Decision:** the syntax predicate takes classes whose base list names `Toolset`, `Agent` or
   `JsonSerializerContext` (any qualification); the semantic check confirms. No marker attribute.
+- **What an edit costs:** the predicate narrows which classes are bound, not when. A syntax provider runs its
+  transform again for every class it passed whenever the compilation changes, so each edit, in any file, binds the
+  constructors of every toolset and agent and parses them; only the outputs stay cached, while the models compare
+  equal. For a toolset of three tools and an agent that uses two toolsets (`ScaleSources`) a run after an unrelated
+  edit allocates about 360 KB and takes 2 to 4 ms of CPU per pair, half of it in binding the constructors
+  (`GetOperation`); the measurements by project size are in [Status](./status.md#known-gaps).
+  `IncrementalCostTests` holds the bytes under a budget per pair, and `tools/Typeshift.Tools.Generators` measures
+  the time before a release. Reading each chain from syntax and binding only what it names would cut the binding,
+  and changes the parsers the analyzer shares (D2) and the shapes D4 reports; it waits for projects that need it.
 - **A using alias is not followed:** the predicate reads the name in the base list, so a class that names its base
   through an alias, `using AgentBase = Typeshift.Agent;` in an app with an `Agent` of its own, is never generated.
   The analyzer, which starts from the symbol, reports it as TSH017 on the alias and parses no further; before, the
   class compiled, the agent offered nothing and failed at run time. A context named through an alias is not
   registered and lists nothing for TSH027.
-- **Alternatives:** a marker attribute with `ForAttributeWithMetadataName`, which reruns only changed files but adds
-  ceremony to every declaration. Following aliases in the predicate: one in the same file is cheap to resolve, but a
-  `global using` alias lives in another file and needs the compilation, which the predicate exists to avoid.
+- **Alternatives:** a marker attribute with `ForAttributeWithMetadataName`, which adds ceremony to every declaration
+  and saves nothing: it too runs its transform again for every marked class after an edit of another file. Following
+  aliases in the predicate: one in the same file is cheap to resolve, but a `global using` alias lives in another
+  file and needs the compilation, which the predicate exists to avoid.
 - **Where:** `Parsing/Discovery.cs`.
 
 ### D4. Every declaration shape the generator cannot read is diagnosed
