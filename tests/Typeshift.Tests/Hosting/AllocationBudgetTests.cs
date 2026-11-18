@@ -86,6 +86,21 @@ public class AllocationBudgetTests : AgentTestBase
         (allocated / Entries).Should().BeLessThan(EntryBudget);
     }
 
+    [Fact]
+    public async Task Given_Nobody_Watching_A_Streamed_Answer_Allocates_In_Step_With_Its_Updates()
+    {
+        // Arrange
+        var host = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+        await WarmUpAsync(() => StreamAsync(host, updates: 100));
+        var few = await Allocations.OfAsync(() => StreamAsync(host, updates: 500));
+
+        // Act
+        var many = await Allocations.OfAsync(() => StreamAsync(host, updates: 2_000));
+
+        // Assert
+        many.Should().BeLessThan(6 * few);
+    }
+
     protected override ValueTask DisposeCoreAsync()
     {
         _listener.Dispose();
@@ -101,6 +116,16 @@ public class AllocationBudgetTests : AgentTestBase
 
         ChatClient.Reply(Text(Data.Tool.Answer));
         await host.RunAsync(Data.Tool.Question, ct: Ct);
+    }
+
+    // The clock stands still, so every update falls into one publish interval
+    private async Task StreamAsync(AgentHost<ProbeAgent> host, int updates)
+    {
+        ChatClient.Reply([.. Enumerable.Range(0, updates).Select(_ => Text("word "))]);
+
+        await foreach (var _ in host.RunStreamingAsync(Data.Tool.Question, ct: Ct))
+        {
+        }
     }
 
     // Static state and caches fill on the first passes
