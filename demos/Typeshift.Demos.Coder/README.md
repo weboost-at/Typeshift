@@ -9,23 +9,29 @@ below stays far under it and shows no compaction. To see one, give the agent a t
 on a real model.
 
 ```bash
-# offline, on the canned models, against the bundled sample workspace, approving everything
+# offline, on the canned models, in a copy of the sample workspace, approving everything
 dotnet run --project demos/Typeshift.Demos.Coder -- --yes --trace
 
 # interactive, on a local LM Studio model, in a workspace of your own
-dotnet run --project demos/Typeshift.Demos.Coder -- ~/src/my-project lmstudio/qwen/qwen3.8-27b
+dotnet run --project demos/Typeshift.Demos.Coder -- ~/src/my-project --model lmstudio/qwen/qwen3.8-27b
 
 # the conversations on disk, and continuing one (an interrupted run is resumed first)
 dotnet run --project demos/Typeshift.Demos.Coder -- --list
 dotnet run --project demos/Typeshift.Demos.Coder -- ~/src/my-project --resume <conversation id>
 ```
 
+The demo runs commands with `/bin/sh`, and the sample workspace's tests are shell scripts, so it runs on Linux,
+macOS or in WSL, not on Windows itself. Without a workspace it works in a fresh copy of the sample workspace, one per
+conversation under `.typeshift/workspaces/`, so every offline run starts from the failing tests and `--resume <id>`
+finds the copy of its conversation. Each run ends by printing the arguments that continue it.
+
 Type a task at the prompt. While the agent works, whatever you type is steered into its run before its next model
-call. The plan is approved into auto mode (`a`), into the default mode that asks per tool (`d`), or rejected with
+call. An empty line, Ctrl+C or the end of the input stops the session; what the run stored stays, and a run cut off
+resumes. The plan is approved into auto mode (`a`), into the default mode that asks per tool (`d`), or rejected with
 your feedback. The shell guard rejects `sudo`, `rm -rf` and the like outright and approves commands that only look.
 
 `CoderAgent` declares `UseQuestions()`, so a real model may ask which way to go before it plans or edits. Answer
 with the number of an option, several numbers where the question takes them, or your own words. The canned models
 of the offline run never ask.
 
-Conversations and settings live under `.typeshift/` in the current directory.
+Conversations, settings and the providers live under `.typeshift/` in the current directory.

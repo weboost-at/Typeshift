@@ -65,9 +65,15 @@ internal static class ScriptedCoder
             }));
         }
 
-        return ScriptedCall.Text(passed
-            ? "Done: greet.sh now ends the greeting with an exclamation mark, and both tests pass."
-            : $"The tests still fail: {tests}");
+        // A model reads what its edit did, so a workspace edited before is no success
+        var edited = call.LastResultOf("edit_file") ?? "";
+
+        return ScriptedCall.Text((passed, edited.StartsWith("Edited", StringComparison.Ordinal)) switch
+        {
+            (true, true) => "Done: greet.sh now ends the greeting with an exclamation mark, and both tests pass.",
+            (true, false) => $"The tests pass, but my edit did not apply: {edited}",
+            _ => $"The tests still fail: {tests}"
+        });
     }
 
     private static ChatMessage ExploreNext(ScriptedCall call) =>
