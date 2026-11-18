@@ -197,9 +197,8 @@ internal sealed class ConversationHub(ConversationTracker<int> tracker, IChats c
 - The browser calls `connection.stream("Watch", chatId)`. SignalR cancels `ct` when the browser disposes its
   subscription or the connection drops, which ends the loop.
 - A watch replays nothing, so a page that opens a chat shows its stored history first
-  ([Load the chat](#load-the-chat)) and then watches. An answer
-  that was streaming when the page opened shows from where the page joined, and the stored history holds it whole
-  once its run has ended.
+  ([Load the chat](#load-the-chat)) and then watches. An answer that was streaming when the page opened shows from
+  where the page joined, and the stored history holds it whole once its run has ended.
 
 Your app registers SignalR with its services and maps the hub next to the chat endpoints:
 

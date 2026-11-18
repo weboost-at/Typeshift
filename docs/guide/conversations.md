@@ -87,8 +87,10 @@ Which runs start a conversation, and where it is kept:
 | A sub-agent's run | No | Its caller's conversation |
 
 A raw-path call names its conversation in `ChatOptions.ConversationId`, a string, so the next call continues the
-conversation with `options.ConversationId = response.ConversationId`. A `Guid` of version 7 sorts by the time it was
-made. For a conversation store of another id type, give the new ids with `NewConversationIds`:
+conversation with `options.ConversationId = response.ConversationId`.
+
+New ids are `Guid`s of version 7, which sort by the time they were made. For a conversation store of another id type,
+give the new ids with `NewConversationIds`:
 
 <!-- snippet: new-conversation-ids -->
 <a id='snippet-new-conversation-ids'></a>
