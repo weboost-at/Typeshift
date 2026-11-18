@@ -258,6 +258,8 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                 yield return new(Response: response);
             }
 
+            // D47: the pass's text reaches watchers whole before the run waits, goes on or hands off
+            run.Publisher?.Flush();
             await run.StoreResultsAsync(last);
 
             var handoff = HandoffIn(last) is { } handing
@@ -268,9 +270,8 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             {
                 try
                 {
-                    yield return streaming
-                        ? new(new ChatResponseUpdate(ChatRole.Tool, handoff.Result.Contents))
-                        : new(Response: new ChatResponse(handoff.Result));
+                    // Published as the run stored it, so a watcher pairs the handoff's call with its result
+                    yield return Made(run, handoff.Result, streaming);
 
                     await foreach (var part in RunOn(target, [], handed, streaming, ct))
                     {

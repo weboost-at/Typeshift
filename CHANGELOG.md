@@ -669,6 +669,13 @@ All notable changes to this project are documented here. The format follows
 - A streaming run that fails or is cancelled ends its stored conversation with the exception's message, as a run
   that does not stream does. It stored "The run stopped before it answered." for every failure, so a chat UI that
   streams could not tell from the store why a run had failed. A stream your code leaves early keeps that text.
+- A watcher of `WatchAsync` gets the end of an answer when the model's call ends. The last text of an answer waited
+  for the run's next update, so while a run waited for steering input or a background agent the watcher lacked the
+  end of the answer, and then received it merged with the first words of the next answer, under the first one's
+  ids. Text of two messages no longer merges into one update, and a streamed handoff's result reaches watchers, so
+  a UI that pairs calls with results no longer shows the handoff as running.
+- With nobody watching a conversation, its streamed updates are no longer merged for watchers: 2,000 updates within
+  one publish interval allocated 10.7 times what 500 did.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

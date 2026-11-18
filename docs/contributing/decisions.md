@@ -1344,8 +1344,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   from the get-go", and chose live updates on by default. `WatchAsync` threw until `WithRealtimeTracking()` was called.
 - **Decision:** `AddTypeshift()` registers the default `RealtimeTrackingOptions`, so runs with a conversation publish
   their updates and `WatchAsync` reads them without a call. `WithRealtimeTracking(options)` replaces the options and
-  only tunes the intervals and limits. A publish with no watcher is one dictionary lookup, and merged text waits for
-  the next update, so no timer runs (D47).
+  only tunes the intervals and limits. With no watcher an update costs one dictionary lookup: nothing is cloned or
+  merged. Merged text waits for the next update or the end of the model's stream, so no timer runs (D47).
 - **Where:** `Generated/ModuleRegistration.cs`, `DependencyInjection/TypeshiftBuilder.cs`,
   `Conversations/ConversationTracker.cs`.
 - **Alternatives:** keeping it opt-in, which the owner turned down; a switch to turn it off, which nothing needs yet.
@@ -1587,8 +1587,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   for a watcher. `PublishInterval` (100 ms) and `MaxPendingUpdates` (256) are options. `Runs` lists the runs of
   conversations going on in this process.
 - **Alternatives:** v0's process-wide events, awaited up to 5 s per model call.
-- **Details:** merged text waits for the next update or the end of the stream, so no timer runs per watcher. A run
-  that does not stream publishes each response and tool result as it stores them, through the same publisher.
+- **Details:** merged text waits for the next update or the end of the model's stream, so no timer runs per
+  watcher, and an update of another message, response, role or author starts a merge of its own, as
+  `ToChatResponse` tells messages apart. A run that does not stream publishes each response and tool result as it
+  stores them, through the same publisher; a streaming run publishes each update it hands its caller, the results
+  the run writes itself, such as a handoff's, included.
 - **Where:** `Conversations/LiveRuns.cs`, `Conversations/LivePublisher.cs`.
 
 ### D50. A conversation is stored step by step and resumes after a crash

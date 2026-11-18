@@ -285,8 +285,11 @@ await foreach (var update in tracker.WatchAsync(conversationId, ct))
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L86-L89' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-Text, reasoning and usage updates are merged and published at most every 100 ms, and other updates go out at once. A
-run never waits for a watcher, so a watcher that falls more than 256 updates behind loses the oldest ones, and
+Text, reasoning and usage updates are merged and published at most every 100 ms, and other updates go out at once.
+Merged text never spans two messages: text of another message goes out as an update of its own, and the last of an
+answer goes out as its model call ends, so a watcher has the whole answer while the run waits for steering input or
+a background agent. A watcher sees a handoff's call, its result, then the answer of the agent handed to. A run
+never waits for a watcher, so a watcher that falls more than 256 updates behind loses the oldest ones, and
 Typeshift [logs a warning](./observability.md#logs) the first time it does. You can change both limits with
 `WithRealtimeTracking`:
 

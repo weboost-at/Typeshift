@@ -176,6 +176,32 @@ public class HandoffTests : MultiAgentTestBase
         result.Should().Contain("not found");
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Handoff_A_Watcher_Receives_Its_Call_Its_Result_And_The_Answer(bool streaming)
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer));
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        await using var watch = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token).GetAsyncEnumerator(Ct);
+        var call = watch.MoveNextAsync();
+
+        // Act
+        await RunAsync(Data.Tool.Question, streaming);
+
+        // Assert
+        (await call).Should().BeTrue();
+        watch.Current.Contents.Should().ContainSingle(content => content is FunctionCallContent);
+        (await watch.MoveNextAsync()).Should().BeTrue();
+        watch.Current.Contents.Should().ContainSingle(content => content is FunctionResultContent);
+        (await watch.MoveNextAsync()).Should().BeTrue();
+        watch.Current.Text.Should().Be(Data.Tool.Answer);
+    }
+
     [Fact]
     public async Task Given_A_Run_Watcher_A_Handoff_Reports_The_First_Agents_Run_As_Ended()
     {

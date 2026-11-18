@@ -824,6 +824,67 @@ public class ConversationRunTests : AgentTestBase
         watch.Current.Contents.Should().ContainSingle(content => content is FunctionCallContent);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Steered_Run_A_Watcher_Receives_The_First_Answer_Before_The_Next_Call_Answers(
+        bool streaming)
+    {
+        // Arrange
+        var answering = new TaskCompletionSource();
+        var next = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(answering, Text(Data.Tool.Answer))
+            .Reply(next, Text(Data.Agent.FollowUp));
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        await using var watch = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token).GetAsyncEnumerator(Ct);
+        var call = watch.MoveNextAsync();
+
+        var run = RunAsync(Data.Tool.Question, streaming, Ct);
+        await ChatClient.RequestedAsync(2);
+        Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+        answering.SetResult();
+        await ChatClient.RequestedAsync(3);
+
+        // Act
+        await call;
+        await watch.MoveNextAsync();
+        var answered = await watch.MoveNextAsync().AsTask().WaitAsync(Ct);
+        var answer = watch.Current.Text;
+
+        // Assert
+        answered.Should().BeTrue();
+        answer.Should().Be(Data.Tool.Answer);
+        next.SetResult();
+        await run;
+    }
+
+    [Fact]
+    public async Task Given_Text_Of_Two_Messages_Within_The_Interval_A_Watcher_Receives_Each_Apart()
+    {
+        // Arrange
+        var second = new ChatResponseUpdate(ChatRole.Assistant, "b") { MessageId = Data.Tool.CallId };
+        var third = new ChatResponseUpdate(ChatRole.Assistant, "c") { MessageId = Data.Tool.SecondCallId };
+        ChatClient.Reply(Text("a"), second, third);
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        await using var watch = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token).GetAsyncEnumerator(Ct);
+        var first = watch.MoveNextAsync();
+
+        // Act
+        await RunAsync(Data.Tool.Question, streaming: true, Ct);
+
+        // Assert
+        (await first).Should().BeTrue();
+        (await watch.MoveNextAsync()).Should().BeTrue();
+        watch.Current.Text.Should().Be("b");
+        (await watch.MoveNextAsync()).Should().BeTrue();
+        watch.Current.Text.Should().Be("c");
+    }
+
     [Fact]
     public async Task Given_Text_Within_The_Interval_The_Merged_Update_Keeps_The_First_Updates_Ids()
     {

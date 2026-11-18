@@ -113,6 +113,9 @@ internal sealed class LiveRuns(RealtimeTrackingOptions realtime, ILoggerFactory?
         }
     }
 
+    // D74: whether anyone reads the conversation's updates, which a run asks before it merges any
+    public bool IsWatched(StoreId conversation) => _watchers.ContainsKey(conversation);
+
     public void Publish(StoreId conversation, ChatResponseUpdate update)
     {
         if (!_watchers.TryGetValue(conversation, out var feeds)) return;
