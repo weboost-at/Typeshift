@@ -30,26 +30,22 @@
     <PackageReference Include="MinVer" PrivateAssets="all" />
   </ItemGroup>
 
-  <!-- The code style of AGENTS.md as far as the build can hold it, for src, samples, tests and tools. The tools
-       measure CPU time and the compiler's own count, which the clock rule leaves alone. The demos are apps of their
-       own outside CI, where a failing guard would go unseen. -->
+  <!-- The code style of AGENTS.md as far as the build can hold it, for src, samples, tests, tools and demos: the style
+       rules .editorconfig sets to warning, an error with TreatWarningsAsErrors. The tools measure CPU time and the
+       compiler's own count, which the clock rule leaves alone. -->
   <PropertyGroup>
     <PathFromRepository>$([MSBuild]::MakeRelative('$(MSBuildThisFileDirectory)', '$(MSBuildProjectDirectory)').Replace('\', '/'))</PathFromRepository>
-    <HoldsCodeStyle>true</HoldsCodeStyle>
-    <HoldsCodeStyle Condition="$(PathFromRepository.StartsWith('demos/'))">false</HoldsCodeStyle>
-  </PropertyGroup>
-
-  <!-- The style rules .editorconfig sets to warning: an error with TreatWarningsAsErrors. -->
-  <PropertyGroup Condition="'$(HoldsCodeStyle)' == 'true'">
+    <IsApp>false</IsApp>
+    <IsApp Condition="$(PathFromRepository.StartsWith('samples/')) Or $(PathFromRepository.StartsWith('demos/'))">true</IsApp>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
   </PropertyGroup>
 
-  <!-- "Never read the clock" by symbol (RS0030). A sample is an app, so it may name the system clock where it
-       composes its services. The package is used at build time alone and adds nothing to Typeshift. -->
-  <ItemGroup Condition="'$(HoldsCodeStyle)' == 'true'">
+  <!-- "Never read the clock" by symbol (RS0030). A sample or a demo is an app, so it may name the system clock where
+       it composes its services. The package is used at build time alone and adds nothing to Typeshift. -->
+  <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.txt" />
-    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.Library.txt" Condition="!$(PathFromRepository.StartsWith('samples/'))" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)BannedSymbols.Library.txt" Condition="'$(IsApp)' != 'true'" />
   </ItemGroup>
 
 </Project>

@@ -1,5 +1,5 @@
-// What reads or waits on the real clock, for src, samples and tests (Directory.Build.props). An intended use carries
-// #pragma warning disable RS0030 with its reason.
+// What reads or waits on the real clock, for src, samples, tests, tools and demos (Directory.Build.props). An intended
+// use carries #pragma warning disable RS0030 with its reason.
 P:System.DateTime.Now;Never read the clock: inject TimeProvider and call GetLocalNow()
 P:System.DateTime.UtcNow;Never read the clock: inject TimeProvider and call GetUtcNow()
 P:System.DateTime.Today;Never read the clock: inject TimeProvider and call GetLocalNow()

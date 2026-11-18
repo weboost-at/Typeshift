@@ -11,6 +11,7 @@ on:
       - 'demos/**'
       - 'build/**'
       - 'Directory.*.props'
+      - 'BannedSymbols*.txt'
       - '.editorconfig'
       - 'global.json'
       - '.github/workflows/demos.yml'
