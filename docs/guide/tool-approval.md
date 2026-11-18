@@ -82,9 +82,17 @@ A streaming run carries its decisions in its last update, as `update.Decisions`,
 decision your app shows can be answered at once.
 
 A decision is stored with a [conversation](./conversations.md), so the sample runs on a host from
-`WithConversationId`. A run without a conversation id throws a `DecisionUnavailableException`, naming the tool, unless
-your app [keeps every conversation](./conversations.md#keeping-every-conversation). Run with one, approve the calls
-with a rule, or use [auto mode](#auto-mode).
+`WithConversationId`. A run without a conversation id has nowhere to keep a decision. When its agent offers a tool
+that requires approval, no [approval rule](#approval-rules) is registered and the run is not in
+[auto mode](#auto-mode), nothing could decide the tool's calls, so the run throws a `DecisionUnavailableException`
+that names the tools before it calls the model. It would fail at the first such call otherwise, after the model was
+paid and earlier calls ran. A run in [plan mode](#plan-mode) throws the same way, since only your app approves a
+plan. To run such an agent:
+
+- Give the host a conversation id, or have your app
+  [keep every conversation](./conversations.md#keeping-every-conversation).
+- For tools that require approval, register an approval rule or run in auto mode. With a rule registered the run
+  starts, and a call that no rule decides throws the same exception when the model makes it.
 
 `GetDecisionsAsync()` loads what a conversation waits for without a run, for a page that was reloaded: the decisions
 still open in `Open`, and the [standing approvals](#approving-for-the-conversation) in `Standing`.

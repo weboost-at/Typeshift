@@ -24,7 +24,8 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The response; its messages carry the agent's name as their author.</returns>
         /// <exception cref="global::Typeshift.DecisionUnavailableException">
-        /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+        /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
+        /// before it calls the model, or, with approval rules registered, at a call no rule decided.
         /// </exception>
         /// <exception cref="global::Typeshift.ConversationBusyException">
         /// A run of the host's conversation is going on in this container, or the store refused a step of this run
@@ -58,7 +59,8 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The response; its messages carry the agent's name as their author.</returns>
         /// <exception cref="global::Typeshift.DecisionUnavailableException">
-        /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+        /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
+        /// before it calls the model, or, with approval rules registered, at a call no rule decided.
         /// </exception>
         /// <exception cref="global::Typeshift.ConversationBusyException">
         /// A run of the host's conversation is going on in this container, or the store refused a step of this run
@@ -93,7 +95,8 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The response; its messages carry the agent's name as their author.</returns>
         /// <exception cref="global::Typeshift.DecisionUnavailableException">
-        /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+        /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
+        /// before it calls the model, or, with approval rules registered, at a call no rule decided.
         /// </exception>
         /// <exception cref="global::Typeshift.ConversationBusyException">
         /// A run of the host's conversation is going on in this container, or the store refused a step of this run
@@ -129,7 +132,8 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The response; its messages carry the agent's name as their author.</returns>
         /// <exception cref="global::Typeshift.DecisionUnavailableException">
-        /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+        /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
+        /// before it calls the model, or, with approval rules registered, at a call no rule decided.
         /// </exception>
         /// <exception cref="global::Typeshift.ConversationBusyException">
         /// A run of the host's conversation is going on in this container, or the store refused a step of this run
@@ -163,7 +167,8 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The updates; they carry the agent's name as their author.</returns>
         /// <exception cref="global::Typeshift.DecisionUnavailableException">
-        /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+        /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
+        /// before it calls the model, or, with approval rules registered, at a call no rule decided.
         /// </exception>
         /// <exception cref="global::Typeshift.ConversationBusyException">
         /// A run of the host's conversation is going on in this container, or the store refused a step of this run
@@ -197,7 +202,8 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The updates; they carry the agent's name as their author.</returns>
         /// <exception cref="global::Typeshift.DecisionUnavailableException">
-        /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+        /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
+        /// before it calls the model, or, with approval rules registered, at a call no rule decided.
         /// </exception>
         /// <exception cref="global::Typeshift.ConversationBusyException">
         /// A run of the host's conversation is going on in this container, or the store refused a step of this run
@@ -234,7 +240,8 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The run, which streams its updates and then holds the result.</returns>
         /// <exception cref="global::Typeshift.DecisionUnavailableException">
-        /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+        /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
+        /// before it calls the model, or, with approval rules registered, at a call no rule decided.
         /// </exception>
         /// <exception cref="global::Typeshift.ConversationBusyException">
         /// A run of the host's conversation is going on in this container, or the store refused a step of this run
@@ -271,7 +278,8 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="ct">Cancels the run.</param>
         /// <returns>The run, which streams its updates and then holds the result.</returns>
         /// <exception cref="global::Typeshift.DecisionUnavailableException">
-        /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+        /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
+        /// before it calls the model, or, with approval rules registered, at a call no rule decided.
         /// </exception>
         /// <exception cref="global::Typeshift.ConversationBusyException">
         /// A run of the host's conversation is going on in this container, or the store refused a step of this run

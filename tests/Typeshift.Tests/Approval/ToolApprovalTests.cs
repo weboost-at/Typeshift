@@ -205,7 +205,7 @@ public class ToolApprovalTests : ApprovalTestBase
     }
 
     [Fact]
-    public async Task Given_No_Conversation_A_Call_Needing_Approval_Throws_Naming_The_Tool()
+    public async Task Given_No_Conversation_A_Call_No_Rule_Decided_Throws_Naming_The_Tool()
     {
         // Arrange
         ChatClient.Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket));
@@ -218,6 +218,70 @@ public class ToolApprovalTests : ApprovalTestBase
             .ThrowAsync<DecisionUnavailableException>()
             .Where(unavailable => unavailable.Tools.SequenceEqual(new[] { "close_ticket" }));
         ToolCalls.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_No_Conversation_An_Agent_With_Approval_Tools_Throws_Before_The_Model_Is_Called()
+    {
+        // Arrange
+        await using var provider = WithoutRules();
+        await using var scope = provider.CreateAsyncScope();
+
+        // Act
+        var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<GuardedAgent>>()
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should()
+            .ThrowAsync<DecisionUnavailableException>()
+            .Where(unavailable => unavailable.Tools.SequenceEqual(new[] { "close_ticket" }));
+        ChatClient.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_No_Conversation_A_Run_That_Cannot_Ask_Names_The_Ways_To_Run_The_Agent()
+    {
+        // Arrange
+        await using var provider = WithoutRules();
+        await using var scope = provider.CreateAsyncScope();
+
+        // Act
+        var run = () => scope.ServiceProvider.GetRequiredService<AgentHost<GuardedAgent>>()
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should()
+            .ThrowAsync<DecisionUnavailableException>()
+            .WithMessage("*conversation id*PersistAllConversations*approval rule*auto mode*");
+    }
+
+    [Fact]
+    public async Task Given_No_Conversation_And_A_Rule_Registered_The_Run_Starts()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await Host<GuardedAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_No_Conversation_And_Auto_Mode_The_Run_Starts_Without_A_Rule()
+    {
+        // Arrange
+        await using var provider = WithoutRules();
+        await using var scope = provider.CreateAsyncScope();
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await scope.ServiceProvider.GetRequiredService<AgentHost<GuardedAgent>>()
+            .RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Auto }, ct: Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
     }
 
     [Fact]
@@ -650,5 +714,15 @@ public class ToolApprovalTests : ApprovalTestBase
         (await called).Should().BeTrue();
         (await watch.MoveNextAsync()).Should().BeTrue();
         watch.Current.Decisions.Select(decision => decision.Id).Should().Equal(response.Decisions[0].Id);
+    }
+
+    // The test's container without the base's approval rules, so nothing but your app decides a call
+    private ServiceProvider WithoutRules()
+    {
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton<TimeProvider>(Time).AddSingleton(ChatClient).AddSingleton(Models).AddSingleton(ToolCalls);
+
+        return services.BuildServiceProvider();
     }
 }

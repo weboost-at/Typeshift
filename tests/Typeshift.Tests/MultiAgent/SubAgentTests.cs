@@ -172,7 +172,9 @@ public class SubAgentTests : MultiAgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await Host<LeadAgent>().RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, ct: Ct);
+        await Host<LeadAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, ct: Ct);
 
         // Assert
         ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal("helper_agent", "exit_plan_mode");
@@ -189,7 +191,9 @@ public class SubAgentTests : MultiAgentTestBase
         HelperClient.Reply(Text(Data.Agent.Reason));
 
         // Act
-        await Host<LeadAgent>().RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, ct: Ct);
+        await Host<LeadAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, settings: new() { Mode = AgentMode.Plan }, ct: Ct);
 
         // Assert
         HelperClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Equal("read_ticket");

@@ -489,6 +489,14 @@ All notable changes to this project are documented here. The format follows
   and failed with a `ConversationStoreException` as it ended. A store throws it for an entry under a number its
   conversation holds, which a run in another instance of your app appended first, so an endpoint that answers a
   busy chat with 409 Conflict answers that run the same way.
+- **Breaking:** a run without a conversation throws `DecisionUnavailableException` before it calls the model when
+  its agent offers what only your app could decide: a tool that requires approval while no approval rule is
+  registered and the run is not in auto mode, or the plan of plan mode. It threw only when the model called such a
+  tool, after the model call was paid for and earlier tools had run, so a test in which the model never called it
+  passed. To run such an agent, give the host a conversation id with `WithConversationId(id)`, or keep every
+  conversation with `WithOptions(options => options.PersistAllConversations = true)`. For tools that require
+  approval, a rule registered with `WithApprovalRule<T>()` or `AgentMode.Auto` works too, and with a rule
+  registered a call no rule decides still throws when the model makes it.
 
 ### Fixed
 

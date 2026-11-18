@@ -867,7 +867,8 @@ internal static class AgentEmitter
             Docs.WriteException(
                 writer,
                 "global::Typeshift.DecisionUnavailableException",
-                "A tool call needs a decision of your app, and the run has no conversation to keep it in.");
+                "A call would need a decision of your app, and the run has no conversation to keep it in. The run "
+                + "throws before it calls the model, or, with approval rules registered, at a call no rule decided.");
             Docs.WriteException(writer, Busy, Going);
             Docs.WriteException(writer, NotStored, Lacking);
             Docs.WriteException(

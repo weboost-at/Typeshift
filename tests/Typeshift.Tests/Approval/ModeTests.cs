@@ -446,4 +446,17 @@ public class ModeTests : ApprovalTestBase
         // Assert
         response.Text.Should().Be(Data.Tool.Answer);
     }
+
+    [Fact]
+    public async Task Given_Plan_Mode_And_No_Conversation_The_Run_Throws_Before_The_Model_Is_Called()
+    {
+        // Act
+        var run = () => Host<PlanningAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        await run.Should()
+            .ThrowAsync<DecisionUnavailableException>()
+            .Where(unavailable => unavailable.Tools.SequenceEqual(new[] { "exit_plan_mode" }));
+        ChatClient.Requests.Should().BeEmpty();
+    }
 }

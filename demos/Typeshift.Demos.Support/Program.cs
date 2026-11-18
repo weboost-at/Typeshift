@@ -125,8 +125,9 @@ return await Demo.RunAsync(async () =>
     var followUp = await chat.RunAsync("Thanks! Also, my ticket about logging in: is there a fix?");
     Console.WriteLine($"{followUp.Messages[^1].AuthorName}> {followUp.Text}");
 
+    // A conversation of its own: the support agent offers tools that wait for approval, which only a conversation keeps
     Demo.Heading("The MCP status tool, offered next to the toolsets");
-    var status = await support.RunAsync("Is the login service down?");
+    var status = await support.WithConversationId(Guid.CreateVersion7()).RunAsync("Is the login service down?");
     Console.WriteLine($"{status.Messages[^1].AuthorName}> {status.Text}");
 
     Demo.Heading("Run middleware answers a blocked topic without a model");

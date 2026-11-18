@@ -48,12 +48,12 @@ It layers the agent's code, the stored settings, the conversation's mode, then `
 ([Settings layering](./settings-and-stores.md#settings-layering)).
 
 On a host with a conversation id, it stores the run as it goes ([What a run stores](#what-a-run-stores)). Without
-one, it stores nothing, offers no handoffs and no `ask_user`, and cannot ask for approval, unless your app keeps
-every conversation
-([Keeping every conversation](./conversations.md#keeping-every-conversation)). A run that cannot ask throws a
-`DecisionUnavailableException`, an `InvalidOperationException`, when the model calls a tool that requires approval
-and no rule or mode approves the call. To avoid that, run with a conversation id, approve the call with a rule, or
-run in `Auto` mode.
+one, it stores nothing, offers no handoffs and no `ask_user`, and cannot ask your app, unless your app keeps every
+conversation ([Keeping every conversation](./conversations.md#keeping-every-conversation)). Such a run throws a
+`DecisionUnavailableException`, an `InvalidOperationException`, before it calls the model when its agent offers what
+only your app could decide: a tool that requires approval while no approval rule is registered and the run is not
+in `Auto` mode, or a plan in `Plan` mode. With rules registered, it throws at a call no rule decided
+([When a call needs approval](./tool-approval.md#when-a-call-needs-approval)).
 
 A run throws a `ConversationBusyException` while its conversation has a run going on in this container
 ([One run at a time](./conversations.md#one-run-at-a-time)), a streaming one when its updates are read, and stores

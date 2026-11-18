@@ -41,8 +41,9 @@ was stored in, as text.
 
 The store keeps a conversation's entries under its id, and the [tracker](#live-runs) of the id's type finds a running
 run by it to steer or watch it. Without a conversation id, and without
-[`PersistAllConversations`](#keeping-every-conversation), a run stores nothing, so the next one starts from scratch. A
-tool call that needs your approval makes it throw, it offers no handoffs, and no tracker sees it.
+[`PersistAllConversations`](#keeping-every-conversation), a run stores nothing, so the next one starts from scratch. It
+offers no handoffs, no tracker sees it, and it throws before it calls the model when its agent offers a tool whose
+calls only your app could decide ([When a call needs approval](./tool-approval.md#when-a-call-needs-approval)).
 
 ### Keeping every conversation
 

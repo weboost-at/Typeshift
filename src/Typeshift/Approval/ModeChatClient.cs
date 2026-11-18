@@ -1,4 +1,5 @@
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift;
 
@@ -53,19 +54,23 @@ internal sealed class ModeChatClient(IChatClient inner, Func<int, IChatClient> l
 
         if (options.AgentRun!.Mode != AgentMode.Plan)
         {
+            EnsureDecidable(options, tools);
+
             offered.Tools = [.. tools.Select(GatedFunction.Wrap), .. questions];
             return offered;
         }
 
-        var planning = tools.Where(IsPlanningTool).Select(GatedFunction.Wrap);
+        var planning = tools.Where(IsPlanningTool).ToList();
 
         if (options.Caller is not null)
         {
-            offered.Tools = [.. planning];
+            offered.Tools = [.. planning.Select(GatedFunction.Wrap)];
             return offered;
         }
 
-        offered.Tools = [.. planning, .. questions, ExitPlanModeFunction.Instance];
+        EnsureDecidable(options, [.. planning, ExitPlanModeFunction.Instance]);
+
+        offered.Tools = [.. planning.Select(GatedFunction.Wrap), .. questions, ExitPlanModeFunction.Instance];
 
         offered.Instructions = options.Instructions is { } instructions
             ? $"{instructions}\n\n{ExitPlanModeFunction.Instructions}"
@@ -75,4 +80,28 @@ internal sealed class ModeChatClient(IChatClient inner, Func<int, IChatClient> l
     }
 
     private static bool IsPlanningTool(AITool tool) => ReadOnlyFunction.IsReadOnly(tool) || tool is SubAgentFunction;
+
+    // D81: a host's run without a conversation has nowhere to keep a decision, so one that offers a call only your app
+    // could decide fails before its first model call, not at that call, after the model was paid and earlier calls
+    // ran. An approval rule or auto mode decides a tool that requires approval; nothing but your app decides a plan.
+    // Questions are not offered there (D82), as handoffs are not, so they ask nothing
+    private static void EnsureDecidable(ResolvedChatOptions options, IEnumerable<AITool> offered)
+    {
+        if (options is not { Caller: null, ConversationRun.Conversation: null }) return;
+
+        var run = options.AgentRun!;
+        var decided = run.Mode == AgentMode.Auto || run.Services.GetServices<IToolApprovalRule>().Any();
+
+        List<AITool> approvals =
+            decided ? [] : [.. offered.Where(tool => tool.GetService<ApprovalRequiredAIFunction>() is not null)];
+
+        string[] undecided =
+        [
+            .. approvals.Select(tool => tool.Name),
+            .. offered.OfType<ExitPlanModeFunction>().Select(tool => tool.Name)
+        ];
+
+        if (undecided.Length > 0)
+            throw DecisionUnavailableException.Before(run.Agent.Name, undecided, approvals: approvals.Count > 0);
+    }
 }

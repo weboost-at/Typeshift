@@ -1874,8 +1874,15 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Details:** a call a rule, a standing approval or auto mode approves costs no extra round and no write. The
   batch is saved after the response's entry and before the loop sees the response, so a decision your app holds
   exists in the store: a save that fails, or a response whose append failed, fails the run with the store's
-  exception. A run without a conversation that must ask throws `DecisionUnavailableException`, naming the tools. A
-  streaming run holds back its updates from the first call of a response until the stream ends, since the loop
+  exception. A host's run without a conversation has nowhere to keep a decision, so it throws
+  `DecisionUnavailableException` before its first model call when it offers a call nothing but your app could
+  decide, naming the tools: a tool that requires approval while no `IToolApprovalRule` is registered and the run is
+  not in auto mode, or `exit_plan_mode` in plan mode. The mode layer checks it, where the run's tools are complete.
+  The owner's line is loud instead of silent: such a run failed at the first such call, after the model was paid
+  and earlier calls ran, and passed every test in which the model never made it. With rules registered, any of them
+  may approve, so the run starts, and a call no rule decided throws the same exception there. `ask_user` is not
+  offered there (D82), as handoffs are not (D34), so an agent that declares questions runs without them and fails
+  nothing. A streaming run holds back its updates from the first call of a response until the stream ends, since the loop
   copies calls as they arrive; its decisions travel in the run's last update, after the run's end is stored, so
   every decision your app sees can be answered, and that update keeps the ids, the model and the finish reason of
   the response that asked. In a response, a decision is a `DecisionRequestContent`, derived from
@@ -1900,7 +1907,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   and loses it at a restart; showing a streaming run's decisions the moment it asks, where steering can close a
   decision the app already shows; refusing new input while decisions wait, where "no, do this instead" is how
   people answer a prompt; translating Microsoft.Extensions.AI's approval answers in a run's input, which fits a
-  bridge for clients that speak that protocol, if one is built.
+  bridge for clients that speak that protocol, if one is built. For a run without a conversation: throwing only at
+  the call (up to 0.1.0-alpha.6), after the model was paid and earlier tools ran; rejecting the call with a reason
+  the model reads, as a sub-agent's is, which hides a setup that cannot work behind answers that go on.
 
 ### D82. Questions to the user are a built-in tool an agent declares
 
@@ -1932,7 +1941,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Alternatives:** a tool of the app's own that blocks until the user answers, which holds a run open across
   requests and loses it at a restart; free-text questions without options, which leave a UI nothing to render but
   a text box, where options with a free answer serve both; an `IQuestionHandler` callback, a second way to answer
-  beside `AnswerAsync`; asking through a sub-agent, which needs the child's run stored (D33).
+  beside `AnswerAsync`; asking through a sub-agent, which needs the child's run stored (D33); failing a run without
+  a conversation of an agent that declares questions before its first model call, as one that offers a tool that
+  requires approval fails (D81), which turns a chat agent that a job or a one-shot call reuses into one that only
+  runs in a conversation, while a question, unlike such a tool, is never offered there.
 
 ## Repository
 
