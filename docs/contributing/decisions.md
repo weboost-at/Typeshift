@@ -1235,7 +1235,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   id, typed by the call, so `WithSettingsId(42)` names an `ISettingsStore<int>` and `WithConversationId(chat)` an
   `IConversationStore<Guid>`. The id goes down the run as a `StoreId<TId>`, which reaches the store of its type
   through a generic call, so no type is made at run time and Native AOT keeps working; it is equal only to an id of
-  the same type and value, so conversation 5 as an `int` and as a `long` are two conversations. The generated members
+  the same type and value, so conversation 5 as an `int` and as a `long` are two conversations. An id of a nullable
+  value type is its value: `WithSettingsId<TId>(TId? id) where TId : struct` and its twin unwrap it, which overload
+  resolution prefers for a `Guid?`, so a request's `Guid?` and the `Guid` name one conversation, and one without a
+  value throws as a null id does. The generated members
   take no ids: a run uses the host's, a resume resumes the host's conversation, and the settings members of a host
   with a settings id load, save and configure the id's settings in place of the agent's own (D66). `WithStore<T>()`
   registers a store as each store interface its declared type implements, of any id type, and TSH028 reports only a
@@ -1249,7 +1252,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   choice: the raw path has no type of its own to parse it into.
 - **The tracker:** `ConversationTracker<TId>` lists, watches and steers the conversations under ids of `TId`, and the
   container has one for each id type an app asks for, as the owner chose ("Inject `ConversationTracker<int>` etc.; the
-  container provides one per id type you ask for"). `AddCoreServices` registers the open generic, whose public
+  container provides one per id type you ask for"). Beside registered stores, a tracker of an id type no
+  `IConversationStore<TId>` keeps throws at its first call, with the message a run under such an id gets, since it
+  would watch nothing forever. `AddCoreServices` registers the open generic, whose public
   constructor takes the `TypeshiftRuntime`. Under Native AOT, `Microsoft.Extensions.DependencyInjection` refuses to
   close an open generic over a value type, so `WithConversationTracker<TId>()` registers the tracker of one type as a
   singleton of its own; the console sample resolves `ConversationTracker<Guid>` through it, and that of `string`

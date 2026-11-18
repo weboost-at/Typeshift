@@ -13,7 +13,7 @@ namespace Typeshift;
 /// <typeparam name="TId">The type of the conversation ids, as <c>WithConversationId</c> gave them.</typeparam>
 public sealed class ConversationTracker<TId> where TId : notnull
 {
-    private readonly LiveRuns _runs;
+    private readonly Lazy<LiveRuns> _runs;
 
     // D72: public, so the container makes the tracker of any id type it is asked for
     /// <summary>
@@ -26,13 +26,24 @@ public sealed class ConversationTracker<TId> where TId : notnull
     {
         ArgumentNullException.ThrowIfNull(runtime);
 
-        _runs = runtime.Services.GetRequiredService<LiveRuns>();
+        var services = runtime.Services;
+
+        // D69, D72: beside a registered store, a tracker of an id type no store keeps would watch nothing forever, so
+        // its first call fails as a run under such an id does
+        _runs = new(() =>
+        {
+            services.GetRequiredService<StoreAccess>().ConversationStore<TId>();
+            return services.GetRequiredService<LiveRuns>();
+        });
     }
 
     /// <summary>
     /// The runs of conversations under ids of <typeparamref name="TId"/> going on now.
     /// </summary>
-    public IReadOnlyList<LiveRun<TId>> Runs => [.. _runs.Runs.Where(IsOfIdType).Select(Live)];
+    /// <exception cref="InvalidOperationException">
+    /// Your app registered stores, and none keeps conversations under ids of <typeparamref name="TId"/>.
+    /// </exception>
+    public IReadOnlyList<LiveRun<TId>> Runs => [.. _runs.Value.Runs.Where(IsOfIdType).Select(Live)];
 
     /// <summary>
     /// The runs of conversations under ids of <typeparamref name="TId"/> going on now, then each run as it starts and
@@ -40,8 +51,11 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// </summary>
     /// <param name="ct">Ends the watch.</param>
     /// <returns>The runs; one that ended has <see cref="LiveRun{TId}.Ended"/> set.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Your app registered stores, and none keeps conversations under ids of <typeparamref name="TId"/>.
+    /// </exception>
     public IAsyncEnumerable<LiveRun<TId>> WatchRunsAsync(CancellationToken ct) =>
-        _runs.WatchRunsAsync(ct)
+        _runs.Value.WatchRunsAsync(ct)
             .Where(change => IsOfIdType(change.Run))
             .Select(change => Live(change.Run) with { Ended = change.Ended });
 
@@ -52,8 +66,11 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// <param name="conversation">The conversation's id.</param>
     /// <param name="ct">Ends the watch.</param>
     /// <returns>The updates.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Your app registered stores, and none keeps conversations under ids of <typeparamref name="TId"/>.
+    /// </exception>
     public IAsyncEnumerable<ChatResponseUpdate> WatchAsync(TId conversation, CancellationToken ct) =>
-        _runs.WatchAsync(new StoreId<TId>(conversation), ct);
+        _runs.Value.WatchAsync(new StoreId<TId>(conversation), ct);
 
     /// <summary>
     /// Steers a run going on in this process: the input reaches the model before its next call, and the run does not
@@ -64,7 +81,11 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// <returns>
     /// False when no run of the conversation is going on here, or it is ending; start a run with the input instead.
     /// </returns>
-    public bool TrySteer(TId conversation, string input) => _runs.TrySteer(new StoreId<TId>(conversation), input);
+    /// <exception cref="InvalidOperationException">
+    /// Your app registered stores, and none keeps conversations under ids of <typeparamref name="TId"/>.
+    /// </exception>
+    public bool TrySteer(TId conversation, string input) =>
+        _runs.Value.TrySteer(new StoreId<TId>(conversation), input);
 
     // D72: a conversation of another id type is another tracker's
     private static bool IsOfIdType(ConversationRun run) => run.Conversation is StoreId<TId>;

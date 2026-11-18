@@ -142,11 +142,12 @@ declared, and `Agent.Description` what `WithDescription` or the agent's `<summar
 ### `WithSettingsId` and `WithConversationId`
 
 `AgentHost<TAgent> WithSettingsId<TId>(TId id)` and `AgentHost<TAgent> WithConversationId<TId>(TId id)`, where `TId`
-is any type but a nullable one.
+is any type but a nullable one, and `WithSettingsId<TId>(TId? id)` and `WithConversationId<TId>(TId? id)` for a
+nullable value type, such as `Guid?`, which take its value.
 
 Both return a copy of the host with the id, in the host's scope, and leave the host they are called on as it was.
-Disposing the copy disposes what disposing the host would ([`DisposeAsync`](#disposeasync-and-dispose)). Both throw
-an `ArgumentNullException` for a null id.
+Disposing the copy disposes what disposing the host would ([`DisposeAsync`](#disposeasync-and-dispose)). Each
+throws an `ArgumentNullException` for a null id.
 [Ids of your own types](./settings-and-stores.md#ids-of-your-own-types) explains the copy and the store its id picks:
 an `ISettingsStore<TId>` for a settings id, an `IConversationStore<TId>` for a conversation id.
 

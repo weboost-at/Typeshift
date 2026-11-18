@@ -83,6 +83,21 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         return Copy(new StoreId<TId>(id), _conversationId);
     }
 
+    // D72: the id's type is its value's, so a Guid? names the settings under the Guid
+    /// <summary>
+    /// Returns a copy of this host with the value of a settings id of a nullable value type, as a request's
+    /// <c>Guid?</c> holds it, and leaves this host as it was. The copy is the one the value itself gives.
+    /// </summary>
+    /// <param name="id">The id of the stored settings; it must hold a value.</param>
+    /// <typeparam name="TId">The id's type without the <c>?</c>.</typeparam>
+    /// <returns>
+    /// The copy, with this host's conversation id and in its scope. Disposing it disposes what disposing this host
+    /// would.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="id"/> holds no value.</exception>
+    public AgentHost<TAgent> WithSettingsId<TId>(TId? id) where TId : struct =>
+        Copy(new StoreId<TId>(id ?? throw new ArgumentNullException(nameof(id))), _conversationId);
+
     /// <summary>
     /// Returns a copy of this host with a conversation id and leaves this host as it was. The copy's runs resume the
     /// conversation and store what they add to it. The id's type picks the store: an
@@ -99,6 +114,20 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         ArgumentNullException.ThrowIfNull(id);
         return Copy(_settingsId, new StoreId<TId>(id));
     }
+
+    // D72: the id's type is its value's, so a Guid? names the conversation under the Guid
+    /// <summary>
+    /// Returns a copy of this host with the value of a conversation id of a nullable value type, as a request's
+    /// <c>Guid?</c> holds it, and leaves this host as it was. The copy is the one the value itself gives.
+    /// </summary>
+    /// <param name="id">The conversation's id; it must hold a value.</param>
+    /// <typeparam name="TId">The id's type without the <c>?</c>.</typeparam>
+    /// <returns>
+    /// The copy, with this host's settings id and in its scope. Disposing it disposes what disposing this host would.
+    /// </returns>
+    /// <exception cref="ArgumentNullException"><paramref name="id"/> holds no value.</exception>
+    public AgentHost<TAgent> WithConversationId<TId>(TId? id) where TId : struct =>
+        Copy(_settingsId, new StoreId<TId>(id ?? throw new ArgumentNullException(nameof(id))));
 
     // D72, D76: a copy runs in this host's scope and disposes it as this host would; a scope's disposal is idempotent
     private AgentHost<TAgent> Copy(StoreId? settingsId, StoreId? conversationId) =>

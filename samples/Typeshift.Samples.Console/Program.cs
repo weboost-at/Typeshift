@@ -36,7 +36,7 @@ Expect(stored.Data.Provider == Provider.Scripted, $"the provider {stored.Data.Pr
 
 // Native AOT: the Guid tracker is the one WithConversationTracker<Guid>() closed; the container makes that of string
 var tracker = provider.GetRequiredService<ConversationTracker<Guid>>();
-Expect(provider.GetRequiredService<ConversationTracker<string>>().Runs.Count == 0, "a run under a string id");
+Expect(provider.GetService<ConversationTracker<string>>() is not null, "no tracker of string ids");
 var live = tracker.WatchRunsAsync(CancellationToken.None).GetAsyncEnumerator();
 var watched = live.MoveNextAsync();
 

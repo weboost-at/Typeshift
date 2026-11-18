@@ -109,6 +109,11 @@ each request. Disposing it disposes
 what disposing `support` would, which for a host from the runtime is its scope
 ([The runtime](./registration.md#the-runtime)). Ids of the same value and different types are different ids: a
 conversation under 5 as an `int` is not the one under 5 as a `long`.
+
+So pick one type for each kind of id and keep it across your app, and give ids value equality: a number, a string, a
+`Guid`, an enum, a record or a struct, so that an id read twice names the same settings and the same conversation. A
+nullable id, such as the `Guid?` a request often holds, names what its value names, and one without a value throws
+an `ArgumentNullException`.
 [Which store serves a call](./implementing-a-store.md#which-store-serves-a-call) says what happens to an id whose type
 none of your stores keeps.
 
@@ -118,7 +123,9 @@ A few things follow the host's ids:
   [raw path](./running-agents.md#the-raw-path).
 - `ConversationTracker<TId>` lists, watches and steers the conversations under ids of `TId`, so a chat under `Guid`
   ids takes `ConversationTracker<Guid>`. The container has the tracker of every id type
-  ([Live runs](./conversations.md#live-runs)).
+  ([Live runs](./conversations.md#live-runs)). Once your app registers stores, the tracker of an id type that none of
+  them keeps conversations under throws at its first call, as a run under such an id does, where it would otherwise
+  watch nothing.
 
 ## Agent settings
 

@@ -279,6 +279,92 @@ public class IdScopeTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Nullable_Conversation_Id_With_A_Value_The_Run_Is_Stored_Under_The_Value()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        Guid? conversation = Data.Agent.ConversationId;
+
+        // Act
+        await Host<ProbeAgent>().WithConversationId(conversation).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        (await EntriesAsync(Data.Agent.ConversationId)).Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_Settings_Under_A_Nullable_Id_With_A_Value_A_Run_With_The_Value_Applies_Them()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        int? settingsId = Data.Persistence.NumberId;
+
+        await Host<ProbeAgent>().WithSettingsId(settingsId).ConfigureAsync(
+            settings => settings with { Temperature = Data.Agent.Temperature },
+            Ct);
+
+        // Act
+        await Host<ProbeAgent>().WithSettingsId(Data.Persistence.NumberId).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.Temperature.Should().Be(Data.Agent.Temperature);
+    }
+
+    [Fact]
+    public void Given_A_Nullable_Conversation_Id_Without_A_Value_Taking_The_Copy_Throws()
+    {
+        // Arrange
+        Guid? conversation = null;
+
+        // Act
+        var copy = () => Host<ProbeAgent>().WithConversationId(conversation);
+
+        // Assert
+        copy.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void Given_A_Nullable_Settings_Id_Without_A_Value_Taking_The_Copy_Throws()
+    {
+        // Arrange
+        int? settingsId = null;
+
+        // Act
+        var copy = () => Host<ProbeAgent>().WithSettingsId(settingsId);
+
+        // Assert
+        copy.Should().Throw<ArgumentNullException>();
+    }
+
+    [Fact]
+    public void Given_A_Tracker_Of_An_Id_Type_No_Store_Serves_Its_First_Call_Throws()
+    {
+        // Arrange
+        var tracker = Services.GetRequiredService<ConversationTracker<long>>();
+
+        // Act
+        var steer = () => tracker.TrySteer(Data.Persistence.NumberId, Data.Agent.FollowUp);
+
+        // Assert
+        steer.Should().Throw<InvalidOperationException>().WithMessage("No IConversationStore<long> is registered*");
+    }
+
+    [Fact]
+    public void Given_A_Tracker_Of_A_Nullable_Id_Type_No_Store_Serves_Its_Message_Names_The_Type_As_CSharp_Does()
+    {
+        // Arrange
+#pragma warning disable CS8714 // a tracker of a nullable id type, which the constraint only warns about
+        var tracker = Services.GetRequiredService<ConversationTracker<Guid?>>();
+#pragma warning restore CS8714
+
+        // Act
+        var runs = () => tracker.Runs;
+
+        // Assert
+        runs.Should().Throw<InvalidOperationException>().WithMessage("No IConversationStore<Guid?> is registered*");
+    }
+
+    [Fact]
     public async Task Given_A_Store_Your_App_Created_Runs_With_Ids_Of_Its_Type_Use_It()
     {
         // Arrange

@@ -174,6 +174,7 @@ internal static class TypeNames
     public static string Of(Type type) =>
         type switch
         {
+            _ when Nullable.GetUnderlyingType(type) is { } value => $"{Of(value)}?",
             { IsGenericType: true } => $"{type.Name[..type.Name.IndexOf('`')]}<{Arguments(type)}>",
             { IsEnum: true } => type.Name,
             _ => Type.GetTypeCode(type) switch

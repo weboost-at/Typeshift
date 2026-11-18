@@ -119,9 +119,17 @@ All notable changes to this project are documented here. The format follows
 - TSH042 warns about a `using` on a copy of a host that your code still holds, in an outer block, a field, a property
   or a parameter. Disposing the copy disposes the host's scope, so the host fails in a loop's next round, for
   example. `await using var chat = runtime.Agent<SupportAgent>().WithConversationId(ticket);` is not reported.
+- `WithSettingsId(id)` and `WithConversationId(id)` take an id of a nullable value type, such as the `Guid?` a
+  request often holds, and name what its value names. Without a value they throw an `ArgumentNullException`. Before,
+  such an id compiled with a nullable warning and was an id of its own type, `Guid?`: a store of `Guid` ids did not
+  keep it, and in memory it was another conversation than the same `Guid`.
 
 ### Changed
 
+- Once your app registers stores, a `ConversationTracker<TId>` whose id type none of them keeps conversations under
+  throws an `InvalidOperationException` at its first call, naming the `IConversationStore<TId>` it needs, as a run
+  under such an id does. It answered as if no conversation ran, forever: a `ConversationTracker<long>` in an app whose
+  ids are `int`s watched nothing. A store's messages name a nullable id type as C# does, `Guid?`.
 - **Breaking:** a tool result that is a JSON object or array reaches the provider's client as a `string`, the JSON
   without white space. It was a `JsonElement`, which the provider's client indented as it wrote the request: a tool
   returning 20 records cost about 60 percent more tokens on every model call that carried its result. A client of
