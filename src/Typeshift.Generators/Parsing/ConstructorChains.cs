@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Typeshift.Generators.Diagnostics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -77,8 +78,14 @@ internal static class ConstructorChains
     public static IOperation Unwrap(IOperation operation) =>
         operation is IConversionOperation conversion ? Unwrap(conversion.Operand) : operation;
 
-    public static string? GetConstantString(IInvocationOperation invocation) =>
-        invocation.Arguments[0].Value.ConstantValue is { HasValue: true, Value: string text } ? text : null;
+    // WithName("..."): the text a call's first argument holds, or TSH002 and null for one that is no constant
+    public static string? ReadConstant(IInvocationOperation call, string what, Reporter reporter)
+    {
+        if (call.Arguments[0].Value.ConstantValue is { HasValue: true, Value: string text }) return text;
+
+        reporter.Report(Descriptors.NotConstant, call.Arguments[0].Syntax, what);
+        return null;
+    }
 
     // s => s.Limit: the property the lambda reads from its parameter, and nothing else; null for any other shape
     public static IPropertySymbol? GetPickedProperty(IInvocationOperation pick) =>

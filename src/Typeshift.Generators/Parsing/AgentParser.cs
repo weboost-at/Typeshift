@@ -37,20 +37,12 @@ internal static class AgentParser
         out IReadOnlyList<(ToolModel Tool, IInvocationOperation AddTool)> tools,
         out AgentAsks asks)
     {
-        var notPartial = agent.GetNotPartial(ct);
-
-        if (notPartial is not null)
-            reporter.Report(Descriptors.NotPartial, notPartial.Locations.FirstOrDefault(), notPartial.Name);
-
-        var unreachable = agent.GetUnreachableReason();
-
-        if (unreachable is not null)
-            reporter.Report(Descriptors.Unreachable, agent.Locations.FirstOrDefault(), agent.Name, unreachable);
+        var (notPartial, unreachable) = ToolsetParser.ReadDeclaration(agent, reporter, ct);
 
         // A class cannot hold a member of its own name, so the agent's name is none of the generated ones either
         var clash = Members.Contains(agent.Name)
             ? agent
-            : Members.SelectMany(name => agent.GetMembers(name)).FirstOrDefault(IsUsers);
+            : Members.SelectMany(name => agent.GetMembers(name)).FirstOrDefault(Names.IsUsers);
 
         if (clash is not null)
         {
@@ -106,7 +98,7 @@ internal static class AgentParser
         // The user's own Configure{Tool}() wins over the one the generator would write, and so does the agent's own
         // name, which no member of it can have
         var configures = agent.GetMembers()
-            .Where(IsUsers)
+            .Where(Names.IsUsers)
             .Select(member => member.Name)
             .Append(agent.Name)
             .Where(name => name.StartsWith("Configure", StringComparison.Ordinal))
@@ -142,10 +134,6 @@ internal static class AgentParser
         } method
         && method.ContainingType.Is(KnownTypes.Agent);
 
-    // The analyzer sees the generated members too; only the user's own can clash
-    private static bool IsUsers(ISymbol member) =>
-        member.DeclaringSyntaxReferences.Any(reference => !Names.IsGenerated(reference.SyntaxTree));
-
     private static void Read(
         INamedTypeSymbol agent,
         IInvocationOperation call,
@@ -155,18 +143,18 @@ internal static class AgentParser
         switch (call.TargetMethod.Name)
         {
             case "WithName":
-                declarations.Name = ReadConstant(call, "agent name", reporter) ?? declarations.Name;
+                declarations.Name = ConstructorChains.ReadConstant(call, "agent name", reporter) ?? declarations.Name;
                 break;
 
             case "WithDescription":
-                declarations.Description = ReadConstant(call, "agent description", reporter)
+                declarations.Description = ConstructorChains.ReadConstant(call, "agent description", reporter)
                     ?? declarations.Description;
                 break;
 
             // D39, D40: what every stored document of the agent names, so both are read as constants. A value no
             // store could keep is reported, and the agent keeps its default, so the generated code stays valid
             case "WithStorageKind":
-                if (ReadConstant(call, "storage kind", reporter) is not { } kind) break;
+                if (ConstructorChains.ReadConstant(call, "storage kind", reporter) is not { } kind) break;
 
                 if (string.IsNullOrWhiteSpace(kind))
                 {
@@ -267,14 +255,6 @@ internal static class AgentParser
                 declarations.AsksUser = true;
                 break;
         }
-    }
-
-    private static string? ReadConstant(IInvocationOperation call, string what, Reporter reporter)
-    {
-        if (ConstructorChains.GetConstantString(call) is { } text) return text;
-
-        reporter.Report(Descriptors.NotConstant, call.Arguments[0].Syntax, what);
-        return null;
     }
 
     // D77: the static type of WithModel's provider is the agent's provider id type

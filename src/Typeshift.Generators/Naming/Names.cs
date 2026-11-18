@@ -82,11 +82,15 @@ internal static class Names
             ? [OverridesName(tool), FactoryName(tool), FunctionName(tool)]
             : [FactoryName(tool), FunctionName(tool)];
 
+    // Two tools an agent offers clash when their names read the same in PascalCase, as get_v2 and get_v_2 do: the
+    // agent would write one Configure{Tool}() and one member of its Settings for both
+    public static bool Clashes(string tool, string other) => ToPascalCase(tool) == ToPascalCase(other);
+
     // The name two tools of one toolset or agent would both generate, null when they share none: an equal name in
     // PascalCase, as get_v2 and get_v_2 have, a property of the tool list, as equals and equals_tool are with the
     // suffix, or a member of the class, as create_report's function and report_function's factory are
     public static string? SharedMember(string tool, string other) =>
-        ToPascalCase(tool) == ToPascalCase(other) ? ToPascalCase(tool)
+        Clashes(tool, other) ? ToPascalCase(tool)
         : ToolProperty(tool) == ToolProperty(other) ? ToolProperty(tool)
         : ClassMembers(tool).Intersect(ClassMembers(other)).FirstOrDefault();
 
@@ -127,6 +131,10 @@ internal static class Names
             .ToEquatableArray();
 
     public static bool IsGenerated(SyntaxTree tree) => tree.FilePath.Contains(Generator);
+
+    // The analyzer sees the generated members too; only the user's own can clash
+    public static bool IsUsers(ISymbol member) =>
+        member.DeclaringSyntaxReferences.Any(reference => !IsGenerated(reference.SyntaxTree));
 
     // The package's version, without the commit a build appends to it
     private static string GetVersion() =>

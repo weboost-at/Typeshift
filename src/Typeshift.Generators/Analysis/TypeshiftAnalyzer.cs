@@ -977,12 +977,12 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             var own = ownTools.Where(tool => Same(tool.Agent, agent)).ToList();
 
             var dropped = own.Where(tool => !offered.Tools.Contains(tool.Name)
-                && own.Count(other => Names.ToPascalCase(other.Name) == Names.ToPascalCase(tool.Name)) == 1);
+                && own.Count(other => Names.Clashes(other.Name, tool.Name)) == 1);
 
             foreach (var tool in dropped)
             {
                 var kept = Catalog.Resolve(agents[agent].Model, toolsets).Tools
-                    .First(other => Names.ToPascalCase(other.Tool.Name) == Names.ToPascalCase(tool.Name));
+                    .First(other => Names.Clashes(other.Tool.Name, tool.Name));
 
                 var meets = Meets(tool.Name, kept.Tool.Name, $"'{Simple(kept.Owner)}'");
 
@@ -1001,7 +1001,7 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
 
             foreach (var name in own.OwnTools)
             {
-                var taken = other.Tools.FirstOrDefault(tool => Names.ToPascalCase(tool) == Names.ToPascalCase(name));
+                var taken = other.Tools.FirstOrDefault(tool => Names.Clashes(tool, name));
                 if (taken is null) continue;
 
                 var declared = ownTools.FirstOrDefault(tool => Same(tool.Agent, owner) && tool.Name == name);

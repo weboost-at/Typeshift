@@ -53,7 +53,7 @@ internal static class Catalog
 
             foreach (var tool in tools)
             {
-                if (offered.Any(other => Clashes(other.Tool, tool))) continue;
+                if (offered.Any(other => Names.Clashes(other.Tool.Name, tool.Name))) continue;
 
                 offered.Add(new OfferedTool(toolset.Type, hidden ? tool with { Overrides = null } : tool));
             }
@@ -62,7 +62,7 @@ internal static class Catalog
         // D57: the agent's own tools come after its toolsets'
         foreach (var tool in agent.Tools.Select(own => Summarize(agent.Type, own)))
         {
-            if (offered.Any(other => Clashes(other.Tool, tool))) continue;
+            if (offered.Any(other => Names.Clashes(other.Tool.Name, tool.Name))) continue;
 
             offered.Add(new OfferedTool(agent.Type.FullName, tool));
         }
@@ -92,7 +92,4 @@ internal static class Catalog
                 .ToEquatableArray() ?? default,
             RequiresApproval: tool.RequiresApproval,
             ExperimentalIds: tool.Settings?.ExperimentalIds ?? default);
-
-    private static bool Clashes(ToolSummary offered, ToolSummary tool) =>
-        offered.Name == tool.Name || Names.ToPascalCase(offered.Name) == Names.ToPascalCase(tool.Name);
 }

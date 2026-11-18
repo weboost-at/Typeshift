@@ -30,24 +30,35 @@ internal static class ToolsetParser
         CancellationToken ct,
         out IReadOnlyList<(ToolModel Tool, IInvocationOperation AddTool)> declarations)
     {
-        var notPartial = toolset.GetNotPartial(ct);
-
-        if (notPartial is not null)
-            reporter.Report(Descriptors.NotPartial, notPartial.Locations.FirstOrDefault(), notPartial.Name);
-
-        var unreachable = toolset.GetUnreachableReason();
-        var isReachable = unreachable is null;
-
-        if (unreachable is not null)
-            reporter.Report(Descriptors.Unreachable, toolset.Locations.FirstOrDefault(), toolset.Name, unreachable);
+        var (notPartial, unreachable) = ReadDeclaration(toolset, reporter, ct);
 
         declarations = ParseTools(toolset, constructors, documented, reporter, ct);
         var tools = declarations.Select(declaration => declaration.Tool).ToEquatableArray();
 
         // A partial in another file would declare another class than a file-local one
         return notPartial is null && !toolset.IsFileLocalOrNestedInOne()
-            ? new ToolsetModel(TypeModels.From(toolset), isReachable, tools, toolset.GetExperimentalIds())
+            ? new ToolsetModel(TypeModels.From(toolset), unreachable is null, tools, toolset.GetExperimentalIds())
             : null;
+    }
+
+    // TSH001 and TSH016 for a toolset or an agent: the class that is not partial, and why generated code outside the
+    // class cannot reach it; each null when there is none
+    public static (INamedTypeSymbol? NotPartial, string? Unreachable) ReadDeclaration(
+        INamedTypeSymbol owner,
+        Reporter reporter,
+        CancellationToken ct)
+    {
+        var notPartial = owner.GetNotPartial(ct);
+
+        if (notPartial is not null)
+            reporter.Report(Descriptors.NotPartial, notPartial.Locations.FirstOrDefault(), notPartial.Name);
+
+        var unreachable = owner.GetUnreachableReason();
+
+        if (unreachable is not null)
+            reporter.Report(Descriptors.Unreachable, owner.Locations.FirstOrDefault(), owner.Name, unreachable);
+
+        return (notPartial, unreachable);
     }
 
     // The tools a toolset or an agent declares in its constructors; a tool that clashes is reported and left out
@@ -131,12 +142,8 @@ internal static class ToolsetParser
         method.Name == "AddTool"
         && (method.ContainingType.Is(KnownTypes.Toolset) || method.ContainingType.Is(KnownTypes.Agent));
 
-    // The analyzer sees the generated members too; only the user's own can clash
     private static ISymbol? ClashingMember(INamedTypeSymbol owner, ToolModel tool) =>
-        GetGeneratedMembers(tool)
-            .SelectMany(name => owner.GetMembers(name))
-            .FirstOrDefault(member => member.DeclaringSyntaxReferences
-                .Any(reference => !Names.IsGenerated(reference.SyntaxTree)));
+        GetGeneratedMembers(tool).SelectMany(name => owner.GetMembers(name)).FirstOrDefault(Names.IsUsers);
 
     private static IEnumerable<string> GetGeneratedMembers(ToolModel tool) =>
         Names.ToolsetMembers(tool.Name, tool.Settings?.HasConfigurable is true);
@@ -358,13 +365,13 @@ internal static class ToolsetParser
             switch (call.TargetMethod.Name)
             {
                 case "WithName":
-                    chain.Name = ReadConstant(call, "tool name", reporter);
+                    chain.Name = ConstructorChains.ReadConstant(call, "tool name", reporter);
                     chain.NameCall = call;
                     valid &= chain.Name is not null;
                     break;
 
                 case "WithDescription":
-                    chain.Description = ReadConstant(call, "tool description", reporter);
+                    chain.Description = ConstructorChains.ReadConstant(call, "tool description", reporter);
                     chain.DescriptionCall = call;
                     valid &= chain.Description is not null;
                     break;
@@ -400,14 +407,6 @@ internal static class ToolsetParser
         }
 
         return valid ? chain : null;
-    }
-
-    private static string? ReadConstant(IInvocationOperation call, string what, Reporter reporter)
-    {
-        if (ConstructorChains.GetConstantString(call) is { } text) return text;
-
-        reporter.Report(Descriptors.NotConstant, call.Arguments[0].Syntax, what);
-        return null;
     }
 
     private static SettingsModel? ParseSettings(
