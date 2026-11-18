@@ -7,7 +7,7 @@ protected Typeshift.ToolBuilder Typeshift.Agent.AddTool(System.Delegate method)
 protected Typeshift.Agent.Agent()
 protected virtual Typeshift.Generated.AgentDeclaration Typeshift.Agent.Declaration { get; }
 public string? Typeshift.Agent.Description { get; }
-protected virtual string? Typeshift.Agent.GetInstructions()
+protected virtual string? Typeshift.Agent.GetInstructions(System.IServiceProvider services)
 public string Typeshift.Agent.Name { get; }
 protected Typeshift.AgentUse Typeshift.Agent.UseAgent<TAgent>() where TAgent : Typeshift.Agent
 protected void Typeshift.Agent.UseContext<TProvider>() where TProvider : class, Typeshift.IContextProvider

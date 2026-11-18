@@ -511,6 +511,12 @@ All notable changes to this project are documented here. The format follows
   conversation with `WithOptions(options => options.PersistAllConversations = true)`. For tools that require
   approval, a rule registered with `WithApprovalRule<T>()` or `AgentMode.Auto` works too, and with a rule
   registered a call no rule decides still throws when the model makes it.
+- **Breaking:** an agent's `GetInstructions()` is `GetInstructions(IServiceProvider services)`, called for each run
+  with the run's services, so instructions can name the customer a run serves:
+  `services.GetRequiredService<ICurrentCustomer>().Name`. One instance of an agent serves every run, so the override
+  that took nothing could only return the same text each time. Move such a constant into `WithInstructions("...")`
+  in the agent's constructor, and give an override that builds its text the `IServiceProvider services` parameter.
+  An override of the old method is CS0115.
 
 ### Fixed
 

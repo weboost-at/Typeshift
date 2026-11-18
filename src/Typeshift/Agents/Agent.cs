@@ -48,7 +48,8 @@ public abstract class Agent
     // would have to override as protected internal
     internal AgentDeclaration GeneratedDeclaration => Declaration;
 
-    internal string? Instructions => GetInstructions();
+    // D21: an agent is one instance for every run, so what a run's instructions depend on comes from its services
+    internal string? InstructionsFor(IServiceProvider services) => GetInstructions(services);
 
     // D70: what WithInstructions set, which GetInstructions returns unless the agent overrides it
     private string? _instructions;
@@ -74,7 +75,7 @@ public abstract class Agent
 
     /// <summary>
     /// Sets the agent's instructions, its system prompt, when they are the same for every run. Override
-    /// <see cref="GetInstructions"/> for instructions your code builds when a run starts.
+    /// <see cref="GetInstructions"/> for instructions your code builds from the run's services when a run starts.
     /// </summary>
     /// <param name="instructions">The instructions.</param>
     protected void WithInstructions(string instructions) => _instructions = instructions;
@@ -189,8 +190,15 @@ public abstract class Agent
 
     /// <summary>
     /// The agent's instructions, its system prompt; called whenever a run's options are resolved. Without an
-    /// override, the instructions <see cref="WithInstructions"/> set.
+    /// override, the instructions <see cref="WithInstructions"/> set. One instance of the agent serves every run, so
+    /// an override builds what depends on the run from <paramref name="services"/>, such as the customer it serves.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/defining-agents#instructions-built-per-run">Instructions
+    /// built per run</see>.
     /// </summary>
+    /// <param name="services">
+    /// The run's services: those of the scope of the host that runs the agent, which its tools resolve from too.
+    /// </param>
     /// <returns>The instructions, or null for none.</returns>
-    protected virtual string? GetInstructions() => _instructions;
+    protected virtual string? GetInstructions(IServiceProvider services) => _instructions;
 }

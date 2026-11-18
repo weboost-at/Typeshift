@@ -363,7 +363,15 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 ### D21. Instructions come from a virtual method
 
-- **Status:** carried (v0 D42), brief.
+- **Status:** carried (v0 D42), changed.
+- **Decision:** `GetInstructions(IServiceProvider services)` returns the agent's instructions, and Typeshift calls it
+  each time it resolves a run's options, with the services of the host's scope, as tools receive them (D15). An
+  agent is one instance for every run, so what the instructions depend on, such as the customer a run serves, comes
+  from the services. Up to 0.1.0-alpha.6 it took nothing, so an override could only return a constant, and every
+  override in the samples and demos did; those moved to `WithInstructions` (D70).
+- **Alternatives:** keeping the parameterless method beside the new one, two overrides for one job where the one an
+  agent overrides decides which runs; a context of the run's ids and input, whose input a resume and the raw path
+  lack and steering changes within a run, while a context provider sees each pass's messages.
 
 ### D22. Agent names are optional and derive from the class
 
@@ -1081,9 +1089,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Context:** the owner asked for less ceremony. Constant instructions took an override of `GetInstructions()`, three
   lines outside the constructor that holds everything else an agent declares.
-- **Decision:** `WithInstructions(text)` in the constructor sets the instructions, and `GetInstructions()` returns
-  them unless the agent overrides it. The call runs when the agent is built, as the chat options' calls do, so the
-  text need not be a constant. An override still wins, for instructions built per run.
+- **Decision:** `WithInstructions(text)` in the constructor sets the instructions, and `GetInstructions(services)`
+  returns them unless the agent overrides it. The call runs when the agent is built, as the chat options' calls do,
+  so the text need not be a constant. An override still wins, for instructions built per run from the run's
+  services (D21).
 - **Where:** `Agents/Agent.cs`.
 - **Alternatives:** `WithChatOptions().WithInstructions(...)`, beside the model, which would split the instructions
   between `ChatOptions` and the override; reading them from the agent's XML docs, which already describe it to other

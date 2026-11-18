@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Typeshift.Samples.Hosting;
 using Typeshift.Samples.Knowledge;
 using Typeshift.Samples.Tickets;
@@ -44,9 +45,10 @@ internal partial class SupportAgent : Agent
         // end-snippet
     }
 
-    protected override string GetInstructions() =>
-        """
-        Answer from the customer's tickets and cite help center articles.
-        """;
+    protected override string GetInstructions(IServiceProvider services)
+    {
+        var customer = services.GetRequiredService<ICurrentCustomer>();
+        return $"Answer {customer.Name} from their tickets and cite help center articles.";
+    }
 }
 // end-snippet

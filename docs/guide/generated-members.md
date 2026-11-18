@@ -292,13 +292,14 @@ internal partial class SupportAgent : Agent
         UseQuestions();
     }
 
-    protected override string GetInstructions() =>
-        """
-        Answer from the customer's tickets and cite help center articles.
-        """;
+    protected override string GetInstructions(IServiceProvider services)
+    {
+        var customer = services.GetRequiredService<ICurrentCustomer>();
+        return $"Answer {customer.Name} from their tickets and cite help center articles.";
+    }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L52' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L8-L54' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 | Declaration | Member |
@@ -419,7 +420,7 @@ named after the tool and of type `ToolName`, and `Include` and `Exclude` pick fr
 UseToolset<TicketToolset>()
     .Exclude(t => t.CloseTicket);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L13-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-exclude-tools' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L15-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-exclude-tools' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The block gives `ToolList<TicketToolset>` the properties `SearchTickets`, `GetTicket` and `CloseTicket`. A tool

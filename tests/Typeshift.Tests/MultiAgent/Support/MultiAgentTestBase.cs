@@ -248,12 +248,12 @@ public partial class FrontAgent : Agent
     {
         WithDescription("Finds out what the customer needs.");
 
+        WithInstructions("Find out what the customer needs.");
+
         WithChatOptions().WithModel("scripted", "front-model");
 
         UseHandoff<BackAgent>();
     }
-
-    protected override string GetInstructions() => "Find out what the customer needs.";
 }
 
 public partial class BackAgent : Agent
@@ -264,12 +264,12 @@ public partial class BackAgent : Agent
     {
         WithDescription("Settles billing.");
 
+        WithInstructions(Prompt);
+
         WithChatOptions()
             .WithModel("scripted", "back-model")
             .Configurable(o => o.Temperature);
 
         UseHandoff<FrontAgent>();
     }
-
-    protected override string GetInstructions() => Prompt;
 }

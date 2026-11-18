@@ -543,6 +543,27 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_Instructions_Built_From_The_Runs_Services_The_Model_Receives_Them()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer));
+
+        await using var other = Services.CreateAsyncScope();
+        var otherHost = other.ServiceProvider.GetRequiredService<AgentHost<ScopedInstructionsAgent>>();
+
+        // Act
+        await Host<ScopedInstructionsAgent>().RunAsync(Data.Tool.Question, Ct);
+        await otherHost.RunAsync(Data.Tool.Question, Ct);
+
+        // Assert
+        ChatClient.Options.Select(options => options!.Instructions).Should().Equal(
+            ScopedInstructionsAgent.For(Scope.GetRequiredService<CallScope>().Id),
+            ScopedInstructionsAgent.For(other.ServiceProvider.GetRequiredService<CallScope>().Id));
+    }
+
+    [Fact]
     public async Task Given_No_Model_The_Run_Fails_Saying_How_To_Set_One()
     {
         // Act

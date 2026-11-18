@@ -8,6 +8,9 @@ internal partial class ResearchAgent : Agent
     {
         WithDescription("Researches the companies of a city.");
 
+        WithInstructions(
+            "Find companies with the find_companies tool and list them. Count those of a sector with count_companies.");
+
         // begin-snippet: provider-enum-model
         WithChatOptions()
             .WithModel(Provider.Scripted, "scripted-model")
@@ -24,9 +27,6 @@ internal partial class ResearchAgent : Agent
         ConfigureFindCompanies()
             .WithLimit(3);
     }
-
-    protected override string GetInstructions() =>
-        "Find companies with the find_companies tool and list them. Count those of a sector with count_companies.";
 }
 
 // What a run asking for structured output returns

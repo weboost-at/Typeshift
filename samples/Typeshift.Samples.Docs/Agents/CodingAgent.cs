@@ -7,6 +7,9 @@ internal partial class CodingAgent : Agent
 {
     public CodingAgent()
     {
+        WithInstructions(
+            "Work in the customer's workspace. Read before you change anything, and run the tests after every change.");
+
         WithChatOptions()
             .WithModel("anthropic", "claude-sonnet-5-5");
 
@@ -27,10 +30,5 @@ internal partial class CodingAgent : Agent
             .Configurable(r => r.SummaryModel);
         // end-snippet
     }
-
-    protected override string GetInstructions() =>
-        """
-        Work in the customer's workspace. Read before you change anything, and run the tests after every change.
-        """;
 }
 // end-snippet

@@ -238,6 +238,9 @@ internal partial class CodingAgent : Agent
 {
     public CodingAgent()
     {
+        WithInstructions(
+            "Work in the customer's workspace. Read before you change anything, and run the tests after every change.");
+
         WithChatOptions()
             .WithModel("anthropic", "claude-sonnet-5-5");
 
@@ -254,14 +257,9 @@ internal partial class CodingAgent : Agent
             .Configurable(r => r.MaxToolIterations)
             .Configurable(r => r.SummaryModel);
     }
-
-    protected override string GetInstructions() =>
-        """
-        Work in the customer's workspace. Read before you change anything, and run the tests after every change.
-        """;
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L5-L34' title='Snippet source file'>snippet source</a> | <a href='#snippet-coding-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 </details>

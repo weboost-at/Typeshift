@@ -51,7 +51,7 @@ The highest layer that sets a value wins:
 |---|---|---|---|
 | 4. The run | The `settings` argument of `RunAsync` and the other runs | Configurable members | That run |
 | 3. Stored | The agent's own `Settings`, then those under the host's settings id: `UpdateSettingsAsync`, `SaveSettingsAsync` | Configurable members | Every run, or every run with that settings id |
-| 2. The agent's code | `Configure{Tool}()`, `WithChatOptions()`, `WithRunOptions()`, `WithInstructions()` or `GetInstructions()` | Every settable member | Every run of the agent |
+| 2. The agent's code | `Configure{Tool}()`, `WithChatOptions()`, `WithRunOptions()`, `WithInstructions()` or `GetInstructions(services)` | Every settable member | Every run of the agent |
 | 1. The code's defaults | The settings record's parameterless constructor; the run options' defaults | Every member | Every run |
 
 Because the layers resolve when a run starts, settings saved during a run apply from the next run on.
@@ -72,7 +72,7 @@ The model resolves through the layers like any other value. It stays as the code
 agent's code allows that. Its provider is a value of its own, so a layer that sets only `Model` keeps the provider of
 the layer below.
 
-Stored or run `Instructions` replace the agent's own, from `WithInstructions` or `GetInstructions()`. Context providers and plan mode then
+Stored or run `Instructions` replace the agent's own, from `WithInstructions` or `GetInstructions(services)`. Context providers and plan mode then
 append to whatever instructions the layers resolved.
 
 ### The mode of a conversation

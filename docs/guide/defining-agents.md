@@ -83,13 +83,14 @@ internal partial class SupportAgent : Agent
         UseQuestions();
     }
 
-    protected override string GetInstructions() =>
-        """
-        Answer from the customer's tickets and cite help center articles.
-        """;
+    protected override string GetInstructions(IServiceProvider services)
+    {
+        var customer = services.GetRequiredService<ICurrentCustomer>();
+        return $"Answer {customer.Name} from their tickets and cite help center articles.";
+    }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L7-L52' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L8-L54' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The tools and their settings have sections of their own below. The other calls of this agent declare the rest:
@@ -101,7 +102,7 @@ The tools and their settings have sections of their own below. The other calls o
 | `UseMcpServer(...)` | The tools of an [MCP server](./mcp.md). `ReadOnly()` lets plan mode offer them. |
 | `UseContext<T>()` | A [context provider](./middleware.md#context-providers), whose instructions, messages and tools join every run. |
 | `UseQuestions()` | That the model may [ask the user](./tool-approval.md#asking-the-user) a question, which your app answers. |
-| `GetInstructions()` | The instructions, the agent's system prompt, as an override for text your code builds. `WithInstructions(...)` in the constructor suits instructions that are the same for every run. |
+| `GetInstructions(services)` | The instructions, the agent's system prompt, built for each run from the run's services ([Instructions built per run](#instructions-built-per-run)). `WithInstructions(...)` in the constructor suits instructions that are the same for every run. |
 
 [Builders](./builders.md#agent) lists every call an agent's constructor can make, with what each takes. Among them are
 `WithName`, for an agent that is not to be named after its class, and `UseAgent<T>()` and `UseHandoff<T>()`, which
@@ -118,6 +119,19 @@ Typeshift creates each agent once, with `new`, so the class needs a public or in
 cannot be nested as `private` or `protected` ([TSH016](./diagnostics.md#tsh016)). Its constructor therefore takes no
 services. The agent's tools reach them through their [`IServiceProvider` parameter](./toolsets.md#parameters).
 
+## Instructions built per run
+
+Instructions that depend on the run, such as the customer it serves, come from an override of
+`GetInstructions(IServiceProvider services)`, as in the `SupportAgent` above. Typeshift calls it each time it resolves
+a run's options, with the run's services: those of the host's scope, which the agent's tools and context providers
+resolve from too. One instance of the agent serves every run, so the override reads what varies from `services` and
+never from a field of the agent.
+
+- Stored or run settings that set `Instructions` replace what it returns, when the agent makes them configurable
+  ([Settings layering](./settings-and-stores.md#settings-layering)).
+- A [context provider](./middleware.md#context-providers) appends instructions after the agent's own. It suits
+  context that several agents share, and it sees the run's messages, which the override does not.
+
 ## Selecting tools
 
 `UseToolset<T>()` offers every tool of a toolset. Chain `Include` to offer only the tools you pick, in the order you
@@ -129,7 +143,7 @@ pick them, or `Exclude` to offer all but those:
 UseToolset<TicketToolset>()
     .Exclude(t => t.CloseTicket);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L13-L16' title='Snippet source file'>snippet source</a> | <a href='#snippet-exclude-tools' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L15-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-exclude-tools' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The lambda picks from a list the generator writes for each toolset, with one property per tool, named after the
@@ -213,7 +227,7 @@ WithRunOptions()
     .Configurable(r => r.Mode)
     .Configurable(r => r.MaxToolIterations);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L18-L24' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-options' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L20-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Run options set the [mode](./tool-approval.md#the-three-modes) a run starts in, the limits of its tool loop, whether

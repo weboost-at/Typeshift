@@ -7,6 +7,8 @@ internal partial class TriageAgent : Agent
 {
     public TriageAgent()
     {
+        WithInstructions("Find out what the customer needs, then hand off to support or billing.");
+
         WithChatOptions()
             .WithModel("openai", "gpt-5-mini");
 
@@ -26,8 +28,5 @@ internal partial class TriageAgent : Agent
         UseHandoff<SupportAgent>();
         UseHandoff<BillingAgent>();
     }
-
-    protected override string GetInstructions() =>
-        "Find out what the customer needs, then hand off to support or billing.";
 }
 // end-snippet

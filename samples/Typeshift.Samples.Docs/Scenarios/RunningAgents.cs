@@ -95,6 +95,7 @@ internal static class RunningAgents
         // end-snippet
 
         Expect(options.Tools?.Count > 0, "resolved options carry the agent's tools");
+        Expect(options.Instructions?.StartsWith("Answer Ada ") is true, "instructions built from the run's services");
         Expect(response.Text == answer.Text, "the raw path answers like a run");
     }
 

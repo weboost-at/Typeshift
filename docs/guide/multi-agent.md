@@ -31,17 +31,16 @@ internal partial class ReportAgent : Agent
 {
     public ReportAgent()
     {
+        WithInstructions("Write a market report. Ask research_agent for the companies of each city you cover.");
+
         WithChatOptions()
             .WithModel("anthropic", "claude-sonnet-5-5");
 
         UseAgent<ResearchAgent>();
     }
-
-    protected override string GetInstructions() =>
-        "Write a market report. Ask research_agent for the companies of each city you cover.";
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/ReportAgent.cs#L5-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-as-tool' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/ReportAgent.cs#L5-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-as-tool' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 A call runs the sub-agent in a fresh context, with no conversation of its own, and returns its answer's text. It
@@ -107,15 +106,15 @@ internal partial class MarketAgent : Agent
 {
     public MarketAgent()
     {
+        WithInstructions(
+            "Compare the markets of the cities you are given. Ask research_agent for each city's companies.");
+
         WithChatOptions()
             .WithModel("anthropic", "claude-sonnet-5-5");
 
         UseAgent<ResearchAgent>()
             .WithResult<CityCompanies>();
     }
-
-    protected override string GetInstructions() =>
-        "Compare the markets of the cities you are given. Ask research_agent for each city's companies.";
 }
 
 internal sealed record CityCompanies(string City, IReadOnlyList<string> Companies);
@@ -141,7 +140,7 @@ internal sealed record CityCompanies(string City, IReadOnlyList<string> Companie
 UseAgent<ExploreAgent>()
     .InBackground();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L15-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-background-sub-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/CodingAgent.cs#L18-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-background-sub-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 When the sub-agent finishes, its answer reaches the calling run as a message before the run's next model call.
@@ -172,6 +171,8 @@ internal partial class ExploreAgent : Agent
     {
         WithDescription("Explores the workspace and answers one question about it, citing files and lines.");
 
+        WithInstructions("Answer the question from the files. Read only what you need; quote the lines you rely on.");
+
         WithChatOptions()
             .WithModel("openai", "gpt-5-mini");
 
@@ -180,12 +181,9 @@ internal partial class ExploreAgent : Agent
             .Include(t => t.ListFiles)
             .Include(t => t.SearchFiles);
     }
-
-    protected override string GetInstructions() =>
-        "Answer the question from the files. Read only what you need; quote the lines you rely on.";
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/ExploreAgent.cs#L5-L24' title='Snippet source file'>snippet source</a> | <a href='#snippet-sub-agent' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/ExploreAgent.cs#L5-L23' title='Snippet source file'>snippet source</a> | <a href='#snippet-sub-agent' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Typeshift ships no file or shell tools, so `WorkspaceToolset` is yours to write. The
@@ -208,6 +206,8 @@ internal partial class TriageAgent : Agent
 {
     public TriageAgent()
     {
+        WithInstructions("Find out what the customer needs, then hand off to support or billing.");
+
         WithChatOptions()
             .WithModel("openai", "gpt-5-mini");
 
@@ -223,12 +223,9 @@ internal partial class TriageAgent : Agent
         UseHandoff<SupportAgent>();
         UseHandoff<BillingAgent>();
     }
-
-    protected override string GetInstructions() =>
-        "Find out what the customer needs, then hand off to support or billing.";
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L5-L33' title='Snippet source file'>snippet source</a> | <a href='#snippet-handoff' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/TriageAgent.cs#L5-L32' title='Snippet source file'>snippet source</a> | <a href='#snippet-handoff' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The conversation records which agent answered last, and its later runs go to that agent. That holds whichever host

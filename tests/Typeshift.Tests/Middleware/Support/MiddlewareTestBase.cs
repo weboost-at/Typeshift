@@ -48,6 +48,8 @@ public partial class ContextAgent : Agent
 
     public ContextAgent()
     {
+        WithInstructions(Prompt);
+
         WithChatOptions().WithModel("scripted", "context-model");
 
         WithRunOptions()
@@ -58,6 +60,4 @@ public partial class ContextAgent : Agent
 
         UseContext<ScriptedContext>();
     }
-
-    protected override string GetInstructions() => Prompt;
 }

@@ -279,7 +279,7 @@ public static class AgentSources
                     .WithLimit(5);
             }
 
-            protected override string GetInstructions() => "Answer.";
+            protected override string GetInstructions(System.IServiceProvider services) => "Answer.";
         }
 
         internal static class Startup

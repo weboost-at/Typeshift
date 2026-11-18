@@ -83,8 +83,10 @@ member needs a public `set` or `init` accessor ([TSH013](./diagnostics.md#tsh013
 | `UseMcpServer(string server)` | Offers the tools of an MCP server that your app's `IMcpToolProvider` connects. `.RequiresApproval()` makes every call to its tools wait for approval, and `.ReadOnly()` lets plan mode offer them. |
 | `UseContext<TProvider>()` | Adds what an `IContextProvider` returns to every run. The run's services resolve the provider, or create it when none is registered. |
 
-When your code builds the instructions, override the virtual method `GetInstructions()` instead of calling
-`WithInstructions`. Typeshift calls it each time it resolves a run's options, so it runs for every run.
+When your code builds the instructions for each run, override the virtual method
+`GetInstructions(IServiceProvider services)` instead of calling `WithInstructions`. Typeshift calls it each time it
+resolves a run's options, with the run's services
+([Instructions built per run](./defining-agents.md#instructions-built-per-run)).
 
 ## ChatOptionsBuilder
 
@@ -100,7 +102,7 @@ the client receives, so the provider's default applies:
 |---|---|---|---|
 | `WithModel(string model)` | `ModelId` alone. An agent that names no provider runs on the client registered for every agent ([Naming a model](./models.md#naming-a-model)) | The model of the client that serves the run | Yes, as `Provider` and `Model` |
 | `WithModel(TProviderId provider, string model)` | `ModelId`, and the [provider](./models.md) that serves it, whose type is the agent's [provider id type](./models.md#the-provider-id-type) | The model of the client that serves the run | Yes, as `Provider` and `Model` |
-| [`WithInstructions`](#agent) in the agent, or `GetInstructions()` overridden | `Instructions` | None | Yes |
+| [`WithInstructions`](#agent) in the agent, or `GetInstructions(services)` overridden | `Instructions` | None | Yes |
 | `WithTemperature(float temperature)` | `Temperature` | The provider's | Yes |
 | `WithMaxOutputTokens(int tokens)` | `MaxOutputTokens` | The provider's | Yes |
 | `WithTopP(float topP)` | `TopP` | The provider's | Yes |

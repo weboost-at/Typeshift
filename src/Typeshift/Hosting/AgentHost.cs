@@ -766,7 +766,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
 
         var options = new ResolvedChatOptions(Agent.ChatOptions)
         {
-            Instructions = Agent.Instructions,
+            Instructions = Agent.InstructionsFor(_services),
             Provider = Agent.Provider
         };
         var run = Agent.RunOptions;

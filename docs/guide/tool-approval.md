@@ -459,7 +459,7 @@ A call of it ends the run with a `QuestionDecision`, and what your app answers b
 ```cs
 UseQuestions();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L42-L44' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-questions' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/SupportAgent.cs#L43-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-use-questions' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The model asks one to four questions in a call. Each has a short `Header`, the question's `Text` and two to four

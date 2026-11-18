@@ -9,6 +9,14 @@ internal partial class CoderAgent : Agent
     {
         WithDescription("Changes the code of a workspace: plans first, edits, then runs the tests.");
 
+        WithInstructions(
+            """
+            You are a careful coding agent working in the user's workspace. Keep a to-do list with write_todos, read a
+            file before you edit it, make small edits with edit_file, and run the tests with run_command after every
+            change. Ask explorer_agent when you need an overview of the workspace; it answers later as a message. When
+            the task is done, say what you changed in two sentences.
+            """);
+
         WithChatOptions()
             .WithTemperature(0.2f)
             .Configurable(o => o.ModelId)
@@ -43,12 +51,4 @@ internal partial class CoderAgent : Agent
         ConfigureReadFile()
             .WithMaxLines(400);
     }
-
-    protected override string GetInstructions() =>
-        """
-        You are a careful coding agent working in the user's workspace. Keep a to-do list with write_todos, read a
-        file before you edit it, make small edits with edit_file, and run the tests with run_command after every
-        change. Ask explorer_agent when you need an overview of the workspace; it answers later as a message. When
-        the task is done, say what you changed in two sentences.
-        """;
 }
