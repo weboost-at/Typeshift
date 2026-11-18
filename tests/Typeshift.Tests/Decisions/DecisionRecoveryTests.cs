@@ -63,7 +63,9 @@ public class DecisionRecoveryTests : DecisionTestBase
         // Arrange
         ChatClient.Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket));
         Store.FailingAppend = 3;
-        var asked = await RunAsync(Data.Tool.Question);
+
+        var failed = await Record.ExceptionAsync(() => RunAsync(Data.Tool.Question));
+        var asked = ((ConversationStoreException)failed!).Response;
 
         // Act
         var resumed = await Chat.ResumeAsync(ct: Ct);
@@ -181,7 +183,7 @@ public class DecisionRecoveryTests : DecisionTestBase
 
         var asked = await RunAsync(Data.Tool.Question);
         Store.FailingAppend = 4;
-        await AnswerAsync(DecisionAnswer.Approve(asked.Decisions[0].Id));
+        await Record.ExceptionAsync(() => AnswerAsync(DecisionAnswer.Approve(asked.Decisions[0].Id)));
 
         // Act
         await RunAsync(Data.Agent.FollowUp);
@@ -225,7 +227,7 @@ public class DecisionRecoveryTests : DecisionTestBase
 
         await RunAsync(Data.Tool.Question);
         Store.FailingAppend = 4;
-        await RunAsync(Data.Agent.FollowUp);
+        await Record.ExceptionAsync(() => RunAsync(Data.Agent.FollowUp));
 
         // Act
         await RunAsync(Data.Agent.Steering);

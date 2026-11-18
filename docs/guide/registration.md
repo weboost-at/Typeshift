@@ -87,7 +87,7 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 | `WithStore(provider => ...)` | A store the container builds with your factory, as each store interface the factory's return type implements | Singleton |
 | `WithFileStore(configure)` | The file store, as `IAgentSettingsStore` | Singleton |
 | `WithChatClientProvider<TProvider>()` | `TProvider`, as each `IChatClientProvider<T>` it implements | Scoped |
-| `WithOptions(options => ...)` | `TypeshiftOptions`, such as `PersistAllConversations` | Singleton |
+| `WithOptions(options => ...)` | `TypeshiftOptions`, such as `PersistAllConversations` and `StoreFailure` | Singleton |
 | `WithRealtimeTracking(options)` | `RealtimeTrackingOptions`, the limits of live updates | Singleton |
 | `WithConversationTracker<TId>()` | The `ConversationTracker<TId>` of one id type | Singleton |
 | `WithApprovalRule<TRule>()` | One more `IToolApprovalRule`, which decides calls before your app is asked | Scoped |
@@ -113,7 +113,9 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
   registered ([Registering clients](./models.md#registering-clients)). One class may implement
   `IChatClientProvider<T>` for several provider types, and for each type the last call wins.
 - Each `WithOptions` call changes the same `TypeshiftOptions` further. `PersistAllConversations` keeps the runs
-  without a conversation id ([Keeping every conversation](./conversations.md#keeping-every-conversation)).
+  without a conversation id ([Keeping every conversation](./conversations.md#keeping-every-conversation)), and
+  `StoreFailure` says what a run does when its conversation could not be saved
+  ([When the store fails](./conversations.md#when-the-store-fails)).
 - Live updates are on without `WithRealtimeTracking`. Its optional `RealtimeTrackingOptions` replace the defaults
   that `ConversationTracker<TId>.WatchAsync` follows: a `PublishInterval` of 100 ms and `MaxPendingUpdates` of 256.
 - `WithConversationTracker<TId>()` registers the closed tracker as a singleton of its own. An app published with

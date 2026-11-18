@@ -199,25 +199,99 @@ public class ConversationStoreTests : AgentTestBase
         await first;
     }
 
-    [Fact]
-    public async Task Given_A_Store_That_Fails_To_Append_The_Run_Still_Answers()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Store_That_Fails_To_Append_The_Run_Throws_Carrying_The_Answer(bool streaming)
     {
         // Arrange
-        var services = new ServiceCollection();
-        services.AddTypeshift().WithStore<FailingAppendStore>().WithChatClientProvider<ScriptedChatClientProvider>();
-        services.AddSingleton(ChatClient).AddSingleton(Models);
-
-        await using var provider = services.BuildServiceProvider();
+        await using var provider = FailingAppends(StoreFailure.FailRun);
         await using var scope = provider.CreateAsyncScope();
+        var chat = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
+
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        var response = await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+        var failed = await Record.ExceptionAsync(async () =>
+        {
+            if (streaming) await chat.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
+            else await chat.RunAsync(Data.Tool.Question, ct: Ct);
+        });
+
+        // Assert
+        failed.Should().BeOfType<ConversationStoreException>();
+        ((ConversationStoreException)failed!).Response.Text.Should().Be(Data.Tool.Answer);
+        failed.InnerException.Should().BeOfType<IOException>();
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_The_Continue_Option_The_Run_Answers_And_The_Response_Says_The_Conversation_Is_Incomplete(
+        bool streaming)
+    {
+        // Arrange
+        await using var provider = FailingAppends(StoreFailure.ContinueRun);
+        await using var scope = provider.CreateAsyncScope();
+        var chat = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = streaming
+            ? (await chat.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct)).ToChatResponse()
+            : await chat.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
+        response.ConversationIncomplete.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Given_A_Store_That_Appends_Every_Step_The_Response_Says_Nothing_Is_Missing()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await Host<ProbeAgent>()
             .WithConversationId(Data.Agent.ConversationId)
             .RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
-        response.Text.Should().Be(Data.Tool.Answer);
+        response.ConversationIncomplete.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Given_A_Handoff_Whose_Input_Was_Not_Stored_Under_The_Continue_Option_The_Response_Is_Incomplete()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+        services.AddTypeshift()
+            .WithStore<FlakyAppendStore>()
+            .WithChatClientProvider<ScriptedChatClientProvider>()
+            .WithOptions(options => options.StoreFailure = StoreFailure.ContinueRun);
+
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        provider.GetRequiredService<FlakyAppendStore>().Failing = 1;
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await scope.ServiceProvider.GetRequiredService<AgentHost<MultiAgent.Support.FrontAgent>>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        response.ConversationIncomplete.Should().BeTrue();
     }
 
     [Fact]
@@ -234,9 +308,9 @@ public class ConversationStoreTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+        await Record.ExceptionAsync(() => scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, ct: Ct));
 
         // Assert
         log.Errors.Should().Contain(error => error.Exception is IOException);
@@ -343,7 +417,7 @@ public class ConversationStoreTests : AgentTestBase
             .Reply(Text(Data.Tool.Answer))
             .Reply(Text(Data.Agent.Reason));
 
-        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await Record.ExceptionAsync(() => host.RunAsync(Data.Tool.Question, ct: Ct));
 
         // Act
         await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
@@ -671,6 +745,20 @@ public class ConversationStoreTests : AgentTestBase
     }
 
     private static ChatResponseUpdate Answer(params AIContent[] contents) => new(ChatRole.Assistant, contents);
+
+    // A container whose store fails every append, and runs that do what the option says then
+    private ServiceProvider FailingAppends(StoreFailure failure)
+    {
+        var services = new ServiceCollection();
+
+        services.AddTypeshift()
+            .WithStore<FailingAppendStore>()
+            .WithChatClientProvider<ScriptedChatClientProvider>()
+            .WithOptions(options => options.StoreFailure = failure);
+
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+        return services.BuildServiceProvider();
+    }
 
     // A run as an earlier version of Microsoft.Extensions.AI stored it: its answer holds two contents under type
     // names this version does not know

@@ -19,6 +19,7 @@ public partial class AgentGenerationTests : GeneratorTestBase
     private const string Newer = "global::System.Text.Json.JsonException";
     private const string Busy = "global::Typeshift.ConversationBusyException";
     private const string Nothing = "global::Typeshift.NothingToResumeException";
+    private const string NotStored = "global::Typeshift.ConversationStoreException";
 
     [Fact]
     public void Given_An_Agent_Its_Settings_Declaration_Host_Members_Module_And_Interceptor_Are_Generated()
@@ -48,12 +49,12 @@ public partial class AgentGenerationTests : GeneratorTestBase
     }
 
     [Theory]
-    [InlineData("RunAsync", new[] { Unavailable, Busy, Invalid, Newer })]
-    [InlineData("RunStreamingAsync", new[] { Unavailable, Busy, Invalid, Newer })]
-    [InlineData("AnswerAsync", new[] { Closed, Argument, Conflict, Busy, Invalid, Newer })]
-    [InlineData("AnswerStreamingAsync", new[] { Closed, Argument, Conflict, Busy, Invalid, Newer })]
-    [InlineData("ResumeAsync", new[] { Nothing, Busy, Invalid, Newer })]
-    [InlineData("ResumeStreamingAsync", new[] { Nothing, Busy, Invalid, Newer })]
+    [InlineData("RunAsync", new[] { Unavailable, Busy, NotStored, Invalid, Newer })]
+    [InlineData("RunStreamingAsync", new[] { Unavailable, Busy, NotStored, Invalid, Newer })]
+    [InlineData("AnswerAsync", new[] { Closed, Argument, Conflict, Busy, NotStored, Invalid, Newer })]
+    [InlineData("AnswerStreamingAsync", new[] { Closed, Argument, Conflict, Busy, NotStored, Invalid, Newer })]
+    [InlineData("ResumeAsync", new[] { Nothing, Busy, NotStored, Invalid, Newer })]
+    [InlineData("ResumeStreamingAsync", new[] { Nothing, Busy, NotStored, Invalid, Newer })]
     [InlineData("ResolveOptionsAsync", new[] { Invalid, Newer })]
     [InlineData("LoadSettingsAsync", new[] { Invalid, Newer })]
     [InlineData("SaveSettingsAsync", new[] { Conflict, Invalid })]

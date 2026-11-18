@@ -57,8 +57,10 @@ run in `Auto` mode.
 
 A run throws a `ConversationBusyException` while its conversation has a run going on in this process
 ([One run at a time](./conversations.md#one-run-at-a-time)), a streaming one when its updates are read, and stores
-nothing of itself then. It throws an `InvalidOperationException` when no chat client or no store serves it, and when
-its chat client runs a tool loop of its own ([Wrapping a client](./models.md#wrapping-a-client)). It throws a
+nothing of itself then. It throws a `ConversationStoreException`, which holds its answer, as it ends when the store
+failed to append one of its steps ([When the store fails](./conversations.md#when-the-store-fails)). It throws an
+`InvalidOperationException` when no chat client or no store serves it, and when its chat client runs a tool loop of
+its own ([Wrapping a client](./models.md#wrapping-a-client)). It throws a
 `JsonException` for stored settings of a newer schema version than the code's
 ([Migrate older settings](./implementing-a-store.md#migrate-older-settings)).
 

@@ -137,6 +137,11 @@ All notable changes to this project are documented here. The format follows
   `InvalidOperationException`s, as these refusals were before, so a `catch` you wrote keeps working, and an
   endpoint now tells a double click on send from a mistake by type: "A chat that is answering" in the guide's page
   on chat endpoints maps the first to 409 Conflict. Their `Conversation` names the conversation.
+- `ConversationStoreException` is what a run throws when the store failed to append a step of its conversation. Its
+  `Response` holds what the run answered, its `Decisions` included, and its inner exception is the store's.
+  `TypeshiftOptions.StoreFailure = StoreFailure.ContinueRun` has such a run return instead, and then
+  `response.ConversationIncomplete`, and `update.ConversationIncomplete` on a stream's last update, says that the
+  conversation lacks a step.
 
 ### Changed
 
@@ -447,6 +452,13 @@ All notable changes to this project are documented here. The format follows
   its test and leaked everywhere else. Set the response in place of calling `next` to answer in place of the
   model. To check or change what a model says, wrap the provider's client in a `DelegatingChatClient`: "Guarding
   the answer" in the guide's page on middleware shows one that holds in every place the answer goes.
+- A run whose conversation the store failed to append a step of fails as it ends, with a
+  `ConversationStoreException`. It returned its answer as if everything was kept: a lost end made a finished run
+  look interrupted, so a resume ran it again, and a lost answer was gone at the next page load, behind a success.
+  To keep the answer, catch the exception and use its `Response`. To have such runs return as before, set
+  `AddTypeshift().WithOptions(options => options.StoreFailure = StoreFailure.ContinueRun)`, and read
+  `response.ConversationIncomplete` to tell the user. "When the store fails" on the guide's conversations page has
+  both.
 
 ### Fixed
 

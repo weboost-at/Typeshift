@@ -93,6 +93,11 @@ internal sealed class ConversationRun(
     // Why the store did not take the last model response, if it did not
     public Exception? ResponseFailure { get; private set; }
 
+    // D46: the exception of the first step the store did not take, which makes the run fail or mark its response
+    public Exception? NotStored => Volatile.Read(ref _notStored);
+
+    private Exception? _notStored;
+
     public bool HasReplay => _replay is not null;
 
     // D51: a run that is ending takes no steering input, and a run started with that input waits for its end
@@ -519,6 +524,7 @@ internal sealed class ConversationRun(
         {
             LogEvents.StepNotStored(logger, exception, Conversation);
             run.Activity?.AddException(exception);
+            Interlocked.CompareExchange(ref _notStored, exception, null);
 
             return exception;
         }

@@ -60,6 +60,14 @@ internal static class Telemetry
         activity?.AddException(exception);
     }
 
+    // D46: a run that returns although its conversation lacks a step is an error too; the store's exception is on the
+    // span already, as an event of the append that failed
+    public static void NotStored(Activity? activity, Exception exception)
+    {
+        activity?.SetTag("error.type", exception.GetType().FullName);
+        activity?.SetStatus(ActivityStatusCode.Error, exception.Message);
+    }
+
     // D80: what the run asks your app, counted on its span and an event for each decision. A run that ends waiting
     // is no error; what it asked is here, and what became of it on the span of the run that settles it
     public static void Asked(Activity? activity, DecisionBatch batch)

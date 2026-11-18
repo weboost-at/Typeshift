@@ -244,7 +244,9 @@ public class TypeshiftRuntimeTests : AgentTestBase
         await using var agent = runtime.Agent<ModelOnlyAgent>();
 
         // Act
-        await agent.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        await Record.ExceptionAsync(() => agent.WithConversationId(Data.Agent.ConversationId).RunAsync(
+            Data.Tool.Question,
+            ct: Ct));
 
         // Assert
         log.Errors.Should().Contain(error => error.Exception is IOException);

@@ -1567,9 +1567,15 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   each step (D50). The provider never receives the
   conversation id. On resume, each result follows the message that made its call, and unanswered calls, results
   without their call and error messages are left out, and so are the approval requests and answers a version before
-  D80 stored. A failed save is logged and traced, and the answer returns; only the response that asks your app must
-  be stored, since a decision without its call could not be carried out (D81). The agent's name goes on
-  `AuthorName`, never into `AdditionalProperties`.
+  D80 stored. A failed save is logged and traced, and the run goes on, storing what it can, to its end; then it
+  throws a `ConversationStoreException` that holds what it answered, with the store's exception inside. The
+  conversation is the record approvals, the mode and resumes rely on, so a run that could not write it is no
+  success: a lost end makes a finished run look interrupted and resumable, a lost answer is gone at the next load.
+  `TypeshiftOptions.StoreFailure = StoreFailure.ContinueRun` lets an app have such a run return, with
+  `ConversationIncomplete` set on the response (and on a stream's last update), and the run's span is an error
+  either way. The response that asks your app and its decision must be stored whatever the option says, since a
+  decision without its call could not be carried out (D81): that run throws the store's exception at once. The
+  agent's name goes on `AuthorName`, never into `AdditionalProperties`.
 - **Details:** the end of a run is an entry of its own (`EndsRun`), with an `ErrorContent` when the run failed, was
   cancelled or its stream was left early: the exception's message, streaming or not, and a fixed text for a stream
   its caller left, which no exception explains. Calls and results pair by call id, which D59 keeps unique in a conversation;
@@ -1577,7 +1583,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   hands the same messages on; a streamed response is stored from the updates, and the tool loop's own messages
   built from those updates are matched by count.
 - **Where:** `Conversations/ConversationChatClient.cs`, `Conversations/CheckpointChatClient.cs`,
-  `Conversations/ConversationHistory.cs`.
+  `Conversations/ConversationHistory.cs`, `Conversations/ConversationStoreException.cs`.
+- **Alternatives:** returning the answer as before and only logging, which hands an app a chat that answered and
+  forgot behind a success, and where a container-less app had no log at all; returning the answer with a mark and
+  nothing more, which leaves the trap open for every app that never reads the mark; failing the run at the first
+  step that was not stored, which stops a run whose tools may have acted already and leaves the app without the
+  answer it paid for. A failed save was not a failed run until the owner chose loud failures over quiet ones.
 
 ### D47. Live updates are a feed per conversation
 

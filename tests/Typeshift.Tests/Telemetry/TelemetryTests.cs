@@ -392,12 +392,40 @@ public sealed class TelemetryTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
+        await Record.ExceptionAsync(() => scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, ct: Ct));
+
+        // Assert
+        Activities.Run(Data.Agent.ConversationId).Events.Select(@event => @event.Name).Should().Contain("exception");
+    }
+
+    [Fact]
+    public async Task Given_The_Continue_Option_A_Run_Whose_Store_Fails_To_Append_Is_An_Error_On_Its_Span()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+
+#pragma warning disable TSH036 // the store fails every append, and the run never asks
+        services.AddTypeshift()
+            .WithStore<FailingAppendStore>()
+            .WithChatClientProvider<ScriptedChatClientProvider>()
+            .WithOptions(options => options.StoreFailure = StoreFailure.ContinueRun);
+#pragma warning restore TSH036
+
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
         await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
             .RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
-        Activities.Run(Data.Agent.ConversationId).Events.Select(@event => @event.Name).Should().Contain("exception");
+        Activities.Run(Data.Agent.ConversationId).Status.Should().Be(ActivityStatusCode.Error);
     }
 
     [Fact]

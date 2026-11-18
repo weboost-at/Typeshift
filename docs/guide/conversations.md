@@ -121,10 +121,7 @@ Runs that fail or stop early are stored too:
 - A cancelled run is stored too, because Typeshift stores without the run's cancellation token.
 - A run cut off by a crash has no ending entry, and [resuming](#resuming) continues it.
 
-When the store fails to save, the failure is [logged](./observability.md#logs) and recorded on the run's span, and
-the run still returns its answer. The step it failed to save is missing from later runs. One step is different: a
-run that asks your app throws the store's exception when it could not store the model's response or the decision,
-because a prompt your app shows must be one it can answer.
+A store that fails to save a step fails the run ([When the store fails](#when-the-store-fails)).
 
 Whenever a run loads the conversation, it builds what the model sees so that a provider accepts it. Each tool result
 follows the message that made its call, even when the store holds input or an end of a run between the two. A call
@@ -135,6 +132,23 @@ too.
 Some providers, such as local servers with an OpenAI-compatible API, number their tool calls per response, so a later
 call can get an id the conversation holds already. Typeshift renames such a call, as `call_1_2`, before it stores or
 runs it, so the stored entries, the decision that waits for the call and the tool's result all carry the new id.
+
+### When the store fails
+
+When the store fails to save a step, the run goes on to its end, storing what it can, and then throws a
+`ConversationStoreException`. Its `Response` holds what the run answered, and its inner exception is the store's.
+The step it failed to save is missing from later runs, so a run that answered is no success: a lost end makes a
+finished run look interrupted, and a lost answer is gone at the next page load. Each failure is also
+[logged](./observability.md#logs) and recorded on the run's span, which is an error.
+
+- An app that would rather show the answer catches the exception and returns its `Response`, which lists the run's
+  decisions too when it asked any.
+- An app can choose that such runs return instead:
+  `AddTypeshift().WithOptions(options => options.StoreFailure = StoreFailure.ContinueRun)`. The response then has
+  `ConversationIncomplete` set, and so does the last update of a stream, so your app can tell the user that the
+  chat may not have kept that answer. The span is an error all the same.
+- A run that asks your app throws the store's exception at once when it could not store the model's response or the
+  decision, whatever the option says, because a prompt your app shows must be one it can answer.
 
 ## Resuming
 

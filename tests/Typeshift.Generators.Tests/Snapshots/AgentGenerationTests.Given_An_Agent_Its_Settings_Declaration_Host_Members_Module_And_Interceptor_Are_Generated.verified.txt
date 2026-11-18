@@ -30,6 +30,10 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// A run of the host's conversation is going on in this process. A streaming run throws it when its updates are
         /// read.
         /// </exception>
+        /// <exception cref="global::Typeshift.ConversationStoreException">
+        /// The store failed to append a step of the run, which then fails as it ends, unless
+        /// <c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.
+        /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered: a chat
         /// client for the provider the run names or, when it names none, a default client; a store for the type of one
@@ -59,6 +63,10 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <exception cref="global::Typeshift.ConversationBusyException">
         /// A run of the host's conversation is going on in this process. A streaming run throws it when its updates are
         /// read.
+        /// </exception>
+        /// <exception cref="global::Typeshift.ConversationStoreException">
+        /// The store failed to append a step of the run, which then fails as it ends, unless
+        /// <c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.
         /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered: a chat
@@ -90,6 +98,10 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <exception cref="global::Typeshift.ConversationBusyException">
         /// A run of the host's conversation is going on in this process. A streaming run throws it when its updates are
         /// read.
+        /// </exception>
+        /// <exception cref="global::Typeshift.ConversationStoreException">
+        /// The store failed to append a step of the run, which then fails as it ends, unless
+        /// <c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.
         /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered: a chat
@@ -123,6 +135,10 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// A run of the host's conversation is going on in this process. A streaming run throws it when its updates are
         /// read.
         /// </exception>
+        /// <exception cref="global::Typeshift.ConversationStoreException">
+        /// The store failed to append a step of the run, which then fails as it ends, unless
+        /// <c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.
+        /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered: a chat
         /// client for the provider the run names or, when it names none, a default client; a store for the type of one
@@ -153,6 +169,10 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// A run of the host's conversation is going on in this process. A streaming run throws it when its updates are
         /// read.
         /// </exception>
+        /// <exception cref="global::Typeshift.ConversationStoreException">
+        /// The store failed to append a step of the run, which then fails as it ends, unless
+        /// <c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.
+        /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered: a chat
         /// client for the provider the run names or, when it names none, a default client; a store for the type of one
@@ -182,6 +202,10 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <exception cref="global::Typeshift.ConversationBusyException">
         /// A run of the host's conversation is going on in this process. A streaming run throws it when its updates are
         /// read.
+        /// </exception>
+        /// <exception cref="global::Typeshift.ConversationStoreException">
+        /// The store failed to append a step of the run, which then fails as it ends, unless
+        /// <c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.
         /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered: a chat
@@ -216,6 +240,10 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// A run of the host's conversation is going on in this process. A streaming run throws it when its updates are
         /// read.
         /// </exception>
+        /// <exception cref="global::Typeshift.ConversationStoreException">
+        /// The store failed to append a step of the run, which then fails as it ends, unless
+        /// <c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.
+        /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered: a chat
         /// client for the provider the run names or, when it names none, a default client; a store for the type of one
@@ -248,6 +276,10 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <exception cref="global::Typeshift.ConversationBusyException">
         /// A run of the host's conversation is going on in this process. A streaming run throws it when its updates are
         /// read.
+        /// </exception>
+        /// <exception cref="global::Typeshift.ConversationStoreException">
+        /// The store failed to append a step of the run, which then fails as it ends, unless
+        /// <c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.
         /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered: a chat
@@ -290,6 +322,10 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <exception cref="global::Typeshift.ConversationBusyException">
         /// A run of the host's conversation is going on in this process. The answers are recorded: continue with
         /// <c>ResumeAsync</c> once that run has ended.
+        /// </exception>
+        /// <exception cref="global::Typeshift.ConversationStoreException">
+        /// The store failed to append a step of the run, which then fails as it ends, unless
+        /// <c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.
         /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run
@@ -336,6 +372,10 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// A run of the host's conversation is going on in this process. The answers are recorded: continue with
         /// <c>ResumeAsync</c> once that run has ended.
         /// </exception>
+        /// <exception cref="global::Typeshift.ConversationStoreException">
+        /// The store failed to append a step of the run, which then fails as it ends, unless
+        /// <c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.
+        /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run
         /// needs is not registered: a chat client for the provider the run names or, when it names none, a default
@@ -379,6 +419,10 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <exception cref="global::Typeshift.ConversationBusyException">
         /// A run of the host's conversation is going on in this process. The answers are recorded: continue with
         /// <c>ResumeAsync</c> once that run has ended.
+        /// </exception>
+        /// <exception cref="global::Typeshift.ConversationStoreException">
+        /// The store failed to append a step of the run, which then fails as it ends, unless
+        /// <c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.
         /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run
@@ -425,6 +469,10 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// A run of the host's conversation is going on in this process. The answers are recorded: continue with
         /// <c>ResumeAsync</c> once that run has ended.
         /// </exception>
+        /// <exception cref="global::Typeshift.ConversationStoreException">
+        /// The store failed to append a step of the run, which then fails as it ends, unless
+        /// <c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.
+        /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run
         /// needs is not registered: a chat client for the provider the run names or, when it names none, a default
@@ -457,6 +505,10 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// A run of the host's conversation is going on in this process. A streaming run throws it when its updates are
         /// read.
         /// </exception>
+        /// <exception cref="global::Typeshift.ConversationStoreException">
+        /// The store failed to append a step of the run, which then fails as it ends, unless
+        /// <c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.
+        /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run
         /// needs is not registered: a chat client for the provider the run names or, when it names none, a default
@@ -485,6 +537,10 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <exception cref="global::Typeshift.ConversationBusyException">
         /// A run of the host's conversation is going on in this process. A streaming run throws it when its updates are
         /// read.
+        /// </exception>
+        /// <exception cref="global::Typeshift.ConversationStoreException">
+        /// The store failed to append a step of the run, which then fails as it ends, unless
+        /// <c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.
         /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run

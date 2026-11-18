@@ -297,9 +297,9 @@ public class LogEventTests : MultiAgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act
-        await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+        await Record.ExceptionAsync(() => scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
             .WithConversationId(Data.Agent.ConversationId)
-            .RunAsync(Data.Tool.Question, ct: Ct);
+            .RunAsync(Data.Tool.Question, ct: Ct));
 
         // Assert
         _log.Of("StepNotStored").Should().Contain(logged =>

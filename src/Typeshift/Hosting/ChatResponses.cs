@@ -18,6 +18,14 @@ internal static class ChatResponses
             (merged.Usage ??= new UsageDetails()).Add(usage);
         }
 
+        if (first.ConversationIncomplete || next.ConversationIncomplete) Incomplete(merged);
         return merged;
     }
+
+    // D46: a run that was not stored whole says so on what it returns
+    public static void Incomplete(ChatResponse response) =>
+        (response.AdditionalProperties ??= [])[ChatResponseExtensions.Incomplete] = true;
+
+    public static ChatResponseUpdate IncompleteUpdate() =>
+        new() { AdditionalProperties = new() { [ChatResponseExtensions.Incomplete] = true } };
 }

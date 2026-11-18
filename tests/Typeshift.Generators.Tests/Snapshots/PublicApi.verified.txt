@@ -97,9 +97,13 @@ public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithTopK(int to
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithTopP(float topP)
 public static class Typeshift.ChatResponseExtensions
 public static Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponse)
+public bool Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponse).ConversationIncomplete { get; }
 public System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponse).Decisions { get; }
 public static Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate)
+public bool Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate).ConversationIncomplete { get; }
 public System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.extension(Microsoft.Extensions.AI.ChatResponseUpdate).Decisions { get; }
+public static bool Typeshift.ChatResponseExtensions.get_ConversationIncomplete(Microsoft.Extensions.AI.ChatResponse response)
+public static bool Typeshift.ChatResponseExtensions.get_ConversationIncomplete(Microsoft.Extensions.AI.ChatResponseUpdate update)
 public static System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.get_Decisions(Microsoft.Extensions.AI.ChatResponse response)
 public static System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Typeshift.ChatResponseExtensions.get_Decisions(Microsoft.Extensions.AI.ChatResponseUpdate update)
 public sealed class Typeshift.ConfigurableSettingsBuilder<TSettings> where TSettings : class
@@ -152,6 +156,10 @@ public override string Typeshift.ConversationEntry.ToString()
 public Microsoft.Extensions.AI.UsageDetails? Typeshift.ConversationEntry.Usage { get; init; }
 public static bool Typeshift.ConversationEntry.operator !=(Typeshift.ConversationEntry? left, Typeshift.ConversationEntry? right)
 public static bool Typeshift.ConversationEntry.operator ==(Typeshift.ConversationEntry? left, Typeshift.ConversationEntry? right)
+public sealed class Typeshift.ConversationStoreException : System.InvalidOperationException
+public object Typeshift.ConversationStoreException.Conversation { get; }
+public Typeshift.ConversationStoreException.ConversationStoreException(string message, object conversation, Microsoft.Extensions.AI.ChatResponse response, System.Exception inner)
+public Microsoft.Extensions.AI.ChatResponse Typeshift.ConversationStoreException.Response { get; }
 public sealed class Typeshift.ConversationTracker<TId> where TId : notnull
 public Typeshift.ConversationTracker<TId>.ConversationTracker(Typeshift.TypeshiftRuntime runtime)
 public System.Collections.Generic.IReadOnlyList<Typeshift.LiveRun<TId>> Typeshift.ConversationTracker<TId>.Runs { get; }
@@ -544,6 +552,9 @@ public System.Threading.Tasks.Task Typeshift.StoreExtensions.extension<TId>(Type
 public static Typeshift.StoreExtensions.extension<TId>(Typeshift.ISettingsStore<TId>) where TId : notnull
 public System.Threading.Tasks.Task Typeshift.StoreExtensions.extension<TId>(Typeshift.ISettingsStore<TId>).VerifyAsync(TId id, TId otherId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public System.Threading.Tasks.Task Typeshift.StoreExtensions.extension<TId>(Typeshift.ISettingsStore<TId>).VerifyAsync<TConversationId>(TId settingsId, TId otherSettingsId, TConversationId conversationId, TConversationId otherConversationId, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) where TConversationId : notnull
+public enum Typeshift.StoreFailure
+Typeshift.StoreFailure.ContinueRun = 1
+Typeshift.StoreFailure.FailRun = 0
 public sealed record Typeshift.Stored<TData> : System.IEquatable<Typeshift.Stored<TData>>
 public TData Typeshift.Stored<TData>.Data { get; init; }
 public void Typeshift.Stored<TData>.Deconstruct(out TData Data, out long Version)
@@ -625,6 +636,7 @@ public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithToolMiddleware<
 public sealed class Typeshift.TypeshiftOptions
 public void Typeshift.TypeshiftOptions.NewConversationIds<TId>(System.Func<TId> create) where TId : notnull
 public bool Typeshift.TypeshiftOptions.PersistAllConversations { get; set; }
+public Typeshift.StoreFailure Typeshift.TypeshiftOptions.StoreFailure { get; set; }
 public Typeshift.TypeshiftOptions.TypeshiftOptions()
 public sealed class Typeshift.TypeshiftRuntime : System.IAsyncDisposable
 public Typeshift.AgentHost<TAgent> Typeshift.TypeshiftRuntime.Agent<TAgent>() where TAgent : Typeshift.Agent

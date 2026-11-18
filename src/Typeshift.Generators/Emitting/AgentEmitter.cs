@@ -728,6 +728,13 @@ internal static class AgentEmitter
         "A run of the host's conversation is going on in this process. A streaming run throws it when its updates "
         + "are read.";
 
+    // D46: what a run throws, by default, when the store failed to append one of its steps
+    private const string NotStored = "global::Typeshift.ConversationStoreException";
+
+    private const string Lacking =
+        "The store failed to append a step of the run, which then fails as it ends, unless "
+        + "<c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.";
+
     // D50, D80: the host's conversation's interrupted run or answered decisions, continued without input
     private static void WriteResume(SourceWriter writer, string name, string returns, string settings)
     {
@@ -748,6 +755,7 @@ internal static class AgentEmitter
             "The conversation has nothing to continue: its last run ended, and no decision your app answered or "
             + "withdrew waits.");
         Docs.WriteException(writer, Busy, Going);
+        Docs.WriteException(writer, NotStored, Lacking);
         Docs.WriteException(
             writer,
             InvalidOperation,
@@ -809,6 +817,7 @@ internal static class AgentEmitter
                 Busy,
                 "A run of the host's conversation is going on in this process. The answers are recorded: continue "
                 + "with <c>ResumeAsync</c> once that run has ended.");
+            Docs.WriteException(writer, NotStored, Lacking);
             Docs.WriteException(
                 writer,
                 InvalidOperation,
@@ -855,6 +864,7 @@ internal static class AgentEmitter
                 "global::Typeshift.DecisionUnavailableException",
                 "A tool call needs a decision of your app, and the run has no conversation to keep it in.");
             Docs.WriteException(writer, Busy, Going);
+            Docs.WriteException(writer, NotStored, Lacking);
             Docs.WriteException(
                 writer,
                 InvalidOperation,

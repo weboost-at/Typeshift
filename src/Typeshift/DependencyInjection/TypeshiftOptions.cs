@@ -16,6 +16,13 @@ public sealed class TypeshiftOptions
     public bool PersistAllConversations { get; set; }
 
     /// <summary>
+    /// What a run does when the store fails to append a step of its conversation. By default it fails, with a
+    /// <see cref="ConversationStoreException"/> that holds its answer; <see cref="StoreFailure.ContinueRun"/> has it
+    /// return the answer, which <c>response.ConversationIncomplete</c> then marks.
+    /// </summary>
+    public StoreFailure StoreFailure { get; set; }
+
+    /// <summary>
     /// Gives new conversations ids of your conversation store's type. Without it, they get a <see cref="Guid"/> of
     /// version 7, ordered by the time, and need an <c>IConversationStore&lt;Guid&gt;</c>. A raw-path call names its
     /// conversation in <c>ChatOptions.ConversationId</c>, a string, so a conversation it starts gets this id only when

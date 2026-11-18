@@ -149,7 +149,8 @@ you ship, your app has to do these things itself:
 - Read API keys from your app's configuration, never from code ([A real client](./models.md#a-real-client)).
 - Where each customer brings a key, register no default client, so an agent that names no provider fails instead of
   running on your app's own key ([A key per customer](./models.md#a-key-per-customer)).
-- Watch your logs or spans for saves that failed ([Spans](./observability.md#spans)).
+- Decide what your app shows when a run fails because its conversation could not be saved, and watch your logs or
+  spans for those failures ([When the store fails](./conversations.md#when-the-store-fails)).
 - Capture message content in traces only where your tracing backend may keep it
   ([Message content](./observability.md#message-content)).
 

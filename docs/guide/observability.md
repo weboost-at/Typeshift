@@ -57,13 +57,14 @@ The `invoke_agent` span carries these tags:
 | `typeshift.decisions.asked` | The number of [decisions](#decisions) the run asked your app, when it asked any |
 | `error.type` | The exception's type, when the run fails; the span's status is then an error |
 
-::: warning A failed save does not fail the run
-When the store fails to save an entry, the run goes on. Typeshift logs the failure as an error and records the
-exception on the run's span, so watch your logs or spans for it. Only what a run asks your app must be saved: a run
-that could not store it fails, with the store's exception on its span.
+::: warning A failed save fails the run
+When the store fails to save an entry, the run goes on to its end and then throws a `ConversationStoreException`
+that holds its answer. Typeshift logs each failure as an error and records the store's exception on the run's span,
+which is an error. With `StoreFailure.ContinueRun` the run returns its answer marked as incomplete, and its span is
+an error too ([When the store fails](./conversations.md#when-the-store-fails)).
 :::
 
-A compaction summary that fails does not fail the run either: Typeshift logs a warning, records the exception on the
+A compaction summary that fails does not fail the run: Typeshift logs a warning, records the exception on the
 run's span, and goes on as [The summary model](./models.md#the-summary-model) describes.
 
 A tool call that throws does not fail the run either, until [too many rounds in a row](./toolsets.md#when-a-tool-fails)
@@ -122,7 +123,7 @@ Filter and alert on those, since the text of a message may change:
 | Id | Name | Level | Logged when |
 |---|---|---|---|
 | 1 | `NoStore` | Warning | The first save or append goes to memory, because no store is registered ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call)). Logged once. |
-| 2 | `StepNotStored` | Error | The store failed to append a step of a conversation. The entry holds the store's exception, and the run goes on. |
+| 2 | `StepNotStored` | Error | The store failed to append a step of a conversation. The entry holds the store's exception. The run goes on, and fails at its end unless your app chose `StoreFailure.ContinueRun` ([When the store fails](./conversations.md#when-the-store-fails)). |
 | 3 | `DecisionsNotClosed` | Error | The store failed to save that a conversation's decisions were carried out. The entry holds the exception, and the conversation's next run saves it again. |
 | 4 | `ContentNotStored` | Warning | A step is stored without its contents of a type Microsoft.Extensions.AI cannot write ([What is stored](./conversations.md#what-is-stored)). Logged once for each type in a run. |
 | 5 | `ContentNotRead` | Warning | A run loaded a conversation with contents this version of Microsoft.Extensions.AI cannot read, and goes on without them. The entry holds their number. |

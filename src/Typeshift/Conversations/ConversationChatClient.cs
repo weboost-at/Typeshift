@@ -35,14 +35,18 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         try
         {
             ChatResponse? response = null;
+            Exception? notStored = null;
 
             await foreach (var part in RunAsync(messages, options, activity, streaming: false, cancellationToken))
             {
-                response = part.JoinedTo(response);
+                if (part.NotStored is { } failure) notStored = failure;
+                else response = part.JoinedTo(response);
             }
 
             if (Named(options) is { } conversation) response!.ConversationId = conversation;
             Telemetry.Answered(activity, response!.Usage);
+
+            if (notStored is not null) NotStored(activity, options!, response, notStored);
             return response;
         }
         catch (Exception exception)
@@ -62,6 +66,9 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         var usage = new UsageDetails();
         var conversation = Named(options);
 
+        // D46: what the caller got, for the exception of a run whose conversation lacks a step
+        var handed = new List<ChatResponseUpdate>();
+
         await using var parts = RunAsync(messages, options, activity, streaming: true, cancellationToken)
             .GetAsyncEnumerator(cancellationToken);
 
@@ -80,6 +87,23 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                 throw;
             }
 
+            if (parts.Current.NotStored is { } failure)
+            {
+                try
+                {
+                    NotStored(activity, options!, handed.ToChatResponse(), failure);
+                }
+                catch (Exception exception)
+                {
+                    Telemetry.Failed(activity, exception);
+                    throw;
+                }
+
+                // A run that continues says so after its last update, in one of its own
+                yield return ChatResponses.IncompleteUpdate();
+                continue;
+            }
+
             var update = parts.Current.Update!;
 
             foreach (var content in update.Contents.OfType<UsageContent>())
@@ -89,10 +113,24 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
             // A copy, since the tool loop still holds the update, and one that names a conversation would make it
             // leave the history to the service
-            yield return conversation is null ? update : Named(update, conversation);
+            var named = conversation is null ? update : Named(update, conversation);
+
+            handed.Add(named);
+            yield return named;
         }
 
         Telemetry.Answered(activity, usage);
+    }
+
+    // D46: a run whose conversation lacks a step fails with what it answered, unless your app chose to have it return,
+    // marked; either way its span is an error
+    private void NotStored(Activity? activity, ChatOptions options, ChatResponse response, Exception failure)
+    {
+        if (services.GetService<TypeshiftOptions>() is not { StoreFailure: StoreFailure.ContinueRun })
+            throw ConversationStoreException.For(GetConversation(options)!, response, failure);
+
+        ChatResponses.Incomplete(response);
+        Telemetry.NotStored(activity, failure);
     }
 
     // D73: a run of the host's own, with input and no conversation, starts one when every conversation is kept; a
@@ -173,6 +211,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                 ? new(AskingUpdate(waiting, []))
                 : new(Response: new ChatResponse(Asking(waiting, messageId: null)));
 
+            if (run.NotStored is { } lost) yield return new(NotStored: lost);
             yield break;
         }
 
@@ -185,6 +224,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                 yield return new(AsUpdate(message));
             }
 
+            if (run.NotStored is { } missing) yield return new(NotStored: missing);
             yield break;
         }
 
@@ -211,6 +251,9 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
                 yield return parts.Current;
             }
+
+            // D46: once the run stored what it could, its caller learns that a step is missing
+            if (run.NotStored is { } lost) yield return new(NotStored: lost);
         }
         finally
         {
@@ -374,11 +417,13 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
     // What a run hands its caller next. A streaming run hands on updates. A run that does not stream hands on whole
     // responses, each pass's and that of an agent it handed off to, which its caller merges into one; the decisions
-    // it asks join that response as they are, in a message of their own
+    // it asks join that response as they are, in a message of their own. Last, a run whose conversation lacks a step
+    // hands on the store's exception (D46)
     private readonly record struct RunPart(
         ChatResponseUpdate? Update = null,
         ChatResponse? Response = null,
-        ChatMessage? Asking = null)
+        ChatMessage? Asking = null,
+        Exception? NotStored = null)
     {
         public ChatResponse JoinedTo(ChatResponse? response)
         {

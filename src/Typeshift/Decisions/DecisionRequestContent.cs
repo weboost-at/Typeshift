@@ -39,6 +39,13 @@ public static class ChatResponseExtensions
         /// </summary>
         public IReadOnlyList<Decision> Decisions =>
             [.. response.Messages.SelectMany(message => DecisionsIn(message.Contents))];
+
+        /// <summary>
+        /// Whether the store failed to append a step of the run, which later runs of the conversation then lack. Only
+        /// a run under <see cref="StoreFailure.ContinueRun"/> returns such a response; by default the run throws a
+        /// <see cref="ConversationStoreException"/>.
+        /// </summary>
+        public bool ConversationIncomplete => IsIncomplete(response.AdditionalProperties);
     }
 
     extension(ChatResponseUpdate update)
@@ -48,8 +55,21 @@ public static class ChatResponseExtensions
         /// end. Empty in every other update.
         /// </summary>
         public IReadOnlyList<Decision> Decisions => [.. DecisionsIn(update.Contents)];
+
+        /// <summary>
+        /// Whether the store failed to append a step of the run, which a streaming run under
+        /// <see cref="StoreFailure.ContinueRun"/> says in an update of its own after the others. The response the
+        /// updates make has <c>ConversationIncomplete</c> set then.
+        /// </summary>
+        public bool ConversationIncomplete => IsIncomplete(update.AdditionalProperties);
     }
+
+    // D46: the mark a run that was not stored whole puts on what it returns
+    internal const string Incomplete = "typeshift.conversation_incomplete";
 
     private static IEnumerable<Decision> DecisionsIn(IEnumerable<AIContent> contents) =>
         contents.OfType<DecisionRequestContent>().Select(request => request.Decision);
+
+    private static bool IsIncomplete(AdditionalPropertiesDictionary? properties) =>
+        properties?.TryGetValue(Incomplete, out var incomplete) is true && incomplete is true;
 }
