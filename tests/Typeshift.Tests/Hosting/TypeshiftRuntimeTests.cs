@@ -36,7 +36,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
         await using var runtime = TypeshiftRuntime.Create(ChatClient);
-        await using var agent = runtime.Agent<ModelOnlyAgent>();
+        await using var agent = runtime.CreateHost<ModelOnlyAgent>();
 
         // Act
         var response = await agent.RunAsync(Data.Tool.Question, ct: Ct);
@@ -50,7 +50,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
     {
         // Arrange
         await using var runtime = TypeshiftRuntime.Create(ChatClient);
-        await using var probe = runtime.Agent<ProbeAgent>();
+        await using var probe = runtime.CreateHost<ProbeAgent>();
 
         // Act
         var run = () => probe.RunAsync(Data.Tool.Question, ct: Ct);
@@ -71,7 +71,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
             ChatClient,
             typeshift => typeshift.Services.AddKeyedChatClient(ProbeAgent.ModelProvider, keyed));
 
-        await using var probe = runtime.Agent<ProbeAgent>();
+        await using var probe = runtime.CreateHost<ProbeAgent>();
 
         // Act
         var response = await probe.RunAsync(Data.Tool.Question, ct: Ct);
@@ -89,8 +89,8 @@ public class TypeshiftRuntimeTests : AgentTestBase
             ChatClient,
             typeshift => typeshift.WithStore<InMemoryTypeshiftStore<Guid>>());
 
-        await using var probe = runtime.Agent<ProbeAgent>();
-        await using var configuring = runtime.Agent<ProbeAgent>();
+        await using var probe = runtime.CreateHost<ProbeAgent>();
+        await using var configuring = runtime.CreateHost<ProbeAgent>();
 
         await configuring.WithSettingsId(Data.Persistence.SettingsId).UpdateSettingsAsync(
             settings => settings with { Temperature = Data.Agent.Temperature },
@@ -109,7 +109,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
         var runtime = TypeshiftRuntime.Create(ChatClient);
-        await using var agent = runtime.Agent<ModelOnlyAgent>();
+        await using var agent = runtime.CreateHost<ModelOnlyAgent>();
         await agent.RunAsync(Data.Tool.Question, ct: Ct);
 
         // Act
@@ -129,7 +129,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
             ChatClient,
             typeshift => typeshift.WithStore<DisposableStore>());
 
-        await using var agent = runtime.Agent<ModelOnlyAgent>();
+        await using var agent = runtime.CreateHost<ModelOnlyAgent>();
         var store = runtime.Services.GetRequiredService<DisposableStore>();
         await agent.RunAsync(Data.Tool.Question, ct: Ct);
 
@@ -150,7 +150,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
             ChatClient,
             typeshift => typeshift.WithStore<DisposableStore>());
 
-        await using var agent = runtime.Agent<ModelOnlyAgent>();
+        await using var agent = runtime.CreateHost<ModelOnlyAgent>();
         var store = runtime.Services.GetRequiredService<DisposableStore>();
         await agent.RunAsync(Data.Tool.Question, ct: Ct);
 
@@ -169,7 +169,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         await runtime.DisposeAsync();
 
         // Act
-        var host = () => runtime.Agent<ProbeAgent>();
+        var host = () => runtime.CreateHost<ProbeAgent>();
 
         // Assert
         host.Should().Throw<ObjectDisposedException>();
@@ -215,7 +215,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
                 typeshift.Services.AddScoped<CallScope>();
             });
 
-        await using var probe = runtime.Agent<ProbeAgent>();
+        await using var probe = runtime.CreateHost<ProbeAgent>();
 
         // Act
         var response = await probe.RunAsync(Data.Tool.Question, ct: Ct);
@@ -241,7 +241,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
                 typeshift.Services.AddSingleton<ILoggerFactory>(log);
             });
 
-        await using var agent = runtime.Agent<ModelOnlyAgent>();
+        await using var agent = runtime.CreateHost<ModelOnlyAgent>();
 
         // Act
         await Record.ExceptionAsync(() => agent.WithConversationId(Data.Agent.ConversationId).RunAsync(
@@ -270,7 +270,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
                 typeshift.Services.AddSingleton<ILoggerFactory>(log);
             });
 
-        await using var failing = runtime.Agent<FailingAgent>();
+        await using var failing = runtime.CreateHost<FailingAgent>();
 
         // Act
         await failing.RunAsync(Data.Tool.Question, ct: Ct);
@@ -290,7 +290,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
             ChatClient,
             typeshift => typeshift.Services.AddSingleton<ILoggerFactory>(log));
 
-        await using var agent = runtime.Agent<ModelOnlyAgent>();
+        await using var agent = runtime.CreateHost<ModelOnlyAgent>();
 
         // Act
         await agent.WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
@@ -329,7 +329,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
             "AgentHost<ProbeAgent> was resolved from the root provider, as a host injected into a singleton is. Its "
             + "runs would share one instance of each scoped service, such as the chat client provider of one "
             + "customer, and the root would keep every host until the app stops: inject TypeshiftRuntime and call "
-            + "Agent<ProbeAgent>() for each unit of work, or resolve the host from a scope.");
+            + "CreateHost<ProbeAgent>() for each unit of work, or resolve the host from a scope.");
     }
 
     [Fact]
@@ -342,14 +342,14 @@ public class TypeshiftRuntimeTests : AgentTestBase
         var resolve = () => runtime.Services.GetRequiredService<AgentHost<ProbeAgent>>();
 
         // Assert
-        resolve.Should().Throw<InvalidOperationException>().WithMessage("*Agent<ProbeAgent>()*");
+        resolve.Should().Throw<InvalidOperationException>().WithMessage("*CreateHost<ProbeAgent>()*");
     }
 
     [Fact]
     public void Given_An_Agent_No_Module_Registered_Taking_Its_Host_Fails_Naming_AddTypeshift()
     {
         // Act
-        var host = () => Runtime.Agent<Agent>();
+        var host = () => Runtime.CreateHost<Agent>();
 
         // Assert
         host.Should().Throw<InvalidOperationException>().WithMessage(
@@ -365,7 +365,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
-        await using var probe = Runtime.Agent<ProbeAgent>();
+        await using var probe = Runtime.CreateHost<ProbeAgent>();
 
         // Act
         var response = await probe.RunAsync(Data.Tool.Question, ct: Ct);
@@ -382,7 +382,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
             .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
             .Reply(Text(Data.Tool.Answer));
 
-        await using var probe = Runtime.Agent<ProbeAgent>();
+        await using var probe = Runtime.CreateHost<ProbeAgent>();
         probe.Services.GetRequiredService<CallScope>().Tenant = Data.Agent.CompanyName;
 
         // Act
@@ -402,8 +402,8 @@ public class TypeshiftRuntimeTests : AgentTestBase
             .Reply(Call(Data.Tool.SecondCallId, "probe", ("query", Data.Tool.Query)))
             .Reply(Text(Data.Tool.Answer));
 
-        await using var first = Runtime.Agent<ProbeAgent>();
-        await using var second = Runtime.Agent<ProbeAgent>();
+        await using var first = Runtime.CreateHost<ProbeAgent>();
+        await using var second = Runtime.CreateHost<ProbeAgent>();
 
         // Act
         var firstRun = await first.RunAsync(Data.Tool.Question, ct: Ct);
@@ -426,7 +426,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
             .Reply(Call(Data.Tool.SecondCallId, "probe", ("query", Data.Tool.Query)))
             .Reply(Text(Data.Tool.Answer));
 
-        await using var probe = Runtime.Agent<ProbeAgent>();
+        await using var probe = Runtime.CreateHost<ProbeAgent>();
 
         // Act
         var firstRun = await probe.RunAsync(Data.Tool.Question, ct: Ct);
@@ -444,7 +444,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
-        var probe = Runtime.Agent<ProbeAgent>();
+        var probe = Runtime.CreateHost<ProbeAgent>();
         await probe.RunAsync(Data.Tool.Question, ct: Ct);
 
         // Act
@@ -460,7 +460,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
-        var probe = Runtime.Agent<ProbeAgent>();
+        var probe = Runtime.CreateHost<ProbeAgent>();
         await probe.RunAsync(Data.Tool.Question, ct: Ct);
 
         // Act
@@ -476,7 +476,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
-        var probe = Runtime.Agent<ProbeAgent>();
+        var probe = Runtime.CreateHost<ProbeAgent>();
         await probe.RunAsync(Data.Tool.Question, ct: Ct);
         await probe.DisposeAsync();
 
@@ -508,7 +508,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
-        var chat = Runtime.Agent<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+        var chat = Runtime.CreateHost<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
         await chat.RunAsync(Data.Tool.Question, ct: Ct);
 
         // Act
@@ -523,7 +523,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
     public async Task Given_A_Host_Of_The_Runtime_Whose_Copy_Was_Disposed_A_Run_Fails_Saying_So()
     {
         // Arrange
-        await using var probe = Runtime.Agent<ProbeAgent>();
+        await using var probe = Runtime.CreateHost<ProbeAgent>();
         await probe.WithConversationId(Data.Agent.ConversationId).DisposeAsync();
 
         // Act
@@ -554,7 +554,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
-        var probe = Runtime.Agent<ProbeAgent>();
+        var probe = Runtime.CreateHost<ProbeAgent>();
         var copy = probe.WithConversationId(Data.Agent.ConversationId);
         await copy.RunAsync(Data.Tool.Question, ct: Ct);
         await copy.DisposeAsync();
@@ -576,7 +576,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         // Act
         await Runtime.DisposeAsync();
 
-        await using var probe = Runtime.Agent<ProbeAgent>();
+        await using var probe = Runtime.CreateHost<ProbeAgent>();
         var response = await probe.RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
@@ -595,7 +595,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
                 .Reply(Text(Data.Tool.Answer));
         }
 
-        await using var lead = Runtime.Agent<LeadAgent>();
+        await using var lead = Runtime.CreateHost<LeadAgent>();
 
         // Act
         for (var run = 0; run < 3; run++)
@@ -616,7 +616,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
             ChatClient.Reply(Text(Data.Tool.Answer));
         }
 
-        await using var front = Runtime.Agent<FrontAgent>();
+        await using var front = Runtime.CreateHost<FrontAgent>();
 
         // Act
         for (var run = 0; run < 3; run++)

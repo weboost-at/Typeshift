@@ -99,7 +99,7 @@ A console app or a script creates the runtime with your provider's chat client a
 <a id='snippet-typeshift-runtime'></a>
 ```cs
 await using var runtime = TypeshiftRuntime.Create(client);
-await using var research = runtime.Agent<ResearchAgent>();
+await using var research = runtime.CreateHost<ResearchAgent>();
 
 var answer = await research.RunAsync("Vienna");
 

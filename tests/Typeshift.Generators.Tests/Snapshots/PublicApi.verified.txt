@@ -675,8 +675,8 @@ public bool Typeshift.TypeshiftOptions.PersistAllConversations { get; set; }
 public Typeshift.StoreFailure Typeshift.TypeshiftOptions.StoreFailure { get; set; }
 public Typeshift.TypeshiftOptions.TypeshiftOptions()
 public sealed class Typeshift.TypeshiftRuntime : System.IAsyncDisposable
-public Typeshift.AgentHost<TAgent> Typeshift.TypeshiftRuntime.Agent<TAgent>() where TAgent : Typeshift.Agent
 public static Typeshift.TypeshiftRuntime Typeshift.TypeshiftRuntime.Create(Microsoft.Extensions.AI.IChatClient client, System.Action<Typeshift.TypeshiftBuilder>? configure = null)
+public Typeshift.AgentHost<TAgent> Typeshift.TypeshiftRuntime.CreateHost<TAgent>() where TAgent : Typeshift.Agent
 public void Typeshift.TypeshiftRuntime.Dispose()
 public System.Threading.Tasks.ValueTask Typeshift.TypeshiftRuntime.DisposeAsync()
 public System.IServiceProvider Typeshift.TypeshiftRuntime.Services { get; }

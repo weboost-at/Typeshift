@@ -365,8 +365,8 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        // D76: a copy disposes what its host would, so runtime.Agent<T>().WithConversationId(id) under a using ends
-        // the unit of work it began. A host the code holds, one of an outer block, a parameter, a field or a
+        // D76: a copy disposes what its host would, so runtime.CreateHost<T>().WithConversationId(id) under a using
+        // ends the unit of work it began. A host the code holds, one of an outer block, a parameter, a field or a
         // property, may run after this using, in a loop's next round for example, and then finds its scope disposed
         if (GetDisposingUsing(copy) is { } disposing
             && GetHostOfCopies(copy) is { } host

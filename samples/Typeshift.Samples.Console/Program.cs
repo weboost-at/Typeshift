@@ -18,7 +18,7 @@ services.AddTypeshift()
 // end-snippet
 
 await using var provider = services.BuildServiceProvider();
-await using var research = provider.GetRequiredService<TypeshiftRuntime>().Agent<ResearchAgent>();
+await using var research = provider.GetRequiredService<TypeshiftRuntime>().CreateHost<ResearchAgent>();
 
 var conversationId = Guid.CreateVersion7();
 var customer = research.WithSettingsId(Guid.CreateVersion7());
@@ -75,7 +75,7 @@ Expect(robotics.Text == "2 companies work in Robotics.", robotics.Text);
 
 // Decisions: questions asked and answered, then a tool call approved, each stored, listed and carried out without
 // reflection. The decision and its answer cross JSON as an endpoint would send and receive them
-await using var outreach = provider.GetRequiredService<TypeshiftRuntime>().Agent<OutreachAgent>();
+await using var outreach = provider.GetRequiredService<TypeshiftRuntime>().CreateHost<OutreachAgent>();
 var contact = outreach.WithConversationId(Guid.CreateVersion7());
 
 var asking = await contact.RunAsync("Write to a company in Vienna.");

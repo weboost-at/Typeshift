@@ -1197,11 +1197,11 @@ Run the copy, as in `support.WithSettingsId(customer).RunAsync(question)`, or ke
 
 ## TSH042
 
-**Copy of a host that lives on is disposed.** A copy runs in its host's scope, and disposing it disposes what
-disposing the host would: the scope of a host from `runtime.Agent<TAgent>()`, after which a run of the host or of any
-copy throws an `ObjectDisposedException` ([The runtime](./registration.md#the-runtime)). A `using` on a copy of a
-host that your code holds, in an outer block, a field, a property or a parameter, ends that host's scope while the
-code still has it, as in the next round of this loop:
+**Copy of a host that lives on is disposed.** A copy runs in its host's scope, and disposing it disposes what disposing
+the host would: the scope of a host from `runtime.CreateHost<TAgent>()`, after which a run of the host or of any copy
+throws an `ObjectDisposedException` ([The runtime](./registration.md#the-runtime)). A `using` on a copy of a host that
+your code holds, in an outer block, a field, a property or a parameter, ends that host's scope while the code still has
+it, as in the next round of this loop:
 
 <!-- snippet: tsh042 -->
 <a id='snippet-tsh042'></a>
@@ -1210,7 +1210,7 @@ internal sealed class TicketFollowUp(TypeshiftRuntime runtime)
 {
     public async Task FollowUpAsync(IEnumerable<string> tickets)
     {
-        await using var support = runtime.Agent<SupportAgent>();
+        await using var support = runtime.CreateHost<SupportAgent>();
 
         foreach (var ticket in tickets)
         {
@@ -1224,7 +1224,7 @@ internal sealed class TicketFollowUp(TypeshiftRuntime runtime)
 <!-- endSnippet -->
 
 Take the copy without `using`, and dispose the host where its work ends. The analyzer reports nothing for
-`await using var chat = runtime.Agent<SupportAgent>().WithConversationId(ticket);`, whose host nothing else holds,
+`await using var chat = runtime.CreateHost<SupportAgent>().WithConversationId(ticket);`, whose host nothing else holds,
 nor for a copy disposed in the block that declares its host, where both end together.
 
 ## Related

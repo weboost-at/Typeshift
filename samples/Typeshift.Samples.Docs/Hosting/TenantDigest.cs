@@ -8,7 +8,7 @@ internal sealed class TenantDigest(TypeshiftRuntime runtime)
 {
     public async Task<string> DigestAsync(string tenant, CancellationToken ct)
     {
-        await using var support = runtime.Agent<SupportAgent>();
+        await using var support = runtime.CreateHost<SupportAgent>();
         support.Services.GetRequiredService<CurrentTenant>().Id = tenant;
 
         var answer = await support.RunAsync("Summarize the tickets opened today.", ct);

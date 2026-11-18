@@ -36,7 +36,7 @@ public abstract class DecisionTestBase : ApprovalTestBase
         _processes.Add(process);
 
         return process.GetRequiredService<TypeshiftRuntime>()
-            .Agent<TAgent>()
+            .CreateHost<TAgent>()
             .WithConversationId(Data.Agent.ConversationId);
     }
 

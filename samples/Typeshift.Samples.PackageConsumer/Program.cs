@@ -42,7 +42,7 @@ await using var runtime = TypeshiftRuntime.Create(
     model,
     typeshift => typeshift.Services.AddKeyedChatClient("any-provider", model));
 
-await using var agent = runtime.Agent<GreeterAgent>();
+await using var agent = runtime.CreateHost<GreeterAgent>();
 
 await agent.UpdateSettingsAsync(settings => settings with { Temperature = 0.5f });
 var answer = await agent.RunAsync("Greet Ada.");

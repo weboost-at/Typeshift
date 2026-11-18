@@ -118,7 +118,7 @@ All notable changes to this project are documented here. The format follows
   every customer's runs apply.
 - TSH042 warns about a `using` on a copy of a host that your code still holds, in an outer block, a field, a property
   or a parameter. Disposing the copy disposes the host's scope, so the host fails in a loop's next round, for
-  example. `await using var chat = runtime.Agent<SupportAgent>().WithConversationId(ticket);` is not reported.
+  example. `await using var chat = runtime.CreateHost<SupportAgent>().WithConversationId(ticket);` is not reported.
 - `WithSettingsId(id)` and `WithConversationId(id)` take an id of a nullable value type, such as the `Guid?` a
   request often holds, and name what its value names. Without a value they throw an `ArgumentNullException`. Before,
   such an id compiled with a nullable warning and was an id of its own type, `Guid?`: a store of `Guid` ids did not
@@ -166,7 +166,7 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
-- `runtime.Agent<TAgent>()`, and a run that calls a sub-agent or hands over to an agent, throw an
+- `runtime.CreateHost<TAgent>()`, and a run that calls a sub-agent or hands over to an agent, throw an
   `InvalidOperationException` that names an agent no module registered and the likely causes: `AddTypeshift()`
   called only in a library the app references, an abstract agent, a base named through a using alias, a project
   built with another Typeshift version. They threw the container's "No service for type" for the agent's class.
@@ -202,16 +202,16 @@ All notable changes to this project are documented here. The format follows
   another Typeshift version.
 - **Breaking:** resolving `AgentHost<TAgent>` from the root provider throws an `InvalidOperationException`, with
   scope validation on or off. A host injected into a singleton, such as a `BackgroundService`, comes from the root:
-  inject `TypeshiftRuntime` there and call `runtime.Agent<TAgent>()` for each job. A console app that resolved the
+  inject `TypeshiftRuntime` there and call `runtime.CreateHost<TAgent>()` for each job. A console app that resolved the
   host from what `BuildServiceProvider()` returned creates a scope first, or moves to `TypeshiftRuntime.Create`.
   Before, such a host ran every request on one instance of each scoped service where scopes are not validated, so
   one customer's chat client provider and its key served all customers.
-- **Breaking:** disposing a copy of a host from `runtime.Agent<TAgent>()`, made by `WithSettingsId` or
+- **Breaking:** disposing a copy of a host from `runtime.CreateHost<TAgent>()`, made by `WithSettingsId` or
   `WithConversationId`, disposes the host's scope, as disposing the host does. So
-  `await using var chat = runtime.Agent<SupportAgent>().WithConversationId(ticket);` disposes the scope and its scoped
-  services when the job ends. Before, it disposed a copy that owned nothing and leaked the scope, with every scoped
-  service its runs resolved. Disposing the host and its copies each is safe, and once one of them is disposed, a run
-  of any of them throws an `ObjectDisposedException`: code that disposed a copy and ran the host after it keeps the
+  `await using var chat = runtime.CreateHost<SupportAgent>().WithConversationId(ticket);` disposes the scope and its
+  scoped services when the job ends. Before, it disposed a copy that owned nothing and leaked the scope, with every
+  scoped service its runs resolved. Disposing the host and its copies each is safe, and once one of them is disposed, a
+  run of any of them throws an `ObjectDisposedException`: code that disposed a copy and ran the host after it keeps the
   copy without `using`.
 - **Breaking:** a run fails before its first model call when its chat client runs a tool loop of its own, as one
   registered with `services.AddChatClient(client).UseFunctionInvocation()` does. Register the client without
@@ -511,6 +511,9 @@ All notable changes to this project are documented here. The format follows
   conversation with `WithOptions(options => options.PersistAllConversations = true)`. For tools that require
   approval, a rule registered with `WithApprovalRule<T>()` or `AgentMode.Auto` works too, and with a rule
   registered a call no rule decides still throws when the model makes it.
+- **Breaking:** `runtime.Agent<TAgent>()` is `runtime.CreateHost<TAgent>()`, a name that says the call creates a host
+  your code owns and disposes, as in `await using var support = runtime.CreateHost<SupportAgent>();`. The old name read
+  as a property beside the host's own `Agent`. Write `CreateHost` where you wrote `Agent<...>()` on the runtime.
 - **Breaking:** an agent's `GetInstructions()` is `GetInstructions(IServiceProvider services)`, called for each run
   with the run's services, so instructions can name the customer a run serves:
   `services.GetRequiredService<ICurrentCustomer>().Name`. One instance of an agent serves every run, so the override

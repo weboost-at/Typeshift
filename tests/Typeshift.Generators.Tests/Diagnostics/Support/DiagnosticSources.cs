@@ -3780,7 +3780,7 @@ public static class DiagnosticSources
         {
             public async Task FollowUpAsync(IEnumerable<string> tickets)
             {
-                await using var support = runtime.Agent<SupportAgent>();
+                await using var support = runtime.CreateHost<SupportAgent>();
 
                 foreach (var ticket in tickets)
                 {
@@ -3806,7 +3806,7 @@ public static class DiagnosticSources
 
         internal sealed class Desk(TypeshiftRuntime runtime)
         {
-            private readonly AgentHost<SupportAgent> _support = runtime.Agent<SupportAgent>();
+            private readonly AgentHost<SupportAgent> _support = runtime.CreateHost<SupportAgent>();
 
             public async Task AnswerAsync(string ticket)
             {

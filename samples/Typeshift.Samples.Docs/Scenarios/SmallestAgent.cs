@@ -11,7 +11,7 @@ internal static class SmallestAgent
     {
         // begin-snippet: smallest-agent-run
         await using var runtime = TypeshiftRuntime.Create(client);
-        await using var assistant = runtime.Agent<AssistantAgent>();
+        await using var assistant = runtime.CreateHost<AssistantAgent>();
 
         var answer = await assistant.RunAsync("Where is my refund?");
 

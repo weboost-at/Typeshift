@@ -35,7 +35,7 @@ At runtime the declaration chains only return the next builder or record a value
 chat and run options or `Configure{Tool}()`. Which tools exist, what an agent offers and what may change at runtime
 is decided by the generated code alone (D4).
 
-`TypeshiftRuntime` is a singleton over the root provider, which `AddCoreServices` registers. `Agent<TAgent>()`
+`TypeshiftRuntime` is a singleton over the root provider, which `AddCoreServices` registers. `CreateHost<TAgent>()`
 creates an async scope and a host that owns it, and disposing the host disposes the scope; a host the container
 resolved owns nothing. The runtime that `Create` returns owns the container it built, so disposing the runtime
 disposes the container. A runtime an app's own container created leaves that container alone (D76).

@@ -165,7 +165,7 @@ Create the runtime with that client, take the agent's host from it and run the a
 <a id='snippet-quickstart-runtime'></a>
 ```cs
 await using var runtime = TypeshiftRuntime.Create(client);
-await using var research = runtime.Agent<ResearchAgent>();
+await using var research = runtime.CreateHost<ResearchAgent>();
 
 var first = await research.RunAsync("Vienna");
 
@@ -181,7 +181,7 @@ research_agent: Found Danube Robotics, Prater Motion and Belvedere Optics.
 - `TypeshiftRuntime.Create(client)` sets up Typeshift in an app without a dependency injection container, such as a
   console app or a script. Its client is the default client, which serves every agent that names no provider
   ([The runtime](./registration.md#the-runtime)).
-- `runtime.Agent<ResearchAgent>()` returns the agent's host, `AgentHost<ResearchAgent>`. You configure and run the
+- `runtime.CreateHost<ResearchAgent>()` returns the agent's host, `AgentHost<ResearchAgent>`. You configure and run the
   agent through it.
 - The model called `find_companies` with `Vienna`, and the tool ran with the agent's limit of 3, so the answer lists
   the three active companies of Vienna.

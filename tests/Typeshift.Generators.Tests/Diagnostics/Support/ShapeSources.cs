@@ -2310,21 +2310,23 @@ public static class ShapeSources
             {
                 foreach (var ticket in tickets)
                 {
-                    await using var chat = runtime.Agent<SupportAgent>().WithSettingsId(7).WithConversationId(ticket);
+                    await using var chat = runtime.CreateHost<SupportAgent>()
+                        .WithSettingsId(7)
+                        .WithConversationId(ticket);
                     await chat.RunAsync("Is the ticket solved?");
                 }
             }
 
             public async Task DigestAsync(string ticket)
             {
-                await using var job = runtime.Agent<SupportAgent>();
+                await using var job = runtime.CreateHost<SupportAgent>();
                 await using var chat = job.WithConversationId(ticket);
                 await chat.RunAsync("Summarize the ticket.");
             }
 
             public async Task ReviewAsync(string ticket)
             {
-                using (var job = runtime.Agent<SupportAgent>())
+                using (var job = runtime.CreateHost<SupportAgent>())
                 {
                     using var chat = job.WithConversationId(ticket);
                     await chat.RunAsync("Review the ticket.");

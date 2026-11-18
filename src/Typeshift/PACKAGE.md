@@ -16,8 +16,8 @@ dotnet add package Typeshift --prerelease
 2. **Write an agent.** A `partial` class deriving from `Agent` picks its model with `WithChatOptions().WithModel(...)`,
    its instructions and its toolsets in its constructor.
 3. **Run it.** Without a container, `TypeshiftRuntime.Create(client)` takes any `IChatClient`, and
-   `runtime.Agent<TAgent>()` gives you the agent's host. With one, `services.AddTypeshift()` registers every toolset
-   and agent, and you inject `AgentHost<TAgent>`.
+   `runtime.CreateHost<TAgent>()` gives you the agent's host. With one, `services.AddTypeshift()` registers every
+   toolset and agent, and you inject `AgentHost<TAgent>`.
 
 Typeshift keeps settings and conversations in memory until you register a store, so a first app needs nothing else.
 The [README](https://github.com/weboost-at/Typeshift#quick-start) shows the code, and

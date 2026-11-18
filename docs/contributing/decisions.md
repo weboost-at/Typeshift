@@ -434,8 +434,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Context:** v0 gave each tool call a fresh scope of the root container, so request-scoped services (the current
   customer) never reached tools, context or the chat client provider (audit finding 2).
 - **Decision:** `AgentHost<TAgent>` is transient and keeps the provider it was resolved from, or the scope
-  `TypeshiftRuntime.Agent<TAgent>()` created for it (D76). Tools, context providers, middleware, the MCP tool provider
-  and the chat client provider resolve from it. Agents and toolsets stay singletons, the store too.
+  `TypeshiftRuntime.CreateHost<TAgent>()` created for it (D76). Tools, context providers, middleware, the MCP tool
+  provider and the chat client provider resolve from it. Agents and toolsets stay singletons, the store too.
 - **Never the root's:** a host the container resolves from the root provider, as one injected into a singleton or
   a `BackgroundService` is, throws an `InvalidOperationException` that names the runtime and a scope. The guide
   only warned up to 0.1.0-alpha.6: with scope validation such a host failed at its first scoped service with the
@@ -1294,19 +1294,18 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   (D11).
 - **Decision:** `host.WithSettingsId(id)` and `host.WithConversationId(id)` return a copy of the host that carries the
   id, typed by the call, so `WithSettingsId(42)` names an `ISettingsStore<int>` and `WithConversationId(chat)` an
-  `IConversationStore<Guid>`. The id goes down the run as a `StoreId<TId>`, which reaches the store of its type
-  through a generic call, so no type is made at run time and Native AOT keeps working; it is equal only to an id of
-  the same type and value, so conversation 5 as an `int` and as a `long` are two conversations. An id of a nullable
-  value type is its value: `WithSettingsId<TId>(TId? id) where TId : struct` and its twin unwrap it, which overload
-  resolution prefers for a `Guid?`, so a request's `Guid?` and the `Guid` name one conversation, and one without a
-  value throws as a null id does. The generated members
-  take no ids: a run uses the host's, a resume resumes the host's conversation, and the settings members of a host
-  with a settings id load, save and update the id's settings in place of the agent's own (D66). `WithStore<T>()`
-  registers a store as each store interface its declared type implements, of any id type, and TSH028 reports only a
-  type that is no store. Without any store, D69 keeps one store in memory per id type, and warns on the first write
-  that one of them takes. A copy runs in its host's scope and disposes it as the host would (D76), so
-  `await using var chat = runtime.Agent<T>().WithConversationId(id);`, the line the API invites, ends the unit of work
-  it began. A scope's disposal is idempotent, so the host and its copies may each be disposed, and once one of them
+  `IConversationStore<Guid>`. The id goes down the run as a `StoreId<TId>`, which reaches the store of its type through
+  a generic call, so no type is made at run time and Native AOT keeps working; it is equal only to an id of the same
+  type and value, so conversation 5 as an `int` and as a `long` are two conversations. An id of a nullable value type is
+  its value: `WithSettingsId<TId>(TId? id) where TId : struct` and its twin unwrap it, which overload resolution prefers
+  for a `Guid?`, so a request's `Guid?` and the `Guid` name one conversation, and one without a value throws as a null
+  id does. The generated members take no ids: a run uses the host's, a resume resumes the host's conversation, and the
+  settings members of a host with a settings id load, save and update the id's settings in place of the agent's own
+  (D66). `WithStore<T>()` registers a store as each store interface its declared type implements, of any id type, and
+  TSH028 reports only a type that is no store. Without any store, D69 keeps one store in memory per id type, and warns
+  on the first write that one of them takes. A copy runs in its host's scope and disposes it as the host would (D76), so
+  `await using var chat = runtime.CreateHost<T>().WithConversationId(id);`, the line the API invites, ends the unit of
+  work it began. A scope's disposal is idempotent, so the host and its copies may each be disposed, and once one of them
   is, a run of any of them throws `ObjectDisposedException`, as the owner chose.
 - **The raw path:** `ResolveOptionsAsync()` hands the host's conversation on with the options. On a host without one,
   `ChatOptions.ConversationId`, a string, names a conversation in the `IConversationStore<string>`, the owner's
@@ -1392,15 +1391,15 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Context:** the owner asked for less ceremony, "Wolverine-style", and chose `TypeshiftRuntime.Create`, first named
   `TypeshiftApp`, over a factory on each agent. A first run took a `ServiceCollection`, `AddTypeshift()`, a provider,
   a scope and a host from it.
-- **Decision:** `TypeshiftRuntime.Create(client, configure)` builds a container and returns its runtime, which owns
-  it, and `runtime.Agent<TAgent>()` returns a host in a scope of its own (D76). The generator intercepts `Create` as
-  it does `AddTypeshift()` (D1): the interceptor builds a `ServiceCollection`, registers the core services and the
-  modules with its own `AddTypeshift`, and `ModuleRegistration.CreateRuntime` registers the client as an instance for
-  every agent, the default client (D63), runs `configure` on the chain and builds the provider with scope validation. The container never
-  disposes an instance, so the client outlives the runtime. The generator reads only a `Create` whose receiver names
-  `TypeshiftRuntime` and skips a call bound at run time, such as one with a `dynamic` argument; a call it did not
-  intercept throws, saying how to call it, and TSH040 reports each of them at build time: `using static`, an alias,
-  a method group and a `dynamic` argument. The generator's pass binds the call to its sole candidate when the
+- **Decision:** `TypeshiftRuntime.Create(client, configure)` builds a container and returns its runtime, which owns it,
+  and `runtime.CreateHost<TAgent>()` returns a host in a scope of its own (D76). The generator intercepts `Create` as it
+  does `AddTypeshift()` (D1): the interceptor builds a `ServiceCollection`, registers the core services and the modules
+  with its own `AddTypeshift`, and `ModuleRegistration.CreateRuntime` registers the client as an instance for every
+  agent, the default client (D63), runs `configure` on the chain and builds the provider with scope validation. The
+  container never disposes an instance, so the client outlives the runtime. The generator reads only a `Create` whose
+  receiver names `TypeshiftRuntime` and skips a call bound at run time, such as one with a `dynamic` argument; a call it
+  did not intercept throws, saying how to call it, and TSH040 reports each of them at build time: `using static`, an
+  alias, a method group and a `dynamic` argument. The generator's pass binds the call to its sole candidate when the
   `configure` lambda names code it has not written yet. The library references
   `Microsoft.Extensions.DependencyInjection`, the container, which it did not before.
 - **The chain's services:** `TypeshiftBuilder.Services` is the service collection the chain registers into, public
@@ -1425,20 +1424,24 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   and an app with a container still built a scope by hand for each background job. The owner asked for one root in
   both kinds of app, after Wolverine's `WolverineRuntime`, which creates short-lived `IMessageBus` instances, and
   renamed `TypeshiftApp` to `TypeshiftRuntime`.
-- **Decision:** `AddCoreServices` registers `TypeshiftRuntime` as a singleton over the root provider, so a singleton
-  of the app, such as a background service, injects it. `Create` resolves that singleton from the container it builds
-  and hands it the container. Disposing that runtime disposes the container, which disposes the runtime again, and the
-  second call finds nothing left to dispose. A runtime your app's container created owns nothing, and disposing it
-  does nothing. `runtime.Agent<TAgent>()` creates an async scope and a host that owns it: one unit of work, whose runs
+- **Decision:** `AddCoreServices` registers `TypeshiftRuntime` as a singleton over the root provider, so a singleton of
+  the app, such as a background service, injects it. `Create` resolves that singleton from the container it builds and
+  hands it the container. Disposing that runtime disposes the container, which disposes the runtime again, and the
+  second call finds nothing left to dispose. A runtime your app's container created owns nothing, and disposing it does
+  nothing. `runtime.CreateHost<TAgent>()` creates an async scope and a host that owns it: one unit of work, whose runs
   use that scope's services as D25 has every host use its scope's. `AgentHost<TAgent>` is `IAsyncDisposable` and
-  `IDisposable`. Disposing a host the runtime created disposes its scope; disposing one the container resolved, such
-  as one injected into a request, does nothing, since the container owns that scope. A copy from `WithSettingsId` or
-  `WithConversationId` (D72) disposes what its host would: the unit of work is the host and its copies. A scope keeps every disposable
-  the container builds until it ends, so the library builds the hosts of sub-agents and handoffs itself
+  `IDisposable`. Disposing a host the runtime created disposes its scope; disposing one the container resolved, such as
+  one injected into a request, does nothing, since the container owns that scope. A copy from `WithSettingsId` or
+  `WithConversationId` (D72) disposes what its host would: the unit of work is the host and its copies. A scope keeps
+  every disposable the container builds until it ends, so the library builds the hosts of sub-agents and handoffs itself
   (`AgentHost<TAgent>.In`) rather than resolving them, or a long-lived host would collect one for each run.
   `runtime.Services` is the root provider, for singletons such as a `ConversationTracker<TId>`. A request still injects
   `AgentHost<TAgent>` from its own scope. Your app lets a host's runs and streams finish before it disposes the host,
   and a run that ends awaits the background sub-agents it stopped (D33), so none works on in a disposed scope.
+- **The name:** `CreateHost<TAgent>()` was `Agent<TAgent>()` up to 0.1.0-alpha.6. A noun beside `AgentHost.Agent`,
+  so `runtime.Agent<T>().Agent` compiled, hid that the caller owns what the call returns and must dispose it; a
+  factory named for the disposable it creates says so, as the owner chose. It went without an `[Obsolete]` twin,
+  since the release that renames it breaks other calls of the same code too.
 - **The scope a job fills:** `host.Services` is the scope a host's runs use. A job has no request middleware to
   fill your app's scoped state, such as the current tenant, so it sets it there before it runs; without it, the
   tools of a job ran with that state empty, and the job fell back to a scope of its own made by hand. No lambda and

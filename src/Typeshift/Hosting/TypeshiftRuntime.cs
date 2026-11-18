@@ -17,7 +17,7 @@ public sealed class TypeshiftRuntime : IAsyncDisposable, IDisposable
     internal TypeshiftRuntime(IServiceProvider services) => Services = services;
 
     /// <summary>
-    /// The root services, for singletons <see cref="Agent{TAgent}"/> does not reach, such as a
+    /// The root services, for singletons <see cref="CreateHost{TAgent}"/> does not reach, such as a
     /// <see cref="ConversationTracker{TId}"/>. Scoped services resolve only from a scope.
     /// </summary>
     public IServiceProvider Services { get; }
@@ -48,12 +48,15 @@ public sealed class TypeshiftRuntime : IAsyncDisposable, IDisposable
             + "method group or a dynamic argument, and keep the Typeshift.Generated namespace in "
             + "InterceptorsNamespaces.");
 
-    // D76: a unit of work, whose scope the host owns
+    // D76: a unit of work, whose scope the host owns, so the factory is named for the disposable it creates
     /// <summary>
     /// Creates the host of an agent, ready to run, in a scope of its own: its tools, its chat client provider, its
     /// middleware and every other scoped service resolve there, apart from other hosts'. Dispose the host, or a copy
     /// of it from <c>WithSettingsId</c> or <c>WithConversationId</c>, once its runs and streams are done, which
     /// disposes the scope.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/using-an-agent#run-from-a-background-job">Run from a
+    /// background job</see>.
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <returns>The host, with the agent's typed members.</returns>
@@ -61,7 +64,7 @@ public sealed class TypeshiftRuntime : IAsyncDisposable, IDisposable
     /// No module registered the agent: the app's <c>AddTypeshift()</c> lies only in a library it references, or the
     /// agent is abstract or of a project the generator did not write code for.
     /// </exception>
-    public AgentHost<TAgent> Agent<TAgent>() where TAgent : Agent =>
+    public AgentHost<TAgent> CreateHost<TAgent>() where TAgent : Agent =>
         new(AgentHost<TAgent>.Registered(Services), Services.CreateAsyncScope());
 
     // D76: disposing the container disposes this runtime again, which then finds nothing to dispose

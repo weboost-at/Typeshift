@@ -8,7 +8,7 @@ internal static class Quickstart
     {
         // begin-snippet: quickstart-runtime
         await using var runtime = TypeshiftRuntime.Create(client);
-        await using var research = runtime.Agent<ResearchAgent>();
+        await using var research = runtime.CreateHost<ResearchAgent>();
 
         var first = await research.RunAsync("Vienna");
 

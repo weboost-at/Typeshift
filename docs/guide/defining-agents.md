@@ -31,7 +31,7 @@ A console app runs it with the `IChatClient` of your provider, through a host fr
 <a id='snippet-smallest-agent-run'></a>
 ```cs
 await using var runtime = TypeshiftRuntime.Create(client);
-await using var assistant = runtime.Agent<AssistantAgent>();
+await using var assistant = runtime.CreateHost<AssistantAgent>();
 
 var answer = await assistant.RunAsync("Where is my refund?");
 

@@ -13,7 +13,7 @@ internal static class NoContainer
     {
         // begin-snippet: typeshift-runtime
         await using var runtime = TypeshiftRuntime.Create(client);
-        await using var research = runtime.Agent<ResearchAgent>();
+        await using var research = runtime.CreateHost<ResearchAgent>();
 
         var answer = await research.RunAsync("Vienna");
 

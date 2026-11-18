@@ -28,7 +28,7 @@ internal static class OutputGuardrail
             new RedactedCardNumbers(model),
             typeshift => typeshift.WithStore<InMemoryTypeshiftStore<int>>());
 
-        await using var research = runtime.Agent<ResearchAgent>();
+        await using var research = runtime.CreateHost<ResearchAgent>();
         var chat = research.WithConversationId(1);
 
         var answer = await chat.RunAsync("Which card is on file?");

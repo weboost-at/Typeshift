@@ -229,7 +229,7 @@ none of them [keeps decisions](./implementing-a-store.md#which-store-serves-a-ca
 
 ### `DisposeAsync` and `Dispose`
 
-`ValueTask DisposeAsync()` and `void Dispose()` dispose the scope of a host that `TypeshiftRuntime.Agent<TAgent>()`
+`ValueTask DisposeAsync()` and `void Dispose()` dispose the scope of a host that `TypeshiftRuntime.CreateHost<TAgent>()`
 created, and with it the scoped services its runs resolved. A copy from `WithSettingsId` or `WithConversationId`
 disposes the same scope, and disposing it a second time does nothing. A host your container resolved, such as one
 injected into a request, owns nothing, so disposing it or a copy of it does nothing. Dispose a host once its runs and
@@ -240,7 +240,7 @@ streams are done, since they use its scope: once the host or a copy is disposed,
 ### The host's scope
 
 `AddTypeshift()` registers a host per agent as transient, so a host runs with the services of the scope it was
-resolved from. A host from `TypeshiftRuntime.Agent<TAgent>()` runs in a scope the runtime created for it
+resolved from. A host from `TypeshiftRuntime.CreateHost<TAgent>()` runs in a scope the runtime created for it
 ([The runtime](./registration.md#the-runtime)). Tools, the chat client provider, middleware, context providers,
 approval rules and the MCP tool provider all resolve from the host's scope.
 

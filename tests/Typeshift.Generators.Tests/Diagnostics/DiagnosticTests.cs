@@ -2897,8 +2897,8 @@ public class DiagnosticTests : GeneratorTestBase
             "TSH042",
             DiagnosticSeverity.Warning,
             "support.WithConversationId(ticket)",
-            message: "This using disposes 'support' with its copy, and a host from runtime.Agent<T>() runs no more "
-                + "once it is: take the copy without using, and dispose 'support' where its work ends");
+            message: "This using disposes 'support' with its copy, and a host from runtime.CreateHost<T>() runs no "
+                + "more once it is: take the copy without using, and dispose 'support' where its work ends");
     }
 
     [Theory]

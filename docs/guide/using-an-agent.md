@@ -61,7 +61,7 @@ A console app or a script without a container creates the runtime with its chat 
 <a id='snippet-typeshift-runtime'></a>
 ```cs
 await using var runtime = TypeshiftRuntime.Create(client);
-await using var research = runtime.Agent<ResearchAgent>();
+await using var research = runtime.CreateHost<ResearchAgent>();
 
 var answer = await research.RunAsync("Vienna");
 
@@ -121,7 +121,7 @@ internal sealed class TicketDigest(TypeshiftRuntime runtime, TimeProvider time) 
     public async Task<string> DigestAsync(CancellationToken ct)
     {
         // A host for each job, so the run gets scoped services of its own, as a request would
-        await using var support = runtime.Agent<SupportAgent>();
+        await using var support = runtime.CreateHost<SupportAgent>();
 
         var answer = await support.RunAsync("Summarize the tickets opened today.", ct);
         return answer.Text;
@@ -131,12 +131,11 @@ internal sealed class TicketDigest(TypeshiftRuntime runtime, TimeProvider time) 
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/TicketDigest.cs#L6-L28' title='Snippet source file'>snippet source</a> | <a href='#snippet-background-host' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`runtime.Agent<SupportAgent>()` gives the job's host a scope of its own, as a request has, and `await using`
-disposes that scope when the job is done ([The runtime](./registration.md#the-runtime)). A job with an id takes the
-copy in the same line: `await using var chat = runtime.Agent<SupportAgent>().WithConversationId(ticket);` disposes the
-scope as the host would. Register the job with
-`services.AddHostedService<TicketDigest>()`. Its timer waits on the `TimeProvider` your app registers, for example
-with `services.AddSingleton(TimeProvider.System)`.
+`runtime.CreateHost<SupportAgent>()` gives the job's host a scope of its own, as a request has, and `await using`
+disposes that scope when the job is done ([The runtime](./registration.md#the-runtime)). A job with an id takes the copy
+in the same line: `await using var chat = runtime.CreateHost<SupportAgent>().WithConversationId(ticket);` disposes the
+scope as the host would. Register the job with `services.AddHostedService<TicketDigest>()`. Its timer waits on the
+`TimeProvider` your app registers, for example with `services.AddSingleton(TimeProvider.System)`.
 
 ### Fill the job's scope
 
@@ -150,7 +149,7 @@ internal sealed class TenantDigest(TypeshiftRuntime runtime)
 {
     public async Task<string> DigestAsync(string tenant, CancellationToken ct)
     {
-        await using var support = runtime.Agent<SupportAgent>();
+        await using var support = runtime.CreateHost<SupportAgent>();
         support.Services.GetRequiredService<CurrentTenant>().Id = tenant;
 
         var answer = await support.RunAsync("Summarize the tickets opened today.", ct);

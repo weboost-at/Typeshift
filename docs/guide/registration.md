@@ -74,7 +74,7 @@ the spellings it cannot intercept, such as a method group ([TSH040](./diagnostic
 ::: warning A library's call registers the library's agents, not your app's
 A library that calls `AddTypeshift()` in its own `AddX()` registers its own toolsets and agents and those of its
 references. Your app's own toolsets and agents need a call to `AddTypeshift()` in your app. Without one,
-`runtime.Agent<TAgent>()`, and a run that calls the agent as a sub-agent or hands over to it, throw an
+`runtime.CreateHost<TAgent>()`, and a run that calls the agent as a sub-agent or hands over to it, throw an
 `InvalidOperationException` that names the agent and this cause.
 :::
 
@@ -152,7 +152,7 @@ client of its runs:
 <a id='snippet-typeshift-runtime'></a>
 ```cs
 await using var runtime = TypeshiftRuntime.Create(client);
-await using var research = runtime.Agent<ResearchAgent>();
+await using var research = runtime.CreateHost<ResearchAgent>();
 
 var answer = await research.RunAsync("Vienna");
 
@@ -172,7 +172,7 @@ Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
 - Create the runtime once and keep it while your app runs. Disposing it disposes its singletons, such as your
   store, but not the client. A host's scoped services are disposed only with the host, so dispose each host as well.
 - A copy of a host, from `WithSettingsId` or `WithConversationId`, runs in the host's scope and disposes it as the
-  host would. So `await using var chat = runtime.Agent<SupportAgent>().WithConversationId(ticket);` takes the host,
+  host would. So `await using var chat = runtime.CreateHost<SupportAgent>().WithConversationId(ticket);` takes the host,
   its id and its disposal in one line. Once the host or one of its copies is disposed, a run of any of them throws an
   `ObjectDisposedException`, so a `using` on the copy of a host your code still holds, in a loop for example, is
   [TSH042](./diagnostics.md#tsh042).
@@ -207,10 +207,10 @@ so disposing it does nothing. A request injects the host itself, from the reques
 
 `runtime.Services` holds the root services, for singletons such as a `ConversationTracker<TId>`. Scoped services are
 not among them, since each lives in a scope, such as the one a host has. An agent's host is not among them either:
-resolving `AgentHost<TAgent>` there throws, so take it with `runtime.Agent<TAgent>()`.
+resolving `AgentHost<TAgent>` there throws, so take it with `runtime.CreateHost<TAgent>()`.
 
 ::: warning Dispose every host the runtime gives you
-`runtime.Agent<TAgent>()` creates a scope for the host. The services the chain registers as scoped, such as the
+`runtime.CreateHost<TAgent>()` creates a scope for the host. The services the chain registers as scoped, such as the
 `WithChatClientProvider<T>()` provider, approval rules, middleware and the MCP tool provider, and the scoped services
 your tools resolve, are created in it. Every run of that host shares them, and no other host sees them. Disposing the
 host disposes the scope and its services, so write `await using`, and let every run and stream of the host finish
