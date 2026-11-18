@@ -223,7 +223,8 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// <exception cref="InvalidOperationException">
     /// No chat client serves the options' provider and model, or the agent, which names no model: no
     /// <c>IChatClientProvider</c> of the provider's type is registered for a provider and a model, and no
-    /// <see cref="IChatClient"/> under the provider's key or for every agent.
+    /// <see cref="IChatClient"/> under the provider's key or for every agent. Or the client runs a tool loop of its
+    /// own, as one registered with <c>UseFunctionInvocation()</c> does.
     /// </exception>
     public async Task<IChatClient> CreateChatClientAsync(ChatOptions options, CancellationToken ct = default)
     {

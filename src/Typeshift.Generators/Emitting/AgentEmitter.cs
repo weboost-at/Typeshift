@@ -35,6 +35,8 @@ internal static class AgentEmitter
         "something the run needs is not registered: a chat client for the agent's model, a store for the type of one "
         + "of the host's ids, or an <c>IMcpToolProvider</c> for the agent's MCP servers";
 
+    private const string OwnLoop = "the agent's chat client runs a tool loop of its own";
+
     private static readonly string AgentSettings = Docs.Guide("settings-and-stores#agent-settings", "Agent settings");
 
     private const string NoSettingsStore =
@@ -728,7 +730,7 @@ internal static class AgentEmitter
             writer,
             InvalidOperation,
             "The host has no conversation, the conversation has nothing to continue or a run going on in this "
-            + $"process, or {MissingRegistration}.");
+            + $"process, {OwnLoop}, or {MissingRegistration}.");
         WriteNewerSettings(writer);
         writer.Lines(
             $"""
@@ -784,8 +786,8 @@ internal static class AgentEmitter
             Docs.WriteException(
                 writer,
                 InvalidOperation,
-                "The host has no conversation, the conversation has a run going on in this process, or "
-                + $"{MissingRegistration}.");
+                "The host has no conversation, the conversation has a run going on in this process, "
+                + $"{OwnLoop}, or {MissingRegistration}.");
             WriteNewerSettings(writer);
             writer.Lines(
                 $"""
@@ -830,7 +832,8 @@ internal static class AgentEmitter
             Docs.WriteException(
                 writer,
                 InvalidOperation,
-                $"The host's conversation has a run going on in this process, or {MissingRegistration}.");
+                $"The host's conversation has a run going on in this process, {OwnLoop}, or "
+                + $"{MissingRegistration}.");
             WriteNewerSettings(writer);
             writer.Lines(
                 $"""
