@@ -17,11 +17,12 @@ internal static class Toolsets
         var desk = scope.ServiceProvider.GetRequiredService<AgentHost<DeskAgent>>();
         var support = scope.ServiceProvider.GetRequiredService<AgentHost<SupportAgent>>();
 
-        var byNumber = await desk.RunAsync("Find ticket 1234");
+        var byNumber = await desk.WithSettingsId(7).RunAsync("Find ticket 1234");
         Expect(Results(byNumber).Single().Contains("Refund for order 77"), "a number to bind the union's int case");
 
         var audited = scope.ServiceProvider.GetRequiredService<SampleLog>().Audited;
-        Expect(audited.Contains("Customer 7 calls find_ticket"), "the tool middleware to log the customer's call");
+        var call = "desk_agent calls find_ticket for customer 7";
+        Expect(audited.Contains(call), "the tool middleware to log the agent and the customer of the call");
 
         var byWords = await desk.RunAsync("Find ticket order 77");
         Expect(Results(byWords).Single().Contains("1234"), "words to bind the union's string case");

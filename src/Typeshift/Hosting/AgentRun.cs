@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.AI;
 
 namespace Typeshift;
@@ -56,6 +57,37 @@ public sealed class AgentRun
     public AgentMode Mode { get; }
 
     /// <summary>
+    /// How the run goes, with every layer of settings applied: the limits of its tool loop and when its history is
+    /// compacted. The mode it goes in is <see cref="Mode"/>, which the conversation's mode can change.
+    /// </summary>
+    public RunOptions RunOptions => Resolved.RunOptions;
+
+    // D72: an id is read typed at the call, as the host was given it, and an id of another type is none
+    /// <summary>
+    /// Reads the settings id the run's host was given with <c>WithSettingsId</c>, the id of a customer for example. A
+    /// sub-agent's run has its caller's.
+    /// </summary>
+    /// <param name="id">The id, when the run has one of <typeparamref name="TId"/>.</param>
+    /// <typeparam name="TId">The id's type, as <c>WithSettingsId</c> was given it.</typeparam>
+    /// <returns>Whether the run has a settings id of that type; false without one, or with another type.</returns>
+    public bool TryGetSettingsId<TId>([MaybeNullWhen(false)] out TId id) where TId : notnull =>
+        Read(Resolved.SettingsId, out id);
+
+    /// <summary>
+    /// Reads the id of the run's conversation: the one the host was given with <c>WithConversationId</c>, a new one
+    /// when your app keeps every conversation, or on the raw path the <see cref="string"/> of
+    /// <c>ChatOptions.ConversationId</c>.
+    /// </summary>
+    /// <param name="id">The id, when the run has one of <typeparamref name="TId"/>.</param>
+    /// <typeparam name="TId">The id's type, as <c>WithConversationId</c> was given it.</typeparam>
+    /// <returns>
+    /// Whether the run has a conversation under an id of that type; false for a run without a conversation, such as
+    /// a sub-agent's, or with an id of another type.
+    /// </returns>
+    public bool TryGetConversationId<TId>([MaybeNullWhen(false)] out TId id) where TId : notnull =>
+        Read(Resolved.ConversationRun?.Conversation, out id);
+
+    /// <summary>
     /// The response, once the run has one, for run middleware to read after <c>next</c> returned. A run middleware
     /// that sets it in place of calling <c>next</c> answers in place of the model.
     /// </summary>
@@ -85,6 +117,15 @@ public sealed class AgentRun
 
     // D77: the provider with its type, which the entries of the run's model responses name as text
     internal ProviderId? ResolvedProvider => (Options as ResolvedChatOptions)?.Provider;
+
+    // The conversation's client begins every run with options of this type, which hold what else the run resolved
+    private ResolvedChatOptions Resolved => (ResolvedChatOptions)Options;
+
+    private static bool Read<TId>(StoreId? stored, [MaybeNullWhen(false)] out TId id) where TId : notnull
+    {
+        id = stored is StoreId<TId> typed ? typed.Id : default;
+        return stored is StoreId<TId>;
+    }
 
     // The run's invoke_agent span, when one is recorded (D36)
     internal System.Diagnostics.Activity? Activity { get; init; }

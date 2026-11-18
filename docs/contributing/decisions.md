@@ -437,9 +437,13 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   provider the runtime holds (D76), a scope another. A container that hands the root's factories some other
   object is not recognized, and resolves as before. The hosts the library builds itself, for sub-agents and
   handoffs, take the run's services and pass no such check.
-- **Alternatives:** a run-context tool parameter carrying the typed id, which built-in toolsets compiled before the
-  host cannot type; per-call scopes, which lose the request; a logged warning for a host from the root, which
-  leaves one customer's services with all the others in production.
+- **The run's ids:** `AgentRun.TryGetSettingsId<TId>` and `TryGetConversationId<TId>` read the ids the host was
+  given, typed at the call as D72 types them, so middleware, context providers, rules and, through `call.Run`, tool
+  middleware need no scoped holder of the app's own for them.
+- **Alternatives:** a run-context tool parameter carrying the typed id, turned down while built-in toolsets compiled
+  before the host could not type it, a reason D37 removed; the typed reads on `AgentRun` serve the same need;
+  per-call scopes, which lose the request; a logged warning for a host from the root, which leaves one customer's
+  services with all the others in production.
 - **Where:** `AgentHost.cs`.
 
 ### D26. Runs return Microsoft.Extensions.AI's types
@@ -606,8 +610,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   once `next` was called throws: by then the answer is stored (D50), has streamed and was published (D47), so a
   response set there reached the caller of a run that does not stream and nobody else. What a model says is
   changed below the checkpoints, by a client the app wraps around the provider's, which the guide shows.
-  `IToolMiddleware` wraps `FunctionInvocationContext`. Registered in the chain, in order, for every agent; a
-  middleware filters by `run.Agent`. Changes to the messages hold for the pass; the conversation keeps what the
+  `IToolMiddleware` wraps `FunctionInvocationContext`, and reads the run through `call.Run`, an extension property
+  over the call's options, which are the run's and hold it, at the owner's choice: no implementation changes
+  signature, where an `AgentRun` parameter would have broken every one. Registered in the chain, in order, for every
+  agent; a middleware filters by `run.Agent`. Changes to the messages hold for the pass; the conversation keeps what the
   host sent. A response set without `next` is stored with the conversation, and a pass that called no model ends
   the run, storing the steering input that waits. In a streaming
   run the middleware awaits `next` while the updates go on to the caller through a channel, which reads the model's

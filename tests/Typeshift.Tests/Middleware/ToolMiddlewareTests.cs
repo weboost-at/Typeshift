@@ -29,6 +29,48 @@ public class ToolMiddlewareTests : MiddlewareTestBase
     }
 
     [Fact]
+    public async Task Given_A_Tool_Call_Its_Middleware_Reads_The_Runs_Agent_And_Settings_Id()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "note", ("text", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var runs = new List<AgentRun>();
+
+        Script.Tools[0] = (call, next) =>
+        {
+            runs.Add(call.Run);
+            return next();
+        };
+
+        // Act
+        await Host<ContextAgent>()
+            .WithSettingsId(Data.Persistence.SettingsId)
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync(Data.Tool.Question, Ct);
+        runs[0].TryGetSettingsId<Guid>(out var customer);
+
+        // Assert
+        runs[0].Agent.Name.Should().Be("context_agent");
+        customer.Should().Be(Data.Persistence.SettingsId);
+    }
+
+    [Fact]
+    public void Given_A_Call_Outside_A_Run_Reading_Its_Run_Throws()
+    {
+        // Arrange
+        var tool = AIFunctionFactory.Create(() => Data.Tool.Answer, "note");
+        var call = new FunctionInvocationContext { Function = tool };
+
+        // Act
+        var read = () => call.Run;
+
+        // Assert
+        read.Should().Throw<InvalidOperationException>().WithMessage("*'note'*");
+    }
+
+    [Fact]
     public async Task Given_Tool_Middleware_That_Answers_The_Tool_Does_Not_Run_And_The_Model_Receives_The_Answer()
     {
         // Arrange

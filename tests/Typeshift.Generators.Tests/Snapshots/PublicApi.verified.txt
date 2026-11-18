@@ -73,7 +73,10 @@ public Typeshift.AgentMode Typeshift.AgentRun.Mode { get; }
 public Microsoft.Extensions.AI.ChatOptions Typeshift.AgentRun.Options { get; }
 public object? Typeshift.AgentRun.Provider { get; }
 public Microsoft.Extensions.AI.ChatResponse? Typeshift.AgentRun.Response { get; set; }
+public Typeshift.RunOptions Typeshift.AgentRun.RunOptions { get; }
 public System.IServiceProvider Typeshift.AgentRun.Services { get; }
+public bool Typeshift.AgentRun.TryGetConversationId<TId>(out TId id) where TId : notnull
+public bool Typeshift.AgentRun.TryGetSettingsId<TId>(out TId id) where TId : notnull
 public sealed class Typeshift.AgentUse
 public Typeshift.AgentUse Typeshift.AgentUse.InBackground()
 public Typeshift.AgentUse Typeshift.AgentUse.WithResult<TResult>()
@@ -239,6 +242,10 @@ public override int Typeshift.FileStoreOptions.GetHashCode()
 public override string Typeshift.FileStoreOptions.ToString()
 public static bool Typeshift.FileStoreOptions.operator !=(Typeshift.FileStoreOptions? left, Typeshift.FileStoreOptions? right)
 public static bool Typeshift.FileStoreOptions.operator ==(Typeshift.FileStoreOptions? left, Typeshift.FileStoreOptions? right)
+public static class Typeshift.FunctionInvocationContextExtensions
+public static Typeshift.FunctionInvocationContextExtensions.extension(Microsoft.Extensions.AI.FunctionInvocationContext)
+public Typeshift.AgentRun Typeshift.FunctionInvocationContextExtensions.extension(Microsoft.Extensions.AI.FunctionInvocationContext).Run { get; }
+public static Typeshift.AgentRun Typeshift.FunctionInvocationContextExtensions.get_Run(Microsoft.Extensions.AI.FunctionInvocationContext call)
 public abstract class Typeshift.Generated.AgentDeclaration
 public abstract string? Typeshift.Generated.AgentDeclaration.Description { get; }
 public abstract string Typeshift.Generated.AgentDeclaration.Name { get; }

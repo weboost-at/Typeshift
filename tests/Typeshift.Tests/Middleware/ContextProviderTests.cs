@@ -53,6 +53,48 @@ public class ContextProviderTests : MiddlewareTestBase
     }
 
     [Fact]
+    public async Task Given_A_Run_With_A_Conversation_Id_The_Provider_Reads_It_Typed()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question);
+        var read = Script.ContextRuns[0].TryGetConversationId<Guid>(out var conversation);
+
+        // Assert
+        read.Should().BeTrue();
+        conversation.Should().Be(Data.Agent.ConversationId);
+    }
+
+    [Fact]
+    public async Task Given_An_Id_Of_Another_Type_The_Read_Is_False()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question);
+        var read = Script.ContextRuns[0].TryGetConversationId<string>(out _);
+
+        // Assert
+        read.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Given_Run_Settings_Of_A_Run_Option_The_Provider_Reads_The_Layered_Value()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question, new() { MaxInputTokens = 100_000 });
+
+        // Assert
+        Script.ContextRuns[0].RunOptions.MaxInputTokens.Should().Be(100_000);
+    }
+
+    [Fact]
     public async Task Given_A_Compaction_In_A_Run_With_Context_Its_Summary_Leaves_The_Context_Out()
     {
         // Arrange

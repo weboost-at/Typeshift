@@ -50,12 +50,17 @@ An `IRunMiddleware` receives the run as an `AgentRun`:
 | `Options` | The run's resolved `ChatOptions`, with every layer of settings applied. |
 | `Provider` | The [provider](./models.md#registering-clients) that serves the run, as the agent's code or its settings name it; null on the default client. Read-only: the run's client is taken before middleware runs, so a model your middleware sets in `Options` goes to this provider. |
 | `Mode` | The mode the run is in. |
+| `RunOptions` | The run's [run options](./builders.md#runoptionsbuilder), with every layer of settings applied, such as `MaxToolIterations`. |
+| `TryGetSettingsId<TId>(out id)` | The settings id the host was given with `WithSettingsId`, read as a `TId`. False without one, or with one of another type. A sub-agent's run has its caller's. |
+| `TryGetConversationId<TId>(out id)` | The id of the run's conversation, read as a `TId`. False for a run without a conversation, or with an id of another type. |
 | `Services` | The run's services. |
 | `Response` | The answer, to read once `next` returns. |
 
 Middleware may change the messages and the options before it calls `next`. Changes to the messages hold for this
 run only, because the conversation stores the messages you sent. Middleware runs for every agent, so check `run.Agent`
-when it should act on some of them only.
+when it should act on some of them only. Context providers and approval rules receive the same `AgentRun`, so a
+memory reads the conversation's id with `run.TryGetConversationId<Guid>(out var conversation)`, typed as your app
+gave it to `WithConversationId`.
 
 ### Answering in place of the model
 
@@ -169,29 +174,38 @@ services.AddKeyedChatClient("openai", openAi)
 
 ### Wrap every tool call
 
-An `IToolMiddleware` sees each tool call that runs. This one logs which customer calls which tool:
+An `IToolMiddleware` sees each tool call that runs. This one logs which agent calls which tool for which customer:
 
 <!-- snippet: tool-middleware -->
 <a id='snippet-tool-middleware'></a>
 ```cs
-internal sealed class AuditToolCalls(ICurrentCustomer customer, ILogger<AuditToolCalls> logger) : IToolMiddleware
+internal sealed class AuditToolCalls(ILogger<AuditToolCalls> logger) : IToolMiddleware
 {
     public async ValueTask<object?> InvokeAsync(
         FunctionInvocationContext call,
         Func<ValueTask<object?>> next,
         CancellationToken ct)
     {
-        logger.LogInformation("Customer {Customer} calls {Tool}", customer.Id, call.Function.Name);
+        var run = call.Run;
+        int? customer = run.TryGetSettingsId<int>(out var id) ? id : null;
+
+        logger.LogInformation(
+            "{Agent} calls {Tool} for customer {Customer}",
+            run.Agent.Name,
+            call.Function.Name,
+            customer);
 
         return await next();
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/AuditToolCalls.cs#L6-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-tool-middleware' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/AuditToolCalls.cs#L6-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-tool-middleware' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - It receives Microsoft.Extensions.AI's `FunctionInvocationContext`: the function, its arguments and the messages so
-  far.
+  far. `call.Run` is the run the call belongs to, the `AgentRun` run middleware sees, so the agent and the ids your
+  app gave the host come with every call. The customer's id here is the settings id, as in
+  [Inject the host in a web app](./using-an-agent.md#inject-the-host-in-a-web-app).
 - A call that a rule or your app rejects never reaches it. A call that waits for your app reaches it once your
   answer approved it, in the run that carries the answer out.
 - What it returns is the result the model receives. Return without calling `next`, and it answers in place of the

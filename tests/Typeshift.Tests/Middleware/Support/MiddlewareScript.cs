@@ -19,6 +19,9 @@ public sealed class MiddlewareScript
     public Dictionary<int, Func<ChatMessage, ChatMessage?>> Steering { get; } = [];
 
     public AgentContext Context { get; set; } = new();
+
+    // The runs the context provider was asked for
+    public List<AgentRun> ContextRuns { get; } = [];
 }
 
 public sealed class FirstRunMiddleware(MiddlewareScript script) : IRunMiddleware
@@ -59,8 +62,11 @@ public sealed class SecondToolMiddleware(MiddlewareScript script) : IToolMiddlew
 
 public sealed class ScriptedContext(MiddlewareScript script) : IContextProvider
 {
-    public ValueTask<AgentContext> GetContextAsync(AgentRun run, CancellationToken ct) =>
-        ValueTask.FromResult(script.Context);
+    public ValueTask<AgentContext> GetContextAsync(AgentRun run, CancellationToken ct)
+    {
+        script.ContextRuns.Add(run);
+        return ValueTask.FromResult(script.Context);
+    }
 }
 
 // Each middleware logs around what it does: calling next, or the script in its place

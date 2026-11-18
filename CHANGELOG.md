@@ -154,6 +154,11 @@ All notable changes to this project are documented here. The format follows
   `host.RunAsync(question, ct)` and runs any agent. It was CS1929, since only each agent's generated members could
   run it. A run takes its token second, as in `RunAsync(input.Text, ct)`, which was CS1503 and needed `ct: ct`. A
   call with settings reaches the agent's generated member as before.
+- `AgentRun` gives run middleware, context providers and approval rules the ids your app gave the host, typed as
+  it gave them, with `run.TryGetSettingsId<int>(out var customer)` and `run.TryGetConversationId<Guid>(out var
+  conversation)`, and the run's `RunOptions` with every layer of settings applied. A tool middleware reads the run
+  of a call as `call.Run`, so it names the agent and the customer a tool ran for without a scoped service of your
+  own that holds them.
 
 ### Changed
 

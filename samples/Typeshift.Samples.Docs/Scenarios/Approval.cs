@@ -99,7 +99,7 @@ internal static class Approval
             throw new InvalidOperationException("Expected a command the rule names to run in auto mode.");
 
         // A call a rule rejects never reaches the tool middleware, so it saw the one command that ran
-        var audited = services.GetRequiredService<SampleLog>().Audited.Count(line => line.EndsWith(" run_command"));
+        var audited = services.GetRequiredService<SampleLog>().Audited.Count(line => line.Contains(" run_command "));
         if (audited != 1)
             throw new InvalidOperationException($"Expected the tool middleware to see one command, not {audited}.");
 
