@@ -135,10 +135,11 @@ All notable changes to this project are documented here. The format follows
   `InvalidOperationException` that names an agent no module registered and the likely causes: `AddTypeshift()`
   called only in a library the app references, an abstract agent, a base named through a using alias, a project
   built with another Typeshift version. They threw the container's "No service for type" for the agent's class.
-- Once your app registers stores, a `ConversationTracker<TId>` whose id type none of them keeps conversations under
-  throws an `InvalidOperationException` at its first call, naming the `IConversationStore<TId>` it needs, as a run
-  under such an id does. It answered as if no conversation ran, forever: a `ConversationTracker<long>` in an app whose
-  ids are `int`s watched nothing. A store's messages name a nullable id type as C# does, `Guid?`.
+- **Breaking:** once your app registers stores, a `ConversationTracker<TId>` whose id type none of them keeps
+  conversations under throws an `InvalidOperationException` at its first call, naming the `IConversationStore<TId>`
+  it needs, as a run under such an id does. It answered as if no conversation ran, forever: a
+  `ConversationTracker<long>` in an app whose ids are `int`s watched nothing. Take the tracker of your conversation
+  ids' type. A store's messages name a nullable id type as C# does, `Guid?`.
 - **Breaking:** a tool result that is a JSON object or array reaches the provider's client as a `string`, the JSON
   without white space. It was a `JsonElement`, which the provider's client indented as it wrote the request: a tool
   returning 20 records cost about 60 percent more tokens on every model call that carried its result. A client of
