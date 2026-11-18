@@ -5,8 +5,9 @@ using Typeshift.Samples.Companies;
 
 namespace Typeshift.Samples.Chat;
 
-// Stands in for a provider: it asks for find_companies with the user's city, or for count_companies when the user
-// names a sector, then answers from the tool's result, in JSON when the run asks for it. Offered ask_user, it asks
+// Stands in for a provider: it asks for find_companies with the user's city, for count_companies when the user
+// names a sector, or for get_logos with the city the user asks the logos of, then answers from the tool's result, in
+// JSON when the run asks for it. Offered ask_user, it asks
 // which company to write to, calls send_mail with the user's answer, then answers with what the tool returned
 internal sealed class ScriptedChatClient : IChatClient
 {
@@ -40,6 +41,7 @@ internal sealed class ScriptedChatClient : IChatClient
             (true, [{ CallId: "call_ask" } answers]) => SendMail(answers),
             (true, [var sent]) => new TextContent($"{sent.Result}"),
             (false, []) => Call(last.Text),
+            (false, [{ Result: IEnumerable<AIContent> logos }]) => new TextContent(Logos(logos)),
             _ => new TextContent(Answer(history, results, options))
         };
 
@@ -88,9 +90,20 @@ internal sealed class ScriptedChatClient : IChatClient
 
     // The sector goes out as its name, as a model sends an enum whose schema lists the names
     private static FunctionCallContent Call(string input) =>
-        Enum.TryParse<Sector>(input, out _)
-            ? new("call_count", "count_companies", new Dictionary<string, object?> { ["sector"] = input })
-            : new("call_find", "find_companies", new Dictionary<string, object?> { ["city"] = input });
+        input switch
+        {
+            _ when Enum.TryParse<Sector>(input, out _) =>
+                new("call_count", "count_companies", Arguments("sector", input)),
+            _ when input.StartsWith(LogosOf, StringComparison.Ordinal) =>
+                new("call_logos", CompanyToolset.ToolNames.GetLogos, Arguments("city", input[LogosOf.Length..])),
+            _ => new("call_find", "find_companies", Arguments("city", input))
+        };
+
+    private const string LogosOf = "Logos of ";
+
+    // The logos reach the model as images, never as the text of their JSON
+    private static string Logos(IEnumerable<AIContent> logos) =>
+        $"{logos.OfType<DataContent>().Count(logo => logo.MediaType == "image/png")} logos.";
 
     // The answers reach the model as the JSON ask_user returns: the picked label under the question's header
     private static FunctionCallContent SendMail(FunctionResultContent answers)

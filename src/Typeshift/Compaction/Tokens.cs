@@ -52,6 +52,11 @@ internal static class Tokens
             TextReasoningContent reasoning => reasoning.Text.Length,
             FunctionCallContent call => Kept(call, lengths, static call => call.Name.Length + Json(call.Arguments)),
             FunctionResultContent { Result: string text } => text.Length,
+
+            // D45: a tool's content, such as an image, counts as the content it is
+            FunctionResultContent { Result: AIContent result } => Characters(result, lengths),
+            FunctionResultContent { Result: IEnumerable<AIContent> results } =>
+                results.Sum(result => Characters(result, lengths)),
             FunctionResultContent result => Kept(result, lengths, static result => Text(result.Result).Length),
             DataContent or UriContent or HostedFileContent => PerAttachment * CharactersPerToken,
             _ => 0

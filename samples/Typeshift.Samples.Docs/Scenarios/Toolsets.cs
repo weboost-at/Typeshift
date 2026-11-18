@@ -7,8 +7,8 @@ using Typeshift.Samples.Tickets;
 
 namespace Typeshift.Samples.Scenarios;
 
-// The toolsets the guide shows, called as a model calls them: a union bound by the case its JSON fits, a
-// ToolException the model reads as a hint, and the settings of a run that reach a tool
+// The toolsets the guide shows, called as a model calls them: a union bound by the case its JSON fits, an image the
+// model receives as one, a ToolException the model reads as a hint, and the settings of a run that reach a tool
 internal static class Toolsets
 {
     public static async Task RunAsync(IServiceProvider provider)
@@ -26,6 +26,10 @@ internal static class Toolsets
 
         var byWords = await desk.RunAsync("Find ticket order 77");
         Expect(Results(byWords).Single().Contains("1234"), "words to bind the union's string case");
+
+        var screenshot = await desk.RunAsync("Show the screenshot of ticket 1234");
+        var image = screenshot.Messages.SelectMany(message => message.Contents).OfType<FunctionResultContent>();
+        Expect(image.Single().Result is DataContent { MediaType: "image/png" }, "the screenshot to reach the model");
 
         var missing = await desk.RunAsync("Escalate ticket 4711");
         var hint = "Error: Function failed. Exception: No ticket 4711 exists. Search for it first.";

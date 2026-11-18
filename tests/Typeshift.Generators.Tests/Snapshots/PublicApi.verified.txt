@@ -318,6 +318,7 @@ public abstract class Typeshift.Generated.GeneratedToolFunction : Microsoft.Exte
 protected Typeshift.Generated.GeneratedToolFunction.GeneratedToolFunction(Typeshift.Generated.ToolJson json)
 protected T Typeshift.Generated.GeneratedToolFunction.GetArgument<T>(Microsoft.Extensions.AI.AIFunctionArguments arguments, string name)
 protected T Typeshift.Generated.GeneratedToolFunction.GetArgument<T>(Microsoft.Extensions.AI.AIFunctionArguments arguments, string name, T defaultValue)
+protected static object? Typeshift.Generated.GeneratedToolFunction.GetContentResult<T>(T content)
 protected object Typeshift.Generated.GeneratedToolFunction.GetResult<T>(T result)
 protected System.Threading.Tasks.ValueTask<object?> Typeshift.Generated.GeneratedToolFunction.GetResultAsync<T>(System.Collections.Generic.IAsyncEnumerable<T> stream, System.Threading.CancellationToken ct)
 protected override sealed System.Threading.Tasks.ValueTask<object?> Typeshift.Generated.GeneratedToolFunction.InvokeCoreAsync(Microsoft.Extensions.AI.AIFunctionArguments arguments, System.Threading.CancellationToken ct)

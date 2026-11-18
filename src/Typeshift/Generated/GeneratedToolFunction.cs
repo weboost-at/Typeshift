@@ -40,7 +40,9 @@ public abstract class GeneratedToolFunction(ToolJson json) : AIFunction
     /// <param name="arguments">The model's arguments.</param>
     /// <param name="services">The run's services.</param>
     /// <param name="ct">Cancels the call.</param>
-    /// <returns>The tool's result as JSON, or null for a tool that returns nothing.</returns>
+    /// <returns>
+    /// The tool's result as JSON, the content it returns as it is, or null for a tool that returns nothing.
+    /// </returns>
     protected abstract ValueTask<object?> InvokeToolAsync(
         AIFunctionArguments arguments,
         IServiceProvider services,
@@ -88,6 +90,16 @@ public abstract class GeneratedToolFunction(ToolJson json) : AIFunction
     /// <param name="result">The result.</param>
     /// <returns>The result as a <see cref="JsonElement"/>, serialized through its type's contract.</returns>
     protected object GetResult<T>(T result) => JsonSerializer.SerializeToElement(result, json.GetTypeInfo<T>());
+
+    // D45: a sequence a tool returns may be an iterator, which every later reader would run again
+    /// <summary>
+    /// Hands a tool's content, such as an image, to the model as it is, never as its JSON.
+    /// </summary>
+    /// <typeparam name="T">The tool method's result type: an <see cref="AIContent"/> or a sequence of them.</typeparam>
+    /// <param name="content">The content.</param>
+    /// <returns>The content, a sequence of them as a list, read once.</returns>
+    protected static object? GetContentResult<T>(T content) =>
+        content is IEnumerable<AIContent> contents and not AIContent ? (List<AIContent>)[.. contents] : content;
 
     /// <summary>
     /// Reads a tool's stream to its end and turns its items into the JSON the model receives, as one array.

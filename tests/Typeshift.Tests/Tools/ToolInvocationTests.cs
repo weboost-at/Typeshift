@@ -113,6 +113,53 @@ public class ToolInvocationTests : HostTestBase
     }
 
     [Fact]
+    public async Task Given_A_Tool_That_Returns_Content_The_Model_Receives_The_Content()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "picture", ("caption", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var options = new ChatOptions { Tools = [ContentToolset.CreatePicture(Json)] };
+
+        // Act
+        await FunctionLoop().GetResponseAsync(Data.Tool.Question, options, Ct);
+
+        // Assert
+        ((SentResult(request: 1) as DataContent)?.Uri).Should().Be(ContentToolset.Drawn(Data.Tool.Query).Uri);
+    }
+
+    [Fact]
+    public async Task Given_A_Tool_That_Awaits_Its_Content_The_Model_Receives_The_Content()
+    {
+        // Arrange
+        var scan = ContentToolset.CreateScan(Json);
+
+        // Act
+        var result = await scan.InvokeAsync(Arguments(("caption", Data.Tool.Query)), Ct);
+
+        // Assert
+        ((result as DataContent)?.Uri).Should().Be(ContentToolset.Drawn(Data.Tool.Query).Uri);
+    }
+
+    [Fact]
+    public async Task Given_A_Tool_That_Returns_A_Sequence_Of_Content_The_Model_Receives_Each()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "annotate", ("caption", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var options = new ChatOptions { Tools = [ContentToolset.CreateAnnotate(Json)] };
+
+        // Act
+        await FunctionLoop().GetResponseAsync(Data.Tool.Question, options, Ct);
+
+        // Assert
+        Described(SentResult(request: 1)).Should().Equal(Data.Tool.Query, ContentToolset.Drawn(Data.Tool.Query).Uri);
+    }
+
+    [Fact]
     public async Task Given_No_Services_The_Call_Fails_Saying_How_To_Run_It()
     {
         // Arrange
@@ -369,4 +416,23 @@ public class ToolInvocationTests : HostTestBase
         // Assert
         ReadResult<GeoPoint>(result).Should().Be(default(GeoPoint));
     }
+
+    // Each content of a result that is a sequence of them, as its text or its data's URI; none for any other result
+    private static IReadOnlyList<string> Described(object? result) =>
+    [
+        .. (result as IEnumerable<AIContent> ?? []).Select(content => content switch
+        {
+            TextContent text => text.Text,
+            DataContent data => data.Uri,
+            _ => content.GetType().Name
+        })
+    ];
+
+    // The one tool result a request carried to the model, as the loop handed it on
+    private object? SentResult(int request) =>
+        ChatClient.Requests[request]
+            .SelectMany(message => message.Contents)
+            .OfType<FunctionResultContent>()
+            .Single()
+            .Result;
 }

@@ -12,5 +12,6 @@ internal partial class DeskAgent : Agent
 
         UseToolset<TicketLookupToolset>();
         UseToolset<TicketEscalationToolset>();
+        UseToolset<TicketScreenshotToolset>();
     }
 }

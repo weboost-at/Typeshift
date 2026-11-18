@@ -120,7 +120,8 @@ names, wherever that method lives.
    argument (D53). An absent optional argument takes its default. The settings the function was created with, the
    services, the token and the raw arguments pass through and stay out of the schema (D16).
 3. The result is serialized through `JsonTypeInfo` into a `JsonElement`. A stream is read to its end first, by the
-   library's `GetResultAsync`, which stops at the call's token, and serialized as the list of its items (D45).
+   library's `GetResultAsync`, which stops at the call's token, and serialized as the list of its items (D45). An
+   `AIContent` or a sequence of them is no JSON: `GetContentResult` hands it on as it is, a sequence as a list (D45).
 
 `ToolJson` holds the container's JSON options and builds the schema of each function type once, through
 `ToolSchemas`, and caches it. That is one `AIJsonUtilities.CreateJsonSchema` per parameter, with its description and

@@ -202,6 +202,49 @@ the `JsonElement`: your middleware, the stored conversation, the run's response 
 The analyzer rejects a result JSON cannot carry, which is a pointer, a ref struct or `dynamic`, and a task or a
 stream that may itself be null, such as `Task<string>?` ([TSH004](./diagnostics.md#tsh004)).
 
+### Images and other content
+
+A tool that returns Microsoft.Extensions.AI's `AIContent`, such as a `DataContent` that holds an image, hands the
+model that content as it is, with no JSON in between:
+
+<!-- snippet: content-result -->
+<a id='snippet-content-result'></a>
+```cs
+internal partial class TicketScreenshotToolset : Toolset
+{
+    public TicketScreenshotToolset()
+    {
+        AddTool(GetScreenshotAsync)
+            .ReadOnly();
+    }
+
+    /// <summary>
+    /// Shows the screenshot the customer attached to a ticket.
+    /// </summary>
+    /// <param name="number">The ticket's number.</param>
+    public static async Task<DataContent> GetScreenshotAsync(
+        int number,
+        IServiceProvider services,
+        CancellationToken ct)
+    {
+        var png = await services.GetRequiredService<ITicketClient>().GetScreenshotAsync(number, ct);
+
+        return new DataContent(png, "image/png");
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Tickets/TicketScreenshotToolset.cs#L6-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-content-result' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- The same holds for a type derived from `AIContent` and for a sequence of contents, such as
+  `IEnumerable<AIContent>`, returned or awaited from a `Task<T>` or a `ValueTask<T>`. Typeshift reads a sequence once,
+  into a list.
+- The model receives a screenshot as an image, so it neither reads it as base64 text nor pays for that text's tokens.
+  How the content goes out is up to the provider's `IChatClient`, as for a function of `AIFunctionFactory`, which
+  hands such a result on the same way.
+- The stored conversation keeps the result as content, and later runs send it as content again.
+- Such a result needs no JSON metadata in an app published with [Native AOT](./native-aot.md).
+
 ## When a tool fails
 
 A tool tells the model what went wrong by throwing a `ToolException`. The model reads its message as the result of

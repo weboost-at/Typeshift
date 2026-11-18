@@ -83,6 +83,9 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
     // D78: how many stored contents this version of Microsoft.Extensions.AI could not read, which the entry leaves out
     internal int UnreadContents { get; init; }
 
+    // D45: the mark of a stored tool result that is content, not JSON
+    internal const string ContentResult = "typeshift.content_result";
+
     /// <inheritdoc />
     public static string Kind => "conversation_entry";
 
@@ -137,7 +140,7 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
 
         foreach (var message in Messages)
         {
-            JsonSerializer.Serialize(writer, message, Contract<ChatMessage>());
+            JsonSerializer.Serialize(writer, MarkContentResults(message), Contract<ChatMessage>());
         }
 
         writer.WriteEndArray();
@@ -201,7 +204,7 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
 
         try
         {
-            return stored.Deserialize(Contract<ChatMessage>())!;
+            return ReadContentResults(stored.Deserialize(Contract<ChatMessage>())!);
         }
         catch (Exception exception) when (IsUnread(exception) && contents.ValueKind is JsonValueKind.Array)
         {
@@ -213,7 +216,62 @@ public sealed record ConversationEntry(string Agent, IReadOnlyList<ChatMessage> 
                 else unread++;
             }
 
-            return message.Contents.Count > 0 ? message : null;
+            return message.Contents.Count > 0 ? ReadContentResults(message) : null;
+        }
+    }
+
+    // D45: a tool's content, such as an image, goes to the model as content, in later runs too. Its JSON reads back as
+    // JSON, which the model would receive as text, so the result carries a mark that has it read back as content
+    private static ChatMessage MarkContentResults(ChatMessage message)
+    {
+        if (!message.Contents.Any(IsContentResult)) return message;
+
+        var marked = message.Clone();
+        marked.Contents = [.. message.Contents.Select(content => IsContentResult(content) ? Marked(content) : content)];
+        return marked;
+    }
+
+    private static bool IsContentResult(AIContent content) =>
+        content is FunctionResultContent { Result: AIContent or IEnumerable<AIContent> };
+
+    private static FunctionResultContent Marked(AIContent content)
+    {
+        var result = (FunctionResultContent)content;
+
+        return new FunctionResultContent(result.CallId, result.Result)
+        {
+            Exception = result.Exception,
+            Annotations = result.Annotations,
+            AdditionalProperties = new(result.AdditionalProperties ?? []) { [ContentResult] = true }
+        };
+    }
+
+    private static ChatMessage ReadContentResults(ChatMessage message)
+    {
+        foreach (var result in message.Contents.OfType<FunctionResultContent>())
+        {
+            if (result is not { Result: JsonElement json, AdditionalProperties: { } properties }
+                || !properties.Remove(ContentResult)) continue;
+
+            if (properties.Count == 0) result.AdditionalProperties = null;
+            result.Result = TryReadContentResult(json) ?? json;
+        }
+
+        return message;
+    }
+
+    // D78: a result whose content this version cannot read stays the JSON it was stored as
+    private static object? TryReadContentResult(JsonElement json)
+    {
+        try
+        {
+            return json.ValueKind is JsonValueKind.Array
+                ? json.Deserialize(Contract<IList<AIContent>>())
+                : json.Deserialize(Contract<AIContent>());
+        }
+        catch (Exception exception) when (IsUnread(exception))
+        {
+            return null;
         }
     }
 

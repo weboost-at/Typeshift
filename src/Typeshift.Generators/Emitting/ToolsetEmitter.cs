@@ -300,8 +300,8 @@ internal static class ToolsetEmitter
     private static void WriteInvoke(SourceWriter writer, ToolModel tool)
     {
         var kind = tool.Return;
-        var isAsync = kind is ReturnKind.Awaitable or ReturnKind.AwaitableValue;
-        var isExpression = kind is ReturnKind.Value or ReturnKind.AwaitableValue or ReturnKind.Stream;
+        var isAsync = kind is ReturnKind.Awaitable or ReturnKind.AwaitableValue or ReturnKind.AwaitableContent;
+        var isExpression = kind is not (ReturnKind.Void or ReturnKind.Awaitable);
         var call = $"{tool.Target}.{tool.Method}";
         var arguments = tool.Parameters.Select(GetArgument).ToList();
 
@@ -319,6 +319,12 @@ internal static class ToolsetEmitter
         {
             if (kind == ReturnKind.Value) WriteCall(writer, "new(GetResult(", call, arguments, ")));");
             if (kind == ReturnKind.AwaitableValue) WriteCall(writer, "GetResult(await ", call, arguments, "));");
+
+            // D45: content goes to the model as it is, never through JSON
+            if (kind == ReturnKind.Content) WriteCall(writer, "new(GetContentResult(", call, arguments, ")));");
+
+            if (kind == ReturnKind.AwaitableContent)
+                WriteCall(writer, "GetContentResult(await ", call, arguments, "));");
 
             // D45: the model takes one result per call, so a stream reaches it as the list of its items, which the
             // library reads: generated code that named an async LINQ type would be ambiguous in a consumer that

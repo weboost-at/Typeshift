@@ -200,6 +200,10 @@ All notable changes to this project are documented here. The format follows
   mode offers them beside the toolsets' read-only tools. The provider receives each tool as it was given. Before,
   plan mode hid every tool of the chat options, so an agent whose research is a provider's web search planned with
   `exit_plan_mode` alone.
+- A tool that returns an `AIContent`, such as a `DataContent` with an image, or a sequence of contents, as its value
+  or from a `Task<T>` or `ValueTask<T>`, hands the model the content as it is, and the stored conversation reads it
+  back as content for later runs. Such a result needs no JSON metadata under Native AOT. Before, the generated tool
+  serialized it to JSON, so the model read an image as base64 text and paid for its tokens.
 
 ### Changed
 

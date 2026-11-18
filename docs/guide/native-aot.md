@@ -91,7 +91,9 @@ Some of the types that need an entry look as plain as the ones above:
 - `byte`, `Guid` and `DateOnly`.
 
 A tool that returns `IAsyncEnumerable<T>` needs an entry for `List<T>`, because Typeshift sends the stream's items as
-one array ([Results](./toolsets.md#results)).
+one array ([Results](./toolsets.md#results)). A tool that returns an `AIContent`, such as an image, or a sequence of
+them needs none, because the model receives the content as it is
+([Images and other content](./toolsets.md#images-and-other-content)).
 
 A [union](./toolsets.md#union-types) of two records gets warning SYSLIB1227 in a context, because the source
 generator finds no classifier that tells the records apart. Typeshift's tools and runs pick the case by its

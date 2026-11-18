@@ -5,11 +5,12 @@ using Microsoft.Extensions.AI;
 namespace Typeshift.Samples.Hosting;
 
 // Stands in for a provider's client, so the guide's scenarios run without a network. It answers as a model would in
-// each scenario: a plan in plan mode, a call of the tool the input asks for when it is offered, such as "Close ticket"
-// or "Run" a command, two order lookups in one response, questions to the user before it opens a ticket, a call of a
-// sub-agent it is offered, a handoff to billing about a charge, of find_companies for the city it is given, JSON when
-// the run asks for it, otherwise one fixed answer; once a tool answered, it answers in text, listing the companies
-// find_companies found. Like a provider's client, it stops at a cancelled token
+// each scenario: a plan in plan mode, a call of the tool the input asks for when it is offered, such as "Close ticket",
+// "Run" a command or "Show the screenshot" of a ticket, two order lookups in one response, questions to the user
+// before it opens a ticket, a call of a sub-agent it is offered, a handoff to billing about a charge, of
+// find_companies for the city it is given, JSON when the run asks for it, otherwise one fixed answer; once a tool
+// answered, it answers in text, listing the companies find_companies found. Like a provider's client, it stops at a
+// cancelled token
 internal sealed class CannedChatClient : IChatClient
 {
     public const string Answer = "Your refund was approved and reaches your account within five days.";
@@ -96,6 +97,8 @@ internal sealed class CannedChatClient : IChatClient
                 Call("find_ticket", ("key", Key(input["Find ticket ".Length..]))),
             (false, _) when offers.Contains("escalate_ticket") && input.StartsWith("Escalate ticket ") =>
                 Call("escalate_ticket", ("number", int.Parse(input["Escalate ticket ".Length..]))),
+            (false, _) when offers.Contains("get_screenshot") && input.StartsWith("Show the screenshot of ticket ") =>
+                Call("get_screenshot", ("number", int.Parse(input["Show the screenshot of ticket ".Length..]))),
             (false, _) when offers.Contains("explore_agent") && input.StartsWith("Ask the explorer ") =>
                 Call("explore_agent", ("input", input["Ask the explorer ".Length..])),
             (false, _) when offers.Contains("research_agent") =>

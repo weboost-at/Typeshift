@@ -6,7 +6,7 @@ internal static class KnownTypes
 {
     // D7: raised whenever the stamps change shape or a member generated code binds to changes; a reference with
     // another version is TSH020
-    public const int StampVersion = 16;
+    public const int StampVersion = 17;
 
     public const string Toolset = "Typeshift.Toolset";
 
@@ -92,6 +92,10 @@ internal static class KnownTypes
     public const string ValueTaskOfT = "System.Threading.Tasks.ValueTask`1";
 
     public const string AsyncEnumerableOfT = "System.Collections.Generic.IAsyncEnumerable`1";
+
+    public const string EnumerableOfT = "System.Collections.Generic.IEnumerable`1";
+
+    public const string Content = "Microsoft.Extensions.AI.AIContent";
 
     public const string Obsolete = "System.ObsoleteAttribute";
 

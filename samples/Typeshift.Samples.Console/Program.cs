@@ -6,8 +6,8 @@ using Typeshift.Samples.Companies;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 
-// Runs a toolset, stored settings, a tracked conversation, streaming, structured output and a round of decisions
-// published as Native AOT; any reflection a generated path needed would fail here, which fails CI
+// Runs a toolset, stored settings, a tracked conversation, streaming, structured output, a tool's images and a round
+// of decisions published as Native AOT; any reflection a generated path needed would fail here, which fails CI
 var services = new ServiceCollection();
 
 // begin-snippet: aot-tracker
@@ -75,15 +75,24 @@ Expect(sector.TryGetProperty("enum", out _), $"the schema {sector.GetRawText()}"
 var robotics = await customer.RunAsync("Robotics");
 Expect(robotics.Text == "2 companies work in Robotics.", robotics.Text);
 
+// A tool's images reach the model as images, and the conversation stores them and reads them back as images
+var gallery = Guid.CreateVersion7();
+var logos = await customer.WithConversationId(gallery).RunAsync("Logos of Graz");
+Expect(logos.Text == "1 logos.", logos.Text);
+
+var shown = await provider.GetRequiredService<ITypeshiftStore<Guid>>().LoadConversationAsync(gallery, default);
+var images = shown.SelectMany(entry => entry.Messages).SelectMany(message => message.Contents);
+Expect(images.Any(content => content is FunctionResultContent { Result: IList<AIContent> }), "the logos as JSON");
+
 // Decisions: questions asked and answered, then a tool call approved, each stored, listed and carried out without
 // reflection. The decision and its answer cross JSON as an endpoint would send and receive them
 await using var outreach = provider.GetRequiredService<TypeshiftRuntime>().CreateHost<OutreachAgent>();
 var contact = outreach.WithConversationId(Guid.CreateVersion7());
 
 var asking = await contact.RunAsync("Write to a company in Vienna.");
-var shown = JsonSerializer.Serialize(asking.Decisions[0], EndpointJsonContext.Default.Decision);
-var question = JsonSerializer.Deserialize(shown, EndpointJsonContext.Default.Decision) as QuestionDecision;
-Expect(question is { Questions: [{ Header: "Company", Options.Count: 2 }] }, shown);
+var sent = JsonSerializer.Serialize(asking.Decisions[0], EndpointJsonContext.Default.Decision);
+var question = JsonSerializer.Deserialize(sent, EndpointJsonContext.Default.Decision) as QuestionDecision;
+Expect(question is { Questions: [{ Header: "Company", Options.Count: 2 }] }, sent);
 
 var posted = $$"""{"decisionId":"{{question!.Id}}","answers":[{"selected":["Prater Motion"]}]}""";
 var answers = JsonSerializer.Deserialize(posted, EndpointJsonContext.Default.DecisionAnswer)!;
@@ -109,8 +118,8 @@ var looked = await byKind.WithSettingsId(customerId).RunAsync("Vienna");
 Expect(looked.Text == answer.Text, looked.Text);
 
 Console.WriteLine(
-    $"{research.Agent.Name}: {answer.Text} {streamed} {count.Result} {counting.Response.Result} {robotics.Text}; "
-    + $"{entries.Count} entries stored; {outreach.Agent.Name}: {mailed.Text}; {kinds} in the catalog");
+    $"{research.Agent.Name}: {answer.Text} {streamed} {count.Result} {counting.Response.Result} {robotics.Text} "
+    + $"{logos.Text}; {entries.Count} entries stored; {outreach.Agent.Name}: {mailed.Text}; {kinds} in the catalog");
 return 0;
 
 static void Expect(bool holds, string what)

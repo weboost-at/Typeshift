@@ -1999,6 +1999,19 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_Tools_That_Return_Content_Under_Native_Aot_TSH027_Is_Not_Reported()
+    {
+        // Arrange
+        var compilation = Compile(ShapeSources.ContentTools);
+
+        // Act
+        var run = Run(compilation, properties: BuildProperties.PublishingAot());
+
+        // Assert
+        run.Assert.DoesNotReport("TSH027");
+    }
+
+    [Fact]
     public void Given_A_Trimmed_App_That_Keeps_Json_Reflection_TSH027_Is_Not_Reported()
     {
         // Arrange

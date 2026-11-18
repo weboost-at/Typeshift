@@ -567,7 +567,7 @@ internal static class ToolsetParser
         var isNullable = type.NullableAnnotation == NullableAnnotation.Annotated
             || !SymbolEqualityComparer.Default.Equals(awaited, type);
 
-        if (kind is not (ReturnKind.Void or ReturnKind.Value) && isNullable)
+        if (kind is not (ReturnKind.Void or ReturnKind.Value or ReturnKind.Content) && isNullable)
         {
             return "the task or the stream itself may be null; return one always and make its value nullable, as in "
                 + "Task<string?>";
@@ -720,10 +720,26 @@ internal static class ToolsetParser
         {
             { SpecialType: SpecialType.System_Void } => ReturnKind.Void,
             _ when type.Is(KnownTypes.Task) || type.Is(KnownTypes.ValueTask) => ReturnKind.Awaitable,
-            _ when type.Is(KnownTypes.TaskOfT) || type.Is(KnownTypes.ValueTaskOfT) => ReturnKind.AwaitableValue,
+            _ when type.Is(KnownTypes.TaskOfT) || type.Is(KnownTypes.ValueTaskOfT) =>
+                IsContent(((INamedTypeSymbol)type).TypeArguments[0])
+                    ? ReturnKind.AwaitableContent
+                    : ReturnKind.AwaitableValue,
             _ when type.Is(KnownTypes.AsyncEnumerableOfT) => ReturnKind.Stream,
+            _ when IsContent(type) => ReturnKind.Content,
             _ => ReturnKind.Value
         };
+
+    // D45: an AIContent, such as an image, or a sequence of them reaches the model as content, never as its JSON, as
+    // AIFunctionFactory hands it on
+    private static bool IsContent(ITypeSymbol type) =>
+        IsContentType(type)
+        || new[] { type }
+            .Concat(type.AllInterfaces)
+            .Any(face => face.Is(KnownTypes.EnumerableOfT)
+                && IsContentType(((INamedTypeSymbol)face).TypeArguments[0]));
+
+    private static bool IsContentType(ITypeSymbol type) =>
+        type.Is(KnownTypes.Content) || (type is INamedTypeSymbol named && named.DerivesFrom(KnownTypes.Content));
 
     private static string? GetResultType(ITypeSymbol type, ReturnKind returns) =>
         returns switch

@@ -471,6 +471,33 @@ public class ToolsetGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Tool_That_Returns_Content_The_Function_Hands_It_On_As_It_Is()
+    {
+        // Act
+        var run = Run(ShapeSources.ContentTools);
+
+        // Assert
+        run.Source("Demo.CameraToolset.g.cs")
+            .Should()
+            .Contain(
+                "new(GetContentResult(global::Demo.CameraToolset.Picture("
+                + "GetArgument<string>(arguments, \"subject\"))));");
+    }
+
+    [Fact]
+    public void Given_A_Tool_That_Awaits_Its_Content_The_Function_Hands_It_On_As_It_Is()
+    {
+        // Act
+        var run = Run(ShapeSources.ContentTools);
+
+        // Assert
+        run.Source("Demo.CameraToolset.g.cs")
+            .Should()
+            .Contain(
+                "GetContentResult(await global::Demo.CameraToolset.ScanAsync(GetArgument<int>(arguments, \"page\")));");
+    }
+
+    [Fact]
     public void Given_A_Toolset_Its_Tool_List_Is_A_Hidden_Class_In_The_Global_Namespace_Named_After_Its_Full_Name()
     {
         // Act

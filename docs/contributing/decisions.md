@@ -1679,9 +1679,18 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   above that wrapper keeps the `JsonElement`: middleware, the stored entries, the response, watchers and
   compaction's estimate. A client in the provider's place that cast a result to `JsonElement`, a test double above
   all, reads the text instead.
+- **Content is no JSON:** a tool that returns an `AIContent`, a type derived from it or a sequence of them, as its
+  value or awaited, hands the content on as it is, as `AIFunctionFactory` does, so the model receives an image as an
+  image. The parser gives such a tool a return kind of its own and no result type, so TSH027 asks no metadata for
+  it, and the generated function calls the hidden `GeneratedToolFunction.GetContentResult`, which reads a sequence
+  once into a list, since an iterator would run again for each reader. Microsoft.Extensions.AI writes the content
+  with its `$type` but reads a result back as a `JsonElement`, which a later run would send as text, so a stored
+  entry marks such a result (`typeshift.content_result`) and reads it back as content; a result without the mark
+  stays JSON, also one whose JSON looks like content. A stream of contents is still one JSON array.
 - **Where:** `Analysis/TypeshiftAnalyzer.cs`, `Analysis/JsonEnums.cs`, `Parsing/Discovery.cs`,
   `TypeshiftGenerator.cs` (`CreateModule`), `Generated/GeneratedToolFunction.cs`, `Generated/ToolJson.cs`,
-  `Telemetry/InstrumentedClients.cs`, `Emitting/ToolsetEmitter.cs`, `samples/Typeshift.Samples.Console`.
+  `Telemetry/InstrumentedClients.cs`, `Emitting/ToolsetEmitter.cs`, `Parsing/ToolsetParser.cs` (`IsContent`),
+  `Conversations/ConversationEntry.cs`, `samples/Typeshift.Samples.Console`.
 - **Alternatives:** an option on `WithOptions` that keeps the element, one more thing to explain where every shipped
   client passes text on as it is; leaving the indentation and saying so in the guide.
 

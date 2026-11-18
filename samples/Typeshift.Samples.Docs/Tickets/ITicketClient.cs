@@ -7,4 +7,6 @@ internal interface ITicketClient
     Task<Ticket?> GetAsync(int number, CancellationToken ct);
 
     Task CloseAsync(int number, string reason, CancellationToken ct);
+
+    Task<byte[]> GetScreenshotAsync(int number, CancellationToken ct);
 }

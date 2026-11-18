@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Typeshift.Tests.Tools.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
 using JsonConvert = Newtonsoft.Json.JsonConvert;
@@ -264,4 +265,81 @@ public class ConversationEntryJsonTests : UnitTestBase
         // Assert
         read.Messages.Should().ContainSingle(message => message.Text == Data.Tool.Answer);
     }
+
+    [Fact]
+    public void Given_A_Tool_Result_Of_Content_It_Reads_Back_As_The_Content()
+    {
+        // Arrange
+        var picture = ContentToolset.Drawn(Data.Tool.Query);
+        var entry = new ConversationEntry(
+            "probe_agent",
+            [new ChatMessage(ChatRole.Tool, [new FunctionResultContent(Data.Tool.CallId, picture)])],
+            DateTimeOffset.UnixEpoch);
+
+        // Act
+        var read = ConversationEntry.Deserialize(entry.Serialize());
+
+        // Assert
+        ((ResultOf(read) as DataContent)?.Uri).Should().Be(picture.Uri);
+    }
+
+    [Fact]
+    public void Given_A_Tool_Result_Of_Several_Contents_It_Reads_Back_As_Each()
+    {
+        // Arrange
+        AIContent[] contents = [new TextContent(Data.Tool.Query), ContentToolset.Drawn(Data.Tool.Query)];
+        var entry = new ConversationEntry(
+            "probe_agent",
+            [new ChatMessage(ChatRole.Tool, [new FunctionResultContent(Data.Tool.CallId, contents)])],
+            DateTimeOffset.UnixEpoch);
+
+        // Act
+        var read = ConversationEntry.Deserialize(entry.Serialize());
+
+        // Assert
+        (ResultOf(read) as IEnumerable<AIContent> ?? [])
+            .Select(content => content is TextContent text ? text.Text : (content as DataContent)?.Uri)
+            .Should()
+            .Equal(Data.Tool.Query, ContentToolset.Drawn(Data.Tool.Query).Uri);
+    }
+
+    [Fact]
+    public void Given_A_Tool_Result_Of_Content_The_Content_Reads_Back_Without_The_Mark()
+    {
+        // Arrange
+        var entry = new ConversationEntry(
+            "probe_agent",
+            [
+                new ChatMessage(
+                    ChatRole.Tool,
+                    [new FunctionResultContent(Data.Tool.CallId, ContentToolset.Drawn(Data.Tool.Query))])
+            ],
+            DateTimeOffset.UnixEpoch);
+
+        // Act
+        var read = ConversationEntry.Deserialize(entry.Serialize());
+
+        // Assert
+        read.Messages[0].Contents[0].AdditionalProperties.Should().BeNull();
+    }
+
+    [Fact]
+    public void Given_A_Tool_Result_Of_Json_That_Looks_Like_Content_It_Reads_Back_As_Json()
+    {
+        // Arrange
+        var json = JsonElement.Parse("""{"$type":"text","text":"not content"}""");
+        var entry = new ConversationEntry(
+            "probe_agent",
+            [new ChatMessage(ChatRole.Tool, [new FunctionResultContent(Data.Tool.CallId, json)])],
+            DateTimeOffset.UnixEpoch);
+
+        // Act
+        var read = ConversationEntry.Deserialize(entry.Serialize());
+
+        // Assert
+        ResultOf(read).Should().BeOfType<JsonElement>();
+    }
+
+    private static object? ResultOf(ConversationEntry entry) =>
+        entry.Messages.SelectMany(message => message.Contents).OfType<FunctionResultContent>().Single().Result;
 }

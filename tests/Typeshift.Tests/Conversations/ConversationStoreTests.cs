@@ -5,6 +5,7 @@ using Typeshift.Tests.Conversations.Support;
 using Typeshift.Tests.Decisions.Support;
 using Typeshift.Tests.Persistence.Support;
 using Typeshift.Tests.Testing.Fakes;
+using Typeshift.Tests.Tools.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -430,6 +431,27 @@ public class ConversationStoreTests : AgentTestBase
         // Assert
         sent.OfType<FunctionResultContent>().Should().BeEmpty();
         sent.OfType<TextContent>().Select(text => text.Text).Should().Contain(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_A_Tool_That_Returned_Content_A_Later_Run_Sends_The_Model_The_Content()
+    {
+        // Arrange
+        var host = Host<ContentAgent>().WithConversationId(Data.Agent.ConversationId);
+
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "picture", ("caption", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason));
+
+        await host.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        var sent = ChatClient.Requests[2].SelectMany(message => message.Contents).OfType<FunctionResultContent>();
+
+        // Assert
+        ((sent.Single().Result as DataContent)?.Uri).Should().Be(ContentToolset.Drawn(Data.Tool.Query).Uri);
     }
 
     [Fact]

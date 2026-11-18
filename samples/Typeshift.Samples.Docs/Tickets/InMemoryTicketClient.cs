@@ -23,4 +23,8 @@ internal sealed class InMemoryTicketClient(TimeProvider time) : ITicketClient
 
         return Task.CompletedTask;
     }
+
+    // A screenshot whose bytes stand in for an image's
+    public Task<byte[]> GetScreenshotAsync(int number, CancellationToken ct) =>
+        Task.FromResult(System.Text.Encoding.UTF8.GetBytes($"Screenshot of ticket {number}"));
 }

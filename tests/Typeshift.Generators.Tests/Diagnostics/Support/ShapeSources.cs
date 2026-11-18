@@ -290,6 +290,40 @@ public static class ShapeSources
         }
         """;
 
+    // D45: content reaches the model as it is: one, a sequence, awaited or not, and none
+    public const string ContentTools =
+        """
+        using System.Collections.Generic;
+        using System.Threading.Tasks;
+        using Microsoft.Extensions.AI;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class CameraToolset : Toolset
+        {
+            public CameraToolset()
+            {
+                AddTool(Picture).WithDescription("Takes a picture.");
+                AddTool(ScanAsync).WithDescription("Scans a page.");
+                AddTool(Annotate).WithDescription("Takes a picture and describes it.");
+                AddTool(FramesAsync).WithDescription("Takes frames.");
+                AddTool(Maybe).WithDescription("Takes a picture if it can.");
+            }
+
+            public static DataContent Picture(string subject) => new(new byte[] { 1 }, "image/png");
+
+            public static Task<DataContent> ScanAsync(int page) =>
+                Task.FromResult(new DataContent(new byte[] { 2 }, "image/png"));
+
+            public static IEnumerable<AIContent> Annotate(string subject) => [new TextContent(subject)];
+
+            public static ValueTask<DataContent[]> FramesAsync(int count) => new(new DataContent[count]);
+
+            public static AIContent? Maybe() => null;
+        }
+        """;
+
     // D45: tools ask the contexts in the order the module registers them, which is the order of the source. The
     // System.Text.Json generator does not run here, so what it would write is stubbed
     public const string SeveralJsonContexts =
