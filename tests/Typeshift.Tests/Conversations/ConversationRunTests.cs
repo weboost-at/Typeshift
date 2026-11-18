@@ -1413,6 +1413,68 @@ public class ConversationRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_Text_A_Whole_Publish_Interval_After_The_Last_A_Watcher_Receives_It_At_Once()
+    {
+        // Arrange
+        var later = new TaskCompletionSource();
+        ChatClient.Reply(Text("a"), later, Text("b"), Text("c"));
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        await using var watch = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token).GetAsyncEnumerator(Ct);
+        var first = watch.MoveNextAsync();
+
+        var run = RunAsync(Data.Tool.Question, streaming: true, Ct);
+        await first;
+        Time.Advance(Services.GetRequiredService<LiveUpdateOptions>().PublishInterval);
+
+        // Act
+        later.SetResult();
+        await run;
+
+        // Assert
+        (await watch.MoveNextAsync()).Should().BeTrue();
+        watch.Current.Text.Should().Be("b");
+    }
+
+    [Fact]
+    public async Task Given_Text_Of_Another_Role_Within_The_Interval_A_Watcher_Receives_It_Apart()
+    {
+        // Arrange
+        ChatClient.Reply(Text("a"), Text("b"), new ChatResponseUpdate(ChatRole.System, "c"));
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        await using var watch = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token).GetAsyncEnumerator(Ct);
+        var first = watch.MoveNextAsync();
+
+        // Act
+        await RunAsync(Data.Tool.Question, streaming: true, Ct);
+
+        // Assert
+        (await first).Should().BeTrue();
+        (await watch.MoveNextAsync()).Should().BeTrue();
+        watch.Current.Text.Should().Be("b");
+    }
+
+    [Fact]
+    public async Task Given_The_Last_Watcher_Left_The_Conversations_Live_State_Goes_With_It()
+    {
+        // Arrange
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        var watch = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token).GetAsyncEnumerator(Ct);
+        var next = watch.MoveNextAsync();
+        var conversation = new StoreId<Guid>(Data.Agent.ConversationId);
+        var live = Services.GetRequiredService<LiveRuns>().Enter(conversation, _ => { });
+
+        // Act
+        await watching.CancelAsync();
+        await Record.ExceptionAsync(async () => await next);
+        await watch.DisposeAsync();
+
+        // Assert
+        live.Removed.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task Given_Text_Within_The_Interval_A_Watcher_Receives_It_Merged_Ahead_Of_The_Next_Call()
     {
         // Arrange

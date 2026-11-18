@@ -263,7 +263,7 @@ public class ConversationEntryJsonTests : UnitTestBase
         var read = ConversationEntry.Deserialize(json);
 
         // Assert
-        read.Messages.Should().ContainSingle(message => message.Text == Data.Tool.Answer);
+        read.Messages.Select(message => message.Text).Should().Equal(Data.Tool.Answer);
     }
 
     [Fact]

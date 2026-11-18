@@ -289,6 +289,22 @@ public class LogEventTests : MultiAgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Call_Over_The_Maximum_That_Compaction_Cannot_Shrink_No_Compaction_Is_Logged()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<CompactingAgent>().RunAsync(
+            Data.Tool.Question,
+            settings: new() { MaxInputTokens = 2, TargetInputTokens = 1 },
+            ct: Ct);
+
+        // Assert
+        _log.Of("Compacted").Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Given_A_Store_That_Fails_To_Append_Each_Failure_Is_An_Error_Of_The_Category_Typeshift()
     {
         // Arrange

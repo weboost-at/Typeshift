@@ -313,6 +313,26 @@ public class SettingsJsonTests : UnitTestBase
     }
 
     [Fact]
+    public void Given_A_Finite_Number_Stored_As_A_String_It_Reads_As_Null()
+    {
+        // Act
+        var read = EveryKindAgent.Settings.Deserialize("""{"tools":{"inspect":{"precise":"1.5"}}}""");
+
+        // Assert
+        read.Inspect.Precise.Should().BeNull();
+    }
+
+    [Fact]
+    public void Given_A_Relative_Uri_It_Reads_Back()
+    {
+        // Act
+        var read = EveryKindAgent.Settings.Deserialize("""{"tools":{"inspect":{"link":"docs/start"}}}""");
+
+        // Assert
+        read.Inspect.Link.Should().Be(new Uri("docs/start", UriKind.Relative));
+    }
+
+    [Fact]
     public void Given_A_Flags_Enum_Without_A_Zero_Member_Its_Zero_Reads_Back()
     {
         // Arrange

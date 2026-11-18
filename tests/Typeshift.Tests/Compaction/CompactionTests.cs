@@ -212,6 +212,72 @@ public class CompactionTests : AgentTestBase
         summary.Usage!.InputTokenCount.Should().Be(Data.Agent.InputTokens);
     }
 
+    [Fact]
+    public async Task Given_A_Message_Without_Contents_Where_The_Cut_Would_Fall_The_Cut_Passes_It_By()
+    {
+        // Arrange
+        var store = Services.GetRequiredService<ITypeshiftStore<Guid>>();
+        var settings = new CompactingAgent.Settings { MaxInputTokens = 1_000, SummaryModel = SummaryModel };
+
+        ConversationEntry[] earlier =
+        [
+            new("compacting_agent", [new ChatMessage(ChatRole.User, new string('x', Page))], Time.GetUtcNow()),
+            new("compacting_agent", [new ChatMessage(ChatRole.Assistant, [])], Time.GetUtcNow()),
+            new("compacting_agent", [], Time.GetUtcNow()) { EndsRun = true }
+        ];
+
+        foreach (var entry in earlier)
+        {
+            await store.AppendConversationAsync(Data.Agent.ConversationId, entry, Ct);
+        }
+
+        ChatClient
+            .Reply(Text(Data.Agent.Reason))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await RunAsync(Data.Agent.FollowUp, settings);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_A_Report_For_A_Call_Estimated_At_Nothing_The_Next_Call_Of_The_Run_Is_Not_Calibrated_By_It()
+    {
+        // Arrange
+        var answering = new TaskCompletionSource();
+        var usage = new ChatResponseUpdate(ChatRole.Assistant, [new UsageContent(new() { InputTokenCount = Page })]);
+
+        ChatClient
+            .Reply(answering, Text("ok"), usage)
+            .Reply(Text(Data.Tool.Answer));
+
+        var run = Host<LimitsAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunAsync("hi", LimitsAgent.Limit(nameof(RunOptions.MaxInputTokens), 10), Ct);
+
+        await ChatClient.Requested;
+        Tracker.TrySteer(Data.Agent.ConversationId, "and more");
+
+        // Act
+        answering.SetResult();
+        await run;
+
+        // Assert
+        ChatClient.Requests.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void Given_An_Attachment_It_Is_Estimated_At_A_Thousand_Tokens_Whatever_Its_Size()
+    {
+        // Act
+        var estimate = Tokens.Estimate(new DataContent(new byte[4], "image/png"));
+
+        // Assert
+        estimate.Should().Be(1_000);
+    }
+
     [Theory]
     [InlineData(2_000)]
     [InlineData(1_000)]
