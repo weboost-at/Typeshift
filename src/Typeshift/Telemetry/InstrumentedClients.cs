@@ -1,5 +1,8 @@
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
+using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.AI;
 
 namespace Typeshift;
@@ -49,16 +52,22 @@ internal sealed class InstrumentedClients : IDisposable
     private OpenTelemetryChatClient CreateInstrumented(ChatClientMetadata backend) =>
         new(new CurrentClient(backend, _call), sourceName: Telemetry.SourceName);
 
+    // D45: a provider's client writes a JSON result indented and passes text on as it is, so the model gets each JSON
+    // result as text without white space. Every layer above, the stored entries and the response keep the element
     private sealed class CallingClient(IChatClient instrumented, IChatClient client, AsyncLocal<IChatClient?> call)
         : DelegatingChatClient(instrumented)
     {
+        // Each result once, though every later model call sends it again; weakly, so a client of the raw path that
+        // your app keeps holds no result of a call it made
+        private readonly ConditionalWeakTable<AIContent, AIContent> _sent = new();
+
         public override async Task<ChatResponse> GetResponseAsync(
             IEnumerable<ChatMessage> messages,
             ChatOptions? options = null,
             CancellationToken cancellationToken = default)
         {
             call.Value = client;
-            return await base.GetResponseAsync(messages, options, cancellationToken);
+            return await base.GetResponseAsync(AsSent(messages), options, cancellationToken);
         }
 
         public override async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
@@ -68,11 +77,61 @@ internal sealed class InstrumentedClients : IDisposable
         {
             call.Value = client;
 
-            await foreach (var update in base.GetStreamingResponseAsync(messages, options, cancellationToken))
+            await foreach (var update in base.GetStreamingResponseAsync(AsSent(messages), options, cancellationToken))
             {
                 yield return update;
             }
         }
+
+        private static bool HoldsJson(ChatMessage message) => message.Contents.Any(IsJson);
+
+        private static bool IsJson(AIContent content) =>
+            content is FunctionResultContent
+            {
+                Result: JsonElement { ValueKind: JsonValueKind.Object or JsonValueKind.Array }
+            };
+
+        private static AIContent AsText(AIContent content)
+        {
+            var result = (FunctionResultContent)content;
+
+            return new FunctionResultContent(result.CallId, Text((JsonElement)result.Result!))
+            {
+                Exception = result.Exception,
+                AdditionalProperties = result.AdditionalProperties,
+                Annotations = result.Annotations,
+                RawRepresentation = result.RawRepresentation
+            };
+        }
+
+        // The escaping of Microsoft.Extensions.AI's defaults, which a provider's client writes the element with, so
+        // only the white space differs
+        private static string Text(JsonElement json)
+        {
+            var buffer = new ArrayBufferWriter<byte>();
+            var options = new JsonWriterOptions { Encoder = AIJsonUtilities.DefaultOptions.Encoder };
+
+            using (var writer = new Utf8JsonWriter(buffer, options))
+            {
+                json.WriteTo(writer);
+            }
+
+            return Encoding.UTF8.GetString(buffer.WrittenSpan);
+        }
+
+        private IEnumerable<ChatMessage> AsSent(IEnumerable<ChatMessage> messages) =>
+            messages.Any(HoldsJson) ? [.. messages.Select(AsSent)] : messages;
+
+        private ChatMessage AsSent(ChatMessage message)
+        {
+            if (!HoldsJson(message)) return message;
+
+            var sent = message.Clone();
+            sent.Contents = [.. message.Contents.Select(AsSent)];
+            return sent;
+        }
+
+        private AIContent AsSent(AIContent content) => IsJson(content) ? _sent.GetValue(content, AsText) : content;
     }
 
     // The client of the call going on, under the instrumentation every call to a backend shares

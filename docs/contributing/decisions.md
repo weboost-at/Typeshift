@@ -536,7 +536,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   middleware as its `FunctionInvoker`), the decision gate (D81), checkpoints (each step appended before compaction
   sees it; steering input and background answers injected here), unique call ids (D59), compaction,
   `OpenTelemetryChatClient`, the provider's client behind a wrapper that never disposes it.
-  The gate, checkpoints and compaction sit inside the tool loop, so they act around every model call. The mode
+  The run's own wrapper above `OpenTelemetryChatClient` hands the provider's client each JSON result as text without
+  white space (D45). The gate, checkpoints and compaction sit inside the tool loop, so they act around every model
+  call. The mode
   layer builds a `FunctionInvokingChatClient` per pass, whose iteration limit is that pass's, so calls on one client
   never share a limit.
   The layers below the conversation's run only inside a run it began: the tool loop taken out of the created client
@@ -1410,9 +1412,21 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   System.Linq.Async before 7.0, so the call was CS0433 in a file the consumer cannot edit. The library compiles
   against the framework alone, where no reference of the consumer makes a name ambiguous. It also checks the call's
   token before each item, since an iterator without `[EnumeratorCancellation]` never sees the token.
+- **Results reach the provider as text (owner):** a provider's client writes a result that is no string with
+  Microsoft.Extensions.AI's defaults, which indent, and passes a string on as it is. Through the OpenAI and the
+  Anthropic clients, a tool returning 20 records went out as 2,947 characters and 1,102 tokens against 2,106 and 682
+  without white space, on every model call that carried it. `ToolJson` writes results without indentation, and the
+  wrapper each run gets from `InstrumentedClients` hands the provider's client a result that is a JSON object or
+  array as its text, written with the defaults' escaping so that only white space differs. Each result is written
+  once per run, in a table keyed weakly by the content, which every later call of the run sends again. Everything
+  above that wrapper keeps the `JsonElement`: middleware, the stored entries, the response, watchers and
+  compaction's estimate. A client in the provider's place that cast a result to `JsonElement`, a test double above
+  all, reads the text instead.
 - **Where:** `Analysis/TypeshiftAnalyzer.cs`, `Analysis/JsonEnums.cs`, `Parsing/Discovery.cs`,
-  `TypeshiftGenerator.cs` (`CreateModule`), `Generated/GeneratedToolFunction.cs`, `Emitting/ToolsetEmitter.cs`,
-  `samples/Typeshift.Samples.Console`.
+  `TypeshiftGenerator.cs` (`CreateModule`), `Generated/GeneratedToolFunction.cs`, `Generated/ToolJson.cs`,
+  `Telemetry/InstrumentedClients.cs`, `Emitting/ToolsetEmitter.cs`, `samples/Typeshift.Samples.Console`.
+- **Alternatives:** an option on `WithOptions` that keeps the element, one more thing to explain where every shipped
+  client passes text on as it is; leaving the indentation and saying so in the guide.
 
 ### D62. Union types in tools and typed runs
 

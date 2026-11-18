@@ -15,7 +15,7 @@ public class AllocationBudgetTests : AgentTestBase
     // 18,424 B when set
     private const int RunBudget = 28_000;
 
-    // 12,296 B when set
+    // 12,296 B when set, 14,232 B since each JSON result goes to the provider as text
     private const int ModelCallBudget = 18_000;
 
     // 2,047 B when set

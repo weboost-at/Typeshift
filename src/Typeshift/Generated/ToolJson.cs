@@ -31,11 +31,13 @@ public sealed class ToolJson
     /// <param name="annotations">The XML docs the modules register, which describe the parameters' properties.</param>
     public ToolJson(IEnumerable<IJsonTypeInfoResolver> resolvers, IEnumerable<ISchemaAnnotationSource> annotations)
     {
-        // D45: the defaults reflect in an app that keeps JSON reflection, where tools need no context of their own
+        // D45: the defaults reflect in an app that keeps JSON reflection, where tools need no context of their own.
+        // A result is written without the defaults' indentation, so its text is the text the model reads
         var options = new JsonSerializerOptions(AIJsonUtilities.DefaultOptions)
         {
             TypeInfoResolver = JsonTypeInfoResolver.Combine(
-                [.. resolvers, AIJsonUtilities.DefaultOptions.TypeInfoResolver])
+                [.. resolvers, AIJsonUtilities.DefaultOptions.TypeInfoResolver]),
+            WriteIndented = false
         };
 
         options.TypeClassifiers.Add(new UnionCaseClassifier(options));

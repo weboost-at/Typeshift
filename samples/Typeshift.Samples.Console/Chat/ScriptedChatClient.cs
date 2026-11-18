@@ -69,10 +69,10 @@ internal sealed class ScriptedChatClient : IChatClient
     {
     }
 
-    // The tool's result reaches the model as JSON, as a provider would send it
+    // The tool's result reaches the model as the text of its JSON, as a provider sends it
     private static string Answer(List<ChatMessage> history, List<FunctionResultContent> results, ChatOptions? options)
     {
-        var found = results.Select(result => result.Result).OfType<JsonElement>().First();
+        var found = JsonElement.Parse(results.Select(result => result.Result).OfType<string>().First());
 
         // A model reads the sector by its name, which is a JSON string only where the enum travels as one
         if (found.ValueKind == JsonValueKind.Object)

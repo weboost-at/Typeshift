@@ -107,6 +107,12 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- **Breaking:** a tool result that is a JSON object or array reaches the provider's client as a `string`, the JSON
+  without white space. It was a `JsonElement`, which the provider's client indented as it wrote the request: a tool
+  returning 20 records cost about 60 percent more tokens on every model call that carried its result. A client of
+  your own in the provider's place, a wrapper or a fake in your tests, that cast a result to `JsonElement` parses
+  the text instead, and none may depend on indented text. Middleware, the stored conversation, the response and
+  live updates keep the `JsonElement`, whose text is without white space now too.
 - Typeshift logs under one category, `Typeshift`. A failed append was logged under
   `Typeshift.ConversationChatClient` and a waiting save of the file store under `Typeshift.FileAgentSettingsStore`,
   the names of internal classes: a logging filter that names one of them names `Typeshift` now. The tool loop's

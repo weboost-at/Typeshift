@@ -39,8 +39,8 @@ public class SubAgentResultTests : MultiAgentTestBase
         await Host<TypedLeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);
 
         // Assert
-        var result = (JsonElement)Result(ChatClient.Requests[1])!;
-        result.Deserialize(Json.GetTypeInfo<HelperFinding>()).Should().Be(Expected());
+        var result = JsonSerializer.Deserialize($"{Result(ChatClient.Requests[1])}", Json.GetTypeInfo<HelperFinding>());
+        result.Should().Be(Expected());
     }
 
     [Fact]

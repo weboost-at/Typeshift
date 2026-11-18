@@ -82,7 +82,8 @@ loses at most the calls in flight.
 
 When compaction is on and the estimate of a call reaches the maximum of input tokens, the run compacts what the model
 sees, while the stored conversation keeps everything ([compaction](./conversations.md#compaction)). Typeshift traces
-every call to the provider's client ([Observability](./observability.md)).
+every call to the provider's client ([Observability](./observability.md)), and hands it each JSON result of a tool as
+text without white space ([Results](./toolsets.md#results)).
 
 ## What each step can change
 

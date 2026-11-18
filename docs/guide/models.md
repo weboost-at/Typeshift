@@ -254,6 +254,10 @@ the `Trace` level, `UseLogging()` logs every message and answer in full, and tho
   already writes a `chat {model}` span and the metrics for each call ([Spans](./observability.md#spans)), so an app that
   listens to both sees every call twice.
 
+A wrapper sits in the provider's place, so it receives a tool result that is a JSON object or array as text, the
+JSON without white space ([Results](./toolsets.md#results)). The same holds for a client of your own that stands in
+for a provider, such as a fake in your tests: where it reads a result, it parses that text.
+
 Leave retries to the client library, which knows which of its errors are worth another try. The OpenAI client retries
 timeouts, rate limits and server errors three times by default, and its `RetryPolicy` sets how many times.
 `ClientRetryPolicy` is in the `System.ClientModel.Primitives` namespace:

@@ -155,7 +155,8 @@ unless it is an object of properties.
      function invoker, the tool gate with the tool middleware behind it, built anew for each pass with what is left
      of the run's limit, so one client serves concurrent calls;
    - the decision gate (D81), the checkpoints, unique call ids (D59), compaction (D32), and the provider's client,
-     instrumented (D36), behind a wrapper that never disposes it (D29).
+     instrumented (D36), behind a wrapper that never disposes it (D29) and one that hands it each JSON result as
+     text (D45).
 5. The options are a `ChatOptions` subclass that remembers the run options, so the raw path's client gets them too.
    A host's run finds the claim and the entries it took in them.
 
@@ -239,7 +240,9 @@ a copy of the options. It marks those messages as stored, so the checkpoints lea
 
 `ConversationChatClient` opens each run's `invoke_agent` span, on which `ConversationRun` records the decisions the
 run asks and what becomes of the calls of a batch it settles. `InstrumentedClients` keeps one Microsoft.Extensions.AI
-`OpenTelemetryChatClient` per backend, which passes each call on to the client its run got. The tool loop
+`OpenTelemetryChatClient` per backend, which passes each call on to the client its run got. The run's own wrapper
+above it hands that client each tool result that is a JSON object or array as text without white space, written once
+per run, while every layer above keeps the `JsonElement` (D45). The tool loop
 writes its tool spans under the run's span, which a streaming run makes current again before it asks for each update
 (D36).
 

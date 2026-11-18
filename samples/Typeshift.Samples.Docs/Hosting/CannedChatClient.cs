@@ -102,15 +102,16 @@ internal sealed class CannedChatClient : IChatClient
         return new ChatMessage(ChatRole.Assistant, [content]);
     }
 
-    // Getting started shows this answer, so it lists what the tool returned, as a model would
+    // Getting started shows this answer, so it lists what the tool returned, as a model would. A provider's client
+    // receives a JSON result as its text
     private static string Companies(ChatMessage results)
     {
         var names = results.Contents
             .OfType<FunctionResultContent>()
             .Select(result => result.Result)
-            .OfType<JsonElement>()
-            .Where(found => found.ValueKind == JsonValueKind.Array)
-            .SelectMany(found => found.EnumerateArray())
+            .OfType<string>()
+            .Where(found => found.StartsWith('['))
+            .SelectMany(found => JsonElement.Parse(found).EnumerateArray())
             .Select(company => company.GetProperty("name").GetString())
             .ToArray();
 

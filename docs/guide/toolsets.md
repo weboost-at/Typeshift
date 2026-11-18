@@ -179,6 +179,11 @@ takes one result per call, so Typeshift reads a stream to its end and sends its 
 needs the metadata of that list. A cancelled call stops reading the stream at its next item, also when the method takes no
 `CancellationToken`.
 
+A result that is a JSON object or array reaches the provider's client as text, the JSON without white space. A
+provider's client would indent a `JsonElement` as it writes the request, and for a list of records that costs about
+60 percent more tokens on every model call that carries the result. Everything above the provider's client keeps
+the `JsonElement`: your middleware, the stored conversation, the run's response and its live updates.
+
 The analyzer rejects a result JSON cannot carry, which is a pointer, a ref struct or `dynamic`, and a task or a
 stream that may itself be null, such as `Task<string>?` ([TSH004](./diagnostics.md#tsh004)).
 
