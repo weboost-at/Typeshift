@@ -573,11 +573,11 @@ public class ConversationRunTests : AgentTestBase
 
         // Act
         await cancel.CancelAsync();
-        var waited = await Record.ExceptionAsync(() => second);
+        await Record.ExceptionAsync(() => second.WaitAsync(Ct));
         var ending = !first.IsCompleted;
 
         // Assert
-        waited.Should().BeAssignableTo<OperationCanceledException>();
+        second.IsCanceled.Should().BeTrue();
         ending.Should().BeTrue();
         store.Gate.SetResult();
         await first;
