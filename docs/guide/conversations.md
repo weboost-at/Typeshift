@@ -174,7 +174,9 @@ Runs that fail or stop early are stored too:
 - A streaming run that fails, is cancelled, or that your code stops reading early stores the updates that had arrived.
   Its ending entry holds the exception's message, as a run's that does not stream does, and a stream your code left
   early, which no exception explains, ends with "The run stopped before it answered."
-- A cancelled run is stored too, because Typeshift stores without the run's cancellation token.
+- A cancelled run is stored too, because Typeshift stores without the run's cancellation token. A run whose token
+  was cancelled before it began throws an `OperationCanceledException` at once and stores nothing, whether your chat
+  client honors the token or not.
 - A run cut off by a crash has no ending entry, and [resuming](#resuming) continues it.
 
 A store that fails to save a step fails the run ([When the store fails](#when-the-store-fails)).

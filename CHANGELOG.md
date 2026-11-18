@@ -801,6 +801,9 @@ All notable changes to this project are documented here. The format follows
   tells such a message, and the note that a sub-agent failed or was lost, from the user's. It came as an unmarked
   user message, so what the sub-agent read, a web page for example, reached the calling model in the user's role,
   and a chat view built from the stored conversation showed it as something the user wrote.
+- A run whose token was cancelled before it began throws an `OperationCanceledException` before it claims its
+  conversation, and stores and asks nothing. Nothing checked the token first, so with a chat client that ignores
+  it the run went to its end, stored its input and answered.
 - A context provider your app does not register, which `UseContext<T>()` creates for each pass of a run, is disposed
   once the pass has ended, after the tools it returned ran, when it implements `IDisposable` or `IAsyncDisposable`.
   It was never disposed, so a provider that opened a connection leaked one per pass. Register a provider that keeps

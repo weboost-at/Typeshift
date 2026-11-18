@@ -641,6 +641,56 @@ public class ConversationRunTests : AgentTestBase
         response.Text.Should().Be(Data.Agent.Reason);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Cancelled_Token_A_Run_Throws_Before_It_Calls_The_Model(bool streaming)
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        using var cancel = new CancellationTokenSource();
+        await cancel.CancelAsync();
+
+        var chat = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+
+        // Act
+        var run = async () =>
+        {
+            if (streaming) await chat.RunStreamingAsync(Data.Tool.Question, ct: cancel.Token).ToListAsync(Ct);
+            else await chat.RunAsync(Data.Tool.Question, ct: cancel.Token);
+        };
+
+        // Assert
+        await run.Should().ThrowAsync<OperationCanceledException>();
+        ChatClient.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Cancelled_Token_A_Run_Stores_Nothing_And_Leaves_The_Conversation_Free()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason));
+
+        using var cancel = new CancellationTokenSource();
+        await cancel.CancelAsync();
+
+        var chat = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+        await Record.ExceptionAsync(() => chat.RunAsync(Data.Tool.Question, ct: cancel.Token));
+
+        // Act
+        var response = await chat.RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
+        (await EntriesAsync(Data.Agent.ConversationId)).SelectMany(entry => entry.Messages)
+            .Select(message => message.Text)
+            .Should()
+            .NotContain(Data.Tool.Question);
+    }
+
     [Fact]
     public async Task Given_A_Run_Going_On_A_Second_Run_Of_The_Conversation_Fails()
     {

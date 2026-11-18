@@ -15,6 +15,10 @@ internal sealed class RunStart(Agent agent, IServiceProvider services, DecisionL
         AgentMode? named,
         CancellationToken ct)
     {
+        // A run whose token was cancelled before it began claims nothing, stores nothing and asks no model: a chat
+        // client that ignores the token would answer it, and the conversation would keep its input
+        ct.ThrowIfCancellationRequested();
+
         if (handover is not { Conversation: { } conversation, Entries: null }) return (handover, null);
 
         var runs = services.GetRequiredService<LiveRuns>();
