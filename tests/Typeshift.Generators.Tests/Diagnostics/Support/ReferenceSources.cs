@@ -433,6 +433,36 @@ public static class ReferenceSources
         }
         """;
 
+    // Every type of an assembly marked [Experimental] reports the assembly's id where it is named
+    public const string ExperimentalAssembly =
+        """
+        [assembly: System.Diagnostics.CodeAnalysis.Experimental("LAB001")]
+
+        namespace Lab;
+
+        public record Sample(string Text);
+        """;
+
+    public const string ExperimentalAssemblyToolset =
+        """
+        using Lab;
+        using Typeshift;
+
+        namespace Research;
+
+        internal partial class SampleTools : Toolset
+        {
+            public SampleTools()
+            {
+                AddTool(Take).WithDescription("Takes a sample.");
+            }
+
+        #pragma warning disable LAB001
+            public static string Take(Sample sample) => sample.Text;
+        #pragma warning restore LAB001
+        }
+        """;
+
     // Generated code names types from global::, which a reference under an extern alias alone is no part of
     public const string AliasedToolsetAgent =
         """

@@ -28,12 +28,17 @@ internal static class SymbolExtensions
     extension(IEnumerable<ISymbol?> symbols)
     {
         // The ids of every [Experimental] that code naming the symbols reports, sorted, so a model holds them
-        public EquatableArray<string> GetExperimentalIds() =>
-            symbols
-                .SelectMany(ReadExperimentalIds)
-                .Distinct()
-                .OrderBy(id => id, StringComparer.Ordinal)
-                .ToEquatableArray();
+        public EquatableArray<string> GetExperimentalIds()
+        {
+            List<string>? ids = null;
+
+            foreach (var symbol in symbols)
+            {
+                ReadExperimentalIds(symbol, ref ids);
+            }
+
+            return ToExperimentalIds(ids);
+        }
     }
 
     extension(ISymbol symbol)
@@ -118,12 +123,21 @@ internal static class SymbolExtensions
             };
 
         // What generated code names of a settings type: the type, its settable members and their types
-        public EquatableArray<string> GetSettingsExperimentalIds() =>
-            type.GetPublicProperties()
-                .Where(property => property.IsSettable)
-                .SelectMany(property => new ISymbol[] { property, property.Type })
-                .Prepend(type)
-                .GetExperimentalIds();
+        public EquatableArray<string> GetSettingsExperimentalIds()
+        {
+            List<string>? ids = null;
+            ReadExperimentalIds(type, ref ids);
+
+            foreach (var property in type.GetPublicProperties())
+            {
+                if (!property.IsSettable) continue;
+
+                ReadExperimentalIds(property, ref ids);
+                ReadExperimentalIds(property.Type, ref ids);
+            }
+
+            return ToExperimentalIds(ids);
+        }
 
         // Base records first; a redeclared property counts once, as its most derived declaration
         public IEnumerable<IPropertySymbol> GetPublicProperties()
@@ -199,40 +213,59 @@ internal static class SymbolExtensions
     }
 
     // A symbol's own ids, those of what contains it, and for a type those of its type arguments and of an array's
-    // elements
-    private static IEnumerable<string> ReadExperimentalIds(ISymbol? symbol) =>
-        symbol switch
+    // elements. D3: every edit reads them for each toolset and agent again, and nearly every symbol carries none, so
+    // the list is made for the first id found
+    private static void ReadExperimentalIds(ISymbol? symbol, ref List<string>? ids)
+    {
+        switch (symbol)
         {
-            null => [],
-
             // No attribute marks a type parameter, and what contains it holds it among its own type arguments, so
             // reading on would never end. One gets here in AddTool(Finder<>.Find), while the type argument is typed
-            ITypeParameterSymbol => [],
-            IArrayTypeSymbol array => ReadExperimentalIds(array.ElementType),
-            INamedTypeSymbol named => ReadOwnExperimentalIds(named)
-                .Concat(named.TypeArguments.SelectMany(ReadExperimentalIds))
-                .Concat(ReadContainerExperimentalIds(named)),
-            _ => ReadOwnExperimentalIds(symbol).Concat(ReadContainerExperimentalIds(symbol))
-        };
+            case null or ITypeParameterSymbol:
+                return;
 
-    private static IEnumerable<string> ReadContainerExperimentalIds(ISymbol symbol) =>
-        symbol.ContainingType is { } type
-            ? ReadExperimentalIds(type)
-            : ReadOwnExperimentalIds(symbol.ContainingModule)
-                .Concat(ReadOwnExperimentalIds(symbol.ContainingAssembly));
+            case IArrayTypeSymbol array:
+                ReadExperimentalIds(array.ElementType, ref ids);
+                return;
+
+            case INamedTypeSymbol named:
+                foreach (var argument in named.TypeArguments)
+                {
+                    ReadExperimentalIds(argument, ref ids);
+                }
+
+                break;
+        }
+
+        ReadOwnExperimentalIds(symbol, ref ids);
+
+        if (symbol.ContainingType is { } type)
+        {
+            ReadExperimentalIds(type, ref ids);
+            return;
+        }
+
+        ReadOwnExperimentalIds(symbol.ContainingModule, ref ids);
+        ReadOwnExperimentalIds(symbol.ContainingAssembly, ref ids);
+    }
 
     // An id is an identifier, which the compiler checks; one read from metadata goes into a #pragma, so it is checked
-    private static IEnumerable<string> ReadOwnExperimentalIds(ISymbol? symbol) =>
-        symbol is null
-            ? []
-            : symbol.GetAttributes()
-                .Where(attribute => attribute.AttributeClass.Is(KnownTypes.Experimental))
-                .Where(attribute => attribute.ConstructorArguments.Length > 0)
-                .Select(attribute => attribute.ConstructorArguments[0])
-                .Where(argument => argument.Kind == TypedConstantKind.Primitive)
-                .Select(argument => argument.Value)
-                .OfType<string>()
-                .Where(SyntaxFacts.IsValidIdentifier);
+    private static void ReadOwnExperimentalIds(ISymbol? symbol, ref List<string>? ids)
+    {
+        if (symbol is null) return;
+
+        foreach (var attribute in symbol.GetAttributes())
+        {
+            if (attribute.AttributeClass.Is(KnownTypes.Experimental)
+                && attribute.ConstructorArguments.Length > 0
+                && attribute.ConstructorArguments[0] is { Kind: TypedConstantKind.Primitive, Value: string id }
+                && SyntaxFacts.IsValidIdentifier(id))
+                (ids ??= []).Add(id);
+        }
+    }
+
+    private static EquatableArray<string> ToExperimentalIds(List<string>? ids) =>
+        ids is null ? default : ids.Distinct().OrderBy(id => id, StringComparer.Ordinal).ToEquatableArray();
 
     private static bool IsInternalOrWider(ITypeSymbol type) =>
         type.DeclaredAccessibility

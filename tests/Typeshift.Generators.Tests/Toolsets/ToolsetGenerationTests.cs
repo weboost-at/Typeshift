@@ -389,6 +389,19 @@ public class ToolsetGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Tool_Type_Of_An_Experimental_Assembly_The_Generated_Code_Compiles_Without_Warnings()
+    {
+        // Arrange
+        var reference = CompileReference("Lab", ReferenceSources.ExperimentalAssembly);
+
+        // Act
+        var run = Run(Compile(SubjectAssembly, [reference], ReferenceSources.ExperimentalAssemblyToolset));
+
+        // Assert
+        run.Assert.CompilesCleanly();
+    }
+
+    [Fact]
     public void Given_A_Tool_Of_An_Extension_Block_The_Generated_Code_Calls_It_On_The_Class_That_Declares_The_Block()
     {
         // Act

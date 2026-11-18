@@ -70,10 +70,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   transform again for every class it passed whenever the compilation changes, so each edit, in any file, binds the
   constructors of every toolset and agent and parses them; only the outputs stay cached, while the models compare
   equal. For a toolset of three tools and an agent that uses two toolsets (`ScaleSources`) a run after an unrelated
-  edit allocates about 290 KB and takes 2 to 4 ms of CPU per pair, two thirds of it in binding the constructors
+  edit allocates about 265 KB and takes 2 to 3 ms of CPU per pair, 70% of it in binding the constructors
   (`GetOperation`); the measurements by project size are in [Status](./status.md#known-gaps). The parsers read a
   doc comment of the compilation where it is written, not from the compiler's XML, which took a third of their
-  share.
+  share. The search for the ids of `[Experimental]` symbols allocates only once it finds one, where it took a
+  quarter of what was left.
   `IncrementalCostTests` holds the bytes under a budget per pair, and `tools/Typeshift.Tools.Generators` measures
   the time before a release. Reading each chain from syntax and binding only what it names would cut the binding,
   and changes the parsers the analyzer shares (D2) and the shapes D4 reports; it waits for projects that need it.

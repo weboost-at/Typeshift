@@ -11,8 +11,8 @@ public class IncrementalCostTests : GeneratorTestBase
 {
     private const int Pairs = 25;
 
-    // 289 KB when set
-    private const int PairBudget = 360_000;
+    // 263 KB when set
+    private const int PairBudget = 330_000;
 
     [Fact]
     public void Given_An_Unrelated_Edit_The_Generator_Runs_Again_Within_Its_Budget_For_Each_Toolset_And_Agent()

@@ -1493,6 +1493,33 @@ public static class ShapeSources
         }
         """;
 
+    // A nested type is named through its class, so the class's [Experimental] id holds wherever the type is named
+    public const string ToolTypeNestedInAnExperimentalClass =
+        """
+        using System.Diagnostics.CodeAnalysis;
+        using Typeshift;
+
+        namespace Demo;
+
+        [Experimental("DEMO009")]
+        public static class Lab
+        {
+            public record Sample(string Text);
+        }
+
+        internal partial class LabTools : Toolset
+        {
+            public LabTools()
+            {
+                AddTool(Take).WithDescription("Takes a sample.");
+            }
+
+        #pragma warning disable DEMO009
+            public static string Take(Lab.Sample sample) => sample.Text;
+        #pragma warning restore DEMO009
+        }
+        """;
+
     public const string NullDefaultsWithoutAnnotation =
         """
         using System;
