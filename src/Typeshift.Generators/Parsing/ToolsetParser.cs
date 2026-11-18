@@ -267,7 +267,7 @@ internal static class ToolsetParser
         // WithDescription("") describes as little as no call
         var docs = XmlDocs.Read(method, ct);
         var stated = string.IsNullOrWhiteSpace(chain.Description) ? null : chain.Description;
-        var description = stated ?? docs.Summary;
+        var description = stated ?? docs.Summary ?? GetDescription(method);
 
         // Without generated docs a summary is lost unless WithDescription replaces it, a <param> always is
         var unread = documented ? "" : XmlDocs.ReadUnparsed(method, ct);
@@ -671,7 +671,24 @@ internal static class ToolsetParser
             IsNullable: parameter.Type is { IsReferenceType: true, NullableAnnotation: NullableAnnotation.Annotated }
                 || defaultValue == ParameterModel.ForgivenNull,
             DefaultValue: defaultValue,
-            Description: docs.Parameters.TryGetValue(parameter.Name, out var description) ? description : null);
+            Description: docs.Parameters.TryGetValue(parameter.Name, out var description)
+                ? description
+                : GetDescription(parameter));
+    }
+
+    // D14: the [Description] of Microsoft.Extensions.AI's samples, where the XML docs say nothing; a blank one says
+    // nothing either
+    private static string? GetDescription(ISymbol symbol)
+    {
+        var arguments = symbol.GetAttributes()
+            .FirstOrDefault(attribute => attribute.AttributeClass.Is(KnownTypes.Description))
+            ?.ConstructorArguments;
+
+        return arguments is { Length: 1 }
+            && arguments.Value[0] is { Kind: TypedConstantKind.Primitive, Value: string text }
+            && !string.IsNullOrWhiteSpace(text)
+                ? text
+                : null;
     }
 
     private static ReturnKind ParseReturn(ITypeSymbol type) =>

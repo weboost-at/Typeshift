@@ -557,6 +557,16 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Tool_Described_By_A_Description_Attribute_TSH009_Is_Not_Reported()
+    {
+        // Act
+        var run = Run(ShapeSources.DescriptionAttributes);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH009");
+    }
+
+    [Fact]
     public void Given_A_Tool_That_Does_Not_Take_Its_Settings_TSH010_Is_Reported_As_A_Warning()
     {
         // Act

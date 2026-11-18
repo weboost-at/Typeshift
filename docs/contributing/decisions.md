@@ -278,6 +278,14 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - **Status:** carried (v0), `WithDescription` overrides; parameters the model never sees need no `<param>` (D2's
   suppressor). An agent's summary describes it as a method's describes its tool, at the owner's request.
+- **`[Description]`:** Microsoft.Extensions.AI reads `System.ComponentModel.DescriptionAttribute`, and every sample of
+  it writes one. A tool brought over kept its attributes, got TSH009 for its method and nothing for a parameter,
+  whose schema then had no description, though the same attribute on a record's property reached it. The parser now
+  reads the attribute of the method and of each parameter where `WithDescription`, the `<summary>` or the `<param>`
+  says nothing, so the XML docs stay the source that wins. The owner left a choice in line with the library's aim,
+  tools described without a second schema to keep in step, to the change that makes it.
+- **Alternatives:** a warning that the attribute is ignored, which keeps one source and still loses the parameter's
+  description; a line in the guide alone.
 
 ### D55. The types tools take describe themselves with their XML docs
 

@@ -2624,4 +2624,24 @@ public static class ShapeSources
                 });
         }
         """;
+
+    // D14: Microsoft.Extensions.AI's [Description] describes a tool and its parameters where the XML docs say nothing
+    public const string DescriptionAttributes =
+        """
+        using System.ComponentModel;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class OrderToolset : Toolset
+        {
+            public OrderToolset()
+            {
+                AddTool(LookUpOrder);
+            }
+
+            [Description("Looks an order up by its number.")]
+            public static string LookUpOrder([Description("The order number, like A-123.")] string number) => number;
+        }
+        """;
 }

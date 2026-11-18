@@ -132,6 +132,46 @@ public class ToolSchemaTests : UnitTestBase
     }
 
     [Fact]
+    public void Given_A_Parameter_With_A_Description_Attribute_And_No_Param_Docs_The_Schema_Describes_It()
+    {
+        // Act
+        var lookUp = DescribedToolset.CreateLookUpOrder(Json);
+
+        // Assert
+        lookUp.JsonSchema.Assert.ParameterDescription("number", "The order number, like A-123.");
+    }
+
+    [Fact]
+    public void Given_A_Parameter_With_Param_Docs_And_A_Description_Attribute_The_Docs_Describe_It()
+    {
+        // Act
+        var cancel = DescribedToolset.CreateCancelOrder(Json);
+
+        // Assert
+        cancel.JsonSchema.Assert.ParameterDescription("number", "The number of the order to cancel.");
+    }
+
+    [Fact]
+    public void Given_A_Method_With_A_Description_Attribute_And_No_Summary_The_Attribute_Describes_The_Tool()
+    {
+        // Act
+        var lookUp = DescribedToolset.CreateLookUpOrder(Json);
+
+        // Assert
+        lookUp.Description.Should().Be("Looks an order up by its number.");
+    }
+
+    [Fact]
+    public void Given_A_Method_With_A_Summary_And_A_Description_Attribute_The_Summary_Describes_The_Tool()
+    {
+        // Act
+        var cancel = DescribedToolset.CreateCancelOrder(Json);
+
+        // Assert
+        cancel.Description.Should().Be("Cancels an order.");
+    }
+
+    [Fact]
     public void Given_Two_Tools_Each_Gets_A_Schema_Of_Its_Own()
     {
         // Arrange

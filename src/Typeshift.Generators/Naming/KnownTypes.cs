@@ -95,5 +95,8 @@ internal static class KnownTypes
 
     public const string Obsolete = "System.ObsoleteAttribute";
 
+    // D14: what Microsoft.Extensions.AI reads for a description, which a tool's XML docs override
+    public const string Description = "System.ComponentModel.DescriptionAttribute";
+
     public const string Experimental = "System.Diagnostics.CodeAnalysis.ExperimentalAttribute";
 }

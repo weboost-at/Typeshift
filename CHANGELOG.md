@@ -182,6 +182,10 @@ All notable changes to this project are documented here. The format follows
   compiling and stopped matching. A member of yours named `ToolNames` is TSH018, and a tool named `tool_names` is
   `ToolNamesTool` on the tool list. `BuiltInTools` holds the names of the tools a run offers itself: `AskUser`,
   `ExitPlanMode` and `HandoffPrefix`.
+- A `[Description]` on a tool's method describes the tool, and one on a parameter describes the parameter in the
+  schema, where neither `WithDescription` nor the XML docs say anything. A tool moved over from a
+  Microsoft.Extensions.AI sample got TSH009 for its method's attribute and lost its parameters' descriptions without
+  a word. The XML docs still win where both are written.
 
 ### Changed
 

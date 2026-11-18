@@ -106,6 +106,10 @@ analyzer warns about a tool with neither ([TSH009](./diagnostics.md#tsh009)). Th
 `GenerateDocumentationFile`, which your XML docs need to reach the generator, unless your project turns it off
 ([TSH011](./diagnostics.md#tsh011)).
 
+A tool brought over from a Microsoft.Extensions.AI sample keeps its `[Description]` attributes: one on the method
+describes the tool when neither `WithDescription` nor a `<summary>` does, and one on a parameter describes it when
+no `<param>` does. Where both are written, the XML docs win.
+
 ::: warning Renaming a method renames its tool
 Stored settings are keyed by the tool's name. Rename `SearchTickets`, and what your customers stored for
 `search_tickets` stops applying. Pin the old name with `WithName` before you rename.
