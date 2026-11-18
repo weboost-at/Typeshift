@@ -37,6 +37,7 @@ internal static class Registration
         services.AddSingleton<ITicketClient, InMemoryTicketClient>();
         services.AddSingleton<IArticleIndex, InMemoryArticleIndex>();
         services.AddScoped<ICurrentCustomer, SampleCustomer>();
+        services.AddScoped<CurrentTenant>();
         services.AddScoped<RefundDesk>();
         services.AddLogging();
 

@@ -10,10 +10,12 @@ public record ProbeSettings
     public bool Verbose { get; init; }
 }
 
-// Scoped, so two calls that see the same id ran in the same scope
+// Scoped, so two calls that see the same id ran in the same scope; a job sets the tenant before it runs
 public sealed class CallScope
 {
     public Guid Id { get; } = Guid.NewGuid();
+
+    public string? Tenant { get; set; }
 }
 
 public record ProbeResult(
@@ -21,7 +23,8 @@ public record ProbeResult(
     ProbeSettings Settings,
     Guid? Scope,
     bool ArgumentsCarryServices,
-    bool Cancellable);
+    bool Cancellable,
+    string? Tenant = null);
 
 // Returns what a call received, so a test can read it back
 public partial class ProbeToolset : Toolset
@@ -49,5 +52,6 @@ public partial class ProbeToolset : Toolset
             Settings: settings,
             Scope: services.GetService<CallScope>()?.Id,
             ArgumentsCarryServices: ReferenceEquals(arguments.Services, services),
-            Cancellable: ct.CanBeCanceled);
+            Cancellable: ct.CanBeCanceled,
+            Tenant: services.GetService<CallScope>()?.Tenant);
 }

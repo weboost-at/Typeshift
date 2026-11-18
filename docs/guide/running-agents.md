@@ -98,7 +98,7 @@ var settingsId = 42;
 
 var stored = await support.WithSettingsId(settingsId).RunAsync("Where is my refund?");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L37-L41' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-with-settings-id' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L41-L45' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-with-settings-id' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ## Run settings
@@ -120,7 +120,7 @@ var run = new SupportAgent.Settings
 
 var thorough = await support.WithSettingsId(settingsId).RunAsync("Where is my refund?", settings: run);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L45-L56' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-settings' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L49-L60' title='Snippet source file'>snippet source</a> | <a href='#snippet-run-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Values the run leaves null keep what the stored settings or the agent's code set, as
@@ -143,7 +143,7 @@ var report = await support.WithSettingsId(settingsId).RunAsync<RefundStatus>("Su
 
 Console.WriteLine($"{report.Result.Invoice}: {report.Result.State}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L60-L64' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L64-L68' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 <!-- snippet: structured-output-type -->
@@ -158,7 +158,7 @@ internal enum RefundState
     Paid
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L103-L112' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output-type' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L107-L116' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output-type' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `T`'s XML docs describe its properties, as they describe the types tools take
@@ -186,7 +186,7 @@ await foreach (var update in summary)
 
 Console.WriteLine($" ({summary.Response.Result.State})");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L68-L75' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-streaming' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L72-L79' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-streaming' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The updates carry the model's JSON as it writes it, under `data` for a `T` that is not an object, so show the user
@@ -209,7 +209,7 @@ updates, and the stream goes on with the model's next response:
 await foreach (var update in support.WithSettingsId(settingsId).RunStreamingAsync("Where is my refund?"))
     Console.Write(update.Text);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L79-L82' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L83-L86' title='Snippet source file'>snippet source</a> | <a href='#snippet-streaming' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Anyone [watching the conversation](./conversations.md#live-updates) sees the updates too.
@@ -228,7 +228,7 @@ var options = await support.WithSettingsId(settingsId).ResolveOptionsAsync(setti
 using var client = await support.CreateChatClientAsync(options);
 var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "Where is my refund?")], options);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L86-L91' title='Snippet source file'>snippet source</a> | <a href='#snippet-raw-path' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L90-L95' title='Snippet source file'>snippet source</a> | <a href='#snippet-raw-path' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The client is the run's whole pipeline, the tool loop and the agent's run options included. It serves concurrent

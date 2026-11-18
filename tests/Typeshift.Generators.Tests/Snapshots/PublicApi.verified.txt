@@ -57,6 +57,7 @@ public System.Collections.Generic.IAsyncEnumerable<Microsoft.Extensions.AI.ChatR
 public System.Collections.Generic.IAsyncEnumerable<Microsoft.Extensions.AI.ChatResponseUpdate> Typeshift.AgentHost<TAgent>.RunStreamingAsync(string input, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public Typeshift.StreamingRun<TResult> Typeshift.AgentHost<TAgent>.RunStreamingAsync<TResult>(Microsoft.Extensions.AI.ChatMessage input, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public Typeshift.StreamingRun<TResult> Typeshift.AgentHost<TAgent>.RunStreamingAsync<TResult>(string input, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public System.IServiceProvider Typeshift.AgentHost<TAgent>.Services { get; }
 public System.Threading.Tasks.Task Typeshift.AgentHost<TAgent>.SetModeAsync(Typeshift.AgentMode mode, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithConversationId<TId>(TId id) where TId : notnull
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithConversationId<TId>(TId? id) where TId : struct

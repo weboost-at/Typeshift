@@ -138,6 +138,36 @@ scope as the host would. Register the job with
 `services.AddHostedService<TicketDigest>()`. Its timer waits on the `TimeProvider` your app registers, for example
 with `services.AddSingleton(TimeProvider.System)`.
 
+### Fill the job's scope
+
+In a request, your app's middleware fills scoped services such as the tenant the request serves, and the tools read
+them. A job has no request, so it fills them itself, through the host's `Services`, before it runs:
+
+<!-- snippet: job-scoped-state -->
+<a id='snippet-job-scoped-state'></a>
+```cs
+internal sealed class TenantDigest(TypeshiftRuntime runtime)
+{
+    public async Task<string> DigestAsync(string tenant, CancellationToken ct)
+    {
+        await using var support = runtime.Agent<SupportAgent>();
+        support.Services.GetRequiredService<CurrentTenant>().Id = tenant;
+
+        var answer = await support.RunAsync("Summarize the tickets opened today.", ct);
+        return answer.Text;
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/TenantDigest.cs#L6-L18' title='Snippet source file'>snippet source</a> | <a href='#snippet-job-scoped-state' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- `CurrentTenant` stands for a scoped service of your app, registered with `services.AddScoped<CurrentTenant>()`.
+- `support.Services` is the scope of the host, the one its runs resolve tools, context providers and middleware from.
+  A tool that takes `CurrentTenant` from its `IServiceProvider` therefore reads `tenant`. Without that line, the job's
+  tools find an empty `CurrentTenant` and answer for no tenant.
+- A job that runs two agents in one scope creates the scope itself with `provider.CreateAsyncScope()`, fills it, and
+  resolves both hosts from it, as [Run from a console app](#run-from-a-console-app) does with one.
+
 ## Related
 
 - [Getting started](./getting-started.md): a first toolset, agent and run.

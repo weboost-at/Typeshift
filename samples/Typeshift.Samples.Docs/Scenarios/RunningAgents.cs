@@ -34,6 +34,10 @@ internal static class RunningAgents
         var digested = await digest.DigestAsync(CancellationToken.None);
         Expect(digested.Length > 0, "a background job answers from a scope of its own");
 
+        var tenants = new TenantDigest(provider.GetRequiredService<TypeshiftRuntime>());
+        var forTenant = await tenants.DigestAsync("acme", CancellationToken.None);
+        Expect(forTenant.Length > 0, "a job that sets its tenant in its host's scope answers");
+
         // begin-snippet: run-with-settings-id
         var settingsId = 42;
 

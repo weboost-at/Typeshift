@@ -159,6 +159,10 @@ All notable changes to this project are documented here. The format follows
   conversation)`, and the run's `RunOptions` with every layer of settings applied. A tool middleware reads the run
   of a call as `call.Run`, so it names the agent and the customer a tool ran for without a scoped service of your
   own that holds them.
+- `host.Services` is the scope a host's runs resolve their services from. A background job sets your app's scoped
+  state there before it runs, as in `support.Services.GetRequiredService<CurrentTenant>().Id = tenant;`, where a
+  request's middleware would. Before, a host from the runtime hid its scope, so a job's tools ran with that state
+  empty.
 
 ### Changed
 

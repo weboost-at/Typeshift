@@ -72,6 +72,17 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// </summary>
     public TAgent Agent { get; }
 
+    // D76: a job fills the scope of its unit of work here, as a request's middleware fills the request's
+    /// <summary>
+    /// The services the host's runs use: those of the scope it was resolved from, or of the scope
+    /// <see cref="TypeshiftRuntime.Agent{TAgent}"/> created for it. A job sets scoped state through them before it
+    /// runs, such as the current tenant its tools read.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/using-an-agent#run-from-a-background-job">Run from a
+    /// background job</see>.
+    /// </summary>
+    public IServiceProvider Services => _services;
+
     /// <summary>
     /// Returns a copy of this host with a settings id and leaves this host as it was. The copy's runs apply the
     /// settings stored under the id, over the agent's own, and its settings members load, save and configure them.

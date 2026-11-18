@@ -10,8 +10,8 @@ section names the declaration that adds a member.
 
 ## The agent host
 
-`AgentHost<TAgent>` runs one agent. Its own members are `Agent`, `WithSettingsId`, `WithConversationId`, its runs
-without settings, `CreateChatClientAsync`, the members for
+`AgentHost<TAgent>` runs one agent. Its own members are `Agent`, `Services`, `WithSettingsId`,
+`WithConversationId`, its runs without settings, `CreateChatClientAsync`, the members for
 [the decisions of a conversation](#decisions-of-the-conversation), `DisposeAsync` and `Dispose`. The generator adds
 the typed runs and settings of each agent.
 
@@ -153,6 +153,14 @@ and [compaction](./conversations.md#compaction) what a compacted run stores.
 
 `TAgent Agent { get; }` is the agent as its code declares it, a singleton. `Agent.Name` reads what `WithName`
 declared, and `Agent.Description` what `WithDescription` or the agent's `<summary>` did.
+
+### `Services`
+
+`IServiceProvider Services { get; }` is the scope the host's runs resolve their services from: the one the host was
+resolved from, or the one the runtime created for it, as the host's scope below explains. A job sets your app's
+scoped state there before it runs, such as the current tenant
+([Fill the job's scope](./using-an-agent.md#fill-the-job-s-scope)). Copies from `WithSettingsId` and
+`WithConversationId` share it.
 
 ### `WithSettingsId` and `WithConversationId`
 

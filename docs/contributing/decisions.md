@@ -1430,6 +1430,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `runtime.Services` is the root provider, for singletons such as a `ConversationTracker<TId>`. A request still injects
   `AgentHost<TAgent>` from its own scope. Your app lets a host's runs and streams finish before it disposes the host,
   and a run that ends awaits the background sub-agents it stopped (D33), so none works on in a disposed scope.
+- **The scope a job fills:** `host.Services` is the scope a host's runs use. A job has no request middleware to
+  fill your app's scoped state, such as the current tenant, so it sets it there before it runs; without it, the
+  tools of a job ran with that state empty, and the job fell back to a scope of its own made by hand. No lambda and
+  no second object: the host is the unit of work, so its scope is a member of it.
 - **Where:** `Hosting/TypeshiftRuntime.cs`, `Hosting/AgentHost.cs`, `Agents/Agent.cs`,
   `Generated/ModuleRegistration.cs`, `Analysis/TypeshiftAnalyzer.cs`.
 - **Alternatives:** a separate `AgentScope` object that holds a scope and hands out hosts, which the owner turned

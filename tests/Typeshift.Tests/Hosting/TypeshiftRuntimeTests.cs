@@ -375,6 +375,24 @@ public class TypeshiftRuntimeTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_Scoped_State_Set_Through_The_Hosts_Services_A_Tool_Reads_It()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "probe", ("query", Data.Tool.Query)))
+            .Reply(Text(Data.Tool.Answer));
+
+        await using var probe = Runtime.Agent<ProbeAgent>();
+        probe.Services.GetRequiredService<CallScope>().Tenant = Data.Agent.CompanyName;
+
+        // Act
+        var response = await probe.RunAsync(Data.Tool.Question, Ct);
+
+        // Assert
+        response.Assert.ToolResult<ProbeResult>(Data.Tool.CallId, Json).Tenant.Should().Be(Data.Agent.CompanyName);
+    }
+
+    [Fact]
     public async Task Given_Two_Hosts_Of_The_Runtime_Their_Runs_Resolve_From_Scopes_Of_Their_Own()
     {
         // Arrange
