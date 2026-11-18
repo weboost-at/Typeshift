@@ -712,6 +712,37 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_No_Options_The_Raw_Client_Created_In_One_Call_Runs_The_Agent()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        using var client = await Host<ProbeAgent>().CreateChatClientAsync(Ct);
+
+        // Act
+        await client.GetResponseAsync(Data.Tool.Question, cancellationToken: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.Instructions.Should().Be(ProbeAgent.Prompt);
+    }
+
+    [Fact]
+    public async Task Given_Run_Settings_The_Raw_Client_Created_In_One_Call_Runs_With_Them()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>();
+        using var client = await host.CreateChatClientAsync(settings: new() { Model = Data.Agent.Model }, ct: Ct);
+
+        // Act
+        await client.GetResponseAsync(Data.Tool.Question, cancellationToken: Ct);
+
+        // Assert
+        ChatClient.Options[0]!.ModelId.Should().Be(Data.Agent.Model);
+    }
+
+    [Fact]
     public async Task Given_Options_Resolved_For_Another_Provider_The_Raw_Client_Refuses_Them()
     {
         // Arrange

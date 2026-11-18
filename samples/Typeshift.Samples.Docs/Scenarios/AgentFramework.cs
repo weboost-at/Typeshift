@@ -16,14 +16,12 @@ internal static class AgentFramework
         var settingsId = 42;
 
         // begin-snippet: agent-framework
-        var options = await support.WithSettingsId(settingsId).ResolveOptionsAsync();
-        using var client = await support.CreateChatClientAsync(options);
+        using var client = await support.WithSettingsId(settingsId).CreateChatClientAsync();
 
         AIAgent agent = client.AsAIAgent(new ChatClientAgentOptions
         {
             Name = support.Agent.Name,
             Description = support.Agent.Description,
-            ChatOptions = options,
             UseProvidedChatClientAsIs = true
         });
 
@@ -47,12 +45,10 @@ internal static class AgentFramework
     private static async Task InConversationAsync(AgentHost<SupportAgent> support, IConversationStore<int> store)
     {
         var chat = support.WithConversationId(51);
-        var options = await chat.ResolveOptionsAsync();
-        using var client = await chat.CreateChatClientAsync(options);
+        using var client = await chat.CreateChatClientAsync();
         var agent = client.AsAIAgent(new ChatClientAgentOptions
         {
             Name = support.Agent.Name,
-            ChatOptions = options,
             UseProvidedChatClientAsIs = true
         });
 

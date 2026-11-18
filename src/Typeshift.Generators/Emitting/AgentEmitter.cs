@@ -665,6 +665,33 @@ internal static class AgentEmitter
                 """);
             writer.Line();
 
+            // D26: the raw path in one call, for a library that calls the client without options or with its own
+            Docs.WriteSummary(
+                writer,
+                "Creates the client of the raw path from the options of a run, as <c>ResolveOptionsAsync</c> resolves "
+                + "them, for a library that takes an <c>IChatClient</c>. The client keeps the options: a call without "
+                + "options runs with them, and a call with options of its own changes only the conversation id, the "
+                + "response format and the tools it adds."
+                + Docs.Guide("running-agents#the-raw-path", "The raw path"));
+            Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
+            Docs.WriteParam(writer, "ct", "Cancels the creation.");
+            Docs.WriteReturns(writer, "The client; disposing it leaves the provider's client alone.");
+            Docs.WriteException(
+                writer,
+                InvalidOperation,
+                "No chat client serves the options, " + OwnLoop + ", or something the options need is not "
+                + "registered: a store for the type of the host's settings id, or an <c>IMcpToolProvider</c> for the "
+                + "agent's MCP servers.");
+            WriteNewerSettings(writer);
+            writer.Lines(
+                $"""
+                public {Task}<global::Microsoft.Extensions.AI.IChatClient> CreateChatClientAsync(
+                    {settings}? settings = null,
+                    {CancellationToken} ct = default) =>
+                    {Runs}.CreateChatClientAsync(host, settings, ct);
+                """);
+            writer.Line();
+
             const string Refused =
                 "The settings set a value no run can go with, such as a blank model or no round of tool calls; "
                 + "nothing is saved.";

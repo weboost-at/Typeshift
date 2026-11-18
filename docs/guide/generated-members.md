@@ -40,14 +40,15 @@ In these signatures, `Settings` is the agent's [generated `Settings` record](#se
 | `AnswerStreamingAsync(IReadOnlyList<DecisionAnswer> answers, Settings? settings = null)` | `StreamingRun` |
 | `AnswerStreamingAsync<TResult>(IReadOnlyList<DecisionAnswer> answers, Settings? settings = null)` | `StreamingRun<TResult>` |
 | `ResolveOptionsAsync(Settings? settings = null)` | `Task<ChatOptions>` |
+| `CreateChatClientAsync(Settings? settings = null)` | `Task<IChatClient>` |
 | `LoadSettingsAsync()` | `Task<Stored<Settings>>` |
 | `SaveSettingsAsync(Settings settings, long loadedVersion)` | `Task<long>` |
 | `UpdateSettingsAsync(Func<Settings, Settings> update)` | `Task<Stored<Settings>>` |
 
-Each run, answer and resume of the table, and `ResolveOptionsAsync`, is also a member of `AgentHost<TAgent>` itself
-without `settings`, such as `RunAsync(string input, CancellationToken ct = default)`. Code generic over the agent
-calls those, so one method runs any agent ([Run any agent](./running-agents.md#run-any-agent)), and a token goes in
-second, as in `RunAsync(input, ct)`. A call that passes settings reaches the generated member, and both run alike.
+Each run, answer and resume of the table, `ResolveOptionsAsync` and `CreateChatClientAsync` are also members of
+`AgentHost<TAgent>` itself without `settings`, such as `RunAsync(string input, CancellationToken ct = default)`. Code
+generic over the agent calls those, so one method runs any agent ([Run any agent](./running-agents.md#run-any-agent)),
+and a token goes in second, as in `RunAsync(input, ct)`. A call that passes settings reaches the generated member, and both run alike.
 
 ### `RunAsync`
 
@@ -180,10 +181,13 @@ an `ISettingsStore<TId>` for a settings id, an `IConversationStore<TId>` for a c
 
 ### `CreateChatClientAsync`
 
+`Task<IChatClient> CreateChatClientAsync(Settings? settings = null, CancellationToken ct = default)`
+
 `Task<IChatClient> CreateChatClientAsync(ChatOptions options, CancellationToken ct = default)`
 
-`CreateChatClientAsync` creates the client of the [raw path](./running-agents.md#the-raw-path) for options that
-`ResolveOptionsAsync` returned. It takes the client for the options' provider and model, as a run does
+`CreateChatClientAsync` creates the client of the [raw path](./running-agents.md#the-raw-path). The first form
+resolves the options as `ResolveOptionsAsync` does and creates the client from them in one call; the second creates it
+for options that `ResolveOptionsAsync` returned. It takes the client for the options' provider and model, as a run does
 ([Registering clients](./models.md#registering-clients)), and wraps it in the run's pipeline, with the agent's run
 options and the tool loop.
 

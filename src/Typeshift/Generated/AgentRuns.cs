@@ -306,13 +306,30 @@ public static class AgentRuns
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
     /// <param name="ct">Cancels the resolution.</param>
-    /// <returns>The options, for <see cref="AgentHost{TAgent}.CreateChatClientAsync"/>.</returns>
+    /// <returns>
+    /// The options, for <see cref="AgentHost{TAgent}.CreateChatClientAsync(ChatOptions, CancellationToken)"/>.
+    /// </returns>
     public static Task<ChatOptions> ResolveOptionsAsync<TAgent>(
         AgentHost<TAgent> host,
         object? settings,
         CancellationToken ct)
         where TAgent : Agent =>
         host.ResolveOptionsCoreAsync(host.SettingsId, settings, ct);
+
+    /// <summary>
+    /// Creates the client of the raw path from the options of a run, which it keeps.
+    /// </summary>
+    /// <typeparam name="TAgent">The agent.</typeparam>
+    /// <param name="host">The host, with the run's services and ids.</param>
+    /// <param name="settings">The run's settings, over the stored ones.</param>
+    /// <param name="ct">Cancels the creation.</param>
+    /// <returns>The client.</returns>
+    public static async Task<IChatClient> CreateChatClientAsync<TAgent>(
+        AgentHost<TAgent> host,
+        object? settings,
+        CancellationToken ct)
+        where TAgent : Agent =>
+        await host.CreateChatClientAsync(await host.ResolveOptionsCoreAsync(host.SettingsId, settings, ct), ct);
 
     /// <summary>
     /// Loads the agent's own settings, which every run applies, or those under the id the host was given.

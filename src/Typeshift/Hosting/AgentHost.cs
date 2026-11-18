@@ -588,9 +588,9 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         RunStreamingCoreAsync<TResult>(null, null, ct);
 
     /// <summary>
-    /// Resolves the options of a run, for the raw path: <see cref="CreateChatClientAsync"/>, then the client. The
-    /// options carry the host's conversation. The agent's generated <c>ResolveOptionsAsync</c> also takes the run's
-    /// <c>Settings</c>.
+    /// Resolves the options of a run, for the raw path:
+    /// <see cref="CreateChatClientAsync(ChatOptions, CancellationToken)"/>, then the client. The options carry the
+    /// host's conversation. The agent's generated <c>ResolveOptionsAsync</c> also takes the run's <c>Settings</c>.
     /// More in the guide:
     /// <see href="https://weboost-at.github.io/Typeshift/guide/running-agents#the-raw-path">The raw path</see>.
     /// </summary>
@@ -730,6 +730,27 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
 
         await Ledger.RevokeAsync(DecidedConversation, tool, server, ct);
     }
+
+    /// <summary>
+    /// The raw path in one call: creates the client of a run from the options <c>ResolveOptionsAsync</c> resolves,
+    /// for a library that takes an <see cref="IChatClient"/>. The client keeps the options, as
+    /// <see cref="CreateChatClientAsync(ChatOptions, CancellationToken)"/> says. The agent's generated
+    /// <c>CreateChatClientAsync</c> also takes the run's <c>Settings</c>.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/running-agents#the-raw-path">The raw path</see>.
+    /// </summary>
+    /// <param name="ct">Cancels the creation.</param>
+    /// <returns>The client; disposing it leaves the provider's client alone.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// No chat client serves the options, the client runs a tool loop of its own, or something the options need is
+    /// not registered: a store for the type of the host's settings id, or an <see cref="IMcpToolProvider"/> for the
+    /// agent's MCP servers.
+    /// </exception>
+    /// <exception cref="System.Text.Json.JsonException">
+    /// The stored settings were written under a newer schema version than this code's.
+    /// </exception>
+    public async Task<IChatClient> CreateChatClientAsync(CancellationToken ct = default) =>
+        await CreateChatClientAsync(await ResolveOptionsAsync(ct), ct);
 
     /// <summary>
     /// The raw path: creates the client of a run whose options <c>ResolveOptionsAsync</c> resolved. For options that

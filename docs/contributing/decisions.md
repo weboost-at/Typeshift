@@ -226,17 +226,18 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** carried (v0 D4).
 - **Decision:** `extension(AgentHost<TAgent> host)` per agent, in the agent's assembly, with `RunAsync`, `RunAsync<T>`,
   `RunStreamingAsync`, `ResumeAsync`, `ResumeStreamingAsync`, `AnswerAsync`, `AnswerStreamingAsync` (D80, at stamp
-  version 8), `LoadSettingsAsync`, `SaveSettingsAsync`, `UpdateSettingsAsync` and `ResolveOptionsAsync`. They call
-  hidden library methods, so the logic lives and is tested in the library.
+  version 8), `LoadSettingsAsync`, `SaveSettingsAsync`, `UpdateSettingsAsync`, `ResolveOptionsAsync` and
+  `CreateChatClientAsync` (D26, at stamp version 15). They call hidden library methods, so the logic lives and is
+  tested in the library.
 - **The settings members:** `UpdateSettingsAsync` was `ConfigureAsync` up to 0.1.0-alpha.6, and returned the settings
   without the version its save wrote, so a settings form that saved again had to load first. The name read as
   configuring the host or its next run, beside `Configure{Tool}()` for code defaults and `Configurable(...)` for what
   may be stored. It now carries the noun its siblings carry, returns the settings with their version as
   `LoadSettingsAsync` does, and throws when its function returns null, which the save failed on later without naming
   the function. A generated member has no cheap forwarder, so the old name went without an `[Obsolete]` twin.
-- **The host's own runs:** every run, answer and resume, and `ResolveOptionsAsync`, is also an instance member of
-  `AgentHost<TAgent>` without the `Settings` parameter, `RunAsync(string input, CancellationToken ct = default)` for
-  example. Code generic over the agent, a helper for every agent's endpoint or test, calls those: an extension block
+- **The host's own runs:** every run, answer and resume, `ResolveOptionsAsync` and `CreateChatClientAsync` are also
+  instance members of `AgentHost<TAgent>` without the `Settings` parameter,
+  `RunAsync(string input, CancellationToken ct = default)` for example. Code generic over the agent, a helper for every agent's endpoint or test, calls those: an extension block
   on the closed `AgentHost<SupportAgent>` is not in reach of an `AgentHost<TAgent>`, which was CS1929. An instance
   member wins where it applies, and a call with settings, by position or by name, reaches the generated one, so
   `RunAsync(input, ct)` takes the token second, where it was CS1503 and every call wrote `ct: ct`.
@@ -472,7 +473,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   stay, as the agent's settings decide them. Agent Framework passes such options per run, merged from its own.
   Options resolved for the client's provider and model run whole, their run options too, since the tool loop is
   built per call; options resolved for another throw an `InvalidOperationException`, until a client is resolved at
-  the model call.
+  the model call. `CreateChatClientAsync(settings)` resolves the options and creates the client in one call, so the
+  documented use, a client handed to a library, is one line; `CreateChatClientAsync(options)` stays for code that
+  reads the options too.
 - **Where:** `Hosting/AgentHost.cs` (`CreateChatClientAsync`), `Hosting/ResolvedChatOptions.cs` (`ForCall`),
   `Conversations/ConversationChatClient.cs`.
 - **Alternatives:** an own `AgentResponse`, a type to learn for what `ChatResponse` holds. For the raw path: a

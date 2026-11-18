@@ -56,6 +56,7 @@ public partial class AgentGenerationTests : GeneratorTestBase
     [InlineData("ResumeAsync", new[] { Nothing, Busy, NotStored, Invalid, Newer })]
     [InlineData("ResumeStreamingAsync", new[] { Nothing, Busy, NotStored, Invalid, Newer })]
     [InlineData("ResolveOptionsAsync", new[] { Invalid, Newer })]
+    [InlineData("CreateChatClientAsync", new[] { Invalid, Newer })]
     [InlineData("LoadSettingsAsync", new[] { Invalid, Newer })]
     [InlineData("SaveSettingsAsync", new[] { Conflict, Invalid })]
     [InlineData("UpdateSettingsAsync", new[] { Conflict, Invalid, Newer })]

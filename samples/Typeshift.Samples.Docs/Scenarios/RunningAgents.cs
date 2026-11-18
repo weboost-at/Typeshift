@@ -135,15 +135,33 @@ internal static class RunningAgents
         Console.WriteLine();
 
         // begin-snippet: raw-path
-        var options = await support.WithSettingsId(settingsId).ResolveOptionsAsync(settings: run);
+        using var client = await support.WithSettingsId(settingsId).CreateChatClientAsync(settings: run);
 
-        using var client = await support.CreateChatClientAsync(options);
-        var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "Where is my refund?")], options);
+        var response = await client.GetResponseAsync("Where is my refund?");
         // end-snippet
+
+        Expect(response.Text == answer.Text, "the raw path answers like a run");
+
+        await FromOptionsAsync(support, settingsId, run, answer.Text);
+    }
+
+    // The raw path's second form, for code that reads the options it hands the client
+    private static async Task FromOptionsAsync(
+        AgentHost<SupportAgent> support,
+        int settingsId,
+        SupportAgent.Settings run,
+        string answer)
+    {
+        // begin-snippet: raw-path-options
+        var options = await support.WithSettingsId(settingsId).ResolveOptionsAsync(settings: run);
+        using var client = await support.CreateChatClientAsync(options);
+        // end-snippet
+
+        var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "Where is my refund?")], options);
 
         Expect(options.Tools?.Count > 0, "resolved options carry the agent's tools");
         Expect(options.Instructions?.StartsWith("Answer Ada ") is true, "instructions built from the run's services");
-        Expect(response.Text == answer.Text, "the raw path answers like a run");
+        Expect(response.Text == answer, "a client from resolved options answers like a run");
     }
 
     private static void Expect(bool condition, string what)

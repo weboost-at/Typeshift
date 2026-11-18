@@ -662,6 +662,29 @@ public static class TypeshiftHost_4Demo12SupportAgent
             global::Typeshift.Generated.AgentRuns.ResolveOptionsAsync(host, settings, ct);
 
         /// <summary>
+        /// Creates the client of the raw path from the options of a run, as <c>ResolveOptionsAsync</c> resolves them,
+        /// for a library that takes an <c>IChatClient</c>. The client keeps the options: a call without options runs
+        /// with them, and a call with options of its own changes only the conversation id, the response format and the
+        /// tools it adds. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/running-agents#the-raw-path">The raw path</see>.
+        /// </summary>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
+        /// <param name="ct">Cancels the creation.</param>
+        /// <returns>The client; disposing it leaves the provider's client alone.</returns>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// No chat client serves the options, the agent's chat client runs a tool loop of its own, or something the
+        /// options need is not registered: a store for the type of the host's settings id, or an
+        /// <c>IMcpToolProvider</c> for the agent's MCP servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
+        public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.IChatClient> CreateChatClientAsync(
+            global::Demo.SupportAgent.Settings? settings = null,
+            global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.CreateChatClientAsync(host, settings, ct);
+
+        /// <summary>
         /// Loads the agent's own settings, which every run applies, or, on a host from <c>WithSettingsId</c>, the
         /// settings stored under its id. More in the guide:
         /// <see href="https://weboost-at.github.io/Typeshift/guide/settings-and-stores#agent-settings">Agent
@@ -1073,7 +1096,7 @@ namespace System.Runtime.CompilerServices
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 14)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 15)]
 
 namespace Typeshift.Generated;
 

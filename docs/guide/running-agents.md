@@ -159,7 +159,7 @@ internal enum RefundState
     Paid
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L169-L178' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output-type' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L187-L196' title='Snippet source file'>snippet source</a> | <a href='#snippet-structured-output-type' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `T`'s XML docs describe its properties, as they describe the types tools take
@@ -334,19 +334,19 @@ var result = model.Calls[1].Messages
 
 ## The raw path
 
-If your app needs the `IChatClient` itself, for example to hand it to a library that takes one, split a run into
-three steps: resolve the options, create the client, and call the client with those options. Here `run` is the
-`SupportAgent.Settings` from [Run settings](#run-settings):
+If your app needs the `IChatClient` itself, for example to hand it to a library that takes one, create the client of
+a run with `CreateChatClientAsync` and call it as any client. It resolves the run's options as a run does, from the
+stored settings and the run settings you pass. Here `run` is the `SupportAgent.Settings` from
+[Run settings](#run-settings):
 
 <!-- snippet: raw-path -->
 <a id='snippet-raw-path'></a>
 ```cs
-var options = await support.WithSettingsId(settingsId).ResolveOptionsAsync(settings: run);
+using var client = await support.WithSettingsId(settingsId).CreateChatClientAsync(settings: run);
 
-using var client = await support.CreateChatClientAsync(options);
-var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "Where is my refund?")], options);
+var response = await client.GetResponseAsync("Where is my refund?");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L137-L142' title='Snippet source file'>snippet source</a> | <a href='#snippet-raw-path' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L137-L141' title='Snippet source file'>snippet source</a> | <a href='#snippet-raw-path' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The client is the run's whole pipeline, the tool loop and the agent's run options included, and it keeps the
@@ -358,15 +358,27 @@ A library that takes an `IChatClient` calls it without options, or with `ChatOpt
 - A call without options runs with the options the client was created from.
 - A call with options of its own changes only the conversation id, the response format and the tools it adds. The
   agent's instructions, model, provider, run options and tools stay, so put what else changes per run, such as the
-  temperature, into the [run settings](#run-settings) you resolve the options with.
+  temperature, into the [run settings](#run-settings) you create the client with.
 - A call with options resolved for another provider or model throws an `InvalidOperationException`, since the client
   serves the provider and model it was created for. Create a client from those options instead.
+
+When your code needs the options too, to read the tools the agent offers for example, resolve them first and create
+the client from them:
+
+<!-- snippet: raw-path-options -->
+<a id='snippet-raw-path-options'></a>
+```cs
+var options = await support.WithSettingsId(settingsId).ResolveOptionsAsync(settings: run);
+using var client = await support.CreateChatClientAsync(options);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L155-L158' title='Snippet source file'>snippet source</a> | <a href='#snippet-raw-path-options' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
 
 `CreateChatClientAsync` takes only options that `ResolveOptionsAsync` returned, and throws an `ArgumentException` for
 `ChatOptions` your code made.
 
-To run in a conversation, resolve the options on a host with a conversation id, such as
-`support.WithConversationId(chat).ResolveOptionsAsync()`, and every call on the client continues and stores that
+To run in a conversation, create the client on a host with a conversation id, such as
+`support.WithConversationId(chat).CreateChatClientAsync()`, and every call on the client continues and stores that
 conversation. A call's own options may name it by the text of the response's `ConversationId`; naming another
 conversation throws an `ArgumentException`. On a host without one, `ChatOptions.ConversationId` names the
 conversation instead. It is a string, so it names a conversation in your `IConversationStore<string>`, which suits a
@@ -381,34 +393,32 @@ your agent takes part in them. `AsAIAgent` and `ChatClientAgentOptions` come fro
 <!-- snippet: agent-framework -->
 <a id='snippet-agent-framework'></a>
 ```cs
-var options = await support.WithSettingsId(settingsId).ResolveOptionsAsync();
-using var client = await support.CreateChatClientAsync(options);
+using var client = await support.WithSettingsId(settingsId).CreateChatClientAsync();
 
 AIAgent agent = client.AsAIAgent(new ChatClientAgentOptions
 {
     Name = support.Agent.Name,
     Description = support.Agent.Description,
-    ChatOptions = options,
     UseProvidedChatClientAsIs = true
 });
 
 var answer = await agent.RunAsync("Where is my refund?");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentFramework.cs#L18-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-framework' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentFramework.cs#L18-L29' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-framework' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - `UseProvidedChatClientAsIs = true` keeps Agent Framework from wrapping the client in its default decorators, its
   own tool loop among them. The client runs Typeshift's already, with the agent's tools, settings and middleware.
-- The options belong to one settings id, here a customer's, so create the `AIAgent` where you know the customer, such
+- The client belongs to one settings id, here a customer's, so create the `AIAgent` where you know the customer, such
   as in a request. Dispose the client only once you no longer run the agent.
-- Resolve the options on a host with a conversation id, as for the raw path, and every run of the agent continues and
+- Create the client on a host with a conversation id, as for the raw path, and every run of the agent continues and
   stores that conversation. Typeshift keeps the messages, so an `AgentSession` of Agent Framework holds only the
   conversation's id. Without a conversation id, the session keeps the messages and Typeshift stores none.
 - Agent Framework merges the `ChatOptions` of a run's `ChatClientAgentRunOptions` with the agent's into options of
   its own, and with a session names the conversation by the id the last response gave. The client runs such options
   as it runs a library's, over the options it was created from, so the run continues the host's conversation too.
   What changes per run beyond the conversation, the response format and added tools belongs in the
-  [run settings](#run-settings) you resolve the options with.
+  [run settings](#run-settings) you create the client with.
 - A run that waits for your app, for an approval or an answer of the user, returns its decisions among the response's
   messages. `answer.AsChatResponse().Decisions` lists them, and you answer them on the host with the conversation id,
   as [Approval and modes](./tool-approval.md#approving-or-rejecting) shows.

@@ -7,6 +7,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `host.CreateChatClientAsync()`, and the agent's generated `CreateChatClientAsync(settings)`, create the client of the
+  raw path in one call: they resolve the run's options as `ResolveOptionsAsync` does, and the client keeps them, so
+  `using var client = await support.CreateChatClientAsync();` is all a library that takes an `IChatClient` needs.
 - TSH031 reports a project that compiles below C# 14, for example through a `<LangVersion>` pinned in a shared
   `Directory.Build.props`, and declares a toolset or an agent or calls `AddTypeshift()`. The generator writes nothing
   for such a project. It got an error for every generated member, such as CS9260, CS0708 and CS0710, in files it did
@@ -288,7 +291,7 @@ All notable changes to this project are documented here. The format follows
   every record has from `object`, which is CS0108. Settings stored under the tool's name are not affected.
 - The module of an assembly whose name holds other characters than letters, digits and dots carries a hash of the
   name, as `Acme_Tools_1a2b3c4dModule` for `Acme-Tools`. The generated registration names it for you.
-- Module stamps are at version 14, so a referenced project built with an earlier Typeshift is TSH020 until it is
+- Module stamps are at version 15, so a referenced project built with an earlier Typeshift is TSH020 until it is
   rebuilt.
 - The class that holds a toolset's picks for `Include` and `Exclude` lives in the global namespace, as the classes
   of the host members do. It was `{Toolset}ToolList` in the toolset's namespace and is `TypeshiftTools_` followed by
