@@ -3880,4 +3880,27 @@ public static class DiagnosticSources
             }
         }
         """;
+
+    // D55, D68: the docs of a type a tool takes describe its schema only through the docs the compiler writes
+    public const string DescribedParameterType =
+        """
+        using Typeshift;
+
+        /// <summary>
+        /// An order to place.
+        /// </summary>
+        /// <param name="Sku">The article's number, like A-123.</param>
+        internal record Order(string Sku);
+
+        internal partial class OrderToolset : Toolset
+        {
+            public OrderToolset() => AddTool(Place);
+
+            /// <summary>
+            /// Places an order.
+            /// </summary>
+            /// <param name="order">The order to place.</param>
+            public static string Place(Order order) => order.Sku;
+        }
+        """;
 }

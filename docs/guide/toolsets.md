@@ -103,9 +103,9 @@ and `HandoffPrefix`, which the name of each handoff tool starts with.
 
 The description matters more than the name. The model reads it to decide when to call the tool, and reads each
 `<param>` to fill in the arguments. It comes from the method's `<summary>` or from `WithDescription(...)`, and the
-analyzer warns about a tool with neither ([TSH009](./diagnostics.md#tsh009)). The package turns on
-`GenerateDocumentationFile`, which your XML docs need to reach the generator, unless your project turns it off
-([TSH011](./diagnostics.md#tsh011)).
+analyzer warns about a tool with neither ([TSH009](./diagnostics.md#tsh009)). The generator reads a tool's own XML
+docs also where your project turns `GenerateDocumentationFile` off, but the docs of the types a tool takes need it
+on, as the package sets it ([TSH011](./diagnostics.md#tsh011)).
 
 A tool brought over from a Microsoft.Extensions.AI sample keeps its `[Description]` attributes: one on the method
 describes the tool when neither `WithDescription` nor a `<summary>` does, and one on a parameter describes it when

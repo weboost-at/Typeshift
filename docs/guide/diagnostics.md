@@ -389,8 +389,9 @@ Add the parameter to the method, here as `Echo(string text, EchoSettings setting
 
 ## TSH011
 
-**XML docs are not generated.** A tool or an agent takes its description from its `<summary>`, but the compiler reads
-XML docs only with `GenerateDocumentationFile`, which the package turns on, so your project turned it off:
+**XML docs are not generated.** A tool takes a type whose XML docs describe it or its properties, but those docs
+reach the tool's schema only with `GenerateDocumentationFile`, which the package turns on, so your project turned it
+off:
 
 ```xml
 <PropertyGroup>
@@ -398,8 +399,10 @@ XML docs only with `GenerateDocumentationFile`, which the package turns on, so y
 </PropertyGroup>
 ```
 
-Remove that setting. `WithDescription` is a way around it only when a tool's parameters have no `<param>` docs, since
-it replaces only the `<summary>`.
+Remove that setting. Without it, Typeshift reads a tool's own `<summary>` and `<param>` docs and an agent's summary
+all the same, but the docs of the types your tools take are collected only from the XML the compiler writes
+([XML docs of parameter types](./registration.md#xml-docs-of-parameter-types)). The warning names the tool's
+parameter that takes such a type.
 
 ## TSH012
 

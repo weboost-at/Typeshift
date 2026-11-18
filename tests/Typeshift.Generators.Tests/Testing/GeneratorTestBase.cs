@@ -15,6 +15,9 @@ public abstract class GeneratorTestBase
         .WithDocumentationMode(DocumentationMode.Diagnose)
         .WithFeatures([new("InterceptorsNamespaces", "Typeshift.Generated")]);
 
+    private static readonly CSharpParseOptions WithoutDocumentation =
+        ParseOptions.WithDocumentationMode(DocumentationMode.None);
+
     private static readonly ImmutableArray<MetadataReference> FrameworkReferences = CreateFrameworkReferences();
 
     private static readonly ImmutableArray<DiagnosticAnalyzer> Analyzers =
@@ -109,17 +112,20 @@ public abstract class GeneratorTestBase
         return Run(compilation.RemoveAllSyntaxTrees().AddSyntaxTrees(pinned), parseOptions);
     }
 
-    // As a project without GenerateDocumentationFile: the compiler keeps /// comments as plain comments
-    protected GeneratorRun RunWithoutDocumentation(params string[] sources)
+    // As a project without GenerateDocumentationFile: the compiler keeps /// comments as plain comments, one a line,
+    // so each tree is parsed again under the options it is read with
+    protected GeneratorRun RunWithoutDocumentation(params string[] sources) =>
+        Run(CompileWithoutDocumentation(sources), WithoutDocumentation);
+
+    protected static CSharpCompilation CompileWithoutDocumentation(params string[] sources)
     {
-        var parseOptions = ParseOptions.WithDocumentationMode(DocumentationMode.None);
         var compilation = Compile(sources);
 
-        var undocumented = compilation.SyntaxTrees.Aggregate(
+        return compilation.SyntaxTrees.Aggregate(
             compilation,
-            (current, tree) => current.ReplaceSyntaxTree(tree, tree.WithRootAndOptions(tree.GetRoot(), parseOptions)));
-
-        return Run(undocumented, parseOptions);
+            (current, tree) => current.ReplaceSyntaxTree(
+                tree,
+                CSharpSyntaxTree.ParseText(tree.GetText(), WithoutDocumentation, tree.FilePath)));
     }
 
     // An assembly compiled with the generator, referenced from the subject as metadata

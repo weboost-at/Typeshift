@@ -30,14 +30,51 @@ internal sealed class XmlDocs
     // D3: every edit parses every toolset and agent, and the compiler's XML of a comment costs a string and its parse
     // each time, so a comment of the compilation is read where it is written. Both readings give the same text
     public static XmlDocs Read(ISymbol symbol, CancellationToken ct) =>
-        ReadWritten(symbol, ct) ?? ReadCompiled(symbol, ct);
+        ReadWritten(symbol, ct) ?? ReadPlain(symbol, ct) ?? ReadCompiled(symbol, ct);
 
     // The compiler's XML: the docs of a referenced assembly, and every comment whose reading in place could differ
     public static XmlDocs ReadCompiled(ISymbol symbol, CancellationToken ct)
     {
         var xml = symbol.GetDocumentationCommentXml(cancellationToken: ct);
-        if (string.IsNullOrWhiteSpace(xml)) return None;
+        return xml is null || string.IsNullOrWhiteSpace(xml) ? None : Parse(xml);
+    }
 
+    // D68: with GenerateDocumentationFile off the compiler keeps doc comments as plain comments and writes no XML of
+    // them, though they describe tools and agents all the same; their text, without the delimiters, is that XML, and
+    // a cref reads as it is written. A partial class has the comments of each of its declarations, as the compiler's
+    // XML does, so an agent reads the same beside its generated part. Null where the compiler parses the comments
+    public static XmlDocs? ReadPlain(ISymbol symbol, CancellationToken ct)
+    {
+        var declarations = symbol.DeclaringSyntaxReferences.Select(reference => reference.GetSyntax(ct)).ToList();
+
+        if (declarations.Count == 0 || declarations[0].SyntaxTree.Options.DocumentationMode != DocumentationMode.None)
+            return null;
+
+        var lines = declarations
+            .SelectMany(declaration => declaration.GetLeadingTrivia())
+            .Where(IsDocumentation)
+            .SelectMany(GetLines)
+            .ToList();
+
+        return lines.Count == 0 ? None : Parse($"<doc>{string.Join("\n", lines)}</doc>");
+    }
+
+    // A /// line without its slashes, or the lines of a /** */ comment without the stars that start them
+    private static IEnumerable<string> GetLines(SyntaxTrivia trivia)
+    {
+        var text = trivia.ToString();
+
+        return text.StartsWith("/**", StringComparison.Ordinal)
+            ? text.Substring(3, text.Length - 5).Split('\n').Select(line => line.Trim().TrimStart('*'))
+            : text.Split('\n').Select(line => line.Trim()).Where(IsLine).Select(line => line.Substring(3));
+    }
+
+    // As the compiler reads them, //// starts a plain comment
+    private static bool IsLine(string line) =>
+        line.StartsWith("///", StringComparison.Ordinal) && !line.StartsWith("////", StringComparison.Ordinal);
+
+    private static XmlDocs Parse(string xml)
+    {
         try
         {
             // Kept, or the space between two elements, as in <paramref name="a"/> <paramref name="b"/>, is lost
@@ -106,11 +143,17 @@ internal sealed class XmlDocs
             .Where(IsDocumentation)
             .Select(trivia => trivia.ToString()));
 
+    // As the compiler reads them, a /** */ comment is one too, but neither /**/ nor /*** */
     private static bool IsDocumentation(SyntaxTrivia trivia) =>
         trivia.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia)
         || trivia.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia)
         || (trivia.IsKind(SyntaxKind.SingleLineCommentTrivia)
-            && trivia.ToString().StartsWith("///", StringComparison.Ordinal));
+            && trivia.ToString().StartsWith("///", StringComparison.Ordinal))
+        || (trivia.IsKind(SyntaxKind.MultiLineCommentTrivia)
+            && trivia.ToString() is var comment
+            && comment.StartsWith("/**", StringComparison.Ordinal)
+            && !comment.StartsWith("/***", StringComparison.Ordinal)
+            && comment != "/**/");
 
     private static string GetText(XElement element) => Collapse(string.Concat(element.Nodes().Select(GetText)));
 
@@ -132,10 +175,11 @@ internal sealed class XmlDocs
     private static string Collapse(string text) =>
         string.Join(" ", text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 
-    // T:Ns.Type, T:Ns.List`1, M:Ns.Type.Method``1(System.String) and the like read as their last segment
+    // T:Ns.Type, T:Ns.List`1, M:Ns.Type.Method``1(System.String) and the like read as their last segment, and so do
+    // List{T} and Type.Method(string) as a comment the compiler does not parse writes them
     private static string GetShortName(string cref)
     {
-        var name = cref.Split('(', '`')[0];
+        var name = cref.Split('(', '`', '{')[0];
         return name.Substring(name.LastIndexOfAny([':', '.']) + 1);
     }
 

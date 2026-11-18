@@ -77,18 +77,10 @@ internal static class AgentParser
         asks = new AgentAsks(declarations.ServersAsk, declarations.Plans, declarations.ModePick);
         tools = ToolsetParser.ParseTools(agent, constructors, documented, reporter, ct);
 
-        // D14: as a tool's, an agent's summary describes it unless WithDescription says otherwise; without generated
-        // docs it is lost. WithDescription("") describes as little as no call
+        // D14: as a tool's, an agent's summary describes it unless WithDescription says otherwise, with generated docs
+        // or without (D68). WithDescription("") describes as little as no call
         var stated = string.IsNullOrWhiteSpace(declarations.Description) ? null : declarations.Description;
         var description = stated ?? XmlDocs.Read(agent, ct).Summary;
-
-        if (description is null && !documented && XmlDocs.ReadUnparsed(agent, ct).Length > 0)
-        {
-            reporter.Report(
-                Descriptors.DocumentationOff,
-                agent.Locations.FirstOrDefault(),
-                $"The agent '{agent.Name}'");
-        }
 
         var providerId = ReadProviderId(agent, constructors, declarations, reporter);
         var toolNamesClash = ToolsetParser.ClashesWithToolNames(agent, tools.Count, reporter);

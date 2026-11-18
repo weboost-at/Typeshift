@@ -1142,6 +1142,13 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   and fails on an XML file, then builds it with docs of its own choice and expects CS1591.
 - **Where:** `buildTransitive/Typeshift.props`, `buildTransitive/Typeshift.targets`,
   `samples/Typeshift.Samples.PackageConsumer`, `.github/workflows/ci.yml`.
+- **A project that turns docs off:** the compiler keeps doc comments as plain comments then, and writes no XML of
+  them. The parser reads that text as the XML it is (`XmlDocs.ReadPlain`), so a tool's summary and `<param>` docs, an
+  agent's summary and a settings member's summary describe them as with docs on; a cref reads as it is written,
+  since nothing binds it. TSH011 named every tool and agent with docs before, whose descriptions were lost, a project
+  setting the one place a description still hung on. It now names a tool's parameter whose type has docs, which
+  reach the schema only through the XML Weboost.SchemaAnnotations collects (D55). `XmlDocsTests` reads every
+  catalog both ways and finds no difference but the crefs.
 - **Alternatives:** the tutorial's `Directory.Build.props`, a step of ceremony; docs on without hiding CS1591, which
   fails every build that treats warnings as errors; the `NoWarn` in the props, which hid CS1591 in every project
   that turned docs on in its project file; a test for an empty property in the targets, where the SDK has already

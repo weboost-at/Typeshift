@@ -192,6 +192,10 @@ All notable changes to this project are documented here. The format follows
   `runtime.CreateHost(typeof(SupportAgent))` create the host of an agent your code does not name, as an
   `IAgentHost`, and a request resolves the same host as a service keyed by the agent's kind. An endpoint for several
   agents needed a switch with one arm per agent before, and `WithDisplayName` named a toolset that nothing listed.
+- A project that turns `GenerateDocumentationFile` off keeps the descriptions of its tools, their parameters and its
+  agents: the generator reads the `///` comments the compiler keeps as plain comments then. They were lost, and
+  TSH011 named each such tool and agent. TSH011 now names a tool's parameter whose type has XML docs, which reach
+  the schema only with the setting on.
 
 ### Changed
 

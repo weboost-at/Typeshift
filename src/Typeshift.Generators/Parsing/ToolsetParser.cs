@@ -269,12 +269,7 @@ internal static class ToolsetParser
         var stated = string.IsNullOrWhiteSpace(chain.Description) ? null : chain.Description;
         var description = stated ?? docs.Summary ?? GetDescription(method);
 
-        // Without generated docs a summary is lost unless WithDescription replaces it, a <param> always is
-        var unread = documented ? "" : XmlDocs.ReadUnparsed(method, ct);
-
-        if (unread.Contains("<param ") || (stated is null && unread.Length > 0))
-            reporter.Report(Descriptors.DocumentationOff, addTool.Syntax, $"The tool '{name}'");
-        else if (description is null)
+        if (description is null)
             reporter.Report(
                 Descriptors.MissingDescription,
                 chain.DescriptionCall?.Arguments[0].Syntax ?? addTool.Syntax,
@@ -311,6 +306,16 @@ internal static class ToolsetParser
 
             if (parsed.Kind == ParameterKind.Argument && GetMisfilledReason(parameter, ownerSettings) is { } misfilled)
                 reporter.Report(Descriptors.ModelFilledParameter, declared, parameter.Name, name, misfilled);
+
+            // D55, D68: the parser reads a tool's own docs without generated docs, but the docs of the types it takes
+            // reach its schema only through the docs the compiler writes
+            if (parsed.Kind == ParameterKind.Argument && !documented && HasPlainDocs(parameter.Type, ct))
+            {
+                reporter.Report(
+                    Descriptors.DocumentationOff,
+                    declared,
+                    $"The parameter '{parameter.Name}' of the tool '{name}'");
+            }
         }
 
         if (GetUnreturnedReason(method.ReturnType) is { } unreturned)
@@ -674,6 +679,25 @@ internal static class ToolsetParser
             Description: docs.Parameters.TryGetValue(parameter.Name, out var description)
                 ? description
                 : GetDescription(parameter));
+    }
+
+    // A type of this compilation whose own docs or whose properties' docs are written, as /// lines the compiler keeps
+    // as plain comments; the docs of a list's or a dictionary's items describe them as well
+    private static bool HasPlainDocs(ITypeSymbol type, CancellationToken ct) =>
+        Unwrap(type) switch
+        {
+            IArrayTypeSymbol array => HasPlainDocs(array.ElementType, ct),
+            INamedTypeSymbol named => IsDocumented(named.OriginalDefinition, ct)
+                || named.TypeArguments.Any(argument => HasPlainDocs(argument, ct)),
+            _ => false
+        };
+
+    private static bool IsDocumented(INamedTypeSymbol type, CancellationToken ct)
+    {
+        ISymbol[] described = [type, .. type.GetMembers().OfType<IPropertySymbol>()];
+
+        return type.Locations.Any(location => location.IsInSource)
+            && described.Any(symbol => XmlDocs.ReadUnparsed(symbol, ct).Length > 0);
     }
 
     // D14: the [Description] of Microsoft.Extensions.AI's samples, where the XML docs say nothing; a blank one says

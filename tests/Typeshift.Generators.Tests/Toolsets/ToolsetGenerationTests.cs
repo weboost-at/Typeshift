@@ -485,6 +485,16 @@ public class ToolsetGenerationTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_Xml_Docs_Turned_Off_A_Tools_Summary_Is_Still_Its_Description()
+    {
+        // Act
+        var run = RunWithoutDocumentation(DiagnosticSources.SummaryOnly);
+
+        // Assert
+        run.Source("EchoToolset.g.cs").Should().Contain("public override string Description => \"Echoes the text.\";");
+    }
+
+    [Fact]
     public void Given_A_Toolset_Its_Tool_Names_Are_Constants()
     {
         // Act

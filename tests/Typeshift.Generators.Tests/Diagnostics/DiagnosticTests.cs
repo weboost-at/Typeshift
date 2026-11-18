@@ -582,28 +582,38 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
-    public void Given_A_Summary_Without_Generated_Docs_TSH011_Is_Reported_As_A_Warning()
+    public void Given_Xml_Docs_Turned_Off_A_Described_Parameter_Type_TSH011_Is_Reported_On_The_Parameter()
     {
         // Act
-        var run = RunWithoutDocumentation(DiagnosticSources.SummaryOnly);
+        var run = RunWithoutDocumentation(DiagnosticSources.DescribedParameterType);
 
         // Assert
         run.Assert.Reports(
             "TSH011",
             DiagnosticSeverity.Warning,
-            "AddTool(Echo)",
-            message: "The tool 'echo' takes its descriptions from XML docs, which the compiler reads only with "
-                + "GenerateDocumentationFile");
+            "order",
+            message: "The parameter 'order' of the tool 'place' takes its descriptions from XML docs, which the "
+                + "compiler reads only with GenerateDocumentationFile");
     }
 
     [Fact]
-    public void Given_An_Agents_Summary_Without_Generated_Docs_TSH011_Is_Reported_On_The_Agent()
+    public void Given_Xml_Docs_Turned_Off_A_Tool_With_Its_Own_Docs_TSH011_Is_Not_Reported()
+    {
+        // Act
+        var run = RunWithoutDocumentation(DiagnosticSources.SummaryOnly);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH011");
+    }
+
+    [Fact]
+    public void Given_Xml_Docs_Turned_Off_An_Agent_With_A_Summary_TSH011_Is_Not_Reported()
     {
         // Act
         var run = RunWithoutDocumentation(DiagnosticSources.AgentSummaryOnly);
 
         // Assert
-        run.Assert.Reports("TSH011", DiagnosticSeverity.Warning, "HelpAgent");
+        run.Assert.DoesNotReport("TSH011");
     }
 
     [Fact]

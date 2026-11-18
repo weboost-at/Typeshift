@@ -12,7 +12,7 @@ for the types your tools take and return, and the analyzer reports each tool typ
 ## The project
 
 To publish your app with Native AOT, set `PublishAot` in its project. XML docs stay on, as the package turns them on,
-so tools keep their descriptions ([TSH011](./diagnostics.md#tsh011)):
+so the types your tools take keep their descriptions ([TSH011](./diagnostics.md#tsh011)):
 
 <!-- snippet: aot-project -->
 <a id='snippet-aot-project'></a>
