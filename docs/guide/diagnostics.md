@@ -1300,6 +1300,8 @@ Each row links the section that explains it. A word in braces stands for a value
 | `InvalidOperationException` | `A conversation's history needs a conversation` | `LoadConversationAsync` on a host without a conversation id | Load it on a host from `WithConversationId(id)` ([What is stored](./conversations.md#what-is-stored)) |
 | `InvalidOperationException` | `The run stored no conversation` | `GetConversationId<TId>()` on the response of a run that had no conversation | Give the host a conversation id, or keep every conversation ([Keeping every conversation](./conversations.md#keeping-every-conversation)) |
 | `ArgumentException` | `Steering input is a user message without approval contents` | Steering input of another role, or with Microsoft.Extensions.AI's approval contents | Steer with a user message, and answer decisions by their ids ([Steering](./conversations.md#steering)) |
+| `ConversationBusyException` | `holds as much steering input as it takes before its next model call` | The run going on holds 32 steering inputs, or 262,144 characters of their text, that its model has not received yet | Answer that the chat is busy, and steer again once the model took them ([Steering](./conversations.md#steering)) |
+| `ArgumentException` | `Steering input carries the mark of a background sub-agent's answer` | The message your app steers carries the mark a run gives a background sub-agent's answer, which run middleware lets pass unseen | Steer the user's message without it ([Steering](./conversations.md#steering)) |
 
 ### Decisions
 
