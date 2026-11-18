@@ -9,7 +9,7 @@ using Typeshift.Samples.Hosting;
 
 namespace Typeshift.Samples.Scenarios;
 
-internal static class Models
+internal static partial class Models
 {
     public static void ShowKeyedChatClients(IServiceCollection services, IChatClient openAi, IChatClient anthropic)
     {

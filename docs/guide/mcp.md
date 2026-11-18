@@ -141,9 +141,9 @@ carries no `ReadOnly()` mark, so plan mode hides it.
 ::: warning Only some clients send a hosted server
 The `IChatClient` that serves the run has to send the server to the provider, and only a client of an API that
 connects MCP servers itself does. With Microsoft.Extensions.AI.OpenAI 10.10.0 and Anthropic 12.55.0, two clients
-send it: OpenAI's Responses client, shown below, and Anthropic's beta client, `client.Beta.AsIChatClient(model)`.
-OpenAI's Chat Completions client, `GetChatClient(model).AsIChatClient()`, and Anthropic's default
-`client.AsIChatClient(model)` drop the tool without an error, so the model never sees the server's tools.
+send it: OpenAI's Responses client and Anthropic's beta client, both shown below. OpenAI's Chat Completions client,
+`GetChatClient(model).AsIChatClient()`, and Anthropic's default `client.AsIChatClient(model)` drop the tool without
+an error, so the model never sees the server's tools.
 :::
 
 <!-- snippet: openai-responses-client -->
@@ -160,6 +160,19 @@ var client = new OpenAIClient(apiKey)
 
 With Microsoft.Extensions.AI.OpenAI 10.10.0, the Responses client is still marked experimental: `GetResponsesClient()`
 and its `AsIChatClient(model)` fail the build with OPENAI001 until you suppress it, as the two `#pragma` lines do.
+
+Anthropic's beta client comes from the same `AnthropicClient` as its default one
+([A real client](./models.md#a-real-client)):
+
+<!-- snippet: anthropic-beta-client -->
+<a id='snippet-anthropic-beta-client'></a>
+```cs
+var client = new AnthropicClient { ApiKey = apiKey }
+    .Beta
+    .AsIChatClient("claude-sonnet-5-5");
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.Anthropic.cs#L22-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-anthropic-beta-client' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
 
 ## Related
 

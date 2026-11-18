@@ -85,6 +85,11 @@ internal static class ShownRegistrations
             Expect(Model(openAi, "openai") == "gpt-5-mini", "OpenAI's client under the key openai");
         }
 
+        await using (var anthropic = Build(services => Models.ShowAnthropicClient(services, Key)))
+        {
+            Expect(Model(anthropic, "anthropic") == "claude-sonnet-5-5", "Anthropic's client under the key anthropic");
+        }
+
         await using (var local = Build(Models.ShowLocalClient))
         {
             var metadata = local.GetRequiredKeyedService<IChatClient>("local").GetService<ChatClientMetadata>();
@@ -144,6 +149,9 @@ internal static class ShownRegistrations
 
         using var responses = Models.ShowOpenAiResponsesClient(Key);
         Expect(responses.GetService<ChatClientMetadata>()?.DefaultModelId == "gpt-5-mini", "a Responses client");
+
+        using var beta = Models.ShowAnthropicBetaClient(Key);
+        Expect(beta.GetService<ChatClientMetadata>()?.DefaultModelId == "claude-sonnet-5-5", "Anthropic's beta client");
     }
 
     // A client per run, with the customer's key, for the one provider the app serves that way

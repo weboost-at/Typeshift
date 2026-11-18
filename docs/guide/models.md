@@ -78,8 +78,21 @@ the backend of the client that answered it ([Spans](./observability.md#spans)).
 
 ## A real client
 
-Each provider's client library has an adapter to `IChatClient` for Microsoft.Extensions.AI. For OpenAI, add the
-`Microsoft.Extensions.AI.OpenAI` package:
+Each provider's client library has an adapter to `IChatClient` for Microsoft.Extensions.AI. Add your provider's
+package and register one client for the provider, as the snippets below the table show for the first three:
+
+| Provider | Package | The client |
+|---|---|---|
+| OpenAI | [`Microsoft.Extensions.AI.OpenAI`](https://www.nuget.org/packages/Microsoft.Extensions.AI.OpenAI) | `OpenAIClient` |
+| Anthropic | [`Anthropic`](https://www.nuget.org/packages/Anthropic) | `AnthropicClient` |
+| Ollama, LM Studio | `Microsoft.Extensions.AI.OpenAI` | `OpenAIClient`, at the server's endpoint |
+| Azure OpenAI | [`Azure.AI.OpenAI`](https://www.nuget.org/packages/Azure.AI.OpenAI), with `Microsoft.Extensions.AI.OpenAI` | `AzureOpenAIClient`, at your resource's endpoint and adapted as `OpenAIClient` is ([Microsoft's quickstart](https://learn.microsoft.com/dotnet/ai/quickstarts/build-chat-app?pivots=azure-openai)) |
+
+An agent that offers an MCP server the model provider connects needs a client that sends the server to the provider,
+and the default clients of OpenAI's and Anthropic's packages drop it
+([Servers the model provider connects](./mcp.md#servers-the-model-provider-connects)).
+
+For OpenAI, add the `Microsoft.Extensions.AI.OpenAI` package:
 
 ```bash
 dotnet add package Microsoft.Extensions.AI.OpenAI
@@ -103,9 +116,31 @@ services.AddKeyedChatClient("openai", openAi);
   your agents name. The model you pass to `GetChatClient` answers only a run that names no model.
 - `OpenAIClient` is in the `OpenAI` namespace. Read the API key from your app's configuration, never from code.
 
-A local server with an OpenAI-compatible API, such as LM Studio or Ollama, works with the same package. Point the
-client at its endpoint, and name its models in `WithModel`, here as `WithModel("local", "qwen3-8b")`.
-`ApiKeyCredential` is in the `System.ClientModel` namespace:
+For Anthropic, add the `Anthropic` package, which brings its own adapter:
+
+```bash
+dotnet add package Anthropic
+```
+
+<!-- snippet: anthropic-client -->
+<a id='snippet-anthropic-client'></a>
+```cs
+var anthropic = new AnthropicClient { ApiKey = apiKey }
+    .AsIChatClient("claude-sonnet-5-5");
+
+services.AddKeyedChatClient("anthropic", anthropic);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.Anthropic.cs#L12-L17' title='Snippet source file'>snippet source</a> | <a href='#snippet-anthropic-client' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+`AnthropicClient` is in the `Anthropic` namespace, and `AsIChatClient` in `Microsoft.Extensions.AI`. As with
+OpenAI's client, the run's model goes out in every request, and the model you pass to `AsIChatClient` answers only a
+run that names none.
+
+A local server with an OpenAI-compatible API, such as LM Studio or Ollama, works with the OpenAI package. Point the
+client at its endpoint, `http://localhost:1234/v1` for LM Studio or `http://localhost:11434/v1` for Ollama, and name
+its models in `WithModel`, here as `WithModel("local", "qwen3-8b")`. `ApiKeyCredential` is in the
+`System.ClientModel` namespace:
 
 <!-- snippet: local-chat-client -->
 <a id='snippet-local-chat-client'></a>
@@ -124,11 +159,10 @@ services.AddKeyedChatClient("local", local);
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Models.cs#L42-L53' title='Snippet source file'>snippet source</a> | <a href='#snippet-local-chat-client' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-For other providers, such as Anthropic or Azure OpenAI, register the `IChatClient` of their own package.
-[Microsoft.Extensions.AI](https://learn.microsoft.com/dotnet/ai/microsoft-extensions-ai) lists them. A fake client for
-tests reads the same requests: the model in `ChatOptions.ModelId`, the agent's instructions in
-`ChatOptions.Instructions` and the run's tools in `ChatOptions.Tools`. It calls a tool by answering with a
-`FunctionCallContent`, and Typeshift runs the call.
+Another provider works the same way, through the `IChatClient` its package offers. A fake client for tests reads the
+same requests: the model in `ChatOptions.ModelId`, the agent's instructions in `ChatOptions.Instructions` and the
+run's tools in `ChatOptions.Tools`. It calls a tool by answering with a `FunctionCallContent`, and Typeshift runs the
+call.
 
 ## Providers from configuration
 
