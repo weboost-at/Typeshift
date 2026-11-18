@@ -11,6 +11,7 @@ on:
       - '!*.md'
       - 'docs/contributing/decisions.md'
       - 'docs/guide/diagnostics.md'
+      - 'docs/guide/observability.md'
       - 'docs/public/brand/icon-128.png'
   pull_request:
     paths: *code
