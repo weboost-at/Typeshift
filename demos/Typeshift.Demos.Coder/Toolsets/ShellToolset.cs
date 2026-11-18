@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift.Demos.Coder.Toolsets;
 
@@ -79,8 +80,7 @@ internal partial class ShellToolset : Toolset
         return result;
     }
 
-    private static TimeProvider Time(IServiceProvider services) =>
-        services.GetService(typeof(TimeProvider)) as TimeProvider ?? TimeProvider.System;
+    private static TimeProvider Time(IServiceProvider services) => services.GetRequiredService<TimeProvider>();
 
     // The stream's start and end, within the limit, read to its end so the process never blocks on a full pipe
     private static async Task<string> Capture(StreamReader stream, int limit, CancellationToken stop)
