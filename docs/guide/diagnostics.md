@@ -1,13 +1,14 @@
 ---
 title: Diagnostics
-description: Every TSHnnn error and warning the Typeshift analyzer reports, what causes it and how to fix it.
+description: Every TSHnnn error and warning the Typeshift analyzer reports, and each exception your app can meet at run time, with what causes it and how to fix it.
 ---
 
 # Diagnostics
 
 The analyzer reports these errors and warnings. Most show while you type, and those that compare several classes or
 projects show when you build, as the table says for each. Each one points at a mistake in your code or your build,
-so you fix it there instead of debugging a compiler error inside generated code.
+so you fix it there instead of debugging a compiler error inside generated code. A mistake that shows only when your
+app runs throws an exception instead, and [Errors at run time](#errors-at-run-time) lists those by their messages.
 
 | ID | Severity | Title | Reported |
 |---|---|---|---|
@@ -1226,6 +1227,130 @@ internal sealed class TicketFollowUp(TypeshiftRuntime runtime)
 Take the copy without `using`, and dispose the host where its work ends. The analyzer reports nothing for
 `await using var chat = runtime.CreateHost<SupportAgent>().WithConversationId(ticket);`, whose host nothing else holds,
 nor for a copy disposed in the block that declares its host, where both end together.
+
+## Errors at run time
+
+Some mistakes show only when your app runs, such as a provider no client is registered for, or a store that is
+missing. Typeshift then throws an exception whose message names the cause and the way out. The tables below list
+each one by the words its message always holds, so a search of these docs for the text in your log finds its row.
+Each row links the section that explains it, and a word in braces, such as `{agent}`, stands for what the message
+fills in.
+
+### Registration and hosts
+
+| Exception | Message | Cause | What to do |
+|---|---|---|---|
+| `InvalidOperationException` | `AddTypeshift() was not intercepted by the Typeshift generator` | The calling project does not reference the package, or calls it in a form the generator cannot rewrite | Reference the package there and call `services.AddTypeshift()` ([What `AddTypeshift()` registers](./registration.md#what-addtypeshift-registers), [TSH040](#tsh040)) |
+| `InvalidOperationException` | `TypeshiftRuntime.Create() was not intercepted by the Typeshift generator` | The same, for the runtime of an app without a container | Call `TypeshiftRuntime.Create(client)` in a project that references the package ([The runtime](./registration.md#the-runtime)) |
+| `InvalidOperationException` | `The agent '{agent}' is not registered.` | Only a library your app references calls `AddTypeshift()`, or the generator left the agent out | Call `AddTypeshift()` in your app too ([What `AddTypeshift()` registers](./registration.md#what-addtypeshift-registers)) |
+| `InvalidOperationException` | `was not compiled with the Typeshift generator` | The agent got no generated code, because it is not `partial`, names its base through an alias, or its project lacks the package | Fix what the analyzer reports for it ([TSH001](#tsh001), [TSH017](#tsh017)) |
+| `InvalidOperationException` | `AgentHost<{agent}> was resolved from the root provider` | Your app resolved the host from `app.Services`, or injected it into a singleton | Resolve it from a scope, or inject `TypeshiftRuntime` and call `CreateHost<TAgent>()` ([Run from a console app](./using-an-agent.md#run-from-a-console-app)) |
+
+### Chat clients
+
+| Exception | Message | Cause | What to do |
+|---|---|---|---|
+| `InvalidOperationException` | `which names no provider, and no default client is registered` | The run names no provider, and your app registered no default client | Register one with `services.AddChatClient(client)`, or name a provider ([Registering clients](./models.md#registering-clients)) |
+| `InvalidOperationException` | `No chat client serves {run} on`, `Name a provider that has a client` | The run names a provider that no client is registered under, such as a typo. The message lists the keys your app registered clients under | Name a registered provider, or register a client under it ([Registering clients](./models.md#registering-clients)) |
+| `InvalidOperationException` | `which names no model: the` | Your provider class serves the run's provider, and the run names no model | Name the model, in the agent's code or its settings ([Your own provider](./models.md#your-own-provider)) |
+| `InvalidOperationException` | `returned no client for` | Your `IChatClientProvider<T>` returned null | Return a client, or throw for a provider it does not serve ([A key per customer](./models.md#a-key-per-customer)) |
+| `InvalidOperationException` | `runs a tool loop of its own` | The client is wrapped in `UseFunctionInvocation()` | Register the client without it ([Wrapping a client](./models.md#wrapping-a-client)) |
+| `InvalidOperationException` | `is no chat client provider: implement` | `WithChatClientProvider<T>()` got a class that implements no `IChatClientProvider<T>` | Implement it ([TSH030](#tsh030)) |
+
+### Stores
+
+| Exception | Message | Cause | What to do |
+|---|---|---|---|
+| `InvalidOperationException` | `are both registered as`, `and a store interface has one store` | Two calls of the chain register a store for one interface | Remove one, or pass `replace: true` to the store that takes over, as a test host's does ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call)) |
+| `InvalidOperationException` | `but a store is one instance for every run` | A store is registered with `AddScoped` or `AddTransient` | Register it with `WithStore<T>()` or `AddSingleton`, with a factory for what it needs per call ([Plan for one instance](./implementing-a-store.md#plan-for-one-instance)) |
+| `InvalidOperationException` | `No ISettingsStore<{id}> is registered for a settings id of that type` | Your app registered stores, and none keeps settings under ids of that type | Register one, or pass an id of your store's type ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call)) |
+| `InvalidOperationException` | `No IConversationStore<{id}> is registered for a conversation id of that type` | The same for conversations, those `PersistAllConversations` starts under a `Guid` included | Register one, or give ids of your store's type, with `NewConversationIds` for the conversations Typeshift starts ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call)) |
+| `InvalidOperationException` | `No IDecisionStore<{id}> is registered for a conversation id of that type` | A conversation has a decision, an approval or a mode to keep, and none of your stores keeps decisions | Implement `IDecisionStore<TId>` beside your conversation store ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call), [TSH036](#tsh036)) |
+| `InvalidOperationException` | `No IAgentSettingsStore is registered, so nothing keeps an agent's own settings` | A host without a settings id loads or saves settings, and none of your stores keeps agents' own | Call `WithFileStore()`, or implement `IAgentSettingsStore` ([Which store serves a call](./implementing-a-store.md#which-store-serves-a-call)) |
+| `InvalidOperationException` | `is no store: implement` | `WithStore` got a type that implements no store interface | Implement one ([TSH028](#tsh028)) |
+| `StoreConflictException` | `was saved since version`, or your store's own | Another save of the document came first since your code loaded it, for `UpdateSettingsAsync` ten times in a row | Load the document again and repeat the change ([A settings form](./settings-and-stores.md#a-settings-form-load-save-and-conflicts)) |
+| `JsonException` | `is newer than this code's` | Stored settings were written by newer code of the agent, such as before a rollback | Deploy the newer code, or migrate the documents ([Migrate older settings](./implementing-a-store.md#migrate-older-settings)) |
+| `JsonException` | `the type the agent names its providers by` | A stored `provider` or `summaryProvider` is no value of the agent's provider id type, such as an enum member you renamed | Change the stored value ([The stored JSON](./settings-and-stores.md#the-stored-json)) |
+| `JsonException` | `Stored data must be a JSON object` | A stored settings document is not the JSON Typeshift wrote | Store the JSON as Typeshift wrote it ([The stored JSON](./settings-and-stores.md#the-stored-json)) |
+| `TimeoutException` | `has been held by another save or program for` | The file store waited 30 seconds for the lock file of a settings file | Find the program that holds the `.lock` file ([Keep them in a file](./settings-and-stores.md#keep-them-in-a-file)) |
+| `InvalidDataException` | `the file system ignores case` | Two agents' kinds differ only in case, and their settings share a file | Give one of them a `WithStorageKind` of its own ([Keep them in a file](./settings-and-stores.md#keep-them-in-a-file)) |
+| `InvalidDataException` | `is no settings file: it holds`, `is no JSON: it holds` | A file in the store's `settings` folder has another shape than the store writes | Fix the file, or move it away ([Keep them in a file](./settings-and-stores.md#keep-them-in-a-file)) |
+| `ArgumentException` | `makes a file name too long` | An agent's kind is too long for a file name | Give the agent a shorter `WithStorageKind` ([Keep them in a file](./settings-and-stores.md#keep-them-in-a-file)) |
+
+### Settings
+
+| Exception | Message | Cause | What to do |
+|---|---|---|---|
+| `ArgumentException` | `No run could go with them, so nothing was saved` | The saved settings set a value no run takes, such as a blank model or `MaxToolIterations = 0` | Set a value in range, or null for the layer below ([What a save refuses](./settings-and-stores.md#what-a-save-refuses)) |
+| `InvalidOperationException` | `resolved {option} {value} from the settings of` | Two layers together resolve a value no run takes, such as a stored `TargetInputTokens` above the code's `MaxInputTokens` | Change one of the layers the message names ([What a save refuses](./settings-and-stores.md#what-a-save-refuses)) |
+| `ArgumentOutOfRangeException` | `{option} must {rule}.`, such as `be 1 or more` | An agent's constructor sets a run option no run takes, such as `WithMaxToolIterations(0)` | Pass a value in the option's range ([RunOptionsBuilder](./builders.md#runoptionsbuilder)) |
+| `InvalidOperationException` | `returned no settings, so nothing was saved` | The function passed to `UpdateSettingsAsync` returned null | Return the settings it was given, changed or not ([Settings under an id](./settings-and-stores.md#settings-under-an-id-such-as-per-customer)) |
+| `InvalidOperationException` | `holds a null {item}, which settings cannot store` | A list or a dictionary of the saved settings holds a null | Leave the null out ([Storable types](./tool-settings.md#storable-types)) |
+| `JsonException` | `'{member}' is no settings member`, `holds {value}, which is no`, `is null, which an item of settings cannot be` | The JSON of a request has a member the settings lack, a value of another type or a null item, so ASP.NET answers 400 | Send camelCase names and values of each member's type ([The stored JSON](./settings-and-stores.md#the-stored-json)) |
+
+### Conversations
+
+| Exception | Message | Cause | What to do |
+|---|---|---|---|
+| `ConversationBusyException` | `A run of conversation {id} is going on in this container`, `a conversation has one run at a time` | A run of the conversation is going on in this container | Steer it with `ConversationTracker.TrySteer`, or start again once it has ended ([One run at a time](./conversations.md#one-run-at-a-time)) |
+| `ConversationBusyException` | `The store refused a step of this run of conversation` | A run in another container, such as another instance of your app, appended to the conversation first | Start the run again once the other one has ended ([One run at a time](./conversations.md#one-run-at-a-time)) |
+| `NothingToResumeException` | `has no interrupted run to resume and no answered decisions to carry out` | The conversation's last run ended, and no answered decision waits | Run it with input instead ([Resuming](./conversations.md#resuming)) |
+| `ConversationStoreException` | `is missing a step of this run, since the store failed to append it` | The store failed to append a step of the run, which answered all the same: the answer is in `Response` | Find why the store failed, or set `StoreFailure` to `ContinueRun` to get the answer back ([When the store fails](./conversations.md#when-the-store-fails)) |
+| `InvalidOperationException` | `A resume needs a conversation` | `ResumeAsync` on a host without a conversation id | Resume on a host from `WithConversationId(id)` ([Resuming](./conversations.md#resuming)) |
+| `InvalidOperationException` | `A conversation's history needs a conversation` | `LoadConversationAsync` on a host without a conversation id | Load it on a host from `WithConversationId(id)` ([What is stored](./conversations.md#what-is-stored)) |
+| `InvalidOperationException` | `The run stored no conversation` | `GetConversationId<TId>()` on the response of a run that had no conversation | Give the host a conversation id, or keep every conversation ([Keeping every conversation](./conversations.md#keeping-every-conversation)) |
+| `ArgumentException` | `Steering input is a user message without approval contents` | Steering input of another role, or with Microsoft.Extensions.AI's approval contents | Steer with a user message, and answer decisions by their ids ([Steering](./conversations.md#steering)) |
+
+### Decisions
+
+| Exception | Message | Cause | What to do |
+|---|---|---|---|
+| `DecisionUnavailableException` | `whose calls need a decision of your app, and a run without a conversation has nowhere to keep one` | The agent offers a tool that requires approval, or runs in plan mode, and the run has no conversation | Run with a conversation id, keep every conversation, or decide the calls with a rule or auto mode ([When a call needs approval](./tool-approval.md#when-a-call-needs-approval)) |
+| `DecisionUnavailableException` | `which need a decision of your app, and a run without a conversation cannot ask for one` | With approval rules registered, the model called a tool that no rule decided | The same ([When a call needs approval](./tool-approval.md#when-a-call-needs-approval)) |
+| `DecisionClosedException` | `has no open decision for the answers to` | An answer names a decision that was answered, withdrawn, passed by or never asked, so nothing is recorded | Load the open decisions again and show those ([When a decision closes](./tool-approval.md#when-a-decision-closes)) |
+| `InvalidOperationException` | `Decisions belong to a conversation` | A member for decisions on a host without a conversation id | Call it on a host from `WithConversationId(id)` ([Approving or rejecting](./tool-approval.md#approving-or-rejecting)) |
+| `InvalidOperationException` | `waits for decisions another run asked meanwhile` | Runs of the conversation in two containers asked at the same time | Run a conversation in one container at a time ([One run at a time](./conversations.md#one-run-at-a-time)) |
+| `ArgumentException` | `No answer to record`, `is answered twice in one call` | An empty list of answers, or two answers to one decision | Pass one answer for each decision ([Approving or rejecting](./tool-approval.md#approving-or-rejecting)) |
+| `ArgumentException` | `answers questions, and the decision asks none`, `approves, and the decision is a question`, `and the decision is a tool call`, `and the decision is a plan`, `approves a plan into plan mode` | An answer of another kind than its decision, such as a mode for a tool call | Answer as the decision asks ([When a decision closes](./tool-approval.md#when-a-decision-closes)) |
+| `ArgumentException` | `The input carries an approval request or answer of Microsoft.Extensions.AI` | A run's input carries Microsoft.Extensions.AI's approval contents | Answer the decisions by their ids with `AnswerAsync` ([When a decision closes](./tool-approval.md#when-a-decision-closes)) |
+| `ArgumentException` | `answers for {count} questions`, `which the question '{header}' does not offer`, `options of the question '{header}', which takes one`, `leaves the question '{header}' unanswered` | An answer that does not fit its questions | Answer each question once, in their order, with one of its options or a text ([Asking the user](./tool-approval.md#asking-the-user)) |
+| `ArgumentOutOfRangeException` | `An approved plan continues in the default or the auto mode.` | A plan approved into plan mode | Approve it into `AgentMode.Default` or `AgentMode.Auto` ([Plan mode](./tool-approval.md#plan-mode)) |
+| `JsonException` | `is no kind of decision` | The JSON of an answer names a kind no decision has | Send the kind of the decision you answer ([Answer a decision](./chat-endpoint.md#answer-a-decision)) |
+
+### Tools and middleware
+
+| Exception | Message | Cause | What to do |
+|---|---|---|---|
+| The tool's own | Its message | The tool calls of `MaxConsecutiveToolErrors` rounds in a row failed, so the last failure ends the run | Fix the tool, or throw a `ToolException` the model can act on ([When a tool fails](./toolsets.md#when-a-tool-fails)) |
+| `ToolException` | `requires the argument`, `does not fit its schema` | The model left out an argument or sent one of another shape. It reads the message and can correct its call | Nothing, unless the calls keep failing ([Arguments that do not fit](./toolsets.md#arguments-that-do-not-fit)) |
+| `ToolException` | `did not answer in the JSON schema it was given` | A sub-agent of `WithResult<T>()` answered without that JSON, and the calling model reads why | Describe the answer in the sub-agent's instructions ([Typed answers](./multi-agent.md#typed-answers)) |
+| `JsonException` | `fits no single case of` | The JSON of a union's argument fits several of its cases, and the model reads which | Give the union a classifier with `[JsonUnion]` ([Union types](./toolsets.md#union-types)) |
+| `NotSupportedException` | `of the tool '{tool}' has no schema`, `The model's schema cannot hold` | A tool parameter, or the `T` of a typed run, has a member System.Text.Json cannot read or write | Leave the member out, or mark it `[JsonIgnore]` ([Structured output](./running-agents.md#structured-output)) |
+| `JsonException` | `The answer is no JSON object holding a data property`, `The answer holds no data property` | The model of a typed run answered without the `data` property that a `T` other than an object is asked under | Run it again, or ask for a record ([Structured output](./running-agents.md#structured-output)) |
+| `InvalidOperationException` | `uses MCP servers, and no IMcpToolProvider is registered` | The agent uses an MCP server, and your app registered no provider | Call `WithMcpToolProvider<T>()` ([Registering the provider](./mcp.md#registering-the-provider)) |
+| `InvalidOperationException` | `which the agent '{agent}' already offers` | An MCP server offers a tool named like one of the agent's | Rename one of them, or leave the server out ([How the agent offers the tools](./mcp.md#how-the-agent-offers-the-tools)) |
+| `InvalidOperationException` | `and the name is reserved for` | A tool of a server, of a context provider or of `WithTools` has a name the run offers itself, such as `ask_user` | Rename the tool ([TSH035](#tsh035)) |
+| `InvalidOperationException` | `offers the tool '{tool}' twice, through` | Two sources offer a tool of one name, such as a context tool named like one of the agent's | Rename one of them ([Context tools](./middleware.md#context-tools)) |
+| `InvalidOperationException` | `A run middleware returned without calling next or setting the run's response` | A run middleware neither called `next` nor answered | Call `next`, or set `run.Response` in its place ([Answering in place of the model](./middleware.md#answering-in-place-of-the-model)) |
+| `InvalidOperationException` | `The run's response was set after next was called, or outside run middleware` | A run middleware set `run.Response` after the model answered | Wrap the provider's client to change what a model says ([Guarding the answer](./middleware.md#guarding-the-answer)) |
+| `InvalidOperationException` | `does not belong to a run of an agent` | A tool middleware read `call.Run` of a call no run made, such as one of a tool loop of your own | Read it only in the calls of a run ([Wrap every tool call](./middleware.md#wrap-every-tool-call)) |
+
+### Streams and the raw path
+
+| Exception | Message | Cause | What to do |
+|---|---|---|---|
+| `InvalidOperationException` | `A streaming run streams its updates once; start a new run instead.` | A second `await foreach` over one streaming run | Start a new run ([Streaming](./running-agents.md#streaming)) |
+| `InvalidOperationException` | `A streaming run has its response once its updates are read to the end.` | `Response` read before the loop over the updates ended, or after the run failed | Read the updates to the end first ([Structured output](./running-agents.md#structured-output)) |
+| `InvalidOperationException` | `A client taken out of the one CreateChatClientAsync created was called on its own` | Your code called an inner client of the created one | Call the client `CreateChatClientAsync` returned ([The raw path](./running-agents.md#the-raw-path)) |
+
+### Checking a store
+
+| Exception | Message | Cause | What to do |
+|---|---|---|---|
+| `InvalidOperationException` | `The store broke a rule Typeshift relies on.` | `VerifyAsync` found a rule your store breaks: the rest of the message names it and what to change | Change the store as the message says ([Check your store](./implementing-a-store.md#check-your-store)) |
+| `InvalidOperationException` | `give VerifyAsync a new id`, `give the check a kind nothing is stored under` | Something is stored under an id or a kind the check writes under | Pass ids nothing uses, or start from an empty database ([Check your store](./implementing-a-store.md#check-your-store)) |
+| `ArgumentException` | `VerifyAsync needs two different ids` | The two ids of the check are equal | Pass two different ids ([Check your store](./implementing-a-store.md#check-your-store)) |
+| `InvalidOperationException` | `is no IConversationStore<{id}>: pass conversation ids of the type the store keeps` | The conversation ids of the check that takes four ids have a type the store keeps no conversations under | Pass ids of the type the store keeps ([Check your store](./implementing-a-store.md#check-your-store)) |
 
 ## Related
 

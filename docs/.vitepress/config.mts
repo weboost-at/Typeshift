@@ -93,6 +93,7 @@ const sidebar = {
         { text: 'The AddTypeshift() chain', link: '/guide/registration#the-chain' },
         { text: 'AgentHost and generated members', link: '/guide/generated-members' },
         { text: 'Diagnostics', link: '/guide/diagnostics' },
+        { text: 'Errors at run time', link: '/guide/diagnostics#errors-at-run-time' },
         { text: 'Glossary', link: '/guide/glossary' }
       ]
     }

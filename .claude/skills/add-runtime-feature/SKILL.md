@@ -14,6 +14,9 @@ description: Add or change public behavior of the Typeshift runtime library (src
    a generated member: add the tag where `AgentEmitter` writes the member's docs, and the type to its row of
    `AgentGenerationTests.Given_A_Host_Member_That_Throws_Its_Docs_Name_The_Exception`. A new log event is a method
    of `Telemetry/LogEvents.cs` with the next id and a row in `docs/guide/observability.md` (`LogEventCatalogTests`).
+   A new exception a user can meet, or a message that changes, gets its row in
+   `docs/guide/diagnostics.md#errors-at-run-time`, which quotes the words the message always holds
+   (`RunTimeErrorTests`).
 3. **Native AOT.** The build's trim and AOT analyzers see each project alone. The two publishes of the console sample
    in `AGENTS.md`, "Build and test", compile the whole app, as Native AOT and trimmed, and run it: they are the only
    place an IL2xxx or IL3xxx warning of the whole program shows, or a type whose JSON metadata is missing fails.
