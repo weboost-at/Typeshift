@@ -709,6 +709,25 @@ public class ConversationRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_An_Answer_Stored_With_An_Error_Resuming_Calls_The_Model()
+    {
+        // Arrange
+        await StoreAsync(new ChatMessage(ChatRole.User, Data.Tool.Question));
+
+        await StoreAsync(new ChatMessage(
+            ChatRole.Assistant,
+            [new TextContent(Data.Agent.Reason), new ErrorContent(Data.Agent.FollowUp)]));
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).ResumeAsync(ct: Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
     public async Task Given_A_Conversation_Whose_Last_Run_Ended_Resuming_Fails()
     {
         // Arrange

@@ -336,6 +336,20 @@ public class ConversationStoreTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Message_Of_Contents_The_Contract_Does_Not_Know_Alone_It_Is_Left_Out_Of_Its_Step()
+    {
+        // Arrange
+        ChatClient.Reply(Answer(new VendorContent()));
+
+        // Act
+        await Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+        var entries = await EntriesAsync(Data.Agent.ConversationId);
+
+        // Assert
+        entries.SelectMany(entry => entry.Messages).Should().OnlyContain(message => message.Contents.Count > 0);
+    }
+
+    [Fact]
     public async Task Given_Two_Steps_With_A_Content_The_Contract_Does_Not_Know_The_Run_Warns_Once_Naming_Its_Type()
     {
         // Arrange
