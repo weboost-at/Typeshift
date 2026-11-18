@@ -21,7 +21,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     // handoff a run with a limit of its own
     private const int MaxHandoffs = 10;
 
-    // How a run ends that nothing failed in: its stream was left early
+    // How a run ends that no exception ended: its caller left its stream early
     private const string Stopped = "The run stopped before it answered.";
 
     public override async Task<ChatResponse> GetResponseAsync(
@@ -206,9 +206,10 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             {
                 run.Publisher?.Flush();
 
-                // Nothing for a run that stored its end or handed the conversation on. A stream that failed, was
-                // cancelled or was left early ends with a text of its own
-                await run.EndAsync(streaming || failure is null ? Stopped : failure);
+                // D46: nothing for a run that stored its end or handed the conversation on. A run that failed or
+                // was cancelled ends with the exception's message, streaming or not, and a stream left early with a
+                // text of its own
+                await run.EndAsync(failure ?? Stopped);
             }
             finally
             {

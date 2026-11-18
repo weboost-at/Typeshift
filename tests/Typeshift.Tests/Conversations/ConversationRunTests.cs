@@ -188,6 +188,50 @@ public class ConversationRunTests : AgentTestBase
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public async Task Given_A_Failing_Run_Its_Ending_Entry_Holds_The_Exceptions_Message(bool streaming)
+    {
+        // Arrange
+        ChatClient.Reply(new InvalidOperationException(Data.Agent.Reason));
+
+        await Record.ExceptionAsync(() => RunAsync(Data.Tool.Question, streaming, Ct));
+
+        // Act
+        var entries = await EntriesAsync(Data.Agent.ConversationId);
+
+        // Assert
+        entries[^1].Messages[0].Contents.OfType<ErrorContent>()
+            .Select(error => error.Message)
+            .Should()
+            .Equal(Data.Agent.Reason);
+    }
+
+    [Fact]
+    public async Task Given_A_Stream_Left_Early_Its_Ending_Entry_Says_The_Run_Stopped_Before_It_Answered()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer), new TaskCompletionSource(), Text(Data.Agent.FollowUp));
+
+        var updates = Host<ProbeAgent>()
+            .WithConversationId(Data.Agent.ConversationId)
+            .RunStreamingAsync(Data.Tool.Question, ct: Ct)
+            .GetAsyncEnumerator(Ct);
+
+        await updates.MoveNextAsync();
+
+        // Act
+        await updates.DisposeAsync().AsTask().WaitAsync(Ct);
+        var entries = await EntriesAsync(Data.Agent.ConversationId);
+
+        // Assert
+        entries[^1].Messages[0].Contents.OfType<ErrorContent>()
+            .Select(error => error.Message)
+            .Should()
+            .Equal("The run stopped before it answered.");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public async Task Given_A_Cancelled_Run_It_Ends_With_An_Error_And_The_Cancellation_Surfaces(bool streaming)
     {
         // Arrange

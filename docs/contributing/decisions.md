@@ -1571,7 +1571,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   be stored, since a decision without its call could not be carried out (D81). The agent's name goes on
   `AuthorName`, never into `AdditionalProperties`.
 - **Details:** the end of a run is an entry of its own (`EndsRun`), with an `ErrorContent` when the run failed, was
-  cancelled or its stream was left early. Calls and results pair by call id, which D59 keeps unique in a conversation;
+  cancelled or its stream was left early: the exception's message, streaming or not, and a fixed text for a stream
+  its caller left, which no exception explains. Calls and results pair by call id, which D59 keeps unique in a conversation;
   of a call or a result a store holds twice, the last copy counts. The checkpoints know what they stored by reference, since the tool loop
   hands the same messages on; a streamed response is stored from the updates, and the tool loop's own messages
   built from those updates are matched by count.

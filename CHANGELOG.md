@@ -666,6 +666,9 @@ All notable changes to this project are documented here. The format follows
 - A run started with input that `TrySteer` refused while a run of the conversation stored its end waits for that
   run and answers. It threw that a run was going on and told your app to steer it, so the fallback the guide shows,
   `if (!tracker.TrySteer(id, input)) await chat.RunAsync(input);`, failed for input that arrived in that moment.
+- A streaming run that fails or is cancelled ends its stored conversation with the exception's message, as a run
+  that does not stream does. It stored "The run stopped before it answered." for every failure, so a chat UI that
+  streams could not tell from the store why a run had failed. A stream your code leaves early keeps that text.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 
