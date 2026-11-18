@@ -35,7 +35,8 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             .CreateSyntaxProvider(Discovery.IsJsonContext, Discovery.ClassifyJsonContext)
             .Where(static name => name is not null)
             .Select(static (name, _) => name!)
-            .Collect();
+            .Collect()
+            .WithTrackingName(TrackingNames.JsonContexts);
 
         var annotations = context.SyntaxProvider
             .ForAttributeWithMetadataName(
@@ -44,13 +45,15 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
                 Discovery.ClassifySchemaAnnotations)
             .Where(static name => name is not null)
             .Select(static (name, _) => name!)
-            .Collect();
+            .Collect()
+            .WithTrackingName(TrackingNames.SchemaAnnotations);
 
         var calls = context.SyntaxProvider
             .CreateSyntaxProvider(InterceptParser.IsCandidate, InterceptParser.Parse)
             .Where(static call => call is not null)
             .Select(static (call, _) => call!)
-            .Collect();
+            .Collect()
+            .WithTrackingName(TrackingNames.Calls);
 
         // Every edit makes a new compilation; the stamps it yields compare equal, so what depends on them is cached
         var references = context.CompilationProvider
@@ -61,7 +64,8 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             .Select(static (toolset, _) => Catalog.Summarize(toolset))
             .Collect()
             .Combine(references)
-            .Select(static (pair, _) => pair.Left.Concat(pair.Right.Toolsets).ToEquatableArray());
+            .Select(static (pair, _) => pair.Left.Concat(pair.Right.Toolsets).ToEquatableArray())
+            .WithTrackingName(TrackingNames.Catalog);
 
         var outputs = agents
             .Combine(catalog)
@@ -69,7 +73,8 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             .WithTrackingName(TrackingNames.AgentOutputs);
 
         var assemblyName = context.CompilationProvider
-            .Select(static (compilation, _) => compilation.AssemblyName ?? "");
+            .Select(static (compilation, _) => compilation.AssemblyName ?? "")
+            .WithTrackingName(TrackingNames.AssemblyName);
 
         var module = toolsets
             .Collect()

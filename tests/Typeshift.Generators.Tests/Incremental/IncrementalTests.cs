@@ -1,6 +1,8 @@
 using Typeshift.Generators.Tests.Agents.Support;
 using Typeshift.Generators.Tests.Diagnostics.Support;
 using Typeshift.Generators.Tests.Toolsets.Support;
+using FluentAssertions;
+using Xunit.Sdk;
 
 namespace Typeshift.Generators.Tests.Incremental;
 
@@ -27,7 +29,13 @@ public class IncrementalTests : GeneratorTestBase
         var second = RunAgain(first, Edit(compilation, 1, Unrelated.Replace("Value", "Other")));
 
         // Assert
-        second.Assert.Cached(TrackingNames.Toolsets, TrackingNames.CaseClashes, TrackingNames.LanguageVersion);
+        second.Assert.Cached(
+            TrackingNames.Toolsets,
+            TrackingNames.AssemblyName,
+            TrackingNames.Module,
+            TrackingNames.CaseClashes,
+            TrackingNames.LanguageVersion);
+
         second.Assert.OutputsCached();
     }
 
@@ -73,10 +81,27 @@ public class IncrementalTests : GeneratorTestBase
         // Assert
         second.Assert.Cached(
             TrackingNames.Agents,
+            TrackingNames.Calls,
             TrackingNames.References,
+            TrackingNames.Catalog,
             TrackingNames.AgentOutputs,
             TrackingNames.CaseClashes);
 
+        second.Assert.OutputsCached();
+    }
+
+    [Fact]
+    public void Given_Code_Moved_Within_An_Agents_File_Its_Outputs_Stay_Cached()
+    {
+        // Arrange
+        var compilation = Compile(ShapeSources.EveryAgentDeclaration, ReferenceSources.EmptyHost);
+        var first = Run(compilation);
+
+        // Act
+        var second = RunAgain(first, Edit(compilation, 0, "\n\n\n" + ShapeSources.EveryAgentDeclaration));
+
+        // Assert
+        second.Assert.Cached(TrackingNames.Agents, TrackingNames.AgentOutputs, TrackingNames.Module);
         second.Assert.OutputsCached();
     }
 
@@ -130,7 +155,14 @@ public class IncrementalTests : GeneratorTestBase
         var second = RunAgain(first, Edit(compilation, 3, Unrelated.Replace("Value", "Other")));
 
         // Assert
-        second.Assert.Cached(TrackingNames.References, TrackingNames.AgentOutputs, TrackingNames.Module);
+        second.Assert.Cached(
+            TrackingNames.JsonContexts,
+            TrackingNames.SchemaAnnotations,
+            TrackingNames.References,
+            TrackingNames.Catalog,
+            TrackingNames.AgentOutputs,
+            TrackingNames.Module);
+
         second.Assert.OutputsCached();
     }
 
@@ -184,5 +216,19 @@ public class IncrementalTests : GeneratorTestBase
         // Assert
         second.Assert.Cached(TrackingNames.Agents, TrackingNames.AgentOutputs, TrackingNames.Module);
         second.Assert.OutputsCached();
+    }
+
+    [Fact]
+    public void Given_A_Step_Without_An_Output_It_Does_Not_Pass_As_Cached()
+    {
+        // Arrange
+        var compilation = Compile(ToolsetSources.Tickets, Unrelated);
+        var second = RunAgain(Run(compilation), Edit(compilation, 1, Unrelated.Replace("Value", "Other")));
+
+        // Act
+        var asserting = () => second.Assert.Cached(TrackingNames.Agents);
+
+        // Assert
+        asserting.Should().Throw<XunitException>().WithMessage("*Agents is a step of this run that has an output*");
     }
 }

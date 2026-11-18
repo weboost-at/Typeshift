@@ -165,13 +165,15 @@ public sealed class GeneratorRunAssertions(GeneratorRun run)
         return run;
     }
 
+    // A step that produced nothing, as the agents of a project without one, was never there to be cached
     public GeneratorRun Cached(params string[] steps)
     {
         foreach (var step in steps)
         {
-            Reasons(run.Result.Results[0].TrackedSteps[step])
-                .Should()
-                .BeSubsetOf([IncrementalStepRunReason.Cached, IncrementalStepRunReason.Unchanged], step);
+            var reasons = Reasons(Steps(step)).ToList();
+
+            reasons.Should().NotBeEmpty($"{step} is a step of this run that has an output");
+            reasons.Should().BeSubsetOf([IncrementalStepRunReason.Cached, IncrementalStepRunReason.Unchanged], step);
         }
 
         return run;
@@ -186,7 +188,7 @@ public sealed class GeneratorRunAssertions(GeneratorRun run)
 
     public GeneratorRun Modified(string step)
     {
-        Reasons(run.Result.Results[0].TrackedSteps[step]).Should().Contain(IncrementalStepRunReason.Modified);
+        Reasons(Steps(step)).Should().Contain(IncrementalStepRunReason.Modified, step);
         return run;
     }
 
@@ -222,6 +224,9 @@ public sealed class GeneratorRunAssertions(GeneratorRun run)
 
     private bool BreaksTheSubject(Diagnostic diagnostic) =>
         diagnostic is { Severity: DiagnosticSeverity.Error, Location.SourceTree: { } tree } && !Generated(tree);
+
+    private IEnumerable<IncrementalGeneratorRunStep> Steps(string name) =>
+        run.Result.Results[0].TrackedSteps.TryGetValue(name, out var steps) ? steps : [];
 
     private static IEnumerable<IncrementalStepRunReason> Reasons(IEnumerable<IncrementalGeneratorRunStep> steps) =>
         steps.SelectMany(step => step.Outputs).Select(output => output.Reason);

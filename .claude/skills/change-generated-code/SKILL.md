@@ -66,7 +66,8 @@ Read `docs/contributing/architecture.md`, "The generator and the analyzer", firs
    `ShapeSources.NamespacesNamedLikeTheFrameworks` the declaration that reaches that place: the fixture compiles
    only while every generated name starts at `global::`.
 4. Keep `IncrementalTests` green: an edit outside a toolset or agent keeps every output cached, and an agent's output
-   stays cached while what it offers is unchanged.
+   stays cached while what it offers is unchanged. A new step of the pipeline gets a name in `TrackingNames` and a
+   place in the test of an unrelated edit, whose `Cached` fails for a step that produced nothing.
 5. Debug the output of a real project: no project keeps the generated files, so build it with
    `dotnet build <project> -c Release -p:EmitCompilerGeneratedFiles=true` and read them in its
    `obj/Release/net11.0/generated/Typeshift.Generators/Typeshift.Generators.TypeshiftGenerator/` folder.
