@@ -128,6 +128,12 @@ internal static class ShownRegistrations
             Expect(logging is not null, "the client wrapped in logging");
         }
 
+        await using (var guarded = Build(services => OutputGuardrail.ShowRegistration(services, client)))
+        {
+            var guardrail = guarded.GetRequiredKeyedService<IChatClient>("openai").GetService<RedactedCardNumbers>();
+            Expect(guardrail is not null, "the client wrapped in the output guardrail");
+        }
+
         await using (var retrying = Build(services => Models.ShowRetries(services, Key)))
         {
             Expect(Model(retrying, "openai") == "gpt-5-mini", "OpenAI's client with retries");
