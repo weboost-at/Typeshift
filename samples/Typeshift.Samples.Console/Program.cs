@@ -21,7 +21,8 @@ await using var provider = services.BuildServiceProvider();
 await using var research = provider.GetRequiredService<TypeshiftRuntime>().CreateHost<ResearchAgent>();
 
 var conversationId = Guid.CreateVersion7();
-var customer = research.WithSettingsId(Guid.CreateVersion7());
+var customerId = Guid.CreateVersion7();
+var customer = research.WithSettingsId(customerId);
 
 await customer.UpdateSettingsAsync(settings => settings with
 {
@@ -66,7 +67,8 @@ Expect(counting.Response.Result == new CompanyCount("Graz", 1), counting.Respons
 // An enum travels as its name where JSON does not reflect, since AppJsonContext says so: in the schema the model
 // reads, in the argument it sends and in the result it gets back
 var offered = await customer.ResolveOptionsAsync();
-var countCompanies = offered.Tools!.OfType<AIFunction>().Single(tool => tool.Name == "count_companies");
+var countCompanies = offered.Tools!.OfType<AIFunction>()
+    .Single(tool => tool.Name == CompanyToolset.ToolNames.CountCompanies);
 var sector = countCompanies.JsonSchema.GetProperty("properties").GetProperty("sector");
 Expect(sector.TryGetProperty("enum", out _), $"the schema {sector.GetRawText()}");
 
@@ -93,9 +95,22 @@ Expect(open is [ApprovalDecision { Tool: "send_mail" }] && answered.Decisions.Co
 var mailed = await contact.AnswerAsync([DecisionAnswer.Approve(open[0].Id)]);
 Expect(mailed.Text == "Sent to Prater Motion.", mailed.Text);
 
+// The catalog lists the agents and toolsets their modules registered, and creates the host of a kind it lists, as
+// an endpoint does that takes the agent from its route: closed over the agent's type at registration, not reflected
+var runtime = provider.GetRequiredService<TypeshiftRuntime>();
+var kinds = string.Join(", ", runtime.Agents.Select(agent => agent.Kind).Order(StringComparer.Ordinal));
+Expect(kinds == "OutreachAgent, ResearchAgent", kinds);
+
+var tools = runtime.Toolsets.SelectMany(toolset => toolset.Tools).Select(tool => tool.Name).ToList();
+Expect(tools.Contains(CompanyToolset.ToolNames.CountCompanies), string.Join(", ", tools));
+
+await using var byKind = runtime.CreateHost("ResearchAgent");
+var looked = await byKind.WithSettingsId(customerId).RunAsync("Vienna");
+Expect(looked.Text == answer.Text, looked.Text);
+
 Console.WriteLine(
     $"{research.Agent.Name}: {answer.Text} {streamed} {count.Result} {counting.Response.Result} {robotics.Text}; "
-    + $"{entries.Count} entries stored; {outreach.Agent.Name}: {mailed.Text}");
+    + $"{entries.Count} entries stored; {outreach.Agent.Name}: {mailed.Text}; {kinds} in the catalog");
 return 0;
 
 static void Expect(bool holds, string what)

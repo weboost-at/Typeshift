@@ -22,6 +22,7 @@ var database = Path.Combine(Path.GetTempPath(), $"typeshift-samples-{Guid.NewGui
 var shop = Path.Combine(Path.GetTempPath(), $"typeshift-samples-shop-{Guid.NewGuid():N}.db");
 
 await NoContainer.RunAsync(client);
+await Catalog.RunAsync(client);
 await SmallestAgent.RunAsync(client);
 await KeepEveryConversation.RunAsync(client);
 await Testing.RunAsync();

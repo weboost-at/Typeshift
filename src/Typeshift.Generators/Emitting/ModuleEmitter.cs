@@ -32,7 +32,7 @@ internal static class ModuleEmitter
 
         foreach (var toolset in model.Toolsets)
         {
-            writer.Line($"[global::Typeshift.Generated.ModuleToolset(typeof({toolset}))]");
+            writer.Line($"[global::Typeshift.Generated.ModuleToolset(typeof({toolset.Type}))]");
         }
 
         foreach (var agent in model.Agents)
@@ -58,12 +58,13 @@ internal static class ModuleEmitter
 
                 foreach (var toolset in model.Toolsets)
                 {
-                    writer.Line($"{Registration}.AddToolset(services, static () => new {toolset}());");
+                    WriteToolset(writer, toolset);
                 }
 
                 foreach (var agent in model.Agents)
                 {
-                    writer.Line($"{Registration}.AddAgent(services, static () => new {agent.Type}());");
+                    var kind = Names.Literal(agent.Kind);
+                    writer.Line($"{Registration}.AddAgent(services, static () => new {agent.Type}(), {kind});");
                 }
 
                 foreach (var context in model.JsonContexts)
@@ -79,6 +80,33 @@ internal static class ModuleEmitter
         }
 
         return writer.ToString();
+    }
+
+    // D83: the toolset with what the catalog lists of its tools, which a tool picker shows
+    private static void WriteToolset(SourceWriter writer, ModuleToolset toolset)
+    {
+        var create = $"{Registration}.AddToolset(services, static () => new {toolset.Type}()";
+
+        if (toolset.Tools.Count == 0)
+        {
+            writer.Line($"{create});");
+            return;
+        }
+
+        writer.Line($"{create},");
+
+        using (writer.Indent())
+        {
+            writer.List(
+                [
+                    .. toolset.Tools.Select(tool =>
+                        $"new global::Typeshift.ToolInfo({Names.Literal(tool.Name)}, "
+                        + $"{(tool.Description is { } description ? Names.Literal(description) : "null")}, "
+                        + $"IsReadOnly: {(tool.IsReadOnly ? "true" : "false")}, "
+                        + $"RequiresApproval: {(tool.RequiresApproval ? "true" : "false")})")
+                ],
+                end: ");");
+        }
     }
 
     // D33, D34: what the agents of other assemblies check when they use this one

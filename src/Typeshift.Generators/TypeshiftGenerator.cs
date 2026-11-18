@@ -162,7 +162,11 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
 
         var reachableToolsets = toolsets
             .Where(toolset => toolset.IsReachable)
-            .Select(toolset => toolset.Type.FullName)
+            .Select(toolset => new ModuleToolset(
+                toolset.Type.FullName,
+                toolset.Tools
+                    .Select(tool => new ModuleTool(tool.Name, tool.Description, tool.IsReadOnly, tool.RequiresApproval))
+                    .ToEquatableArray()))
             .ToEquatableArray();
 
         var reachableAgents = outputs

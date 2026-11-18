@@ -537,7 +537,7 @@ partial class CrawlToolset
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 15)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 16)]
 
 namespace Typeshift.Generated;
 
@@ -558,7 +558,8 @@ public static class SubjectModule
     {
         if (!global::Typeshift.Generated.ModuleRegistration.TryAddModule(services, typeof(SubjectModule))) return;
 
-        global::Typeshift.Generated.ModuleRegistration.AddToolset(services, static () => new global::Demo.CrawlToolset());
+        global::Typeshift.Generated.ModuleRegistration.AddToolset(services, static () => new global::Demo.CrawlToolset(),
+            new global::Typeshift.ToolInfo("crawl", "Crawls a site.", IsReadOnly: false, RequiresApproval: false));
         global::Typeshift.Generated.ModuleRegistration.AddJsonContext(services, global::Demo.CrawlJson.Default);
     }
 }

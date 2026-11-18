@@ -15,6 +15,10 @@ section names the declaration that adds a member.
 [the decisions of a conversation](#decisions-of-the-conversation), `DisposeAsync` and `Dispose`. The generator adds
 the typed runs and settings of each agent.
 
+`IAgentHost` is the same host where your code does not name the agent's type, as the runtime's
+[catalog](./registration.md#the-catalog) creates it by the agent's kind. It has the host's own members, typed with
+`IAgentHost` where they return a copy, and none of the generated ones. Only the library implements it.
+
 ### Typed members
 
 In these signatures, `Settings` is the agent's [generated `Settings` record](#settings). Every member takes a

@@ -53,6 +53,9 @@ stored settings apply ([Stored settings](./running-agents.md#stored-settings)). 
 `services.AddScoped<RefundDesk>()`, so ASP.NET Core creates it in each request's scope, together with its host and that
 request's customer. Controllers and endpoint parameters need no registration of their own.
 
+An endpoint that serves several agents takes the agent's kind from its route instead, and resolves the host keyed by
+it, as an `IAgentHost` ([The catalog](./registration.md#the-catalog)).
+
 ## Run from a console app
 
 A console app or a script without a container creates the runtime with its chat client and takes the host from it:

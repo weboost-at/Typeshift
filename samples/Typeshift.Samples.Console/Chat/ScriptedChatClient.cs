@@ -32,7 +32,7 @@ internal sealed class ScriptedChatClient : IChatClient
         var history = messages.ToList();
         var last = history[^1];
         var results = last.Contents.OfType<FunctionResultContent>().ToList();
-        var asks = options?.Tools?.Any(tool => tool.Name == "ask_user") is true;
+        var asks = options?.Tools?.Any(tool => tool.Name == BuiltInTools.AskUser) is true;
 
         AIContent content = (asks, results) switch
         {

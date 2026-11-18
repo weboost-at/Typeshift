@@ -17,7 +17,7 @@ namespace Typeshift;
 /// <see href="https://weboost-at.github.io/Typeshift/guide/generated-members#the-agent-host">The agent host</see>.
 /// </summary>
 /// <typeparam name="TAgent">The agent.</typeparam>
-public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposable where TAgent : Agent
+public sealed partial class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposable where TAgent : Agent
 {
     // D25: the services of the scope it was resolved from, or of the one the runtime created for it (D76)
     private readonly IServiceProvider _services;

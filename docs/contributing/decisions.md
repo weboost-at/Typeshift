@@ -1529,6 +1529,36 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   down; one scope for the runtime's lifetime, D75's first design, whose scoped services, such as the chat client
   provider and what tools resolve, every run shared, concurrent ones included.
 
+### D83. The runtime lists its agents and toolsets and hosts an agent by its kind
+
+- **Status:** owner, under the standing rule that a choice in line with the library's aim, typed agents and tools
+  nothing has to be kept in step with by hand, needs no separate answer. Of the two options for
+  `Toolset.DisplayName`, which nothing read, the recommended one: complete the tool picker the docs promised, rather
+  than remove the member.
+- **Context:** an endpoint for several agents (`/chat/{agent}`), an agent picked per tenant, and an admin page that
+  lists agents and tools each needed a switch with one arm per agent type. Modules registered each agent and
+  toolset as its own type only, so `GetServices<Agent>()` was empty, no host could be had for a `Type` or a name,
+  and `WithDisplayName` named a toolset for a picker that had no way to list toolsets.
+- **Decision:** `runtime.Agents` lists every agent of the app's modules as an `AgentInfo`: its type, name, kind and
+  description. `runtime.Toolsets` lists every toolset as a `ToolsetInfo`: its type, display name and tools, each a
+  `ToolInfo` with its name, description and the marks `ReadOnly()` and `RequiresApproval()`. `runtime.CreateHost(kind)`
+  and `runtime.CreateHost(type)` create a host in a scope of its own, as `CreateHost<TAgent>()` does, typed as the
+  public `IAgentHost`, which holds the host's members that take none of the agent's own `Settings`; a scope resolves
+  the same host as a keyed `IAgentHost` service under the agent's kind. A host is looked up by kind, since names may
+  repeat (D22) and the kind may not (D39). The generated `AddAgent` passes the agent's kind and `AddToolset` the
+  tools the generator read, and both register a descriptor whose delegates are closed over the agent's or toolset's
+  type in the generated call, so no type is made at run time and Native AOT holds. Names, descriptions and display
+  names come from the instances their constructors created, read once, the first time the runtime lists them.
+- **`IAgentHost`:** the interface the library already had for a sub-agent or an agent handed off to (D33, D34)
+  became public, with the handovers kept internal, so only the library implements it. Its copies from
+  `WithSettingsId` and `WithConversationId` are `IAgentHost`s too.
+- **Where:** `Hosting/TypeshiftRuntime.cs`, `Hosting/RuntimeCatalog.cs`, `Hosting/IAgentHost.cs`,
+  `Generated/ModuleRegistration.cs`, `Emitting/ModuleEmitter.cs`.
+- **Alternatives:** a non-generic base class of `AgentHost<TAgent>`, which would move every member of the host into
+  it; settings as JSON for code generic over the agent, which waits for a caller; listing the tools each agent
+  offers, its own included, which needs the descriptions that stamps of referenced toolsets do not carry; removing
+  `WithDisplayName` until a picker exists, which the guide's first toolset shows.
+
 ### D44. Settings records serialize themselves
 
 - **Status:** carried (v0 D27), extended; the strict read of a request came with the audit of November 2026, in the

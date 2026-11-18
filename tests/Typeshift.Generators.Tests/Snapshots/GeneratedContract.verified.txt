@@ -1,4 +1,4 @@
-StampVersion = 15
+StampVersion = 16
 protected virtual Typeshift.Generated.AgentDeclaration Typeshift.Agent.Declaration { get; }
 public abstract class Typeshift.Generated.AgentDeclaration
 public abstract string? Typeshift.Generated.AgentDeclaration.Description { get; }
@@ -66,11 +66,11 @@ public string Typeshift.Generated.ModuleAgentAttribute.Name { get; }
 public string[] Typeshift.Generated.ModuleAgentAttribute.OwnTools { get; init; }
 public string[] Typeshift.Generated.ModuleAgentAttribute.Tools { get; init; }
 public static class Typeshift.Generated.ModuleRegistration
-public static void Typeshift.Generated.ModuleRegistration.AddAgent<TAgent>(Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Func<TAgent> create) where TAgent : Typeshift.Agent
+public static void Typeshift.Generated.ModuleRegistration.AddAgent<TAgent>(Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Func<TAgent> create, string kind) where TAgent : Typeshift.Agent
 public static Typeshift.TypeshiftBuilder Typeshift.Generated.ModuleRegistration.AddCoreServices(Microsoft.Extensions.DependencyInjection.IServiceCollection services)
 public static void Typeshift.Generated.ModuleRegistration.AddJsonContext(Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Text.Json.Serialization.Metadata.IJsonTypeInfoResolver context)
 public static void Typeshift.Generated.ModuleRegistration.AddSchemaAnnotations(Microsoft.Extensions.DependencyInjection.IServiceCollection services, Weboost.SchemaAnnotations.ISchemaAnnotationSource source)
-public static void Typeshift.Generated.ModuleRegistration.AddToolset<TToolset>(Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Func<TToolset> create) where TToolset : Typeshift.Toolset
+public static void Typeshift.Generated.ModuleRegistration.AddToolset<TToolset>(Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Func<TToolset> create, params Typeshift.ToolInfo[] tools) where TToolset : Typeshift.Toolset
 public static Typeshift.TypeshiftRuntime Typeshift.Generated.ModuleRegistration.CreateRuntime(Microsoft.Extensions.DependencyInjection.IServiceCollection services, Typeshift.TypeshiftBuilder builder, Microsoft.Extensions.AI.IChatClient client, System.Action<Typeshift.TypeshiftBuilder>? configure)
 public static bool Typeshift.Generated.ModuleRegistration.TryAddModule(Microsoft.Extensions.DependencyInjection.IServiceCollection services, System.Type module)
 public sealed class Typeshift.Generated.ModuleToolsetAttribute : System.Attribute

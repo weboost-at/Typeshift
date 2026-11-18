@@ -186,6 +186,12 @@ All notable changes to this project are documented here. The format follows
   schema, where neither `WithDescription` nor the XML docs say anything. A tool moved over from a
   Microsoft.Extensions.AI sample got TSH009 for its method's attribute and lost its parameters' descriptions without
   a word. The XML docs still win where both are written.
+- `runtime.Agents` lists every agent of your project and of the projects it references, with its type, name, kind
+  and description, and `runtime.Toolsets` every toolset, with its display name and its tools, each with its name,
+  description and whether it is read-only or requires approval. `runtime.CreateHost("SupportAgent")` and
+  `runtime.CreateHost(typeof(SupportAgent))` create the host of an agent your code does not name, as an
+  `IAgentHost`, and a request resolves the same host as a service keyed by the agent's kind. An endpoint for several
+  agents needed a switch with one arm per agent before, and `WithDisplayName` named a toolset that nothing listed.
 
 ### Changed
 
@@ -301,7 +307,7 @@ All notable changes to this project are documented here. The format follows
   every record has from `object`, which is CS0108. Settings stored under the tool's name are not affected.
 - The module of an assembly whose name holds other characters than letters, digits and dots carries a hash of the
   name, as `Acme_Tools_1a2b3c4dModule` for `Acme-Tools`. The generated registration names it for you.
-- Module stamps are at version 15, so a referenced project built with an earlier Typeshift is TSH020 until it is
+- Module stamps are at version 16, so a referenced project built with an earlier Typeshift is TSH020 until it is
   rebuilt.
 - The class that holds a toolset's picks for `Include` and `Exclude` lives in the global namespace, as the classes
   of the host members do. It was `{Toolset}ToolList` in the toolset's namespace and is `TypeshiftTools_` followed by

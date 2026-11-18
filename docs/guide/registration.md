@@ -217,6 +217,60 @@ first: a stream read after its host was disposed throws an `ObjectDisposedExcept
 request's scope owns nothing, and disposing it leaves the request's services alone.
 :::
 
+## The catalog
+
+`runtime.Agents` and `runtime.Toolsets` list the agents and toolsets of your project and of the projects it
+references, for a page that shows them or a tool picker:
+
+<!-- snippet: catalog-list -->
+<a id='snippet-catalog-list'></a>
+```cs
+foreach (var agent in runtime.Agents)
+    Console.WriteLine($"{agent.Kind}: {agent.Description}");
+
+foreach (var toolset in runtime.Toolsets)
+{
+    var tools = toolset.Tools.Select(tool => tool.RequiresApproval ? $"{tool.Name} (asks first)" : tool.Name);
+    Console.WriteLine($"{toolset.DisplayName ?? toolset.Type.Name}: {string.Join(", ", tools)}");
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Catalog.cs#L15-L24' title='Snippet source file'>snippet source</a> | <a href='#snippet-catalog-list' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- An `AgentInfo` holds the agent's type, its name, its kind and its description. The kind is the one its stored
+  settings go by, from `WithStorageKind("...")` or else the class name. No two agents share a kind, while two may
+  share a name.
+- A `ToolsetInfo` holds the toolset's type, the display name its `WithDisplayName(...)` gives and its tools. Each
+  `ToolInfo` holds a tool's name and description, and whether it is read-only or requires approval, as the generator
+  read them from the toolset.
+- The lists come in the order the modules registered them. The runtime reads the names, descriptions and display
+  names from the agents and toolsets their constructors created, the first time you ask for a list.
+
+An endpoint for several agents takes the agent's kind from its route or its body, and the runtime creates the host:
+
+<!-- snippet: catalog-host -->
+<a id='snippet-catalog-host'></a>
+```cs
+await using var host = runtime.CreateHost(kind);
+var answer = await host.RunAsync(question);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Catalog.cs#L36-L39' title='Snippet source file'>snippet source</a> | <a href='#snippet-catalog-host' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- `CreateHost(kind)` creates the host in a scope of its own, as `CreateHost<TAgent>()` does, so dispose it when its
+  runs and streams are done. `CreateHost(type)` takes the agent's `Type` instead. Both throw an `ArgumentException`
+  for an agent no module registered, and the message of `CreateHost(kind)` lists the kinds there are.
+- The host is an `IAgentHost`, with the members of `AgentHost<TAgent>` that take none of the agent's generated
+  `Settings`: its runs, answers and resumes, its ids, its conversation and its decisions
+  ([AgentHost and generated members](./generated-members.md#the-agent-host)). Its copies from `WithSettingsId` and
+  `WithConversationId` are `IAgentHost`s too.
+- In a request, resolve the host from the request's services as a service keyed by the kind,
+  `services.GetRequiredKeyedService<IAgentHost>(kind)`, or take it as an endpoint's parameter marked
+  `[FromKeyedServices("SupportAgent")]`. Its runs then use the request's scope, as an
+  [injected host](./using-an-agent.md#inject-the-host-in-a-web-app) does, and your app disposes nothing.
+- Each module registers the host of each agent closed over the agent's type, so no lookup makes a type or reflects
+  over yours, and it works in an app published with [Native AOT](./native-aot.md).
+
 ## XML docs of parameter types
 
 The package brings [Weboost.SchemaAnnotations](https://github.com/weboost-at/SchemaAnnotations), which turns the XML

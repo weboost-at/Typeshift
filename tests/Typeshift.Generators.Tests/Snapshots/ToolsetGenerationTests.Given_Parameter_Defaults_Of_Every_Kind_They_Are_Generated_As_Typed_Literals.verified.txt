@@ -311,7 +311,7 @@ partial class GreetingToolset
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 15)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 16)]
 
 namespace Typeshift.Generated;
 
@@ -332,6 +332,8 @@ public static class SubjectModule
     {
         if (!global::Typeshift.Generated.ModuleRegistration.TryAddModule(services, typeof(SubjectModule))) return;
 
-        global::Typeshift.Generated.ModuleRegistration.AddToolset(services, static () => new global::Demo.GreetingToolset());
+        global::Typeshift.Generated.ModuleRegistration.AddToolset(services, static () => new global::Demo.GreetingToolset(),
+            new global::Typeshift.ToolInfo("greet", "Greets.", IsReadOnly: false, RequiresApproval: false),
+            new global::Typeshift.ToolInfo("sign", "Signs.", IsReadOnly: false, RequiresApproval: false));
     }
 }
