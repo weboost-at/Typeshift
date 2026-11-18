@@ -42,7 +42,8 @@ internal static class AgentFramework
     }
 
     // What the page says of a host with a conversation id: the runs continue it, the session keeps only its id, a
-    // run with options of its own stores nothing, and a decision comes back to be answered on the host
+    // run with options of its own continues it too, with a session or without, and a decision comes back to be
+    // answered on the host
     private static async Task InConversationAsync(AgentHost<SupportAgent> support, IConversationStore<int> store)
     {
         var chat = support.WithConversationId(51);
@@ -66,13 +67,14 @@ internal static class AgentFramework
 
         var own = new ChatClientAgentRunOptions(new ChatOptions { Temperature = 0 });
         var answered = await agent.RunAsync("Where is my refund?", options: own);
-        var after = (await store.LoadConversationAsync(51, CancellationToken.None)).Count;
+        var third = (await store.LoadConversationAsync(51, CancellationToken.None)).Count;
 
-        Expect(answered.Text.Length > 0 && after == second, "a run with options of its own to store nothing");
+        Expect(answered.Text.Length > 0 && third > second, "a run with options of its own to continue it");
 
-        var named = await NamedAsync(() => agent.RunAsync("Where is my refund?", session, own));
+        await agent.RunAsync("And when does it arrive?", session, own);
+        var fourth = (await store.LoadConversationAsync(51, CancellationToken.None)).Count;
 
-        Expect(named.Contains("IConversationStore<string>"), "the session's id to name a string conversation");
+        Expect(fourth > third, "a run with a session and options of its own to continue it");
 
         var waiting = await agent.RunAsync("Close ticket 1234.");
         var approvals = waiting.AsChatResponse().Decisions.OfType<ApprovalDecision>().ToList();
@@ -82,20 +84,6 @@ internal static class AgentFramework
         var resumed = await chat.AnswerAsync([.. approvals.Select(approval => approval.Approve())]);
 
         Expect(resumed.Decisions.Count == 0, "the host to answer the decision by its id");
-    }
-
-    // The store of these scenarios keeps int ids, so a string conversation finds no store
-    private static async Task<string> NamedAsync(Func<Task> run)
-    {
-        try
-        {
-            await run();
-            return "";
-        }
-        catch (InvalidOperationException missing)
-        {
-            return missing.Message;
-        }
     }
 
     private static void Expect(bool condition, string what)

@@ -1344,6 +1344,9 @@ Each row links the section that explains it. A word in braces stands for a value
 | `InvalidOperationException` | `A streaming run streams its updates once; start a new run instead.` | A second `await foreach` over one streaming run | Start a new run ([Streaming](./running-agents.md#streaming)) |
 | `InvalidOperationException` | `A streaming run has its response once its updates are read to the end.` | `Response` read before the loop over the updates ended, or after the run failed | Read the updates to the end first ([Structured output](./running-agents.md#structured-output)) |
 | `InvalidOperationException` | `A client taken out of the one CreateChatClientAsync created was called on its own` | Your code called an inner client of the created one | Call the client `CreateChatClientAsync` returned ([The raw path](./running-agents.md#the-raw-path)) |
+| `ArgumentException` | `The options were not resolved for the agent '{agent}'` | `CreateChatClientAsync` got `ChatOptions` your code made, such as `new ChatOptions()` | Create the client from the options `ResolveOptionsAsync` returns ([The raw path](./running-agents.md#the-raw-path)) |
+| `InvalidOperationException` | `This chat client serves {model}, and the call's options were resolved for` | A call on the raw path's client passed options resolved for another provider or model than the client's | Create a client from those options ([The raw path](./running-agents.md#the-raw-path)) |
+| `ArgumentException` | `This chat client continues the conversation '{id}' of the host it was created on` | A call's own options name another conversation than the one of the host the client was created on | Leave `ChatOptions.ConversationId` out, or create the client on a host without a conversation id ([The raw path](./running-agents.md#the-raw-path)) |
 
 ### Checking a store
 

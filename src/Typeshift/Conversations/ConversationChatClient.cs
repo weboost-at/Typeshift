@@ -11,8 +11,13 @@ namespace Typeshift;
 // marks where the run begins and ends, and publishes the updates of streaming runs (D47). A run goes on while
 // steering input or a background sub-agent's answer waits (D33, D51), and a handoff continues it with the agent
 // handed to (D34). A run that waits for your app returns its decisions after it stored its end. The provider never
-// receives the conversation id; the response names it (D73)
-internal sealed class ConversationChatClient(IChatClient inner, Agent agent, IServiceProvider services)
+// receives the conversation id; the response names it (D73). A call runs with the options the client was created
+// from, under what the call's own options may change (D26)
+internal sealed class ConversationChatClient(
+    IChatClient inner,
+    Agent agent,
+    IServiceProvider services,
+    ResolvedChatOptions created)
     : DelegatingChatClient(inner)
 {
     public const string HandoffPrefix = "handoff_to_";
@@ -29,24 +34,24 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        options = WithNewConversation(messages, options);
-        using var activity = Telemetry.StartRun(agent, options, InnerClient);
+        var resolved = WithNewConversation(messages, created.ForCall(options));
+        using var activity = Telemetry.StartRun(agent, resolved, InnerClient);
 
         try
         {
             ChatResponse? response = null;
             Exception? notStored = null;
 
-            await foreach (var part in RunAsync(messages, options, activity, streaming: false, cancellationToken))
+            await foreach (var part in RunAsync(messages, resolved, activity, streaming: false, cancellationToken))
             {
                 if (part.NotStored is { } failure) notStored = failure;
                 else response = part.JoinedTo(response);
             }
 
-            if (Named(options) is { } conversation) response!.ConversationId = conversation;
+            if (Named(resolved) is { } conversation) response!.ConversationId = conversation;
             Telemetry.Answered(activity, response!.Usage);
 
-            if (notStored is not null) NotStored(activity, options!, response, notStored);
+            if (notStored is not null) NotStored(activity, resolved, response, notStored);
             return response;
         }
         catch (Exception exception)
@@ -61,15 +66,15 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         ChatOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        options = WithNewConversation(messages, options);
-        using var activity = Telemetry.StartRun(agent, options, InnerClient);
+        var resolved = WithNewConversation(messages, created.ForCall(options));
+        using var activity = Telemetry.StartRun(agent, resolved, InnerClient);
         var usage = new UsageDetails();
-        var conversation = Named(options);
+        var conversation = Named(resolved);
 
         // D46: what the caller got, for the exception of a run whose conversation lacks a step
         var handed = new List<ChatResponseUpdate>();
 
-        await using var parts = RunAsync(messages, options, activity, streaming: true, cancellationToken)
+        await using var parts = RunAsync(messages, resolved, activity, streaming: true, cancellationToken)
             .GetAsyncEnumerator(cancellationToken);
 
         while (true)
@@ -91,7 +96,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             {
                 try
                 {
-                    NotStored(activity, options!, handed.ToChatResponse(), failure);
+                    NotStored(activity, resolved, handed.ToChatResponse(), failure);
                 }
                 catch (Exception exception)
                 {
@@ -124,7 +129,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
 
     // D46: a run whose conversation lacks a step fails with what it answered, unless your app chose to have it return,
     // marked; either way its span is an error
-    private void NotStored(Activity? activity, ChatOptions options, ChatResponse response, Exception failure)
+    private void NotStored(Activity? activity, ResolvedChatOptions options, ChatResponse response, Exception failure)
     {
         if (services.GetService<TypeshiftOptions>() is not { StoreFailure: StoreFailure.ContinueRun })
             throw ConversationStoreException.For(GetConversation(options)!, response, failure);
@@ -136,15 +141,15 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     // D73: a run of the host's own, with input and no conversation, starts one when every conversation is kept; a
     // sub-agent's run belongs to its caller's, and a run without input resumes an interrupted run (D50). On the raw
     // path the id is a string, so the response's ConversationId names the same conversation when the app passes it back
-    private ChatOptions? WithNewConversation(IEnumerable<ChatMessage> messages, ChatOptions? options)
+    private ResolvedChatOptions WithNewConversation(IEnumerable<ChatMessage> messages, ResolvedChatOptions options)
     {
-        if (options is not ResolvedChatOptions { Conversation: null, ConversationId: null, Caller: null } resolved
+        if (options is not { Conversation: null, ConversationId: null, Caller: null }
             || services.GetService<TypeshiftOptions>() is not { PersistAllConversations: true } typeshift
             || !messages.Any())
             return options;
 
-        var started = (ResolvedChatOptions)resolved.Clone();
-        started.Conversation = resolved.HostRun
+        var started = (ResolvedChatOptions)options.Clone();
+        started.Conversation = options.HostRun
             ? typeshift.NewConversationId(Time)
             : typeshift.NewRawConversationId(Time);
 
@@ -159,7 +164,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     }
 
     // The conversation the run is stored in, as the response names it
-    private static string? Named(ChatOptions? options) => options is null ? null : GetConversation(options)?.ToString();
+    private static string? Named(ResolvedChatOptions options) => GetConversation(options)?.ToString();
 
     private LiveRuns Runs => services.GetRequiredService<LiveRuns>();
 
@@ -179,7 +184,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     // left early still ends
     private async IAsyncEnumerable<RunPart> RunAsync(
         IEnumerable<ChatMessage> messages,
-        ChatOptions? options,
+        ResolvedChatOptions options,
         Activity? activity,
         bool streaming,
         [EnumeratorCancellation] CancellationToken ct)
@@ -523,10 +528,10 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             : null;
 
     // D72: the host's conversation, or the raw path's ChatOptions.ConversationId, a string id
-    private static StoreId? GetConversation(ChatOptions options) =>
+    public static StoreId? GetConversation(ResolvedChatOptions options) =>
         options switch
         {
-            ResolvedChatOptions { Conversation: { } conversation } => conversation,
+            { Conversation: { } conversation } => conversation,
             { ConversationId: { } text } => new StoreId<string>(text),
             _ => null
         };
@@ -545,21 +550,21 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     // D34, D50: the conversation the run takes. A host's run took it before these options resolved, and they hold
     // the claim and the entries; a call on the raw path takes it here, and passes it on when another agent answers,
     // with the settings id and the format of a typed run (D64) and none of its own settings
-    private Task<(RunHandover Taken, IAgentHost? Answering)> TakeAsync(ChatOptions? options, CancellationToken ct)
+    private Task<(RunHandover Taken, IAgentHost? Answering)> TakeAsync(
+        ResolvedChatOptions options,
+        CancellationToken ct)
     {
-        var resolved = options as ResolvedChatOptions;
-
         var handover = new RunHandover(
-            resolved?.SettingsId,
-            options is null ? null : GetConversation(options),
-            resolved?.Claim,
-            resolved?.ResultFormat,
-            resolved?.Handoffs ?? 0,
-            resolved?.Entries);
+            options.SettingsId,
+            GetConversation(options),
+            options.Claim,
+            options.ResultFormat,
+            options.Handoffs,
+            options.Entries);
 
         return new RunStart(agent, services, Ledger).TakeAsync(
             handover,
-            resolved is { RunSetsMode: true } ? resolved.RunOptions.Mode : null,
+            options.RunSetsMode ? options.RunOptions.Mode : null,
             ct);
     }
 
@@ -651,7 +656,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         DecisionBatch? Waiting,
         IReadOnlyList<ChatMessage>? Answered)> BeginAsync(
         IEnumerable<ChatMessage> messages,
-        ChatOptions? options,
+        ResolvedChatOptions options,
         RunHandover taken,
         Activity? activity,
         CancellationToken ct)
@@ -681,7 +686,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         DecisionBatch? Waiting,
         IReadOnlyList<ChatMessage>? Answered)> BeginClaimedAsync(
         IEnumerable<ChatMessage> messages,
-        ChatOptions? options,
+        ResolvedChatOptions options,
         StoreId? conversation,
         IReadOnlyList<ConversationEntry> entries,
         RunClaim? claim,
@@ -699,14 +704,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
                 nameof(messages));
         }
 
-        var runOptions = ResolvedChatOptions.From(options ?? new ChatOptions());
-
-        // Options the raw path made itself run with the agent's provider and run options, as its tool loop does
-        if (options is not ResolvedChatOptions)
-        {
-            runOptions.Provider = agent.Provider;
-            runOptions.RunOptions = agent.RunOptions;
-        }
+        var runOptions = (ResolvedChatOptions)options.Clone();
 
         var hasInput = input.Count > 0;
         var document = conversation is null ? DecisionDocument.Empty : await Ledger.LoadAsync(conversation, ct);

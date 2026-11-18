@@ -349,16 +349,28 @@ var response = await client.GetResponseAsync([new ChatMessage(ChatRole.User, "Wh
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/RunningAgents.cs#L137-L142' title='Snippet source file'>snippet source</a> | <a href='#snippet-raw-path' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-The client is the run's whole pipeline, the tool loop and the agent's run options included. It serves concurrent
-calls. Each call takes its iteration limit from the options it is called with, while the error limit and the
-concurrency of tool calls are those of the options the client was created with, so call a client with the options it
-was created for. Disposing it does not dispose the client your provider returned.
+The client is the run's whole pipeline, the tool loop and the agent's run options included, and it keeps the
+options it was created from. It serves concurrent calls, each of which takes its limits and the concurrency of its
+tool calls from the options it runs with. Disposing it does not dispose the client your provider returned.
+
+A library that takes an `IChatClient` calls it without options, or with `ChatOptions` of its own:
+
+- A call without options runs with the options the client was created from.
+- A call with options of its own changes only the conversation id, the response format and the tools it adds. The
+  agent's instructions, model, provider, run options and tools stay, so put what else changes per run, such as the
+  temperature, into the [run settings](#run-settings) you resolve the options with.
+- A call with options resolved for another provider or model throws an `InvalidOperationException`, since the client
+  serves the provider and model it was created for. Create a client from those options instead.
+
+`CreateChatClientAsync` takes only options that `ResolveOptionsAsync` returned, and throws an `ArgumentException` for
+`ChatOptions` your code made.
 
 To run in a conversation, resolve the options on a host with a conversation id, such as
-`support.WithConversationId(chat).ResolveOptionsAsync()`, and every call with those options continues and stores that
-conversation. On a host without one, `ChatOptions.ConversationId` names the conversation instead. It is a string, so
-it names a conversation in your `IConversationStore<string>`, which suits a library that sets it itself. Typeshift
-never sends the conversation's id to the provider.
+`support.WithConversationId(chat).ResolveOptionsAsync()`, and every call on the client continues and stores that
+conversation. A call's own options may name it by the text of the response's `ConversationId`; naming another
+conversation throws an `ArgumentException`. On a host without one, `ChatOptions.ConversationId` names the
+conversation instead. It is a string, so it names a conversation in your `IConversationStore<string>`, which suits a
+library that sets it itself. Typeshift never sends the conversation's id to the provider.
 
 ## Use an agent in Agent Framework
 
@@ -392,16 +404,14 @@ var answer = await agent.RunAsync("Where is my refund?");
 - Resolve the options on a host with a conversation id, as for the raw path, and every run of the agent continues and
   stores that conversation. Typeshift keeps the messages, so an `AgentSession` of Agent Framework holds only the
   conversation's id. Without a conversation id, the session keeps the messages and Typeshift stores none.
+- Agent Framework merges the `ChatOptions` of a run's `ChatClientAgentRunOptions` with the agent's into options of
+  its own, and with a session names the conversation by the id the last response gave. The client runs such options
+  as it runs a library's, over the options it was created from, so the run continues the host's conversation too.
+  What changes per run beyond the conversation, the response format and added tools belongs in the
+  [run settings](#run-settings) you resolve the options with.
 - A run that waits for your app, for an approval or an answer of the user, returns its decisions among the response's
   messages. `answer.AsChatResponse().Decisions` lists them, and you answer them on the host with the conversation id,
   as [Approval and modes](./tool-approval.md#approving-or-rejecting) shows.
-
-::: warning Pass no chat options per run
-Agent Framework merges the `ChatOptions` of a run's `ChatClientAgentRunOptions` with the agent's into options of its
-own, and Typeshift runs those without the host's conversation. Such a run stores nothing, or with a session takes the
-session's id as a `string` conversation id, as the raw path does on a host without one. Put what changes per run into
-the [run settings](#run-settings) you resolve the options with.
-:::
 
 ## Related
 

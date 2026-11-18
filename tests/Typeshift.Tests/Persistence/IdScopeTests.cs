@@ -227,6 +227,92 @@ public class IdScopeTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Raw_Call_With_Options_Of_Its_Own_Its_Conversation_Id_Applies_Over_The_Agents()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        var own = new ChatOptions
+        {
+            ConversationId = Data.Persistence.ChatName
+        };
+
+        // Act
+        await client.GetResponseAsync(Data.Tool.Question, own, Ct);
+
+        // Assert
+        var entries = await Services.GetRequiredService<IConversationStore<string>>()
+            .LoadConversationAsync(Data.Persistence.ChatName, Ct);
+
+        entries.Should().NotBeEmpty();
+        ChatClient.Options[0]!.Instructions.Should().Be(ProbeAgent.Prompt);
+    }
+
+    [Fact]
+    public async Task Given_A_Host_With_A_Conversation_A_Raw_Call_With_Options_Of_Its_Own_Stores_The_Run_In_It()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>().WithConversationId(Data.Persistence.NumberId);
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        // Act
+        await client.GetResponseAsync(Data.Tool.Question, new ChatOptions { Temperature = Data.Agent.Temperature }, Ct);
+
+        // Assert
+        var entries = await Services.GetRequiredService<IConversationStore<int>>()
+            .LoadConversationAsync(Data.Persistence.NumberId, Ct);
+
+        entries.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_A_Host_With_A_Conversation_A_Raw_Call_Naming_The_Id_Its_Response_Gave_Continues_It()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer)).Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>().WithConversationId(Data.Persistence.NumberId);
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        var first = await client.GetResponseAsync(Data.Tool.Question, options, Ct);
+        var own = new ChatOptions { ConversationId = first.ConversationId };
+
+        // Act
+        await client.GetResponseAsync(Data.Agent.FollowUp, own, Ct);
+
+        // Assert
+        ChatClient.Requests[1].Select(message => message.Text)
+            .Should().Equal(Data.Tool.Question, Data.Tool.Answer, Data.Agent.FollowUp);
+    }
+
+    [Fact]
+    public async Task Given_A_Host_With_A_Conversation_A_Raw_Call_Naming_Another_Fails_Naming_Both()
+    {
+        // Arrange
+        var host = Host<ProbeAgent>().WithConversationId(Data.Persistence.NumberId);
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        var own = new ChatOptions { ConversationId = Data.Persistence.ChatName };
+
+        // Act
+        var call = () => client.GetResponseAsync(Data.Tool.Question, own, Ct);
+
+        // Assert
+        await call.Should().ThrowAsync<ArgumentException>().WithMessage(
+            $"This chat client continues the conversation '{Data.Persistence.NumberId}' of the host it was created "
+            + $"on, and the call's options name the conversation '{Data.Persistence.ChatName}'*");
+    }
+
+    [Fact]
     public async Task Given_An_Interrupted_Run_Of_The_Hosts_Conversation_Resuming_Continues_It()
     {
         // Arrange

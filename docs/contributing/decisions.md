@@ -462,7 +462,23 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `ChatMessage` (for images). What a run asks your app comes back in the response as `DecisionRequestContent`s,
   listed by `response.Decisions`, and is answered through `AnswerAsync`, never in an input (D80, D81). The raw path (`ResolveOptionsAsync`, `CreateChatClientAsync`, the client)
   stays; options it resolved remember their settings id, so the conversation id is the only string.
-- **Alternatives:** an own `AgentResponse`, a type to learn for what `ChatResponse` holds.
+- **The raw path's client keeps its options:** the guide offers the raw path to hand the client to a library that
+  takes an `IChatClient`, and such a library calls it without options or with `ChatOptions` of its own. Such a call
+  ran the bare model, the provider's default model without the agent's instructions or tools, and options resolved
+  for another provider sent their model to the provider the client was created for. So `CreateChatClientAsync`
+  takes only options `ResolveOptionsAsync` returned and throws an `ArgumentException` for others, and the client
+  keeps them. A call without options runs with them. A call with options of its own lays over them its conversation
+  id, its response format and the tools it adds; the agent's instructions, model, provider, run options and tools
+  stay, as the agent's settings decide them. Agent Framework passes such options per run, merged from its own.
+  Options resolved for the client's provider and model run whole, their run options too, since the tool loop is
+  built per call; options resolved for another throw an `InvalidOperationException`, until a client is resolved at
+  the model call.
+- **Where:** `Hosting/AgentHost.cs` (`CreateChatClientAsync`), `Hosting/ResolvedChatOptions.cs` (`ForCall`),
+  `Conversations/ConversationChatClient.cs`.
+- **Alternatives:** an own `AgentResponse`, a type to learn for what `ChatResponse` holds. For the raw path: a
+  call's own options in place of the client's, as before, which dropped the agent; every value of a call's own
+  options over the client's, which lets a library's model or temperature pass the agent's settings by; a client
+  resolved for each call's provider, which is the larger change of resolving the client at the model call.
 
 ### D27. Four settings layers
 
@@ -595,8 +611,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   The run's own wrapper above `OpenTelemetryChatClient` hands the provider's client each JSON result as text without
   white space (D45). The gate, checkpoints and compaction sit inside the tool loop, so they act around every model
   call. The mode
-  layer builds a `FunctionInvokingChatClient` per pass, whose iteration limit is that pass's, so calls on one client
-  never share a limit.
+  layer builds a `FunctionInvokingChatClient` per pass, whose iteration limit is that pass's and whose error limit and
+  concurrency are those of the call's options, so calls on one client never share a limit.
   The layers below the conversation's run only inside a run it began: the tool loop taken out of the created client
   with `GetService` and called on its own throws at the gate, where it would store nothing and count no model call.
   A provider's client that runs a tool loop of its own, as one registered with `UseFunctionInvocation()` does, is
@@ -1327,7 +1343,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   is, a run of any of them throws `ObjectDisposedException`, as the owner chose.
 - **The raw path:** `ResolveOptionsAsync()` hands the host's conversation on with the options. On a host without one,
   `ChatOptions.ConversationId`, a string, names a conversation in the `IConversationStore<string>`, the owner's
-  choice: the raw path has no type of its own to parse it into.
+  choice: the raw path has no type of its own to parse it into. On a host with one, a call's own options may name it
+  by its text, as an Agent Framework session names it by the id the response gave, and naming another conversation
+  throws an `ArgumentException` rather than storing the run apart from the host's (D26).
 - **The tracker:** `ConversationTracker<TId>` lists, watches and steers the conversations under ids of `TId`, and the
   container has one for each id type an app asks for, as the owner chose ("Inject `ConversationTracker<int>` etc.; the
   container provides one per id type you ask for"). Beside registered stores, a tracker of an id type no
@@ -1365,8 +1383,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   instance. With `PersistAllConversations`, a run of the host's own that has input, no conversation, no
   `ChatOptions.ConversationId` and no caller starts one: the conversation client gives a copy of the options a new id,
   so options the app reuses never share it. A run without input continues an interrupted run (D50), which a new
-  conversation lacks, so it starts none, and neither does a raw-path call with options the app made, or none, since they
-  carry no host's run. New ids come from `NewConversationIds(create)`, typed like any id (D72), which concurrent runs
+  conversation lacks, so it starts none. A raw-path call with input starts one whatever options it passes, since the
+  client runs every call over the options it was created from (D26). New ids come from `NewConversationIds(create)`, typed like any id (D72), which concurrent runs
   call at once, so it must be thread-safe and never repeat an id. Without it, a new id is a `Guid` of version 7 from
   the injected clock, so it needs an `IConversationStore<Guid>`, or no store at all (D69); an app whose stores keep
   none gets the `InvalidOperationException` of D43, which names `NewConversationIds` too. The raw path names its

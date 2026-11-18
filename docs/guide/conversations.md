@@ -81,8 +81,7 @@ Which runs start a conversation, and where it is kept:
 | Run without a conversation id | Starts a conversation | Kept under |
 |---|---|---|
 | A run of the host, streaming or not | Yes | A new `Guid` of version 7, in your `IConversationStore<Guid>` |
-| A call on the [raw path](./running-agents.md#the-raw-path) with options from `ResolveOptionsAsync` | Yes | The new `Guid`'s text, in your `IConversationStore<string>` |
-| A raw-path call with `ChatOptions` your code created, or with none | No | Nothing is stored |
+| A call on the [raw path](./running-agents.md#the-raw-path), with the client's options, options of its own or none | Yes | The new `Guid`'s text, in your `IConversationStore<string>` |
 | A raw-path call without input, which would continue an interrupted run ([Resuming](#resuming)) | No | Nothing is stored |
 | A sub-agent's run | No | Its caller's conversation |
 

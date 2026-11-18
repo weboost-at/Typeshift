@@ -664,20 +664,91 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_Options_Of_Its_Own_The_Created_Client_Asks_The_Agents_Provider()
+    public async Task Given_Options_Nothing_Resolved_Creating_The_Raw_Client_Throws()
+    {
+        // Arrange
+        var options = new ChatOptions { ModelId = Data.Agent.Model };
+
+        // Act
+        var create = () => Host<ProbeAgent>().CreateChatClientAsync(options, Ct);
+
+        // Assert
+        await create.Should().ThrowAsync<ArgumentException>().WithMessage("*ResolveOptionsAsync returns*");
+    }
+
+    [Fact]
+    public async Task Given_The_Raw_Client_Called_Without_Options_The_Agents_Instructions_And_Tools_Reach_The_Model()
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         var host = Host<ProbeAgent>();
-        var options = new ChatOptions { ModelId = Data.Agent.Model };
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
 
         // Act
-        using var client = await host.CreateChatClientAsync(options, Ct);
-        await client.GetResponseAsync([new(ChatRole.User, Data.Tool.Question)], options, Ct);
+        await client.GetResponseAsync(Data.Tool.Question, cancellationToken: Ct);
 
         // Assert
-        Models.Should().Equal(new ProvidedModel(ProbeAgent.ModelProvider, Data.Agent.Model));
+        ChatClient.Options[0]!.Instructions.Should().Be(ProbeAgent.Prompt);
+        ChatClient.Options[0]!.Tools!.Select(tool => tool.Name).Should().Contain("probe");
+    }
+
+    [Fact]
+    public async Task Given_The_Raw_Client_Called_With_Options_Of_The_Callers_Own_The_Agents_Model_Answers()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProbeAgent>();
+        var options = await host.ResolveOptionsAsync(settings: new() { Model = Data.Agent.Model }, ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        // Act
+        await client.GetResponseAsync(Data.Tool.Question, new ChatOptions { ModelId = ProbeAgent.Model }, Ct);
+
+        // Assert
+        ChatClient.Options[0]!.ModelId.Should().Be(Data.Agent.Model);
+    }
+
+    [Fact]
+    public async Task Given_Options_Resolved_For_Another_Provider_The_Raw_Client_Refuses_Them()
+    {
+        // Arrange
+        var host = Host<ProbeAgent>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var other = await host.ResolveOptionsAsync(settings: new() { Provider = Data.Agent.Provider }, ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        // Act
+        var call = () => client.GetResponseAsync(Data.Tool.Question, other, Ct);
+
+        // Assert
+        await call.Should().ThrowAsync<InvalidOperationException>().WithMessage(
+            $"This chat client serves '{ProbeAgent.Model}' of '{ProbeAgent.ModelProvider}', and the call's options "
+            + $"were resolved for '{ProbeAgent.Model}' of '{Data.Agent.Provider}': create a client from these "
+            + "options with CreateChatClientAsync.");
+    }
+
+    [Fact]
+    public async Task Given_Options_Resolved_With_Another_Error_Limit_The_Created_Client_Runs_With_It()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, "crash", ("message", Data.Agent.Reason)))
+            .Reply(Call(Data.Tool.SecondCallId, "crash", ("message", Data.Agent.Reason)))
+            .Reply(Text(Data.Tool.Answer));
+
+        var host = Host<FailingAgent>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
+        var lenient = await host.ResolveOptionsAsync(settings: new() { MaxConsecutiveToolErrors = 2 }, ct: Ct);
+        using var client = await host.CreateChatClientAsync(options, Ct);
+
+        // Act
+        var response = await client.GetResponseAsync(Data.Tool.Question, lenient, Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
     }
 
     [Fact]

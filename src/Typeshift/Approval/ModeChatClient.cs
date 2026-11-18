@@ -4,9 +4,10 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Typeshift;
 
 // D52, D32: above the tool loop, around each pass of a run. It offers the tools of the run's mode, hands the loop the
-// tools that require approval without the mark the loop would pause on (D81), and gives the pass what is left of the
-// run's limit of model calls
-internal sealed class ModeChatClient(IChatClient inner, Func<int, IChatClient> loop) : DelegatingChatClient(inner)
+// tools that require approval without the mark the loop would pause on (D81), and gives the pass a tool loop of the
+// run's options with what is left of its limit of model calls
+internal sealed class ModeChatClient(IChatClient inner, Func<RunOptions, int, IChatClient> loop)
+    : DelegatingChatClient(inner)
 {
     public override Task<ChatResponse> GetResponseAsync(
         IEnumerable<ChatMessage> messages,
@@ -15,7 +16,8 @@ internal sealed class ModeChatClient(IChatClient inner, Func<int, IChatClient> l
     {
         var resolved = (ResolvedChatOptions)options!;
 
-        return loop(Budget(resolved)).GetResponseAsync(messages, ForMode(resolved), cancellationToken);
+        return loop(resolved.RunOptions, Budget(resolved))
+            .GetResponseAsync(messages, ForMode(resolved), cancellationToken);
     }
 
     public override IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
@@ -25,7 +27,8 @@ internal sealed class ModeChatClient(IChatClient inner, Func<int, IChatClient> l
     {
         var resolved = (ResolvedChatOptions)options!;
 
-        return loop(Budget(resolved)).GetStreamingResponseAsync(messages, ForMode(resolved), cancellationToken);
+        return loop(resolved.RunOptions, Budget(resolved))
+            .GetStreamingResponseAsync(messages, ForMode(resolved), cancellationToken);
     }
 
     // D32: each pass of a run, as steering input or a background answer starts one, gets what is left of the run's

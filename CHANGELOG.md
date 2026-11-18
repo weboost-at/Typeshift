@@ -176,6 +176,15 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
+- **Breaking:** `host.CreateChatClientAsync(options)` takes only options that `ResolveOptionsAsync` returned, and
+  throws an `ArgumentException` for `ChatOptions` your code made, such as `new ChatOptions()`. Create the client from
+  `await host.ResolveOptionsAsync()` instead. The client keeps those options: a call without options runs with them,
+  and a call with `ChatOptions` of its own, as a library that takes an `IChatClient` passes them, changes only the
+  conversation id, the response format and the tools it adds. Before, such a call ran the bare model, the provider's
+  default model without the agent's instructions or tools. With `PersistAllConversations`, such a call starts a
+  conversation as a call with the resolved options does. A call with options resolved for another provider or model
+  throws an `InvalidOperationException`: create a client from those options. Before, it sent their model to the
+  provider the client was created for.
 - `runtime.CreateHost<TAgent>()`, and a run that calls a sub-agent or hands over to an agent, throw an
   `InvalidOperationException` that names an agent no module registered and the likely causes: `AddTypeshift()`
   called only in a library the app references, an abstract agent, a base named through a using alias, a project
@@ -808,6 +817,13 @@ All notable changes to this project are documented here. The format follows
   once the pass has ended, after the tools it returned ran, when it implements `IDisposable` or `IAsyncDisposable`.
   It was never disposed, so a provider that opened a connection leaked one per pass. Register a provider that keeps
   something between passes as scoped; its scope disposes it, as before.
+- A Typeshift agent run in Agent Framework with `ChatClientAgentRunOptions` of its own continues the conversation of
+  the host its options were resolved on. It stored nothing, and with a session it took the session's id as a
+  conversation under a `string` id: a separate conversation in memory, or an `InvalidOperationException` where only
+  stores of another id type are registered.
+- A call on the raw path's client with options resolved with other run options runs with their error limit and the
+  concurrency of their tool calls. It took them from the options the client was created with, and only the
+  iteration limit from the call's.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

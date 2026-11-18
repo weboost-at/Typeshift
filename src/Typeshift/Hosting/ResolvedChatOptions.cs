@@ -75,11 +75,57 @@ internal sealed class ResolvedChatOptions : ChatOptions
 
     private static bool IsBlank(string text) => string.IsNullOrWhiteSpace(text);
 
-    // A clone of the options, keeping what this type remembers
-    public static ResolvedChatOptions From(ChatOptions options) =>
-        options is ResolvedChatOptions resolved
-            ? (ResolvedChatOptions)resolved.Clone()
-            : new ResolvedChatOptions(options);
+    // D26: what a call on the raw path's client runs with, these being the options the client was created from. A
+    // library calls a client without options or with options of its own, which would otherwise run the bare model:
+    // those lay over these their conversation id, their response format and the tools they add, and the agent's
+    // instructions, model, provider, run options and tools stay. Options resolved for this client's provider and
+    // model replace these; for another they would reach a client that serves neither
+    public ResolvedChatOptions ForCall(ChatOptions? options) =>
+        options switch
+        {
+            null => this,
+            ResolvedChatOptions resolved when Equals(resolved.Provider, Provider) && resolved.ModelId == ModelId =>
+                resolved,
+            ResolvedChatOptions resolved => throw new InvalidOperationException(
+                $"This chat client serves {Served(Provider, ModelId)}, and the call's options were resolved for "
+                + $"{Served(resolved.Provider, resolved.ModelId)}: create a client from these options with "
+                + "CreateChatClientAsync."),
+            _ => Under(options)
+        };
+
+    private ResolvedChatOptions Under(ChatOptions options)
+    {
+        // D72: the text of the host's conversation names it too, as an Agent Framework session names it by the id
+        // the host's response gave
+        if (Conversation is { } conversation
+            && options.ConversationId is { } named
+            && named != conversation.ToString())
+        {
+            throw new ArgumentException(
+                $"This chat client continues the conversation '{conversation}' of the host it was created on, and "
+                + $"the call's options name the conversation '{named}': leave ChatOptions.ConversationId out, or "
+                + "create the client on a host without a conversation id, where it names the conversation.",
+                nameof(options));
+        }
+
+        var merged = (ResolvedChatOptions)Clone();
+        merged.ConversationId = options.ConversationId ?? ConversationId;
+        merged.ResponseFormat = options.ResponseFormat ?? ResponseFormat;
+
+        if (options.Tools?.Where(tool => Tools?.Contains(tool) is not true).ToList() is [_, ..] added)
+            merged.Tools = [.. Tools ?? [], .. added];
+
+        return merged;
+    }
+
+    private static string Served(ProviderId? provider, string? model) =>
+        (provider, model) switch
+        {
+            (null, null) => "the default client's own model",
+            (null, _) => $"'{model}' on the default client",
+            (_, null) => $"'{provider}'",
+            _ => $"'{model}' of '{provider}'"
+        };
 
     public override ChatOptions Clone() =>
         new ResolvedChatOptions(this)

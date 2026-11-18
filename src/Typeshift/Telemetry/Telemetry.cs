@@ -15,7 +15,7 @@ internal static class Telemetry
 
     private static readonly ActivitySource Source = new(SourceName);
 
-    public static Activity? StartRun(Agent agent, ChatOptions? options, IChatClient client)
+    public static Activity? StartRun(Agent agent, ResolvedChatOptions options, IChatClient client)
     {
         var activity = Source.StartActivity($"invoke_agent {agent.Name}", ActivityKind.Internal);
         if (activity is null) return null;
@@ -28,18 +28,12 @@ internal static class Telemetry
         activity.SetTag("gen_ai.operation.name", "invoke_agent");
         activity.SetTag("gen_ai.agent.name", agent.Name);
         activity.SetTag("gen_ai.agent.description", agent.Description);
-        activity.SetTag("gen_ai.request.model", options?.ModelId);
+        activity.SetTag("gen_ai.request.model", options.ModelId);
 
         // D77: the provider the run resolved, which the chat spans name only as its client describes itself; none
         // for a run on the default client
-        var provider = options is ResolvedChatOptions resolved ? resolved.Provider : agent.Provider;
-        activity.SetTag("typeshift.provider", provider?.ToString());
-
-        activity.SetTag(
-            "gen_ai.conversation.id",
-            options is ResolvedChatOptions { Conversation: { } conversation }
-                ? conversation.ToString()
-                : options?.ConversationId);
+        activity.SetTag("typeshift.provider", options.Provider?.ToString());
+        activity.SetTag("gen_ai.conversation.id", ConversationChatClient.GetConversation(options)?.ToString());
 
         return activity;
     }

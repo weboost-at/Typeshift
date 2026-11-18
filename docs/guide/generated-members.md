@@ -187,12 +187,16 @@ an `ISettingsStore<TId>` for a settings id, an `IConversationStore<TId>` for a c
 ([Registering clients](./models.md#registering-clients)), and wraps it in the run's pipeline, with the agent's run
 options and the tool loop.
 
-Calling the client with those options runs and stores like `RunAsync`, in the conversation of the host that resolved
-them. On options of a host without a conversation id, `ChatOptions.ConversationId` can name one, a `string` id in the
-`IConversationStore<string>`. Disposing the client does not dispose the one your provider returned.
+Calling the client runs and stores like `RunAsync`, in the conversation of the host that resolved the options. The
+client keeps them: a call without options runs with them, and a call with options of its own changes only the
+conversation id, the response format and the tools it adds. On options of a host without a conversation id,
+`ChatOptions.ConversationId` can name one, a `string` id in the `IConversationStore<string>`. Disposing the client
+does not dispose the one your provider returned.
 
-It throws an `InvalidOperationException` when no client is registered for the options' provider and model, and none
-for every agent.
+It throws an `ArgumentException` for options `ResolveOptionsAsync` did not return, and an
+`InvalidOperationException` when no client is registered for the options' provider and model, and none for every
+agent. The client throws an `InvalidOperationException` for a call with options resolved for another provider or
+model.
 
 ### `LoadConversationAsync`
 

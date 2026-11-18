@@ -19,7 +19,7 @@ public partial class FailingToolset : Toolset
     public static string Refuse(string hint) => throw new ToolException(hint);
 }
 
-// One failed round of tool calls is allowed, the second in a row ends the run
+// One failed round of tool calls is allowed, the second in a row ends the run, unless the run's settings allow more
 public partial class FailingAgent : Agent
 {
     public FailingAgent()
@@ -28,7 +28,8 @@ public partial class FailingAgent : Agent
             .WithModel(ProbeAgent.ModelProvider, ProbeAgent.Model);
 
         WithRunOptions()
-            .WithMaxConsecutiveToolErrors(1);
+            .WithMaxConsecutiveToolErrors(1)
+            .Configurable(r => r.MaxConsecutiveToolErrors);
 
         UseToolset<FailingToolset>();
     }

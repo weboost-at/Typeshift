@@ -153,13 +153,14 @@ unless it is an object of properties.
      providers (D31), the mode (D52), and author names on every message (D26);
    - `ToolLoop`, a `FunctionInvokingChatClient` that writes one fixed sentence as the result of a call whose
      exception is no `ToolException` (D53), with the run options, the scope's services, `exit_plan_mode` and, as its
-     function invoker, the tool gate with the tool middleware behind it, built anew for each pass with what is left
-     of the run's limit, so one client serves concurrent calls;
+     function invoker, the tool gate with the tool middleware behind it, built anew for each pass with the call's
+     run options and what is left of the run's limit, so one client serves concurrent calls;
    - the decision gate (D81), the checkpoints, unique call ids (D59), compaction (D32), and the provider's client,
      instrumented (D36), behind a wrapper that never disposes it (D29) and one that hands it each JSON result as
      text (D45).
 5. The options are a `ChatOptions` subclass that remembers the run options, so the raw path's client gets them too.
-   A host's run finds the claim and the entries it took in them.
+   A host's run finds the claim and the entries it took in them. The client keeps the options it was created from,
+   and a call with options of its own, or none, runs over them (`ResolvedChatOptions.ForCall`, D26).
 
 ## Storage
 

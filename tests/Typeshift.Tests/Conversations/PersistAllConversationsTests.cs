@@ -217,25 +217,26 @@ public class PersistAllConversationsTests : MultiAgentTestBase
     }
 
     [Fact]
-    public async Task Given_Every_Conversation_Kept_A_Raw_Call_With_Options_Of_Its_Own_Starts_No_Conversation()
+    public async Task Given_Every_Conversation_Kept_A_Raw_Call_With_Options_Of_Its_Own_Starts_One()
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
 
-        var host = Host<ProbeAgent>();
+        await using var provider = KeepingStringConversations();
+        await using var scope = provider.CreateAsyncScope();
 
-        var options = new ChatOptions
-        {
-            ModelId = ProbeAgent.Model
-        };
-
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
+        var options = await host.ResolveOptionsAsync(ct: Ct);
         using var client = await host.CreateChatClientAsync(options, Ct);
 
         // Act
-        await client.GetResponseAsync(Data.Tool.Question, options, Ct);
+        var response = await client.GetResponseAsync(Data.Tool.Question, new ChatOptions(), Ct);
 
         // Assert
-        Store.Conversations.Should().BeEmpty();
+        var entries = await provider.GetRequiredService<IConversationStore<string>>()
+            .LoadConversationAsync(response.ConversationId!, Ct);
+
+        entries.Should().NotBeEmpty();
     }
 
     [Fact]

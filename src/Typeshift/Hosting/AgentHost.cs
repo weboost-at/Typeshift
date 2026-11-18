@@ -736,10 +736,19 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// name a provider it takes the client from the <see cref="IChatClientProvider{TProviderId}"/> of the provider's
     /// type, or else the <see cref="IChatClient"/> registered under the provider. For options that name none it
     /// takes the default client, the one registered for every agent. It wraps the client in the tool loop.
+    /// The client keeps the options: a call without options runs with them, and a call with options of its own, as a
+    /// library passes them, changes only the conversation id, the response format and the tools it adds. A call with
+    /// options resolved for another provider or model throws.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/running-agents#the-raw-path">The raw path</see>.
     /// </summary>
-    /// <param name="options">The resolved options; call the client with them.</param>
+    /// <param name="options">The options <c>ResolveOptionsAsync</c> resolved.</param>
     /// <param name="ct">Cancels the creation.</param>
     /// <returns>The client; disposing it leaves the provider's client alone.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="options"/> is null.</exception>
+    /// <exception cref="ArgumentException">
+    /// <c>ResolveOptionsAsync</c> did not return <paramref name="options"/>, as for <c>ChatOptions</c> your code made.
+    /// </exception>
     /// <exception cref="InvalidOperationException">
     /// No chat client serves the options: they name a provider nothing is registered for, or one without a model
     /// that an <c>IChatClientProvider</c> serves, or they name no provider and no default client is registered. The
@@ -749,9 +758,19 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// </exception>
     public async Task<IChatClient> CreateChatClientAsync(ChatOptions options, CancellationToken ct = default)
     {
-        var resolved = options as ResolvedChatOptions;
-        var provider = resolved is null ? Agent.Provider : resolved.Provider;
-        var model = options.ModelId;
+        ArgumentNullException.ThrowIfNull(options);
+
+        // D26: the client keeps the options, which hold the agent's provider, run options and settings
+        if (options is not ResolvedChatOptions resolved)
+        {
+            throw new ArgumentException(
+                $"The options were not resolved for the agent '{Agent.Name}': create the client from the options "
+                + "ResolveOptionsAsync returns, which hold the agent's instructions, tools, provider and run options.",
+                nameof(options));
+        }
+
+        var provider = resolved.Provider;
+        var model = resolved.ModelId;
 
         var client = await ChatClients.GetAsync(_services, $"the agent '{Agent.Name}'", provider, model, ct);
 
@@ -765,11 +784,11 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
                 + "tool middleware and the run's limits in it: register the client without UseFunctionInvocation().");
         }
 
-        var run = resolved?.RunOptions ?? Agent.RunOptions;
+        var run = resolved.RunOptions;
 
         // D63: a summary provider nothing serves fails the run here, where it has stored nothing, and not as a
         // warning once the history is compacted
-        if (run.MaxInputTokens is not null && resolved?.SummaryProvider is { } summary)
+        if (run.MaxInputTokens is not null && resolved.SummaryProvider is { } summary)
         {
             var summarized = $"the summary of the agent '{Agent.Name}'";
             ChatClients.EnsureServed(_services, summarized, summary, run.SummaryModel ?? model);
@@ -792,21 +811,22 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
             model,
             provider,
             client.GetType().Name,
-            resolved?.Layers ?? "the options it was given");
+            resolved.Layers);
 
-        var mode = new ModeChatClient(Loop(run.MaxToolIterations), Loop);
+        var mode = new ModeChatClient(Loop(run, run.MaxToolIterations), Loop);
         var context = new ContextChatClient(mode);
 
-        return new ConversationChatClient(new RunMiddlewareChatClient(context), Agent, _services);
+        return new ConversationChatClient(new RunMiddlewareChatClient(context), Agent, _services, resolved);
 
-        // D32: a tool loop per call with that call's iteration limit, so concurrent calls never share one
-        IChatClient Loop(int iterations)
+        // D32: a tool loop per call with that call's run options and what is left of its limit, so concurrent calls
+        // never share one
+        IChatClient Loop(RunOptions limits, int iterations)
         {
             var loop = new ToolLoop(decisions, loggers, _services)
             {
                 MaximumIterationsPerRequest = iterations,
-                MaximumConsecutiveErrorsPerRequest = run.MaxConsecutiveToolErrors,
-                AllowConcurrentInvocation = run.ConcurrentToolCalls,
+                MaximumConsecutiveErrorsPerRequest = limits.MaxConsecutiveToolErrors,
+                AllowConcurrentInvocation = limits.ConcurrentToolCalls,
 
                 // D53: the model fixes a failed call only when it reads why it failed, which the loop passes on for
                 // a message written for the model
