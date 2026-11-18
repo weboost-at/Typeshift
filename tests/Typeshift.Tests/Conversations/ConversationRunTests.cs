@@ -1375,6 +1375,25 @@ public class ConversationRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Stream_That_Fails_After_Text_A_Watcher_Still_Receives_The_Text_That_Waited()
+    {
+        // Arrange
+        ChatClient.Reply(Text("a"), Text("b"), new InvalidOperationException(Data.Agent.Reason));
+
+        using var watching = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        await using var watch = Tracker.WatchAsync(Data.Agent.ConversationId, watching.Token).GetAsyncEnumerator(Ct);
+        var first = watch.MoveNextAsync();
+
+        // Act
+        await Record.ExceptionAsync(() => RunAsync(Data.Tool.Question, streaming: true, Ct));
+
+        // Assert
+        (await first).Should().BeTrue();
+        (await watch.MoveNextAsync()).Should().BeTrue();
+        watch.Current.Text.Should().Be("b");
+    }
+
+    [Fact]
     public async Task Given_Text_Within_The_Interval_A_Watcher_Receives_It_Merged_Ahead_Of_The_Next_Call()
     {
         // Arrange

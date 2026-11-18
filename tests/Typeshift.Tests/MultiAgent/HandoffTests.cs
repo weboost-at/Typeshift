@@ -640,6 +640,24 @@ public class HandoffTests : MultiAgentTestBase
         ResultsOf(response.Messages).Keys.Should().BeEquivalentTo(Data.Tool.CallId, Data.Tool.SecondCallId);
     }
 
+    [Fact]
+    public async Task Given_A_Call_The_Provider_Ran_Itself_Next_To_A_Handoff_The_Handoff_Answers_Only_Its_Own()
+    {
+        // Arrange
+        var ran = new FunctionCallContent(Data.Tool.CallId, "web_search") { InformationalOnly = true };
+        var handoff = Call(Data.Tool.SecondCallId, "handoff_to_back_agent");
+
+        ChatClient
+            .Reply(Calls(new ChatResponseUpdate(ChatRole.Assistant, [ran]), handoff))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await RunAsync(Data.Tool.Question);
+
+        // Assert
+        ResultsOf(response.Messages).Keys.Should().Equal(Data.Tool.SecondCallId);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
