@@ -7,18 +7,19 @@ public static class Allocations
     // Tests that measure run beside no other test, whose work on the same thread would count as theirs
     public const string Collection = "Allocations";
 
+    // Counted only when the work finished before it returned: work that waited ran in part on other threads, which
+    // the count misses, while this thread was free to run other work, which it would count
     public static async Task<long> OfAsync(Func<Task> work)
     {
-        var thread = Environment.CurrentManagedThreadId;
         var before = GC.GetAllocatedBytesForCurrentThread();
-
-        await work();
-
+        var running = work();
         var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
-        return Environment.CurrentManagedThreadId == thread
-            ? allocated
-            : throw new InvalidOperationException("The work left its thread, so its allocations were not counted.");
+        if (!running.IsCompleted)
+            throw new InvalidOperationException("The work waited, so its allocations were not counted on one thread.");
+
+        await running;
+        return allocated;
     }
 }
 

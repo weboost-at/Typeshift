@@ -16,11 +16,9 @@ public sealed class DecisionTelemetryTests : QuestionTestBase
 
     private const string Outcome = "typeshift.decision.outcome";
 
-    // One listener for every test of the class, listening before the first test runs; each test finds its runs by
-    // its conversation
-    private static readonly RecordedActivities Activities;
-
-    static DecisionTelemetryTests() => Activities = new RecordedActivities();
+    // A listener of the test's own, from its constructor to its end; tests running alongside record into it too, so
+    // each test finds its runs by its conversation
+    private RecordedActivities Activities { get; } = new();
 
     [Fact]
     public async Task Given_A_Run_That_Asks_Its_Span_Counts_The_Decisions_And_Carries_An_Event_For_Each()
@@ -253,6 +251,12 @@ public sealed class DecisionTelemetryTests : QuestionTestBase
     }
 
     // The values of one tag across a span's events of a name, in the order the events were added
+    protected override ValueTask DisposeCoreAsync()
+    {
+        Activities.Dispose();
+        return ValueTask.CompletedTask;
+    }
+
     private static IEnumerable<object?> Tags(Activity run, string @event, string tag) =>
         run.Events
             .Where(added => added.Name == @event)

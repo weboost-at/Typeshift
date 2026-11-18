@@ -21,11 +21,9 @@ public sealed class TelemetryTests : AgentTestBase
     // What a tool span carries only with message capture
     private static readonly string[] ToolContent = ["gen_ai.tool.call.arguments", "gen_ai.tool.call.result"];
 
-    // One listener for every test of the class, listening before the first test runs; each test finds its run by
-    // its conversation
-    private static readonly RecordedActivities Activities;
-
-    static TelemetryTests() => Activities = new RecordedActivities();
+    // A listener of the test's own, from its constructor to its end; tests running alongside record into it too, so
+    // each test finds its run by its conversation
+    private RecordedActivities Activities { get; } = new();
 
     [Fact]
     public async Task Given_A_Run_It_Is_An_Invoke_Agent_Span_Around_Its_Chat_And_Tool_Spans()
@@ -681,6 +679,12 @@ public sealed class TelemetryTests : AgentTestBase
 
         // Assert
         later.Select(run => run.GetTagItem("typeshift.provider")).Should().Equal(BackOfficeAgent.ModelProvider);
+    }
+
+    protected override ValueTask DisposeCoreAsync()
+    {
+        Activities.Dispose();
+        return ValueTask.CompletedTask;
     }
 
     private Task<ChatResponse> RunAsync() =>
