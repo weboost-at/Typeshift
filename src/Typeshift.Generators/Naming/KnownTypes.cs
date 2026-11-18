@@ -18,6 +18,8 @@ internal static class KnownTypes
 
     public const string Agent = "Typeshift.Agent";
 
+    public const string AgentHost = "Typeshift.AgentHost`1";
+
     public const string ToolsetUse = "Typeshift.ToolsetUse`1";
 
     public const string ToolInclusion = "Typeshift.ToolInclusion`1";

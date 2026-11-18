@@ -60,7 +60,9 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
         Descriptors.ConfigurableModeBesideApproval,
         Descriptors.ModelFilledParameter,
         Descriptors.UnusableValue,
-        Descriptors.NotIntercepted
+        Descriptors.NotIntercepted,
+        Descriptors.DroppedHostCopy,
+        Descriptors.DisposedHostThatLivesOn
     ];
 
     public override void Initialize(AnalysisContext context)
@@ -282,6 +284,12 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
             return;
         }
 
+        if (IsHostCopy(target))
+        {
+            AnalyzeHostCopy(context, invocation);
+            return;
+        }
+
         // D77: a chat client provider may serve providers of any type, but it must serve some. A type parameter is
         // its caller's to check, since its interfaces are unknown here, and a type that does not resolve the compiler's
         if (target is { Name: "WithChatClientProvider", TypeArguments.Length: 1 }
@@ -338,6 +346,90 @@ public sealed class TypeshiftAnalyzer : DiagnosticAnalyzer
                 "declaration chain"));
         }
     }
+
+    // D72: the copy carries the id, and the host it is called on stays as it was
+    private static bool IsHostCopy(IMethodSymbol method) =>
+        method.Name is "WithSettingsId" or "WithConversationId" && method.ContainingType.Is(KnownTypes.AgentHost);
+
+    private static void AnalyzeHostCopy(OperationAnalysisContext context, IInvocationOperation copy)
+    {
+        if (Names.IsGenerated(copy.Syntax.SyntaxTree)) return;
+
+        if (copy.Parent is IExpressionStatementOperation)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                Descriptors.DroppedHostCopy,
+                copy.Syntax.GetLocation(),
+                copy.TargetMethod.Name));
+
+            return;
+        }
+
+        // D76: a copy disposes what its host would, so runtime.Agent<T>().WithConversationId(id) under a using ends
+        // the unit of work it began. A host the code holds, one of an outer block, a parameter, a field or a
+        // property, may run after this using, in a loop's next round for example, and then finds its scope disposed
+        if (GetDisposingUsing(copy) is { } disposing
+            && GetHostOfCopies(copy) is { } host
+            && !EndsWith(host, disposing, context.CancellationToken))
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                Descriptors.DisposedHostThatLivesOn,
+                copy.Syntax.GetLocation(),
+                host.Name));
+        }
+    }
+
+    // The using that disposes a value: `using var chat = ...;`, `using (var chat = ...)` or `using (...)`
+    private static IOperation? GetDisposingUsing(IOperation value)
+    {
+        var parent = value.Parent;
+        while (parent is IConversionOperation) parent = parent.Parent;
+
+        if (parent is IUsingOperation) return parent;
+        if (parent is not IVariableInitializerOperation initializer) return null;
+
+        // The initializer of a declarator, in a declaration, in the group a using holds
+        var holder = initializer.Parent?.Parent?.Parent?.Parent;
+        return holder is IUsingOperation or IUsingDeclarationOperation ? holder : null;
+    }
+
+    // The host a chain of copies starts from, when the code holds it; a host a call returns is the copy's alone
+    private static ISymbol? GetHostOfCopies(IInvocationOperation copy)
+    {
+        var receiver = ConstructorChains.Unwrap(copy.Instance!);
+
+        while (receiver is IInvocationOperation inner && IsHostCopy(inner.TargetMethod))
+        {
+            receiver = ConstructorChains.Unwrap(inner.Instance!);
+        }
+
+        return receiver switch
+        {
+            ILocalReferenceOperation { Local: var local } => local,
+            IParameterReferenceOperation { Parameter: var parameter } => parameter,
+            IFieldReferenceOperation { Field: var field } => field,
+            IPropertyReferenceOperation { Property: var property } => property,
+            _ => null
+        };
+    }
+
+    // `using var chat = support.WithConversationId(id);` in the block that declares support, or in the body of the
+    // using that does, disposes the copy where support's own scope ends
+    private static bool EndsWith(ISymbol host, IOperation disposing, CancellationToken ct) =>
+        disposing is IUsingDeclarationOperation
+        && host is ILocalSymbol
+        && host.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax(ct) is { } declared
+        && GetStatementList(disposing.Syntax) is { } list
+        && (GetStatementList(declared) == list
+            || declared.Parent?.Parent is UsingStatementSyntax { Statement: var body } && body == list);
+
+    // The block, switch section or file whose statements hold a declaration
+    private static SyntaxNode? GetStatementList(SyntaxNode node) =>
+        node.FirstAncestorOrSelf<StatementSyntax>()?.Parent switch
+        {
+            GlobalStatementSyntax global => global.Parent,
+            var list => list
+        };
 
     // var tool = AddTool(Echo): the declaration ends in no statement of its own and is reported for it, as TSH015 in
     // a constructor and as TSH014 outside one, so a call on the variable is the same mistake

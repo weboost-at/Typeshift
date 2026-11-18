@@ -2858,6 +2858,77 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Dropped_Host_Copy_TSH041_Is_Reported_On_The_Call()
+    {
+        // Act
+        var run = Run(DiagnosticSources.DroppedHostCopy);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH041",
+            DiagnosticSeverity.Error,
+            "support.WithSettingsId(customer)",
+            message: "'WithSettingsId' returns a copy of the host with the id and leaves the host it is called on as "
+                + "it was, so the id is lost here: run the copy, as in host.WithSettingsId(id).RunAsync(input), or "
+                + "keep it in a variable");
+    }
+
+    [Fact]
+    public void Given_A_Dropped_Copy_With_Two_Ids_TSH041_Is_Reported_Once_On_The_Chain()
+    {
+        // Act
+        var run = Run(DiagnosticSources.DroppedHostCopyOfTwoIds);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH041",
+            DiagnosticSeverity.Error,
+            "support.WithSettingsId(customer).WithConversationId(chat)");
+    }
+
+    [Fact]
+    public void Given_A_Copy_Disposed_In_A_Loop_Over_Its_Host_TSH042_Is_Reported_On_The_Copy()
+    {
+        // Act
+        var run = Run(DiagnosticSources.DisposedCopyInALoop);
+
+        // Assert
+        run.Assert.Reports(
+            "TSH042",
+            DiagnosticSeverity.Warning,
+            "support.WithConversationId(ticket)",
+            message: "This using disposes 'support' with its copy, and a host from runtime.Agent<T>() runs no more "
+                + "once it is: take the copy without using, and dispose 'support' where its work ends");
+    }
+
+    [Theory]
+    [InlineData(
+        nameof(DiagnosticSources.DisposedCopyOfAField),
+        "_support.WithSettingsId(7).WithConversationId(ticket)")]
+    [InlineData(nameof(DiagnosticSources.DisposedCopyOfAParameter), "support.WithConversationId(ticket)")]
+    public void Given_A_Disposed_Copy_Of_A_Field_Or_Parameter_TSH042_Is_Reported_On_It(string mistake, string copy)
+    {
+        // Arrange
+        var source = SourceCatalogs.Read(typeof(DiagnosticSources), mistake);
+
+        // Act
+        var run = Run(source);
+
+        // Assert
+        run.Assert.Reports("TSH042", DiagnosticSeverity.Warning, copy);
+    }
+
+    [Fact]
+    public void Given_Host_Copies_That_Are_Run_Kept_Or_Disposed_With_Their_Host_TSH041_And_TSH042_Are_Not_Reported()
+    {
+        // Act
+        var run = Run(ShapeSources.HostCopiesThatAreUsed);
+
+        // Assert
+        run.Assert.DoesNotReport("TSH042");
+    }
+
+    [Fact]
     public void Given_A_Language_Version_Below_14_TSH031_Is_Reported_On_The_Compilation()
     {
         // Act

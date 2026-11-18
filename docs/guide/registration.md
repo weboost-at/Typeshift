@@ -170,7 +170,8 @@ Console.WriteLine($"{research.Agent.Name}: {answer.Text}");
 - A copy of a host, from `WithSettingsId` or `WithConversationId`, runs in the host's scope and disposes it as the
   host would. So `await using var chat = runtime.Agent<SupportAgent>().WithConversationId(ticket);` takes the host,
   its id and its disposal in one line. Once the host or one of its copies is disposed, a run of any of them throws an
-  `ObjectDisposedException`.
+  `ObjectDisposedException`, so a `using` on the copy of a host your code still holds, in a loop for example, is
+  [TSH042](./diagnostics.md#tsh042).
 
 The chain's `Services` are the service collection of the container the runtime builds. Register there what the
 chain has no call for, such as logging and the services your tools resolve:

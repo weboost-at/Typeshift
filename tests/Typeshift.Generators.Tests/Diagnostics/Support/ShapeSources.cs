@@ -2174,6 +2174,58 @@ public static class ShapeSources
         }
         """;
 
+    // D72, D76: copies that are run, kept, or disposed where their host's work ends
+    public const string HostCopiesThatAreUsed =
+        """
+        using System.Collections.Generic;
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class SupportAgent : Agent
+        {
+            public SupportAgent() => WithInstructions("Answer questions about refunds.");
+        }
+
+        internal sealed class Desk(TypeshiftRuntime runtime, AgentHost<SupportAgent> support)
+        {
+            public async Task<string> AnswerAsync(string question, int customer)
+            {
+                var answer = await support.WithSettingsId(customer).RunAsync(question);
+                var chat = support.WithConversationId(question);
+                await chat.RunAsync(question);
+
+                return answer.Text;
+            }
+
+            public async Task FollowUpAsync(IEnumerable<string> tickets)
+            {
+                foreach (var ticket in tickets)
+                {
+                    await using var chat = runtime.Agent<SupportAgent>().WithSettingsId(7).WithConversationId(ticket);
+                    await chat.RunAsync("Is the ticket solved?");
+                }
+            }
+
+            public async Task DigestAsync(string ticket)
+            {
+                await using var job = runtime.Agent<SupportAgent>();
+                await using var chat = job.WithConversationId(ticket);
+                await chat.RunAsync("Summarize the ticket.");
+            }
+
+            public async Task ReviewAsync(string ticket)
+            {
+                using (var job = runtime.Agent<SupportAgent>())
+                {
+                    using var chat = job.WithConversationId(ticket);
+                    await chat.RunAsync("Review the ticket.");
+                }
+            }
+        }
+        """;
+
     // Methods of the project's own that are named like the library's, called in every way the analyzer has a rule
     // for when the library's are: in a local function, on a variable, outside a constructor
     public const string MethodsNamedLikeTheLibrarys =

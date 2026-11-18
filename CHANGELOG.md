@@ -112,6 +112,13 @@ All notable changes to this project are documented here. The format follows
   `ConversationEntry.Provider` keeps it as text on each model response, next to `Model`. A run on the default client
   names none. Entries stored before load as they are, and a store that keeps an entry's JSON needs no change; one
   that maps an entry's members to columns of its own adds a column to keep the provider.
+- TSH041 reports a `WithSettingsId(id)` or `WithConversationId(id)` whose copy goes nowhere, such as
+  `support.WithSettingsId(customer);` as a statement of its own. The call leaves the host as it was, so the next run
+  had no id: it stored and resumed no conversation, and its settings members changed the agent's own settings, which
+  every customer's runs apply.
+- TSH042 warns about a `using` on a copy of a host that your code still holds, in an outer block, a field, a property
+  or a parameter. Disposing the copy disposes the host's scope, so the host fails in a loop's next round, for
+  example. `await using var chat = runtime.Agent<SupportAgent>().WithConversationId(ticket);` is not reported.
 
 ### Changed
 

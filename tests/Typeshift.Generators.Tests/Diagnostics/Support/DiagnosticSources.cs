@@ -3715,6 +3715,131 @@ public static class DiagnosticSources
         }
         """;
 
+    // D72: the copy carries the id, and the host it is called on stays as it was
+    public const string DroppedHostCopy =
+        """
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class SupportAgent : Agent
+        {
+            public SupportAgent() => WithInstructions("Answer questions about refunds.");
+        }
+
+        // begin-snippet: tsh041
+        internal sealed class RefundDesk(AgentHost<SupportAgent> support)
+        {
+            public async Task<string> AnswerAsync(string question, int customer)
+            {
+                support.WithSettingsId(customer);
+
+                var answer = await support.RunAsync(question);
+                return answer.Text;
+            }
+        }
+        // end-snippet
+        """;
+
+    public const string DroppedHostCopyOfTwoIds =
+        """
+        using System;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class SupportAgent : Agent
+        {
+            public SupportAgent() => WithInstructions("Answer questions about refunds.");
+        }
+
+        internal static class Desk
+        {
+            public static void Open(AgentHost<SupportAgent> support, int customer, Guid chat) =>
+                support.WithSettingsId(customer).WithConversationId(chat);
+        }
+        """;
+
+    // D76: the copy disposes the scope of the host from the runtime, which the loop's next round runs in
+    public const string DisposedCopyInALoop =
+        """
+        using System.Collections.Generic;
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class SupportAgent : Agent
+        {
+            public SupportAgent() => WithInstructions("Answer questions about refunds.");
+        }
+
+        // begin-snippet: tsh042
+        internal sealed class TicketFollowUp(TypeshiftRuntime runtime)
+        {
+            public async Task FollowUpAsync(IEnumerable<string> tickets)
+            {
+                await using var support = runtime.Agent<SupportAgent>();
+
+                foreach (var ticket in tickets)
+                {
+                    await using var chat = support.WithConversationId(ticket);
+                    await chat.RunAsync("Is the ticket solved?");
+                }
+            }
+        }
+        // end-snippet
+        """;
+
+    public const string DisposedCopyOfAField =
+        """
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class SupportAgent : Agent
+        {
+            public SupportAgent() => WithInstructions("Answer questions about refunds.");
+        }
+
+        internal sealed class Desk(TypeshiftRuntime runtime)
+        {
+            private readonly AgentHost<SupportAgent> _support = runtime.Agent<SupportAgent>();
+
+            public async Task AnswerAsync(string ticket)
+            {
+                using (var chat = _support.WithSettingsId(7).WithConversationId(ticket))
+                {
+                    await chat.RunAsync("Is the ticket solved?");
+                }
+            }
+        }
+        """;
+
+    public const string DisposedCopyOfAParameter =
+        """
+        using System.Threading.Tasks;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class SupportAgent : Agent
+        {
+            public SupportAgent() => WithInstructions("Answer questions about refunds.");
+        }
+
+        internal static class Desk
+        {
+            public static async Task AnswerAsync(AgentHost<SupportAgent> support, string ticket)
+            {
+                await using var chat = support.WithConversationId(ticket);
+                await chat.RunAsync("Is the ticket solved?");
+            }
+        }
+        """;
+
     // No toolset, no agent and no AddTypeshift(): nothing the generator writes code for
     public const string NothingOfTypeshift =
         """

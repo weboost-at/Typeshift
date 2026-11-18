@@ -103,7 +103,9 @@ in code, and each id's type picks the store of that type:
 
 Each call returns a copy of the host with the id, in the host's scope, so
 `support.WithSettingsId(42).WithConversationId(chat).RunAsync(input)` runs with both, and `support` itself keeps none.
-A copy is a small object, so make one wherever your code has the ids, such as in each request. Disposing it disposes
+A call whose copy goes nowhere, `support.WithSettingsId(42);` as a statement of its own, is
+[TSH041](./diagnostics.md#tsh041). A copy is a small object, so make one wherever your code has the ids, such as in
+each request. Disposing it disposes
 what disposing `support` would, which for a host from the runtime is its scope
 ([The runtime](./registration.md#the-runtime)). Ids of the same value and different types are different ids: a
 conversation under 5 as an `int` is not the one under 5 as a `long`.
@@ -138,6 +140,13 @@ var everyRun = await research.RunAsync("Graz");
 `LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)` load and save them, and
 `ConfigureAsync(configure)` retries on a conflict, as the sections below show. On a host from
 `WithSettingsId(id)`, the same three members load and save the settings under the id instead.
+
+::: warning Settings without an id are every run's defaults
+On a host without a settings id, these members change the agent's own settings, which the runs of every customer
+apply. That is what a page for the app's defaults needs, and nothing in Typeshift refuses it, so an endpoint that
+saves posted settings decides who may change the defaults, for example by the user's role, and saves a customer's
+own under the customer's id.
+:::
 
 ### Keep them in a file
 

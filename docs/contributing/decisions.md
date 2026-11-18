@@ -936,8 +936,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   implements the interface, and `WithStore<T>()` registers it as it does the other two, the memory store only while
   no other store keeps them (D38). A run loads them only
   when a store of them is registered, so a store without them leaves runs as they were. Loading or saving them
-  without one throws, naming `IAgentSettingsStore`. They have paths of their own down to the store, and the members
-  that take an id throw on a null one, so a missing id never writes every id's defaults.
+  without one throws, naming `IAgentSettingsStore`. They have paths of their own down to the store. Since D72 no
+  member takes an id: the settings members of a host change the agent's own settings unless the host came from
+  `WithSettingsId`, and TSH041 reports a `WithSettingsId` whose copy is dropped, the slip that would reach them
+  unmeant. Asked whether a host without a settings id should refuse them, the owner kept them: "Settings without an
+  ID can be seen as the default global settings, configurable at runtime. Developers may or may not block access
+  based on authentication state of their user."
 - **Where:** `Storage/IAgentSettingsStore.cs`, `Storage/StoreAccess.cs`, `Storage/StoreExtensions.cs`,
   `Storage/InMemoryTypeshiftStore.cs`, `Hosting/AgentHost.cs`, `Generated/AgentRuns.cs`,
   `Generated/ModuleRegistration.cs`, `DependencyInjection/TypeshiftBuilder.cs`, `Emitting/AgentEmitter.cs`,
@@ -947,7 +951,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   tell from a real one; two more methods on `ITypeshiftStore<TId>`, which every store implementing it would have to
   add; settings without an id on `ISettingsStore<TId>`, which ties them to an id type; a null settings id for them,
   which a missing id of a reference type would reach; members of other names, such as `LoadOwnSettingsAsync`, which
-  keep `LoadSettingsAsync(default)` meaning an id but give one record two sets of names.
+  keep `LoadSettingsAsync(default)` meaning an id but give one record two sets of names; settings members that throw
+  on a host without a settings id, or an option that makes them throw, which the owner turned down, since who may
+  change the defaults is the app's to decide.
 
 ### D67. A store of agents' own settings in files
 
@@ -1368,7 +1374,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `AgentHost<TAgent>` from its own scope. Your app lets a host's runs and streams finish before it disposes the host,
   and a run that ends awaits the background sub-agents it stopped (D33), so none works on in a disposed scope.
 - **Where:** `Hosting/TypeshiftRuntime.cs`, `Hosting/AgentHost.cs`, `Agents/Agent.cs`,
-  `Generated/ModuleRegistration.cs`.
+  `Generated/ModuleRegistration.cs`, `Analysis/TypeshiftAnalyzer.cs`.
 - **Alternatives:** a separate `AgentScope` object that holds a scope and hands out hosts, which the owner turned
   down; one scope for the runtime's lifetime, D75's first design, whose scoped services, such as the chat client
   provider and what tools resolve, every run shared, concurrent ones included.

@@ -50,6 +50,8 @@ so you fix it there instead of debugging a compiler error inside generated code.
 | [TSH038](#tsh038) | Warning | Model fills a settings or service parameter | While you type |
 | [TSH039](#tsh039) | Error | Declared value cannot be used | While you type |
 | [TSH040](#tsh040) | Error | Call the generator cannot intercept | While you type |
+| [TSH041](#tsh041) | Error | Copy of a host is dropped | While you type |
+| [TSH042](#tsh042) | Warning | Copy of a host that lives on is disposed | While you type |
 
 The last column says when an editor shows a diagnostic. "On build" marks a check that compares classes or
 projects: an editor runs it for a build or for an analysis of the whole solution, so its squiggle appears after you
@@ -1165,6 +1167,65 @@ The analyzer reports these spellings:
   library's method, which no call site rewrites. Call the method where you need it.
 - `TypeshiftRuntime.Create(client)` with a `dynamic` argument, which binds the call when it runs. Pass arguments of
   static types.
+
+## TSH041
+
+**Copy of a host is dropped.** `WithSettingsId(id)` and `WithConversationId(id)` return a copy of the host with the
+id and leave the host they are called on as it was. A call whose copy goes nowhere changes nothing: the host's next
+run has no id, so it stores and resumes no conversation, and its settings members change the agent's own settings,
+which every run applies, in place of the settings under the id.
+
+<!-- snippet: tsh041 -->
+<a id='snippet-tsh041'></a>
+```cs
+internal sealed class RefundDesk(AgentHost<SupportAgent> support)
+{
+    public async Task<string> AnswerAsync(string question, int customer)
+    {
+        support.WithSettingsId(customer);
+
+        var answer = await support.RunAsync(question);
+        return answer.Text;
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3731-L3742' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh041' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Run the copy, as in `support.WithSettingsId(customer).RunAsync(question)`, or keep it in a variable and run that
+([Ids of your own types](./settings-and-stores.md#ids-of-your-own-types)).
+
+## TSH042
+
+**Copy of a host that lives on is disposed.** A copy runs in its host's scope, and disposing it disposes what
+disposing the host would: the scope of a host from `runtime.Agent<TAgent>()`, after which a run of the host or of any
+copy throws an `ObjectDisposedException` ([The runtime](./registration.md#the-runtime)). A `using` on a copy of a
+host that your code holds, in an outer block, a field, a property or a parameter, ends that host's scope while the
+code still has it, as in the next round of this loop:
+
+<!-- snippet: tsh042 -->
+<a id='snippet-tsh042'></a>
+```cs
+internal sealed class TicketFollowUp(TypeshiftRuntime runtime)
+{
+    public async Task FollowUpAsync(IEnumerable<string> tickets)
+    {
+        await using var support = runtime.Agent<SupportAgent>();
+
+        foreach (var ticket in tickets)
+        {
+            await using var chat = support.WithConversationId(ticket);
+            await chat.RunAsync("Is the ticket solved?");
+        }
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/tests/Typeshift.Generators.Tests/Diagnostics/Support/DiagnosticSources.cs#L3778-L3792' title='Snippet source file'>snippet source</a> | <a href='#snippet-tsh042' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+Take the copy without `using`, and dispose the host where its work ends. The analyzer reports nothing for
+`await using var chat = runtime.Agent<SupportAgent>().WithConversationId(ticket);`, whose host nothing else holds,
+nor for a copy disposed in the block that declares its host, where both end together.
 
 ## Related
 

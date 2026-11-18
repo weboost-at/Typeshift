@@ -44,3 +44,5 @@ TSH037 | Typeshift | Warning | Configurable mode can turn approval off
 TSH038 | Typeshift | Warning | Model fills a settings or service parameter
 TSH039 | Typeshift | Error | Declared value cannot be used
 TSH040 | Typeshift | Error | Call the generator cannot intercept
+TSH041 | Typeshift | Error | Copy of a host is dropped
+TSH042 | Typeshift | Warning | Copy of a host that lives on is disposed

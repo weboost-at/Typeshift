@@ -233,6 +233,18 @@ internal static class Descriptors
         "Call the generator cannot intercept",
         "'{0}' is not a call the generator can intercept, so {1} throws when it runs: write it as {2}");
 
+    public static readonly DiagnosticDescriptor DroppedHostCopy = Error(
+        "TSH041",
+        "Copy of a host is dropped",
+        "'{0}' returns a copy of the host with the id and leaves the host it is called on as it was, so the id is "
+        + "lost here: run the copy, as in host.{0}(id).RunAsync(input), or keep it in a variable");
+
+    public static readonly DiagnosticDescriptor DisposedHostThatLivesOn = Warning(
+        "TSH042",
+        "Copy of a host that lives on is disposed",
+        "This using disposes '{0}' with its copy, and a host from runtime.Agent<T>() runs no more once it is: take "
+        + "the copy without using, and dispose '{0}' where its work ends");
+
     private static DiagnosticDescriptor Error(string id, string title, string message, params string[] tags) =>
         Create(id, title, message, DiagnosticSeverity.Error, tags);
 
