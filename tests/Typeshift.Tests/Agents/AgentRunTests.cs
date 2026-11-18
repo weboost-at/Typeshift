@@ -387,6 +387,72 @@ public class AgentRunTests : AgentTestBase
         ChatClient.Requests.Should().HaveCount(2);
     }
 
+    [Fact]
+    public async Task Given_Every_Chat_Option_Set_In_Code_The_Model_Receives_Each()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<OptionsAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Assert.Request(0).Options.Should().BeEquivalentTo(new
+        {
+            ModelId = OptionsAgent.Model,
+            OptionsAgent.Temperature,
+            OptionsAgent.MaxOutputTokens,
+            OptionsAgent.TopP,
+            OptionsAgent.TopK,
+            OptionsAgent.FrequencyPenalty,
+            OptionsAgent.PresencePenalty,
+            OptionsAgent.Seed,
+            Reasoning = new { Effort = ReasoningEffort.Low, Output = ReasoningOutput.Summary },
+            ResponseFormat = ChatResponseFormat.Json,
+            StopSequences = new[] { OptionsAgent.Stop },
+            ToolMode = ChatToolMode.RequireAny,
+            AllowMultipleToolCalls = true,
+            AdditionalProperties = new Dictionary<string, object?>
+            {
+                [OptionsAgent.Property] = OptionsAgent.PropertyValue
+            }
+        });
+    }
+
+    [Fact]
+    public async Task Given_Every_Run_Option_Set_In_Code_The_Run_Resolves_Each()
+    {
+        // Act
+        var resolved = (ResolvedChatOptions)await Host<OptionsAgent>().ResolveOptionsAsync(ct: Ct);
+
+        // Assert
+        resolved.RunOptions.Should().Be(new RunOptions
+        {
+            Mode = AgentMode.Auto,
+            MaxToolIterations = OptionsAgent.MaxToolIterations,
+            MaxConsecutiveToolErrors = OptionsAgent.MaxConsecutiveToolErrors,
+            ConcurrentToolCalls = true,
+            MaxInputTokens = OptionsAgent.MaxInputTokens,
+            TargetInputTokens = OptionsAgent.TargetInputTokens,
+            SummaryModel = OptionsAgent.SummaryModel
+        });
+    }
+
+    [Fact]
+    public async Task Given_Concurrent_Tool_Calls_Two_Calls_Of_One_Response_Run_At_The_Same_Time()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Calls(Meet(Data.Tool.CallId), Meet(Data.Tool.SecondCallId)))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await Host<OptionsAgent>().RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        ChatClient.Assert.Request(1).Results.Should().Equal(Data.Tool.CallId, Data.Tool.SecondCallId);
+    }
+
     [Theory]
     [InlineData(nameof(RunOptions.MaxToolIterations), 0)]
     [InlineData(nameof(RunOptions.MaxConsecutiveToolErrors), -1)]
@@ -846,4 +912,7 @@ public class AgentRunTests : AgentTestBase
     private static async Task<TResult> ResumeAsync<TAgent, TResult>(AgentHost<TAgent> host, CancellationToken ct)
         where TAgent : Agent =>
         (await host.ResumeAsync<TResult>(ct)).Result;
+
+    // A call of the meeting tool, which returns once a second call arrived, with its id as the caller
+    private ChatResponseUpdate Meet(string callId) => Call(callId, "meet", ("caller", callId));
 }
