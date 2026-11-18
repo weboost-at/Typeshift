@@ -24,8 +24,8 @@ internal static class AgentEmitter
     private const string Tools =
         "global::System.Collections.Generic.IEnumerable<global::Microsoft.Extensions.AI.AITool>";
 
-    private const string Updates =
-        "global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate>";
+    // D64: every stream is a run read once, which holds its response
+    private const string UntypedRun = "global::Typeshift.StreamingRun";
 
     private const string Json = StorageEmitter.Json;
 
@@ -556,7 +556,9 @@ internal static class AgentEmitter
         using (writer.Block($"extension({host} host)"))
         {
             const string Answer = "The response; its messages carry the agent's name as their author.";
-            const string Streamed = "The updates; they carry the agent's name as their author.";
+            const string Streamed =
+                "The run, which streams its updates, each with the agent's name as its author, and then holds its "
+                + "response.";
             const string Run = "The run, which streams its updates and then holds the result.";
             const string Asking = "asking the model for JSON of <typeparamref name=\"TResult\"/>'s schema";
             const string Once = " Once its updates are read to the end, its <c>Response</c> holds the result.";
@@ -578,10 +580,10 @@ internal static class AgentEmitter
             run.Write(writer, $"{Images}, {Asking}", typedAnswer, Answer, "RunAsync<TResult>", message,
                 $"{Runs}.RunAsync<{typed}>(host, input, {call}");
             writer.Line();
-            run.Write(writer, $"{Message}, streaming the updates", Updates, Streamed, "RunStreamingAsync", "string",
+            run.Write(writer, $"{Message}, streaming the updates", UntypedRun, Streamed, "RunStreamingAsync", "string",
                 $"{Runs}.RunStreamingAsync(host, {user}, {call}");
             writer.Line();
-            run.Write(writer, $"{Images}, streaming the updates", Updates, Streamed, "RunStreamingAsync", message,
+            run.Write(writer, $"{Images}, streaming the updates", UntypedRun, Streamed, "RunStreamingAsync", message,
                 $"{Runs}.RunStreamingAsync(host, input, {call}");
             writer.Line();
             run.Write(writer, $"{Message}, streaming the updates and {Asking}", StreamingRun, Run,
@@ -602,7 +604,7 @@ internal static class AgentEmitter
             answers.Write(writer, $", {Asking}", typedAnswer, Answer, "AnswerAsync<TResult>",
                 $"{Runs}.AnswerAsync<{typed}>(host, answers, {call}", Open);
             writer.Line();
-            answers.Write(writer, ", streaming the updates", Updates, Streamed, "AnswerStreamingAsync",
+            answers.Write(writer, ", streaming the updates", UntypedRun, Streamed, "AnswerStreamingAsync",
                 $"{Runs}.AnswerStreamingAsync(host, answers, {call}", Open + Read);
             writer.Line();
             answers.Write(writer, $", streaming the updates and {Asking}", StreamingRun, Run,
@@ -610,9 +612,33 @@ internal static class AgentEmitter
                 Once + Read);
             writer.Line();
 
-            WriteResume(writer, "ResumeAsync", $"{Task}<{response}>", settings);
+            WriteResume(writer, "ResumeAsync", $"{Task}<{response}>", "The response.", "ResumeAsync", settings);
             writer.Line();
-            WriteResume(writer, "ResumeStreamingAsync", Updates, settings);
+            WriteResume(
+                writer,
+                "ResumeStreamingAsync",
+                UntypedRun,
+                "The run, which streams its updates and then holds its response.",
+                "ResumeStreamingAsync",
+                settings);
+            writer.Line();
+            WriteResume(
+                writer,
+                "ResumeAsync<TResult>",
+                typedAnswer,
+                "The response, with the result; while decisions are open, one that lists them and has none.",
+                $"ResumeAsync<{typed}>",
+                settings,
+                $", {Asking}, as a typed run that was interrupted did");
+            writer.Line();
+            WriteResume(
+                writer,
+                "ResumeStreamingAsync<TResult>",
+                StreamingRun,
+                Run,
+                $"ResumeStreamingAsync<{typed}>",
+                settings,
+                $", streaming the updates and {Asking}");
             writer.Line();
 
             Docs.WriteSummary(
@@ -741,19 +767,27 @@ internal static class AgentEmitter
         + "<c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.";
 
     // D50, D80: the host's conversation's interrupted run or answered decisions, continued without input
-    private static void WriteResume(SourceWriter writer, string name, string returns, string settings)
+    private static void WriteResume(
+        SourceWriter writer,
+        string name,
+        string returns,
+        string returnsDoc,
+        string call,
+        string settings,
+        string how = "")
     {
         Docs.WriteSummary(
             writer,
             "Continues the host's conversation, from <c>WithConversationId</c>, without new input: the run that was "
-            + "interrupted, from its last stored step, or the decisions your app answered. While decisions are still "
-            + "open it calls no model, and what it returns lists them."
+            + $"interrupted, from its last stored step, or the decisions your app answered{how}. While decisions are "
+            + "still open it calls no model, and what it returns lists them."
             + Docs.Guide("conversations#resuming", "Resuming"));
+        if (name.EndsWith("<TResult>", StringComparison.Ordinal))
+            Docs.WriteTypeParam(writer, "TResult", "The result's type.");
+
         Docs.WriteParam(writer, "settings", "What the run changes over the stored settings; null for nothing.");
         Docs.WriteParam(writer, "ct", "Cancels the run.");
-        Docs.WriteReturns(
-            writer,
-            returns.Contains("IAsyncEnumerable") ? "The updates." : "The response.");
+        Docs.WriteReturns(writer, returnsDoc);
         Docs.WriteException(
             writer,
             "global::Typeshift.NothingToResumeException",
@@ -769,7 +803,7 @@ internal static class AgentEmitter
         writer.Lines(
             $"""
             public {returns} {name}({settings}? settings = null, {CancellationToken} ct = default) =>
-                {Runs}.{name}(host, settings, ct);
+                {Runs}.{call}(host, settings, ct);
             """);
     }
 

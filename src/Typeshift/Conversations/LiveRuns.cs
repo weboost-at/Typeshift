@@ -84,10 +84,10 @@ internal sealed class LiveRuns(LiveUpdateOptions realtime, ILoggerFactory? logge
     }
 
     // D51: a claimed conversation whose run has not begun takes no steering
-    public bool TrySteer(StoreId conversation, string input) =>
+    public bool TrySteer(StoreId conversation, ChatMessage input) =>
         _runs.TryGetValue(conversation, out var claim)
         && claim.Run is { } run
-        && run.Steer(new ChatMessage(ChatRole.User, input));
+        && run.Steer(input);
 
     public async IAsyncEnumerable<ChatResponseUpdate> WatchAsync(
         StoreId conversation,

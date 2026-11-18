@@ -451,6 +451,23 @@ public class ToolApprovalTests : ApprovalTestBase
     }
 
     [Fact]
+    public async Task Given_A_Stream_Read_To_Its_End_Its_Response_Holds_The_Decision()
+    {
+        // Arrange
+        ChatClient.Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket));
+
+        var run = Chat.RunStreamingAsync(Data.Tool.Question, Ct);
+
+        // Act
+        await run.ToListAsync(Ct);
+
+        // Assert
+        run.Response.Decisions.Select(decision => decision.Id)
+            .Should()
+            .Equal((await Chat.GetDecisionsAsync(Ct)).Open.Select(decision => decision.Id));
+    }
+
+    [Fact]
     public async Task Given_A_Streaming_Run_Its_Last_Update_Carries_The_Decision_And_Its_Approval_Runs_The_Call()
     {
         // Arrange

@@ -165,7 +165,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="input">The user's message.</param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
-        /// <returns>The updates; they carry the agent's name as their author.</returns>
+        /// <returns>
+        /// The run, which streams its updates, each with the agent's name as its author, and then holds its response.
+        /// </returns>
         /// <exception cref="global::Typeshift.DecisionUnavailableException">
         /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
         /// before it calls the model, or, with approval rules registered, at a call no rule decided.
@@ -186,7 +188,7 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
-        public global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate> RunStreamingAsync(
+        public global::Typeshift.StreamingRun RunStreamingAsync(
             string input,
             global::Demo.SupportAgent.Settings? settings = null,
             global::System.Threading.CancellationToken ct = default) =>
@@ -200,7 +202,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <param name="input">The user's message.</param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
-        /// <returns>The updates; they carry the agent's name as their author.</returns>
+        /// <returns>
+        /// The run, which streams its updates, each with the agent's name as its author, and then holds its response.
+        /// </returns>
         /// <exception cref="global::Typeshift.DecisionUnavailableException">
         /// A call would need a decision of your app, and the run has no conversation to keep it in. The run throws
         /// before it calls the model, or, with approval rules registered, at a call no rule decided.
@@ -221,7 +225,7 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
-        public global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate> RunStreamingAsync(
+        public global::Typeshift.StreamingRun RunStreamingAsync(
             global::Microsoft.Extensions.AI.ChatMessage input,
             global::Demo.SupportAgent.Settings? settings = null,
             global::System.Threading.CancellationToken ct = default) =>
@@ -412,7 +416,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// </param>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
-        /// <returns>The updates; they carry the agent's name as their author.</returns>
+        /// <returns>
+        /// The run, which streams its updates, each with the agent's name as its author, and then holds its response.
+        /// </returns>
         /// <exception cref="global::Typeshift.DecisionClosedException">
         /// An answer names a decision that is not open: answered already, passed by a new message, or unknown. Nothing
         /// of the call is recorded.
@@ -441,7 +447,7 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
-        public global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate> AnswerStreamingAsync(
+        public global::Typeshift.StreamingRun AnswerStreamingAsync(
             global::System.Collections.Generic.IReadOnlyList<global::Typeshift.DecisionAnswer> answers,
             global::Demo.SupportAgent.Settings? settings = null,
             global::System.Threading.CancellationToken ct = default) =>
@@ -537,7 +543,7 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// </summary>
         /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
         /// <param name="ct">Cancels the run.</param>
-        /// <returns>The updates.</returns>
+        /// <returns>The run, which streams its updates and then holds its response.</returns>
         /// <exception cref="global::Typeshift.NothingToResumeException">
         /// The conversation has nothing to continue: its last run ended, and no decision your app answered or withdrew
         /// waits.
@@ -559,8 +565,80 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
         /// </exception>
-        public global::System.Collections.Generic.IAsyncEnumerable<global::Microsoft.Extensions.AI.ChatResponseUpdate> ResumeStreamingAsync(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
+        public global::Typeshift.StreamingRun ResumeStreamingAsync(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
             global::Typeshift.Generated.AgentRuns.ResumeStreamingAsync(host, settings, ct);
+
+        /// <summary>
+        /// Continues the host's conversation, from <c>WithConversationId</c>, without new input: the run that was
+        /// interrupted, from its last stored step, or the decisions your app answered, asking the model for JSON of
+        /// <typeparamref name="TResult"/>'s schema, as a typed run that was interrupted did. While decisions are still
+        /// open it calls no model, and what it returns lists them. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/conversations#resuming">Resuming</see>.
+        /// </summary>
+        /// <typeparam name="TResult">The result's type.</typeparam>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
+        /// <param name="ct">Cancels the run.</param>
+        /// <returns>
+        /// The response, with the result; while decisions are open, one that lists them and has none.
+        /// </returns>
+        /// <exception cref="global::Typeshift.NothingToResumeException">
+        /// The conversation has nothing to continue: its last run ended, and no decision your app answered or withdrew
+        /// waits.
+        /// </exception>
+        /// <exception cref="global::Typeshift.ConversationBusyException">
+        /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+        /// because a run in another container appended first. A streaming run throws it when its updates are read.
+        /// </exception>
+        /// <exception cref="global::Typeshift.ConversationStoreException">
+        /// The store failed to append a step of the run, which then fails as it ends, unless
+        /// <c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.
+        /// </exception>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run
+        /// needs is not registered: a chat client for the provider the run names or, when it names none, a default
+        /// client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP
+        /// servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
+        public global::System.Threading.Tasks.Task<global::Microsoft.Extensions.AI.ChatResponse<TResult>> ResumeAsync<TResult>(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.ResumeAsync<global::Demo.SupportAgent, TResult>(host, settings, ct);
+
+        /// <summary>
+        /// Continues the host's conversation, from <c>WithConversationId</c>, without new input: the run that was
+        /// interrupted, from its last stored step, or the decisions your app answered, streaming the updates and asking
+        /// the model for JSON of <typeparamref name="TResult"/>'s schema. While decisions are still open it calls no
+        /// model, and what it returns lists them. More in the guide:
+        /// <see href="https://weboost-at.github.io/Typeshift/guide/conversations#resuming">Resuming</see>.
+        /// </summary>
+        /// <typeparam name="TResult">The result's type.</typeparam>
+        /// <param name="settings">What the run changes over the stored settings; null for nothing.</param>
+        /// <param name="ct">Cancels the run.</param>
+        /// <returns>The run, which streams its updates and then holds the result.</returns>
+        /// <exception cref="global::Typeshift.NothingToResumeException">
+        /// The conversation has nothing to continue: its last run ended, and no decision your app answered or withdrew
+        /// waits.
+        /// </exception>
+        /// <exception cref="global::Typeshift.ConversationBusyException">
+        /// A run of the host's conversation is going on in this container, or the store refused a step of this run
+        /// because a run in another container appended first. A streaming run throws it when its updates are read.
+        /// </exception>
+        /// <exception cref="global::Typeshift.ConversationStoreException">
+        /// The store failed to append a step of the run, which then fails as it ends, unless
+        /// <c>TypeshiftOptions.StoreFailure</c> lets it continue. The exception holds what the run answered.
+        /// </exception>
+        /// <exception cref="global::System.InvalidOperationException">
+        /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run
+        /// needs is not registered: a chat client for the provider the run names or, when it names none, a default
+        /// client; a store for the type of one of the host's ids; or an <c>IMcpToolProvider</c> for the agent's MCP
+        /// servers.
+        /// </exception>
+        /// <exception cref="global::System.Text.Json.JsonException">
+        /// The stored settings were written under a newer schema version than this code's.
+        /// </exception>
+        public global::Typeshift.StreamingRun<TResult> ResumeStreamingAsync<TResult>(global::Demo.SupportAgent.Settings? settings = null, global::System.Threading.CancellationToken ct = default) =>
+            global::Typeshift.Generated.AgentRuns.ResumeStreamingAsync<global::Demo.SupportAgent, TResult>(host, settings, ct);
 
         /// <summary>
         /// Resolves the options of a run, for the raw path: <c>CreateChatClientAsync</c>, then the client. The options
@@ -995,7 +1073,7 @@ namespace System.Runtime.CompilerServices
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 13)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 14)]
 
 namespace Typeshift.Generated;
 

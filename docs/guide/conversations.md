@@ -276,6 +276,9 @@ response lists no decision ([When a decision closes](./tool-approval.md#when-a-d
 is cancelled or has spent its limit of model calls before it answers the input stores the input with its end, and the
 conversation's next run reads it.
 
+`TrySteer` takes text, or a user's `ChatMessage` that carries images or files, as a run's input does. A message of
+another role, or one with Microsoft.Extensions.AI's approval contents, throws an `ArgumentException`.
+
 `TrySteer` returns false when no run of the conversation takes input in this process: none is going on, one is
 still loading the conversation, or it is ending. Start a run with the input instead. A run that started in the
 meantime throws a `ConversationBusyException`, and then takes the input when you steer again:

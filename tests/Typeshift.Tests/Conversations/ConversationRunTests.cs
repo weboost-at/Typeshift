@@ -1,5 +1,7 @@
+using System.Text.Json;
 using Typeshift.Tests.Agents.Support;
 using Typeshift.Tests.Conversations.Support;
+using Typeshift.Tests.Tools.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
@@ -340,6 +342,66 @@ public class ConversationRunTests : AgentTestBase
         // Assert
         updates.ToChatResponse().Text.Should().Be(Data.Tool.Answer);
         ChatClient.Requests[0].Select(message => message.Text).Should().Equal(Data.Tool.Question);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_An_Interrupted_Typed_Run_Resuming_It_Typed_Returns_The_Result(bool streaming)
+    {
+        // Arrange
+        var expected = new ProbeSettings { Limit = Data.Tool.Limit, Verbose = true };
+        await StoreAsync(new ChatMessage(ChatRole.User, Data.Tool.Question));
+
+        ChatClient.Reply(Text(JsonSerializer.Serialize(expected, Json.GetTypeInfo<ProbeSettings>())));
+        var chat = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+
+        // Act
+        var response = streaming
+            ? await ReadAsync(chat.ResumeStreamingAsync<ProbeSettings>(Ct))
+            : await chat.ResumeAsync<ProbeSettings>(Ct);
+
+        // Assert
+        response.Result.Should().Be(expected);
+        ChatClient.Options[0]!.ResponseFormat.Should().BeOfType<ChatResponseFormatJson>();
+    }
+
+    [Fact]
+    public async Task Given_Steering_Input_With_An_Image_The_Model_Receives_It()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+        var image = new DataContent(new byte[] { 1, 2, 3 }, "image/png");
+
+        ChatClient
+            .Reply(gate, Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.FollowUp));
+
+        var run = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, Ct);
+        await ChatClient.Requested;
+
+        // Act
+        var steered = Tracker.TrySteer(
+            Data.Agent.ConversationId,
+            new ChatMessage(ChatRole.User, [new TextContent(Data.Agent.Steering), image]));
+        gate.SetResult();
+        await run;
+
+        // Assert
+        steered.Should().BeTrue();
+        ChatClient.Requests[1][^1].Contents.OfType<DataContent>().Should().Equal(image);
+    }
+
+    [Fact]
+    public void Given_Steering_Input_Of_The_Assistant_Steering_Throws()
+    {
+        // Act
+        var steer = () => Tracker.TrySteer(
+            Data.Agent.ConversationId,
+            new ChatMessage(ChatRole.Assistant, Data.Agent.Steering));
+
+        // Assert
+        steer.Should().Throw<ArgumentException>().WithParameterName("input");
     }
 
     [Theory]
@@ -979,5 +1041,12 @@ public class ConversationRunTests : AgentTestBase
         return streaming
             ? (await chat.RunStreamingAsync(input, ct: ct).ToListAsync(ct)).ToChatResponse()
             : await chat.RunAsync(input, ct: ct);
+    }
+
+    // A typed stream read to its end, as its response
+    private async Task<ChatResponse<TResult>> ReadAsync<TResult>(StreamingRun<TResult> run)
+    {
+        await run.ToListAsync(Ct);
+        return run.Response;
     }
 }

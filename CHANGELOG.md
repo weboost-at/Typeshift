@@ -159,6 +159,9 @@ All notable changes to this project are documented here. The format follows
   conversation)`, and the run's `RunOptions` with every layer of settings applied. A tool middleware reads the run
   of a call as `call.Run`, so it names the agent and the customer a tool ran for without a scoped service of your
   own that holds them.
+- `ResumeAsync<TResult>()` and `ResumeStreamingAsync<TResult>()` resume a typed run that a crash cut off, asking the
+  model for `TResult` again; before, it resumed untyped. `tracker.TrySteer(conversation, message)` steers with a
+  user's `ChatMessage`, which may carry images or files, beside the overload that takes text.
 - `host.Services` is the scope a host's runs resolve their services from. A background job sets your app's scoped
   state there before it runs, as in `support.Services.GetRequiredService<CurrentTenant>().Id = tenant;`, where a
   request's middleware would. Before, a host from the runtime hid its scope, so a job's tools ran with that state
@@ -269,7 +272,7 @@ All notable changes to this project are documented here. The format follows
   every record has from `object`, which is CS0108. Settings stored under the tool's name are not affected.
 - The module of an assembly whose name holds other characters than letters, digits and dots carries a hash of the
   name, as `Acme_Tools_1a2b3c4dModule` for `Acme-Tools`. The generated registration names it for you.
-- Module stamps are at version 11, so a referenced project built with an earlier Typeshift is TSH020 until it is
+- Module stamps are at version 14, so a referenced project built with an earlier Typeshift is TSH020 until it is
   rebuilt.
 - The class that holds a toolset's picks for `Include` and `Exclude` lives in the global namespace, as the classes
   of the host members do. It was `{Toolset}ToolList` in the toolset's namespace and is `TypeshiftTools_` followed by
@@ -511,6 +514,13 @@ All notable changes to this project are documented here. The format follows
   conversation with `WithOptions(options => options.PersistAllConversations = true)`. For tools that require
   approval, a rule registered with `WithApprovalRule<T>()` or `AgentMode.Auto` works too, and with a rule
   registered a call no rule decides still throws when the model makes it.
+- **Breaking:** every stream of a host is a `StreamingRun`, read once, as the typed one was: `RunStreamingAsync`,
+  `AnswerStreamingAsync` and `ResumeStreamingAsync`. Read to its end, `run.Response` holds the run's `ChatResponse`,
+  its `Decisions` included. A second read throws an `InvalidOperationException`; before, it ran the agent again,
+  called the model and stored the input a second time, as `ToChatResponseAsync()` after an `await foreach` over the
+  same stream did. Read `Response` instead of the second read. `await foreach` and variables of type
+  `IAsyncEnumerable<ChatResponseUpdate>` compile as before; an assembly compiled against an earlier version is
+  rebuilt.
 - **Breaking:** `runtime.Agent<TAgent>()` is `runtime.CreateHost<TAgent>()`, a name that says the call creates a host
   your code owns and disposes, as in `await using var support = runtime.CreateHost<SupportAgent>();`. The old name read
   as a property beside the host's own `Agent`. Write `CreateHost` where you wrote `Agent<...>()` on the runtime.

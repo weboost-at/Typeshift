@@ -80,10 +80,10 @@ public static class AgentRuns
     /// <param name="input">The message.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
     /// <param name="ct">Cancels the run.</param>
-    /// <returns>The updates.</returns>
+    /// <returns>The run, which streams its updates and then holds its response.</returns>
     /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
     /// <exception cref="ConversationStoreException">The store failed to append a step of the run.</exception>
-    public static IAsyncEnumerable<ChatResponseUpdate> RunStreamingAsync<TAgent>(
+    public static StreamingRun RunStreamingAsync<TAgent>(
         AgentHost<TAgent> host,
         ChatMessage input,
         object? settings,
@@ -147,10 +147,10 @@ public static class AgentRuns
     /// <param name="answers">The answers.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
     /// <param name="ct">Cancels the run.</param>
-    /// <returns>The updates; with decisions left open, one update that lists them.</returns>
+    /// <returns>The run; with decisions left open, one update that lists them.</returns>
     /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
     /// <exception cref="ConversationStoreException">The store failed to append a step of the run.</exception>
-    public static IAsyncEnumerable<ChatResponseUpdate> AnswerStreamingAsync<TAgent>(
+    public static StreamingRun AnswerStreamingAsync<TAgent>(
         AgentHost<TAgent> host,
         IReadOnlyList<DecisionAnswer> answers,
         object? settings,
@@ -209,17 +209,59 @@ public static class AgentRuns
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="settings">The run's settings, over the stored ones.</param>
     /// <param name="ct">Cancels the run.</param>
-    /// <returns>The updates.</returns>
+    /// <returns>The run, which streams its updates and then holds its response.</returns>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
     /// <exception cref="NothingToResumeException">The conversation has nothing to continue.</exception>
     /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
     /// <exception cref="ConversationStoreException">The store failed to append a step of the run.</exception>
-    public static IAsyncEnumerable<ChatResponseUpdate> ResumeStreamingAsync<TAgent>(
+    public static StreamingRun ResumeStreamingAsync<TAgent>(
         AgentHost<TAgent> host,
         object? settings,
         CancellationToken ct)
         where TAgent : Agent =>
         host.RunStreamingCoreAsync(null, settings, ct);
+
+    /// <summary>
+    /// Continues the host's conversation without new input, asking for JSON of <typeparamref name="TResult"/>'s
+    /// schema: its interrupted typed run from the last stored step, or the decisions your app answered.
+    /// </summary>
+    /// <typeparam name="TAgent">The agent.</typeparam>
+    /// <typeparam name="TResult">The result.</typeparam>
+    /// <param name="host">The host, with the run's services and ids.</param>
+    /// <param name="settings">The run's settings, over the stored ones.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The response, with the result.</returns>
+    /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
+    /// <exception cref="NothingToResumeException">The conversation has nothing to continue.</exception>
+    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
+    /// <exception cref="ConversationStoreException">The store failed to append a step of the run.</exception>
+    public static Task<ChatResponse<TResult>> ResumeAsync<TAgent, TResult>(
+        AgentHost<TAgent> host,
+        object? settings,
+        CancellationToken ct)
+        where TAgent : Agent =>
+        host.RunCoreAsync<TResult>(null, settings, ct);
+
+    /// <summary>
+    /// Continues the host's conversation without new input, streaming the updates and asking for JSON of
+    /// <typeparamref name="TResult"/>'s schema.
+    /// </summary>
+    /// <typeparam name="TAgent">The agent.</typeparam>
+    /// <typeparam name="TResult">The result.</typeparam>
+    /// <param name="host">The host, with the run's services and ids.</param>
+    /// <param name="settings">The run's settings, over the stored ones.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The run, which streams its updates and then holds the result.</returns>
+    /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
+    /// <exception cref="NothingToResumeException">The conversation has nothing to continue.</exception>
+    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
+    /// <exception cref="ConversationStoreException">The store failed to append a step of the run.</exception>
+    public static StreamingRun<TResult> ResumeStreamingAsync<TAgent, TResult>(
+        AgentHost<TAgent> host,
+        object? settings,
+        CancellationToken ct)
+        where TAgent : Agent =>
+        host.RunStreamingCoreAsync<TResult>(null, settings, ct);
 
     /// <summary>
     /// Resolves the options of a run: the agent's code, its stored settings, the run's settings, then its tools.

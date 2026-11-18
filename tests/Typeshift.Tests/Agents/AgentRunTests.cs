@@ -543,6 +543,64 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_The_Untyped_Stream_Read_Twice_The_Second_Read_Throws()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.FollowUp));
+
+        var chat = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+        var run = chat.RunStreamingAsync(Data.Tool.Question, Ct);
+        await run.ToListAsync(Ct);
+
+        // Act
+        var again = () => run.ToChatResponseAsync(Ct);
+
+        // Assert
+        await again.Should().ThrowAsync<InvalidOperationException>().WithMessage("*streams its updates once*");
+        ChatClient.Requests.Should().ContainSingle();
+        (await EntriesAsync(Data.Agent.ConversationId)).Count(entry => entry.EndsRun).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Given_An_Untyped_Stream_Read_To_Its_End_Its_Response_Holds_The_Answer()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var run = Host<ProbeAgent>().RunStreamingAsync(Data.Tool.Question, Ct);
+
+        // Act
+        await run.ToListAsync(Ct);
+
+        // Assert
+        run.Response.Text.Should().Be(Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_A_Generic_Method_Over_Any_Agent_It_Resumes_Typed()
+    {
+        // Arrange
+        var expected = new ProbeSettings { Limit = Data.Tool.Limit };
+        var input = new ChatMessage(ChatRole.User, Data.Tool.Question);
+        var interrupted = new ConversationEntry("probe_agent", [input], Time.GetUtcNow());
+
+        await Services.GetRequiredService<ITypeshiftStore<Guid>>()
+            .AppendConversationAsync(Data.Agent.ConversationId, interrupted, Ct);
+
+        ChatClient.Reply(Text(JsonSerializer.Serialize(expected, Json.GetTypeInfo<ProbeSettings>())));
+
+        // Act
+        var resumed = await ResumeAsync<ProbeAgent, ProbeSettings>(
+            Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId),
+            Ct);
+
+        // Assert
+        resumed.Should().Be(expected);
+    }
+
+    [Fact]
     public async Task Given_Instructions_Built_From_The_Runs_Services_The_Model_Receives_Them()
     {
         // Arrange
@@ -662,4 +720,8 @@ public class AgentRunTests : AgentTestBase
     private static async Task<string> AskAsync<TAgent>(AgentHost<TAgent> host, string input, CancellationToken ct)
         where TAgent : Agent =>
         (await host.RunAsync(input, ct)).Text;
+
+    private static async Task<TResult> ResumeAsync<TAgent, TResult>(AgentHost<TAgent> host, CancellationToken ct)
+        where TAgent : Agent =>
+        (await host.ResumeAsync<TResult>(ct)).Result;
 }

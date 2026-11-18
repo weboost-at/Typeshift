@@ -27,15 +27,17 @@ In these signatures, `Settings` is the agent's [generated `Settings` record](#se
 | `RunAsync(ChatMessage input, Settings? settings = null)` | `Task<ChatResponse>` |
 | `RunAsync<TResult>(string input, Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
 | `RunAsync<TResult>(ChatMessage input, Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
-| `RunStreamingAsync(string input, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
-| `RunStreamingAsync(ChatMessage input, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
+| `RunStreamingAsync(string input, Settings? settings = null)` | `StreamingRun` |
+| `RunStreamingAsync(ChatMessage input, Settings? settings = null)` | `StreamingRun` |
 | `RunStreamingAsync<TResult>(string input, Settings? settings = null)` | `StreamingRun<TResult>` |
 | `RunStreamingAsync<TResult>(ChatMessage input, Settings? settings = null)` | `StreamingRun<TResult>` |
 | `ResumeAsync(Settings? settings = null)` | `Task<ChatResponse>` |
-| `ResumeStreamingAsync(Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
+| `ResumeStreamingAsync(Settings? settings = null)` | `StreamingRun` |
+| `ResumeAsync<TResult>(Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
+| `ResumeStreamingAsync<TResult>(Settings? settings = null)` | `StreamingRun<TResult>` |
 | `AnswerAsync(IReadOnlyList<DecisionAnswer> answers, Settings? settings = null)` | `Task<ChatResponse>` |
 | `AnswerAsync<TResult>(IReadOnlyList<DecisionAnswer> answers, Settings? settings = null)` | `Task<ChatResponse<TResult>>` |
-| `AnswerStreamingAsync(IReadOnlyList<DecisionAnswer> answers, Settings? settings = null)` | `IAsyncEnumerable<ChatResponseUpdate>` |
+| `AnswerStreamingAsync(IReadOnlyList<DecisionAnswer> answers, Settings? settings = null)` | `StreamingRun` |
 | `AnswerStreamingAsync<TResult>(IReadOnlyList<DecisionAnswer> answers, Settings? settings = null)` | `StreamingRun<TResult>` |
 | `ResolveOptionsAsync(Settings? settings = null)` | `Task<ChatOptions>` |
 | `LoadSettingsAsync()` | `Task<Stored<Settings>>` |
@@ -85,8 +87,10 @@ answering agent's name as `AuthorName`.
 
 `RunStreamingAsync` layers settings and stores the run like `RunAsync`, but streams the updates, with the tool calls
 running between them. The updates of a run with a conversation are also published to
-`ConversationTracker<TId>.WatchAsync`. `RunStreamingAsync<TResult>` is its typed form
-([Structured output](./running-agents.md#structured-output)).
+`ConversationTracker<TId>.WatchAsync`. It returns a `StreamingRun`, which runs the agent as you read it and can
+be read once; read to its end, its `Response` holds what `RunAsync` would have returned. `RunStreamingAsync<TResult>`
+is its typed form, a `StreamingRun<TResult>` ([Structured output](./running-agents.md#structured-output)). Every
+stream of the host, an answer's and a resume's too, is such a run.
 
 ### `ResumeAsync` and `ResumeStreamingAsync`
 
@@ -96,7 +100,8 @@ continuation in the same conversation. A tool call that was still running when t
 model decides again and may call the tool a second time ([Resuming](./conversations.md#resuming)). While decisions
 are still open, they call no model and return them. They throw a `NothingToResumeException` when the conversation
 has nothing to continue, an `InvalidOperationException` when the host has no conversation id, and what `RunAsync`
-throws.
+throws. `ResumeAsync<TResult>` and `ResumeStreamingAsync<TResult>` ask for `TResult` again, so a typed run that a
+crash cut off resumes typed.
 
 ### `AnswerAsync` and `AnswerStreamingAsync`
 

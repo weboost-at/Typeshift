@@ -273,7 +273,9 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// </summary>
     /// <param name="input">The user's message.</param>
     /// <param name="ct">Cancels the run.</param>
-    /// <returns>The updates; they carry the agent's name as their author.</returns>
+    /// <returns>
+    /// The run, which streams its updates, each with the agent's name as its author, and then holds its response.
+    /// </returns>
     /// <exception cref="ConversationBusyException">
     /// A run of the host's conversation is going on in this process, when the updates are read.
     /// </exception>
@@ -283,7 +285,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// <exception cref="InvalidOperationException">
     /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
     /// </exception>
-    public IAsyncEnumerable<ChatResponseUpdate> RunStreamingAsync(string input, CancellationToken ct = default) =>
+    public StreamingRun RunStreamingAsync(string input, CancellationToken ct = default) =>
         RunStreamingCoreAsync(new ChatMessage(ChatRole.User, input), null, ct);
 
     /// <summary>
@@ -292,7 +294,9 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// </summary>
     /// <param name="input">The user's message.</param>
     /// <param name="ct">Cancels the run.</param>
-    /// <returns>The updates; they carry the agent's name as their author.</returns>
+    /// <returns>
+    /// The run, which streams its updates, each with the agent's name as its author, and then holds its response.
+    /// </returns>
     /// <exception cref="ConversationBusyException">
     /// A run of the host's conversation is going on in this process, when the updates are read.
     /// </exception>
@@ -302,9 +306,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// <exception cref="InvalidOperationException">
     /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
     /// </exception>
-    public IAsyncEnumerable<ChatResponseUpdate> RunStreamingAsync(
-        ChatMessage input,
-        CancellationToken ct = default) =>
+    public StreamingRun RunStreamingAsync(ChatMessage input, CancellationToken ct = default) =>
         RunStreamingCoreAsync(input, null, ct);
 
     /// <summary>
@@ -421,7 +423,10 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// </summary>
     /// <param name="answers">The answers, each made from its decision.</param>
     /// <param name="ct">Cancels the run.</param>
-    /// <returns>The updates; with decisions left open, one update that lists them.</returns>
+    /// <returns>
+    /// The run, which streams its updates and then holds its response; with decisions left open, one update that lists
+    /// them.
+    /// </returns>
     /// <exception cref="ConversationBusyException">
     /// A run of the host's conversation is going on in this process. The answers are recorded.
     /// </exception>
@@ -432,7 +437,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
     /// is not registered.
     /// </exception>
-    public IAsyncEnumerable<ChatResponseUpdate> AnswerStreamingAsync(
+    public StreamingRun AnswerStreamingAsync(
         IReadOnlyList<DecisionAnswer> answers,
         CancellationToken ct = default) =>
         AnswerStreamingCoreAsync(answers, null, ct);
@@ -494,7 +499,7 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// Continues the host's conversation as <see cref="ResumeAsync(CancellationToken)"/> does, streaming the updates.
     /// </summary>
     /// <param name="ct">Cancels the run.</param>
-    /// <returns>The updates.</returns>
+    /// <returns>The run, which streams its updates and then holds its response.</returns>
     /// <exception cref="NothingToResumeException">
     /// The conversation has nothing to continue, when the updates are read.
     /// </exception>
@@ -508,8 +513,59 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
     /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
     /// is not registered.
     /// </exception>
-    public IAsyncEnumerable<ChatResponseUpdate> ResumeStreamingAsync(CancellationToken ct = default) =>
+    public StreamingRun ResumeStreamingAsync(CancellationToken ct = default) =>
         RunStreamingCoreAsync(null, null, ct);
+
+    // D64: a typed run a crash cut off resumes typed, so its answer is read as the run that began it asked
+    /// <summary>
+    /// Continues the host's conversation as <see cref="ResumeAsync(CancellationToken)"/> does, asking the model for
+    /// JSON of <typeparamref name="TResult"/>'s schema, as the typed run that was interrupted did.
+    /// </summary>
+    /// <typeparam name="TResult">The result's type.</typeparam>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The response, with the result; while decisions are open, one that lists them and has none.</returns>
+    /// <exception cref="NothingToResumeException">
+    /// The conversation has nothing to continue: its last run ended, and no decision your app answered or withdrew
+    /// waits.
+    /// </exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on in this process.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
+    /// is not registered.
+    /// </exception>
+    /// <exception cref="System.Text.Json.JsonException">
+    /// The stored settings were written under a newer schema version than this code's.
+    /// </exception>
+    public Task<ChatResponse<TResult>> ResumeAsync<TResult>(CancellationToken ct = default) =>
+        RunCoreAsync<TResult>(null, null, ct);
+
+    /// <summary>
+    /// Continues the host's conversation as <see cref="ResumeAsync{TResult}(CancellationToken)"/> does, streaming the
+    /// updates. Once they are read to the end, its <c>Response</c> holds the result.
+    /// </summary>
+    /// <typeparam name="TResult">The result's type.</typeparam>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The run, which streams its updates and then holds the result.</returns>
+    /// <exception cref="NothingToResumeException">
+    /// The conversation has nothing to continue, when the updates are read.
+    /// </exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on in this process, when the updates are read.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
+    /// is not registered.
+    /// </exception>
+    public StreamingRun<TResult> ResumeStreamingAsync<TResult>(CancellationToken ct = default) =>
+        RunStreamingCoreAsync<TResult>(null, null, ct);
 
     /// <summary>
     /// Resolves the options of a run, for the raw path: <see cref="CreateChatClientAsync"/>, then the client. The
@@ -837,15 +893,16 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         return new ChatResponse<TResult>(response, result.SerializerOptions);
     }
 
-    // D64: the typed answer's format, as RunCoreAsync<TResult> asks for it, over a streaming run
+    // D64: the typed answer's format, as RunCoreAsync<TResult> asks for it, over a streaming run; one without input
+    // resumes the conversation
     internal StreamingRun<TResult> RunStreamingCoreAsync<TResult>(
-        ChatMessage input,
+        ChatMessage? input,
         object? settings,
         CancellationToken ct)
     {
         var result = _services.GetRequiredService<ToolJson>().GetResultFormat<TResult>();
         return new StreamingRun<TResult>(
-            RunStreamingAsync([input], OwnRun(_conversationId, result.Format), settings, ct),
+            RunStreamingAsync(input is null ? [] : [input], OwnRun(Conversation(input), result.Format), settings, ct),
             result.SerializerOptions);
     }
 
@@ -869,11 +926,11 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         return await RunCoreAsync<TResult>(null, settings, ct);
     }
 
-    internal IAsyncEnumerable<ChatResponseUpdate> AnswerStreamingCoreAsync(
+    internal StreamingRun AnswerStreamingCoreAsync(
         IReadOnlyList<DecisionAnswer> answers,
         object? settings,
         CancellationToken ct) =>
-        AnswerStreamingAsync(answers, settings, null, ct);
+        new(AnswerStreamingAsync(answers, settings, null, ct));
 
     internal StreamingRun<TResult> AnswerStreamingCoreAsync<TResult>(
         IReadOnlyList<DecisionAnswer> answers,
@@ -903,11 +960,8 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
         }
     }
 
-    internal IAsyncEnumerable<ChatResponseUpdate> RunStreamingCoreAsync(
-        ChatMessage? input,
-        object? settings,
-        CancellationToken ct) =>
-        RunStreamingAsync(input is null ? [] : [input], OwnRun(Conversation(input)), settings, ct);
+    internal StreamingRun RunStreamingCoreAsync(ChatMessage? input, object? settings, CancellationToken ct) =>
+        new(RunStreamingAsync(input is null ? [] : [input], OwnRun(Conversation(input)), settings, ct));
 
     internal StoreAccess Store => _services.GetRequiredService<StoreAccess>();
 

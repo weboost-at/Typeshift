@@ -214,6 +214,10 @@ await foreach (var update in support.WithSettingsId(settingsId).RunStreamingAsyn
 
 Anyone [watching the conversation](./conversations.md#live-updates) sees the updates too.
 
+The stream is the run: a `StreamingRun`, which calls the model as you read it, so you read it once. A second read
+throws an `InvalidOperationException` instead of running the agent again. Once the updates are read to their end,
+`Response` holds what they make, the decisions the run waits for included, as `RunAsync` would have returned it.
+
 ## The raw path
 
 If your app needs the `IChatClient` itself, for example to hand it to a library that takes one, split a run into

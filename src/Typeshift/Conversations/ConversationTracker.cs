@@ -88,7 +88,42 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// Your app registered stores, and none keeps conversations under ids of <typeparamref name="TId"/>.
     /// </exception>
     public bool TrySteer(TId conversation, string input) =>
-        _runs.Value.TrySteer(new StoreId<TId>(conversation), input);
+        _runs.Value.TrySteer(new StoreId<TId>(conversation), new ChatMessage(ChatRole.User, input));
+
+    /// <summary>
+    /// Hands a message to the conversation's run going on in this process, as
+    /// <see cref="TrySteer(TId, string)"/> does with text: a user message that may carry images or files, as a run's
+    /// input may.
+    /// </summary>
+    /// <param name="conversation">The conversation's id.</param>
+    /// <param name="input">The user's message.</param>
+    /// <returns>
+    /// False when no run of the conversation takes input here: none is going on, one still loads the conversation,
+    /// or it is ending. Start a run with the message then.
+    /// </returns>
+    /// <exception cref="ArgumentException">
+    /// The message is not the user's, or carries approval contents, which a run does not take.
+    /// </exception>
+    /// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// Your app registered stores, and none keeps conversations under ids of <typeparamref name="TId"/>.
+    /// </exception>
+    public bool TrySteer(TId conversation, ChatMessage input)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+
+        // D80: what a run takes as input, steering takes too: a user message that answers nothing
+        if (input.Role != ChatRole.User
+            || input.Contents.Any(content => content is InputRequestContent or InputResponseContent))
+        {
+            throw new ArgumentException(
+                "Steering input is a user message without approval contents: answer a decision by its id, with "
+                + "AnswerAsync or RecordAnswersAsync.",
+                nameof(input));
+        }
+
+        return _runs.Value.TrySteer(new StoreId<TId>(conversation), input);
+    }
 
     // D72: a conversation of another id type is another tracker's
     private static bool IsOfIdType(ConversationRun run) => run.Conversation is StoreId<TId>;

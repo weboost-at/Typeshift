@@ -3,32 +3,29 @@ using Microsoft.Extensions.AI;
 
 namespace Typeshift;
 
+// D64: a run's stream is the run, so reading it again would run the agent again: it is read once, typed or not
 /// <summary>
-/// A run that streams its updates and, once they are read to the end, holds its answer typed. The model is called
-/// when you read the updates, and the updates can be read once.
+/// A run that streams its updates and, once they are read to the end, holds its response. The model is called when
+/// you read the updates, and the updates can be read once.
+/// More in the guide:
+/// <see href="https://weboost-at.github.io/Typeshift/guide/running-agents#streaming">Streaming</see>.
 /// </summary>
-/// <typeparam name="TResult">The type the model answers in.</typeparam>
-public sealed class StreamingRun<TResult> : IAsyncEnumerable<ChatResponseUpdate>
+public class StreamingRun : IAsyncEnumerable<ChatResponseUpdate>
 {
     private readonly IAsyncEnumerable<ChatResponseUpdate> _updates;
-    private readonly JsonSerializerOptions _serializerOptions;
-    private ChatResponse<TResult>? _response;
+    private ChatResponse? _response;
     private int _read;
 
-    internal StreamingRun(IAsyncEnumerable<ChatResponseUpdate> updates, JsonSerializerOptions serializerOptions)
-    {
-        _updates = updates;
-        _serializerOptions = serializerOptions;
-    }
+    internal StreamingRun(IAsyncEnumerable<ChatResponseUpdate> updates) => _updates = updates;
 
     /// <summary>
-    /// The run's response, with the answer typed in <c>Result</c>.
+    /// The run's response, made of its updates: its messages, the decisions it waits for and its conversation's id.
     /// </summary>
     /// <exception cref="InvalidOperationException">
     /// The updates are not read to their end: not yet, or never, because the run failed, was cancelled or was left
     /// early.
     /// </exception>
-    public ChatResponse<TResult> Response =>
+    public ChatResponse Response =>
         _response ?? throw new InvalidOperationException(
             "A streaming run has its response once its updates are read to the end.");
 
@@ -53,6 +50,31 @@ public sealed class StreamingRun<TResult> : IAsyncEnumerable<ChatResponseUpdate>
             yield return update;
         }
 
-        _response = new ChatResponse<TResult>(updates.ToChatResponse(), _serializerOptions);
+        _response = updates.ToChatResponse();
     }
+}
+
+/// <summary>
+/// A run that streams its updates and, once they are read to the end, holds its answer typed. The model is called
+/// when you read the updates, and the updates can be read once.
+/// </summary>
+/// <typeparam name="TResult">The type the model answers in.</typeparam>
+public sealed class StreamingRun<TResult> : StreamingRun
+{
+    private readonly JsonSerializerOptions _serializerOptions;
+    private ChatResponse<TResult>? _response;
+
+    internal StreamingRun(IAsyncEnumerable<ChatResponseUpdate> updates, JsonSerializerOptions serializerOptions)
+        : base(updates) =>
+        _serializerOptions = serializerOptions;
+
+    /// <summary>
+    /// The run's response, with the answer typed in <c>Result</c>.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// The updates are not read to their end: not yet, or never, because the run failed, was cancelled or was left
+    /// early.
+    /// </exception>
+    public new ChatResponse<TResult> Response =>
+        _response ??= new ChatResponse<TResult>(base.Response, _serializerOptions);
 }

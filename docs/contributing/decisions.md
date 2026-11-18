@@ -1615,7 +1615,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** `RunStreamingAsync<TResult>` asks for the same response format as `RunAsync<TResult>` (D62) and
   returns a `StreamingRun<TResult>`. It streams the updates as `RunStreamingAsync` does and, once they are read to
   the end, holds a `ChatResponse<TResult>` in `Response`. It calls the model when it is read and only once, since
-  reading it again would run the agent again. Both typed runs take a `ChatMessage` as well, so the run that answers
+  reading it again would run the agent again. Every other stream of the host, untyped, an answer's or a resume's,
+  is a `StreamingRun`, the base of the typed one, read once and holding its `ChatResponse` in `Response`: an
+  untyped stream read twice ran the agent twice up to 0.1.0-alpha.6, the input stored twice, and a caller had no
+  response to read the decisions from. `ResumeAsync<TResult>` and `ResumeStreamingAsync<TResult>` resume a typed
+  run typed. Both typed runs take a `ChatMessage` as well, so the run that answers
   an approval asks for the format again. The format is the run's, not the agent's: an agent handed the run off to, or
   answering in a handed-off conversation, answers in it, and a sub-agent answers in its own.
 - **Where:** `Hosting/StreamingRun.cs`, `Hosting/AgentHost.cs`, `Hosting/ResolvedChatOptions.cs`,

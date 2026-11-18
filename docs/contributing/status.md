@@ -87,6 +87,7 @@ rewrite.
 | new | The exception a tool threw is never lost: it is logged as an error, set on the call's span, held by the call's result in the response, counted by `MaxConsecutiveToolErrors` and, past that limit, ends the run as it is (D53) | `ToolFailureTests.Given_A_Tool_That_Throws_Any_Other_Exception_The_Exception_Is_Logged_As_An_Error`, `..._Given_A_Tool_That_Throws_The_Error_Is_Logged_Under_The_Category_Of_The_Tool_Loop`, `..._Given_A_Tool_That_Throws_Any_Other_Exception_The_Responses_Result_Holds_The_Exception_Itself`, `..._Given_A_Tool_Failing_More_Rounds_In_A_Row_Than_Allowed_Its_Own_Exception_Ends_The_Run`, `..._Given_A_ToolException_In_More_Rounds_In_A_Row_Than_Allowed_It_Ends_The_Run`, `TelemetryTests.Given_A_Tool_That_Throws_Its_Span_Carries_The_Exception_The_Model_Does_Not_Read` |
 | new | A sub-agent whose run fails tells its caller's model only that it failed, in the foreground and in the background (D53, D33) | `SubAgentTests.Given_A_Sub_Agent_Whose_Run_Fails_Its_Caller_Reads_Only_That_The_Call_Failed`, `..._Given_A_Background_Sub_Agent_Whose_Run_Fails_Its_Caller_Reads_Only_That_It_Failed` |
 | new | A run's tools resolve from the scope its host came from (D25) | `AgentRunTests.Given_Two_Tool_Calls_Of_A_Run_Both_Resolve_From_The_Hosts_Scope` |
+| new | Every stream of the host is a run read once: a second read throws and runs nothing, and a stream read to its end holds its response with the decisions; a typed run resumes typed, from generic code too; steering takes a user's message with an image and refuses another role (D64, D51) | `AgentRunTests.Given_The_Untyped_Stream_Read_Twice_The_Second_Read_Throws`, `..._Given_An_Untyped_Stream_Read_To_Its_End_Its_Response_Holds_The_Answer`, `..._Given_A_Generic_Method_Over_Any_Agent_It_Resumes_Typed`, `ToolApprovalTests.Given_A_Stream_Read_To_Its_End_Its_Response_Holds_The_Decision`, `ConversationRunTests.Given_An_Interrupted_Typed_Run_Resuming_It_Typed_Returns_The_Result`, `..._Given_Steering_Input_With_An_Image_The_Model_Receives_It`, `..._Given_Steering_Input_Of_The_Assistant_Steering_Throws` |
 | new | The host runs any agent without its `Settings`, from code generic over the agent, and a run takes its token second (D12) | `AgentRunTests.Given_A_Generic_Method_Over_Any_Agent_It_Runs_The_Agent`, `..._Given_A_Token_Passed_Positionally_The_Run_Takes_It` |
 | new | Messages and updates carry the agent's name (D26) | `AgentRunTests.Given_A_Run_Its_Messages_Carry_The_Agents_Name_As_Their_Author`, `..._Given_A_Streaming_Run_Its_Updates_Carry_The_Text_And_The_Agents_Name` |
 | new | Run options limit the tool loop and may be configurable (D32) | `AgentRunTests.Given_Run_Settings_Of_A_Run_Option_The_Tool_Loop_Stops_After_It` |
@@ -326,9 +327,9 @@ rewrite.
 - **Uses inside a referenced project.** TSH007 follows the handoffs and sub-agents of your project's agents into a
   referenced project's agent, but not that agent's own uses, which no stamp lists. An own tool of yours and one of an
   agent the referenced agent hands off to are not compared, in either project.
-- **Steering in a typed stream.** `StreamingRun<T>.Response` is built from the whole stream. When the provider sets
-  no `MessageId` on its updates, two answers in one run (steering input, a background sub-agent's answer) merge into
-  one message, and `Result` reads the first of them, where `RunAsync<T>` reads the last.
+- **Steering in a stream.** `StreamingRun.Response`, typed or not, is built from the whole stream. When the provider
+  sets no `MessageId` on its updates, two answers in one run (steering input, a background sub-agent's answer) merge
+  into one message, and `Result` reads the first of them, where `RunAsync<T>` reads the last.
 - **Unions in settings.** A configurable member cannot be a union (TSH012), since the generator writes no stored
   form for one.
 - **The file store's save on the caller's thread.** A save creates the folder, opens the lock file and its own
