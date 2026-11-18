@@ -62,13 +62,20 @@ public sealed partial class SafeWebFetch : IDisposable
         }
     }
 
-    private static bool IsPublic(IPAddress address) =>
-        !IPAddress.IsLoopback(address)
-        && !address.IsIPv6LinkLocal
-        && !address.IsIPv6SiteLocal
-        && !address.IsIPv6UniqueLocal
-        && !IsPrivateV4(address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address);
+    // An IPv4 address written as IPv6, such as ::ffff:127.0.0.2, is checked as the IPv4 address it reaches
+    private static bool IsPublic(IPAddress address)
+    {
+        var reached = address.IsIPv4MappedToIPv6 ? address.MapToIPv4() : address;
 
+        return !IPAddress.IsLoopback(reached)
+            && !reached.Equals(IPAddress.IPv6Any)
+            && !reached.IsIPv6LinkLocal
+            && !reached.IsIPv6SiteLocal
+            && !reached.IsIPv6UniqueLocal
+            && !IsPrivateV4(reached);
+    }
+
+    // The private ranges, link-local, 0/8 and the carrier-grade NAT range 100.64/10; 127/8 is loopback
     private static bool IsPrivateV4(IPAddress address)
     {
         if (address.AddressFamily != AddressFamily.InterNetwork) return false;
@@ -79,6 +86,7 @@ public sealed partial class SafeWebFetch : IDisposable
             || (bytes[0] == 172 && bytes[1] is >= 16 and <= 31)
             || (bytes[0] == 192 && bytes[1] == 168)
             || (bytes[0] == 169 && bytes[1] == 254)
+            || (bytes[0] == 100 && bytes[1] is >= 64 and <= 127)
             || bytes[0] == 0;
     }
 
