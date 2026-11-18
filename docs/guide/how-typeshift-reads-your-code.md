@@ -40,8 +40,8 @@ when the two differ ([TSH032](./diagnostics.md#tsh032)).
 
 The generator finds toolsets and agents by their base class, so they carry no attribute. It looks for the name
 `Toolset` or `Agent` in the class's base list, with or without its namespace, and does not follow a using alias
-([TSH017](./diagnostics.md#tsh017)). [Generated members](./generated-members.md) lists every member it writes and what
-triggers each one.
+([TSH017](./diagnostics.md#tsh017)). [AgentHost and generated members](./generated-members.md) lists every member it
+writes and what triggers each one.
 
 ## Declarations are read from source
 

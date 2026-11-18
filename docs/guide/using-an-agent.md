@@ -8,7 +8,7 @@ description: Get an agent's host and run the agent from a web request, a console
 Your app uses an agent through its host, `AgentHost<TAgent>`, which `services.AddTypeshift()` registers for every
 agent ([Registration](./registration.md)). A request gets the host like any other service, from its scope, and a
 background job takes one from the runtime, which gives the host a scope of its own. Either way, the agent's tools see
-the services of that request or job. [Running agents](./running-agents.md) covers what a run takes and returns.
+the services of that request or job. [Running an agent](./running-agents.md) covers what a run takes and returns.
 
 ## Inject the host in a web app
 

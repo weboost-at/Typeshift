@@ -199,8 +199,7 @@ the last entry's `At` is older than a limit your app chooses, or behind a lease 
 ::: warning A tool can be called twice
 A call interrupted while its tool ran is left out on resume. The model decides again and may call the tool a second
 time, so make tools with side effects safe to repeat. A call your app approved is the exception: no later run starts
-it again, and the model reads that it is not known whether the call took effect
-([When a decision closes](./tool-approval.md#when-a-decision-closes)).
+it again, and the model reads that it is not known whether the call took effect.
 :::
 
 ## One run at a time
@@ -256,6 +255,12 @@ await foreach (var run in tracker.WatchRunsAsync(ct))
 ::: warning The tracker lists every customer's runs
 `Runs` and `WatchRunsAsync` hold every run under ids of the tracker's type, whoever started it. Keep only the
 conversations the caller may see before you return them from an endpoint.
+:::
+
+::: tip Native AOT needs the tracker of a value type registered
+An app published with Native AOT that injects `ConversationTracker<Guid>`, or the tracker of another value type,
+registers it with `WithConversationTracker<Guid>()`
+([Trackers of value-type ids](./native-aot.md#trackers-of-value-type-ids)).
 :::
 
 ## Steering
@@ -350,11 +355,6 @@ services.AddTypeshift()
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L67-L74' title='Snippet source file'>snippet source</a> | <a href='#snippet-live-update-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-::: tip Native AOT needs the tracker of a value type registered
-An app published with Native AOT that injects `ConversationTracker<Guid>`, or the tracker of another value type,
-registers it with `WithConversationTracker<Guid>()` ([Trackers of value-type ids](./native-aot.md#trackers-of-value-type-ids)).
-:::
-
 ## Running on several instances
 
 Behind a load balancer, or during a rolling deploy, two instances of your app can serve the same chat. Each instance
@@ -425,8 +425,7 @@ reaches the maximum, Typeshift shrinks the history to `WithTargetInputTokens`, h
 2. If that is not enough, it summarizes the oldest turns with the [summary model](./models.md#the-summary-model), the
    run's own unless you name another. The summary model reads those turns as text: each tool call with its arguments,
    and the first 2,000 characters of each result, including the results the first step cleared. When the summary
-   call fails, the run goes on: its own model writes the summary, or the call goes out without one
-   ([The summary model](./models.md#the-summary-model)).
+   call fails, the run goes on: its own model writes the summary, or the call goes out without one.
 
 The instructions and the latest call of a tool named `write_todos`, if the agent offers one, always stay, and a cut
 never separates a tool call from its result.
@@ -447,10 +446,10 @@ which no summary touches.
 
 ## Related
 
-- [Running agents](./running-agents.md#conversations): giving a run a conversation id.
+- [Running an agent](./running-agents.md): what a run takes and returns.
 - [How a run works](./how-a-run-works.md): where a run resumes and stores its steps.
 - [Implementing a store](./implementing-a-store.md#append-to-a-conversation): the store methods that keep conversations.
 - [Builders](./builders.md#runoptionsbuilder): the run options of compaction and their defaults.
 - [Models and providers](./models.md#the-summary-model): which model summarizes, and its provider.
-- [Multiple agents](./multi-agent.md#handoff): handoffs, which need a conversation.
+- [Sub-agents and handoffs](./multi-agent.md#handoff): handoffs, which need a conversation.
 - [Serving a chat endpoint](./chat-endpoint.md): a conversation per chat, behind ASP.NET Core endpoints.

@@ -546,9 +546,8 @@ of each round of calls, steering input and the entry that ends a run
 - **Keep the append order.** `LoadConversationAsync` returns the entries in the order they were appended, oldest
   first. Let the database number the rows, as an identity column does; a timestamp can tie.
 - **Store each entry as its JSON**, `entry.Serialize()`, and read it back with `ConversationEntry.Deserialize(json)`.
-  A database client that serializes with `System.Text.Json` or Newtonsoft.Json may take the entry as it is
-  ([What is stored](./conversations.md#what-is-stored)). Keep that JSON whole: later runs read members from it that
-  your store never looks at, such as `EstimatedInputTokens`, which
+  A database client that serializes with `System.Text.Json` or Newtonsoft.Json may take the entry as it is. Keep that
+  JSON whole: later runs read members from it that your store never looks at, such as `EstimatedInputTokens`, which
   [compaction](./conversations.md#compaction) keeps on a model response. An entry may gain a member with a new
   version, as a model response gained its `Provider`: entries stored without it still load, and a store that
   keeps the JSON as it is needs no change. A store that maps an entry's members to columns of its own adds one.
@@ -697,7 +696,7 @@ at most, the standing approvals, the mode and a handful of ids, whatever the con
 it when a run starts and when your app asks what waits. It saves it when a run asks, when your app answers, when the
 run carries the answers out, and when a run's settings or your app name the conversation's mode.
 
-`SaveDecisionsAsync` follows the rules of [Save with a version](#save-with-a-version), and they matter more here.
+`SaveDecisionsAsync` follows the rules of a settings save, and they matter more here.
 Two requests may answer the same question at once, and two instances of your app may continue the same conversation
 at once. Each of them saves with the version it loaded, exactly one save wins, and the loser learns that it lost. That
 is how an approved call starts only once, so check the version and write in
@@ -767,7 +766,7 @@ older schema versions is then up to you. You can do it in `LoadAsync`, where the
 a row holds: read `"$schemaVersion"`, rewrite the JSON of an older schema version and return it with the version the
 row holds, or migrate the rows with a script over your database. Each save writes the current schema version, so a
 migrated document reaches it in your database with its next save. Typeshift reads a schema version you leave as it
-is, so a renamed or removed member reads as missing ([The stored JSON](./settings-and-stores.md#the-stored-json)).
+is, so a renamed or removed member reads as missing.
 
 One stored value needs the migration: a `provider` or `summaryProvider` whose value the agent's provider id type no
 longer has, after you renamed a member of an enum of providers. It fails the load where a member reads as missing,

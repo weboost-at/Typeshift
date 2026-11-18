@@ -10,34 +10,6 @@ the tool calls it made on the way. A run can apply a customer's stored settings,
 typed answer, or stream as the model writes. [Using an agent](./using-an-agent.md) shows where your app gets the
 host.
 
-## Registration
-
-<!-- snippet: registration -->
-<a id='snippet-registration'></a>
-```cs
-services.AddTypeshift()
-    .WithStore<EfTypeshiftStore>()
-    .WithRunMiddleware<BlockedTopics>()
-    .WithToolMiddleware<AuditToolCalls>();
-
-services.AddKeyedChatClient("openai", fast);
-services.AddKeyedChatClient("anthropic", reasoning);
-```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L19-L27' title='Snippet source file'>snippet source</a> | <a href='#snippet-registration' title='Start of snippet'>anchor</a></sup>
-<!-- endSnippet -->
-
-`AddTypeshift()` registers the toolsets and agents of this project and the projects it references, plus a host per
-agent. `fast` and `reasoning` stand for the `IChatClient` instances your app creates, one per provider, registered
-under the provider's name. `WithStore<T>()` registers the store that keeps settings and conversations.
-[Registration](./registration.md#the-chain) covers the rest of the chain.
-
-## Chat clients
-
-A run that names a provider takes the `IChatClient` registered under it, and a run that names none takes the default
-client, both from the run's services. A provider nothing is registered for fails the run before it starts.
-[Models and providers](./models.md) shows how to register them, how an agent names its model, how to
-create [a real client](./models.md#a-real-client) and when to write a provider of your own.
-
 ## Run an agent
 
 <!-- snippet: run -->
@@ -55,6 +27,10 @@ Console.WriteLine($"{answer.Messages[^1].AuthorName}: {answer.Text}");
 
 A run returns Microsoft.Extensions.AI's `ChatResponse`: the model's messages, with the tool calls and results between
 them. Each message names the agent that wrote it in `AuthorName`.
+
+The run takes its `IChatClient` from the run's services: the client your app registered under the provider the agent
+names, or the default client when the agent names none. A provider nothing is registered for fails the run before it
+starts. [Models and providers](./models.md) shows how to register the clients and how an agent names its model.
 
 [How a run works](./how-a-run-works.md) follows the steps every run passes through, streaming or not, from resolving
 its options to the model's answer.
@@ -125,12 +101,6 @@ var thorough = await support.WithSettingsId(settingsId).RunAsync("Where is my re
 
 Values the run leaves null keep what the stored settings or the agent's code set, as
 [settings layering](./settings-and-stores.md#settings-layering) explains.
-
-## Conversations
-
-Give the host a conversation id with `WithConversationId`, and its runs continue that conversation and store each of
-their steps in it. If a crash cuts a run off, `ResumeAsync` continues it. [Conversations](./conversations.md) covers
-both.
 
 ## Structured output
 

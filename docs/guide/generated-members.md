@@ -73,8 +73,7 @@ its own ([Wrapping a client](./models.md#wrapping-a-client)). It throws a
 `JsonException` for stored settings of a newer schema version than the code's
 ([Migrate older settings](./implementing-a-store.md#migrate-older-settings)).
 
-When a run ends asking your app, the response's `Decisions` lists what it asks
-([When a call needs approval](./tool-approval.md#when-a-call-needs-approval)). A message that carries
+When a run ends asking your app, the response's `Decisions` lists what it asks. A message that carries
 Microsoft.Extensions.AI's approval contents throws an `ArgumentException`: answers go through `AnswerAsync`.
 
 `RunAsync` returns the model's messages with the tool calls and results between them, and each message carries the

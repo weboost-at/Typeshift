@@ -88,7 +88,7 @@ Sub-agents and handoffs keep the settings id, but not the run's settings. A sub-
 of its own kind, those of the agent and those under the caller's settings id, in the caller's mode. An agent handed
 off to answers with the stored settings of its kind under the same id. Run settings apply only to the agent the run
 started on, except a mode they name, which [belongs to the conversation](#the-mode-of-a-conversation)
-([Multiple agents](./multi-agent.md)).
+([Sub-agents and handoffs](./multi-agent.md)).
 
 ## Ids of your own types
 
@@ -408,8 +408,7 @@ escaped as `\uXXXX`, because your app may pass the JSON on to a page as it is.
 ::: warning A renamed member loses its stored value
 A configurable member that is renamed or removed reads as missing from stored settings, so its stored value no
 longer applies, and a request that still sends it is refused. When the stored value matters, raise the agent's
-schema version with `WithSchemaVersion(2)` and migrate the documents of the older schema version
-([Migrate older settings](./implementing-a-store.md#migrate-older-settings)).
+schema version with `WithSchemaVersion(2)` and migrate the documents of the older schema version.
 :::
 
 ## Related
@@ -418,6 +417,6 @@ schema version with `WithSchemaVersion(2)` and migrate the documents of the olde
 - [Implementing a store](./implementing-a-store.md): registering a store, its methods, its versions and conversation
   summaries.
 - [Generated members](./generated-members.md#settings): the `Settings` record a store keeps.
-- [Running agents](./running-agents.md#run-settings): running with a settings id and run settings.
+- [Running an agent](./running-agents.md#run-settings): running with a settings id and run settings.
 - [Conversations](./conversations.md): what a run stores in a conversation, and resuming it.
 - [Registration](./registration.md#ids): ids and the other chain calls.

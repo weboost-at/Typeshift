@@ -58,7 +58,7 @@ the tool loop, as each model call answers, so run middleware reads it and cannot
    and the answers your app gave are carried out as the run's first step
    ([When a decision closes](./tool-approval.md#when-a-decision-closes)). The run is in the conversation's mode, or
    in the agent's own while nothing named one ([Setting the mode](./tool-approval.md#setting-the-mode)).
-4. **Run middleware.** Each `IRunMiddleware` wraps the rest of the run ([Middleware](./middleware.md)).
+4. **Run middleware.** Each `IRunMiddleware` wraps the rest of the run ([Middleware and context](./middleware.md)).
 5. **Context providers.** Each context provider the agent uses can add instructions, messages and tools to this run.
    The conversation stores none of it, so every run calls the providers again
    ([Context providers](./middleware.md#context-providers)).

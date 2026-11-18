@@ -33,7 +33,7 @@ const sidebar = {
       items: [
         { text: 'What is Typeshift?', link: '/guide/what-is-typeshift' },
         { text: 'Getting started', link: '/guide/getting-started' },
-        { text: 'Using an agent', link: '/guide/using-an-agent' },
+        { text: 'Using an agent in your app', link: '/guide/using-an-agent' },
         { text: 'Registration', link: '/guide/registration' }
       ]
     },
@@ -50,7 +50,7 @@ const sidebar = {
       ]
     },
     {
-      text: 'Running agents',
+      text: 'Runs and conversations',
       collapsed: true,
       items: [
         { text: 'Running an agent', link: '/guide/running-agents' },

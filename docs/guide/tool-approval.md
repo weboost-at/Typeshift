@@ -250,7 +250,7 @@ changes nothing.
 
 A standing approval:
 
-- matches a tool by its name, whatever arguments the model sends. An [MCP server's](./mcp.md) tool is approved with
+- matches a tool by its name, whatever arguments the model sends. An MCP server's tool is approved with
   its server, so the approval reaches no tool of the same name elsewhere.
 - holds for every agent of the conversation: the agents it is [handed to](./multi-agent.md#handoff) and the
   [sub-agents](./multi-agent.md#sub-agents) they call.
@@ -528,4 +528,4 @@ decisions of their own.
 - [MCP servers](./mcp.md): marking a server's tools read-only, so plan mode offers them.
 - [How a run works](./how-a-run-works.md): where approval sits among a run's steps.
 - [Serving a chat endpoint](./chat-endpoint.md#answer-a-decision): loading and answering decisions over HTTP.
-- [Multiple agents](./multi-agent.md#sub-agents): what a sub-agent cannot ask your app.
+- [Sub-agents and handoffs](./multi-agent.md#sub-agents): what a sub-agent cannot ask your app.
