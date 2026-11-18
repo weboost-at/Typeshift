@@ -40,7 +40,7 @@ internal static class Conversations
         var watcher = WatchAsync(tracker, conversationId, watching.Token);
         var runWatcher = WatchRunsAsync(tracker, watching.Token);
 
-        await foreach (var update in chat.WithSettingsId(settingsId).RunStreamingAsync("Thanks!", ct: ct))
+        await foreach (var update in chat.WithSettingsId(settingsId).RunStreamingAsync("Thanks!", ct))
             Console.Write(update.Text);
 
         Console.WriteLine();

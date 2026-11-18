@@ -35,13 +35,28 @@ public static bool Typeshift.AgentContext.operator !=(Typeshift.AgentContext? le
 public static bool Typeshift.AgentContext.operator ==(Typeshift.AgentContext? left, Typeshift.AgentContext? right)
 public sealed class Typeshift.AgentHost<TAgent> : System.IAsyncDisposable where TAgent : Typeshift.Agent
 public TAgent Typeshift.AgentHost<TAgent>.Agent { get; }
+public System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> Typeshift.AgentHost<TAgent>.AnswerAsync(System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse<TResult>> Typeshift.AgentHost<TAgent>.AnswerAsync<TResult>(System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public System.Collections.Generic.IAsyncEnumerable<Microsoft.Extensions.AI.ChatResponseUpdate> Typeshift.AgentHost<TAgent>.AnswerStreamingAsync(System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public Typeshift.StreamingRun<TResult> Typeshift.AgentHost<TAgent>.AnswerStreamingAsync<TResult>(System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public System.Threading.Tasks.Task<Typeshift.ConversationDecisions> Typeshift.AgentHost<TAgent>.CancelDecisionsAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public System.Threading.Tasks.Task<Microsoft.Extensions.AI.IChatClient> Typeshift.AgentHost<TAgent>.CreateChatClientAsync(Microsoft.Extensions.AI.ChatOptions options, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public void Typeshift.AgentHost<TAgent>.Dispose()
 public System.Threading.Tasks.ValueTask Typeshift.AgentHost<TAgent>.DisposeAsync()
 public System.Threading.Tasks.Task<Typeshift.ConversationDecisions> Typeshift.AgentHost<TAgent>.GetDecisionsAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public System.Threading.Tasks.Task<Typeshift.ConversationDecisions> Typeshift.AgentHost<TAgent>.RecordAnswersAsync(System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatOptions> Typeshift.AgentHost<TAgent>.ResolveOptionsAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> Typeshift.AgentHost<TAgent>.ResumeAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public System.Collections.Generic.IAsyncEnumerable<Microsoft.Extensions.AI.ChatResponseUpdate> Typeshift.AgentHost<TAgent>.ResumeStreamingAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public System.Threading.Tasks.Task Typeshift.AgentHost<TAgent>.RevokeStandingApprovalAsync(string tool, string? server = null, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> Typeshift.AgentHost<TAgent>.RunAsync(Microsoft.Extensions.AI.ChatMessage input, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> Typeshift.AgentHost<TAgent>.RunAsync(string input, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse<TResult>> Typeshift.AgentHost<TAgent>.RunAsync<TResult>(Microsoft.Extensions.AI.ChatMessage input, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse<TResult>> Typeshift.AgentHost<TAgent>.RunAsync<TResult>(string input, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public System.Collections.Generic.IAsyncEnumerable<Microsoft.Extensions.AI.ChatResponseUpdate> Typeshift.AgentHost<TAgent>.RunStreamingAsync(Microsoft.Extensions.AI.ChatMessage input, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public System.Collections.Generic.IAsyncEnumerable<Microsoft.Extensions.AI.ChatResponseUpdate> Typeshift.AgentHost<TAgent>.RunStreamingAsync(string input, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public Typeshift.StreamingRun<TResult> Typeshift.AgentHost<TAgent>.RunStreamingAsync<TResult>(Microsoft.Extensions.AI.ChatMessage input, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
+public Typeshift.StreamingRun<TResult> Typeshift.AgentHost<TAgent>.RunStreamingAsync<TResult>(string input, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public System.Threading.Tasks.Task Typeshift.AgentHost<TAgent>.SetModeAsync(Typeshift.AgentMode mode, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken))
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithConversationId<TId>(TId id) where TId : notnull
 public Typeshift.AgentHost<TAgent> Typeshift.AgentHost<TAgent>.WithConversationId<TId>(TId? id) where TId : struct

@@ -10,9 +10,10 @@ section names the declaration that adds a member.
 
 ## The agent host
 
-`AgentHost<TAgent>` runs one agent. Its own members are `Agent`, `WithSettingsId`, `WithConversationId`,
-`CreateChatClientAsync`, the members for [the decisions of a conversation](#decisions-of-the-conversation), `DisposeAsync`
-and `Dispose`, and the generator adds the typed runs and settings of each agent.
+`AgentHost<TAgent>` runs one agent. Its own members are `Agent`, `WithSettingsId`, `WithConversationId`, its runs
+without settings, `CreateChatClientAsync`, the members for
+[the decisions of a conversation](#decisions-of-the-conversation), `DisposeAsync` and `Dispose`. The generator adds
+the typed runs and settings of each agent.
 
 ### Typed members
 
@@ -40,6 +41,11 @@ In these signatures, `Settings` is the agent's [generated `Settings` record](#se
 | `LoadSettingsAsync()` | `Task<Stored<Settings>>` |
 | `SaveSettingsAsync(Settings settings, long loadedVersion)` | `Task<long>` |
 | `UpdateSettingsAsync(Func<Settings, Settings> update)` | `Task<Stored<Settings>>` |
+
+Each run, answer and resume of the table, and `ResolveOptionsAsync`, is also a member of `AgentHost<TAgent>` itself
+without `settings`, such as `RunAsync(string input, CancellationToken ct = default)`. Code generic over the agent
+calls those, so one method runs any agent ([Run any agent](./running-agents.md#run-any-agent)), and a token goes in
+second, as in `RunAsync(input, ct)`. A call that passes settings reaches the generated member, and both run alike.
 
 ### `RunAsync`
 

@@ -34,7 +34,7 @@ chat.MapPost("/messages", async (
     var response = await support
         .WithSettingsId(customer.Id)
         .WithConversationId(chatId)
-        .RunAsync(input.Text, ct: ct);
+        .RunAsync(input.Text, ct);
 
     return ChatReply.From(response);
 });
@@ -126,7 +126,7 @@ chat.MapPost("/messages/stream", async (
     var updates = support
         .WithSettingsId(customer.Id)
         .WithConversationId(chatId)
-        .RunStreamingAsync(input.Text, ct: ct);
+        .RunStreamingAsync(input.Text, ct);
 
     return TypedResults.ServerSentEvents(Events(await StartedAsync(updates, ct)));
 });
@@ -236,7 +236,7 @@ chat.MapPost("/decisions", async Task<IResult> (
         var resumed = await support
             .WithSettingsId(customer.Id)
             .WithConversationId(chatId)
-            .AnswerAsync([answer], ct: ct);
+            .AnswerAsync([answer], ct);
 
         // Its Decisions list what still waits
         return TypedResults.Ok(ChatReply.From(resumed));

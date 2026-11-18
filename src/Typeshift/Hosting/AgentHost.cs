@@ -10,11 +10,9 @@ namespace Typeshift;
 /// Runs <typeparamref name="TAgent"/> with the services of its scope: its tools and its chat client provider resolve
 /// there. Registered as transient by <c>AddTypeshift()</c>: inject it, or resolve it from a scope, never from the root
 /// provider. <see cref="TypeshiftRuntime.Agent{TAgent}"/> creates one in a scope of its own, which disposing the host
-/// disposes. The generator adds the agent's typed members: <c>RunAsync</c>, <c>RunAsync&lt;T&gt;</c>,
-/// <c>RunStreamingAsync</c>, <c>RunStreamingAsync&lt;T&gt;</c>, <c>AnswerAsync</c>, <c>AnswerAsync&lt;T&gt;</c>,
-/// <c>AnswerStreamingAsync</c>, <c>AnswerStreamingAsync&lt;T&gt;</c>, <c>ResumeAsync</c>,
-/// <c>ResumeStreamingAsync</c>, <c>ResolveOptionsAsync</c>, <c>LoadSettingsAsync</c>, <c>SaveSettingsAsync</c> and
-/// <c>UpdateSettingsAsync</c>.
+/// disposes. Its runs, answers, resumes and <c>ResolveOptionsAsync</c> are its own, so code generic over the agent
+/// calls them too. The generator adds the agent's typed members: the same runs with the agent's <c>Settings</c> for
+/// the run, and <c>LoadSettingsAsync</c>, <c>SaveSettingsAsync</c> and <c>UpdateSettingsAsync</c>.
 /// More in the guide:
 /// <see href="https://weboost-at.github.io/Typeshift/guide/generated-members#the-agent-host">The agent host</see>.
 /// </summary>
@@ -145,6 +143,381 @@ public sealed class AgentHost<TAgent> : IAgentHost, IAsyncDisposable, IDisposabl
             _settingsId = settingsId,
             _conversationId = conversationId
         };
+
+    // D12: the runs without the agent's Settings are the host's own, so code generic over the agent runs any agent
+    // and takes the token positionally; the generated members add the forms with Settings
+    /// <summary>
+    /// Runs the agent on a message, in the host's conversation if it has one, with the stored settings over the
+    /// agent's code. The agent's generated <c>RunAsync</c> also takes the run's <c>Settings</c>.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/running-agents">Running an agent</see>.
+    /// </summary>
+    /// <param name="input">The user's message.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The response; its messages carry the agent's name as their author.</returns>
+    /// <exception cref="DecisionUnavailableException">
+    /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+    /// </exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on in this process.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered, such as a
+    /// chat client or a store for one of the host's ids.
+    /// </exception>
+    /// <exception cref="System.Text.Json.JsonException">
+    /// The stored settings were written under a newer schema version than this code's.
+    /// </exception>
+    public Task<ChatResponse> RunAsync(string input, CancellationToken ct = default) =>
+        RunCoreAsync(new ChatMessage(ChatRole.User, input), null, ct);
+
+    /// <summary>
+    /// Runs the agent on a message, which may carry images, as <see cref="RunAsync(string, CancellationToken)"/> does.
+    /// </summary>
+    /// <param name="input">The user's message.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The response; its messages carry the agent's name as their author.</returns>
+    /// <exception cref="ArgumentException">
+    /// The message carries approval contents, which a run does not take: answers go through <c>AnswerAsync</c>.
+    /// </exception>
+    /// <exception cref="DecisionUnavailableException">
+    /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+    /// </exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on in this process.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
+    /// </exception>
+    /// <exception cref="System.Text.Json.JsonException">
+    /// The stored settings were written under a newer schema version than this code's.
+    /// </exception>
+    public Task<ChatResponse> RunAsync(ChatMessage input, CancellationToken ct = default) =>
+        RunCoreAsync(input, null, ct);
+
+    /// <summary>
+    /// Runs the agent on a message as <see cref="RunAsync(string, CancellationToken)"/> does, asking the model for JSON
+    /// of <typeparamref name="TResult"/>'s schema.
+    /// </summary>
+    /// <typeparam name="TResult">The result's type.</typeparam>
+    /// <param name="input">The user's message.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The response, with the result.</returns>
+    /// <exception cref="DecisionUnavailableException">
+    /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+    /// </exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on in this process.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
+    /// </exception>
+    /// <exception cref="System.Text.Json.JsonException">
+    /// The stored settings were written under a newer schema version than this code's.
+    /// </exception>
+    public Task<ChatResponse<TResult>> RunAsync<TResult>(string input, CancellationToken ct = default) =>
+        RunCoreAsync<TResult>(new ChatMessage(ChatRole.User, input), null, ct);
+
+    /// <summary>
+    /// Runs the agent on a message, which may carry images, as
+    /// <see cref="RunAsync{TResult}(string, CancellationToken)"/> does.
+    /// </summary>
+    /// <typeparam name="TResult">The result's type.</typeparam>
+    /// <param name="input">The user's message.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The response, with the result.</returns>
+    /// <exception cref="ArgumentException">
+    /// The message carries approval contents, which a run does not take: answers go through <c>AnswerAsync</c>.
+    /// </exception>
+    /// <exception cref="DecisionUnavailableException">
+    /// A tool call needs a decision of your app, and the run has no conversation to keep it in.
+    /// </exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on in this process.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
+    /// </exception>
+    /// <exception cref="System.Text.Json.JsonException">
+    /// The stored settings were written under a newer schema version than this code's.
+    /// </exception>
+    public Task<ChatResponse<TResult>> RunAsync<TResult>(ChatMessage input, CancellationToken ct = default) =>
+        RunCoreAsync<TResult>(input, null, ct);
+
+    /// <summary>
+    /// Runs the agent on a message as <see cref="RunAsync(string, CancellationToken)"/> does, streaming the updates.
+    /// The agent's generated <c>RunStreamingAsync</c> also takes the run's <c>Settings</c>.
+    /// </summary>
+    /// <param name="input">The user's message.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The updates; they carry the agent's name as their author.</returns>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on in this process, when the updates are read.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
+    /// </exception>
+    public IAsyncEnumerable<ChatResponseUpdate> RunStreamingAsync(string input, CancellationToken ct = default) =>
+        RunStreamingCoreAsync(new ChatMessage(ChatRole.User, input), null, ct);
+
+    /// <summary>
+    /// Runs the agent on a message, which may carry images, as
+    /// <see cref="RunStreamingAsync(string, CancellationToken)"/> does.
+    /// </summary>
+    /// <param name="input">The user's message.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The updates; they carry the agent's name as their author.</returns>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on in this process, when the updates are read.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
+    /// </exception>
+    public IAsyncEnumerable<ChatResponseUpdate> RunStreamingAsync(
+        ChatMessage input,
+        CancellationToken ct = default) =>
+        RunStreamingCoreAsync(input, null, ct);
+
+    /// <summary>
+    /// Runs the agent on a message as <see cref="RunStreamingAsync(string, CancellationToken)"/> does, asking the model
+    /// for JSON of <typeparamref name="TResult"/>'s schema. Once its updates are read to the end, its <c>Response</c>
+    /// holds the result.
+    /// </summary>
+    /// <typeparam name="TResult">The result's type.</typeparam>
+    /// <param name="input">The user's message.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The run, which streams its updates and then holds the result.</returns>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on in this process, when the updates are read.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
+    /// </exception>
+    public StreamingRun<TResult> RunStreamingAsync<TResult>(string input, CancellationToken ct = default) =>
+        RunStreamingCoreAsync<TResult>(new ChatMessage(ChatRole.User, input), null, ct);
+
+    /// <summary>
+    /// Runs the agent on a message, which may carry images, as
+    /// <see cref="RunStreamingAsync{TResult}(string, CancellationToken)"/> does.
+    /// </summary>
+    /// <typeparam name="TResult">The result's type.</typeparam>
+    /// <param name="input">The user's message.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The run, which streams its updates and then holds the result.</returns>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on in this process, when the updates are read.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The agent's chat client runs a tool loop of its own, or something the run needs is not registered.
+    /// </exception>
+    public StreamingRun<TResult> RunStreamingAsync<TResult>(ChatMessage input, CancellationToken ct = default) =>
+        RunStreamingCoreAsync<TResult>(input, null, ct);
+
+    /// <summary>
+    /// Records your app's answers to decisions of the host's conversation, from <c>WithConversationId</c>, and, once
+    /// no decision is left open, carries them out and continues the run. With decisions left open it calls no model,
+    /// and the response lists them. The agent's generated <c>AnswerAsync</c> also takes the run's <c>Settings</c>.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/tool-approval#approving-or-rejecting">Approving or
+    /// rejecting</see>.
+    /// </summary>
+    /// <param name="answers">The answers, each made from its decision, as <c>decision.Approve()</c> makes one.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The response; with decisions left open, one that lists them.</returns>
+    /// <exception cref="DecisionClosedException">
+    /// An answer names a decision that is not open. Nothing of the call is recorded.
+    /// </exception>
+    /// <exception cref="ArgumentException">
+    /// An answer does not fit its decision, one decision is answered twice, or there is no answer. Nothing is
+    /// recorded.
+    /// </exception>
+    /// <exception cref="StoreConflictException">
+    /// Other saves of the conversation's decisions came first ten times in a row.
+    /// </exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on in this process. The answers are recorded: continue with
+    /// <see cref="ResumeAsync(CancellationToken)"/> once it ended.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
+    /// is not registered.
+    /// </exception>
+    /// <exception cref="ArgumentNullException"><paramref name="answers"/> is null.</exception>
+    public Task<ChatResponse> AnswerAsync(IReadOnlyList<DecisionAnswer> answers, CancellationToken ct = default) =>
+        AnswerCoreAsync(answers, null, ct);
+
+    /// <summary>
+    /// Records your app's answers and continues the run as
+    /// <see cref="AnswerAsync(IReadOnlyList{DecisionAnswer}, CancellationToken)"/> does, asking the model for JSON of
+    /// <typeparamref name="TResult"/>'s schema.
+    /// </summary>
+    /// <typeparam name="TResult">The result's type.</typeparam>
+    /// <param name="answers">The answers, each made from its decision.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The response, with the result; with decisions left open, one that lists them and has none.</returns>
+    /// <exception cref="DecisionClosedException">An answer names a decision that is not open.</exception>
+    /// <exception cref="ArgumentException">An answer does not fit its decision, or there is none.</exception>
+    /// <exception cref="StoreConflictException">
+    /// Other saves of the conversation's decisions came first ten times in a row.
+    /// </exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on in this process. The answers are recorded.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
+    /// is not registered.
+    /// </exception>
+    /// <exception cref="ArgumentNullException"><paramref name="answers"/> is null.</exception>
+    public Task<ChatResponse<TResult>> AnswerAsync<TResult>(
+        IReadOnlyList<DecisionAnswer> answers,
+        CancellationToken ct = default) =>
+        AnswerCoreAsync<TResult>(answers, null, ct);
+
+    /// <summary>
+    /// Records your app's answers and continues the run as
+    /// <see cref="AnswerAsync(IReadOnlyList{DecisionAnswer}, CancellationToken)"/> does, streaming the updates. The
+    /// answers are recorded when the updates are read.
+    /// </summary>
+    /// <param name="answers">The answers, each made from its decision.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The updates; with decisions left open, one update that lists them.</returns>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on in this process. The answers are recorded.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
+    /// is not registered.
+    /// </exception>
+    public IAsyncEnumerable<ChatResponseUpdate> AnswerStreamingAsync(
+        IReadOnlyList<DecisionAnswer> answers,
+        CancellationToken ct = default) =>
+        AnswerStreamingCoreAsync(answers, null, ct);
+
+    /// <summary>
+    /// Records your app's answers and continues the run as
+    /// <see cref="AnswerStreamingAsync(IReadOnlyList{DecisionAnswer}, CancellationToken)"/> does, asking the model for
+    /// JSON of <typeparamref name="TResult"/>'s schema.
+    /// </summary>
+    /// <typeparam name="TResult">The result's type.</typeparam>
+    /// <param name="answers">The answers, each made from its decision.</param>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The run, which streams its updates and then holds the result.</returns>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on in this process. The answers are recorded.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
+    /// is not registered.
+    /// </exception>
+    public StreamingRun<TResult> AnswerStreamingAsync<TResult>(
+        IReadOnlyList<DecisionAnswer> answers,
+        CancellationToken ct = default) =>
+        AnswerStreamingCoreAsync<TResult>(answers, null, ct);
+
+    /// <summary>
+    /// Continues the host's conversation, from <c>WithConversationId</c>, without new input: the run that was
+    /// interrupted, from its last stored step, or the decisions your app answered. While decisions are still open it
+    /// calls no model, and the response lists them. The agent's generated <c>ResumeAsync</c> also takes the run's
+    /// <c>Settings</c>.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/conversations#resuming">Resuming</see>.
+    /// </summary>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The response.</returns>
+    /// <exception cref="NothingToResumeException">
+    /// The conversation has nothing to continue: its last run ended, and no decision your app answered or withdrew
+    /// waits.
+    /// </exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on in this process.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
+    /// is not registered.
+    /// </exception>
+    /// <exception cref="System.Text.Json.JsonException">
+    /// The stored settings were written under a newer schema version than this code's.
+    /// </exception>
+    public Task<ChatResponse> ResumeAsync(CancellationToken ct = default) => RunCoreAsync(null, null, ct);
+
+    /// <summary>
+    /// Continues the host's conversation as <see cref="ResumeAsync(CancellationToken)"/> does, streaming the updates.
+    /// </summary>
+    /// <param name="ct">Cancels the run.</param>
+    /// <returns>The updates.</returns>
+    /// <exception cref="NothingToResumeException">
+    /// The conversation has nothing to continue, when the updates are read.
+    /// </exception>
+    /// <exception cref="ConversationBusyException">
+    /// A run of the host's conversation is going on in this process, when the updates are read.
+    /// </exception>
+    /// <exception cref="ConversationStoreException">
+    /// The store failed to append a step of the run, unless <c>TypeshiftOptions.StoreFailure</c> lets it continue.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// The host has no conversation, the agent's chat client runs a tool loop of its own, or something the run needs
+    /// is not registered.
+    /// </exception>
+    public IAsyncEnumerable<ChatResponseUpdate> ResumeStreamingAsync(CancellationToken ct = default) =>
+        RunStreamingCoreAsync(null, null, ct);
+
+    /// <summary>
+    /// Resolves the options of a run, for the raw path: <see cref="CreateChatClientAsync"/>, then the client. The
+    /// options carry the host's conversation. The agent's generated <c>ResolveOptionsAsync</c> also takes the run's
+    /// <c>Settings</c>.
+    /// More in the guide:
+    /// <see href="https://weboost-at.github.io/Typeshift/guide/running-agents#the-raw-path">The raw path</see>.
+    /// </summary>
+    /// <param name="ct">Cancels the resolution.</param>
+    /// <returns>The options, with the agent's tools.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Something the options need is not registered: a store for the type of the host's settings id, or an
+    /// <see cref="IMcpToolProvider"/> for the agent's MCP servers.
+    /// </exception>
+    /// <exception cref="System.Text.Json.JsonException">
+    /// The stored settings were written under a newer schema version than this code's.
+    /// </exception>
+    public Task<ChatOptions> ResolveOptionsAsync(CancellationToken ct = default) =>
+        ResolveOptionsCoreAsync(_settingsId, null, ct);
 
     // The settings id WithSettingsId gave, which the settings members use in place of the agent's own settings
     internal StoreId? SettingsId => _settingsId;

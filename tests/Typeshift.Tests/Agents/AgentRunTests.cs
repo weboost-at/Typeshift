@@ -511,6 +511,38 @@ public class AgentRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Generic_Method_Over_Any_Agent_It_Runs_The_Agent()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var answer = await AskAsync(Host<InstructedAgent>(), Data.Tool.Question, Ct);
+
+        // Assert
+        answer.Should().Be(Data.Tool.Answer);
+        ChatClient.Options[0]!.Instructions.Should().Be(InstructedAgent.Prompt);
+    }
+
+    [Fact]
+    public async Task Given_A_Token_Passed_Positionally_The_Run_Takes_It()
+    {
+        // Arrange
+        using var stopping = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        ChatClient.Reply(new TaskCompletionSource());
+
+        var run = Host<ProbeAgent>().RunAsync(Data.Tool.Question, stopping.Token);
+        await ChatClient.Requested;
+
+        // Act
+        await stopping.CancelAsync();
+        var ending = () => run;
+
+        // Assert
+        await ending.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
     public async Task Given_No_Model_The_Run_Fails_Saying_How_To_Set_One()
     {
         // Act
@@ -604,4 +636,9 @@ public class AgentRunTests : AgentTestBase
         // Assert
         ChatClient.Requests.Should().HaveCount(3);
     }
+
+    // Code generic over the agent, as an endpoint or a test helper for every agent is
+    private static async Task<string> AskAsync<TAgent>(AgentHost<TAgent> host, string input, CancellationToken ct)
+        where TAgent : Agent =>
+        (await host.RunAsync(input, ct)).Text;
 }

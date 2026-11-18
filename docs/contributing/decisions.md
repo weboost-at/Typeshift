@@ -234,6 +234,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   may be stored. It now carries the noun its siblings carry, returns the settings with their version as
   `LoadSettingsAsync` does, and throws when its function returns null, which the save failed on later without naming
   the function. A generated member has no cheap forwarder, so the old name went without an `[Obsolete]` twin.
+- **The host's own runs:** every run, answer and resume, and `ResolveOptionsAsync`, is also an instance member of
+  `AgentHost<TAgent>` without the `Settings` parameter, `RunAsync(string input, CancellationToken ct = default)` for
+  example. Code generic over the agent, a helper for every agent's endpoint or test, calls those: an extension block
+  on the closed `AgentHost<SupportAgent>` is not in reach of an `AgentHost<TAgent>`, which was CS1929. An instance
+  member wins where it applies, and a call with settings, by position or by name, reaches the generated one, so
+  `RunAsync(input, ct)` takes the token second, where it was CS1503 and every call wrote `ct: ct`.
 - **Namespace:** the blocks live in the global namespace, in a file of their own per agent, so every file has them in
   scope. In the agent's namespace, a file that named the agent in full or through an alias saw no typed members, and
   the owner asked why `RunAsync` was missing at times; the `Typeshift` namespace would have hidden them from a file

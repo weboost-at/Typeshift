@@ -40,7 +40,7 @@ internal sealed class RefundDesk(AgentHost<SupportAgent> support, ICurrentCustom
 {
     public async Task<string> AnswerAsync(string question, CancellationToken ct)
     {
-        var answer = await support.WithSettingsId(customer.Id).RunAsync(question, ct: ct);
+        var answer = await support.WithSettingsId(customer.Id).RunAsync(question, ct);
         return answer.Text;
     }
 }
@@ -123,7 +123,7 @@ internal sealed class TicketDigest(TypeshiftRuntime runtime, TimeProvider time) 
         // A host for each job, so the run gets scoped services of its own, as a request would
         await using var support = runtime.Agent<SupportAgent>();
 
-        var answer = await support.RunAsync("Summarize the tickets opened today.", ct: ct);
+        var answer = await support.RunAsync("Summarize the tickets opened today.", ct);
         return answer.Text;
     }
 }

@@ -149,6 +149,11 @@ All notable changes to this project are documented here. The format follows
   entries. A store that never looks at the number works as before, and entries stored before load with none, the
   next run numbering on from their count. "Refuse a second run" in the guide's store page shows the key and the
   insert.
+- `AgentHost<TAgent>` runs, answers, resumes and resolves options itself, without the agent's `Settings`: a method
+  generic over the agent, such as `AskAsync<TAgent>(AgentHost<TAgent> host, string question)`, calls
+  `host.RunAsync(question, ct)` and runs any agent. It was CS1929, since only each agent's generated members could
+  run it. A run takes its token second, as in `RunAsync(input.Text, ct)`, which was CS1503 and needed `ct: ct`. A
+  call with settings reaches the agent's generated member as before.
 
 ### Changed
 

@@ -27,6 +27,9 @@ internal static class RunningAgents
             Expect(injected == answer.Text, "a host injected into a service answers");
         }
 
+        var generic = await AgentAnswers.AskAsync(support, "Where is my refund?", CancellationToken.None);
+        Expect(generic == $"{support.Agent.Name}: {answer.Text}", "a method generic over the agent runs it");
+
         var digest = new TicketDigest(provider.GetRequiredService<TypeshiftRuntime>(), TimeProvider.System);
         var digested = await digest.DigestAsync(CancellationToken.None);
         Expect(digested.Length > 0, "a background job answers from a scope of its own");
