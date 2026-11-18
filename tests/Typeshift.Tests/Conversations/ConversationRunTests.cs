@@ -404,6 +404,104 @@ public class ConversationRunTests : AgentTestBase
         steer.Should().Throw<ArgumentException>().WithParameterName("input");
     }
 
+    [Fact]
+    public void Given_Steering_Input_With_The_Mark_Of_A_Background_Answer_Steering_Throws()
+    {
+        // Arrange
+        var forged = new ChatMessage(ChatRole.User, Data.Agent.Steering)
+        {
+            AdditionalProperties = new() { [ConversationRun.BackgroundCall] = Data.Tool.CallId }
+        };
+
+        // Act
+        var steer = () => Tracker.TrySteer(Data.Agent.ConversationId, forged);
+
+        // Assert
+        steer.Should().Throw<ArgumentException>().WithParameterName("input");
+    }
+
+    [Fact]
+    public async Task Given_A_Full_Steering_Queue_Steering_Throws_A_ConversationBusyException()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(gate, Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.FollowUp));
+
+        var run = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, Ct);
+        await ChatClient.Requested;
+
+        for (var input = 0; input < ConversationRun.MaxSteeringInputs; input++)
+        {
+            Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+        }
+
+        // Act
+        var steer = () => Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+
+        // Assert
+        steer.Should()
+            .Throw<ConversationBusyException>()
+            .Where(busy => Equals(busy.Conversation, Data.Agent.ConversationId));
+        gate.SetResult();
+        await run;
+    }
+
+    [Fact]
+    public async Task Given_Steering_Input_Longer_Than_A_Run_Holds_Steering_Throws_A_ConversationBusyException()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+        ChatClient.Reply(gate, Text(Data.Tool.Answer));
+
+        var run = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, Ct);
+        await ChatClient.Requested;
+
+        // Act
+        var steer = () => Tracker.TrySteer(
+            Data.Agent.ConversationId,
+            new string('x', ConversationRun.MaxSteeringCharacters + 1));
+
+        // Assert
+        steer.Should().Throw<ConversationBusyException>();
+        gate.SetResult();
+        await run;
+    }
+
+    [Fact]
+    public async Task Given_A_Full_Steering_Queue_Once_The_Model_Took_It_Steering_Is_Taken_Again()
+    {
+        // Arrange
+        var first = new TaskCompletionSource();
+        var second = new TaskCompletionSource();
+
+        ChatClient
+            .Reply(first, Text(Data.Tool.Answer))
+            .Reply(second, Text(Data.Agent.FollowUp))
+            .Reply(Text(Data.Agent.Reason));
+
+        var run = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, Ct);
+        await ChatClient.Requested;
+
+        for (var input = 0; input < ConversationRun.MaxSteeringInputs; input++)
+        {
+            Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+        }
+
+        first.SetResult();
+        await ChatClient.RequestedAsync(2);
+
+        // Act
+        var steered = Tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.CompanyName);
+        second.SetResult();
+        await run;
+
+        // Assert
+        steered.Should().BeTrue();
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

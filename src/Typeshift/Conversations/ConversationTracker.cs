@@ -84,6 +84,10 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// False when no run of the conversation takes input here: none is going on, one still loads the conversation,
     /// or it is ending. Start a run with the input then; it waits for a run that is ending.
     /// </returns>
+    /// <exception cref="ConversationBusyException">
+    /// The run holds as much steering input as it takes before its next model call: 32 inputs, or 262,144
+    /// characters of text with this one. Steer again once the model took them.
+    /// </exception>
     /// <exception cref="InvalidOperationException">
     /// Your app registered stores, and none keeps conversations under ids of <typeparamref name="TId"/>.
     /// </exception>
@@ -102,7 +106,12 @@ public sealed class ConversationTracker<TId> where TId : notnull
     /// or it is ending. Start a run with the message then.
     /// </returns>
     /// <exception cref="ArgumentException">
-    /// The message is not the user's, or carries approval contents, which a run does not take.
+    /// The message is not the user's, carries approval contents, which a run does not take, or carries the mark of a
+    /// background sub-agent's answer, which only a run gives.
+    /// </exception>
+    /// <exception cref="ConversationBusyException">
+    /// The run holds as much steering input as it takes before its next model call: 32 inputs, or 262,144
+    /// characters of text with this one. Steer again once the model took them.
     /// </exception>
     /// <exception cref="ArgumentNullException"><paramref name="input"/> is null.</exception>
     /// <exception cref="InvalidOperationException">
@@ -119,6 +128,15 @@ public sealed class ConversationTracker<TId> where TId : notnull
             throw new ArgumentException(
                 "Steering input is a user message without approval contents: answer a decision by its id, with "
                 + "AnswerAsync or RecordAnswersAsync.",
+                nameof(input));
+        }
+
+        // D30, D33: a background answer passes run middleware unseen, so the user's input never carries its mark
+        if (input.IsBackgroundAnswer)
+        {
+            throw new ArgumentException(
+                "Steering input carries the mark of a background sub-agent's answer, which only a run gives its "
+                + "sub-agents' answers: send the user's message without it.",
                 nameof(input));
         }
 

@@ -186,6 +186,7 @@ rewrite.
 | new | Steering reaches the next model call, is stored, and keeps the run going (D51) | `ConversationRunTests.Given_Steering_Input_The_Run_Answers_It_Before_It_Ends`, `..._Given_Steering_Input_During_The_Answer_To_Steering_The_Run_Answers_Both_In_Order`, `..._Given_Steering_Input_It_Is_Stored_With_The_Conversation` |
 | new | A run started while another of its conversation goes on throws a `ConversationBusyException` naming the conversation, streaming or not, and stores nothing; a run started while another stores its end waits for it and answers, a cancelled wait ends, and one started while a handoff stores what it passes on is refused once the agent handed to began; a resume with nothing to continue throws a `NothingToResumeException` (D50, D51) | `ConversationRunTests.Given_A_Run_Going_On_A_Second_Run_Throws_A_ConversationBusyException`, `..._Given_A_Run_Refused_As_Busy_The_Conversation_Stores_Nothing_Of_It`, `..._Given_Steering_Refused_While_The_Run_Stores_Its_End_A_New_Run_Waits_And_Answers`, `..._Given_A_Run_Waiting_For_A_Run_That_Is_Ending_Cancelling_It_Ends_The_Wait`, `..._Given_A_Conversation_Whose_Last_Run_Ended_Resuming_Throws_A_NothingToResumeException`, `HandoffTests.Given_A_Run_Starting_While_A_Handoff_Stores_What_It_Passes_On_It_Is_Refused_Once_The_Agent_Began` |
 | new | A run that is ending takes no steering input: `TrySteer` returns false and nothing of the input is stored (D51) | `ConversationRunTests.Given_A_Run_That_Is_Ending_Steering_Returns_False_And_The_Input_Is_Not_Stored`, `..._Given_No_Run_Going_On_Steering_Returns_False` |
+| new | A run holds at most 32 steering inputs, or 262,144 characters of their text, that no model received: `TrySteer` throws a `ConversationBusyException` for input beyond that, takes input again once the model took what waited, and throws an `ArgumentException` for input that carries the mark of a background answer (D51) | `ConversationRunTests.Given_A_Full_Steering_Queue_Steering_Throws_A_ConversationBusyException`, `..._Given_Steering_Input_Longer_Than_A_Run_Holds_Steering_Throws_A_ConversationBusyException`, `..._Given_A_Full_Steering_Queue_Once_The_Model_Took_It_Steering_Is_Taken_Again`, `..._Given_Steering_Input_With_The_Mark_Of_A_Background_Answer_Steering_Throws` |
 | new | A steered streaming run stores each answer of its earlier pass once, also when the pass made two model calls (D46, D51) | `ConversationRunTests.Given_A_Steered_Streaming_Run_Of_Two_Answers_Each_Is_Stored_Once` |
 | new | Run watchers hear the runs going on, then each start and end (D54) | `ConversationRunTests.Given_A_Run_Watcher_It_Hears_The_Run_Start_And_End`, `..._Given_A_Run_Going_On_A_Run_Watcher_Hears_It_Once_Then_Its_End` |
 | new | Watchers receive streamed updates (D47) | `ConversationRunTests.Given_A_Watcher_It_Receives_The_Updates_Of_A_Streaming_Run` |
@@ -296,6 +297,15 @@ rewrite.
 
   A toolset of ten tools that share one settings type costs about 765 KB per pair. Binding the constructors is 70%
   of a pair's cost; binding only what each chain names would cut into it, and waits for projects that need it.
+- **A run's limit across sub-agents.** `WithMaxToolIterations` bounds the model calls of one agent's run. Each run
+  of a sub-agent counts its own, and one response may call a sub-agent many times, so an agent limited to three
+  rounds made four model calls and its sub-agents 615 in a measurement. Nothing bounds the model calls, the tokens or
+  the sub-agents working at once of a whole run. A budget the run's tree shares, which `AgentRun` carries and each
+  sub-agent's run takes on from its caller, is a design of its own next to D32 and D33.
+- **No run timeout.** A run ends when its model stops calling tools, it fails or its token is cancelled. No run option
+  ends it after a time, and a run that waits for a background sub-agent waits with the run's token only, so a tool
+  that never returns holds the run and its claim on the conversation. Your app cancels the token, for example with a
+  `CancellationTokenSource` built on a `TimeProvider`.
 - **Sub-agents cannot ask.** A call of a sub-agent that would wait for your app is rejected, and a sub-agent is not
   offered `ask_user` (D33, D82). Passing its decision up to the caller's conversation would pause the calling run
   inside a tool call.

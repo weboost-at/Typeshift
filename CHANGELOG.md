@@ -544,6 +544,12 @@ All notable changes to this project are documented here. The format follows
   that took nothing could only return the same text each time. Move such a constant into `WithInstructions("...")`
   in the agent's constructor, and give an override that builds its text the `IServiceProvider services` parameter.
   An override of the old method is CS0115.
+- **Breaking:** `TrySteer` throws a `ConversationBusyException` when the run already holds 32 inputs, or 262,144
+  characters of their text, that its model has not received yet. It took any number, so a client that steered faster
+  than the model answered grew the next model call, and the stored conversation, without end. Catch the exception
+  where your endpoint steers and answer that the chat is busy; steer again once the run's next model call took the
+  input. `TrySteer` with a `ChatMessage` throws an `ArgumentException` for a message that carries the mark of a
+  background sub-agent's answer, which run middleware lets pass unseen.
 
 ### Fixed
 

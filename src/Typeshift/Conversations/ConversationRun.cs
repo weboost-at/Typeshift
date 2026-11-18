@@ -85,6 +85,12 @@ internal sealed class ConversationRun(
 
     public const string BackgroundCall = "typeshift.background_call";
 
+    // D51: the user's steering input a run holds before its next model call takes it, by count and by the characters
+    // of its text. A client that floods TrySteer would otherwise grow that call, and the conversation, without end
+    public const int MaxSteeringInputs = 32;
+
+    public const int MaxSteeringCharacters = 256 * 1024;
+
     public StoreId? Conversation { get; } = conversation;
 
     public string Agent { get; } = run.Agent.Name;
@@ -125,12 +131,15 @@ internal sealed class ConversationRun(
         _streams = streams;
     }
 
-    // False once the run is ending: the input then reaches no model and the host starts a run with it instead
+    // False once the run is ending: the input then reaches no model and the host starts a run with it instead. The
+    // user's input is refused once the run holds as much as a model call takes; a background answer never is
     public bool Steer(ChatMessage input)
     {
         lock (_steering)
         {
             if (_closed) return false;
+            if (!input.IsBackgroundAnswer && HoldsMost(input)) throw ConversationBusyException.Full(Conversation!);
+
             _steering.Enqueue(input);
         }
 
@@ -179,8 +188,7 @@ internal sealed class ConversationRun(
 
         await ScreenLastAsync();
 
-        List<ChatMessage> waiting = [.. notes ?? [], .. _taken];
-        _taken.Clear();
+        List<ChatMessage> waiting = [.. notes ?? [], .. Take()];
 
         if (waiting.Count > 0) await AppendAsync(waiting, answering: answering);
     }
@@ -206,11 +214,34 @@ internal sealed class ConversationRun(
             lock (_steering)
             {
                 _steering.Dequeue();
+                if (taken is not null) _taken.Add(taken);
             }
-
-            if (taken is not null) _taken.Add(taken);
         }
     }
+
+    // The input the run took, which leaves it for a model call or the store
+    private List<ChatMessage> Take()
+    {
+        lock (_steering)
+        {
+            List<ChatMessage> taken = [.. _taken];
+            _taken.Clear();
+
+            return taken;
+        }
+    }
+
+    // Whether the user's input waiting, that for run middleware and that it let through, leaves no room for this one
+    private bool HoldsMost(ChatMessage input)
+    {
+        var waiting = _steering.Concat(_taken).Where(message => !message.IsBackgroundAnswer).ToList();
+
+        return waiting.Count >= MaxSteeringInputs
+            || waiting.Sum(Characters) + Characters(input) > MaxSteeringCharacters;
+    }
+
+    private static long Characters(ChatMessage message) =>
+        message.Contents.OfType<TextContent>().Sum(text => (long)text.Text.Length);
 
     // The run is ending, whatever became of its token, and its end must be stored: input its middleware fails on
     // is left out, since what no middleware judged must not reach the next run's model
@@ -416,8 +447,7 @@ internal sealed class ConversationRun(
 
         await ScreenAsync(ct);
 
-        List<ChatMessage> steering = [.. _taken];
-        _taken.Clear();
+        var steering = Take();
 
         foreach (var input in steering)
         {

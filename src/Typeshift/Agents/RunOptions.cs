@@ -18,7 +18,7 @@ public sealed class RunOptionsBuilder
 
     /// <summary>
     /// The most rounds of tool calls the agent makes in one run; 40 unless set. An agent the run is handed off to
-    /// counts its own.
+    /// counts its own, and so does each run of a sub-agent it calls, so the limit bounds no run's sub-agents.
     /// </summary>
     /// <param name="iterations">The rounds, 1 or more.</param>
     /// <returns>The same chain.</returns>
@@ -112,7 +112,8 @@ public sealed record RunOptions
     public AgentMode Mode { get; init; }
 
     /// <summary>
-    /// The most rounds of tool calls the agent makes in one run. An agent the run is handed off to counts its own.
+    /// The most rounds of tool calls the agent makes in one run. An agent the run is handed off to counts its own,
+    /// and so does each run of a sub-agent it calls.
     /// </summary>
     public int MaxToolIterations { get; init; } = 40;
 

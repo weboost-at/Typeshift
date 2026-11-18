@@ -1762,7 +1762,13 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   between a call and its result. Input a run took and no model received is stored with the run's end or its
   handoff. Steering input a run takes after it asked your app expires what it asked, as a new message does (D81). A
   background agent's answer expires nothing and starts no model call while a batch is open: it is stored, and the
-  run that carries the answers out reads it.
+  run that carries the answers out reads it. A run holds at most 32 of the user's inputs, or 262,144 characters of
+  their text, that no model received yet, and `TrySteer` throws a `ConversationBusyException` for input beyond that:
+  before, a client that steered faster than the model answered grew the next call and the conversation without end
+  (2,000 inputs of 100 kB in one model call). Returning false instead would send the host's loop to start a run,
+  which the run going on refuses, and round again. The bound is a constant rather than a member of
+  `TypeshiftOptions`, until an app needs another. A background answer counts toward neither number, and the user's
+  input may not carry its mark, since run middleware lets a marked message pass unseen.
 - **Where:** `Conversations/LiveRuns.cs`, `Conversations/ConversationRun.cs`.
 - **Alternatives:** a steering queue in the store, which works across processes but reads the store before every
   model call; queuing input for after the run, which is just the next run.

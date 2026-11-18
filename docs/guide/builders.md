@@ -129,7 +129,7 @@ mode without the pick ([Setting the mode](./tool-approval.md#setting-the-mode)).
 | Call | Default | Range | Does |
 |---|---|---|---|
 | `WithMode(AgentMode mode)` | `Default` | Any mode | Sets the [mode](./tool-approval.md#the-three-modes) runs start in: `Default`, `Plan` or `Auto`. |
-| `WithMaxToolIterations(int iterations)` | 40 | 1 or more | Sets the most rounds of tool calls the agent makes in one run. Calls your app [approves](./tool-approval.md#approving-or-rejecting) run in the next run, which counts its own, and so does an agent the run is [handed off](./multi-agent.md#handoff) to. |
+| `WithMaxToolIterations(int iterations)` | 40 | 1 or more | Sets the most rounds of tool calls the agent makes in one run. Calls your app [approves](./tool-approval.md#approving-or-rejecting) run in the next run, which counts its own, and so does an agent the run is [handed off](./multi-agent.md#handoff) to. Each run of a [sub-agent](./multi-agent.md#sub-agents) counts its own too, so the limit bounds this agent's calls and not what its sub-agents make. |
 | `WithMaxConsecutiveToolErrors(int errors)` | 3 | 0 or more | Sets how many rounds of tool calls in a row may fail before the failing tool's exception ends the run and reaches your code. |
 | `WithConcurrentToolCalls(bool concurrent)` | off | On or off | Runs the tool calls in one model response at the same time, sharing the run's scoped services ([Tool calls at the same time](./defining-agents.md#tool-calls-at-the-same-time)). |
 | `WithMaxInputTokens(int tokens)` | off | Above 0 | Turns [compaction](./conversations.md#compaction) on at this many input tokens. |
