@@ -1,11 +1,13 @@
 namespace Typeshift.Tests.Conversations.Support;
 
 // A store in memory that holds the first append of an entry that ends a run until its gate opens, as a slow
-// database would while input arrives for a run that is ending
+// database would while input arrives for a run that is ending. A test may name another entry to hold
 public sealed class GatedEndStore : ITypeshiftStore<Guid>
 {
     private readonly InMemoryTypeshiftStore<Guid> _store = new();
     private int _held;
+
+    public Func<ConversationEntry, bool> Holds { get; set; } = entry => entry.EndsRun;
 
     public TaskCompletionSource Ending { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -27,7 +29,7 @@ public sealed class GatedEndStore : ITypeshiftStore<Guid>
 
     public async Task AppendConversationAsync(Guid conversation, ConversationEntry entry, CancellationToken ct)
     {
-        if (entry.EndsRun && Interlocked.Exchange(ref _held, 1) == 0)
+        if (Holds(entry) && Interlocked.Exchange(ref _held, 1) == 0)
         {
             Ending.SetResult();
             await Gate.Task;

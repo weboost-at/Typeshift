@@ -17,7 +17,8 @@ using Typeshift.Samples.Web;
 namespace Typeshift.Samples.Scenarios;
 
 // Serves the chat endpoints on a local port and calls them as a chat UI would: a message, another customer's chat,
-// a decision loaded again and answered by its id, questions answered by label and in words, and a streamed answer
+// a decision loaded again and answered by its id, questions answered by label and in words, a streamed answer, and a
+// second message while the answer to the first is under way
 internal static class ChatEndpoint
 {
     public static async Task RunAsync(IChatClient client, string database)
@@ -26,7 +27,8 @@ internal static class ChatEndpoint
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
-        Registration.Register(builder.Services, client, client, database);
+        var held = new HeldChatClient(client);
+        Registration.Register(builder.Services, held, held, database);
         builder.Services.AddSingleton<IChats, SampleChats>();
 
         await using var app = builder.Build();
@@ -107,7 +109,44 @@ internal static class ChatEndpoint
         if (!answer.Contains(textEvent, StringComparison.Ordinal))
             throw new InvalidOperationException($"Expected the answer as a JSON string: {answer}");
 
+        var slow = http.PostAsJsonAsync("/chats/45/messages", new ChatInput(HeldChatClient.Held));
+        await held.Holding.Task;
+
+        var doubled = await http.PostAsJsonAsync("/chats/45/messages", new ChatInput("Are you there?"));
+        if (doubled.StatusCode != HttpStatusCode.Conflict)
+            throw new InvalidOperationException("Expected a second message to a chat that is answering to conflict.");
+
+        var doubledStream = await http.PostAsJsonAsync("/chats/45/messages/stream", new ChatInput("Are you there?"));
+        if (doubledStream.StatusCode != HttpStatusCode.Conflict)
+            throw new InvalidOperationException("Expected a second streamed message to conflict before it streams.");
+
+        held.Release.SetResult();
+        (await slow).EnsureSuccessStatusCode();
+
         await app.StopAsync();
+    }
+
+    // Holds the answer to one message until the scenario lets it go, as a model that takes its time would
+    private sealed class HeldChatClient(IChatClient inner) : DelegatingChatClient(inner)
+    {
+        public const string Held = "Take your time.";
+
+        public TaskCompletionSource Holding { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public override async Task<ChatResponse> GetResponseAsync(
+            IEnumerable<ChatMessage> messages,
+            ChatOptions? options = null,
+            CancellationToken cancellationToken = default)
+        {
+            if (messages.Last().Text != Held) return await base.GetResponseAsync(messages, options, cancellationToken);
+
+            Holding.TrySetResult();
+            await Release.Task.WaitAsync(cancellationToken);
+
+            return await base.GetResponseAsync(messages, options, cancellationToken);
+        }
     }
 
     private static async Task<T> PostAsync<T>(HttpClient http, string path, object body)

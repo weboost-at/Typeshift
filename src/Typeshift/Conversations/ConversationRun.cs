@@ -95,6 +95,9 @@ internal sealed class ConversationRun(
 
     public bool HasReplay => _replay is not null;
 
+    // D51: a run that is ending takes no steering input, and a run started with that input waits for its end
+    public bool IsEnding => Volatile.Read(ref _closed);
+
     // D47: where the run's updates go to the conversation's watchers. A run that does not stream publishes each
     // response and tool result as it stores them
     public LivePublisher? Publisher { get; private set; }

@@ -55,9 +55,10 @@ every conversation
 and no rule or mode approves the call. To avoid that, run with a conversation id, approve the call with a rule, or
 run in `Auto` mode.
 
-A run also throws an `InvalidOperationException` while its conversation has a run going on in this process
-([One run at a time](./conversations.md#one-run-at-a-time)), when no chat client or no store serves it, and when its
-chat client runs a tool loop of its own ([Wrapping a client](./models.md#wrapping-a-client)). It throws a
+A run throws a `ConversationBusyException` while its conversation has a run going on in this process
+([One run at a time](./conversations.md#one-run-at-a-time)), a streaming one when its updates are read, and stores
+nothing of itself then. It throws an `InvalidOperationException` when no chat client or no store serves it, and when
+its chat client runs a tool loop of its own ([Wrapping a client](./models.md#wrapping-a-client)). It throws a
 `JsonException` for stored settings of a newer schema version than the code's
 ([Migrate older settings](./implementing-a-store.md#migrate-older-settings)).
 
@@ -84,8 +85,9 @@ Both continue the host's conversation, the one `WithConversationId(id)` gave it,
 run from its last stored step, or the decisions your app answered or withdrew. They layer like `RunAsync` and store the
 continuation in the same conversation. A tool call that was still running when the run stopped is left out, so the
 model decides again and may call the tool a second time ([Resuming](./conversations.md#resuming)). While decisions
-are still open, they call no model and return them. They throw an `InvalidOperationException` when the host has no
-conversation id or the conversation has nothing to continue.
+are still open, they call no model and return them. They throw a `NothingToResumeException` when the conversation
+has nothing to continue, an `InvalidOperationException` when the host has no conversation id, and what `RunAsync`
+throws.
 
 ### `AnswerAsync` and `AnswerStreamingAsync`
 
@@ -97,7 +99,9 @@ the continued run for `TResult`.
 
 They throw a `DecisionClosedException` when an answer names a decision that is not open, an `ArgumentException` when
 an answer does not fit its decision, one decision is answered twice or the list is empty, and an
-`InvalidOperationException` when the host has no conversation id. Nothing is recorded then.
+`InvalidOperationException` when the host has no conversation id. Nothing is recorded then. Their answers are
+recorded before they throw what `RunAsync` throws, such as a `ConversationBusyException`: continue with
+`ResumeAsync` once the run going on has ended.
 
 ### `ResolveOptionsAsync`
 

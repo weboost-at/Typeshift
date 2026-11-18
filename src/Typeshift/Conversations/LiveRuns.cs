@@ -18,8 +18,9 @@ internal sealed class LiveRuns(RealtimeTrackingOptions realtime, ILoggerFactory?
         [.. _runs.Values.Select(claim => claim.Run).OfType<ConversationRun>()];
 
     // D50: one run per conversation at a time in a process. A run claims its conversation before it loads it, so no
-    // run reads a conversation whose last run is still storing its end. A claim still loading is waited for, as a run
-    // that began is refused, so the host's fallback for steering a run that ended keeps working (D51)
+    // run reads a conversation whose last run is still storing its end. A run that takes steering input is refused,
+    // since the input goes to it. A claim that takes none is waited for: one still loading until its run began, and
+    // a run that is ending until it ended, so the run a host starts with input that was not steered starts (D51)
     public async Task<RunClaim> ClaimAsync(StoreId conversation, CancellationToken ct)
     {
         var claim = new RunClaim(conversation);
@@ -28,14 +29,11 @@ internal sealed class LiveRuns(RealtimeTrackingOptions realtime, ILoggerFactory?
         {
             if (!_runs.TryGetValue(conversation, out var held)) continue;
 
-            if (held.Run is not null)
-            {
-                throw new InvalidOperationException(
-                    $"A run of conversation {conversation} is going on in this process: steer it with "
-                    + "ConversationTracker.TrySteer, or wait until it ends.");
-            }
+            var run = held.Run;
 
-            await held.Settled.WaitAsync(ct);
+            if (run is { IsEnding: false }) throw ConversationBusyException.For(conversation);
+
+            await (run is null ? held.Settled : held.Ended).WaitAsync(ct);
         }
 
         return claim;
@@ -64,7 +62,9 @@ internal sealed class LiveRuns(RealtimeTrackingOptions realtime, ILoggerFactory?
     {
         var handed = new RunClaim(run.Conversation!);
 
+        _runs.TryGetValue(run.Conversation!, out var held);
         _runs[run.Conversation!] = handed;
+        held?.End();
         PublishRun(run, ended: true);
 
         return handed;
@@ -73,11 +73,14 @@ internal sealed class LiveRuns(RealtimeTrackingOptions realtime, ILoggerFactory?
     // A handoff replaces its run's claim before the run's own end, which then finds it gone
     public void End(ConversationRun run)
     {
-        if (run.Conversation is { } conversation
-            && _runs.TryGetValue(conversation, out var claim)
-            && claim.Run == run
-            && _runs.TryRemove(new KeyValuePair<StoreId, RunClaim>(conversation, claim)))
-            PublishRun(run, ended: true);
+        if (run.Conversation is not { } conversation
+            || !_runs.TryGetValue(conversation, out var claim)
+            || claim.Run != run
+            || !_runs.TryRemove(new KeyValuePair<StoreId, RunClaim>(conversation, claim)))
+            return;
+
+        claim.End();
+        PublishRun(run, ended: true);
     }
 
     // D51: a claimed conversation whose run has not begun takes no steering
@@ -180,6 +183,7 @@ internal sealed class LiveRuns(RealtimeTrackingOptions realtime, ILoggerFactory?
 internal sealed class RunClaim(StoreId conversation)
 {
     private readonly TaskCompletionSource _settled = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TaskCompletionSource _ended = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private ConversationRun? _run;
 
     public StoreId Conversation => conversation;
@@ -197,4 +201,9 @@ internal sealed class RunClaim(StoreId conversation)
     }
 
     public void Settle() => _settled.TrySetResult();
+
+    // Done once the run ended or handed the conversation on: a run that waited for it to end then tries again
+    public Task Ended => _ended.Task;
+
+    public void End() => _ended.TrySetResult();
 }

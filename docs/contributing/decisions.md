@@ -1602,11 +1602,17 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   out a batch of decisions your app answered, and while decisions are still open it calls no model and returns them
   (D80, D81). One run per conversation at a time in a
   process, claimed before the run loads the conversation, so no run reads it while another still stores its end. A run
-  that finds the conversation claimed by a run still loading it waits until that run began or let go; one that finds a
-  run going on, or ending, throws. Across processes it is the host's to ensure. Resuming a conversation whose last run
-  ended and that waits for nothing throws.
+  that finds the conversation claimed by a run still loading it waits until that run began or let go, and one that
+  finds a run ending, which takes no steering input any more (D51), waits until it ended or handed the conversation
+  on. One that finds a run going on that takes steering input throws a `ConversationBusyException`, since that run
+  takes the input. Across processes it is the host's to ensure. Resuming a conversation whose last run ended and
+  that waits for nothing throws a `NothingToResumeException`. Both derive from `InvalidOperationException`, so an
+  endpoint tells a busy chat from a mistake by type and a `catch` written before them keeps working.
 - **Alternatives:** one entry per run, rewritten at each step (a whole-run write per model call); re-running the
-  interrupted tool call, unsafe for side effects; a `RunAsync` with a null input in place of `ResumeAsync`.
+  interrupted tool call, unsafe for side effects; a `RunAsync` with a null input in place of `ResumeAsync`; for the
+  run that finds the conversation still loading, a claim that queues steering input for the run it becomes, which
+  makes `TrySteer` true earlier and is open for later; one host call that steers or runs, since two calls are never
+  atomic for the app, which is API of its own.
 - **Where:** `Conversations/`, the checkpoint layer of D29.
 
 ### D51. Steering a run going on
@@ -1614,8 +1620,12 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Decision:** `ConversationTracker.TrySteer(conversation, input)` hands input to the run of the conversation going
   on in this process; the checkpoint layer injects it before the run's next model call and stores it, once run
-  middleware let it through (D30), and the run does not end while such input waits. It returns false when no run of the conversation is going on in this
-  process, or once the run has decided to end, and the host starts a run with the input instead. Stopping a run is
+  middleware let it through (D30), and the run does not end while such input waits. It returns false when no run of
+  the conversation is going on in this process, while the run still loads the conversation, or once the run has
+  decided to end, and the host starts a run with the input instead: that run waits for a run that is ending (D50),
+  and a run that began in between refuses it with a `ConversationBusyException`, after which the host steers again.
+  Input a run took and that no model received because the run failed, was cancelled or spent its limit is stored
+  with its end, so `TrySteer`'s true promises the input reaches a model, of this run or the next. Stopping a run is
   cancelling its token. Steering input goes in after the message the tool loop's messages ended with when it
   arrived, found by reference in every later call of the run, so context that grows between passes cannot move it
   between a call and its result. Input a run took and no model received is stored with the run's end or its

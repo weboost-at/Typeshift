@@ -16,7 +16,8 @@ internal static class ChatEndpoints
         {
             // begin-snippet: chat-endpoint
             var chat = app.MapGroup("/chats/{chatId:int}")
-                .AddEndpointFilter<ChatOwnerFilter>();
+                .AddEndpointFilter<ChatOwnerFilter>()
+                .AddEndpointFilter<ChatBusyFilter>();
 
             chat.MapPost("/messages", async (
                 int chatId,
@@ -35,7 +36,7 @@ internal static class ChatEndpoints
             // end-snippet
 
             // begin-snippet: chat-stream-endpoint
-            chat.MapPost("/messages/stream", (
+            chat.MapPost("/messages/stream", async (
                 int chatId,
                 ChatInput input,
                 AgentHost<SupportAgent> support,
@@ -47,7 +48,7 @@ internal static class ChatEndpoints
                     .WithConversationId(chatId)
                     .RunStreamingAsync(input.Text, ct: ct);
 
-                return TypedResults.ServerSentEvents(Events(updates));
+                return TypedResults.ServerSentEvents(Events(await StartedAsync(updates, ct)));
             });
             // end-snippet
 
@@ -83,6 +84,39 @@ internal static class ChatEndpoints
             // end-snippet
         }
     }
+
+    // begin-snippet: chat-stream-start
+    private static async Task<IAsyncEnumerable<ChatResponseUpdate>> StartedAsync(
+        IAsyncEnumerable<ChatResponseUpdate> updates,
+        CancellationToken ct)
+    {
+        var reader = updates.GetAsyncEnumerator(ct);
+
+        try
+        {
+            // The run starts with its first update: one that cannot start fails here, before the response begins
+            return Rest(reader, await reader.MoveNextAsync());
+        }
+        catch
+        {
+            await reader.DisposeAsync();
+            throw;
+        }
+    }
+
+    private static async IAsyncEnumerable<ChatResponseUpdate> Rest(
+        IAsyncEnumerator<ChatResponseUpdate> reader,
+        bool any)
+    {
+        await using (reader)
+        {
+            for (; any; any = await reader.MoveNextAsync())
+            {
+                yield return reader.Current;
+            }
+        }
+    }
+    // end-snippet
 
     // begin-snippet: chat-stream-events
     private static async IAsyncEnumerable<SseItem<object>> Events(IAsyncEnumerable<ChatResponseUpdate> updates)

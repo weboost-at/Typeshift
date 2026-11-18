@@ -202,12 +202,19 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         }
         finally
         {
-            run.Publisher?.Flush();
+            try
+            {
+                run.Publisher?.Flush();
 
-            // Nothing for a run that stored its end or handed the conversation on. A stream that failed, was
-            // cancelled or was left early ends with a text of its own
-            await run.EndAsync(streaming || failure is null ? Stopped : failure);
-            Runs.End(run);
+                // Nothing for a run that stored its end or handed the conversation on. A stream that failed, was
+                // cancelled or was left early ends with a text of its own
+                await run.EndAsync(streaming || failure is null ? Stopped : failure);
+            }
+            finally
+            {
+                // Whatever became of the end: a run that waits for this one to end would wait for ever
+                Runs.End(run);
+            }
         }
     }
 
@@ -620,9 +627,7 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             && document.Batch is null
             && (entries.Count == 0 || entries[^1].EndsRun))
         {
-            throw new InvalidOperationException(
-                $"Conversation {conversation} has no interrupted run to resume and no answered decisions to carry "
-                + "out: run it with input instead.");
+            throw NothingToResumeException.For(conversation);
         }
 
         // D80: the batch the run finds is settled before its first model call, so no model call and no compaction

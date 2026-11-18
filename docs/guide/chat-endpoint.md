@@ -21,7 +21,8 @@ copy of the host with that conversation id and with the current customer's id as
 <a id='snippet-chat-endpoint'></a>
 ```cs
 var chat = app.MapGroup("/chats/{chatId:int}")
-    .AddEndpointFilter<ChatOwnerFilter>();
+    .AddEndpointFilter<ChatOwnerFilter>()
+    .AddEndpointFilter<ChatBusyFilter>();
 
 chat.MapPost("/messages", async (
     int chatId,
@@ -38,7 +39,7 @@ chat.MapPost("/messages", async (
     return ChatReply.From(response);
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L17-L35' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-endpoint' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L17-L36' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-endpoint' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - The host and `ICurrentCustomer` come from the request's scope, as
@@ -111,7 +112,7 @@ The streaming endpoint runs the agent the same way, and hands its updates to
 <!-- snippet: chat-stream-endpoint -->
 <a id='snippet-chat-stream-endpoint'></a>
 ```cs
-chat.MapPost("/messages/stream", (
+chat.MapPost("/messages/stream", async (
     int chatId,
     ChatInput input,
     AgentHost<SupportAgent> support,
@@ -123,10 +124,10 @@ chat.MapPost("/messages/stream", (
         .WithConversationId(chatId)
         .RunStreamingAsync(input.Text, ct: ct);
 
-    return TypedResults.ServerSentEvents(Events(updates));
+    return TypedResults.ServerSentEvents(Events(await StartedAsync(updates, ct)));
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L37-L52' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-endpoint' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L38-L53' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-endpoint' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Each update becomes a `text` event with the text it adds, and each decision a `decision` event:
@@ -148,7 +149,7 @@ private static async IAsyncEnumerable<SseItem<object>> Events(IAsyncEnumerable<C
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L87-L101' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-events' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L121-L135' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-events' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - Both events carry JSON, written with your app's JSON options: a `text` event holds its text as a JSON string, and a
@@ -205,7 +206,7 @@ decisions alone, without a run:
 chat.MapGet("/decisions", async (int chatId, AgentHost<SupportAgent> support, CancellationToken ct) =>
     (await support.WithConversationId(chatId).GetDecisionsAsync(ct)).Open);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L54-L57' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-decisions-endpoint' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L55-L58' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-decisions-endpoint' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 The endpoint returns the open decisions, as the reply and the stream do. What it loaded also lists the tools
@@ -243,7 +244,7 @@ chat.MapPost("/decisions", async Task<IResult> (
     }
 });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L59-L83' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-answer-endpoint' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L60-L84' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-answer-endpoint' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - The body is a `DecisionAnswer`. `{"decisionId":"...","approved":true}` approves, `"approved":false` with a
@@ -267,15 +268,86 @@ chat.MapPost("/decisions", async Task<IResult> (
 - The answering host has the customer's settings id again
   ([Tracking a conversation](./conversations.md#tracking-a-conversation)).
 
-::: warning A chat runs one answer at a time
+## A chat that is answering
+
 A conversation has one run at a time in a process ([One run at a time](./conversations.md#one-run-at-a-time)), so a
-second run of a chat throws an `InvalidOperationException` before it stores anything. That happens to a message posted
-while an answer still streams, or to a double click on send. The last answer to a decision posted while a run of the
-chat goes on is recorded first and then throws the same way; post it again once that run has ended, and the chat
-continues.
-ASP.NET Core answers it with a 500 and logs an error. Disable the UI's send button while a run goes on, or pass a
-message to the running answer with `TrySteer` ([Steering](./conversations.md#steering)). With several instances of
-your app, nothing throws, so route each chat to one instance or keep its runs apart yourself.
+second run of a chat throws a `ConversationBusyException` before it stores anything. That happens to a message posted
+while an answer still streams, to a double click on send, and to a retry. A filter on the group answers it with 409
+Conflict, where ASP.NET Core would answer 500 and log an error:
+
+<!-- snippet: chat-busy-filter -->
+<a id='snippet-chat-busy-filter'></a>
+```cs
+internal sealed class ChatBusyFilter : IEndpointFilter
+{
+    public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+    {
+        try
+        {
+            return await next(context);
+        }
+        catch (ConversationBusyException)
+        {
+            // An answer to this chat is under way: a double click on send, a second tab or a retry
+            return TypedResults.Conflict();
+        }
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatBusyFilter.cs#L5-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-busy-filter' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- The group in [Post a message](#post-a-message) adds it after the owner filter, so another customer's chat still
+  answers 404 and tells the caller nothing.
+- The UI keeps the message and offers to send it again, or passes it to the running answer with `TrySteer`
+  ([Steering](./conversations.md#steering)). Disabling the send button while a run goes on saves most of these.
+- The last answer to a decision posted while a run of the chat goes on is recorded first and then answers 409 the
+  same way. Post it again once that run has ended, and the chat continues.
+
+A streaming run starts when its first update is read, and by then a streaming endpoint has begun its response, so a
+busy chat would cut the stream off instead of answering 409. The streaming endpoint above therefore reads the first
+update before it hands the updates on, and the filter sees the refusal first:
+
+<!-- snippet: chat-stream-start -->
+<a id='snippet-chat-stream-start'></a>
+```cs
+private static async Task<IAsyncEnumerable<ChatResponseUpdate>> StartedAsync(
+    IAsyncEnumerable<ChatResponseUpdate> updates,
+    CancellationToken ct)
+{
+    var reader = updates.GetAsyncEnumerator(ct);
+
+    try
+    {
+        // The run starts with its first update: one that cannot start fails here, before the response begins
+        return Rest(reader, await reader.MoveNextAsync());
+    }
+    catch
+    {
+        await reader.DisposeAsync();
+        throw;
+    }
+}
+
+private static async IAsyncEnumerable<ChatResponseUpdate> Rest(
+    IAsyncEnumerator<ChatResponseUpdate> reader,
+    bool any)
+{
+    await using (reader)
+    {
+        for (; any; any = await reader.MoveNextAsync())
+        {
+            yield return reader.Current;
+        }
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Web/ChatEndpoints.cs#L88-L119' title='Snippet source file'>snippet source</a> | <a href='#snippet-chat-stream-start' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+::: warning Several instances of your app
+A run in another instance of your app is no run of this process, so nothing throws there. Route each chat to one
+instance, or keep its runs apart yourself.
 :::
 
 ## Related

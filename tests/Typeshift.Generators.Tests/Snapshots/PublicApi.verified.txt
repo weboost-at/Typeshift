@@ -108,6 +108,9 @@ public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ConfigurableSe
 public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ConfigurableSettingsBuilder<TSettings>.RequiresApproval()
 public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ConfigurableSettingsBuilder<TSettings>.WithDescription(string description)
 public Typeshift.ConfigurableSettingsBuilder<TSettings> Typeshift.ConfigurableSettingsBuilder<TSettings>.WithName(string name)
+public sealed class Typeshift.ConversationBusyException : System.InvalidOperationException
+public object Typeshift.ConversationBusyException.Conversation { get; }
+public Typeshift.ConversationBusyException.ConversationBusyException(string message, object conversation)
 public sealed record Typeshift.ConversationDecisions : System.IEquatable<Typeshift.ConversationDecisions>
 public bool Typeshift.ConversationDecisions.CanResume { get; init; }
 public Typeshift.ConversationDecisions.ConversationDecisions(System.Collections.Generic.IReadOnlyList<Typeshift.Decision> Open, bool CanResume, System.Collections.Generic.IReadOnlyList<Typeshift.StandingApproval> Standing, Typeshift.AgentMode? Mode)
@@ -403,6 +406,9 @@ public static bool Typeshift.LiveRun<TId>.operator ==(Typeshift.LiveRun<TId>? le
 public sealed class Typeshift.McpServerUse
 public Typeshift.McpServerUse Typeshift.McpServerUse.ReadOnly()
 public Typeshift.McpServerUse Typeshift.McpServerUse.RequiresApproval()
+public sealed class Typeshift.NothingToResumeException : System.InvalidOperationException
+public object Typeshift.NothingToResumeException.Conversation { get; }
+public Typeshift.NothingToResumeException.NothingToResumeException(string message, object conversation)
 public sealed record Typeshift.PlanDecision : Typeshift.Decision, Typeshift.Generated.IJsonStorable<Typeshift.PlanDecision>, System.IEquatable<Typeshift.PlanDecision>
 public Typeshift.DecisionAnswer Typeshift.PlanDecision.Approve(Typeshift.AgentMode mode)
 protected override System.Type Typeshift.PlanDecision.EqualityContract { get; }

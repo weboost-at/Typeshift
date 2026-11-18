@@ -21,6 +21,7 @@ public static class AgentRuns
     /// <param name="settings">The run's settings, over the stored ones.</param>
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The response.</returns>
+    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
     public static Task<ChatResponse> RunAsync<TAgent>(
         AgentHost<TAgent> host,
         ChatMessage input,
@@ -39,6 +40,7 @@ public static class AgentRuns
     /// <param name="settings">The run's settings, over the stored ones.</param>
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The response, with the result.</returns>
+    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
     public static Task<ChatResponse<TResult>> RunAsync<TAgent, TResult>(
         AgentHost<TAgent> host,
         ChatMessage input,
@@ -58,6 +60,7 @@ public static class AgentRuns
     /// <param name="settings">The run's settings, over the stored ones.</param>
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds the result.</returns>
+    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
     public static StreamingRun<TResult> RunStreamingAsync<TAgent, TResult>(
         AgentHost<TAgent> host,
         ChatMessage input,
@@ -75,6 +78,7 @@ public static class AgentRuns
     /// <param name="settings">The run's settings, over the stored ones.</param>
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The updates.</returns>
+    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
     public static IAsyncEnumerable<ChatResponseUpdate> RunStreamingAsync<TAgent>(
         AgentHost<TAgent> host,
         ChatMessage input,
@@ -96,6 +100,7 @@ public static class AgentRuns
     /// <exception cref="DecisionClosedException">An answer names a decision that is not open.</exception>
     /// <exception cref="ArgumentException">An answer does not fit its decision, or there is none.</exception>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
+    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
     public static Task<ChatResponse> AnswerAsync<TAgent>(
         AgentHost<TAgent> host,
         IReadOnlyList<DecisionAnswer> answers,
@@ -118,6 +123,7 @@ public static class AgentRuns
     /// <exception cref="DecisionClosedException">An answer names a decision that is not open.</exception>
     /// <exception cref="ArgumentException">An answer does not fit its decision, or there is none.</exception>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
+    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
     public static Task<ChatResponse<TResult>> AnswerAsync<TAgent, TResult>(
         AgentHost<TAgent> host,
         IReadOnlyList<DecisionAnswer> answers,
@@ -136,6 +142,7 @@ public static class AgentRuns
     /// <param name="settings">The run's settings, over the stored ones.</param>
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The updates; with decisions left open, one update that lists them.</returns>
+    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
     public static IAsyncEnumerable<ChatResponseUpdate> AnswerStreamingAsync<TAgent>(
         AgentHost<TAgent> host,
         IReadOnlyList<DecisionAnswer> answers,
@@ -156,6 +163,7 @@ public static class AgentRuns
     /// <param name="settings">The run's settings, over the stored ones.</param>
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The run, which streams its updates and then holds the result.</returns>
+    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
     public static StreamingRun<TResult> AnswerStreamingAsync<TAgent, TResult>(
         AgentHost<TAgent> host,
         IReadOnlyList<DecisionAnswer> answers,
@@ -174,6 +182,8 @@ public static class AgentRuns
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The response.</returns>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
+    /// <exception cref="NothingToResumeException">The conversation has nothing to continue.</exception>
+    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
     public static Task<ChatResponse> ResumeAsync<TAgent>(
         AgentHost<TAgent> host,
         object? settings,
@@ -192,6 +202,8 @@ public static class AgentRuns
     /// <param name="ct">Cancels the run.</param>
     /// <returns>The updates.</returns>
     /// <exception cref="InvalidOperationException">The host has no conversation.</exception>
+    /// <exception cref="NothingToResumeException">The conversation has nothing to continue.</exception>
+    /// <exception cref="ConversationBusyException">A run of the host's conversation is going on.</exception>
     public static IAsyncEnumerable<ChatResponseUpdate> ResumeStreamingAsync<TAgent>(
         AgentHost<TAgent> host,
         object? settings,

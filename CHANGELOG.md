@@ -132,6 +132,11 @@ All notable changes to this project are documented here. The format follows
   `TrySteer`, before the model receives it and before the conversation stores it. It returns the input, another
   message to take in its place, or null to drop it. The member has a default that lets the input pass, so a
   middleware you wrote compiles as it is.
+- `ConversationBusyException` is thrown by a run that starts while another run of its conversation goes on in the
+  process, and `NothingToResumeException` by a resume of a conversation with nothing to continue. Both are
+  `InvalidOperationException`s, as these refusals were before, so a `catch` you wrote keeps working, and an
+  endpoint now tells a double click on send from a mistake by type: "A chat that is answering" in the guide's page
+  on chat endpoints maps the first to 409 Conflict. Their `Conversation` names the conversation.
 
 ### Changed
 
@@ -658,6 +663,9 @@ All notable changes to this project are documented here. The format follows
   sent it while an answer was under way. Implement `OnSteeringAsync` on such a middleware, since `InvokeAsync` still
   does not find steered input among `run.Messages`. Input that a middleware drops starts no model call and expires
   no decision.
+- A run started with input that `TrySteer` refused while a run of the conversation stored its end waits for that
+  run and answers. It threw that a run was going on and told your app to steer it, so the fallback the guide shows,
+  `if (!tracker.TrySteer(id, input)) await chat.RunAsync(input);`, failed for input that arrived in that moment.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

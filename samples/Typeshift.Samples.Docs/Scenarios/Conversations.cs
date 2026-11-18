@@ -51,8 +51,18 @@ internal static class Conversations
         // begin-snippet: steering
         var input = "Send me the invoice too.";
 
-        if (!tracker.TrySteer(conversationId, input))
-            await chat.WithSettingsId(settingsId).RunAsync(input);
+        while (!tracker.TrySteer(conversationId, input))
+        {
+            try
+            {
+                await chat.WithSettingsId(settingsId).RunAsync(input);
+                break;
+            }
+            catch (ConversationBusyException)
+            {
+                // A run of the conversation began in between and takes the input now
+            }
+        }
         // end-snippet
 
         // A run cut off by a crash: its input is stored, nothing else

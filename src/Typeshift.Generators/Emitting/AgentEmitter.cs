@@ -721,6 +721,13 @@ internal static class AgentEmitter
             "global::System.Text.Json.JsonException",
             "The stored settings were written under a newer schema version than this code's.");
 
+    // D50: what every member that starts a run throws on a conversation whose run is going on
+    private const string Busy = "global::Typeshift.ConversationBusyException";
+
+    private const string Going =
+        "A run of the host's conversation is going on in this process. A streaming run throws it when its updates "
+        + "are read.";
+
     // D50, D80: the host's conversation's interrupted run or answered decisions, continued without input
     private static void WriteResume(SourceWriter writer, string name, string returns, string settings)
     {
@@ -737,9 +744,14 @@ internal static class AgentEmitter
             returns.Contains("IAsyncEnumerable") ? "The updates." : "The response.");
         Docs.WriteException(
             writer,
+            "global::Typeshift.NothingToResumeException",
+            "The conversation has nothing to continue: its last run ended, and no decision your app answered or "
+            + "withdrew waits.");
+        Docs.WriteException(writer, Busy, Going);
+        Docs.WriteException(
+            writer,
             InvalidOperation,
-            "The host has no conversation, the conversation has nothing to continue or a run going on in this "
-            + $"process, {OwnLoop}, or {MissingRegistration}.");
+            $"The host has no conversation, {OwnLoop}, or {MissingRegistration}.");
         WriteNewerSettings(writer);
         writer.Lines(
             $"""
@@ -794,9 +806,13 @@ internal static class AgentEmitter
                 "Other saves of the conversation's decisions came first ten times in a row.");
             Docs.WriteException(
                 writer,
+                Busy,
+                "A run of the host's conversation is going on in this process. The answers are recorded: continue "
+                + "with <c>ResumeAsync</c> once that run has ended.");
+            Docs.WriteException(
+                writer,
                 InvalidOperation,
-                "The host has no conversation, the conversation has a run going on in this process, "
-                + $"{OwnLoop}, or {MissingRegistration}.");
+                $"The host has no conversation, {OwnLoop}, or {MissingRegistration}.");
             WriteNewerSettings(writer);
             writer.Lines(
                 $"""
@@ -838,11 +854,11 @@ internal static class AgentEmitter
                 writer,
                 "global::Typeshift.DecisionUnavailableException",
                 "A tool call needs a decision of your app, and the run has no conversation to keep it in.");
+            Docs.WriteException(writer, Busy, Going);
             Docs.WriteException(
                 writer,
                 InvalidOperation,
-                $"The host's conversation has a run going on in this process, {OwnLoop}, or "
-                + $"{MissingRegistration}.");
+                $"The agent's chat client runs a tool loop of its own, or {MissingRegistration}.");
             WriteNewerSettings(writer);
             writer.Lines(
                 $"""

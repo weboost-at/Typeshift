@@ -145,7 +145,7 @@ its last stored step, without new input:
 ```cs
 var resumed = await support.WithSettingsId(settingsId).WithConversationId(interrupted).ResumeAsync();
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L64-L66' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L74-L76' title='Snippet source file'>snippet source</a> | <a href='#snippet-resume' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 `ResumeAsync` also continues a conversation whose decisions your app answered with `RecordAnswersAsync`: it carries
@@ -154,8 +154,9 @@ the answers out and goes on. While decisions are still open, it calls no model a
 `CancelDecisionsAsync`, the model reads that the request was withdrawn and goes on
 ([When a decision closes](./tool-approval.md#when-a-decision-closes)).
 
-`ResumeAsync` throws an `InvalidOperationException` on a host without a conversation id, or when the conversation's last
-run ended and no answered or withdrawn decision waits. A new run with input works on an interrupted conversation too: it starts
+`ResumeAsync` throws an `InvalidOperationException` on a host without a conversation id, and a
+`NothingToResumeException`, an `InvalidOperationException` too, when the conversation's last run ended and no
+answered or withdrawn decision waits. A new run with input works on an interrupted conversation too: it starts
 from the interrupted run's steps and adds its own input.
 
 After a restart, the entries tell you which conversations to resume. A run stores its ending entry only when it ends,
@@ -177,10 +178,15 @@ it again, and the model reads that it is not known whether the call took effect
 
 ## One run at a time
 
-Within a process, a conversation has one run at a time. Starting a second while the first goes on throws an
-`InvalidOperationException`, so [steer](#steering) the running one or wait until it ends. A run that starts while
-another is still loading the conversation waits until that run has begun. Across processes, keeping to one run per
-conversation is up to your app.
+Within a process, a conversation has one run at a time. Starting a second while the first goes on throws a
+`ConversationBusyException`, before the second run stores anything, so [steer](#steering) the running one or start
+again once it has ended. Its `Conversation` names the conversation, and it is an `InvalidOperationException`, so a
+`catch` of that type still catches it.
+
+Two moments of a run take no steering input and throw no `ConversationBusyException` either: a run that starts
+while another is still loading the conversation waits until that run has begun, and a run that starts while
+another is ending, storing its end, waits until it has ended. Across processes, keeping to one run per conversation
+is up to your app.
 
 ## Live runs
 
@@ -214,7 +220,7 @@ Cancelling ends the loop with an `OperationCanceledException`, so catch it where
 await foreach (var run in tracker.WatchRunsAsync(ct))
     Console.WriteLine($"Conversation {run.Conversation} is {(run.Ended ? "idle" : "running")}");
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L91-L94' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-runs' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L101-L104' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-runs' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ::: warning The tracker lists every customer's runs
@@ -227,22 +233,35 @@ conversations the caller may see before you return them from an endpoint.
 `TrySteer` hands new input to a conversation's run while it works, for example when a user adds a request halfway
 through. The model receives it before its next call, and the run does not end before then. The input is stored like
 any other. Your run middleware sees it first and may drop or replace it
-([Steering input](./middleware.md#steering-input)). When the run had asked your app before it took the input, its decisions expire, as they would for a new
-message: the model reads that those calls did not run, and the run's response lists no decision
-([When a decision closes](./tool-approval.md#when-a-decision-closes)).
+([Steering input](./middleware.md#steering-input)). When the run had asked your app before it took the input, its
+decisions expire, as they would for a new message: the model reads that those calls did not run, and the run's
+response lists no decision ([When a decision closes](./tool-approval.md#when-a-decision-closes)). A run that fails,
+is cancelled or has spent its limit of model calls before it answers the input stores the input with its end, and the
+conversation's next run reads it.
 
-`TrySteer` returns false when no run of the conversation is going on in this process, or when that run is already
-ending. Start a run with the input instead:
+`TrySteer` returns false when no run of the conversation takes input in this process: none is going on, one is
+still loading the conversation, or it is ending. Start a run with the input instead. A run that started in the
+meantime throws a `ConversationBusyException`, and then takes the input when you steer again:
 
 <!-- snippet: steering -->
 <a id='snippet-steering'></a>
 ```cs
 var input = "Send me the invoice too.";
 
-if (!tracker.TrySteer(conversationId, input))
-    await chat.WithSettingsId(settingsId).RunAsync(input);
+while (!tracker.TrySteer(conversationId, input))
+{
+    try
+    {
+        await chat.WithSettingsId(settingsId).RunAsync(input);
+        break;
+    }
+    catch (ConversationBusyException)
+    {
+        // A run of the conversation began in between and takes the input now
+    }
+}
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L51-L56' title='Snippet source file'>snippet source</a> | <a href='#snippet-steering' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L51-L66' title='Snippet source file'>snippet source</a> | <a href='#snippet-steering' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 To stop a run, cancel its token. It is stored up to where it stopped.
@@ -261,7 +280,7 @@ model response and tool result as it stores it. A browser can follow them over S
 await foreach (var update in tracker.WatchAsync(conversationId, ct))
     Console.Write(update.Text);
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L76-L79' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-conversation' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Conversations.cs#L86-L89' title='Snippet source file'>snippet source</a> | <a href='#snippet-watch-conversation' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 Text, reasoning and usage updates are merged and published at most every 100 ms, and other updates go out at once. A

@@ -73,13 +73,16 @@ public sealed class ConversationTracker<TId> where TId : notnull
         _runs.Value.WatchAsync(new StoreId<TId>(conversation), ct);
 
     /// <summary>
-    /// Steers a run going on in this process: the input reaches the model before its next call, and the run does not
-    /// end before it has. The input is stored with the conversation.
+    /// Hands input to the conversation's run going on in this process. The run's middleware sees it first and may
+    /// drop it. The model receives it with its next call, and the run answers it before it ends, unless the run
+    /// fails, is cancelled or has spent its limit of model calls: the input is then stored with the run's end, and
+    /// the conversation's next run reads it.
     /// </summary>
     /// <param name="conversation">The conversation's id.</param>
     /// <param name="input">The user's input.</param>
     /// <returns>
-    /// False when no run of the conversation is going on here, or it is ending; start a run with the input instead.
+    /// False when no run of the conversation takes input here: none is going on, one still loads the conversation,
+    /// or it is ending. Start a run with the input then; it waits for a run that is ending.
     /// </returns>
     /// <exception cref="InvalidOperationException">
     /// Your app registered stores, and none keeps conversations under ids of <typeparamref name="TId"/>.

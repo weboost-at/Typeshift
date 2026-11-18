@@ -313,6 +313,22 @@ public class ConversationRunTests : AgentTestBase
     }
 
     [Fact]
+    public async Task Given_A_Conversation_Whose_Last_Run_Ended_Resuming_Throws_A_NothingToResumeException()
+    {
+        // Arrange
+        ChatClient.Reply(Text(Data.Tool.Answer));
+        await Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Act
+        var resume = () => Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).ResumeAsync(ct: Ct);
+
+        // Assert
+        await resume.Should()
+            .ThrowAsync<NothingToResumeException>()
+            .Where(nothing => Equals(nothing.Conversation, Data.Agent.ConversationId));
+    }
+
+    [Fact]
     public async Task Given_A_Run_That_Failed_To_Begin_The_Next_Run_Of_The_Conversation_Runs()
     {
         // Arrange
@@ -348,6 +364,123 @@ public class ConversationRunTests : AgentTestBase
         // Assert
         await second.Should().ThrowAsync<InvalidOperationException>().WithMessage("*TrySteer*");
         gate.SetResult();
+        await first;
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Run_Going_On_A_Second_Run_Throws_A_ConversationBusyException(bool streaming)
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+        ChatClient.Reply(gate, Text(Data.Tool.Answer));
+
+        var first = RunAsync(Data.Tool.Question, streaming: false, Ct);
+        await ChatClient.Requested;
+
+        // Act
+        var second = () => RunAsync(Data.Agent.FollowUp, streaming, Ct);
+
+        // Assert
+        await second.Should()
+            .ThrowAsync<ConversationBusyException>()
+            .Where(busy => Equals(busy.Conversation, Data.Agent.ConversationId));
+        gate.SetResult();
+        await first;
+    }
+
+    [Fact]
+    public async Task Given_A_Run_Refused_As_Busy_The_Conversation_Stores_Nothing_Of_It()
+    {
+        // Arrange
+        var gate = new TaskCompletionSource();
+        ChatClient.Reply(gate, Text(Data.Tool.Answer));
+
+        var first = RunAsync(Data.Tool.Question, streaming: false, Ct);
+        await ChatClient.Requested;
+        await Record.ExceptionAsync(() => RunAsync(Data.Agent.FollowUp, streaming: false, Ct));
+
+        // Act
+        gate.SetResult();
+        await first;
+
+        var entries = await EntriesAsync(Data.Agent.ConversationId);
+
+        // Assert
+        entries.SelectMany(entry => entry.Messages).Select(message => message.Text)
+            .Should()
+            .Equal(Data.Tool.Question, Data.Tool.Answer);
+    }
+
+    [Fact]
+    public async Task Given_Steering_Refused_While_The_Run_Stores_Its_End_A_New_Run_Waits_And_Answers()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithStore<GatedEndStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
+        var store = provider.GetRequiredService<GatedEndStore>();
+        var tracker = provider.GetRequiredService<ConversationTracker<Guid>>();
+
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Agent.Reason));
+
+        var first = host.RunAsync(Data.Tool.Question, ct: Ct);
+        await store.Ending.Task.WaitAsync(Ct);
+        var steered = tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.FollowUp);
+
+        // Act
+        var second = host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        store.Gate.SetResult();
+        await first;
+        var response = await second;
+
+        // Assert
+        steered.Should().BeFalse();
+        response.Text.Should().Be(Data.Agent.Reason);
+        ChatClient.Requests[1].Select(message => message.Text)
+            .Should()
+            .Equal(Data.Tool.Question, Data.Tool.Answer, Data.Agent.FollowUp);
+    }
+
+    [Fact]
+    public async Task Given_A_Run_Waiting_For_A_Run_That_Is_Ending_Cancelling_It_Ends_The_Wait()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithStore<GatedEndStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
+        var store = provider.GetRequiredService<GatedEndStore>();
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        var first = host.RunAsync(Data.Tool.Question, ct: Ct);
+        await store.Ending.Task.WaitAsync(Ct);
+
+        using var cancel = CancellationTokenSource.CreateLinkedTokenSource(Ct);
+        var second = host.RunAsync(Data.Agent.FollowUp, ct: cancel.Token);
+
+        // Act
+        await cancel.CancelAsync();
+        var waited = await Record.ExceptionAsync(() => second);
+        var ending = !first.IsCompleted;
+
+        // Assert
+        waited.Should().BeAssignableTo<OperationCanceledException>();
+        ending.Should().BeTrue();
+        store.Gate.SetResult();
         await first;
     }
 

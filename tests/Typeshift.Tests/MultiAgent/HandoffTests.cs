@@ -263,9 +263,49 @@ public class HandoffTests : MultiAgentTestBase
 
         // Assert
         settled.Should().BeSameAs(second);
-        await FluentActions.Awaiting(() => second).Should().ThrowAsync<InvalidOperationException>()
+        await FluentActions.Awaiting(() => second).Should().ThrowAsync<ConversationBusyException>()
             .WithMessage("*TrySteer*");
         (await first).Messages[^1].AuthorName.Should().Be("back_agent");
+    }
+
+    [Fact]
+    public async Task Given_A_Run_Starting_While_A_Handoff_Stores_What_It_Passes_On_It_Is_Refused_Once_The_Agent_Began()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddTypeshift().WithStore<GatedEndStore>().WithChatClientProvider<ScriptedChatClientProvider>();
+        services.AddSingleton(ChatClient).AddSingleton(Models);
+
+        await using var provider = services.BuildServiceProvider();
+        await using var scope = provider.CreateAsyncScope();
+        var front = scope.ServiceProvider.GetRequiredService<AgentHost<FrontAgent>>()
+            .WithConversationId(Data.Agent.ConversationId);
+        var store = provider.GetRequiredService<GatedEndStore>();
+        var tracker = provider.GetRequiredService<ConversationTracker<Guid>>();
+
+        var handing = new TaskCompletionSource();
+        var answering = new TaskCompletionSource();
+        store.Holds = entry => entry.Messages.Any(message => message.Text == Data.Agent.Steering);
+
+        ChatClient
+            .Reply(handing, Call(Data.Tool.CallId, "handoff_to_back_agent"))
+            .Reply(answering, Text(Data.Tool.Answer));
+
+        var first = front.RunAsync(Data.Tool.Question, ct: Ct);
+        await ChatClient.Requested;
+        tracker.TrySteer(Data.Agent.ConversationId, Data.Agent.Steering);
+        handing.SetResult();
+        await store.Ending.Task.WaitAsync(Ct);
+
+        // Act
+        var second = front.RunAsync(Data.Agent.FollowUp, ct: Ct);
+        store.Gate.SetResult();
+        var refused = await Record.ExceptionAsync(() => second);
+
+        // Assert
+        refused.Should().BeOfType<ConversationBusyException>();
+        answering.SetResult();
+        await first;
     }
 
     [Fact]
