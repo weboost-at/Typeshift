@@ -1233,8 +1233,8 @@ nor for a copy disposed in the block that declares its host, where both end toge
 Some mistakes show only when your app runs, such as a provider no client is registered for, or a store that is
 missing. Typeshift then throws an exception whose message names the cause and the way out. The tables below list
 each one by the words its message always holds, so a search of these docs for the text in your log finds its row.
-Each row links the section that explains it, and a word in braces, such as `{agent}`, stands for what the message
-fills in.
+Each row links the section that explains it. A word in braces stands for a value the message fills in, such as
+`{agent}` for the agent's name.
 
 ### Registration and hosts
 
