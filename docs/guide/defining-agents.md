@@ -8,6 +8,42 @@ description: Declare an agent in its constructor, with its chat options, instruc
 An agent bundles what a model needs for one job: chat options, instructions and tools. You declare it in its
 constructor, and the generator gives it a `Settings` record of what may change at runtime.
 
+## The smallest agent
+
+The smallest agent declares only its instructions. It has no tools and names no model, so the client you run it on
+answers with its own model ([Models and providers](./models.md)):
+
+<!-- snippet: smallest-agent -->
+<a id='snippet-smallest-agent'></a>
+```cs
+internal partial class AssistantAgent : Agent
+{
+    public AssistantAgent() => WithInstructions("Answer the customer's question in one friendly sentence.");
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Agents/AssistantAgent.cs#L3-L8' title='Snippet source file'>snippet source</a> | <a href='#snippet-smallest-agent' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+A console app runs it with the `IChatClient` of your provider, through a host from the
+[runtime](./registration.md#the-runtime):
+
+<!-- snippet: smallest-agent-run -->
+<a id='snippet-smallest-agent-run'></a>
+```cs
+await using var runtime = TypeshiftRuntime.Create(client);
+await using var assistant = runtime.Agent<AssistantAgent>();
+
+var answer = await assistant.RunAsync("Where is my refund?");
+
+Console.WriteLine(answer.Text);
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/SmallestAgent.cs#L12-L19' title='Snippet source file'>snippet source</a> | <a href='#snippet-smallest-agent-run' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+```text
+Your refund was approved and reaches your account within five days.
+```
+
 ## Declaring an agent
 
 An agent is a `partial` class ([TSH001](./diagnostics.md#tsh001)) deriving from `Agent`. This one answers customers

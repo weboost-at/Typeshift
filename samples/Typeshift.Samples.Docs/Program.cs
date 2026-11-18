@@ -20,6 +20,7 @@ Directory.Delete(settings, recursive: true);
 var database = Path.Combine(Path.GetTempPath(), $"typeshift-samples-{Guid.NewGuid():N}.db");
 
 await NoContainer.RunAsync(client);
+await SmallestAgent.RunAsync(client);
 await MinimalApi.RunAsync(client);
 var services = Registration.Register(new ServiceCollection(), client, client, database);
 services.AddSingleton<SampleLog>();

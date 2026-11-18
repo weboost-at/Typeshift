@@ -24,6 +24,10 @@ package in each project that declares toolsets or agents ([Project setup](./regi
 The package turns on XML docs in your project, because Typeshift builds each tool's description for the model from
 them.
 
+Your project needs nothing else. The smallest agent is a class with its instructions, which
+[Agents](./defining-agents.md#the-smallest-agent) runs in three lines, and the steps below build one with a tool and
+its settings.
+
 ## 2. Write a toolset
 
 A toolset is a class that groups related tools, for example the tools of one domain. This one has a single tool,
