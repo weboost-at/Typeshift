@@ -17,7 +17,7 @@ internal sealed class ToolLoop(IChatClient inner, ILoggerFactory? loggers, IServ
     {
         var messages = base.CreateResponseMessages(results);
 
-        foreach (var result in messages.SelectMany(message => message.Contents).OfType<FunctionResultContent>())
+        foreach (var result in messages.Contents().OfType<FunctionResultContent>())
         {
             if (result.Exception is not (null or ToolException)) result.Result = Failed;
         }

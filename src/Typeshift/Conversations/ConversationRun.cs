@@ -355,7 +355,7 @@ internal sealed class ConversationRun(
 
     public void MarkTransient(IEnumerable<ChatMessage> messages, bool added = false)
     {
-        var contents = messages.SelectMany(message => message.Contents).Where(content => !_stored.Contains(content));
+        var contents = messages.Contents().Where(content => !_stored.Contains(content));
 
         foreach (var content in contents)
         {
@@ -656,10 +656,7 @@ internal sealed class ConversationRun(
     {
         if (_carried is not { } carried) return;
 
-        _unsettled.ExceptWith(stored
-            .SelectMany(message => message.Contents)
-            .OfType<FunctionResultContent>()
-            .Select(result => result.CallId));
+        _unsettled.ExceptWith(stored.Contents().ResultIds());
 
         if (_unsettled.Count > 0) return;
 
@@ -678,10 +675,7 @@ internal sealed class ConversationRun(
     // step is stored without it
     private IReadOnlyList<ChatMessage> Writable(IReadOnlyList<ChatMessage> messages)
     {
-        var left = messages
-            .SelectMany(message => message.Contents)
-            .Where(content => !ConversationEntry.CanWrite(content))
-            .ToList();
+        var left = messages.Contents().Where(content => !ConversationEntry.CanWrite(content)).ToList();
 
         if (left.Count == 0) return messages;
 
@@ -690,16 +684,7 @@ internal sealed class ConversationRun(
             LogEvents.ContentNotStored(logger, Conversation, type.FullName);
         }
 
-        return [.. messages.Select(Writable).OfType<ChatMessage>()];
-    }
-
-    private static ChatMessage? Writable(ChatMessage message)
-    {
-        if (message.Contents.All(ConversationEntry.CanWrite)) return message;
-
-        var step = message.Clone();
-        step.Contents = [.. message.Contents.Where(ConversationEntry.CanWrite)];
-        return step.Contents.Count > 0 ? step : null;
+        return [.. messages.Select(message => message.Keeping(ConversationEntry.CanWrite)).OfType<ChatMessage>()];
     }
 
     private void Publish(IEnumerable<ChatMessage> messages)
@@ -719,24 +704,9 @@ internal sealed class ConversationRun(
     }
 
     // The contents of a message not stored yet, as a message of their own; null when all are
-    private ChatMessage? Unstored(ChatMessage message)
-    {
-        var known = 0;
+    private ChatMessage? Unstored(ChatMessage message) => message.Keeping(IsUnknown);
 
-        for (var i = 0; i < message.Contents.Count; i++)
-        {
-            if (IsKnown(message.Contents[i])) known++;
-        }
-
-        if (known == message.Contents.Count) return null;
-        if (known == 0) return message;
-
-        var step = message.Clone();
-        step.Contents = [.. message.Contents.Where(content => !IsKnown(content))];
-        return step;
-    }
-
-    private bool IsKnown(AIContent content) => _stored.Contains(content) || _transient.Contains(content);
+    private bool IsUnknown(AIContent content) => !_stored.Contains(content) && !_transient.Contains(content);
 
     // Null once the run stopped: it cancelled the sub-agent, nothing hears its answer, and the task must not fault.
     // The answer joins the run in the user's role, the one a run takes between model calls, so its first line says

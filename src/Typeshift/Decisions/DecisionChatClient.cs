@@ -23,7 +23,7 @@ internal sealed class DecisionChatClient(IChatClient inner) : DelegatingChatClie
         if (resolved.ConversationRun!.TakeReplay() is { } replay) return replay;
 
         var response = await base.GetResponseAsync(messages, options, cancellationToken);
-        var calls = response.Messages.SelectMany(message => message.Contents).OfType<FunctionCallContent>().ToList();
+        var calls = response.Messages.Contents().OfType<FunctionCallContent>().ToList();
 
         if (await DecideAsync(calls, resolved, cancellationToken) is { } answered) response.Messages.Add(answered);
 

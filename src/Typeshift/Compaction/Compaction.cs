@@ -110,7 +110,7 @@ internal sealed class Compaction(ReportedCall? last)
         // First the results of the oldest calls, keeping the calls; the model has not seen those after its last answer
         var seen = history.FindLastIndex(message => message.Role == ChatRole.Assistant);
         var todos = LatestTodos(history)?.CallId;
-        var read = history.Take(Math.Max(seen, 0)).SelectMany(message => message.Contents).ToList();
+        var read = history.Take(Math.Max(seen, 0)).Contents().ToList();
         var tools = read.OfType<FunctionCallContent>().ToLookup(called => called.CallId, called => called.Name);
 
         foreach (var result in read.OfType<FunctionResultContent>())
@@ -230,7 +230,7 @@ internal sealed class Compaction(ReportedCall? last)
             : ClearedResult;
 
     private static FunctionCallContent? LatestTodos(IEnumerable<ChatMessage> messages) =>
-        messages.SelectMany(message => message.Contents)
+        messages.Contents()
             .OfType<FunctionCallContent>()
             .LastOrDefault(call => call.Name == WriteTodos);
 
@@ -239,7 +239,7 @@ internal sealed class Compaction(ReportedCall? last)
     {
         if (LatestTodos(region) is not { } call) return [];
 
-        var result = region.SelectMany(message => message.Contents)
+        var result = region.Contents()
             .OfType<FunctionResultContent>()
             .FirstOrDefault(result => result.CallId == call.CallId);
 

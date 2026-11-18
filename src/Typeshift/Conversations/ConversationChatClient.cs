@@ -580,8 +580,8 @@ internal sealed class ConversationChatClient(
     // declaration, as a handoff is
     private static List<FunctionCallContent> Unanswered(IList<ChatMessage> messages)
     {
-        var contents = messages.SelectMany(message => message.Contents).ToList();
-        var answered = contents.OfType<FunctionResultContent>().Select(result => result.CallId).ToHashSet();
+        var contents = messages.Contents().ToList();
+        var answered = contents.ResultIds().ToHashSet();
 
         return [.. contents.OfType<FunctionCallContent>().Where(call => !answered.Contains(call.CallId))];
     }
@@ -696,7 +696,7 @@ internal sealed class ConversationChatClient(
         var input = messages.ToList();
 
         // D80: a decision is answered by its id, in the document; approval contents in a run's input answer nothing
-        if (input.SelectMany(message => message.Contents).Any(IsApprovalContent))
+        if (input.Contents().Any(IsApprovalContent))
         {
             throw new ArgumentException(
                 "The input carries an approval request or answer of Microsoft.Extensions.AI, which a run does not "
@@ -852,7 +852,7 @@ internal sealed class ConversationChatClient(
     private static IReadOnlyList<ChatMessage>? AnswerOf(IReadOnlyList<ConversationEntry> entries) =>
         entries is [.., { EndsRun: false, IsSummary: false, Messages: [_, ..] messages }]
         && messages.All(message => message.Role == ChatRole.Assistant)
-        && !messages.SelectMany(message => message.Contents).Any(IsStep)
+        && !messages.Contents().Any(IsStep)
             ? messages
             : null;
 
@@ -866,12 +866,7 @@ internal sealed class ConversationChatClient(
         IReadOnlyList<ConversationEntry> entries,
         Func<BatchCall, string> result)
     {
-        var stored = entries
-            .SelectMany(entry => entry.Messages)
-            .SelectMany(message => message.Contents)
-            .OfType<FunctionResultContent>()
-            .Select(content => content.CallId)
-            .ToHashSet();
+        var stored = entries.SelectMany(entry => entry.Messages).Contents().ResultIds().ToHashSet();
 
         var missing = batch.Calls.Where(call => !stored.Contains(call.CallId)).ToList();
 
@@ -883,7 +878,7 @@ internal sealed class ConversationChatClient(
     // The calls of a batch that a message of results answers
     private static IEnumerable<BatchCall> CallsOf(DecisionBatch batch, ChatMessage results)
     {
-        var answered = results.Contents.OfType<FunctionResultContent>().Select(result => result.CallId).ToHashSet();
+        var answered = results.Contents.ResultIds().ToHashSet();
 
         return batch.Calls.Where(call => answered.Contains(call.CallId));
     }
@@ -915,8 +910,8 @@ internal sealed class ConversationChatClient(
         if (background.Count == 0) yield break;
 
         var messages = entries.SelectMany(entry => entry.Messages).ToList();
-        var contents = messages.SelectMany(message => message.Contents).ToList();
-        var started = contents.OfType<FunctionResultContent>().Select(result => result.CallId).ToHashSet();
+        var contents = messages.Contents().ToList();
+        var started = contents.ResultIds().ToHashSet();
 
         var answered = messages
             .Select(message => message.AdditionalProperties?.GetValueOrDefault(ConversationRun.BackgroundCall))

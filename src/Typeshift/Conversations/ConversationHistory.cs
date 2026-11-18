@@ -27,8 +27,7 @@ internal static class ConversationHistory
         foreach (var message in messages)
         {
             if (KeepsAll(message, pairs)) usable.Add(message);
-            else if (With(message, [.. message.Contents.Where(content => Keeps(content, message, pairs))]) is { } left)
-                usable.Add(left);
+            else if (message.Keeping(content => Keeps(content, message, pairs)) is { } left) usable.Add(left);
 
             if (Calls(message)) usable.AddRange(pairs.ResultsOf(message));
         }
@@ -89,17 +88,6 @@ internal static class ConversationHistory
         return highest;
     }
 
-    // The message with these of its contents: itself when it keeps them all, none when it keeps nothing
-    private static ChatMessage? With(ChatMessage message, List<AIContent> contents)
-    {
-        if (contents.Count == message.Contents.Count) return message;
-        if (contents.Count == 0) return null;
-
-        var kept = message.Clone();
-        kept.Contents = contents;
-        return kept;
-    }
-
     // The calls that stay, and the result of each. Of a call or a result stored twice, by a store that retried an
     // append for example, the last copy counts
     private sealed class Pairs
@@ -144,7 +132,7 @@ internal static class ConversationHistory
                     .Select(result => (AIContent)result.Result)
                     .ToList();
 
-                yield return With(stored, paired)!;
+                yield return stored.WithContents(paired)!;
             }
         }
 
