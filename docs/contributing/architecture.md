@@ -121,14 +121,14 @@ names, wherever that method lives.
 3. The result is serialized through `JsonTypeInfo` into a `JsonElement`. A stream is read to its end first, by the
    library's `GetResultAsync`, which stops at the call's token, and serialized as the list of its items (D45).
 
-`ToolJson` builds the schema of each function type once and caches it. That is one
-`AIJsonUtilities.CreateJsonSchema` per parameter, with its description and default, nullable references widened to
-`[type, "null"]`, the `$ref`s of a recursive type rebased under its parameter, and properties described by the XML
-docs the modules registered (D55). For JSON metadata, `ToolJson` asks the modules' JSON contexts first, then
+`ToolJson` holds the container's JSON options and builds the schema of each function type once, through
+`ToolSchemas`, and caches it. That is one `AIJsonUtilities.CreateJsonSchema` per parameter, with its description and
+default, nullable references widened to `[type, "null"]`, the `$ref`s of a recursive type rebased under its
+parameter, and properties described by the XML docs the modules registered (D55). For JSON metadata, `ToolJson` asks the modules' JSON contexts first, then
 Microsoft.Extensions.AI's defaults, which reflect outside Native AOT (D45). Every schema it builds names a union's
 type on each case, and its options pick a union's case by the JSON token, then by an object's properties
-(D62). `RunAsync<T>` asks it for the answer's response format, built as a parameter's schema is and held under `data`
-unless it is an object of properties.
+(D62). `RunAsync<T>` asks it for the answer's response format, which `ResultFormats` builds as a parameter's schema
+is built and holds under `data` unless it is an object of properties.
 
 ## A run
 

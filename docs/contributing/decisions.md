@@ -292,7 +292,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   and one marked `[Experimental]` an error in any build. `TypeshiftSchemaAnnotations=false` avoids both, and the fix
   belongs to Weboost.SchemaAnnotations (see [Status](./status.md#known-gaps)).
 - **Where:** `buildTransitive/Typeshift.props`, `Parsing/Discovery.cs`, `Emitting/ModuleEmitter.cs`,
-  `Generated/ToolJson.cs`.
+  `Generated/ToolSchemas.cs`.
 - **Alternatives:** a chain call taking `AIJsonSchemaCreateOptions`, which every host would have to make; the
   generator reading the docs itself, a second copy of Weboost.SchemaAnnotations; finding a class the project marked,
   one more line of setup per project.
@@ -1645,7 +1645,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   - A schema node the serializer writes for a type it cannot handle, `"Unsupported .NET type"` with `not: true`,
     throws a `NotSupportedException` that names the member, since a provider rejects the node far from its cause, as
     the owner's `Exception` member showed.
-- **Where:** `Generated/UnionCaseClassifier.cs`, `Generated/ToolJson.cs`, `Hosting/AgentHost.cs`.
+- **Where:** `Generated/UnionCaseClassifier.cs`, `Generated/ToolJson.cs`, `Generated/ToolSchemas.cs`,
+  `Hosting/ResultFormats.cs`, `Hosting/AgentHost.cs`.
 - **Alternatives:** a `[JsonUnion(TypeClassifier = ...)]` on every union, code each app writes; strict numbers
   everywhere, which fails a model that sends `"5"` for a number; leaving the typed run's schema to
   Microsoft.Extensions.AI, which neither types the cases nor holds an object union under `data`.
