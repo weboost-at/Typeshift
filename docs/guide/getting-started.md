@@ -188,7 +188,8 @@ research_agent: Found Danube Robotics, Prater Motion and Belvedere Optics.
 
 The answers on this page come from the canned client of the
 [docs samples](https://github.com/weboost-at/Typeshift/tree/main/samples/Typeshift.Samples.Docs), which lists what the
-tool returned. A real model words its answer its own way.
+tool returned. A real model words its answer its own way, and a test of yours runs on a fake model like it
+([Testing an agent](./running-agents.md#testing-an-agent)).
 
 Settings are stored under a settings id that you choose, for example one per customer.
 `research.WithSettingsId(settingsId)` returns a copy of the host whose runs and settings members use the settings

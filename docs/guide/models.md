@@ -160,9 +160,7 @@ services.AddKeyedChatClient("local", local);
 <!-- endSnippet -->
 
 Another provider works the same way, through the `IChatClient` its package offers. A fake client for tests reads the
-same requests: the model in `ChatOptions.ModelId`, the agent's instructions in `ChatOptions.Instructions` and the
-run's tools in `ChatOptions.Tools`. It calls a tool by answering with a `FunctionCallContent`, and Typeshift runs the
-call.
+same requests ([Testing an agent](./running-agents.md#testing-an-agent)).
 
 ## Providers from configuration
 

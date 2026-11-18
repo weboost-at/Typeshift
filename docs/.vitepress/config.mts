@@ -54,6 +54,7 @@ const sidebar = {
       collapsed: true,
       items: [
         { text: 'Running an agent', link: '/guide/running-agents' },
+        { text: 'Testing an agent', link: '/guide/running-agents#testing-an-agent' },
         { text: 'Conversations', link: '/guide/conversations' },
         { text: 'Approval and modes', link: '/guide/tool-approval' },
         { text: 'Middleware and context', link: '/guide/middleware' },

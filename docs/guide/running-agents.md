@@ -242,6 +242,96 @@ The stream is the run: a `StreamingRun`, which calls the model as you read it, s
 throws an `InvalidOperationException` instead of running the agent again. Once the updates are read to their end,
 `Response` holds what they make, the decisions the run waits for included, as `RunAsync` would have returned it.
 
+## Testing an agent
+
+A test runs your agent on a fake model: an `IChatClient` of your own that answers from a script, so the test calls no
+provider and gets the same answers on every run. This one answers each call with the next message of its script and
+keeps what each call was sent:
+
+<!-- snippet: scripted-chat-client -->
+<a id='snippet-scripted-chat-client'></a>
+```cs
+// A model for tests: it answers each call with the next message of its script, and keeps what each call was sent
+internal sealed class ScriptedChatClient(params ChatMessage[] script) : IChatClient
+{
+    private readonly Queue<ChatMessage> _script = new(script);
+
+    public List<(IReadOnlyList<ChatMessage> Messages, ChatOptions? Options)> Calls { get; } = [];
+
+    public Task<ChatResponse> GetResponseAsync(
+        IEnumerable<ChatMessage> messages,
+        ChatOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        Calls.Add(([.. messages], options));
+        return Task.FromResult(new ChatResponse(_script.Dequeue()));
+    }
+
+    public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+        IEnumerable<ChatMessage> messages,
+        ChatOptions? options = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var response = await GetResponseAsync(messages, options, cancellationToken);
+
+        foreach (var update in response.ToChatResponseUpdates())
+            yield return update;
+    }
+
+    public object? GetService(Type serviceType, object? serviceKey = null) => null;
+
+    public void Dispose()
+    {
+    }
+}
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/ScriptedChatClient.cs#L6-L40' title='Snippet source file'>snippet source</a> | <a href='#snippet-scripted-chat-client' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+The test hands it to `TypeshiftRuntime.Create` and runs the agent as your app would. The script's first message calls
+the agent's tool, so Typeshift runs the tool and calls the model again with its result:
+
+<!-- snippet: testing-an-agent -->
+<a id='snippet-testing-an-agent'></a>
+```cs
+var arguments = new Dictionary<string, object?> { ["city"] = "Vienna" };
+
+var model = new ScriptedChatClient(
+    new ChatMessage(ChatRole.Assistant, [new FunctionCallContent("call_1", "find_companies", arguments)]),
+    new ChatMessage(ChatRole.Assistant, "Found three companies in Vienna."));
+
+await using var runtime = TypeshiftRuntime.Create(model);
+await using var research = runtime.CreateHost<ResearchAgent>();
+
+var answer = await research.RunAsync("Which companies are in Vienna?");
+
+var sent = model.Calls[0].Options!;
+
+var result = model.Calls[1].Messages
+    .SelectMany(message => message.Contents)
+    .OfType<FunctionResultContent>()
+    .Single();
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Testing.cs#L16-L34' title='Snippet source file'>snippet source</a> | <a href='#snippet-testing-an-agent' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- `answer` is what the run returns, with the script's last message in its `Text`.
+- `sent` holds what the model was sent: the model in `ModelId`, the agent's instructions in `Instructions` and the
+  tools the run offers in `Tools`. Assert on them to test what the agent declares and what a run's settings change.
+- `result` is the tool's result as the model read it. A result that is a JSON object or array reaches the model as
+  text, the JSON without white space ([Results](./toolsets.md#results)).
+- The runtime keeps settings and conversations in memory, so the test needs no database, and each test gets a
+  runtime of its own. The test project references the Typeshift package, as every project that calls
+  `TypeshiftRuntime.Create` does ([Project setup](./registration.md#project-setup)).
+- A tool is a static method, so a test of the tool alone calls it with the settings it takes:
+  `CompanyToolset.FindCompanies("Vienna", new FindCompaniesSettings { Limit = 2 })`.
+- Typeshift reads the time from the `TimeProvider` of the runtime's services, for example when it stores an entry,
+  so a test that registers a fake one there, such as
+  [`FakeTimeProvider`](https://learn.microsoft.com/dotnet/api/microsoft.extensions.time.testing.faketimeprovider),
+  sets the time itself ([The runtime](./registration.md#the-runtime)).
+- A store of your own is tested against your database with `VerifyAsync`
+  ([Check your store](./implementing-a-store.md#check-your-store)).
+
 ## The raw path
 
 If your app needs the `IChatClient` itself, for example to hand it to a library that takes one, split a run into

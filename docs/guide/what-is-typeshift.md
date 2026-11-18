@@ -20,10 +20,10 @@ Typeshift logo is the newest package.
 
 ## Why agents in code
 
-An agent is code you review, version and test like the rest of your app. Its tools are methods the compiler checks,
-and what may change at runtime is a typed `Settings` record that Typeshift generates from what you mark configurable.
-Your customers can store their own instructions or a lower search limit, and the code decides which values they may
-touch.
+An agent is code you review, version and [test](./running-agents.md#testing-an-agent) like the rest of your app. Its
+tools are methods the compiler checks, and what may change at runtime is a typed `Settings` record that Typeshift
+generates from what you mark configurable. Your customers can store their own instructions or a lower search limit,
+and the code decides which values they may touch.
 
 The cost is that an agent cannot be created at runtime, for example from a prompt your users write. Stored settings and
 [context providers](./middleware.md#context-providers) cover most of what such agents are used for: instructions per
