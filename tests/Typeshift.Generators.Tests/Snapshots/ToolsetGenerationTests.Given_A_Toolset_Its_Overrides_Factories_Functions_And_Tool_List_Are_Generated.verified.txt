@@ -9,7 +9,7 @@
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
 [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
 [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-public static class TypeshiftTools_4Demo13TicketToolset
+public static class Tstools_4Demo13TicketToolset
 {
     extension(global::Typeshift.ToolList<global::Demo.TicketToolset> tools)
     {

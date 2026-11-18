@@ -52,6 +52,12 @@ internal static class Names
     // object or as its own, gets a suffix
     public static string ToolProperty(string tool) => Unreserved(ToPascalCase(tool), "Tool", ToolMembers);
 
+    // D12: the prefixes of the generated classes in the global namespace, one word each, so that code completion
+    // offers none of them for Typeshift, Host or Tool, the words an app types most
+    public const string HostClassPrefix = "Tshost_";
+
+    public const string ToolListClassPrefix = "Tstools_";
+
     // D12: the name of a generated class in the global namespace: each part of the full name of the toolset or the
     // agent it belongs to, prefixed by its length, so no two classes share the global name
     public static string GlobalClassName(string prefix, TypeModel type)

@@ -22,6 +22,21 @@ public partial class AgentGenerationTests : GeneratorTestBase
     private const string NotStored = "global::Typeshift.ConversationStoreException";
 
     [Fact]
+    public void Given_A_Toolset_And_An_Agent_Their_Global_Classes_Start_With_Ts_Then_Their_Full_Names()
+    {
+        // Act
+        var run = Run(AgentSources.Tickets, AgentSources.Support);
+
+        // Assert
+        run.Output.GlobalNamespace
+            .GetTypeMembers()
+            .Where(type => type.DeclaringSyntaxReferences.Any(reference => Names.IsGenerated(reference.SyntaxTree)))
+            .Select(type => type.Name)
+            .Should()
+            .BeEquivalentTo("Tstools_4Demo13TicketToolset", "Tshost_4Demo12SupportAgent");
+    }
+
+    [Fact]
     public void Given_An_Agent_Its_Settings_Declaration_Host_Members_Module_And_Interceptor_Are_Generated()
     {
         // Act

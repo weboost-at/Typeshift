@@ -115,8 +115,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** carried (v0 D2), extended.
 - **Decision:** per toolset a `{Tool}Overrides` record per tool with configurable settings, a nested `ToolNames`
   class of one constant per tool (D13), which an agent with tools of its own gets too, and a
-  `TypeshiftTools_{full name}` extension block in the global namespace (D12); per agent the nested `Settings`
-  record, a private `Configure{Tool}()` per offered tool with settings and a `TypeshiftHost_{full name}` extension
+  `Tstools_{full name}` extension block in the global namespace (D12); per agent the nested `Settings`
+  record, a private `Configure{Tool}()` per offered tool with settings and a `Tshost_{full name}` extension
   block in the global namespace (D12); per assembly a module. Keywords get `@`. A clash with a user member is
   TSH018, and so is
   a class named like a member written into it. Two tools of one class that would share a generated member are
@@ -249,11 +249,22 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   that names `AgentHost` in full. Each class spells out the agent's full name, every part after its length, so two
   agents never share one, whatever their namespaces hold.
 - **Tool lists:** the extension block on `ToolList<TToolset>`, which `Include(t => t.X)` picks from (D4), follows the
-  same rule: the global namespace, a file of its own per toolset, a hidden class `TypeshiftTools_{full name}` with
+  same rule: the global namespace, a file of its own per toolset, a hidden class `Tstools_{full name}` with
   every part after its length. It lived in the toolset's namespace as `{Toolset}ToolList` first. There a pick was
   CS1061 in a file that named the toolset in full or through an alias, as the host members had been, and the class
   shared its name with any type of the namespace called `{Toolset}ToolList`, and with the list of a nested toolset
   of that flat name.
+- **The prefixes:** `[EditorBrowsable(Never)]` hides a class from code completion only where it comes from a compiled
+  reference, so in the project that declares an agent, where most code is written, every class of the global
+  namespace is offered. The classes were `TypeshiftHost_` and `TypeshiftTools_`, and the build's schema annotations
+  class (D55) `TypeshiftSchemaAnnotations_`, so `Type` offered one of each agent and toolset beside
+  `TypeshiftRuntime` and `TypeshiftBuilder`. They are `Tshost_`, `Tstools_` and `Tsannotations_` now, one word
+  each: a probe of Roslyn's completion matched none of them for `Type`, `Host` or `Tool`, and each still for the
+  full name it spells out, such as `Support` for `Tshost_4Demo12SupportAgent`. Only a hash in place of the name
+  would avoid that, and it would cost a readable name in a stack trace and the guarantee that two never meet. The
+  annotations class stays in the global namespace, where the `Annotated` members Weboost.SchemaAnnotations writes
+  beside it are in scope for your code; in `Typeshift.Generated` they would need a `using`. The owner left the rename,
+  free for users since no code of theirs names the classes, to the change that makes it.
 
 ## Declarations
 
@@ -294,7 +305,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   so a command's ids and codes reached the model without the docs that say how to fill them.
 - **Decision:** the package depends on Weboost.SchemaAnnotations and passes its generator to every consumer. The
   package's build adds a hidden `[SchemaAnnotations]` class to each project with `GenerateDocumentationFile`, named
-  after the assembly, and the module registers the docs collected for every marked class of its assembly. Tool
+  after the assembly as `Tsannotations_{Assembly}` (D12), and the module registers the docs collected for every
+  marked class of its assembly. Tool
   schemas are built through an annotator over all of them. `TypeshiftSchemaAnnotations=false` leaves the class out.
 - **As built:** the annotator never replaces a description, so a `<param>` doc keeps describing its parameter. A
   project that marked its own class has two, and Weboost.SchemaAnnotations then writes no

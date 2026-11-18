@@ -24,12 +24,14 @@
   </ItemGroup>
 
   <!-- D55: Weboost.SchemaAnnotations collects docs for a class marked in source, so each project gets one, named after
-       its assembly so that a reference granting InternalsVisibleTo never brings a second of the same name. -->
+       its assembly so that a reference granting InternalsVisibleTo never brings a second of the same name. It stays in
+       the global namespace, where the Annotated members Weboost.SchemaAnnotations writes beside it are in scope, under
+       a name that the words your app types most, such as Typeshift, do not complete to (D12). -->
   <Target Name="TypeshiftSchemaAnnotations"
           BeforeTargets="CoreCompile"
           Condition="'$(TypeshiftSchemaAnnotations)' == 'true' and '$(GenerateDocumentationFile)' == 'true' and '$(Language)' == 'C#'">
     <PropertyGroup>
-      <_TypeshiftAnnotationsClass>TypeshiftSchemaAnnotations_$([System.Text.RegularExpressions.Regex]::Replace('$(AssemblyName)', '[^A-Za-z0-9_]', '_'))</_TypeshiftAnnotationsClass>
+      <_TypeshiftAnnotationsClass>Tsannotations_$([System.Text.RegularExpressions.Regex]::Replace('$(AssemblyName)', '[^A-Za-z0-9_]', '_'))</_TypeshiftAnnotationsClass>
       <_TypeshiftAnnotationsFile>$(IntermediateOutputPath)$(AssemblyName).TypeshiftSchemaAnnotations.g.cs</_TypeshiftAnnotationsFile>
     </PropertyGroup>
 

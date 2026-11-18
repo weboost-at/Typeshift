@@ -552,7 +552,7 @@ internal static class AgentEmitter
         writer.Line(Names.SteppedThrough);
 
         using (writer.Block(
-            $"{agent.Type.Accessibility} static class {Names.GlobalClassName("TypeshiftHost_", agent.Type)}"))
+            $"{agent.Type.Accessibility} static class {Names.GlobalClassName(Names.HostClassPrefix, agent.Type)}"))
         using (writer.Block($"extension({host} host)"))
         {
             const string Answer = "The response; its messages carry the agent's name as their author.";

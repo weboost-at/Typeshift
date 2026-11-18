@@ -10,7 +10,7 @@
 [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
 [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [global::System.Diagnostics.DebuggerStepThrough]
-public static class TypeshiftHost_4Demo12SupportAgent
+public static class Tshost_4Demo12SupportAgent
 {
     extension(global::Typeshift.AgentHost<global::Demo.SupportAgent> host)
     {

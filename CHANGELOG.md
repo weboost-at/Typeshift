@@ -586,6 +586,11 @@ All notable changes to this project are documented here. The format follows
   summary without reading the entries before it: it deserialized every entry, 15.7 MB to return 3 of 5,000. A run
   with compaction on writes out the JSON of each call, result and tool schema once to estimate its tokens, where each
   estimate before each model call wrote out the whole history again, 7.9 MB for 2,000 messages.
+- The hidden classes the generator and the package's build write into the global namespace start with `Ts`:
+  `Tshost_4Demo12SupportAgent`, `Tstools_4Demo13TicketToolset` and `Tsannotations_{Assembly}`, where they started
+  with `TypeshiftHost_`, `TypeshiftTools_` and `TypeshiftSchemaAnnotations_`. Code completion in your own project
+  listed one of them for each agent and toolset when you typed `Type`, beside `TypeshiftRuntime`. Your code calls
+  the members of these classes and never names them, so nothing changes for it.
 
 ### Fixed
 

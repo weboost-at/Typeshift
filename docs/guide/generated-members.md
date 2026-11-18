@@ -379,10 +379,11 @@ has a public or internal parameterless constructor. For any other agent, the ana
 `AgentHost<TAgent>` with the agent's [typed members](#typed-members).
 
 The class lives in the global namespace, so the typed members are in scope in every file, whatever it imports. Its
-name spells out the agent's full name, each part after its length, such as `TypeshiftHost_4Demo12SupportAgent` for
+name is `Tshost_` and the agent's full name, each part after its length, such as `Tshost_4Demo12SupportAgent` for
 `Demo.SupportAgent`, so no two agents share one. The class is [hidden](#names-and-hidden-members), since you call the
 members on the host and never need its name: type completion leaves it out where your assembly is a compiled
-reference, and lists it in the projects of your own solution.
+reference. In the projects of your own solution it lists it, though not for `Type` or `Host`, where you look for
+`TypeshiftRuntime` or `AgentHost`.
 
 ## Per toolset
 
@@ -460,10 +461,9 @@ named like a member of `object`, or `tool_names`, gets a `Tool` suffix, so `to_s
 
 The class lives in the global namespace, so the properties are in scope in every file, whatever it imports: a pick
 compiles also where the file names the toolset in full, as in `UseToolset<Demo.TicketToolset>()`, or through an
-alias. Its name spells out the toolset's full name, each part after its length, such as
-`TypeshiftTools_4Demo13TicketToolset` for `Demo.TicketToolset`, so no two toolsets share one and no type of yours
-meets it. The class is [hidden](#names-and-hidden-members), since you pick from the properties and never need
-its name.
+alias. Its name is `Tstools_` and the toolset's full name, each part after its length, such as
+`Tstools_4Demo13TicketToolset` for `Demo.TicketToolset`, so no two toolsets share one and no type of yours meets it.
+The class is [hidden](#names-and-hidden-members), since you pick from the properties and never need its name.
 
 ## Per project
 
@@ -471,7 +471,7 @@ its name.
 |---|---|---|
 | `{Assembly}Module` (hidden) | A toolset, an agent, a JSON context or XML docs in the project | The assembly's [registrations](./registration.md#what-addtypeshift-registers) |
 | `[GeneratedModule]` (hidden) | The same | The module's stamp |
-| `TypeshiftSchemaAnnotations_{Assembly}` (hidden) | XML docs, which are on unless the project turns them off | What collects the [XML docs of your types](./registration.md#xml-docs-of-parameter-types) |
+| `Tsannotations_{Assembly}` (hidden) | XML docs, which are on unless the project turns them off | What collects the [XML docs of your types](./registration.md#xml-docs-of-parameter-types) |
 | The interceptor | A call of `services.AddTypeshift()` or `TypeshiftRuntime.Create(...)` | See [Registration](./registration.md) |
 
 ## Names and hidden members
@@ -480,7 +480,8 @@ its name.
 - Members marked *hidden* are `[EditorBrowsable(Never)]` plumbing that only generated code calls. Code completion
   leaves them out in a project that references your compiled assembly, such as a consumer of your package. The
   project that declares them and the other projects of its solution still see them, because Roslyn, the code
-  completion behind Visual Studio and VS Code, hides such members only when they come from a compiled reference.
+  completion behind Visual Studio and VS Code, hides such members only when they come from a compiled reference. So
+  the generated classes of the global namespace start with `Ts`, which none of the words you type most completes to.
 - The names of hidden members are taken all the same, so the analyzer reports [TSH018](./diagnostics.md#tsh018) for a
   member of yours with one of them.
 - Every generated class, and every member the generator adds to a class of yours, carries `[GeneratedCode]` and
@@ -527,10 +528,10 @@ assemblies read it to offer the tool.
 **A project** gets its module, the module's stamp and the schema annotations class of the table above:
 
 - The module registers the assembly's toolsets, agents, hosts, JSON contexts and XML docs. A project without a
-  toolset or an agent still gets one for its `TypeshiftSchemaAnnotations_{Assembly}` class, which every project with
+  toolset or an agent still gets one for its `Tsannotations_{Assembly}` class, which every project with
   XML docs on has, and for a [JSON context](./native-aot.md#tool-parameter-and-result-types) it holds.
 - `[GeneratedModule]` stamps the module and its version for the projects that reference the assembly.
-- The package's build adds `TypeshiftSchemaAnnotations_{Assembly}`, not the generator. It does so while
+- The package's build adds `Tsannotations_{Assembly}`, in the global namespace, not the generator. It does so while
   `GenerateDocumentationFile` is on, which it is unless the project turns it off, and `TypeshiftSchemaAnnotations`
   is not `false`. The class carries the `[SchemaAnnotations]` attribute that makes Weboost.SchemaAnnotations collect
   the XML docs of your types.

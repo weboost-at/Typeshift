@@ -477,7 +477,7 @@ public class ToolsetGenerationTests : GeneratorTestBase
         var run = Run(ToolsetSources.Tickets);
 
         // Assert
-        run.Output.GetTypeByMetadataName("TypeshiftTools_4Demo13TicketToolset")!
+        run.Output.GetTypeByMetadataName("Tstools_4Demo13TicketToolset")!
             .GetAttributes()
             .Select(attribute => attribute.AttributeClass!.Name)
             .Should()

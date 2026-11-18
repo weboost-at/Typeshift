@@ -9,7 +9,7 @@
 [global::System.ComponentModel.EditorBrowsable(global::System.ComponentModel.EditorBrowsableState.Never)]
 [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
 [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
-internal static class TypeshiftTools_4Demo15GreetingToolset
+internal static class Tstools_4Demo15GreetingToolset
 {
     extension(global::Typeshift.ToolList<global::Demo.GreetingToolset> tools)
     {

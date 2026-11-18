@@ -372,6 +372,7 @@ internal static class ToolsetEmitter
     private static void WriteToolList(SourceWriter writer, ToolsetModel toolset)
     {
         var list = $"global::Typeshift.ToolList<{toolset.Type.FullName}>";
+        var name = Names.GlobalClassName(Names.ToolListClassPrefix, toolset.Type);
 
         Docs.WriteSummary(
             writer,
@@ -381,8 +382,7 @@ internal static class ToolsetEmitter
         writer.Line(Names.Hidden);
         writer.Lines(Names.Generated);
 
-        using (writer.Block(
-            $"{toolset.Type.Accessibility} static class {Names.GlobalClassName("TypeshiftTools_", toolset.Type)}"))
+        using (writer.Block($"{toolset.Type.Accessibility} static class {name}"))
         using (writer.Block($"extension({list} tools)"))
         {
             foreach (var tool in toolset.Tools)
