@@ -674,7 +674,7 @@ internal static class AgentEmitter
             Docs.WriteParam(
                 writer,
                 "loadedVersion",
-                "The version <c>LoadSettingsAsync</c> returned, 0 when it loaded none.");
+                "The version <c>LoadSettingsAsync</c> or <c>UpdateSettingsAsync</c> returned, 0 when it loaded none.");
             Docs.WriteParam(writer, "ct", "Cancels the save.");
             Docs.WriteReturns(writer, "The new version, to pass to the next save.");
             Docs.WriteException(writer, "global::Typeshift.StoreConflictException", "Another save came first.");
@@ -692,25 +692,29 @@ internal static class AgentEmitter
 
             Docs.WriteSummary(
                 writer,
-                "Changes the agent's own settings, or, on a host from <c>WithSettingsId</c>, those under its id, "
-                + "reloading and changing them again whenever another save came first, up to ten times."
+                "Updates the agent's own settings, or, on a host from <c>WithSettingsId</c>, those under its id: "
+                + "loads them, saves what <paramref name=\"update\"/> returns, and loads and updates them again "
+                + "whenever another save came first, up to ten times."
                 + AgentSettings);
-            Docs.WriteParam(writer, "configure", "Returns the changed settings; called again after a lost save.");
-            Docs.WriteParam(writer, "ct", "Cancels the change.");
-            Docs.WriteReturns(writer, "The settings saved.");
+            Docs.WriteParam(writer, "update", "Returns the changed settings; called again after a lost save.");
+            Docs.WriteParam(writer, "ct", "Cancels the update.");
+            Docs.WriteReturns(writer, "The settings saved and their version, which the next save takes.");
             Docs.WriteException(
                 writer,
                 "global::Typeshift.StoreConflictException",
                 "Another save came first ten times in a row.");
-            Docs.WriteException(writer, InvalidOperation, NoSettingsStore);
+            Docs.WriteException(
+                writer,
+                InvalidOperation,
+                $"{NoSettingsStore} Or <paramref name=\"update\"/> returned null; nothing is saved then.");
             WriteNewerSettings(writer);
             Docs.WriteException(writer, "global::System.ArgumentException", Refused);
             writer.Lines(
                 $"""
-                public {Task}<{settings}> ConfigureAsync(
-                    global::System.Func<{settings}, {settings}> configure,
+                public {Task}<global::Typeshift.Stored<{settings}>> UpdateSettingsAsync(
+                    global::System.Func<{settings}, {settings}> update,
                     {CancellationToken} ct = default) =>
-                    {Runs}.ConfigureAsync<{types}>(host, configure, ct);
+                    {Runs}.UpdateSettingsAsync<{types}>(host, update, ct);
                 """);
         }
     }

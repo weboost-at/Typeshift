@@ -35,9 +35,9 @@ constructor holds 5. This layer sets every member, so a tool always receives a w
 searches with 3 unless a layer above sets another limit. Its chat and run options, such as `WithTemperature(0.2f)`,
 live here too. Because this layer is reviewed, compiled code, it may set any settable member, configurable or not.
 
-**3. The stored settings.** `WithSettingsId(42).ConfigureAsync(...)` stores `Limit = 2` and `Temperature = 0.4f`, so
-every run with settings id 42 searches with 2, at a temperature of 0.4. `IncludeInactive` cannot be stored, because
-`ResearchAgent.Settings` has only the configurable members. Below the settings of the id lie the agent's own stored
+**3. The stored settings.** `WithSettingsId(42).UpdateSettingsAsync(...)` stores `Limit = 2` and
+`Temperature = 0.4f`, so every run with settings id 42 searches with 2, at a temperature of 0.4. `IncludeInactive`
+cannot be stored, because `ResearchAgent.Settings` has only the configurable members. Below the settings of the id lie the agent's own stored
 settings, which every run applies, with a settings id or without one ([Agent settings](#agent-settings)).
 
 **4. The run.** A run that passes `FindCompanies = new() { Limit = 1 }` in its settings searches with 1, for that run
@@ -50,7 +50,7 @@ The highest layer that sets a value wins:
 | Layer | Set by | May set | Holds for |
 |---|---|---|---|
 | 4. The run | The `settings` argument of `RunAsync` and the other runs | Configurable members | That run |
-| 3. Stored | The agent's own `Settings`, then those under the host's settings id: `ConfigureAsync`, `SaveSettingsAsync` | Configurable members | Every run, or every run with that settings id |
+| 3. Stored | The agent's own `Settings`, then those under the host's settings id: `UpdateSettingsAsync`, `SaveSettingsAsync` | Configurable members | Every run, or every run with that settings id |
 | 2. The agent's code | `Configure{Tool}()`, `WithChatOptions()`, `WithRunOptions()`, `WithInstructions()` or `GetInstructions()` | Every settable member | Every run of the agent |
 | 1. The code's defaults | The settings record's parameterless constructor; the run options' defaults | Every member | Every run |
 
@@ -97,7 +97,7 @@ under `int` ids while an `IConversationStore<string>` keeps conversations under 
 in code, and each id's type picks the store of that type:
 
 - `support.WithSettingsId(42)` applies the settings stored under 42 in the `ISettingsStore<int>`, over the agent's
-  own. Its settings members, such as `ConfigureAsync(...)`, load and save those settings.
+  own. Its settings members, such as `UpdateSettingsAsync(...)`, load and save those settings.
 - `support.WithConversationId(chat)` resumes the conversation in the `IConversationStore` of `chat`'s type, and stores
   what the run adds to it.
 
@@ -137,7 +137,7 @@ applies them:
 <!-- snippet: own-settings -->
 <a id='snippet-own-settings'></a>
 ```cs
-await research.ConfigureAsync(settings => settings with { Temperature = 0.3f });
+await research.UpdateSettingsAsync(settings => settings with { Temperature = 0.3f });
 
 var everyRun = await research.RunAsync("Graz");
 ```
@@ -145,7 +145,7 @@ var everyRun = await research.RunAsync("Graz");
 <!-- endSnippet -->
 
 `LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)` load and save them, and
-`ConfigureAsync(configure)` retries on a conflict, as the sections below show. On a host from
+`UpdateSettingsAsync(update)` retries on a conflict, as the sections below show. On a host from
 `WithSettingsId(id)`, the same three members load and save the settings under the id instead.
 
 ::: warning Settings without an id are every run's defaults
@@ -210,14 +210,14 @@ A settings id stands for whatever you decide: a customer, a team, a user, or a s
 settings id, each agent has its own document, because each agent's `Settings` is its own kind, so a store keys
 documents by id and kind together.
 
-`ConfigureAsync` loads an agent's settings, applies your change and saves them. When another save came in between, it
-loads them again and reapplies your change, ten tries in all. If the tenth save loses too, it throws the store's
-`StoreConflictException`:
+`UpdateSettingsAsync` loads an agent's settings, applies your change and saves them. When another save came in
+between, it loads them again and reapplies your change, ten tries in all. If the tenth save loses too, it throws the
+store's `StoreConflictException`:
 
 <!-- snippet: configure-settings -->
 <a id='snippet-configure-settings'></a>
 ```cs
-await support.WithSettingsId(42).ConfigureAsync(settings => settings with
+await support.WithSettingsId(42).UpdateSettingsAsync(settings => settings with
 {
     Provider = "anthropic",
     Model = "claude-sonnet-5-5",
@@ -227,6 +227,9 @@ await support.WithSettingsId(42).ConfigureAsync(settings => settings with
 ```
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentSettings.cs#L13-L21' title='Snippet source file'>snippet source</a> | <a href='#snippet-configure-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
+
+It returns the settings it saved with their new version, which a later `SaveSettingsAsync` takes without loading
+them again.
 
 ### A settings form: load, save and conflicts
 
@@ -258,8 +261,8 @@ values before they save.
 
 ### What a save refuses
 
-`SaveSettingsAsync` and `ConfigureAsync` throw an `ArgumentException` and store nothing when the settings set a value
-no run can go with:
+`SaveSettingsAsync` and `UpdateSettingsAsync` throw an `ArgumentException` and store nothing when the settings set a
+value no run can go with:
 
 - a run option outside its [range](./builders.md#runoptionsbuilder), such as `MaxToolIterations = 0`, or a
   `TargetInputTokens` that is not below the `MaxInputTokens` of the same settings;
@@ -310,7 +313,7 @@ app.MapPut("/settings", async (
 {
     await support
         .WithSettingsId(customer.Id)
-        .ConfigureAsync(settings => settings with
+        .UpdateSettingsAsync(settings => settings with
         {
             SearchArticles = settings.SearchArticles with { Language = preferences.ArticleLanguage }
         }, ct);
@@ -324,7 +327,7 @@ app.MapPut("/settings", async (
 - The settings id is the current customer's, from `ICurrentCustomer`, never a value of the request, so a customer
   changes only their own settings. An endpoint that takes a settings id from the request, such as your staff's,
   checks first that the caller may change the settings under it.
-- `ConfigureAsync` sets the one member and keeps every other stored value, so the model and the instructions stay
+- `UpdateSettingsAsync` sets the one member and keeps every other stored value, so the model and the instructions stay
   as your staff stored them. An empty field arrives as null, which removes the customer's choice, so the layer below
   applies again.
 - The same holds for a run's `settings` argument: build it in code from what the request may choose, rather than

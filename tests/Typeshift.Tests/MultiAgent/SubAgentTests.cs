@@ -55,7 +55,7 @@ public class SubAgentTests : MultiAgentTestBase
 
         HelperClient.Reply(Text(Data.Agent.Reason));
         await Host<HelperAgent>()
-            .ConfigureAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+            .UpdateSettingsAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
 
         // Act
         await Host<LeadAgent>().RunAsync(Data.Tool.Question, ct: Ct);

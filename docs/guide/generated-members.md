@@ -39,7 +39,7 @@ In these signatures, `Settings` is the agent's [generated `Settings` record](#se
 | `ResolveOptionsAsync(Settings? settings = null)` | `Task<ChatOptions>` |
 | `LoadSettingsAsync()` | `Task<Stored<Settings>>` |
 | `SaveSettingsAsync(Settings settings, long loadedVersion)` | `Task<long>` |
-| `ConfigureAsync(Func<Settings, Settings> configure)` | `Task<Settings>` |
+| `UpdateSettingsAsync(Func<Settings, Settings> update)` | `Task<Stored<Settings>>` |
 
 ### `RunAsync`
 
@@ -119,20 +119,22 @@ handoff tools last.
 `LoadSettingsAsync` loads the agent's own settings, through the `IAgentSettingsStore`, or on a host from
 `WithSettingsId(id)` the settings stored under that id. It returns them with their version, or empty settings at
 version 0 when none are stored. It layers nothing, so the record holds only what was stored. `SaveSettingsAsync` and
-`ConfigureAsync` save the same settings.
+`UpdateSettingsAsync` save the same settings.
 
 ### `SaveSettingsAsync`
 
 `SaveSettingsAsync` saves the settings `LoadSettingsAsync` loads, if the stored version is still `loadedVersion`:
-the version `LoadSettingsAsync` returned, or 0 when it loaded none. It returns the new version, which your app passes
-to its next save. It throws a `StoreConflictException` when another save came first, and an `ArgumentException` for
+the version `LoadSettingsAsync` or `UpdateSettingsAsync` returned, or 0 when it loaded none. It returns the new
+version, which your app passes to its next save. It throws a `StoreConflictException` when another save came first, and an `ArgumentException` for
 settings no run can go with ([What a save refuses](./settings-and-stores.md#what-a-save-refuses)).
 
-### `ConfigureAsync`
+### `UpdateSettingsAsync`
 
-`ConfigureAsync` loads the settings, applies `configure`, and saves them with the loaded version. On a conflict it
-loads and applies again until its save wins, then returns what it saved. After ten conflicts in a row it throws the
-last `StoreConflictException`. It refuses the settings a save refuses, with the same `ArgumentException`.
+`UpdateSettingsAsync` loads the settings, applies `update`, and saves them with the loaded version. On a conflict it
+loads and applies again until its save wins, then returns the settings it saved with their new version, which your
+app can pass to a later `SaveSettingsAsync` without loading again. After ten conflicts in a row it throws the last
+`StoreConflictException`. It refuses the settings a save refuses, with the same `ArgumentException`, and throws an
+`InvalidOperationException` when `update` returns null. Nothing is saved then.
 
 ### What a run stores
 

@@ -18,7 +18,7 @@ internal static class Quickstart
         // begin-snippet: quickstart-settings
         var settingsId = 42;
 
-        await research.WithSettingsId(settingsId).ConfigureAsync(settings => settings with
+        await research.WithSettingsId(settingsId).UpdateSettingsAsync(settings => settings with
         {
             Temperature = 0.4f,
             FindCompanies = settings.FindCompanies with { Limit = 2 }
@@ -56,7 +56,7 @@ internal static class Quickstart
             throw new InvalidOperationException($"Expected the run's limit of 1: {limited.Text}");
 
         // begin-snippet: own-settings
-        await research.ConfigureAsync(settings => settings with { Temperature = 0.3f });
+        await research.UpdateSettingsAsync(settings => settings with { Temperature = 0.3f });
 
         var everyRun = await research.RunAsync("Graz");
         // end-snippet

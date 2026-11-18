@@ -229,7 +229,7 @@ public class StoreRegistrationTests : AgentTestBase
 
         // Act
         await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>()
-            .ConfigureAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+            .UpdateSettingsAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
 
         // Assert
         Directory.GetFiles(_folder, "*.json", SearchOption.AllDirectories).Should().ContainSingle();

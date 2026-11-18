@@ -13,7 +13,7 @@ internal static class FileSettings
             await using var scope = first.CreateAsyncScope();
             var research = scope.ServiceProvider.GetRequiredService<AgentHost<ResearchAgent>>();
 
-            await research.ConfigureAsync(settings => settings with { Temperature = 0.3f });
+            await research.UpdateSettingsAsync(settings => settings with { Temperature = 0.3f });
         }
 
         await using var restarted = Build(folder);

@@ -48,7 +48,7 @@ public sealed class RoutingChatClientProvider(ProviderCatalog catalog, ClientCac
         var key = ProviderCatalog.Key(provider);
 
         // CLUNKY 5: a mistyped model fails here, in the middle of a run, long after the settings UI saved it; nothing
-        // validates a model name when ConfigureAsync stores it
+        // validates a model name when UpdateSettingsAsync stores it
         return provider.Kind switch
         {
             "openai" => OpenAi(provider, key).GetChatClient(model.Model).AsIChatClient(),

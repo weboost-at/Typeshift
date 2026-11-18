@@ -72,8 +72,8 @@ public class LogEventTests : MultiAgentTestBase
         // Arrange
         var host = Host<ProbeAgent>();
         var customer = host.WithSettingsId(Data.Persistence.SettingsId);
-        await host.ConfigureAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
-        await customer.ConfigureAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
+        await host.UpdateSettingsAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+        await customer.UpdateSettingsAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         // Act

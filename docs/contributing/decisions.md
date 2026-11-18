@@ -226,8 +226,14 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** carried (v0 D4).
 - **Decision:** `extension(AgentHost<TAgent> host)` per agent, in the agent's assembly, with `RunAsync`, `RunAsync<T>`,
   `RunStreamingAsync`, `ResumeAsync`, `ResumeStreamingAsync`, `AnswerAsync`, `AnswerStreamingAsync` (D80, at stamp
-  version 8), `LoadSettingsAsync`, `SaveSettingsAsync`, `ConfigureAsync` and `ResolveOptionsAsync`. They call hidden
-  library methods, so the logic lives and is tested in the library.
+  version 8), `LoadSettingsAsync`, `SaveSettingsAsync`, `UpdateSettingsAsync` and `ResolveOptionsAsync`. They call
+  hidden library methods, so the logic lives and is tested in the library.
+- **The settings members:** `UpdateSettingsAsync` was `ConfigureAsync` up to 0.1.0-alpha.6, and returned the settings
+  without the version its save wrote, so a settings form that saved again had to load first. The name read as
+  configuring the host or its next run, beside `Configure{Tool}()` for code defaults and `Configurable(...)` for what
+  may be stored. It now carries the noun its siblings carry, returns the settings with their version as
+  `LoadSettingsAsync` does, and throws when its function returns null, which the save failed on later without naming
+  the function. A generated member has no cheap forwarder, so the old name went without an `[Obsolete]` twin.
 - **Namespace:** the blocks live in the global namespace, in a file of their own per agent, so every file has them in
   scope. In the agent's namespace, a file that named the agent in full or through an alias saw no typed members, and
   the owner asked why `RunAsync` was missing at times; the `Typeshift` namespace would have hidden them from a file
@@ -954,10 +960,11 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Context:** the owner asked for "a configurable, storable agent settings record for a single agent", stored "keyed
   by the kind" alone, so that a simple app needs no settings ids.
-- **Decision:** `IAgentSettingsStore` keeps a document per kind, with a version, and no id. `ConfigureAsync(configure)`,
-  `LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)` are the members of D41 without the id. Every
-  run of the agent applies its own settings, over its code and under the settings of a settings id, so they are the
-  stored layer of an app without settings ids and the defaults of every id in one with them. `InMemoryTypeshiftStore`
+- **Decision:** `IAgentSettingsStore` keeps a document per kind, with a version, and no id.
+  `UpdateSettingsAsync(update)`, `LoadSettingsAsync()` and `SaveSettingsAsync(settings, loadedVersion)` on a host
+  without a settings id are the members of D41 for them. Every run of the agent applies its own settings, over its
+  code and under the settings of a settings id, so they are the stored layer of an app without settings ids and the
+  defaults of every id in one with them. `InMemoryTypeshiftStore`
   implements the interface, and `WithStore<T>()` registers it as it does the other two, the memory store only while
   no other store keeps them (D38). A run loads them only
   when a store of them is registered, so a store without them leaves runs as they were. Loading or saving them
@@ -1114,9 +1121,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 
 - **Status:** owner.
 - **Decision:** `SaveAsync` takes the version the caller loaded as `loadedVersion`, 0 for none, and throws
-  `StoreConflictException` when the stored one differs. `ConfigureAsync` reloads and reapplies until it wins (each
-  conflict means another save won), at most ten times, so a store that conflicts every time fails instead of spinning.
-  `SaveSettingsAsync` takes the version from `LoadSettingsAsync`.
+  `StoreConflictException` when the stored one differs. `UpdateSettingsAsync` reloads and reapplies until it wins
+  (each conflict means another save won), at most ten times, so a store that conflicts every time fails instead of
+  spinning. `SaveSettingsAsync` takes the version from `LoadSettingsAsync` or `UpdateSettingsAsync`.
 - **Details:** one statement that checks and writes needs no exception handling and no second read. Before, the docs' EF
   Core store set a concurrency token, caught `DbUpdateConcurrencyException`, and after a failed insert read the row
   again to tell a conflict from another failure. The rule itself is in the store guide. The store's number is the
@@ -1265,7 +1272,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   resolution prefers for a `Guid?`, so a request's `Guid?` and the `Guid` name one conversation, and one without a
   value throws as a null id does. The generated members
   take no ids: a run uses the host's, a resume resumes the host's conversation, and the settings members of a host
-  with a settings id load, save and configure the id's settings in place of the agent's own (D66). `WithStore<T>()`
+  with a settings id load, save and update the id's settings in place of the agent's own (D66). `WithStore<T>()`
   registers a store as each store interface its declared type implements, of any id type, and TSH028 reports only a
   type that is no store. Without any store, D69 keeps one store in memory per id type, and warns on the first write
   that one of them takes. A copy runs in its host's scope and disposes it as the host would (D76), so

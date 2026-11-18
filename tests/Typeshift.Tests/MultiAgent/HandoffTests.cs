@@ -860,7 +860,9 @@ public class HandoffTests : MultiAgentTestBase
             .Reply(Call(Data.Tool.CallId, "handoff_to_back_agent"))
             .Reply(Text(Data.Tool.Answer));
 
-        await Host<BackAgent>().ConfigureAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+        await Host<BackAgent>().UpdateSettingsAsync(
+            settings => settings with { Temperature = Data.Agent.Temperature },
+            Ct);
 
         // Act
         await RunAsync(Data.Tool.Question);

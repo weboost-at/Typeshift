@@ -413,8 +413,8 @@ All notable changes to this project are documented here. The format follows
 - **Breaking:** a run option outside its range is refused where it enters, by its name. `WithMaxToolIterations`
   takes 1 or more, `WithMaxConsecutiveToolErrors` 0 or more, `WithMaxInputTokens` and `WithTargetInputTokens` a
   value above 0, and the target a value below the maximum. Each throws an `ArgumentOutOfRangeException` from the
-  agent's constructor for any other value. `SaveSettingsAsync` and `ConfigureAsync` throw an `ArgumentException` and
-  store nothing for settings that set such a value, and a run whose settings layers resolve one throws an
+  agent's constructor for any other value. `SaveSettingsAsync` and `UpdateSettingsAsync` throw an `ArgumentException`
+  and store nothing for settings that set such a value, and a run whose settings layers resolve one throws an
   `InvalidOperationException` before it starts, as in "The agent 'support_agent' resolved MaxToolIterations 0 from
   the settings of its code, settings id 42: it must be 1 or more." Before, `MaxToolIterations = 0` saved, and every
   run with that settings id then failed inside the tool loop with "Specified argument was out of the range of valid
@@ -467,6 +467,11 @@ All notable changes to this project are documented here. The format follows
   JSON `null` still reads as missing. `Settings.Deserialize(json)`, the read of a store's load, is as lenient as
   before: code that read stored JSON with `JsonSerializer.Deserialize<SupportAgent.Settings>(json)` writes
   `SupportAgent.Settings.Deserialize(json)` instead, so a member renamed since the save keeps reading as missing.
+- **Breaking:** an agent's host member `ConfigureAsync(configure)` is `UpdateSettingsAsync(update)`, and it returns a
+  `Stored<Settings>`: the settings it saved and their new version, which the next `SaveSettingsAsync` takes without
+  loading them again. Write `UpdateSettingsAsync` where you wrote `ConfigureAsync`, and read `.Data` where you used
+  its result. A function that returns null throws an `InvalidOperationException` that names the agent, and nothing
+  is saved; before, the save failed later with a `NullReferenceException`.
 
 ### Fixed
 

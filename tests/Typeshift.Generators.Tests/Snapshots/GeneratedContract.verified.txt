@@ -1,4 +1,4 @@
-StampVersion = 12
+StampVersion = 13
 protected virtual Typeshift.Generated.AgentDeclaration Typeshift.Agent.Declaration { get; }
 public abstract class Typeshift.Generated.AgentDeclaration
 public abstract string? Typeshift.Generated.AgentDeclaration.Description { get; }
@@ -14,7 +14,6 @@ public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse<T
 public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> Typeshift.Generated.AgentRuns.AnswerAsync<TAgent>(Typeshift.AgentHost<TAgent> host, System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
 public static Typeshift.StreamingRun<TResult> Typeshift.Generated.AgentRuns.AnswerStreamingAsync<TAgent, TResult>(Typeshift.AgentHost<TAgent> host, System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
 public static System.Collections.Generic.IAsyncEnumerable<Microsoft.Extensions.AI.ChatResponseUpdate> Typeshift.Generated.AgentRuns.AnswerStreamingAsync<TAgent>(Typeshift.AgentHost<TAgent> host, System.Collections.Generic.IReadOnlyList<Typeshift.DecisionAnswer> answers, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
-public static System.Threading.Tasks.Task<TSettings> Typeshift.Generated.AgentRuns.ConfigureAsync<TAgent, TSettings>(Typeshift.AgentHost<TAgent> host, System.Func<TSettings, TSettings> configure, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent where TSettings : class, Typeshift.IStorable<TSettings>, new()
 public static System.Threading.Tasks.Task<Typeshift.Stored<TSettings>> Typeshift.Generated.AgentRuns.LoadSettingsAsync<TAgent, TSettings>(Typeshift.AgentHost<TAgent> host, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent where TSettings : class, Typeshift.IStorable<TSettings>, new()
 public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatOptions> Typeshift.Generated.AgentRuns.ResolveOptionsAsync<TAgent>(Typeshift.AgentHost<TAgent> host, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
 public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> Typeshift.Generated.AgentRuns.ResumeAsync<TAgent>(Typeshift.AgentHost<TAgent> host, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
@@ -24,6 +23,7 @@ public static System.Threading.Tasks.Task<Microsoft.Extensions.AI.ChatResponse> 
 public static Typeshift.StreamingRun<TResult> Typeshift.Generated.AgentRuns.RunStreamingAsync<TAgent, TResult>(Typeshift.AgentHost<TAgent> host, Microsoft.Extensions.AI.ChatMessage input, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
 public static System.Collections.Generic.IAsyncEnumerable<Microsoft.Extensions.AI.ChatResponseUpdate> Typeshift.Generated.AgentRuns.RunStreamingAsync<TAgent>(Typeshift.AgentHost<TAgent> host, Microsoft.Extensions.AI.ChatMessage input, object? settings, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent
 public static System.Threading.Tasks.Task<long> Typeshift.Generated.AgentRuns.SaveSettingsAsync<TAgent, TSettings>(Typeshift.AgentHost<TAgent> host, TSettings settings, long loadedVersion, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent where TSettings : class, Typeshift.IStorable<TSettings>
+public static System.Threading.Tasks.Task<Typeshift.Stored<TSettings>> Typeshift.Generated.AgentRuns.UpdateSettingsAsync<TAgent, TSettings>(Typeshift.AgentHost<TAgent> host, System.Func<TSettings, TSettings> update, System.Threading.CancellationToken ct) where TAgent : Typeshift.Agent where TSettings : class, Typeshift.IStorable<TSettings>, new()
 public sealed class Typeshift.Generated.GeneratedModuleAttribute : System.Attribute
 public Typeshift.Generated.GeneratedModuleAttribute.GeneratedModuleAttribute(System.Type module, int version)
 public System.Type Typeshift.Generated.GeneratedModuleAttribute.Module { get; }

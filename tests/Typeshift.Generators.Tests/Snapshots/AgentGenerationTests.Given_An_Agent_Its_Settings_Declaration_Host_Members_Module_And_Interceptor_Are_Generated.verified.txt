@@ -604,7 +604,9 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// settings</see>.
         /// </summary>
         /// <param name="settings">The settings.</param>
-        /// <param name="loadedVersion">The version <c>LoadSettingsAsync</c> returned, 0 when it loaded none.</param>
+        /// <param name="loadedVersion">
+        /// The version <c>LoadSettingsAsync</c> or <c>UpdateSettingsAsync</c> returned, 0 when it loaded none.
+        /// </param>
         /// <param name="ct">Cancels the save.</param>
         /// <returns>The new version, to pass to the next save.</returns>
         /// <exception cref="global::Typeshift.StoreConflictException">Another save came first.</exception>
@@ -623,20 +625,22 @@ public static class TypeshiftHost_4Demo12SupportAgent
             global::Typeshift.Generated.AgentRuns.SaveSettingsAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, settings, loadedVersion, ct);
 
         /// <summary>
-        /// Changes the agent's own settings, or, on a host from <c>WithSettingsId</c>, those under its id, reloading
-        /// and changing them again whenever another save came first, up to ten times. More in the guide:
+        /// Updates the agent's own settings, or, on a host from <c>WithSettingsId</c>, those under its id: loads them,
+        /// saves what <paramref name="update"/> returns, and loads and updates them again whenever another save came
+        /// first, up to ten times. More in the guide:
         /// <see href="https://weboost-at.github.io/Typeshift/guide/settings-and-stores#agent-settings">Agent
         /// settings</see>.
         /// </summary>
-        /// <param name="configure">Returns the changed settings; called again after a lost save.</param>
-        /// <param name="ct">Cancels the change.</param>
-        /// <returns>The settings saved.</returns>
+        /// <param name="update">Returns the changed settings; called again after a lost save.</param>
+        /// <param name="ct">Cancels the update.</param>
+        /// <returns>The settings saved and their version, which the next save takes.</returns>
         /// <exception cref="global::Typeshift.StoreConflictException">
         /// Another save came first ten times in a row.
         /// </exception>
         /// <exception cref="global::System.InvalidOperationException">
         /// No store keeps these settings: stores are registered, and none of them is an <c>IAgentSettingsStore</c>, for
-        /// the agent's own, or an <c>ISettingsStore</c> of the id's type, for those under the host's id.
+        /// the agent's own, or an <c>ISettingsStore</c> of the id's type, for those under the host's id. Or
+        /// <paramref name="update"/> returned null; nothing is saved then.
         /// </exception>
         /// <exception cref="global::System.Text.Json.JsonException">
         /// The stored settings were written under a newer schema version than this code's.
@@ -645,10 +649,10 @@ public static class TypeshiftHost_4Demo12SupportAgent
         /// The settings set a value no run can go with, such as a blank model or no round of tool calls; nothing is
         /// saved.
         /// </exception>
-        public global::System.Threading.Tasks.Task<global::Demo.SupportAgent.Settings> ConfigureAsync(
-            global::System.Func<global::Demo.SupportAgent.Settings, global::Demo.SupportAgent.Settings> configure,
+        public global::System.Threading.Tasks.Task<global::Typeshift.Stored<global::Demo.SupportAgent.Settings>> UpdateSettingsAsync(
+            global::System.Func<global::Demo.SupportAgent.Settings, global::Demo.SupportAgent.Settings> update,
             global::System.Threading.CancellationToken ct = default) =>
-            global::Typeshift.Generated.AgentRuns.ConfigureAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, configure, ct);
+            global::Typeshift.Generated.AgentRuns.UpdateSettingsAsync<global::Demo.SupportAgent, global::Demo.SupportAgent.Settings>(host, update, ct);
     }
 }
 
@@ -983,7 +987,7 @@ namespace System.Runtime.CompilerServices
 #nullable enable
 #pragma warning disable CS0612, CS0618
 
-[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 12)]
+[assembly: global::Typeshift.Generated.GeneratedModule(typeof(global::Typeshift.Generated.SubjectModule), 13)]
 
 namespace Typeshift.Generated;
 

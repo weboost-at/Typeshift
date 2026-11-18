@@ -35,7 +35,7 @@ if (!welcome.Contains("The name the guest gave.", StringComparison.Ordinal))
 Console.WriteLine($"{greeter.Agent.Name} offers {string.Join(", ", tools.Select(tool => tool.Name))}: {greeting}");
 
 // A run through the generated members, on a scripted model: the model calls the tool, and the temperature stored
-// with ConfigureAsync reaches its call
+// with UpdateSettingsAsync reaches its call
 var model = new ScriptedClient();
 
 await using var runtime = TypeshiftRuntime.Create(
@@ -44,7 +44,7 @@ await using var runtime = TypeshiftRuntime.Create(
 
 await using var agent = runtime.Agent<GreeterAgent>();
 
-await agent.ConfigureAsync(settings => settings with { Temperature = 0.5f });
+await agent.UpdateSettingsAsync(settings => settings with { Temperature = 0.5f });
 var answer = await agent.RunAsync("Greet Ada.");
 
 if (answer.Text != "Hello, Ada!")

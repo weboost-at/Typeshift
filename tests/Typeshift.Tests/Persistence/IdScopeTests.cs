@@ -17,7 +17,7 @@ public class IdScopeTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         var host = Host<ProbeAgent>().WithSettingsId(Data.Persistence.NumberId);
-        await host.ConfigureAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+        await host.UpdateSettingsAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
 
         // Act
         await host.RunAsync(Data.Tool.Question, ct: Ct);
@@ -33,7 +33,7 @@ public class IdScopeTests : AgentTestBase
         var host = Host<ProbeAgent>().WithSettingsId(Data.Persistence.NumberId);
 
         // Act
-        await host.ConfigureAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+        await host.UpdateSettingsAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
 
         // Assert
         var stored = await Services.GetRequiredService<ISettingsStore<int>>()
@@ -47,7 +47,7 @@ public class IdScopeTests : AgentTestBase
     {
         // Arrange
         var host = Host<ProbeAgent>();
-        await host.WithSettingsId(Data.Persistence.NumberId).ConfigureAsync(
+        await host.WithSettingsId(Data.Persistence.NumberId).UpdateSettingsAsync(
             settings => settings with { Temperature = Data.Agent.Temperature },
             Ct);
 
@@ -299,7 +299,7 @@ public class IdScopeTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
         int? settingsId = Data.Persistence.NumberId;
 
-        await Host<ProbeAgent>().WithSettingsId(settingsId).ConfigureAsync(
+        await Host<ProbeAgent>().WithSettingsId(settingsId).UpdateSettingsAsync(
             settings => settings with { Temperature = Data.Agent.Temperature },
             Ct);
 
@@ -380,7 +380,7 @@ public class IdScopeTests : AgentTestBase
             .WithSettingsId(Data.Persistence.NumberId);
 
         // Act
-        await host.ConfigureAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+        await host.UpdateSettingsAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
 
         // Assert
         (await store.LoadAsync(Data.Persistence.NumberId, "ProbeAgent", Ct)).Should().NotBeNull();
@@ -403,7 +403,7 @@ public class IdScopeTests : AgentTestBase
             .WithSettingsId(Data.Persistence.NumberId);
 
         // Act
-        await host.ConfigureAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+        await host.UpdateSettingsAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
 
         // Assert
         logs.Warnings.Should().BeEmpty();
@@ -425,12 +425,12 @@ public class IdScopeTests : AgentTestBase
             .WithSettingsId(Data.Persistence.SettingsId);
 
         // Act
-        var configure = () => host.ConfigureAsync(
+        var update = () => host.UpdateSettingsAsync(
             settings => settings with { Temperature = Data.Agent.Temperature },
             Ct);
 
         // Assert
-        await configure.Should().ThrowAsync<InvalidOperationException>()
+        await update.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("No ISettingsStore<Guid> is registered*");
     }
 

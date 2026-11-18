@@ -176,7 +176,7 @@ public class StoredSettingsTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_A_Save_Between_Load_And_Save_Configuring_Applies_The_Change_Again_And_Wins()
+    public async Task Given_A_Save_Between_Load_And_Save_Updating_Applies_The_Change_Again_And_Wins()
     {
         // Arrange
         var host = Host<ProbeAgent>().WithSettingsId(Data.Persistence.SettingsId);
@@ -191,7 +191,7 @@ public class StoredSettingsTests : AgentTestBase
         }
 
         // Act
-        await host.ConfigureAsync(
+        await host.UpdateSettingsAsync(
             settings => Interrupt(settings).GetAwaiter().GetResult(),
             Ct);
 
@@ -207,7 +207,39 @@ public class StoredSettingsTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_A_Save_Between_Every_Load_And_Save_Configuring_Gives_Up_After_Ten_Attempts()
+    public async Task Given_An_Update_It_Returns_The_Settings_Saved_And_Their_Version()
+    {
+        // Arrange
+        var host = Host<ProbeAgent>().WithSettingsId(Data.Persistence.SettingsId);
+        await host.SaveSettingsAsync(new() { Model = Data.Agent.Model }, 0, Ct);
+
+        // Act
+        var saved = await host.UpdateSettingsAsync(
+            settings => settings with { Temperature = Data.Agent.Temperature },
+            Ct);
+
+        // Assert
+        saved.Should().Be(new Stored<ProbeAgent.Settings>(
+            new() { Model = Data.Agent.Model, Temperature = Data.Agent.Temperature },
+            2));
+    }
+
+    [Fact]
+    public async Task Given_The_Version_An_Update_Returned_A_Save_With_It_Wins_Without_A_Load_Between()
+    {
+        // Arrange
+        var host = Host<ProbeAgent>().WithSettingsId(Data.Persistence.SettingsId);
+        var saved = await host.UpdateSettingsAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
+
+        // Act
+        var version = await host.SaveSettingsAsync(saved.Data with { Temperature = 0.1f }, saved.Version, Ct);
+
+        // Assert
+        version.Should().Be(saved.Version + 1);
+    }
+
+    [Fact]
+    public async Task Given_A_Save_Between_Every_Load_And_Save_Updating_Gives_Up_After_Ten_Attempts()
     {
         // Arrange
         var host = Host<ProbeAgent>().WithSettingsId(Data.Persistence.SettingsId);
@@ -223,12 +255,12 @@ public class StoredSettingsTests : AgentTestBase
         }
 
         // Act
-        var configure = () => host.ConfigureAsync(
+        var update = () => host.UpdateSettingsAsync(
             settings => Interrupt(settings).GetAwaiter().GetResult(),
             Ct);
 
         // Assert
-        await configure.Should().ThrowAsync<StoreConflictException>();
+        await update.Should().ThrowAsync<StoreConflictException>();
         calls.Should().Be(10);
     }
 
@@ -270,8 +302,8 @@ public class StoredSettingsTests : AgentTestBase
             .WithSettingsId(Data.Persistence.SettingsId);
 
         // Act
-        await host.ConfigureAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
-        await host.ConfigureAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+        await host.UpdateSettingsAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
+        await host.UpdateSettingsAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
 
         // Assert
         logs.Warnings.Should().ContainSingle();

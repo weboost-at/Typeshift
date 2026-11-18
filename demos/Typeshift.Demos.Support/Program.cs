@@ -66,12 +66,23 @@ return await Demo.RunAsync(async () =>
     var pick = model is null ? (ModelRef?)null : ModelRef.Parse(model);
     var picked = pick?.Provider ?? "canned";
 
-    await triage.ConfigureAsync(settings => settings with { Provider = picked, Model = pick?.Model ?? "triage" });
-    await billing.ConfigureAsync(settings => settings with { Provider = picked, Model = pick?.Model ?? "billing" });
-    await knowledge.ConfigureAsync(settings => settings with { Provider = picked, Model = pick?.Model ?? "knowledge" });
-    await report.ConfigureAsync(settings => settings with { Provider = picked, Model = pick?.Model ?? "report" });
+    await triage.UpdateSettingsAsync(settings => settings with { Provider = picked, Model = pick?.Model ?? "triage" });
 
-    var configured = await support.ConfigureAsync(settings => settings with
+    await billing.UpdateSettingsAsync(settings => settings with
+    {
+        Provider = picked,
+        Model = pick?.Model ?? "billing"
+    });
+
+    await knowledge.UpdateSettingsAsync(settings => settings with
+    {
+        Provider = picked,
+        Model = pick?.Model ?? "knowledge"
+    });
+
+    await report.UpdateSettingsAsync(settings => settings with { Provider = picked, Model = pick?.Model ?? "report" });
+
+    var configured = await support.UpdateSettingsAsync(settings => settings with
     {
         Provider = picked,
         Model = pick?.Model ?? "support",
@@ -79,7 +90,7 @@ return await Demo.RunAsync(async () =>
         SearchTickets = settings.SearchTickets with { Limit = 3, IncludeClosed = true }
     });
 
-    Demo.Note($"support: {configured.Serialize()}");
+    Demo.Note($"support, version {configured.Version}: {configured.Data.Serialize()}");
 
     Demo.Heading("Triage hands the conversation to billing, which asks before it refunds");
     var conversation = Guid.CreateVersion7();

@@ -23,7 +23,7 @@ await using var research = provider.GetRequiredService<TypeshiftRuntime>().Agent
 var conversationId = Guid.CreateVersion7();
 var customer = research.WithSettingsId(Guid.CreateVersion7());
 
-await customer.ConfigureAsync(settings => settings with
+await customer.UpdateSettingsAsync(settings => settings with
 {
     Provider = Provider.Scripted,
     Temperature = 0.4f,

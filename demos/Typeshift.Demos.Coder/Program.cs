@@ -104,7 +104,7 @@ return await Demo.RunAsync(async () =>
     var coding = ModelRef.Parse(model ?? "canned/coder");
     var exploring = ModelRef.Parse(model ?? "canned/explorer");
 
-    await coder.ConfigureAsync(settings => settings with
+    await coder.UpdateSettingsAsync(settings => settings with
     {
         Provider = coding.Provider,
         Model = coding.Model,
@@ -114,7 +114,7 @@ return await Demo.RunAsync(async () =>
     // The explorer is a separate agent with settings of its own under the same id
     await scope.ServiceProvider.GetRequiredService<AgentHost<ExplorerAgent>>()
         .WithSettingsId(settingsId)
-        .ConfigureAsync(settings => settings with { Provider = exploring.Provider, Model = exploring.Model });
+        .UpdateSettingsAsync(settings => settings with { Provider = exploring.Provider, Model = exploring.Model });
 
     var chat = coder.WithConversationId(conversationId);
 

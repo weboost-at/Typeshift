@@ -58,7 +58,7 @@ public partial class AgentGenerationTests : GeneratorTestBase
     [InlineData("ResolveOptionsAsync", new[] { Invalid, Newer })]
     [InlineData("LoadSettingsAsync", new[] { Invalid, Newer })]
     [InlineData("SaveSettingsAsync", new[] { Conflict, Invalid })]
-    [InlineData("ConfigureAsync", new[] { Conflict, Invalid, Newer })]
+    [InlineData("UpdateSettingsAsync", new[] { Conflict, Invalid, Newer })]
     public void Given_A_Host_Member_That_Throws_Its_Docs_Name_The_Exception(string member, string[] thrown)
     {
         // Act

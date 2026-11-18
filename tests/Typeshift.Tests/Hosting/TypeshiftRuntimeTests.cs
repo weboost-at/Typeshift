@@ -92,7 +92,7 @@ public class TypeshiftRuntimeTests : AgentTestBase
         await using var probe = runtime.Agent<ProbeAgent>();
         await using var configuring = runtime.Agent<ProbeAgent>();
 
-        await configuring.WithSettingsId(Data.Persistence.SettingsId).ConfigureAsync(
+        await configuring.WithSettingsId(Data.Persistence.SettingsId).UpdateSettingsAsync(
             settings => settings with { Temperature = Data.Agent.Temperature },
             Ct);
 

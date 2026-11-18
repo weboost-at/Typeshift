@@ -228,7 +228,7 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
         await using (var provider = Provider(store))
         {
             await using var scope = provider.CreateAsyncScope();
-            await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>().ConfigureAsync(
+            await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>().UpdateSettingsAsync(
                 settings => settings with { Temperature = Data.Agent.Temperature },
                 Ct);
         }
@@ -248,7 +248,7 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
         await using (var first = Provider(typeshift => typeshift.WithFileStore(store => store.Folder = _folder)))
         {
             await using var scope = first.CreateAsyncScope();
-            await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>().ConfigureAsync(
+            await scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>().UpdateSettingsAsync(
                 settings => settings with { Temperature = Data.Agent.Temperature },
                 Ct);
         }
@@ -418,7 +418,7 @@ public sealed class FileAgentSettingsStoreTests : AgentTestBase
         return ValueTask.CompletedTask;
     }
 
-    // A save as ConfigureAsync makes it: load, then save with the loaded version, again after each lost save
+    // A save as UpdateSettingsAsync makes it: load, then save with the loaded version, again after each lost save
     private async Task<long> SaveUntilWonAsync(FileAgentSettingsStore store)
     {
         while (true)

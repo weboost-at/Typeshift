@@ -16,7 +16,7 @@ public class AgentSettingsTests : AgentTestBase
         ChatClient.Reply(Text(Data.Tool.Answer));
 
         var host = Host<ProbeAgent>();
-        await host.ConfigureAsync(
+        await host.UpdateSettingsAsync(
             settings => settings with { Provider = Data.Agent.Provider, Model = Data.Agent.Model },
             Ct);
 
@@ -53,7 +53,7 @@ public class AgentSettingsTests : AgentTestBase
     {
         // Arrange
         var host = Host<ProbeAgent>();
-        await host.ConfigureAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
+        await host.UpdateSettingsAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
 
         // Act
         var stored = await host.WithSettingsId(Data.Persistence.SettingsId).LoadSettingsAsync(Ct);
@@ -96,7 +96,7 @@ public class AgentSettingsTests : AgentTestBase
     {
         // Arrange
         var host = Host<ProbeAgent>();
-        await host.ConfigureAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+        await host.UpdateSettingsAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
 
         // Act
         var options = await host.ResolveOptionsAsync(ct: Ct);
@@ -235,16 +235,33 @@ public class AgentSettingsTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_A_Change_To_A_Blank_Model_Configuring_Throws_And_Stores_Nothing()
+    public async Task Given_A_Change_To_A_Blank_Model_Updating_Throws_And_Stores_Nothing()
     {
         // Arrange
         var host = Host<LimitsAgent>();
 
         // Act
-        var configure = () => host.ConfigureAsync(settings => settings with { Model = " " }, Ct);
+        var update = () => host.UpdateSettingsAsync(settings => settings with { Model = " " }, Ct);
 
         // Assert
-        await configure.Should().ThrowAsync<ArgumentException>().WithParameterName("settings");
+        await update.Should().ThrowAsync<ArgumentException>().WithParameterName("settings");
+        (await host.LoadSettingsAsync(Ct)).Version.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Given_A_Function_That_Returns_Null_Updating_Throws_And_Saves_Nothing()
+    {
+        // Arrange
+        var host = Host<ProbeAgent>();
+
+        // Act
+        var update = () => host.UpdateSettingsAsync(_ => null!, Ct);
+
+        // Assert
+        await update.Should()
+            .ThrowAsync<InvalidOperationException>()
+            .WithMessage($"*UpdateSettingsAsync*'{host.Agent.Name}'*returned no settings*");
+
         (await host.LoadSettingsAsync(Ct)).Version.Should().Be(0);
     }
 
@@ -263,7 +280,7 @@ public class AgentSettingsTests : AgentTestBase
         var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
 
         ChatClient.Reply(Text(Data.Tool.Answer));
-        await host.ConfigureAsync(
+        await host.UpdateSettingsAsync(
             settings => settings with { Provider = Data.Agent.Provider, Model = Data.Agent.Model },
             Ct);
 
@@ -287,7 +304,7 @@ public class AgentSettingsTests : AgentTestBase
         var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
 
         ChatClient.Reply(Text(Data.Tool.Answer));
-        await host.ConfigureAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
+        await host.UpdateSettingsAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
 
         // Act
         await host.RunAsync(Data.Tool.Question, ct: Ct);
@@ -310,8 +327,8 @@ public class AgentSettingsTests : AgentTestBase
         var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
 
         // Act
-        await host.ConfigureAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
-        await host.ConfigureAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
+        await host.UpdateSettingsAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
+        await host.UpdateSettingsAsync(settings => settings with { Temperature = Data.Agent.Temperature }, Ct);
 
         // Assert
         logs.Warnings.Should().ContainSingle();
@@ -354,7 +371,7 @@ public class AgentSettingsTests : AgentTestBase
     }
 
     [Fact]
-    public async Task Given_A_Store_Without_Agent_Settings_Configuring_Them_Fails_Naming_IAgentSettingsStore()
+    public async Task Given_A_Store_Without_Agent_Settings_Updating_Them_Fails_Naming_IAgentSettingsStore()
     {
         // Arrange
         var services = new ServiceCollection();
@@ -365,10 +382,10 @@ public class AgentSettingsTests : AgentTestBase
         var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
 
         // Act
-        var configure = () => host.ConfigureAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
+        var update = () => host.UpdateSettingsAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
 
         // Assert
-        await configure.Should().ThrowAsync<InvalidOperationException>().WithMessage("*IAgentSettingsStore*");
+        await update.Should().ThrowAsync<InvalidOperationException>().WithMessage("*IAgentSettingsStore*");
     }
 
     [Fact]
@@ -383,10 +400,10 @@ public class AgentSettingsTests : AgentTestBase
         var host = scope.ServiceProvider.GetRequiredService<AgentHost<ProbeAgent>>();
 
         // Act
-        var configure = () => host.ConfigureAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
+        var update = () => host.UpdateSettingsAsync(settings => settings with { Model = Data.Agent.Model }, Ct);
 
         // Assert
-        await configure.Should().ThrowAsync<InvalidOperationException>().WithMessage(
+        await update.Should().ThrowAsync<InvalidOperationException>().WithMessage(
             "No IAgentSettingsStore is registered, so nothing keeps an agent's own settings: call WithFileStore() "
             + "after AddTypeshift() to keep them in files, or WithStore<T>() with a store of yours that implements "
             + "it. The stores your app registered keep ISettingsStore<Guid> only, and beside a registered store "

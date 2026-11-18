@@ -212,9 +212,9 @@ them as it does its other tables, such as with EF Core migrations.
 
 ## Key settings by id and kind
 
-A document is an agent's `Settings` record, the one `ConfigureAsync` and `SaveSettingsAsync` save. Typeshift writes
-the record as JSON before it calls `SaveAsync` and reads it back after `LoadAsync`, so your store handles strings and
-numbers only. Keep each document in a row keyed by the id and the kind, with the JSON and the
+A document is an agent's `Settings` record, the one `UpdateSettingsAsync` and `SaveSettingsAsync` save. Typeshift
+writes the record as JSON before it calls `SaveAsync` and reads it back after `LoadAsync`, so your store handles
+strings and numbers only. Keep each document in a row keyed by the id and the kind, with the JSON and the
 [version](#save-with-a-version):
 
 - **The id** is the settings id your app gave the host, such as a customer's.
@@ -277,8 +277,8 @@ The diagram shows two forms editing the same customer's settings. Both load vers
 wins and moves the document to version 4. The second still names version 3, so its save fails instead of erasing
 the first form's change, and that form loads the settings again.
 
-Runs only load settings; they never save them. Saves come from your app, through `ConfigureAsync`, which loads again
-and reapplies its change after a lost save, and `SaveSettingsAsync`, which leaves the conflict to your code
+Runs only load settings; they never save them. Saves come from your app, through `UpdateSettingsAsync`, which loads
+again and reapplies its change after a lost save, and `SaveSettingsAsync`, which leaves the conflict to your code
 ([Agent settings](./settings-and-stores.md#agent-settings)).
 
 ### Write the save in one statement

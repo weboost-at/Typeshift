@@ -89,14 +89,14 @@ return await Demo.RunAsync(async () =>
 
     Demo.Heading($"The user picks '{chosen}' in the settings UI");
 
-    // CLUNKY 5: ConfigureAsync stores any provider and model; a provider that does not exist, or a model the provider
-    // lacks, fails at the next run, not here
-    var settings = await assistant.ConfigureAsync(settings => settings with
+    // CLUNKY 5: UpdateSettingsAsync stores any provider and model; a provider that does not exist, or a model the
+    // provider lacks, fails at the next run, not here
+    var stored = await assistant.UpdateSettingsAsync(settings => settings with
     {
         Provider = chosen.Provider,
         Model = chosen.Model
     });
-    Demo.Note($"stored Settings.Provider = {settings.Provider}, Settings.Model = {settings.Model}");
+    Demo.Note($"stored Settings.Provider = {stored.Data.Provider}, Settings.Model = {stored.Data.Model}");
 
     Demo.Heading("A run routes through the user's provider");
     var response = await assistant.RunAsync("What time is it in Vienna?");
@@ -116,7 +116,7 @@ return await Demo.RunAsync(async () =>
     await Demo.StreamAsync(assistant.RunStreamingAsync("And in Tokyo?"), CancellationToken.None);
 
     Demo.Heading("A mistyped model fails at run time, not when it was stored");
-    await assistant.ConfigureAsync(settings => settings with { Model = "does-not-exist" });
+    await assistant.UpdateSettingsAsync(settings => settings with { Model = "does-not-exist" });
 
     try
     {
@@ -128,7 +128,7 @@ return await Demo.RunAsync(async () =>
         Demo.Note($"{exception.GetType().Name}: {Demo.Shorten(exception.Message, 160)}");
     }
 
-    await assistant.ConfigureAsync(settings => settings with { Model = chosen.Model });
+    await assistant.UpdateSettingsAsync(settings => settings with { Model = chosen.Model });
 
     Demo.Heading("What a settings UI can offer the user");
     var offered = await catalog.ListModelsAsync(chosen.Provider, CancellationToken.None);

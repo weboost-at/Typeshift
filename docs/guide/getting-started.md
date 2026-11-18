@@ -199,7 +199,7 @@ under that id, so this code stores a limit of 2 and a temperature of 0.4 under t
 ```cs
 var settingsId = 42;
 
-await research.WithSettingsId(settingsId).ConfigureAsync(settings => settings with
+await research.WithSettingsId(settingsId).UpdateSettingsAsync(settings => settings with
 {
     Temperature = 0.4f,
     FindCompanies = settings.FindCompanies with { Limit = 2 }
@@ -208,8 +208,8 @@ await research.WithSettingsId(settingsId).ConfigureAsync(settings => settings wi
 <sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Quickstart/Quickstart.cs#L18-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-quickstart-settings' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
-`ConfigureAsync` loads the agent's generated `ResearchAgent.Settings` record, which holds only what the code marked
-`Configurable`, applies your change and saves it. Typeshift keeps settings and conversations in memory until you
+`UpdateSettingsAsync` loads the agent's generated `ResearchAgent.Settings` record, which holds only what the code
+marked `Configurable`, applies your change and saves it. Typeshift keeps settings and conversations in memory until you
 [register a store](./implementing-a-store.md#register-your-store).
 
 Now run the agent with that settings id, and add `WithConversationId(1)` so the run takes place in conversation 1:

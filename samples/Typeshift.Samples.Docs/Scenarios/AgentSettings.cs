@@ -11,7 +11,7 @@ internal static class AgentSettings
         var support = scope.ServiceProvider.GetRequiredService<AgentHost<SupportAgent>>();
 
         // begin-snippet: configure-settings
-        await support.WithSettingsId(42).ConfigureAsync(settings => settings with
+        await support.WithSettingsId(42).UpdateSettingsAsync(settings => settings with
         {
             Provider = "anthropic",
             Model = "claude-sonnet-5-5",

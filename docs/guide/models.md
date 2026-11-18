@@ -393,7 +393,7 @@ that offers your providers and their models, for example:
 <!-- snippet: configure-settings -->
 <a id='snippet-configure-settings'></a>
 ```cs
-await support.WithSettingsId(42).ConfigureAsync(settings => settings with
+await support.WithSettingsId(42).UpdateSettingsAsync(settings => settings with
 {
     Provider = "anthropic",
     Model = "claude-sonnet-5-5",

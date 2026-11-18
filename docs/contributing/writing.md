@@ -40,8 +40,8 @@ slogan, rewrite it.
   options, as the toolset example above does.
 - **Vary the rhythm.** Join two short sentences that belong together with "so", "because" or "but", and split one
   that needs a colon and a semicolon. Most sentences stay under 25 words.
-- **The subject first.** "`ConfigureAsync` retries on a conflict", not "On a conflict, which another save causes,
-  retrying is what `ConfigureAsync` does".
+- **The subject first.** "`UpdateSettingsAsync` retries on a conflict", not "On a conflict, which another save causes,
+  retrying is what `UpdateSettingsAsync` does".
 - **Concrete over abstract.** Name the example in the prose: "closing a ticket", not "an operation with side
   effects".
 - **Short paragraphs** of whole sentences that make sense on their own. Several facts about a snippet become a list,

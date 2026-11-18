@@ -26,7 +26,7 @@ internal static class SettingsEndpoints
             {
                 await support
                     .WithSettingsId(customer.Id)
-                    .ConfigureAsync(settings => settings with
+                    .UpdateSettingsAsync(settings => settings with
                     {
                         SearchArticles = settings.SearchArticles with { Language = preferences.ArticleLanguage }
                     }, ct);

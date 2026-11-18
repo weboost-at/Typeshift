@@ -50,7 +50,7 @@ internal static class ChatEndpoint
             int customerId,
             SupportAgent.Settings settings,
             AgentHost<SupportAgent> support,
-            CancellationToken ct) => support.WithSettingsId(customerId).ConfigureAsync(_ => settings, ct));
+            CancellationToken ct) => support.WithSettingsId(customerId).UpdateSettingsAsync(_ => settings, ct));
 
         await app.StartAsync();
 

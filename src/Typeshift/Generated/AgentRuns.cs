@@ -9,8 +9,8 @@ namespace Typeshift.Generated;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class AgentRuns
 {
-    // D41: a store that conflicts every time would keep ConfigureAsync going forever
-    private const int MaxConfigureAttempts = 10;
+    // D41: a store that conflicts every time would keep UpdateSettingsAsync going forever
+    private const int MaxUpdateAttempts = 10;
 
     /// <summary>
     /// Runs the agent on one message.
@@ -262,7 +262,9 @@ public static class AgentRuns
     /// <typeparam name="TSettings">The agent's settings record.</typeparam>
     /// <param name="host">The host, with the run's services and ids.</param>
     /// <param name="settings">The settings.</param>
-    /// <param name="loadedVersion">The version <c>LoadSettingsAsync</c> returned, 0 when it loaded none.</param>
+    /// <param name="loadedVersion">
+    /// The version <c>LoadSettingsAsync</c> or <c>UpdateSettingsAsync</c> returned, 0 when it loaded none.
+    /// </param>
     /// <param name="ct">Cancels the save.</param>
     /// <returns>The new version, to pass to the next save.</returns>
     /// <exception cref="ArgumentException">
@@ -301,22 +303,26 @@ public static class AgentRuns
     }
 
     /// <summary>
-    /// Changes the agent's own settings, or those under the id the host was given, reloading and changing them again
-    /// whenever another save came first, up to ten times.
+    /// Updates the agent's own settings, or those under the id the host was given: loads them, saves what
+    /// <paramref name="update"/> returns, and loads and updates them again whenever another save came first, up to ten
+    /// times.
     /// </summary>
     /// <typeparam name="TAgent">The agent.</typeparam>
     /// <typeparam name="TSettings">The agent's settings record.</typeparam>
     /// <param name="host">The host, with the run's services and ids.</param>
-    /// <param name="configure">Returns the changed settings; called again after a lost save.</param>
-    /// <param name="ct">Cancels the change.</param>
-    /// <returns>The settings saved.</returns>
+    /// <param name="update">Returns the changed settings; called again after a lost save.</param>
+    /// <param name="ct">Cancels the update.</param>
+    /// <returns>The settings saved and their version, which the next save takes.</returns>
     /// <exception cref="StoreConflictException">Another save came first ten times in a row.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// <paramref name="update"/> returned null; nothing is saved.
+    /// </exception>
     /// <exception cref="ArgumentException">
     /// The changed settings set a value no run can go with; nothing is saved.
     /// </exception>
-    public static async Task<TSettings> ConfigureAsync<TAgent, TSettings>(
+    public static async Task<Stored<TSettings>> UpdateSettingsAsync<TAgent, TSettings>(
         AgentHost<TAgent> host,
-        Func<TSettings, TSettings> configure,
+        Func<TSettings, TSettings> update,
         CancellationToken ct)
         where TAgent : Agent
         where TSettings : class, IStorable<TSettings>, new()
@@ -325,14 +331,18 @@ public static class AgentRuns
         for (var attempt = 1; ; attempt++)
         {
             var stored = await LoadSettingsAsync<TAgent, TSettings>(host, ct);
-            var configured = configure(stored.Data);
+
+            // A null would fail the save with an exception that names neither the agent nor the function
+            var updated = update(stored.Data)
+                ?? throw new InvalidOperationException(
+                    $"The function passed to UpdateSettingsAsync of the agent '{host.Agent.Name}' returned no "
+                    + "settings, so nothing was saved: return the settings it was given, changed or not.");
 
             try
             {
-                await SaveSettingsAsync(host, configured, stored.Version, ct);
-                return configured;
+                return new Stored<TSettings>(updated, await SaveSettingsAsync(host, updated, stored.Version, ct));
             }
-            catch (StoreConflictException) when (attempt < MaxConfigureAttempts)
+            catch (StoreConflictException) when (attempt < MaxUpdateAttempts)
             {
                 ct.ThrowIfCancellationRequested();
             }
