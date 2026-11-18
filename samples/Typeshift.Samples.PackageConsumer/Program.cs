@@ -34,4 +34,25 @@ if (!welcome.Contains("The name the guest gave.", StringComparison.Ordinal))
 
 Console.WriteLine($"{greeter.Agent.Name} offers {string.Join(", ", tools.Select(tool => tool.Name))}: {greeting}");
 
+// A run through the generated members, on a scripted model: the model calls the tool, and the temperature stored
+// with ConfigureAsync reaches its call
+var model = new ScriptedClient();
+
+await using var runtime = TypeshiftRuntime.Create(
+    model,
+    typeshift => typeshift.Services.AddKeyedChatClient("any-provider", model));
+
+await using var agent = runtime.Agent<GreeterAgent>();
+
+await agent.ConfigureAsync(settings => settings with { Temperature = 0.5f });
+var answer = await agent.RunAsync("Greet Ada.");
+
+if (answer.Text != "Hello, Ada!")
+    throw new InvalidOperationException($"Expected the run to answer with the tool's greeting, got '{answer.Text}'.");
+
+if (model.Temperature != 0.5f)
+    throw new InvalidOperationException($"Expected the stored temperature on the call, got {model.Temperature}.");
+
+Console.WriteLine($"{agent.Agent.Name} ran: {answer.Text}");
+
 public sealed record Visitor(string Name);
