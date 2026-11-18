@@ -1,6 +1,6 @@
 ---
 title: Running an agent
-description: Run an agent through its host with stored settings, run settings, typed output or streaming, or call its chat client yourself.
+description: Run an agent through its host with stored settings, run settings, typed output or streaming, call its chat client yourself, or use it in Agent Framework.
 ---
 
 # Running an agent
@@ -216,6 +216,49 @@ conversation. On a host without one, `ChatOptions.ConversationId` names the conv
 it names a conversation in your `IConversationStore<string>`, which suits a library that sets it itself. Typeshift
 never sends the conversation's id to the provider.
 
+## Use an agent in Agent Framework
+
+[Microsoft Agent Framework](https://learn.microsoft.com/agent-framework/overview/agent-framework-overview) runs agents
+of its type `AIAgent`, and its workflows and orchestrations combine them. Wrap the client of the raw path in one, and
+your agent takes part in them. `AsAIAgent` and `ChatClientAgentOptions` come from the `Microsoft.Agents.AI` package:
+
+<!-- snippet: agent-framework -->
+<a id='snippet-agent-framework'></a>
+```cs
+var options = await support.WithSettingsId(settingsId).ResolveOptionsAsync();
+using var client = await support.CreateChatClientAsync(options);
+
+AIAgent agent = client.AsAIAgent(new ChatClientAgentOptions
+{
+    Name = support.Agent.Name,
+    Description = support.Agent.Description,
+    ChatOptions = options,
+    UseProvidedChatClientAsIs = true
+});
+
+var answer = await agent.RunAsync("Where is my refund?");
+```
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/AgentFramework.cs#L18-L31' title='Snippet source file'>snippet source</a> | <a href='#snippet-agent-framework' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
+- `UseProvidedChatClientAsIs = true` keeps Agent Framework from wrapping the client in its default decorators, its
+  own tool loop among them. The client runs Typeshift's already, with the agent's tools, settings and middleware.
+- The options belong to one settings id, here a customer's, so create the `AIAgent` where you know the customer, such
+  as in a request. Dispose the client only once you no longer run the agent.
+- Resolve the options on a host with a conversation id, as for the raw path, and every run of the agent continues and
+  stores that conversation. Typeshift keeps the messages, so an `AgentSession` of Agent Framework holds only the
+  conversation's id. Without a conversation id, the session keeps the messages and Typeshift stores none.
+- A run that waits for your app, for an approval or an answer of the user, returns its decisions among the response's
+  messages. `answer.AsChatResponse().Decisions` lists them, and you answer them on the host with the conversation id,
+  as [Approval and modes](./tool-approval.md#approving-or-rejecting) shows.
+
+::: warning Pass no chat options per run
+Agent Framework merges the `ChatOptions` of a run's `ChatClientAgentRunOptions` with the agent's into options of its
+own, and Typeshift runs those without the host's conversation. Such a run stores nothing, or with a session takes the
+session's id as a `string` conversation id, as the raw path does on a host without one. Put what changes per run into
+the [run settings](#run-settings) you resolve the options with.
+:::
+
 ## Related
 
 - [Using an agent](./using-an-agent.md): getting the host in a web app, a console app or a background job.
@@ -227,3 +270,4 @@ never sends the conversation's id to the provider.
 - [Serving a chat endpoint](./chat-endpoint.md): runs, streaming and decisions behind ASP.NET Core endpoints.
 - [Settings and stores](./settings-and-stores.md#settings-layering): where each of a run's values comes from.
 - [Architecture](../contributing/architecture.md#a-run): the same pipeline from the code's side.
+- [Typeshift and Agent Framework](./what-is-typeshift.md#typeshift-and-agent-framework): what each library is for.

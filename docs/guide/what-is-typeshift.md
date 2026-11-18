@@ -1,6 +1,6 @@
 ---
 title: What is Typeshift?
-description: What Typeshift is for, what it builds on, how it compares with writing the same on Microsoft.Extensions.AI by hand, and what it leaves to you.
+description: What Typeshift is for, what it builds on, how it compares with code written by hand and with Agent Framework, and what it leaves to you.
 ---
 
 # What is Typeshift?
@@ -50,6 +50,31 @@ Everything Typeshift does, you could write on Microsoft.Extensions.AI yourself. 
 | A tool with which the model asks the user, and a place where the question waits for its answer | `UseQuestions()`, and a decision your app answers by its id |
 | Agents that call each other, or hand a conversation on | `UseAgent<T>()` and `UseHandoff<T>()` |
 | Registration for each of the above | `services.AddTypeshift()` |
+
+## Typeshift and Agent Framework
+
+[Microsoft Agent Framework](https://learn.microsoft.com/agent-framework/overview/agent-framework-overview) is
+Microsoft's library for agents and multi-agent workflows, and the successor of Semantic Kernel and AutoGen. It builds
+on Microsoft.Extensions.AI too, so both work with `IChatClient`, `AIFunction` and `ChatOptions`. They differ in where
+an agent is defined and in what the library keeps for you:
+
+| | Typeshift | Agent Framework |
+|---|---|---|
+| An agent | A class whose constructor declares its model, instructions and tools, checked when you build | An `AIAgent` your code creates at runtime, for example with `AsAIAgent(instructions: ...)` |
+| A tool | A static method with XML docs, its schema generated when you build | An `AIFunction`, for example from `AIFunctionFactory.Create` over a method with `[Description]` attributes |
+| Values per customer | A typed `Settings` record of what the agent marks configurable, stored under your ids | The options your code passes when it creates or runs the agent |
+| A conversation | Stored step by step in your store, under an id of your type, and resumed after a crash | An `AgentSession` that your app serializes to keep it across a restart, with a history provider for the messages |
+| Several agents | Sub-agents and handoffs | Sequential, concurrent, group chat and handoff orchestrations, and graph workflows with checkpoints |
+| Serving the agent | Endpoints your app writes | Hosting for protocols such as A2A and AG-UI, and a developer UI |
+
+Typeshift suits agents that belong in your app's code, for the reasons [Why agents in code](#why-agents-in-code)
+gives. Agent Framework also covers what lies around such agents: workflows across agents, and hosting through agent
+protocols. Several of Agent Framework's packages are previews, among them the hosting for A2A and AG-UI, so check the
+one you need on NuGet.
+
+You can also have both. A Typeshift agent runs as an Agent Framework `AIAgent`, with its tools, its settings and its
+stored conversation, so Agent Framework's workflows can take it as one of their agents
+([Use an agent in Agent Framework](./running-agents.md#use-an-agent-in-agent-framework)).
 
 ## How the pieces fit
 

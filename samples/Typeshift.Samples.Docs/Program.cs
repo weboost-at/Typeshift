@@ -50,6 +50,7 @@ await using (var provider = services.BuildServiceProvider(new ServiceProviderOpt
     await Mcp.RunAsync(provider);
     await ChatHub.RunAsync(provider);
     await Observability.RunAsync(provider);
+    await AgentFramework.RunAsync(provider);
 }
 
 await ShownRegistrations.RunAsync(client);

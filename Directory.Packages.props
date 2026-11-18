@@ -10,6 +10,9 @@
     <PackageVersion Include="Bogus" Version="35.6.5" />
     <!-- Pinned: version 8 changed its license. -->
     <PackageVersion Include="FluentAssertions" Version="[7.2.0]" />
+    <!-- The docs sample alone, to run an agent as an Agent Framework AIAgent. 1.27.0 is the newest on
+         Microsoft.Extensions.AI 10.10, the library's, so the two move together -->
+    <PackageVersion Include="Microsoft.Agents.AI" Version="1.27.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
     <!-- Build-time only, for the clock rule (BannedSymbols.txt). Runs in every compiler the generator runs in. -->
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="$(RoslynVersion)" />
