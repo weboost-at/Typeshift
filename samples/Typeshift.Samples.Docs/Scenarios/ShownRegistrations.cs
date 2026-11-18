@@ -33,9 +33,9 @@ internal static class ShownRegistrations
             Expect(scope.ServiceProvider.GetServices<IToolApprovalRule>().Single() is ShellGuard, "the approval rule");
         }
 
-        await using (var live = Build(Registration.ShowRealtimeOptions))
+        await using (var live = Build(Registration.ShowLiveUpdateOptions))
         {
-            var options = live.GetRequiredService<RealtimeTrackingOptions>();
+            var options = live.GetRequiredService<LiveUpdateOptions>();
             Expect(options.PublishInterval == TimeSpan.FromMilliseconds(250), "the live updates' interval");
         }
 

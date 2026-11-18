@@ -62,14 +62,14 @@ internal static class Registration
         // end-snippet
     }
 
-    public static void ShowRealtimeOptions(IServiceCollection services)
+    public static void ShowLiveUpdateOptions(IServiceCollection services)
     {
-        // begin-snippet: realtime-options
+        // begin-snippet: live-update-options
         services.AddTypeshift()
-            .WithRealtimeTracking(new RealtimeTrackingOptions
+            .WithOptions(options =>
             {
-                PublishInterval = TimeSpan.FromMilliseconds(250),
-                MaxPendingUpdates = 1024
+                options.LiveUpdates.PublishInterval = TimeSpan.FromMilliseconds(250);
+                options.LiveUpdates.MaxPendingUpdates = 1024;
             });
         // end-snippet
     }

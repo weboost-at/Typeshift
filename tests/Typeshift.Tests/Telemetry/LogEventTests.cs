@@ -30,7 +30,7 @@ public class LogEventTests : MultiAgentTestBase
         services.AddTypeshift()
             .WithApprovalRule<ScriptedRule>()
             .WithRunMiddleware<FirstRunMiddleware>()
-            .WithRealtimeTracking(new RealtimeTrackingOptions { MaxPendingUpdates = 1 });
+            .WithOptions(options => options.LiveUpdates.MaxPendingUpdates = 1);
 
         services.AddSingleton<ILoggerFactory>(_log);
         services.AddSingleton(_rules);
@@ -182,7 +182,7 @@ public class LogEventTests : MultiAgentTestBase
         // Assert
         _log.Of("UpdatesDropped").Select(logged => logged.Message).Should().Equal(
             $"A watcher of conversation {Data.Agent.ConversationId} lost its oldest updates, since more than 1 "
-            + "waited for it: read the feed faster, or raise MaxPendingUpdates with WithRealtimeTracking.");
+            + "waited for it: read the feed faster, or raise LiveUpdates.MaxPendingUpdates with WithOptions.");
     }
 
     [Fact]

@@ -325,20 +325,20 @@ Merged text never spans two messages: text of another message goes out as an upd
 answer goes out as its model call ends, so a watcher has the whole answer while the run waits for steering input or
 a background agent. A watcher sees a handoff's call, its result, then the answer of the agent handed to. A run
 never waits for a watcher, so a watcher that falls more than 256 updates behind loses the oldest ones, and
-Typeshift [logs a warning](./observability.md#logs) the first time it does. You can change both limits with
-`WithRealtimeTracking`:
+Typeshift [logs a warning](./observability.md#logs) the first time it does. You can change both limits in
+`TypeshiftOptions.LiveUpdates`, through `WithOptions`:
 
-<!-- snippet: realtime-options -->
-<a id='snippet-realtime-options'></a>
+<!-- snippet: live-update-options -->
+<a id='snippet-live-update-options'></a>
 ```cs
 services.AddTypeshift()
-    .WithRealtimeTracking(new RealtimeTrackingOptions
+    .WithOptions(options =>
     {
-        PublishInterval = TimeSpan.FromMilliseconds(250),
-        MaxPendingUpdates = 1024
+        options.LiveUpdates.PublishInterval = TimeSpan.FromMilliseconds(250);
+        options.LiveUpdates.MaxPendingUpdates = 1024;
     });
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L67-L74' title='Snippet source file'>snippet source</a> | <a href='#snippet-realtime-options' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Scenarios/Registration.cs#L67-L74' title='Snippet source file'>snippet source</a> | <a href='#snippet-live-update-options' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 ::: warning Live updates stay in their process

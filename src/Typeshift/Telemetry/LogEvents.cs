@@ -72,7 +72,7 @@ internal static partial class LogEvents
         9,
         LogLevel.Warning,
         "A watcher of {Watched} lost its oldest updates, since more than {Limit} waited for it: read the feed "
-        + "faster, or raise MaxPendingUpdates with WithRealtimeTracking.")]
+        + "faster, or raise LiveUpdates.MaxPendingUpdates with WithOptions.")]
     public static partial void UpdatesDropped(ILogger logger, string watched, int limit);
 
     [LoggerMessage(

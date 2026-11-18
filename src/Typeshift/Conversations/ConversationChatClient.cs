@@ -484,9 +484,9 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         return results;
     }
 
-    // D47: only a conversation has watchers, and only realtime tracking feeds them
+    // D47: only a conversation has watchers, and only live updates feed them
     private LivePublisher? CreatePublisher(ConversationRun run) =>
-        run.Conversation is not null && services.GetService<RealtimeTrackingOptions>() is { } realtime
+        run.Conversation is not null && services.GetService<LiveUpdateOptions>() is { } realtime
             ? new LivePublisher(Runs, run.Conversation, realtime, Time)
             : null;
 

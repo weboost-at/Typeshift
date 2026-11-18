@@ -7,7 +7,7 @@ namespace Typeshift;
 internal sealed class LivePublisher(
     LiveRuns runs,
     StoreId conversation,
-    RealtimeTrackingOptions options,
+    LiveUpdateOptions options,
     TimeProvider time)
 {
     private ChatResponseUpdate? _pending;

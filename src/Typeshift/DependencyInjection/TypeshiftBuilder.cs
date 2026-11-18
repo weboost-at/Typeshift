@@ -251,8 +251,8 @@ public sealed class TypeshiftBuilder
         contract.IsGenericType && contract.GetGenericTypeDefinition() == typeof(IChatClientProvider<>);
 
     /// <summary>
-    /// Sets what every run of the app does, such as <c>options => options.PersistAllConversations = true</c>. Calls
-    /// add up, each changing the options the last left.
+    /// Sets what every run of the app does, such as <c>options => options.PersistAllConversations = true</c>, and how
+    /// runs publish live updates, in <c>options.LiveUpdates</c>. Calls add up, each changing the options the last left.
     /// </summary>
     /// <param name="configure">Changes the options.</param>
     /// <returns>The same chain.</returns>
@@ -285,18 +285,6 @@ public sealed class TypeshiftBuilder
         _services.TryAddSingleton(provider => new ConversationTracker<TId>(
             provider.GetRequiredService<TypeshiftRuntime>()));
 
-        return this;
-    }
-
-    /// <summary>
-    /// Tunes the live updates of runs, which each <see cref="ConversationTracker{TId}"/> reads with <c>WatchAsync</c>;
-    /// they are on without it.
-    /// </summary>
-    /// <param name="options">Intervals and limits; the defaults when null.</param>
-    /// <returns>The same chain.</returns>
-    public TypeshiftBuilder WithRealtimeTracking(RealtimeTrackingOptions? options = null)
-    {
-        _services.Replace(ServiceDescriptor.Singleton(options ?? new RealtimeTrackingOptions()));
         return this;
     }
 

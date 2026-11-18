@@ -514,6 +514,13 @@ All notable changes to this project are documented here. The format follows
 - **Breaking:** `runtime.Agent<TAgent>()` is `runtime.CreateHost<TAgent>()`, a name that says the call creates a host
   your code owns and disposes, as in `await using var support = runtime.CreateHost<SupportAgent>();`. The old name read
   as a property beside the host's own `Agent`. Write `CreateHost` where you wrote `Agent<...>()` on the runtime.
+- **Breaking:** the limits of live updates are `TypeshiftOptions.LiveUpdates`, set in the chain's one call for
+  options: `WithOptions(options => options.LiveUpdates.MaxPendingUpdates = 1024)` in place of
+  `WithRealtimeTracking(new RealtimeTrackingOptions { MaxPendingUpdates = 1024 })`. `WithRealtimeTracking` and
+  `RealtimeTrackingOptions` are gone; the options are `LiveUpdateOptions`, whose setters throw an
+  `ArgumentOutOfRangeException` for a negative `PublishInterval` and a `MaxPendingUpdates` below 1. A
+  `WithRealtimeTracking()` without options, which only reset the defaults, goes without a replacement: live updates
+  are on.
 - **Breaking:** an agent's `GetInstructions()` is `GetInstructions(IServiceProvider services)`, called for each run
   with the run's services, so instructions can name the customer a run serves:
   `services.GetRequiredService<ICurrentCustomer>().Name`. One instance of an agent serves every run, so the override

@@ -87,8 +87,7 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 | `WithStore(provider => ...)` | A store the container builds with your factory, as each store interface the factory's return type implements | Singleton |
 | `WithFileStore(configure)` | The file store, as `IAgentSettingsStore` | Singleton |
 | `WithChatClientProvider<TProvider>()` | `TProvider`, as each `IChatClientProvider<T>` it implements | Scoped |
-| `WithOptions(options => ...)` | `TypeshiftOptions`, such as `PersistAllConversations` and `StoreFailure` | Singleton |
-| `WithRealtimeTracking(options)` | `RealtimeTrackingOptions`, the limits of live updates | Singleton |
+| `WithOptions(options => ...)` | `TypeshiftOptions`, such as `PersistAllConversations`, `StoreFailure` and the limits of live updates, `LiveUpdates` | Singleton |
 | `WithConversationTracker<TId>()` | The `ConversationTracker<TId>` of one id type | Singleton |
 | `WithApprovalRule<TRule>()` | One more `IToolApprovalRule`, which decides calls before your app is asked | Scoped |
 | `WithRunMiddleware<TMiddleware>()` | One more `IRunMiddleware`, which wraps every run | Scoped |
@@ -115,9 +114,9 @@ references. Your app's own toolsets and agents need a call to `AddTypeshift()` i
 - Each `WithOptions` call changes the same `TypeshiftOptions` further. `PersistAllConversations` keeps the runs
   without a conversation id ([Keeping every conversation](./conversations.md#keeping-every-conversation)), and
   `StoreFailure` says what a run does when its conversation could not be saved
-  ([When the store fails](./conversations.md#when-the-store-fails)).
-- Live updates are on without `WithRealtimeTracking`. Its optional `RealtimeTrackingOptions` replace the defaults
-  that `ConversationTracker<TId>.WatchAsync` follows: a `PublishInterval` of 100 ms and `MaxPendingUpdates` of 256.
+  ([When the store fails](./conversations.md#when-the-store-fails)). Live updates are on without it, and
+  `LiveUpdates` tunes what `ConversationTracker<TId>.WatchAsync` follows: a `PublishInterval` of 100 ms and
+  `MaxPendingUpdates` of 256 unless you set them ([Live updates](./conversations.md#live-updates)).
 - `WithConversationTracker<TId>()` registers the closed tracker as a singleton of its own. An app published with
   Native AOT needs it to inject the tracker of a value type, such as `Guid` or `int`
   ([Native AOT](./native-aot.md#trackers-of-value-type-ids)).

@@ -1377,13 +1377,20 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Status:** owner.
 - **Context:** the owner asked to "ship with sane defaults, for stock users to have a working library at their hands
   from the get-go", and chose live updates on by default. `WatchAsync` threw until `WithRealtimeTracking()` was called.
-- **Decision:** `AddTypeshift()` registers the default `RealtimeTrackingOptions`, so runs with a conversation publish
-  their updates and `WatchAsync` reads them without a call. `WithRealtimeTracking(options)` replaces the options and
-  only tunes the intervals and limits. With no watcher an update costs one dictionary lookup: nothing is cloned or
-  merged. Merged text waits for the next update or the end of the model's stream, so no timer runs (D47).
-- **Where:** `Generated/ModuleRegistration.cs`, `DependencyInjection/TypeshiftBuilder.cs`,
+- **Decision:** runs with a conversation publish their updates and `WatchAsync` reads them without a call.
+  `TypeshiftOptions.LiveUpdates`, set through `WithOptions`, only tunes the interval and the limit, and refuses a
+  negative interval and a limit below 1 where it is set. With no watcher an update costs one dictionary lookup:
+  nothing is cloned or merged. Merged text waits for the next update or the end of the model's stream, so no timer
+  runs (D47).
+- **One place for options:** up to 0.1.0-alpha.6, `WithRealtimeTracking(options)` replaced a
+  `RealtimeTrackingOptions` record, and without an argument only reset the defaults, since the updates are on anyway.
+  It was a third shape of options beside `WithOptions(Action<TypeshiftOptions>)` and `WithFileStore`'s action, and
+  the feature went by "realtime tracking", "live" and "watch". The owner chose to fold it into `WithOptions` as
+  `LiveUpdates`, the guide's name for the feature, so every option of the app's runs is set in one call.
+- **Where:** `Generated/ModuleRegistration.cs`, `DependencyInjection/TypeshiftOptions.cs`,
   `Conversations/ConversationTracker.cs`.
-- **Alternatives:** keeping it opt-in, which the owner turned down; a switch to turn it off, which nothing needs yet.
+- **Alternatives:** keeping it opt-in, which the owner turned down; a switch to turn it off, which nothing needs yet;
+  an `[Obsolete]` `WithRealtimeTracking` that sets `LiveUpdates`, which the release that breaks the rest did not need.
 
 ### D75. An app without a container creates a TypeshiftRuntime
 
@@ -1655,7 +1662,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D47. Live updates are a feed per conversation
 
 - **Status:** approved.
-- **Decision:** runs publish their updates from the start (D74), and `WithRealtimeTracking(options)` tunes them;
+- **Decision:** runs publish their updates from the start (D74), and `TypeshiftOptions.LiveUpdates` tunes them;
   `ConversationTracker.WatchAsync(conversation)` reads a bounded feed that drops its oldest updates when the watcher falls behind. A run never waits
   for a watcher. `PublishInterval` (100 ms) and `MaxPendingUpdates` (256) are options. `Runs` lists the runs of
   conversations going on in this process.
@@ -1790,7 +1797,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Context:** a list of running conversations, or a dot on each, had to poll `Runs` every second.
 - **Decision:** `ConversationTracker.WatchRunsAsync(ct)` yields the runs going on, then each run as it starts and as
   it ends (`LiveRun.Ended`), from a bounded feed per watcher like D47's, sized by `MaxPendingUpdates`. It works
-  without `WithRealtimeTracking()`, as `Runs` does.
+  without a setting, as `Runs` does.
 - **As built:** the watch subscribes before it lists the runs going on, so a run starting at that moment is listed or
   fed, and its start is not reported twice.
 - **Where:** `Conversations/LiveRuns.cs`, `Conversations/ConversationTracker.cs`.

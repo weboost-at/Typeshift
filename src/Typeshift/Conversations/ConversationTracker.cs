@@ -114,18 +114,39 @@ public sealed record LiveRun<TId>(TId Conversation, string Agent, string Model, 
 }
 
 /// <summary>
-/// How live updates are published.
+/// How runs publish their live updates, which a <see cref="ConversationTracker{TId}"/> reads with <c>WatchAsync</c>.
+/// Live updates are on without a setting; set these as <c>TypeshiftOptions.LiveUpdates</c> through
+/// <c>AddTypeshift().WithOptions(...)</c>.
 /// </summary>
-public sealed record RealtimeTrackingOptions
+public sealed class LiveUpdateOptions
 {
     /// <summary>
-    /// Text, reasoning and usage updates are merged and published at most this often; others at once.
+    /// Text, reasoning and usage updates are merged and published at most this often; others at once. 100
+    /// milliseconds unless set.
     /// </summary>
-    public TimeSpan PublishInterval { get; init; } = TimeSpan.FromMilliseconds(100);
+    /// <exception cref="ArgumentOutOfRangeException">The value is negative.</exception>
+    public TimeSpan PublishInterval
+    {
+        get;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, TimeSpan.Zero);
+            field = value;
+        }
+    } = TimeSpan.FromMilliseconds(100);
 
     /// <summary>
     /// The updates, or run starts and ends, a watcher may fall behind by; beyond it, the oldest are dropped. A run
-    /// never waits for a watcher.
+    /// never waits for a watcher. 256 unless set.
     /// </summary>
-    public int MaxPendingUpdates { get; init; } = 256;
+    /// <exception cref="ArgumentOutOfRangeException">The value is below 1.</exception>
+    public int MaxPendingUpdates
+    {
+        get;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, 1);
+            field = value;
+        }
+    } = 256;
 }

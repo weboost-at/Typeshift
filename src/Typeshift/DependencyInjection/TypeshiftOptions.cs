@@ -22,6 +22,13 @@ public sealed class TypeshiftOptions
     /// </summary>
     public StoreFailure StoreFailure { get; set; }
 
+    // D74: on from the start, so these only tune them
+    /// <summary>
+    /// How runs publish their live updates: how often merged text goes out, and how far a watcher may fall behind,
+    /// as in <c>WithOptions(options =&gt; options.LiveUpdates.MaxPendingUpdates = 1024)</c>.
+    /// </summary>
+    public LiveUpdateOptions LiveUpdates { get; } = new();
+
     /// <summary>
     /// Gives new conversations ids of your conversation store's type. Without it, they get a <see cref="Guid"/> of
     /// version 7, ordered by the time, and need an <c>IConversationStore&lt;Guid&gt;</c>. A raw-path call names its

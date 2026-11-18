@@ -810,22 +810,34 @@ public class ConversationStoreTests : AgentTestBase
     }
 
     [Fact]
-    public void Given_Realtime_Options_They_Replace_The_Defaults()
+    public void Given_Live_Update_Options_Set_Through_WithOptions_The_Runs_Use_Them()
     {
         // Arrange
-        var options = new RealtimeTrackingOptions { MaxPendingUpdates = 1024 };
         var services = new ServiceCollection();
 
         // Act
-        services.AddTypeshift().WithRealtimeTracking(options);
+        services.AddTypeshift().WithOptions(options => options.LiveUpdates.MaxPendingUpdates = 1024);
 
         // Assert
         using var provider = services.BuildServiceProvider();
-        provider.GetServices<RealtimeTrackingOptions>().Should().Equal(options);
+        provider.GetRequiredService<LiveUpdateOptions>().MaxPendingUpdates.Should().Be(1024);
     }
 
     [Fact]
-    public async Task Given_No_WithRealtimeTracking_A_Watcher_Receives_The_Updates_Of_A_Streaming_Run()
+    public void Given_A_Live_Update_Limit_Below_One_Setting_It_Throws()
+    {
+        // Arrange
+        var options = new TypeshiftOptions();
+
+        // Act
+        var set = () => options.LiveUpdates.MaxPendingUpdates = 0;
+
+        // Assert
+        set.Should().Throw<ArgumentOutOfRangeException>();
+    }
+
+    [Fact]
+    public async Task Given_No_Live_Update_Options_A_Watcher_Receives_The_Updates_Of_A_Streaming_Run()
     {
         // Arrange
         ChatClient.Reply(Text(Data.Tool.Answer));
@@ -860,10 +872,16 @@ public class ConversationStoreTests : AgentTestBase
     {
         // Arrange
         var gate = new TaskCompletionSource();
-        var realtime = new RealtimeTrackingOptions { PublishInterval = TimeSpan.Zero, MaxPendingUpdates = 2 };
-
         var services = new ServiceCollection();
-        services.AddTypeshift().WithRealtimeTracking(realtime).WithChatClientProvider<ScriptedChatClientProvider>();
+
+        services.AddTypeshift()
+            .WithOptions(options =>
+            {
+                options.LiveUpdates.PublishInterval = TimeSpan.Zero;
+                options.LiveUpdates.MaxPendingUpdates = 2;
+            })
+            .WithChatClientProvider<ScriptedChatClientProvider>();
+
         services.AddSingleton(ChatClient).AddSingleton(Models);
 
         await using var provider = services.BuildServiceProvider();

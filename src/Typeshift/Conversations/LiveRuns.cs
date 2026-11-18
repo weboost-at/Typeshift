@@ -7,7 +7,7 @@ using Microsoft.Extensions.Logging;
 namespace Typeshift;
 
 // The conversations running in this container, their steering input and their watchers, by id and its type (D72)
-internal sealed class LiveRuns(RealtimeTrackingOptions realtime, ILoggerFactory? loggers = null)
+internal sealed class LiveRuns(LiveUpdateOptions realtime, ILoggerFactory? loggers = null)
 {
     private readonly ILogger _logger = LogEvents.For(loggers);
     private readonly ConcurrentDictionary<StoreId, RunClaim> _runs = new();

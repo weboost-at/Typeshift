@@ -447,6 +447,10 @@ public System.DateTimeOffset Typeshift.LiveRun<TId>.StartedAt { get; init; }
 public override string Typeshift.LiveRun<TId>.ToString()
 public static bool Typeshift.LiveRun<TId>.operator !=(Typeshift.LiveRun<TId>? left, Typeshift.LiveRun<TId>? right)
 public static bool Typeshift.LiveRun<TId>.operator ==(Typeshift.LiveRun<TId>? left, Typeshift.LiveRun<TId>? right)
+public sealed class Typeshift.LiveUpdateOptions
+public Typeshift.LiveUpdateOptions.LiveUpdateOptions()
+public int Typeshift.LiveUpdateOptions.MaxPendingUpdates { get; set; }
+public System.TimeSpan Typeshift.LiveUpdateOptions.PublishInterval { get; set; }
 public sealed class Typeshift.McpServerUse
 public Typeshift.McpServerUse Typeshift.McpServerUse.ReadOnly()
 public Typeshift.McpServerUse Typeshift.McpServerUse.RequiresApproval()
@@ -513,16 +517,6 @@ public Typeshift.QuestionOption.QuestionOption(string Label, string Description)
 public override string Typeshift.QuestionOption.ToString()
 public static bool Typeshift.QuestionOption.operator !=(Typeshift.QuestionOption? left, Typeshift.QuestionOption? right)
 public static bool Typeshift.QuestionOption.operator ==(Typeshift.QuestionOption? left, Typeshift.QuestionOption? right)
-public sealed record Typeshift.RealtimeTrackingOptions : System.IEquatable<Typeshift.RealtimeTrackingOptions>
-public bool Typeshift.RealtimeTrackingOptions.Equals(Typeshift.RealtimeTrackingOptions? other)
-public override bool Typeshift.RealtimeTrackingOptions.Equals(object? obj)
-public override int Typeshift.RealtimeTrackingOptions.GetHashCode()
-public int Typeshift.RealtimeTrackingOptions.MaxPendingUpdates { get; init; }
-public System.TimeSpan Typeshift.RealtimeTrackingOptions.PublishInterval { get; init; }
-public Typeshift.RealtimeTrackingOptions.RealtimeTrackingOptions()
-public override string Typeshift.RealtimeTrackingOptions.ToString()
-public static bool Typeshift.RealtimeTrackingOptions.operator !=(Typeshift.RealtimeTrackingOptions? left, Typeshift.RealtimeTrackingOptions? right)
-public static bool Typeshift.RealtimeTrackingOptions.operator ==(Typeshift.RealtimeTrackingOptions? left, Typeshift.RealtimeTrackingOptions? right)
 public readonly struct Typeshift.RuleVerdict : System.IEquatable<Typeshift.RuleVerdict>
 public static Typeshift.RuleVerdict Typeshift.RuleVerdict.Abstain { get; }
 public static Typeshift.RuleVerdict Typeshift.RuleVerdict.Approve { get; }
@@ -663,13 +657,13 @@ public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithConversationTra
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithFileStore(System.Action<Typeshift.FileStoreOptions>? configure = null, bool replace = false)
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithMcpToolProvider<TProvider>() where TProvider : class, Typeshift.IMcpToolProvider
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithOptions(System.Action<Typeshift.TypeshiftOptions> configure)
-public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithRealtimeTracking(Typeshift.RealtimeTrackingOptions? options = null)
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithRunMiddleware<TMiddleware>() where TMiddleware : class, Typeshift.IRunMiddleware
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithStore<TStore>(System.Func<System.IServiceProvider, TStore> create, bool replace = false) where TStore : class
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithStore<TStore>(TStore store, bool replace = false) where TStore : class
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithStore<TStore>(bool replace = false) where TStore : class
 public Typeshift.TypeshiftBuilder Typeshift.TypeshiftBuilder.WithToolMiddleware<TMiddleware>() where TMiddleware : class, Typeshift.IToolMiddleware
 public sealed class Typeshift.TypeshiftOptions
+public Typeshift.LiveUpdateOptions Typeshift.TypeshiftOptions.LiveUpdates { get; }
 public void Typeshift.TypeshiftOptions.NewConversationIds<TId>(System.Func<TId> create) where TId : notnull
 public bool Typeshift.TypeshiftOptions.PersistAllConversations { get; set; }
 public Typeshift.StoreFailure Typeshift.TypeshiftOptions.StoreFailure { get; set; }

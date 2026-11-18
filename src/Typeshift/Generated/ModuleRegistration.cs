@@ -30,8 +30,9 @@ public static class ModuleRegistration
         services.TryAddSingleton(new RegisteredChatClients(services));
         services.TryAddSingleton<LiveRuns>();
         services.TryAddSingleton<InstrumentedClients>();
-        // D74: live updates are on from the start; WithRealtimeTracking tunes them
-        services.TryAddSingleton(new RealtimeTrackingOptions());
+        // D74: live updates are on from the start; WithOptions tunes them, whenever the chain calls it
+        services.TryAddSingleton(provider =>
+            provider.GetService<TypeshiftOptions>()?.LiveUpdates ?? new LiveUpdateOptions());
         // D72: the tracker of every id type an app asks for; WithConversationTracker<TId>() closes one for Native AOT
         services.TryAddSingleton(typeof(ConversationTracker<>));
 
