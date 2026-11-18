@@ -33,7 +33,7 @@ public abstract class Agent
 
     internal RunOptions RunOptions { get; set; } = new();
 
-    internal List<Func<IServiceProvider, IContextProvider>> ContextProviders { get; } = [];
+    internal List<Func<IServiceProvider, ContextSource>> ContextProviders { get; } = [];
 
     internal List<AgentUse> SubAgents { get; } = [];
 
@@ -173,13 +173,14 @@ public abstract class Agent
 
     /// <summary>
     /// Adds instructions, messages or tools to every run from a provider the run's services resolve, or create when
-    /// they have none registered.
+    /// they have none registered. A provider they create is created for each pass of the run and disposed once the
+    /// pass ended; register a provider that keeps state or resources from one pass to the next, as a scoped service.
     /// </summary>
     /// <typeparam name="TProvider">The provider.</typeparam>
     protected void UseContext<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TProvider>()
         where TProvider : class, IContextProvider =>
-        ContextProviders.Add(services => ActivatorUtilities.GetServiceOrCreateInstance<TProvider>(services));
+        ContextProviders.Add(ContextChatClient.Of<TProvider>);
 
     /// <summary>
     /// Sets how a run goes: its mode, its tool loop's limits, and when its history is compacted. Long-running agents

@@ -781,6 +781,10 @@ All notable changes to this project are documented here. The format follows
   tells such a message, and the note that a sub-agent failed or was lost, from the user's. It came as an unmarked
   user message, so what the sub-agent read, a web page for example, reached the calling model in the user's role,
   and a chat view built from the stored conversation showed it as something the user wrote.
+- A context provider your app does not register, which `UseContext<T>()` creates for each pass of a run, is disposed
+  once the pass has ended, after the tools it returned ran, when it implements `IDisposable` or `IAsyncDisposable`.
+  It was never disposed, so a provider that opened a connection leaked one per pass. Register a provider that keeps
+  something between passes as scoped; its scope disposes it, as before.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

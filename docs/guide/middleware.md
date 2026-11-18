@@ -284,6 +284,12 @@ UseContext<CustomerProfileContext>();
 A provider needs no registration. Typeshift resolves it from the run's services, or creates it from them when none
 is registered, so its constructor can take scoped services.
 
+What Typeshift creates, it creates for each pass of a run and disposes once the pass has ended, after the tools the
+provider returned have run, if the provider implements `IDisposable` or `IAsyncDisposable`. So a provider that keeps
+something from one pass to the next, such as a cache of what it retrieved or a connection it opened, is registered
+as scoped with the app's services, `services.AddScoped<T>()` or `typeshift.Services.AddScoped<T>()` in a runtime
+without a container. The run then resolves the same instance for each pass, and the scope disposes it.
+
 ### Context tools
 
 Context tools, the tools a provider returns in `AgentContext.Tools`, are offered like the agent's own. Wrap one in

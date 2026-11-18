@@ -653,7 +653,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **Decision:** `UseContext<T>()`; `IContextProvider.GetContextAsync(run, ct)` returns an `AgentContext` of
   instructions, messages and tools, appended to the run's. Called after resume, before the model, on each pass of
   a run (a steered run makes more than one); its messages are never stored. Providers are resolved from the run's
-  services, or created from them when none is registered. No after-run hook: run middleware covers it.
+  services, or created from them when none is registered. One created is the pass's: a new one for each pass,
+  disposed once the pass ended, since the tools it returned run until then; one that keeps state or resources
+  between passes is registered as scoped, and its scope disposes it. Before, a created provider was never disposed,
+  and leaked what it held once per pass. No after-run hook: run middleware covers it.
 - **Where:** `Context/`.
 
 ### D32. Run options, with compaction inside the tool loop

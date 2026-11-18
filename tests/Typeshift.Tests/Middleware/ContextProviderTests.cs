@@ -1,11 +1,19 @@
 using Typeshift.Tests.Middleware.Support;
 using FluentAssertions;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Typeshift.Tests.Middleware;
 
 public class ContextProviderTests : MiddlewareTestBase
 {
+    protected override void ConfigureServices(IServiceCollection services)
+    {
+        base.ConfigureServices(services);
+
+        services.AddScoped<ProfileContext>();
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -330,5 +338,61 @@ public class ContextProviderTests : MiddlewareTestBase
 
         // Assert
         response.Decisions.OfType<ApprovalDecision>().Select(decision => decision.Tool).Should().Equal("lookup");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_A_Provider_Nobody_Registered_The_Pass_Disposes_It_After_Its_Tools_Ran(bool streaming)
+    {
+        // Arrange
+        ChatClient
+            .Reply(Call(Data.Tool.CallId, LookupContext.Tool))
+            .Reply(Text(Data.Tool.Answer));
+
+        var host = Host<LookupContextAgent>();
+
+        // Act
+        if (streaming) await host.RunStreamingAsync(Data.Tool.Question, ct: Ct).ToListAsync(Ct);
+        else await host.RunAsync(Data.Tool.Question, ct: Ct);
+
+        // Assert
+        Script.Lifetimes.Should().Equal("lookup created", "lookup called", "lookup disposed");
+    }
+
+    [Fact]
+    public async Task Given_A_Provider_Nobody_Registered_Each_Pass_Creates_And_Disposes_Its_Own()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer));
+
+        var host = Host<LookupContextAgent>();
+
+        // Act
+        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Assert
+        Script.Lifetimes.Should().Equal("lookup created", "lookup disposed", "lookup created", "lookup disposed");
+    }
+
+    [Fact]
+    public async Task Given_A_Registered_Provider_The_Run_Leaves_It_To_Its_Scope()
+    {
+        // Arrange
+        ChatClient
+            .Reply(Text(Data.Tool.Answer))
+            .Reply(Text(Data.Tool.Answer));
+
+        var host = Host<ProfileContextAgent>();
+
+        // Act
+        await host.RunAsync(Data.Tool.Question, ct: Ct);
+        await host.RunAsync(Data.Agent.FollowUp, ct: Ct);
+
+        // Assert
+        Script.Lifetimes.Should().Equal("profile created");
     }
 }

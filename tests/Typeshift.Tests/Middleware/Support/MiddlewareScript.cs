@@ -22,6 +22,9 @@ public sealed class MiddlewareScript
 
     // The runs the context provider was asked for
     public List<AgentRun> ContextRuns { get; } = [];
+
+    // What became of the disposable context providers and of the tool one offers, in order
+    public List<string> Lifetimes { get; } = [];
 }
 
 public sealed class FirstRunMiddleware(MiddlewareScript script) : IRunMiddleware
