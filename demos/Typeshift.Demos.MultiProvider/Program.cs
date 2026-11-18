@@ -51,19 +51,12 @@ return await Demo.RunAsync(async () =>
         return 0;
     }
 
-    // The canned model: it asks for the time in the city named, then answers from the result
+    // Two canned models, so one run can take the other: each asks for the time in the city named, then answers from
+    // the result in a voice of its own
     var canned = new CannedModels
     {
-        ["echo"] = new ScriptedChatClient(call =>
-        {
-            var city = call.LastUserText.Contains("Tokyo", StringComparison.OrdinalIgnoreCase) ? "Tokyo" : "Vienna";
-
-            return call.LastIsToolResult
-                ? ScriptedCall.Text($"It is {call.LastResults.First().Result} in {city}.")
-                : call.Offers("get_time")
-                    ? ScriptedCall.Call("get_time", ("timeZone", city == "Tokyo" ? "Asia/Tokyo" : "Europe/Vienna"))
-                    : ScriptedCall.Text("Hello from the canned model.");
-        })
+        ["echo"] = Clock((time, city) => $"It is {time} in {city}."),
+        ["terse"] = Clock((time, city) => $"{city}: {time}.")
     };
 
     var services = new ServiceCollection();
@@ -103,10 +96,12 @@ return await Demo.RunAsync(async () =>
     Console.WriteLine($"{response.Messages[^1].AuthorName}> {response.Text}");
     Demo.Note($"the provider reported model '{response.ModelId}' for '{chosen}'");
 
-    Demo.Heading("One run on another provider, the stored choice untouched");
-    var oneRun = new AssistantAgent.Settings { Provider = "canned", Model = "echo" };
-    var canned1 = await assistant.RunAsync("What time is it in Vienna?", settings: oneRun);
-    Console.WriteLine($"{canned1.Messages[^1].AuthorName}> {canned1.Text}");
+    // Another model of the canned provider; for a user who picked a real one, another provider too
+    Demo.Heading("One run on another model, the stored choice untouched");
+    var oneRun = new AssistantAgent.Settings { Provider = "canned", Model = "terse" };
+    var other = await assistant.RunAsync("What time is it in Vienna?", settings: oneRun);
+    Console.WriteLine($"{other.Messages[^1].AuthorName}> {other.Text}");
+    Demo.Note($"the provider reported model '{other.ModelId}' for this run alone");
     var kept = (await assistant.LoadSettingsAsync()).Data;
     Demo.Note($"stored Settings are still {kept.Provider}/{kept.Model}");
 
@@ -141,3 +136,15 @@ return await Demo.RunAsync(async () =>
 
     return 0;
 });
+
+static ScriptedChatClient Clock(Func<object?, string, string> answer) =>
+    new(call =>
+    {
+        var city = call.LastUserText.Contains("Tokyo", StringComparison.OrdinalIgnoreCase) ? "Tokyo" : "Vienna";
+
+        return call.LastIsToolResult
+            ? ScriptedCall.Text(answer(call.LastResults.First().Result, city))
+            : call.Offers("get_time")
+                ? ScriptedCall.Call("get_time", ("timeZone", city == "Tokyo" ? "Asia/Tokyo" : "Europe/Vienna"))
+                : ScriptedCall.Text("Hello from the canned model.");
+    });
