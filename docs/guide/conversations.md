@@ -161,6 +161,10 @@ the answers out and goes on. While decisions are still open, it calls no model a
 answered or withdrawn decision waits. A new run with input works on an interrupted conversation too: it starts
 from the interrupted run's steps and adds its own input.
 
+A conversation whose last entry is the model's answer has nothing left to do, even though no entry ends its run:
+the end was lost between the two appends, in a crash or a failed save. `ResumeAsync` then stores the end and returns
+that answer, and calls no model.
+
 After a restart, the entries tell you which conversations to resume. A run stores its ending entry only when it ends,
 so the last entry that `LoadConversationAsync` returns has `EndsRun` false for a run that a crash cut off and for one
 that is still going on.

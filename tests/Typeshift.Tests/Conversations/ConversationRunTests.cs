@@ -342,6 +342,61 @@ public class ConversationRunTests : AgentTestBase
         ChatClient.Requests[0].Select(message => message.Text).Should().Equal(Data.Tool.Question);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Given_An_Answer_Stored_Without_Its_End_Resuming_Returns_It_Without_A_Model_Call(bool streaming)
+    {
+        // Arrange
+        await StoreAsync(new ChatMessage(ChatRole.User, Data.Tool.Question));
+        await StoreAsync(new ChatMessage(ChatRole.Assistant, Data.Tool.Answer));
+
+        var chat = Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId);
+
+        // Act
+        var response = streaming
+            ? (await chat.ResumeStreamingAsync(ct: Ct).ToListAsync(Ct)).ToChatResponse()
+            : await chat.ResumeAsync(ct: Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
+        ChatClient.Requests.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Given_An_Answer_Stored_Without_Its_End_Resuming_Stores_The_End()
+    {
+        // Arrange
+        await StoreAsync(new ChatMessage(ChatRole.User, Data.Tool.Question));
+        await StoreAsync(new ChatMessage(ChatRole.Assistant, Data.Tool.Answer));
+
+        // Act
+        await Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).ResumeAsync(ct: Ct);
+        var entries = await EntriesAsync(Data.Agent.ConversationId);
+
+        // Assert
+        entries.Select(entry => entry.EndsRun).Should().Equal(false, false, true);
+    }
+
+    [Fact]
+    public async Task Given_An_Answer_Stored_With_A_Call_In_Flight_Resuming_Calls_The_Model()
+    {
+        // Arrange
+        await StoreAsync(new ChatMessage(ChatRole.User, Data.Tool.Question));
+
+        await StoreAsync(new ChatMessage(
+            ChatRole.Assistant,
+            [new TextContent(Data.Agent.Reason), new FunctionCallContent(Data.Tool.CallId, "probe")]));
+
+        ChatClient.Reply(Text(Data.Tool.Answer));
+
+        // Act
+        var response = await Host<ProbeAgent>().WithConversationId(Data.Agent.ConversationId).ResumeAsync(ct: Ct);
+
+        // Assert
+        response.Text.Should().Be(Data.Tool.Answer);
+    }
+
     [Fact]
     public async Task Given_A_Conversation_Whose_Last_Run_Ended_Resuming_Fails()
     {
@@ -908,6 +963,13 @@ public class ConversationRunTests : AgentTestBase
         watch.Current.Text.Should().Be("bc");
         watch.Current.MessageId.Should().Be(Data.Tool.CallId);
     }
+
+    // A step of an earlier run, stored as its run would have
+    private Task StoreAsync(ChatMessage message) =>
+        Services.GetRequiredService<ITypeshiftStore<Guid>>().AppendConversationAsync(
+            Data.Agent.ConversationId,
+            new ConversationEntry("probe_agent", [message], Time.GetUtcNow()),
+            Ct);
 
     // The same run on either path, a streamed one as the response its updates make
     private async Task<ChatResponse> RunAsync(string input, bool streaming, CancellationToken ct)

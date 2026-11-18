@@ -165,13 +165,25 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             yield break;
         }
 
-        var (run, call, runOptions, waiting) = await BeginAsync(messages, options, taken, activity, ct);
+        var (run, call, runOptions, waiting, answered) = await BeginAsync(messages, options, taken, activity, ct);
 
         if (waiting is not null)
         {
             yield return streaming
                 ? new(AskingUpdate(waiting, []))
                 : new(Response: new ChatResponse(Asking(waiting, messageId: null)));
+
+            yield break;
+        }
+
+        if (answered is not null)
+        {
+            if (!streaming) yield return new(Response: new ChatResponse([.. answered]));
+
+            foreach (var message in streaming ? answered : [])
+            {
+                yield return new(AsUpdate(message));
+            }
 
             yield break;
         }
@@ -553,12 +565,14 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
     // agent that takes over with what its run is handed. Without an agent the run had no handoff left
     private sealed record Handoff(ChatMessage Result, IAgentHost? Target = null, RunHandover? Handed = null);
 
-    // The run that began, or, for a run without input whose decisions are still open, the batch that waits
+    // The run that began, or, for a run without input, what it returns without one: the batch that waits while its
+    // decisions are still open, or the answer the conversation ends with when only the end was not stored
     private async Task<(
         ConversationRun Run,
         List<ChatMessage> Call,
         ResolvedChatOptions Options,
-        DecisionBatch? Waiting)> BeginAsync(
+        DecisionBatch? Waiting,
+        IReadOnlyList<ChatMessage>? Answered)> BeginAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options,
         RunHandover taken,
@@ -587,7 +601,8 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         ConversationRun Run,
         List<ChatMessage> Call,
         ResolvedChatOptions Options,
-        DecisionBatch? Waiting)> BeginClaimedAsync(
+        DecisionBatch? Waiting,
+        IReadOnlyList<ChatMessage>? Answered)> BeginClaimedAsync(
         IEnumerable<ChatMessage> messages,
         ChatOptions? options,
         StoreId? conversation,
@@ -710,7 +725,17 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
             if (entries is [.., { EndsRun: false }]) await run.EndAsync(null);
             Runs.Release(claim);
 
-            return (run, call, runOptions, batch);
+            return (run, call, runOptions, batch, null);
+        }
+
+        // D50: the model answered and the run's end was not stored, after a crash between the two or a failed append:
+        // nothing is left to do but store the end, and the answer is what the run returns
+        if (!hasInput && batch is null && call.Count == history.Count && AnswerOf(entries) is { } answer)
+        {
+            await run.EndAsync(null);
+            Runs.Release(claim);
+
+            return (run, call, runOptions, null, answer);
         }
 
         // The batch closes once the conversation holds a result for each call: now, for one that will not run, or
@@ -724,8 +749,19 @@ internal sealed class ConversationChatClient(IChatClient inner, Agent agent, ISe
         // Last, so nothing that fails before it leaves the conversation claimed by a run that never ends
         Runs.Begin(run, claim);
 
-        return (run, call, runOptions, null);
+        return (run, call, runOptions, null, null);
     }
+
+    // The model's answer the conversation's last entry holds, when nothing follows it: no call, which would be in
+    // flight, no error, and no input or summary after it
+    private static IReadOnlyList<ChatMessage>? AnswerOf(IReadOnlyList<ConversationEntry> entries) =>
+        entries is [.., { EndsRun: false, IsSummary: false, Messages: [_, ..] messages }]
+        && messages.All(message => message.Role == ChatRole.Assistant)
+        && !messages.SelectMany(message => message.Contents).Any(IsStep)
+            ? messages
+            : null;
+
+    private static bool IsStep(AIContent content) => content is FunctionCallContent or ErrorContent;
 
     private static bool IsApprovalContent(AIContent content) => content is InputRequestContent or InputResponseContent;
 

@@ -676,6 +676,9 @@ All notable changes to this project are documented here. The format follows
   a UI that pairs calls with results no longer shows the handoff as running.
 - With nobody watching a conversation, its streamed updates are no longer merged for watchers: 2,000 updates within
   one publish interval allocated 10.7 times what 500 did.
+- `ResumeAsync` on a conversation whose last entry is the model's answer, with the entry that ends the run missing
+  after a crash or a failed save, stores the end and returns that answer. It called the model again, with the
+  answer as the last message, and stored a second answer.
 
 ## [0.1.0-alpha.6] - 2026-11-12
 

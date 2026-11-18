@@ -1602,7 +1602,9 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   provider and usage), each tool result, compaction summaries; the run's last entry has `EndsRun`. Checkpoints append each step
   the moment it exists, tool results before the next model call. A run without an ending entry was interrupted:
   `ResumeAsync()` (and `ResumeStreamingAsync`) on the conversation's host continues it without new input, leaving
-  out a call that was in flight; a new run on the conversation also starts from its steps. Resuming also carries
+  out a call that was in flight; a new run on the conversation also starts from its steps. A conversation whose last
+  entry holds the model's answer, with no call and nothing after it, lost only its end: resuming it stores the end
+  and returns that answer, since a model called again would answer a second time. Resuming also carries
   out a batch of decisions your app answered, and while decisions are still open it calls no model and returns them
   (D80, D81). One run per conversation at a time in a
   process, claimed before the run loads the conversation, so no run reads it while another still stores its end. A run
