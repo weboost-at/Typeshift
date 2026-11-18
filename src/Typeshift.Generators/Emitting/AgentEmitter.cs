@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Typeshift.Generators.Models;
+using Typeshift.Generators.Naming;
 
 namespace Typeshift.Generators.Emitting;
 
@@ -272,7 +273,7 @@ internal static class AgentEmitter
             var stored = chat.Concat(run)
                 .SelectMany(option => Members(option).Select(member => (
                     member,
-                    Parsing.Storage.JsonName(member),
+                    Names.JsonName(member),
                     member == option.Setting ? option.Storage : providerId.Storage)));
 
             StorageEmitter.WriteRecordJson(

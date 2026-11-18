@@ -16,7 +16,9 @@ Read `docs/contributing/architecture.md`, "The generator and the analyzer", firs
   type, which has no containing assembly and an empty name.
 - Parsing and emitting stay apart. A model (`Models/`) is a record that holds only strings, bools, ints, enums,
   other models and `EquatableArray<T>` of those: no symbols, no syntax, no locations, or caching breaks.
-  `ModelShapeTests` fails on any other member.
+  `ModelShapeTests` fails on any other member. Neither folder imports the other: a name both use, of a library type
+  (`KnownTypes`), a generated member, file or module (`Names`) or an option (`OptionMembers`), goes into `Naming/`,
+  and `SourceConventionTests.Parser_And_Emitter_Do_Not_Import_Each_Other` fails on an import across.
 - Generated code is `global::`-qualified, escapes keyword names (`Names.Identifier`), starts with the header of
   `SourceWriter`, documents every public member, and hides what only generated code calls with
   `EditorBrowsable(Never)` (D10).
@@ -38,7 +40,7 @@ Read `docs/contributing/architecture.md`, "The generator and the analyzer", firs
   `ParseToolset`). What a declaration can lose that way and a stamp holds belongs in that comparison.
 - What an agent needs of a toolset goes through `ToolsetSummary`, built from the model in the compilation and from the
   `[GeneratedTool]` stamps of a reference; a new field goes into both, and a stamp change raises
-  `ReferenceReader.StampVersion` (D7).
+  `KnownTypes.StampVersion` (D7).
 - `StampVersion` is the version of everything generated code binds to. Raise it too when a member of
   `Typeshift.Generated`, of `IStorable<TSelf>` or `Agent.Declaration` is added, removed or changed:
   `PublicApiSurfaceTests` fails until you do, even with `ACCEPT_SNAPSHOTS=1`. Then accept the snapshots, as in step 2:

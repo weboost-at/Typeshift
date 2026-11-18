@@ -1,4 +1,4 @@
-using Typeshift.Generators.Parsing;
+using Typeshift.Generators.Naming;
 using Typeshift.Generators.Tests.Repository.Support;
 using FluentAssertions;
 
@@ -23,7 +23,7 @@ public class PublicApiSurfaceTests
     {
         // Arrange
         var members = PublicApi.Render(PublicApi.GeneratedContract);
-        var contract = $"StampVersion = {ReferenceReader.StampVersion}\n{members}\n";
+        var contract = $"StampVersion = {KnownTypes.StampVersion}\n{members}\n";
         var verified = Snapshot.Read("GeneratedContract") ?? contract;
 
         // Act
@@ -32,7 +32,7 @@ public class PublicApiSurfaceTests
         // Assert
         changedUnderItsVersion.Should().BeFalse(
             "D7: a library built before this change binds to the members that changed, so raise "
-            + "ReferenceReader.StampVersion, then accept the snapshot");
+            + "KnownTypes.StampVersion, then accept the snapshot");
 
         Snapshot.Verify("GeneratedContract", contract);
     }

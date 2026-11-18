@@ -1,6 +1,6 @@
 using Typeshift.Generators.Models;
 
-namespace Typeshift.Generators.Emitting;
+namespace Typeshift.Generators.Naming;
 
 // A chat or run option a Configurable pick may name: its member in the agent's Settings, that member's type, how a
 // set value is applied ({0} standing for it), how the member is stored, and for a model the member of its provider

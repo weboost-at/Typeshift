@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Typeshift.Generators.Emitting;
 using Typeshift.Generators.Models;
+using Typeshift.Generators.Naming;
 using Typeshift.Generators.Parsing;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -170,7 +171,7 @@ public sealed class TypeshiftGenerator : IIncrementalGenerator
             .ToEquatableArray();
 
         return new ModuleModel(
-            Name: ModuleEmitter.GetName(assemblyName),
+            Name: Names.ModuleName(assemblyName),
             AssemblyName: assemblyName,
             Toolsets: reachableToolsets,
             Agents: reachableAgents,

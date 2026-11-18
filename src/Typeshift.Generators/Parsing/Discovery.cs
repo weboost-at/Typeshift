@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Threading;
 using Typeshift.Generators.Models;
+using Typeshift.Generators.Naming;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;

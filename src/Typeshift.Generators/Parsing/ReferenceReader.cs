@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Typeshift.Generators.Models;
+using Typeshift.Generators.Naming;
 using Microsoft.CodeAnalysis;
 
 namespace Typeshift.Generators.Parsing;
@@ -9,10 +10,6 @@ namespace Typeshift.Generators.Parsing;
 // D7: the modules of the referenced assemblies and the tools their toolsets stamp
 internal static class ReferenceReader
 {
-    // D7: raised whenever the stamps change shape or a member generated code binds to changes; a reference with
-    // another version is TSH020
-    public const int StampVersion = 10;
-
     public static ReferenceModel Read(Compilation compilation, CancellationToken ct)
     {
         var modules = new List<string>();
@@ -116,7 +113,7 @@ internal static class ReferenceReader
         assembly.GetAttributes()
             .Where(attribute => attribute.AttributeClass.Is(KnownTypes.GeneratedModuleAttribute))
             .FirstOrDefault(attribute => attribute.ConstructorArguments.Length == 2
-                && attribute.ConstructorArguments[1].Value is StampVersion)
+                && attribute.ConstructorArguments[1].Value is KnownTypes.StampVersion)
             ?.ConstructorArguments[0].Value as INamedTypeSymbol;
 
     // Every module stamps its toolsets, so the toolset's own assembly is never searched

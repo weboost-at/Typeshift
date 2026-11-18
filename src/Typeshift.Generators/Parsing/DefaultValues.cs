@@ -1,8 +1,8 @@
 using System;
 using System.Globalization;
 using System.Linq;
-using Typeshift.Generators.Emitting;
 using Typeshift.Generators.Models;
+using Typeshift.Generators.Naming;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 

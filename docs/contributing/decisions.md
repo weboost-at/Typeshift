@@ -140,7 +140,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   TSH006, and the generator leaves the member out. Nor can it name a less accessible provider id type, the agent's
   own (D77), which a configurable model or summary model brings in: TSH006 on the pick, and the generator writes the
   provider members internal.
-- **Where:** `Emitting/Names.cs`, `Emitting/AgentEmitter.cs`, `Emitting/ToolsetEmitter.cs`,
+- **Where:** `Naming/Names.cs`, `Emitting/AgentEmitter.cs`, `Emitting/ToolsetEmitter.cs`,
   `Emitting/ModuleEmitter.cs`, `Emitting/StorageEmitter.cs`.
 
 ### D7. Stamps carry the generated names and a version
@@ -153,10 +153,10 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 - **What the version covers:** everything generated code binds to, since code generated under one version runs
   against the library of another once a referenced project was built earlier. That is the shape of the stamps, every
   member of `Typeshift.Generated`, `IStorable<TSelf>` and `Agent.Declaration`. A change to any of them raises
-  `ReferenceReader.StampVersion`, so the reference built before it gets TSH020 at build time, where it would fail
+  `KnownTypes.StampVersion`, so the reference built before it gets TSH020 at build time, where it would fail
   with a `MissingMethodException` when the app starts. `PublicApiSurfaceTests` keeps those members in
   `Snapshots/GeneratedContract.verified.txt` under the version, and fails when they change while it stays.
-- **Where:** `Generated/Stamps.cs`, `Emitting/ModuleEmitter.cs`, `Parsing/ReferenceReader.cs`,
+- **Where:** `Generated/Stamps.cs`, `Naming/KnownTypes.cs`, `Emitting/ModuleEmitter.cs`, `Parsing/ReferenceReader.cs`,
   `Repository/PublicApiSurfaceTests` (generator tests).
 
 ### D8. The generator targets Roslyn 5
@@ -498,7 +498,7 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   stamps' provider id type (stamp version 6), TSH021, and the build-wide parts of TSH029 and TSH030.
 - **Where:** `Hosting/ProviderId.cs`, `Hosting/ChatClients.cs`, `Hosting/IChatClientProvider.cs`,
   `Agents/ChatOptionsBuilder.cs`, `Generated/AgentDeclaration.cs`, `DependencyInjection/TypeshiftBuilder.cs`,
-  `Compaction/Compaction.cs`, `Parsing/AgentParser.cs`, `Emitting/AgentEmitter.cs`, `Emitting/OptionMembers.cs`,
+  `Compaction/Compaction.cs`, `Parsing/AgentParser.cs`, `Emitting/AgentEmitter.cs`, `Naming/OptionMembers.cs`,
   `Analysis/TypeshiftAnalyzer.cs`.
 - **Alternatives:** a model record with a request type, a client cache and a catalog, more surface than the problem
   needs; methods that list providers and their models, which Typeshift never calls; a summary provider in code, tied

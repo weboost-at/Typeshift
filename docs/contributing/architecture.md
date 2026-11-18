@@ -46,6 +46,14 @@ disposes the container. A runtime an app's own container created leaves that con
 the same code. The analyzer passes a `Reporter` that reports, while the generator passes `Reporter.None` and skips
 what does not parse (D2).
 
+The folders of `src/Typeshift.Generators` follow the steps below. `Parsing/` reads symbols and operations into the
+records of `Models/`, `Emitting/` writes those records as C#, and `Analysis/` reports through the parsers with the
+descriptors of `Diagnostics/`. Parsing and emitting never import each other. What both need sits in `Naming/`,
+which imports neither: the metadata names of the library's types and the stamp version (`KnownTypes`), the names of
+generated members, files and modules (`Names`), and the options an agent's `Settings` can store (`OptionMembers`).
+So a rule about a name lives in one place, and `SourceConventionTests.Parser_And_Emitter_Do_Not_Import_Each_Other`
+fails on an import across.
+
 1. **Discovery** (`Parsing/Discovery.cs`) is attribute-free. The syntax predicate passes classes whose base list
    names `Toolset`, `Agent` or `JsonSerializerContext`, and the semantic check confirms the direct base (D3). The
    predicate decides which classes are bound, not when: after any edit the transforms bind and parse every toolset

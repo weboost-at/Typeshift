@@ -7,7 +7,7 @@ using Typeshift.Generators.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
-namespace Typeshift.Generators.Emitting;
+namespace Typeshift.Generators.Naming;
 
 internal static class Names
 {
@@ -57,6 +57,18 @@ internal static class Names
         return prefix + string.Concat(parts.Select(part => $"{part.Length}{part}"));
     }
 
+    // An identifier per assembly, so the modules of several assemblies live side by side in one namespace. A name
+    // of letters, digits and dots maps to one identifier alone; any other character becomes a _ as a dot does, so
+    // such a name carries a hash of itself, and Acme-Tools is not Acme.Tools (D6)
+    public static string ModuleName(string assemblyName)
+    {
+        var name = string.Concat(assemblyName.Select(character => char.IsLetterOrDigit(character) ? character : '_'));
+        var isPlain = assemblyName.All(character => char.IsLetterOrDigit(character) || character == '.');
+        var unique = isPlain ? name : $"{name}_{GetStableHash(assemblyName)}";
+
+        return unique.Length == 0 || char.IsDigit(unique[0]) ? $"_{unique}Module" : $"{unique}Module";
+    }
+
     public static string OverridesName(string tool) => $"{ToPascalCase(tool)}Overrides";
 
     public static string FactoryName(string tool) => $"Create{ToPascalCase(tool)}";
@@ -83,6 +95,10 @@ internal static class Names
 
     public static string Unreserved(string name, string suffix, ICollection<string> reserved) =>
         reserved.Contains(name) ? name + suffix : name;
+
+    // D44: a member's name in stored JSON, camelCase
+    public static string JsonName(string property) =>
+        char.ToLowerInvariant(property[0]) + property.Substring(1);
 
     public static string Identifier(string name) =>
         SyntaxFacts.GetKeywordKind(name) == SyntaxKind.None ? name : "@" + name;

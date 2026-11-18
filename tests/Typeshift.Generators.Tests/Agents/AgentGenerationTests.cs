@@ -1,4 +1,4 @@
-using Typeshift.Generators.Emitting;
+using Typeshift.Generators.Naming;
 using Typeshift.Generators.Tests.Agents.Support;
 using Typeshift.Generators.Tests.Diagnostics.Support;
 using Typeshift.Generators.Tests.Toolsets.Support;
@@ -524,7 +524,7 @@ public partial class AgentGenerationTests : GeneratorTestBase
         string module)
     {
         // Act
-        var name = ModuleEmitter.GetName(assembly);
+        var name = Names.ModuleName(assembly);
 
         // Assert
         name.Should().Be(module);
@@ -539,7 +539,7 @@ public partial class AgentGenerationTests : GeneratorTestBase
         string start)
     {
         // Act
-        var name = ModuleEmitter.GetName(assembly);
+        var name = Names.ModuleName(assembly);
 
         // Assert
         name.Should().MatchRegex($"^{start}[0-9a-f]{{8}}Module$");

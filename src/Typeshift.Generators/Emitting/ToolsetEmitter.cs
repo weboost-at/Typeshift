@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Typeshift.Generators.Models;
+using Typeshift.Generators.Naming;
 
 namespace Typeshift.Generators.Emitting;
 
@@ -141,7 +142,7 @@ internal static class ToolsetEmitter
 
             // D44: the overrides as an agent's stored settings keep them, under the tool's name
             StorageEmitter.WriteRecordJson(writer, type, versioned: false, configurable.Select(property =>
-                (Member(property, reserved), Parsing.Storage.JsonName(property.Name), property.Storage!)));
+                (Member(property, reserved), Names.JsonName(property.Name), property.Storage!)));
         }
     }
 

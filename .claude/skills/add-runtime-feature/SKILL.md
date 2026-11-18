@@ -27,4 +27,4 @@ description: Add or change public behavior of the Typeshift runtime library (src
    `ACCEPT_SNAPSHOTS=1 dotnet test --project tests/Typeshift.Generators.Tests -c Release --no-build`, commit the
    snapshot with the change, add the `CHANGELOG.md` line (a removed or changed member under Changed or Removed, with
    the call before and after), and build the demos. A member of `Typeshift.Generated`, of `IStorable<TSelf>` or
-   `Agent.Declaration` is accepted only after you raised `ReferenceReader.StampVersion` (D7).
+   `Agent.Declaration` is accepted only after you raised `KnownTypes.StampVersion` (D7).

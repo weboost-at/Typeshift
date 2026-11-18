@@ -93,7 +93,7 @@ npm run docs:snippets:check
   `PublicApi.received.txt` and accept it with
   `ACCEPT_SNAPSHOTS=1 dotnet test --project tests/Typeshift.Generators.Tests -c Release --no-build`. Commit the
   snapshot with the change, so a reviewer reads the API change as its diff. `GeneratedContract.verified.txt` holds
-  what generated code binds to, and is accepted only after `ReferenceReader.StampVersion` was raised (D7).
+  what generated code binds to, and is accepted only after `KnownTypes.StampVersion` was raised (D7).
 - Run the whole suite three times before you call a change done, all green every time. A test that depends on the
   order of concurrent work, as the conversation and background agent tests can, fails only in some runs. CI repeats
   the suite twice on `main` and for a release, where no pull request waits for it.
@@ -198,7 +198,8 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | `Repository/PublicApiDocumentationTests` (generator tests) | Every documented public member, a delegate included, has its `param`, `typeparam` and `returns` tags. A public member of `src/Typeshift` names in an `<exception>` tag each exception its code throws: a `throw new`, a guard such as `ArgumentNullException.ThrowIfNull`, and what a member of the same type that is not public throws when the public one names it. Every exception type the library declares is named by such a tag, of a library member or of a generated one in the snapshots. Every link from XML docs to the docs site, in `src` and in the generator's snapshots, reaches a page and, with a fragment, a heading or anchor of it; `lint.mjs` checks the same links, for a change of the docs alone. |
 | `AgentGenerationTests.Given_A_Host_Member_That_Throws_Its_Docs_Name_The_Exception` (generator tests) | The docs the generator writes for an agent's host members name the exceptions a run, an answer, a resume and the settings members throw. |
 | `Repository/PublicApiSurfaceTests.The_Public_Surface_Matches_Its_Snapshot` (generator tests) | Every change of the public API is a reviewed diff of `Snapshots/PublicApi.verified.txt`. |
-| `Repository/PublicApiSurfaceTests.The_Surface_Generated_Code_Binds_To_Changes_Only_With_The_Stamp_Version` (generator tests) | `Typeshift.Generated`, `IStorable<TSelf>` and `Agent.Declaration`, kept in `Snapshots/GeneratedContract.verified.txt`, change only together with `ReferenceReader.StampVersion` (D7). |
+| `Repository/PublicApiSurfaceTests.The_Surface_Generated_Code_Binds_To_Changes_Only_With_The_Stamp_Version` (generator tests) | `Typeshift.Generated`, `IStorable<TSelf>` and `Agent.Declaration`, kept in `Snapshots/GeneratedContract.verified.txt`, change only together with `KnownTypes.StampVersion` (D7). |
+| `Repository/SourceConventionTests.Parser_And_Emitter_Do_Not_Import_Each_Other` (generator tests) | No file of the generator's `Parsing/` names the namespace of `Emitting/`, and none of `Emitting/` that of `Parsing/`; `Naming/`, which holds the names both use (`KnownTypes`, `Names`, `OptionMembers`), names neither. |
 | `Repository/DecisionCitationTests` (generator tests) | Every decision a comment cites, wherever it stands in the comment, is in force: in the code, the project and build files, the workflows and the hooks. Markdown cites in prose, which this test does not read. |
 | `Repository/SourceConventionTests` (generator tests) | The code style rules a check can decide, read from the syntax tree of `src`, `samples`, `tests`, `tools` and `demos`: no comparison with `null` by `==`, `!=` or `ReferenceEquals`, no `this` parameter, no `TODO`, `FIXME` or `HACK` in a comment and no `NotImplementedException`, no clock in the code the generator writes, every line within 120 columns, no decision number and no trailing "say" in XML docs. |
 | RS0030 as an error (`BannedSymbols.txt`, `Directory.Build.props`) | No code of `src`, `samples`, `tests`, `tools` and `demos` reads or waits on the real clock, whatever its spelling, generated code included. `BannedSymbols.Library.txt` adds `TimeProvider.System` for `src` and `tests`. |
@@ -232,7 +233,7 @@ These fail the build when the repository's own rules slip, so a rule never depen
 | Path | Holds |
 |---|---|
 | `src/Typeshift` | The runtime library: public types in `Typeshift`, what only generated code calls in `Typeshift.Generated`. |
-| `src/Typeshift.Generators` | The generator, the analyzer and the suppressor: `Parsing/` (symbols to models), `Models/`, `Emitting/` (models to source), `Analysis/`, `Diagnostics/`. |
+| `src/Typeshift.Generators` | The generator, the analyzer and the suppressor: `Parsing/` (symbols to models), `Models/`, `Emitting/` (models to source), `Naming/` (the names both use), `Analysis/`, `Diagnostics/`. |
 | `tests/Typeshift.Tests` | Runtime behavior, through real `FunctionInvokingChatClient` loops and a scripted `IChatClient`. |
 | `tests/Typeshift.Tests.Toolsets` | Toolsets in an assembly of their own, which `Typeshift.Tests` references for modules, stamps and JSON contexts across assemblies. |
 | `tests/Typeshift.Generators.Tests` | Snapshots, one test per diagnostic, incremental caching, guard tests. |
@@ -288,8 +289,9 @@ state, and the commit format.
 ## Generator rules
 
 - Discovery is attribute-free: a non-abstract class whose base list names `Toolset` (D3), checked semantically.
-- Parser and emitter stay apart. A model is a record that holds only strings, bools, ints, enums, other models
-  and `EquatableArray<T>` of those, never a symbol, a syntax node or a location.
+- Parser and emitter stay apart, and neither imports the other: the names both use are in `Naming/`. A model is a
+  record that holds only strings, bools, ints, enums, other models and `EquatableArray<T>` of those, never a symbol,
+  a syntax node or a location.
 - The analyzer reports every diagnostic, with the parsers the generator uses (D2).
 - Cross-assembly data travels only through the stamps (assembly and class attributes).
 - Name the pipeline steps; an unrelated edit must leave every output cached.

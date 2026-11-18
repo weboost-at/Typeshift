@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Typeshift.Generators.Models;
-using Typeshift.Generators.Parsing;
+using Typeshift.Generators.Naming;
 
 namespace Typeshift.Generators.Emitting;
 
@@ -11,18 +11,6 @@ internal static class ModuleEmitter
 
     private const string Services = "global::Microsoft.Extensions.DependencyInjection.IServiceCollection";
 
-    // An identifier per assembly, so the modules of several assemblies live side by side in one namespace. A name
-    // of letters, digits and dots maps to one identifier alone; any other character becomes a _ as a dot does, so
-    // such a name carries a hash of itself, and Acme-Tools is not Acme.Tools (D6)
-    public static string GetName(string assemblyName)
-    {
-        var name = string.Concat(assemblyName.Select(character => char.IsLetterOrDigit(character) ? character : '_'));
-        var isPlain = assemblyName.All(character => char.IsLetterOrDigit(character) || character == '.');
-        var unique = isPlain ? name : $"{name}_{Names.GetStableHash(assemblyName)}";
-
-        return unique.Length == 0 || char.IsDigit(unique[0]) ? $"_{unique}Module" : $"{unique}Module";
-    }
-
     public static string Emit(ModuleModel model)
     {
         var writer = new SourceWriter();
@@ -31,7 +19,7 @@ internal static class ModuleEmitter
         writer.Line(SourceWriter.GetHeader(model.ExperimentalIds));
         writer.Lines(
             $"""
-            [assembly: global::Typeshift.Generated.GeneratedModule(typeof({module}), {ReferenceReader.StampVersion})]
+            [assembly: global::Typeshift.Generated.GeneratedModule(typeof({module}), {KnownTypes.StampVersion})]
 
             namespace {Names.GeneratedNamespace};
 

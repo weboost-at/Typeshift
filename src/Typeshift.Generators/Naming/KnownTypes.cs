@@ -1,8 +1,13 @@
-namespace Typeshift.Generators.Parsing;
+namespace Typeshift.Generators.Naming;
 
-// Metadata names of the types the generator recognizes by base type and by call target
+// Metadata names of the types the generator recognizes by base type and by call target, and the version of what
+// generated code binds to
 internal static class KnownTypes
 {
+    // D7: raised whenever the stamps change shape or a member generated code binds to changes; a reference with
+    // another version is TSH020
+    public const int StampVersion = 10;
+
     public const string Toolset = "Typeshift.Toolset";
 
     public const string ToolBuilder = "Typeshift.ToolBuilder";

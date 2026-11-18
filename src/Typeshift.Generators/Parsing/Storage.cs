@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Typeshift.Generators.Models;
+using Typeshift.Generators.Naming;
 using Microsoft.CodeAnalysis;
 
 namespace Typeshift.Generators.Parsing;
@@ -133,7 +134,7 @@ internal static class Storage
                 return null;
             }
 
-            members.Add(new StoredMember(property.Name, JsonName(property.Name), storage));
+            members.Add(new StoredMember(property.Name, Names.JsonName(property.Name), storage));
         }
 
         visiting.Remove(type);
@@ -146,10 +147,6 @@ internal static class Storage
     private static bool IsNullable(ITypeSymbol type) =>
         type.OriginalDefinition.SpecialType is SpecialType.System_Nullable_T
         || type is { IsReferenceType: true, NullableAnnotation: NullableAnnotation.Annotated };
-
-    // D44: camelCase
-    public static string JsonName(string property) =>
-        char.ToLowerInvariant(property[0]) + property.Substring(1);
 
     // A struct other than a record mostly keeps its state where no setter reaches, so it would store as {}
     private static bool IsObject(INamedTypeSymbol type) =>

@@ -16,7 +16,7 @@ description: Change how Typeshift tool settings work - configurable members, the
   generated `WriteStored{n}`/`TryReadStored{n}` helpers for the rest. A new storable type touches all three, and
   `EveryKindSettings` in `tests/Typeshift.Tests/Persistence/Support`.
 - A rejected member: TSH012 (no stored form) and TSH013 (no setter) come from `ToolsetParser.ParseSettings`.
-- The agent's `Settings` record stores the chat and run options `Emitting/OptionMembers.cs` lists, and the tools'
+- The agent's `Settings` record stores the chat and run options `Naming/OptionMembers.cs` lists, and the tools'
   overrides under `"tools"` (D44).
 
 Tests: `ToolOverridesTests` and `Persistence/` (runtime), the snapshots of `ToolsetGenerationTests` and

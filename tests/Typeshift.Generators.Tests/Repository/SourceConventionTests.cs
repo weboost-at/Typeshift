@@ -21,6 +21,15 @@ public partial class SourceConventionTests
     // The templates of generated code, which compiles in a consumer's build, where no analyzer of this repository runs
     private const string Emitters = "src/Typeshift.Generators/";
 
+    // The parsers read symbols into models and the emitters write models as code, so neither names the other's
+    // namespace; the names both use, of the library's types and of the generated members, live in Naming/
+    private static readonly (string Folder, string[] Apart)[] GeneratorLayers =
+    [
+        ("src/Typeshift.Generators/Parsing/", ["Emitting"]),
+        ("src/Typeshift.Generators/Emitting/", ["Parsing"]),
+        ("src/Typeshift.Generators/Naming/", ["Parsing", "Emitting"])
+    ];
+
     private static readonly IReadOnlyList<SyntaxTree> Trees =
     [
         .. RepositoryFiles.Find("*.cs", Code).Select(file => CSharpSyntaxTree.ParseText(
@@ -36,6 +45,18 @@ public partial class SourceConventionTests
         var violations = Texts(Clock(), "generated code takes the TimeProvider of the services")
             .Where(line => line.StartsWith(Emitters, StringComparison.Ordinal))
             .ToList();
+
+        // Assert
+        violations.Should().BeEmpty(Listing.Of(violations));
+    }
+
+    [Fact]
+    public void Parser_And_Emitter_Do_Not_Import_Each_Other()
+    {
+        // Act
+        var violations = Nodes<IdentifierNameSyntax>(
+            NamesALayerApart,
+            "move what the parsers and the emitters both use to src/Typeshift.Generators/Naming");
 
         // Assert
         violations.Should().BeEmpty(Listing.Of(violations));
@@ -166,6 +187,11 @@ public partial class SourceConventionTests
                 && call.ArgumentList.Arguments.Any(argument => IsNull(argument.Expression)),
             _ => false
         };
+
+    // A using directive or a qualified name, Typeshift.Generators.Emitting or Emitting.Names, holds the identifier
+    private static bool NamesALayerApart(IdentifierNameSyntax name) =>
+        GeneratorLayers.Any(layer => name.SyntaxTree.FilePath.StartsWith(layer.Folder, StringComparison.Ordinal)
+            && layer.Apart.Contains(name.Identifier.ValueText));
 
     private static bool IsNull(ExpressionSyntax expression) => expression.IsKind(SyntaxKind.NullLiteralExpression);
 
