@@ -2773,6 +2773,26 @@ public class DiagnosticTests : GeneratorTestBase
     }
 
     [Fact]
+    public void Given_A_Member_Named_Like_The_Class_Of_Tool_Names_TSH018_Is_Reported_On_It()
+    {
+        // Act
+        var run = Run(DiagnosticSources.MemberNamedLikeTheToolNames);
+
+        // Assert
+        run.Assert.Reports("TSH018", DiagnosticSeverity.Error, "ToolNames");
+    }
+
+    [Fact]
+    public void Given_An_Agent_With_Tools_And_A_Class_Named_Like_Its_Tool_Names_TSH018_Is_Reported_On_The_Class()
+    {
+        // Act
+        var run = Run(DiagnosticSources.AgentClassNamedLikeTheToolNames);
+
+        // Assert
+        run.Assert.Reports("TSH018", DiagnosticSeverity.Error, "ToolNames");
+    }
+
+    [Fact]
     public void Given_A_Toolset_Named_Like_A_Tools_Factory_TSH018_Is_Reported_On_Its_Name()
     {
         // Act

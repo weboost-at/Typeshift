@@ -1,5 +1,6 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
+using Typeshift.Samples.Workspace;
 
 namespace Typeshift.Samples.Hosting;
 
@@ -19,6 +20,9 @@ internal sealed class AuditToolCalls(ILogger<AuditToolCalls> logger) : IToolMidd
             run.Agent.Name,
             call.Function.Name,
             customer);
+
+        if (call.Function.Name == WorkspaceToolset.ToolNames.RunCommand)
+            logger.LogWarning("{Agent} runs {Command}", run.Agent.Name, call.Arguments["command"]);
 
         return await next();
     }

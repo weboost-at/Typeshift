@@ -34,11 +34,33 @@ internal static class ToolsetParser
 
         declarations = ParseTools(toolset, constructors, documented, reporter, ct);
         var tools = declarations.Select(declaration => declaration.Tool).ToEquatableArray();
+        var clash = ClashesWithToolNames(toolset, tools.Count, reporter);
 
         // A partial in another file would declare another class than a file-local one
-        return notPartial is null && !toolset.IsFileLocalOrNestedInOne()
+        return notPartial is null && !clash && !toolset.IsFileLocalOrNestedInOne()
             ? new ToolsetModel(TypeModels.From(toolset), unreachable is null, tools, toolset.GetExperimentalIds())
             : null;
+    }
+
+    // D6: a toolset or an agent with tools gets a class of constants that name them, which no member of the user's
+    // may share and the class itself cannot be named like (TSH018)
+    public static bool ClashesWithToolNames(INamedTypeSymbol owner, int tools, Reporter reporter)
+    {
+        if (tools == 0) return false;
+
+        var clash = owner.Name == Names.ToolNamesClass
+            ? owner
+            : owner.GetMembers(Names.ToolNamesClass).FirstOrDefault(Names.IsUsers);
+
+        if (clash is null) return false;
+
+        reporter.Report(
+            Descriptors.GeneratedNameClash,
+            clash.Locations.FirstOrDefault(),
+            clash is INamedTypeSymbol ? $"The class '{clash.Name}'" : $"The member '{clash.Name}'",
+            owner.Name);
+
+        return true;
     }
 
     // TSH001 and TSH016 for a toolset or an agent: the class that is not partial, and why generated code outside the

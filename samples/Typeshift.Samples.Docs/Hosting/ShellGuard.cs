@@ -1,4 +1,5 @@
 using Microsoft.Extensions.AI;
+using Typeshift.Samples.Workspace;
 
 namespace Typeshift.Samples.Hosting;
 
@@ -11,7 +12,7 @@ internal sealed class ShellGuard : IToolApprovalRule
     // In auto mode nobody is asked, so a command the rule cannot name is rejected; elsewhere your app decides.
     // A provider sends each argument as a JsonElement, whose ToString() is the string itself
     public ValueTask<RuleVerdict> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct) =>
-        ValueTask.FromResult(call is { Name: "run_command", Arguments: { } arguments }
+        ValueTask.FromResult(call is { Name: WorkspaceToolset.ToolNames.RunCommand, Arguments: { } arguments }
             && run.Mode == AgentMode.Auto
             && !(arguments.TryGetValue("command", out var value)
                 && value?.ToString() is { } command

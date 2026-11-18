@@ -100,6 +100,10 @@ public override string Typeshift.ApprovalDecision.ToString()
 public string Typeshift.ApprovalDecision.Tool { get; }
 public static bool Typeshift.ApprovalDecision.operator !=(Typeshift.ApprovalDecision? left, Typeshift.ApprovalDecision? right)
 public static bool Typeshift.ApprovalDecision.operator ==(Typeshift.ApprovalDecision? left, Typeshift.ApprovalDecision? right)
+public static class Typeshift.BuiltInTools
+public const string Typeshift.BuiltInTools.AskUser = "ask_user"
+public const string Typeshift.BuiltInTools.ExitPlanMode = "exit_plan_mode"
+public const string Typeshift.BuiltInTools.HandoffPrefix = "handoff_to_"
 public sealed class Typeshift.ChatOptionsBuilder
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.Configurable<TOption>(System.Func<Microsoft.Extensions.AI.ChatOptions, TOption> option)
 public Typeshift.ChatOptionsBuilder Typeshift.ChatOptionsBuilder.WithAdditionalProperty<TValue>(string key, TValue value)

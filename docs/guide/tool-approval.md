@@ -297,7 +297,7 @@ internal sealed class ShellGuard : IToolApprovalRule
     // In auto mode nobody is asked, so a command the rule cannot name is rejected; elsewhere your app decides.
     // A provider sends each argument as a JsonElement, whose ToString() is the string itself
     public ValueTask<RuleVerdict> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct) =>
-        ValueTask.FromResult(call is { Name: "run_command", Arguments: { } arguments }
+        ValueTask.FromResult(call is { Name: WorkspaceToolset.ToolNames.RunCommand, Arguments: { } arguments }
             && run.Mode == AgentMode.Auto
             && !(arguments.TryGetValue("command", out var value)
                 && value?.ToString() is { } command
@@ -306,8 +306,13 @@ internal sealed class ShellGuard : IToolApprovalRule
                 : RuleVerdict.Abstain);
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/ShellGuard.cs#L5-L22' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/ShellGuard.cs#L6-L23' title='Snippet source file'>snippet source</a> | <a href='#snippet-approval-rule' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
+
+The rule names the tool by `WorkspaceToolset.ToolNames.RunCommand`, the constant the generator writes for
+`run_command` ([Names and descriptions](./toolsets.md#names-and-descriptions)). Rename the tool, and the rule stops
+compiling. With the string `"run_command"` it would compile and match nothing, and in auto mode every command would
+run.
 
 A rule answers with a `RuleVerdict`:
 

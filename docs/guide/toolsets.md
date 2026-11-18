@@ -92,6 +92,14 @@ A tool is named after its method in snake_case, without `Async`: `GetTicketAsync
 `WithName(...)` picks another name. It must be lower_snake_case ([TSH008](./diagnostics.md#tsh008)) and unique
 across the toolsets of your project and of the projects it references ([TSH007](./diagnostics.md#tsh007)).
 
+Code outside a declaration names a tool through the constants the generator writes into its toolset:
+`TicketToolset.ToolNames.CloseTicket` is `"close_ticket"`, and an agent with tools of its own gets a `ToolNames` of
+its own. An [approval rule](./tool-approval.md#approval-rules), a
+[tool middleware](./middleware.md#wrap-every-tool-call) or a UI that matches calls by these constants stops
+compiling when a tool is renamed. A string would stop matching without a word, and a rule that guards a tool would
+let its calls through. The tools a run offers itself have their names in `BuiltInTools`: `AskUser`, `ExitPlanMode`,
+and `HandoffPrefix`, which the name of each handoff tool starts with.
+
 The description matters more than the name. The model reads it to decide when to call the tool, and reads each
 `<param>` to fill in the arguments. It comes from the method's `<summary>` or from `WithDescription(...)`, and the
 analyzer warns about a tool with neither ([TSH009](./diagnostics.md#tsh009)). The package turns on

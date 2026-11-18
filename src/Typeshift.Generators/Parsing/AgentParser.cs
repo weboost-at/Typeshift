@@ -91,9 +91,11 @@ internal static class AgentParser
         }
 
         var providerId = ReadProviderId(agent, constructors, declarations, reporter);
+        var toolNamesClash = ToolsetParser.ClashesWithToolNames(agent, tools.Count, reporter);
 
         // A partial in another file would declare another class than a file-local one
-        if (notPartial is not null || clash is not null || agent.IsFileLocalOrNestedInOne()) return null;
+        if (notPartial is not null || clash is not null || toolNamesClash || agent.IsFileLocalOrNestedInOne())
+            return null;
 
         // The user's own Configure{Tool}() wins over the one the generator would write, and so does the agent's own
         // name, which no member of it can have

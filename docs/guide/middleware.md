@@ -195,17 +195,24 @@ internal sealed class AuditToolCalls(ILogger<AuditToolCalls> logger) : IToolMidd
             call.Function.Name,
             customer);
 
+        if (call.Function.Name == WorkspaceToolset.ToolNames.RunCommand)
+            logger.LogWarning("{Agent} runs {Command}", run.Agent.Name, call.Arguments["command"]);
+
         return await next();
     }
 }
 ```
-<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/AuditToolCalls.cs#L6-L26' title='Snippet source file'>snippet source</a> | <a href='#snippet-tool-middleware' title='Start of snippet'>anchor</a></sup>
+<sup><a href='https://github.com/weboost-at/Typeshift/blob/main/samples/Typeshift.Samples.Docs/Hosting/AuditToolCalls.cs#L7-L30' title='Snippet source file'>snippet source</a> | <a href='#snippet-tool-middleware' title='Start of snippet'>anchor</a></sup>
 <!-- endSnippet -->
 
 - It receives Microsoft.Extensions.AI's `FunctionInvocationContext`: the function, its arguments and the messages so
   far. `call.Run` is the run the call belongs to, the `AgentRun` run middleware sees, so the agent and the ids your
   app gave the host come with every call. The customer's id here is the settings id, as in
   [Inject the host in a web app](./using-an-agent.md#inject-the-host-in-a-web-app).
+- It also logs the command line of each shell command. It finds those calls by
+  `WorkspaceToolset.ToolNames.RunCommand`, the constant the generator writes for the tool, so renaming the tool
+  breaks the build here, where a string would stop matching
+  ([Names and descriptions](./toolsets.md#names-and-descriptions)).
 - A call that a rule or your app rejects never reaches it. A call that waits for your app reaches it once your
   answer approved it, in the run that carries the answer out.
 - What it returns is the result the model receives. Return without calling `next`, and it answers in place of the

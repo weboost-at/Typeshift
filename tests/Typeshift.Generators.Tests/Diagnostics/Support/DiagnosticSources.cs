@@ -3847,4 +3847,37 @@ public static class DiagnosticSources
 
         internal record Address(string Street, string City);
         """;
+
+    // D6: the class of constants that name a toolset's tools
+    public const string MemberNamedLikeTheToolNames =
+        """
+        using Typeshift;
+
+        internal partial class EchoToolset : Toolset
+        {
+            public EchoToolset() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string[] ToolNames => ["echo"];
+
+            public static string Echo(string text) => text;
+        }
+        """;
+
+    // D6: an agent with tools of its own gets the class too
+    public const string AgentClassNamedLikeTheToolNames =
+        """
+        using Typeshift;
+
+        internal partial class EchoAgent : Agent
+        {
+            public EchoAgent() => AddTool(Echo).WithDescription("Echoes.");
+
+            public static string Echo(string text) => text;
+
+            public static class ToolNames
+            {
+                public const string Echo = "echo";
+            }
+        }
+        """;
 }

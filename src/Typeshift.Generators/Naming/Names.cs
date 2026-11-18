@@ -38,12 +38,19 @@ internal static class Names
     public static readonly string[] ObjectMembers =
         ["Equals", "GetHashCode", "GetType", "MemberwiseClone", "ReferenceEquals", "ToString"];
 
+    // D6: the class of constants that name the tools of a toolset or an agent, nested in it
+    public const string ToolNamesClass = "ToolNames";
+
+    // A tool's property on its ToolList and its constant in ToolNames take one name, which neither class may hold
+    private static readonly string[] ToolMembers = [.. ObjectMembers, ToolNamesClass];
+
     // search_web reads as SearchWeb in generated member names
     public static string ToPascalCase(string snakeCase) =>
         string.Concat(snakeCase.Split('_').Select(part => char.ToUpperInvariant(part[0]) + part.Substring(1)));
 
-    // D6: a tool's property on its ToolList; a name the list already has from object gets a suffix
-    public static string ToolProperty(string tool) => Unreserved(ToPascalCase(tool), "Tool", ObjectMembers);
+    // D6: a tool's property on its ToolList and its constant in ToolNames; a name either class already has, from
+    // object or as its own, gets a suffix
+    public static string ToolProperty(string tool) => Unreserved(ToPascalCase(tool), "Tool", ToolMembers);
 
     // D12: the name of a generated class in the global namespace: each part of the full name of the toolset or the
     // agent it belongs to, prefixed by its length, so no two classes share the global name

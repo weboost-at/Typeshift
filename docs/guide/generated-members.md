@@ -368,8 +368,8 @@ the agent declares itself replaces the generated one.
 ### Tools of the agent's own
 
 **Triggered by** an `AddTool(...)` in the agent's constructor. The agent gets the tool's `Create{Tool}` and
-`{Tool}Function`, and its `{Tool}Overrides` when it has configurable members, as a toolset does. It gets no tool list
-and no toolset stamp.
+`{Tool}Function`, its `{Tool}Overrides` when it has configurable members, and a [`ToolNames`](#toolnames) class, as a
+toolset does. It gets no tool list and no toolset stamp.
 
 ### Host members
 
@@ -430,6 +430,16 @@ AddTool(SearchArticlesAsync)
 An agent's `Settings` holds the overrides of every tool it offers. So a toolset with configurable settings must be as
 accessible as a public agent that offers it ([TSH006](./diagnostics.md#tsh006)).
 
+### `ToolNames`
+
+**Triggered by** a toolset with a tool, and an agent with a tool of its own. A `public static class ToolNames`
+nested in it holds one `public const string` per tool, the tool's name, under the name of its property on the
+[tool list](#the-tool-list). `TicketToolset.ToolNames` holds `SearchTickets`, `GetTicket` and `CloseTicket`, and
+`TicketToolset.ToolNames.CloseTicket` is `"close_ticket"`. Constants work in patterns and `switch` arms, as in
+`call is { Name: TicketToolset.ToolNames.CloseTicket }`
+([Names and descriptions](./toolsets.md#names-and-descriptions)). A member of yours named `ToolNames` is
+[TSH018](./diagnostics.md#tsh018).
+
 ### The tool list
 
 **Triggered by** every toolset the generated code can reach ([TSH016](./diagnostics.md#tsh016)). A static class, as
@@ -446,7 +456,7 @@ UseToolset<TicketToolset>()
 <!-- endSnippet -->
 
 The block gives `ToolList<TicketToolset>` the properties `SearchTickets`, `GetTicket` and `CloseTicket`. A tool
-named like a member of `object` gets a `Tool` suffix, so `to_string` becomes `ToStringTool`.
+named like a member of `object`, or `tool_names`, gets a `Tool` suffix, so `to_string` becomes `ToStringTool`.
 
 The class lives in the global namespace, so the properties are in scope in every file, whatever it imports: a pick
 compiles also where the file names the toolset in full, as in `UseToolset<Demo.TicketToolset>()`, or through an

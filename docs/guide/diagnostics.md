@@ -596,7 +596,8 @@ own, name Typeshift's with its namespace.
 ## TSH018
 
 **Member clashes with a generated member.** A member of yours has a name the generator writes, such as `Settings` in an
-agent, or `CreateSearchTickets`, a tool's factory, in the toolset or the agent that declares the tool.
+agent, or `CreateSearchTickets`, a tool's factory, or `ToolNames`, the class of the tools' names, in the toolset or the
+agent that declares the tool.
 
 <!-- snippet: tsh018 -->
 <a id='snippet-tsh018'></a>

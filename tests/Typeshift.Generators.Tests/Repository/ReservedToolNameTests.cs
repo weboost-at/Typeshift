@@ -12,6 +12,9 @@ public class ReservedToolNameTests
     [InlineData("Typeshift.AskUserFunction", "ToolName", ToolNames.AskUser)]
     [InlineData("Typeshift.ExitPlanModeFunction", "ToolName", ToolNames.ExitPlanMode)]
     [InlineData("Typeshift.ConversationChatClient", "HandoffPrefix", ToolNames.HandoffPrefix)]
+    [InlineData("Typeshift.BuiltInTools", "AskUser", ToolNames.AskUser)]
+    [InlineData("Typeshift.BuiltInTools", "ExitPlanMode", ToolNames.ExitPlanMode)]
+    [InlineData("Typeshift.BuiltInTools", "HandoffPrefix", ToolNames.HandoffPrefix)]
     public void Given_A_Name_The_Generator_Reserves_The_Runtime_Holds_The_Same_Literal(
         string type,
         string constant,

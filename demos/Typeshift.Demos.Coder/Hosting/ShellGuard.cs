@@ -15,7 +15,7 @@ public sealed partial class ShellGuard : IToolApprovalRule
 
     public ValueTask<RuleVerdict> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct)
     {
-        if (call is not { Name: "run_command", Arguments: { } arguments }
+        if (call is not { Name: ShellToolset.ToolNames.RunCommand, Arguments: { } arguments }
             || !arguments.TryGetValue("command", out var sent)
             || sent?.ToString() is not { } command)
             return ValueTask.FromResult(RuleVerdict.Abstain);

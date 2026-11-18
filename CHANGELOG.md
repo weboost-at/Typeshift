@@ -176,6 +176,12 @@ All notable changes to this project are documented here. The format follows
   state there before it runs, as in `support.Services.GetRequiredService<CurrentTenant>().Id = tenant;`, where a
   request's middleware would. Before, a host from the runtime hid its scope, so a job's tools ran with that state
   empty.
+- Each toolset, and each agent with tools of its own, gets a nested `ToolNames` class with one constant per tool, so
+  an approval rule or a tool middleware writes `call is { Name: ShellToolset.ToolNames.RunCommand }` in place of the
+  string `"run_command"`. Renaming the tool's method now breaks the build at the rule, where the string kept
+  compiling and stopped matching. A member of yours named `ToolNames` is TSH018, and a tool named `tool_names` is
+  `ToolNamesTool` on the tool list. `BuiltInTools` holds the names of the tools a run offers itself: `AskUser`,
+  `ExitPlanMode` and `HandoffPrefix`.
 
 ### Changed
 

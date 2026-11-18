@@ -43,12 +43,16 @@ internal static class ToolsetEmitter
         return writer.ToString();
     }
 
-    // The members of each tool, in the toolset or the agent that declares it
+    // The members of each tool, in the toolset or the agent that declares it, after the constants that name them
     public static void WriteTools(SourceWriter writer, EquatableArray<ToolModel> tools)
     {
+        if (tools.Count == 0) return;
+
+        WriteToolNames(writer, tools);
+
         foreach (var tool in tools)
         {
-            if (tool != tools[0]) writer.Line();
+            writer.Line();
 
             if (HasOverrides(tool))
             {
@@ -67,6 +71,31 @@ internal static class ToolsetEmitter
         tools.SelectMany(tool => tool.ExperimentalIds.Concat(tool.Settings?.ExperimentalIds ?? default));
 
     private static bool HasOverrides(ToolModel tool) => tool.Settings?.HasConfigurable is true;
+
+    // D13: a rule, a middleware or a UI names a tool by a constant, so renaming the tool's method fails to compile
+    // where a string would stop matching
+    private static void WriteToolNames(SourceWriter writer, EquatableArray<ToolModel> tools)
+    {
+        Docs.WriteSummary(
+            writer,
+            "The names of the tools declared here, as the model, approval rules, tool middleware and decisions see "
+            + "them.");
+
+        writer.Lines(Names.Generated);
+
+        using (writer.Block($"public static class {Names.ToolNamesClass}"))
+        {
+            foreach (var tool in tools)
+            {
+                if (tool != tools[0]) writer.Line();
+
+                var description = tool.Description is { } text ? $": {Docs.Escape(text)}" : ".";
+
+                Docs.WriteSummary(writer, $"The <c>{tool.Name}</c> tool{description}");
+                writer.Line($"public const string {Names.ToolProperty(tool.Name)} = {Names.Literal(tool.Name)};");
+            }
+        }
+    }
 
     // D7: what an agent in another assembly reads instead of the tool's declaration
     private static string Stamp(ToolsetModel toolset, ToolModel tool)

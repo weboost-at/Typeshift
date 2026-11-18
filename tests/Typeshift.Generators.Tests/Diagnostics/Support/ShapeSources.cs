@@ -2576,4 +2576,52 @@ public static class ShapeSources
             }
         }
         """;
+
+    // D13: code outside a chain names a tool by the constant of its toolset or agent, in a pattern too; a tool named
+    // like the class of constants takes a suffix
+    public const string ToolNamesMatchedOutsideAChain =
+        """
+        using System.Threading;
+        using System.Threading.Tasks;
+        using Microsoft.Extensions.AI;
+        using Typeshift;
+
+        namespace Demo;
+
+        internal partial class ShellToolset : Toolset
+        {
+            public ShellToolset()
+            {
+                AddTool(RunCommand).WithDescription("Runs a command.").RequiresApproval();
+                AddTool(ListNames).WithName("tool_names").WithDescription("Lists names.");
+            }
+
+            public static string RunCommand(string command) => command;
+
+            public static string ListNames() => "";
+        }
+
+        internal partial class ShellAgent : Agent
+        {
+            public ShellAgent()
+            {
+                WithDescription("Runs commands.");
+                UseToolset<ShellToolset>().Include(t => t.RunCommand).Include(t => t.ToolNamesTool);
+                AddTool(Echo).WithDescription("Echoes.");
+            }
+
+            public static string Echo(string text) => text;
+        }
+
+        internal sealed class ShellGuard : IToolApprovalRule
+        {
+            public ValueTask<RuleVerdict> DecideAsync(FunctionCallContent call, AgentRun run, CancellationToken ct) =>
+                ValueTask.FromResult(call.Name switch
+                {
+                    ShellToolset.ToolNames.RunCommand => RuleVerdict.Reject("No commands."),
+                    ShellToolset.ToolNames.ToolNamesTool or ShellAgent.ToolNames.Echo => RuleVerdict.Approve,
+                    _ => RuleVerdict.Abstain
+                });
+        }
+        """;
 }

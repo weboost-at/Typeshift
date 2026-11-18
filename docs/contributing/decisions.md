@@ -113,7 +113,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
 ### D6. The generated names
 
 - **Status:** carried (v0 D2), extended.
-- **Decision:** per toolset a `{Tool}Overrides` record per tool with configurable settings and a
+- **Decision:** per toolset a `{Tool}Overrides` record per tool with configurable settings, a nested `ToolNames`
+  class of one constant per tool (D13), which an agent with tools of its own gets too, and a
   `TypeshiftTools_{full name}` extension block in the global namespace (D12); per agent the nested `Settings`
   record, a private `Configure{Tool}()` per offered tool with settings and a `TypeshiftHost_{full name}` extension
   block in the global namespace (D12); per assembly a module. Keywords get `@`. A clash with a user member is
@@ -123,7 +124,8 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   case, so where two full names differ only by case, each file's name also carries a hash of its class's spelling.
 - **Names a generated type already has:** a generated property never takes the name of a member its type has from
   `object` (`Names.ObjectMembers`) or declares itself, and gets a suffix instead: `Tool` on the tool list and in an
-  agent's `Settings`, `Value` in an overrides record. Each type keeps a list of its own members beside the shared
+  agent's `Settings`, `Value` in an overrides record. A tool's constant in `ToolNames` takes the name of its property
+  on the tool list, so `tool_names` is `ToolNamesTool` in both. Each type keeps a list of its own members beside the shared
   one. The lists are not merged, because a suffix is part of the generated API: a tool `clone` is `CloneTool` in
   `Settings`, which has a `Clone`, and plain `Clone` on the tool list, which has none. Inside a generated record,
   its members are read through `this.`, so a settings member named like a parameter or a local of the generated
@@ -262,9 +264,15 @@ the decision, edit the entry in the same commit, or add a new one and move the o
   `close_ticket`. `WithName` overrides. The name keys stored settings, so renaming a method renames the tool: the docs
   say to pin the old name with `WithName` first. TSH007 also compares the generated property names. An agent's own
   tools are compared only across the handoffs of a conversation (D57).
+- **Names outside a chain:** an approval rule, a tool middleware or a UI matches calls by name. The generator writes
+  each tool's name as a constant, `TicketToolset.ToolNames.CloseTicket`, which a `switch` arm and a property pattern
+  take, so renaming a method breaks the build where a rule names the old tool. A string literal kept compiling and
+  matched nothing, and a rule that guarded auto mode failed open. The tools a run offers itself have public
+  constants in `BuiltInTools`, which `ReservedToolNameTests` holds to the generator's own.
 - **Alternatives:** keeping `Async` (`close_ticket_async`), which leaks a C# convention to the model; a stored key
-  separate from the name, a second identity.
-- **Where:** `Parsing/ToolsetParser.cs`.
+  separate from the name, a second identity; the tool list's `ToolName` properties outside a chain, which exist only
+  on a `ToolList<T>` no code can create, and are no constants a pattern takes.
+- **Where:** `Parsing/ToolsetParser.cs`, `Emitting/ToolsetEmitter.cs`, `Toolsets/BuiltInTools.cs`.
 
 ### D14. Descriptions come from XML docs
 

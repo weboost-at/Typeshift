@@ -1,6 +1,7 @@
 using Typeshift.Generators.Tests.Diagnostics.Support;
 using Typeshift.Generators.Tests.Toolsets.Support;
 using FluentAssertions;
+using Microsoft.CodeAnalysis;
 
 namespace Typeshift.Generators.Tests.Toolsets;
 
@@ -481,6 +482,34 @@ public class ToolsetGenerationTests : GeneratorTestBase
             .Select(attribute => attribute.AttributeClass!.Name)
             .Should()
             .Contain("EditorBrowsableAttribute");
+    }
+
+    [Fact]
+    public void Given_A_Toolset_Its_Tool_Names_Are_Constants()
+    {
+        // Act
+        var run = Run(ToolsetSources.Tickets);
+
+        // Assert
+        run.Output.GetTypeByMetadataName("Demo.TicketToolset+ToolNames")!
+            .GetMembers()
+            .OfType<IFieldSymbol>()
+            .Select(field => (field.Name, field.ConstantValue))
+            .Should()
+            .Equal(
+                ("SearchTickets", "search_tickets"),
+                ("CloseTicket", "close_ticket"),
+                ("ForgetTicket", "forget_ticket"));
+    }
+
+    [Fact]
+    public void Given_Tool_Names_Matched_In_A_Pattern_Outside_A_Chain_The_Code_Compiles_Without_Warnings()
+    {
+        // Act
+        var run = Run(ShapeSources.ToolNamesMatchedOutsideAChain);
+
+        // Assert
+        run.Assert.CompilesCleanly();
     }
 
     [Fact]

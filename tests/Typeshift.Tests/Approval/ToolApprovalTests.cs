@@ -321,6 +321,27 @@ public class ToolApprovalTests : ApprovalTestBase
         ResultSentToModel(1).Should().Be(Data.Agent.Reason);
     }
 
+    [Fact]
+    public async Task Given_A_Rule_That_Matches_By_The_Generated_Constant_It_Decides_The_Call()
+    {
+        // Arrange
+        Rules.Verdicts.Add(call => call.Name switch
+        {
+            GuardedToolset.ToolNames.CloseTicket => RuleVerdict.Reject(Data.Agent.Reason),
+            _ => RuleVerdict.Abstain
+        });
+
+        ChatClient
+            .Reply(CloseTicket(Data.Tool.CallId, Data.Agent.Ticket))
+            .Reply(Text(Data.Tool.Answer));
+
+        // Act
+        await RunAsync(Data.Tool.Question);
+
+        // Assert
+        ResultSentToModel(1).Should().Be(Data.Agent.Reason);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]

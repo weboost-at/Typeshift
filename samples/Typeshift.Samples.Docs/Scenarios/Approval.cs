@@ -103,6 +103,9 @@ internal static class Approval
         if (audited != 1)
             throw new InvalidOperationException($"Expected the tool middleware to see one command, not {audited}.");
 
+        if (!services.GetRequiredService<SampleLog>().Audited.Contains("coding_agent runs dotnet test"))
+            throw new InvalidOperationException("Expected the tool middleware to log the command it matched by name.");
+
         await coding.SetModeAsync(AgentMode.Default);
 
         var asked = await coding.RunAsync("Run rm -r -f /");

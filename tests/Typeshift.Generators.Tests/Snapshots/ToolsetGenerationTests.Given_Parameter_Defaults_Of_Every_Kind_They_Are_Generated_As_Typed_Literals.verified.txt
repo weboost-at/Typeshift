@@ -43,6 +43,24 @@ namespace Demo;
 partial class GreetingToolset
 {
     /// <summary>
+    /// The names of the tools declared here, as the model, approval rules, tool middleware and decisions see them.
+    /// </summary>
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public static class ToolNames
+    {
+        /// <summary>
+        /// The <c>greet</c> tool: Greets.
+        /// </summary>
+        public const string Greet = "greet";
+
+        /// <summary>
+        /// The <c>sign</c> tool: Signs.
+        /// </summary>
+        public const string Sign = "sign";
+    }
+
+    /// <summary>
     /// Creates the <c>greet</c> tool; generated agents call it.
     /// </summary>
     /// <param name="json">How the tool binds its arguments and serializes its result.</param>

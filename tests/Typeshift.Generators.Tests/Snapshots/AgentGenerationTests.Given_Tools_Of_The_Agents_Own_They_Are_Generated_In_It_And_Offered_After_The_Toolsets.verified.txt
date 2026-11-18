@@ -162,6 +162,24 @@ partial class DeskAgent
     }
 
     /// <summary>
+    /// The names of the tools declared here, as the model, approval rules, tool middleware and decisions see them.
+    /// </summary>
+    [global::System.CodeDom.Compiler.GeneratedCode("Typeshift.Generators", "<version>")]
+    [global::System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
+    public static class ToolNames
+    {
+        /// <summary>
+        /// The <c>look_up_customer</c> tool: Looks a customer up.
+        /// </summary>
+        public const string LookUpCustomer = "look_up_customer";
+
+        /// <summary>
+        /// The <c>refund_order</c> tool: Refunds an order.
+        /// </summary>
+        public const string RefundOrder = "refund_order";
+    }
+
+    /// <summary>
     /// The configurable settings of the <c>look_up_customer</c> tool, as an agent's stored settings or a run override
     /// them. A null value keeps what the layer below sets.
     /// </summary>

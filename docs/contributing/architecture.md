@@ -70,11 +70,11 @@ fails on an import across.
    those, which `ModelShapeTests` checks. They carry no locations, so code that moves within the file of a toolset
    or an agent leaves its output cached.
 4. **Emitting** (`Emitting/ToolsetEmitter.cs`) writes, for each tool, an overrides record when it has configurable
-   settings, a hidden `Create{Tool}` factory and a private `GeneratedToolFunction` subclass. For each toolset it
-   writes an extension block on `ToolList<T>` with a property per tool, in a file of its own and the global
-   namespace (D12), plus a `[GeneratedTool]` stamp per tool
-   for agents in other assemblies (D7). What it writes is many times what it reads: a toolset of three tools and an
-   agent that uses two toolsets, 78 lines in `ScaleSources`, generate about 1,050 lines and 61 KB of C#, more than
+   settings, a hidden `Create{Tool}` factory and a private `GeneratedToolFunction` subclass, after a nested
+   `ToolNames` class with a constant per tool (D13). For each toolset it writes an extension block on `ToolList<T>`
+   with a property per tool, in a file of its own and the global namespace (D12), plus a `[GeneratedTool]` stamp per
+   tool for agents in other assemblies (D7). What it writes is many times what it reads: a toolset of three tools
+   and an agent that uses two toolsets, 78 lines in `ScaleSources`, generate about 1,050 lines and 61 KB of C#, more than
    half of it XML docs, and add about 19 KB to the assembly. It grows in step with the toolsets and agents, and the
    `measure` command of `tools/Typeshift.Tools.Generators` prints it, so a change can be weighed against it.
 5. **Agents** (`Parsing/AgentParser.cs`) read the chat and run option picks, the type of the provider `WithModel`
