@@ -1,1 +1,3 @@
-Read [AGENTS.md](AGENTS.md) before working on this repository.
+The rules for this repository are in AGENTS.md, which the line below imports into every session:
+
+@AGENTS.md
